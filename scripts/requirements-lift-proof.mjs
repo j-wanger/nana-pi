@@ -124,6 +124,22 @@ function nodeText(id, node, seed) {
  * shared with the lift module's own builder (R-1163; the two must not share placement code).
  */
 const KEPT_SECTIONS = ["Open questions", "Deliberate omissions"]; // contract (SKILL.md:126, both seeds); duplicated, not imported (R-1163)
+// Duplicated from the lift module's own tunables (R-1163: the proof shares no code with the
+// writer); these three strings are a contract the default builder must match exactly, so the
+// proof can tell a genuine label/purpose from a tampered one (MUST 3, plan review r1/r2).
+const UNSORTED_PREFIX = "Not yet sorted:";
+const UNSORTED_LABEL = "Not yet sorted";
+const UNSORTED_TEXT = `${UNSORTED_PREFIX} a synthetic capability for sections the ledger places under no Part.`;
+
+/**
+ * Re-derives the whole heading sequence a default lift must produce, from the INPUT alone
+ * (plan review r1 MUST 1, r2 MUSTs 1-2; build brief 3 MUST 3): a level, a parent by nearest
+ * preceding higher-level section, one generated "Not yet sorted" capability before each maximal
+ * run of sections with no capability above, and the reserved nodes exactly where the G rows sit
+ * — each entry also carrying the label, purpose and source `from` line(s) the default builder
+ * would assign, so the comparison in proveLift never has to borrow those from the mapping it is
+ * checking. Written fresh, not shared with the lift module's own builder (R-1163).
+ */
 function deriveDefaultSequence(inputText, seed) {
   const bareLines = segments(inputText).map(bare);
   const fenced = fenceMask(bareLines);
@@ -131,6 +147,7 @@ function deriveDefaultSequence(inputText, seed) {
   const title = all[0]?.level === 1 && all[0].line === 1 ? all[0] : null;
   const keptHeadings = all.filter((h) => h.level === 2 && KEPT_SECTIONS.includes(h.label));
   const sections = all.filter((h) => h !== title && !keptHeadings.includes(h));
+  const headingText = (line) => bareLines[line - 1];
   const rowsAt = (fromLine, toLine) => {
     const ids = [];
     for (let i = fromLine; i < toLine - 1; i++) { const id = requirementRowId(bareLines[i]); if (id) ids.push(id); }
@@ -138,6 +155,7 @@ function deriveDefaultSequence(inputText, seed) {
   };
   const boundaries = [...sections.map((h) => h.line), bareLines.length + 1];
   const rowsOf = (idx) => rowsAt(sections[idx].line, boundaries[idx + 1]);
+  const unsortedPurpose = (label) => `${UNSORTED_PREFIX} the rows of old section "${label}".`;
 
   const seq = [];
   let capN = 0, featN = 0, subN = 0, capId = null, featId = null;
@@ -152,27 +170,28 @@ function deriveDefaultSequence(inputText, seed) {
       // a bare `#` heading with only prose (no rows) directly before the run takes CAP-90's slot:
       // its own entry (just pushed, level 1) is withdrawn and CAP-90 opens in its place.
       const prev = sections[i - 1];
-      if (prev && prev.level === 1 && rowsOf(i - 1).length === 0 && seq.at(-1)?.level === 1 && seq.at(-1)?.__sectionIndex === i - 1) { seq.pop(); capN--; }
-      seq.push({ id: "CAP-90", level: 1, parent: null });
-      seq.push({ id: "FEAT-900", level: 2, parent: "CAP-90" });
-      for (let k = i; k <= runEnd; k++) seq.push({ id: seed.subOf.get(rowsOf(k)[0]) ?? "SUB-900", level: 3, parent: "FEAT-900" });
+      let absorbedPrev = false;
+      if (prev && prev.level === 1 && rowsOf(i - 1).length === 0 && seq.at(-1)?.level === 1 && seq.at(-1)?.__sectionIndex === i - 1) { seq.pop(); capN--; absorbedPrev = true; }
+      seq.push({ id: "CAP-90", level: 1, parent: null, from: [] });
+      seq.push({ id: "FEAT-900", level: 2, parent: "CAP-90", from: absorbedPrev ? [{ line: prev.line, heading: headingText(prev.line) }] : [] });
+      for (let k = i; k <= runEnd; k++) seq.push({ id: seed.subOf.get(rowsOf(k)[0]) ?? "SUB-900", level: 3, parent: "FEAT-900", from: [{ line: sections[k].line, heading: headingText(sections[k].line) }] });
       capId = "CAP-90"; featId = "FEAT-900";
       i = runEnd + 1;
       continue;
     }
     if (h.level === 1) {
       capN++; const id = `CAP-${String(capN).padStart(2, "0")}`;
-      seq.push({ id, level: 1, parent: null, __sectionIndex: i });
+      seq.push({ id, level: 1, parent: null, __sectionIndex: i, label: h.label, purpose: unsortedPurpose(h.label), from: [{ line: h.line, heading: headingText(h.line) }] });
       capId = id; featId = null; i++; continue;
     }
     // level 2 or 3 with no product capability above yet
     if (capId === null || capId === "CAP-90") {
       capN++; const synth = `CAP-${String(capN).padStart(2, "0")}`;
-      seq.push({ id: synth, level: 1, parent: null });
+      seq.push({ id: synth, level: 1, parent: null, label: UNSORTED_LABEL, purpose: UNSORTED_TEXT, from: [] });
       capId = synth; featId = null;
     }
-    if (h.level === 2) { featN++; const id = `FEAT-${String(featN).padStart(3, "0")}`; seq.push({ id, level: 2, parent: capId }); featId = id; i++; continue; }
-    subN++; const id = `SUB-${String(subN).padStart(3, "0")}`; seq.push({ id, level: 3, parent: featId }); i++;
+    if (h.level === 2) { featN++; const id = `FEAT-${String(featN).padStart(3, "0")}`; seq.push({ id, level: 2, parent: capId, label: h.label, purpose: unsortedPurpose(h.label), from: [{ line: h.line, heading: headingText(h.line) }] }); featId = id; i++; continue; }
+    subN++; const id = `SUB-${String(subN).padStart(3, "0")}`; seq.push({ id, level: 3, parent: featId, label: h.label, purpose: unsortedPurpose(h.label), from: [{ line: h.line, heading: headingText(h.line) }] }); i++;
   }
   return seq;
 }
@@ -195,6 +214,21 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
   const inSegs = segments(inputText), outSegs = segments(outputText);
   const inBare = inSegs.map(bare), outBare = outSegs.map(bare);
   const inFenced = fenceMask(inBare), outFenced = fenceMask(outBare);
+  const nodesForHead = mappingNodes(mapping);
+
+  // 0. head.through must end just before the EARLIEST old heading any node or the tail names
+  // (MUST 1: a wrong, under-counted head.through — the basketball-geek repro, head.through: 1
+  // when the true boundary is line 4 — silently drops real input lines that belong to no
+  // region at all; nothing else below ever looks at those lines, so this check is independent
+  // of whatever the writer or a hand-edited mapping claims).
+  {
+    let earliest = Infinity;
+    for (const { node } of nodesForHead) for (const f of node.from ?? []) if (f.line < earliest) earliest = f.line;
+    for (const f of mapping.tail?.from ?? []) if (f.line < earliest) earliest = f.line;
+    for (const k of mapping.tail?.keep ?? []) if (k.line < earliest) earliest = k.line;
+    const headThrough = mapping.head?.through ?? 0;
+    if (earliest !== Infinity && headThrough !== earliest - 1) problems.push(`head.through (${headThrough}) does not end just before the earliest named old heading (line ${earliest}); input lines in between would be lost`);
+  }
 
   // 2. the ID multiset, fences included
   const idsIn = inBare.map((l, i) => (inFenced[i] ? requirementRowId(l) : requirementRowId(l))).filter(Boolean);
@@ -221,6 +255,14 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     else problems.push(`row ${id}: output bytes differ from the input (terminator or content)`);
   }
 
+  // 3b. structural, independent of the per-row byte comparison above: when the input's own
+  // last raw line has no terminator, the output's last raw line must stay unterminated too (a
+  // mutation that loosens check 3 to accept a gained ending for THAT one row cannot alone pass
+  // this separate structural check).
+  if (inSegs.length && outSegs.length && !/\n$/.test(inSegs.at(-1)) && /\n$/.test(outSegs.at(-1))) {
+    problems.push(`the input's last line has no line ending, but the output's last line does`);
+  }
+
   // 6. homes and order; also feeds check 9's mapping-mode comparison
   const outParsed = parseLedger(outputText);
   const outRows = readRequirementRows(outParsed);
@@ -237,8 +279,21 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
   // 9 (fromDefault): derive the whole sequence from the input alone and require equality
   if (fromDefault) {
     const derived = deriveDefaultSequence(inputText, seed);
-    const derivedSeq = derived.map((d) => { const n = nodes.find((x) => x.id === d.id); const t = n ? nodeText(d.id, n.node, seed) : seed.byId.get(d.id) ? { label: seed.byId.get(d.id).label, purpose: seed.byId.get(d.id).purpose } : { label: "", purpose: "" }; return [d.id, t.label, t.purpose, d.parent]; });
-    if (JSON.stringify(outSeq) !== JSON.stringify(derivedSeq)) problems.push(`the output's heading sequence does not equal the sequence derived from the input alone (no capability above a section, the G run, or a section's level and parent differ from the input)`);
+    // Every field compared below — label and purpose included — comes from the INPUT (or, for
+    // a reserved id, the independently-parsed seed), never from `mapping`, so a mapping whose
+    // label or purpose diverges from what the input alone implies cannot pass by agreeing with
+    // itself (MUST 3: the prior version borrowed label/purpose from the mapping here).
+    const derivedSeq = derived.map((d) => { if (RESERVED.has(d.id)) { const s = seed.byId.get(d.id); return [d.id, s?.label ?? "", s?.purpose ?? "", d.parent]; } return [d.id, d.label, d.purpose, d.parent]; });
+    if (JSON.stringify(outSeq) !== JSON.stringify(derivedSeq)) problems.push(`the output's heading sequence does not equal the sequence derived from the input alone (no capability above a section, the G run, or a section's level, label, purpose or parent differ from the input)`);
+    // The mapping's own declared source line(s) for each id must match what the input alone
+    // implies too, so a tampered or mismatched `from` pointer (a heading-ID collision, say)
+    // cannot hide behind an otherwise-correct label and purpose.
+    for (const d of derived) {
+      const n = nodes.find((x) => x.id === d.id);
+      const mapFrom = n ? (n.node.from ?? []) : [];
+      const wantFrom = d.from ?? [];
+      if (JSON.stringify(mapFrom) !== JSON.stringify(wantFrom)) problems.push(`${d.id}: the mapping's source heading(s) ${JSON.stringify(mapFrom)} differ from what the input alone implies (${JSON.stringify(wantFrom)})`);
+    }
     // 8: each leaf's rows and each old section's lines follow input order, read from the input
     for (const { id, node } of nodes) {
       if (!(node.from ?? []).length) continue;
@@ -274,9 +329,15 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
   const ct = checkTree(outputText);
   if (ct.problems.length) problems.push(...ct.problems.map((p) => `tree check: ${p}`));
 
-  // 4–5. every other input line survives once, in order, inside its node's region; every
-  // other output line is a declared kind (a heading, a field line, table structure, the
-  // closing heading, or a blank separator).
+  // 4–5 (MUST 1: the proof partitions the WHOLE input and accounts the WHOLE output). Every
+  // input line — head, every node's region, the tail's own prose, and each kept section,
+  // blanks included — is assigned to exactly one region and must appear exactly once in the
+  // output, in that region's order, except the heading/field/header/delimiter lines the
+  // mapping replaces; a kept section is never replaced, so its whole span (heading and body) is
+  // required byte-for-byte. Every output line must be a consumed input line or a declared
+  // generated line (a tree heading, a field line, canonical table structure, the closing
+  // heading, a row, or a blank); an unconsumed non-blank line anywhere — the tail and kept
+  // sections included, not only a node's own region — is a stray extra line.
   const headLines = Math.max(0, mapping.head?.through ?? 0);
   if (JSON.stringify(inSegs.slice(0, headLines)) !== JSON.stringify(outSegs.slice(0, headLines))) problems.push(`head: the first ${headLines} line(s) are not carried verbatim`);
   const outHeadingScan = scanHeadings(outBare, outFenced);
@@ -301,55 +362,93 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     }
     return out;
   };
-  /**
-   * `expected` must appear in `actual`, in order, byte-exact; `actual` may interleave extra
-   * BLANK lines only (the one generated separator a re-laid leaf adds) — any other extra or
-   * missing line, blank or not, is a mismatch (checks 4–5).
-   */
   const isBlankSeg = (s) => bare(s) === "";
-  function proseMatches(expected, actual) {
+  const consumed = new Array(outBare.length).fill(false);
+  for (let i = 0; i < headLines && i < consumed.length; i++) consumed[i] = true;
+  // every row and fenced line anywhere is already accounted by checks 2-3 (byte-identical,
+  // multiset-equal); this loop only marks them so the stray scan below never re-flags one.
+  outBare.forEach((l, i) => { if (outFenced[i] || requirementRowId(l)) consumed[i] = true; });
+  /**
+   * `expected` (raw segments, in required order) must appear among `actual` ({seg, idx} pairs,
+   * already filtered to drop rows/fields/header-delimiter structure from this region), in
+   * order, byte-exact; `actual` may interleave extra BLANK entries only (the one generated
+   * separator a re-laid leaf adds). Every matched or skipped-blank entry is marked consumed.
+   */
+  function matchProse(expected, actual) {
     let j = 0;
     for (const e of expected) {
-      while (j < actual.length && actual[j] !== e && isBlankSeg(actual[j]) && !isBlankSeg(e)) j++;
-      if (j >= actual.length || actual[j] !== e) return false;
-      j++;
+      while (j < actual.length && actual[j].seg !== e && isBlankSeg(actual[j].seg) && !isBlankSeg(e)) { consumed[actual[j].idx] = true; j++; }
+      if (j >= actual.length || actual[j].seg !== e) return false;
+      consumed[actual[j].idx] = true; j++;
     }
-    while (j < actual.length) { if (!isBlankSeg(actual[j])) return false; j++; }
+    while (j < actual.length) { if (!isBlankSeg(actual[j].seg)) return false; consumed[actual[j].idx] = true; j++; }
     return true;
   }
   let proseCarried = 0, headingsReplaced = 0;
-  for (const { id, node, level } of nodes) {
+  for (const { id, node } of nodes) {
     const h = outHeadingScan.find((x) => x.id === id);
     if (!h) { problems.push(`${id}: not found in the output`); continue; }
+    consumed[h.line - 1] = true; // the node's own (generated or replaced) heading line
     const regionEnd = regionBoundsFor(h.line);
     const regionBare = outBare.slice(h.line, regionEnd);
     const regionFenced = outFenced.slice(h.line, regionEnd);
     const prose = [];
     for (let i = 0; i < regionBare.length; i++) {
-      if (regionFenced[i]) { prose.push(outSegs[h.line + i]); continue; }
+      const idx = h.line + i;
+      if (regionFenced[i]) { prose.push({ seg: outSegs[idx], idx }); continue; }
       const line = regionBare[i];
-      if (requirementRowId(line)) continue;
-      if (/^(Purpose|Outcome|Status|Also applies):/.test(line)) continue;
-      if (line === TABLE_HEADER_TEXT && DELIM.test(regionBare[i + 1] ?? "")) { i++; continue; }
-      prose.push(outSegs[h.line + i]);
+      if (requirementRowId(line)) { consumed[idx] = true; continue; }
+      if (/^(Purpose|Outcome|Status|Also applies):/.test(line)) { consumed[idx] = true; continue; }
+      if (line === TABLE_HEADER_TEXT && DELIM.test(regionBare[i + 1] ?? "")) { consumed[idx] = true; consumed[idx + 1] = true; i++; continue; }
+      prose.push({ seg: outSegs[idx], idx });
     }
     const expected = expectedProseFor(node.from);
-    if (!proseMatches(expected, prose)) problems.push(`${id}: prose from its old section(s) is missing, reordered, stray, or duplicated`);
+    if (!matchProse(expected, prose)) problems.push(`${id}: prose from its old section(s) is missing, reordered, stray, or duplicated`);
     proseCarried += expected.length;
     headingsReplaced += (node.from ?? []).length;
   }
-  // tail
-  const tailProse = expectedProseFor(mapping.tail?.from);
-  headingsReplaced += (mapping.tail?.from ?? []).length;
-  if (mapping.tail?.keep?.length) {
-    for (const k of mapping.tail.keep) {
-      const headingText = k.heading;
-      if (!outBare.includes(headingText)) problems.push(`tail: kept section "${headingText}" is missing from the output`);
+  // tail: the closing heading, its own carried prose, then each kept section — a verbatim
+  // span (heading included), never replaced — in order; nothing of either is allowed to go
+  // missing, shrink, grow or duplicate without being named.
+  const tailHasContent = Boolean((mapping.tail?.keep ?? []).length || (mapping.tail?.from ?? []).length);
+  let keptTailLines = 0;
+  if (tailHasContent) {
+    const closing = outHeadingScan.find((h) => bare(outSegs[h.line - 1] ?? "") === mapping.tail.heading);
+    headingsReplaced += (mapping.tail?.from ?? []).length;
+    if (!closing) {
+      problems.push(`tail: the closing heading "${mapping.tail?.heading}" is missing from the output`);
+    } else {
+      consumed[closing.line - 1] = true;
+      const tailEnd = regionBoundsFor(closing.line);
+      const tailProse = [];
+      for (let idx = closing.line; idx < tailEnd; idx++) tailProse.push({ seg: outSegs[idx], idx });
+      const tailExpected = expectedProseFor(mapping.tail?.from);
+      if (!matchProse(tailExpected, tailProse)) problems.push(`tail: prose from its old section(s) is missing, reordered, stray, or duplicated`);
+      proseCarried += tailExpected.length;
+      let cursorIdx = outHeadingScan.indexOf(closing);
+      for (const k of mapping.tail?.keep ?? []) {
+        const found = outHeadingScan.find((h, idx) => idx > cursorIdx && bare(outSegs[h.line - 1] ?? "") === k.heading);
+        if (!found) { problems.push(`tail: kept section "${k.heading}" is missing from the output, out of order, or duplicated`); continue; }
+        cursorIdx = outHeadingScan.indexOf(found);
+        const end = regionBoundsFor(found.line);
+        const actualSpan = outSegs.slice(found.line - 1, end);
+        const inHeadingLines = scanHeadings(inBare, inFenced).map((h) => h.line).filter((l) => l > k.line).sort((a, b) => a - b);
+        const inEnd = inHeadingLines.length ? inHeadingLines[0] - 1 : inBare.length;
+        const expectedSpan = inSegs.slice(k.line - 1, inEnd);
+        if (JSON.stringify(actualSpan) !== JSON.stringify(expectedSpan)) problems.push(`tail: kept section "${k.heading}" is not carried verbatim (a line was added, dropped, duplicated or changed)`);
+        for (let i = found.line - 1; i < end; i++) consumed[i] = true;
+        keptTailLines += expectedSpan.length;
+      }
     }
   }
-  proseCarried += tailProse.length;
 
-  const keptTailLines = (mapping.tail?.keep ?? []).reduce((n, k) => n + (outBare.includes(k.heading) ? 1 : 0), 0);
+  // stray-line scan: any output line not assigned to head, a node's region or the tail/kept
+  // regions above, and not blank, is unaccounted extra content (a duplicated kept section, a
+  // stray appended line, or a tampered heading nothing above recognised).
+  const strayLines = [];
+  for (let i = 0; i < outBare.length; i++) { if (!consumed[i] && outBare[i] !== "") strayLines.push(i + 1); }
+  if (strayLines.length) problems.push(`line(s) ${strayLines.slice(0, 5).join(", ")}${strayLines.length > 5 ? ` and ${strayLines.length - 5} more` : ""} in the output are not accounted for by the head, any node or the tail`);
+
   const linesInserted = Math.max(0, outSegs.length - (keptCount + proseCarried + headLines + keptTailLines));
   const summary = `lift proof: ${keptCount} rows kept byte-identical; ${proseCarried} prose lines carried; ${headingsReplaced} headings replaced; ${linesInserted} lines inserted; tree check ${ct.problems.length} problems`;
   return { problems, summary, rows: keptCount, prose: proseCarried, headings: headingsReplaced, inserted: linesInserted };

@@ -272,6 +272,22 @@ export function buildDefaultMapping(text, seed) {
   const kept = scanHeadings(bareLines, fenced).filter((h) => h.level === 2 && KEPT_SECTIONS.includes(h.label));
   const tailFrom = [];
   const tailKeep = kept.map((h) => ({ line: h.line, heading: headingText(h.line) }));
+  // E3: the closing heading is written only when the ledger holds a kept section (the seat
+  // clarification in build brief 1 §2), so T5's unterminated ledger with no kept section still
+  // lifts with its last row last and unterminated. When one DOES exist, the default would place
+  // it right after the ledger's last line; if that line is an unterminated row, the tail text
+  // would glue onto it with no line break, corrupting that row rather than placing anything
+  // "after" it in the mapping sense — refuse up front, naming the fix, before building any
+  // output (R-1163, R-1167; a kept section may sit anywhere in the file, not only at its end).
+  if (tailKeep.length) {
+    const rawTail = segments(text);
+    const lastId = rawTail.length ? requirementRowId(bareLines.at(-1) ?? "") : null;
+    if (lastId && !/\n$/.test(rawTail.at(-1))) {
+      const lastLineNo = rawTail.length;
+      problems.push(`line ${lastLineNo}: the ledger ends with an unterminated row ${lastId}; the default lift would place "${tailKeep[0].heading}" after it (end the file with a line break first)`);
+      return { mapping: null, problems };
+    }
+  }
   const mapping = { lift: MAPPING_FORMAT, pin: pinOf(text), head: { through: headEnd }, tree: tree.map(stripBuildMeta), tail: { heading: CLOSING_HEADING, from: tailFrom, keep: tailKeep } };
   return { mapping, problems: [] };
 }
@@ -316,6 +332,49 @@ function sha256(text) {
 // ---------------------------------------------------------------------- mapping validation (R-1167, both built-in and supplied)
 
 function isPlainObject(v) { return typeof v === "object" && v !== null && !Array.isArray(v); }
+/**
+ * Validates the SHAPE of every field apply()/validateMapping() will index into, before either
+ * runs — a mapping whose `rows` is a string or whose `tree` is an object must refuse with a
+ * named reason, never crash (R-1167, E1: "never a crash").
+ */
+function shapeProblems(mapping) {
+  const problems = [];
+  const checkFrom = (from, where) => {
+    if (from === undefined) return;
+    if (!Array.isArray(from)) { problems.push(`${where}: "from" must be an array`); return; }
+    for (const f of from) if (!isPlainObject(f) || typeof f.line !== "number" || typeof f.heading !== "string") problems.push(`${where}: "from" holds an entry that is not {line, heading}`);
+  };
+  const checkRows = (rows, where) => {
+    if (rows === undefined) return;
+    if (!Array.isArray(rows)) { problems.push(`${where}: "rows" must be an array of row IDs`); return; }
+    for (const r of rows) if (typeof r !== "string") problems.push(`${where}: "rows" holds a non-string entry`);
+  };
+  if (mapping.head !== undefined && !isPlainObject(mapping.head)) problems.push('mapping: "head" must be an object');
+  if (isPlainObject(mapping.head) && mapping.head.through !== undefined && typeof mapping.head.through !== "number") problems.push('mapping: "head.through" must be a number');
+  if (mapping.tree !== undefined && !Array.isArray(mapping.tree)) { problems.push('mapping: "tree" must be an array'); return problems; }
+  for (const cap of mapping.tree ?? []) {
+    if (!isPlainObject(cap) || typeof cap.id !== "string") { problems.push('mapping: "tree" holds a capability that is not an object with a string "id"'); continue; }
+    checkFrom(cap.from, cap.id);
+    if (cap.features !== undefined && !Array.isArray(cap.features)) { problems.push(`${cap.id}: "features" must be an array`); continue; }
+    for (const feat of cap.features ?? []) {
+      if (!isPlainObject(feat) || typeof feat.id !== "string") { problems.push(`${cap.id}: a feature is not an object with a string "id"`); continue; }
+      checkFrom(feat.from, feat.id);
+      checkRows(feat.rows, feat.id);
+      if (feat.subgroups !== undefined && !Array.isArray(feat.subgroups)) { problems.push(`${feat.id}: "subgroups" must be an array`); continue; }
+      for (const sub of feat.subgroups ?? []) {
+        if (!isPlainObject(sub) || typeof sub.id !== "string") { problems.push(`${feat.id}: a subgroup is not an object with a string "id"`); continue; }
+        checkFrom(sub.from, sub.id);
+        checkRows(sub.rows, sub.id);
+      }
+    }
+  }
+  if (mapping.tail !== undefined && !isPlainObject(mapping.tail)) { problems.push('mapping: "tail" must be an object'); return problems; }
+  if (isPlainObject(mapping.tail)) {
+    checkFrom(mapping.tail.from, "tail");
+    if (mapping.tail.keep !== undefined && !Array.isArray(mapping.tail.keep)) problems.push('mapping: "tail.keep" must be an array');
+  }
+  return problems;
+}
 function stringsOf(value, acc = []) {
   if (typeof value === "string") { acc.push(value); return acc; }
   if (Array.isArray(value)) { for (const v of value) stringsOf(v, acc); return acc; }
@@ -343,6 +402,8 @@ function readMapping(path, rootDir, text) {
   }
   const wantPin = pinOf(text);
   if (parsed.pin?.sha256 !== wantPin.sha256) return { problems: [`${path}: pin does not match this ledger (re-emit or re-propose the mapping)`] };
+  const shape = shapeProblems(parsed);
+  if (shape.length) return { problems: shape.map((p) => `${path}: ${p}`) };
   return { mapping: parsed, problems: [] };
 }
 
@@ -386,6 +447,18 @@ function validateMapping(mapping, text, seed) {
   }
   for (const f of mapping.tail?.from ?? []) nameHeading(f, "tail");
   for (const k of mapping.tail?.keep ?? []) nameHeading(k, "tail.keep");
+
+  // head.through must end just before the EARLIEST named old heading (§3.2): a smaller value
+  // silently drops real input lines that belong to no node and no tail entry — nothing else
+  // here ever looks at them, since they are neither a row nor a named heading.
+  {
+    let earliest = Infinity;
+    for (const { node } of nodes) for (const f of node.from ?? []) if (f.line < earliest) earliest = f.line;
+    for (const f of mapping.tail?.from ?? []) if (f.line < earliest) earliest = f.line;
+    for (const k of mapping.tail?.keep ?? []) if (k.line < earliest) earliest = k.line;
+    const headThrough = mapping.head?.through ?? 0;
+    if (earliest !== Infinity && headThrough !== earliest - 1) problems.push(`head.through (${headThrough}) must end just before the earliest named old heading (line ${earliest})`);
+  }
   for (const h of allHeadings) {
     if (h.line > (mapping.head?.through ?? 0)) {
       const n = namedOnce.get(h.line) ?? 0;
@@ -422,11 +495,21 @@ function flattenNodes(mapping) {
   }
   return out;
 }
-/** Old heading -> new node id, once per pair, for every row whose declared home differs from the node that carries its old section (research-code.md §4: "the apply step derives and prints the rows whose new home is not the node that carries their old section"). */
+/**
+ * Old heading -> new node id, once per pair, for every row whose declared home differs from
+ * the node that carries its old section (research-code.md §4: "the apply step derives and
+ * prints the rows whose new home is not the node that carries their old section"). ALSO one
+ * line per MERGE: a `from` entry whose own heading text still carries another node's tree id
+ * (that old node is gone from the tree; its whole heading was folded into this one) — the row
+ * loop alone prints nothing for a merge whose moved rows' new home already equals the node
+ * scanning them, so the owner's plan would otherwise hide it entirely (R-1162, E2).
+ */
 function detectMoves(text, mapping) {
   const bareLines = segments(text).map(bare);
   const fenced = fenceMask(bareLines);
-  const allHeadingLines = scanHeadings(bareLines, fenced).map((h) => h.line);
+  const allHeadings = scanHeadings(bareLines, fenced);
+  const allHeadingLines = allHeadings.map((h) => h.line);
+  const treeIdAt = new Map(allHeadings.filter((h) => h.id).map((h) => [h.line, h.id]));
   const nodes = flattenNodes(mapping);
   const rowHome = new Map();
   for (const { id, node } of nodes) for (const r of expandRowIds((node.rows ?? []).join(","))) rowHome.set(r, id);
@@ -434,6 +517,8 @@ function detectMoves(text, mapping) {
   const seen = new Set();
   for (const { id, node } of nodes) {
     for (const f of node.from ?? []) {
+      const oldId = treeIdAt.get(f.line);
+      if (oldId && oldId !== id) { const key = `merge:${f.heading}->${id}`; if (!seen.has(key)) { seen.add(key); moves.push([f.heading, id]); } }
       const start = f.line;
       const after = allHeadingLines.filter((l) => l > f.line);
       const end = after.length ? Math.min(...after) - 1 : bareLines.length;
@@ -742,16 +827,24 @@ export function main(argv = process.argv.slice(2)) {
   return 0;
 }
 
+/**
+ * R-1168, MUST 2: --verify must be the reviewer's full deterministic check, not just a byte
+ * compare of the applied output against HEAD. It runs the SAME mapping validation, pin check
+ * and proof `--write` runs (with `fromDefault` when no `--mapping` is given) before ever
+ * comparing bytes, and refuses naming the first (capped) list of problems — so a mapping
+ * missing a row, or any other defect the proof or validator would catch, cannot pass just
+ * because the applied bytes happen to equal HEAD's.
+ */
 function runVerify(rootDir, args, seed) {
   const repoRoot = repoRootFor(rootDir);
   if (!repoRoot) { console.error(`${rootDir}: git is not on PATH, or this is not a git repository`); return 1; }
   const relLedger = relative(repoRoot, canonical(resolve(rootDir, "REQUIREMENTS.md"))).split(sep).join("/");
   const headClean = gitClean(repoRoot, relLedger);
   if (!headClean.ok) { console.error(`--verify refused: ${relLedger} ${headClean.reason}`); return 1; }
-  let mapping = null;
+  let mapping = null, fromDefault = false, relMap = null;
   if (args.mapping) {
     const mappingPath = canonical(resolve(rootDir, args.mapping));
-    const relMap = relative(repoRoot, mappingPath).split(sep).join("/");
+    relMap = relative(repoRoot, mappingPath).split(sep).join("/");
     const mapClean = gitClean(repoRoot, relMap);
     if (!mapClean.ok) { console.error(`--verify refused: ${relMap} ${mapClean.reason}`); return 1; }
     const blob = git(repoRoot, ["show", `HEAD:./${relMap}`]);
@@ -759,23 +852,49 @@ function runVerify(rootDir, args, seed) {
     let raw = blob.stdout;
     if (raw.startsWith(BOM)) raw = raw.slice(1);
     try { mapping = JSON.parse(raw); } catch (e) { console.error(`--verify refused: HEAD:./${relMap} is not valid JSON (${e.message})`); return 1; }
+    const shape = shapeProblems(mapping);
+    if (shape.length) { for (const p of capProblems(shape)) console.error(`--verify refused: HEAD:./${relMap}: ${p}`); return 1; }
   }
   const input = git(repoRoot, ["show", `${args.verify}:./${relLedger}`]);
   if (input.status !== 0) { console.error(`--verify refused: could not read ${args.verify}:./${relLedger}`); return 1; }
   const expected = git(repoRoot, ["show", `HEAD:./${relLedger}`]);
   if (expected.status !== 0) { console.error(`--verify refused: could not read HEAD:./${relLedger}`); return 1; }
   const inputText = input.stdout;
-  if (!mapping) {
+
+  if (mapping) {
+    // the pin check --write also runs (via readMapping) for a supplied mapping: it must be
+    // THIS ledger's own mapping, not merely valid JSON that happens to apply without error.
+    const wantPin = pinOf(inputText);
+    if (mapping.pin?.sha256 !== wantPin.sha256) { console.error(`--verify refused: HEAD:./${relMap} pin does not match ${args.verify}:./${relLedger} (re-emit or re-propose the mapping)`); return 1; }
+  } else {
     const ct = checkTree(inputText);
-    mapping = ct.problems.length === 0 ? buildIdentityMapping(inputText) : buildDefaultMapping(inputText, seed).mapping;
+    if (ct.problems.length === 0) {
+      mapping = buildIdentityMapping(inputText);
+    } else if (isFlatLedger(inputText)) {
+      const built = buildDefaultMapping(inputText, seed);
+      if (built.problems.length) { for (const p of capProblems(built.problems)) console.error(`--verify refused: ${p}`); return 1; }
+      mapping = built.mapping; fromDefault = true;
+    } else {
+      console.error(`--verify refused: ${args.verify}:./${relLedger} is neither flat nor a passing tree; supply --mapping`);
+      return 1;
+    }
   }
-  if (!mapping) { console.error(`--verify refused: ${args.verify}:./${relLedger} cannot be lifted by the default`); return 1; }
+
+  const vprobs = validateMapping(mapping, inputText, seed);
+  if (vprobs.length) { for (const p of capProblems(vprobs)) console.error(`--verify refused: ${p}`); return 1; }
+
   const output = applyMapping(inputText, mapping, seed);
-  if (output === expected.stdout) { console.log(`--verify ${args.verify}: matches HEAD`); return 0; }
-  const a = output.split("\n"), b = expected.stdout.split("\n");
-  const i = a.findIndex((line, n) => line !== b[n]);
-  console.error(`--verify refused: line ${i + 1} differs from HEAD`);
-  return 1;
+  const proof = proveLift(inputText, mapping, output, seed.text, { fromDefault });
+  if (proof.problems.length) { for (const p of capProblems(proof.problems)) console.error(`--verify refused: ${p}`); return 1; }
+
+  if (output !== expected.stdout) {
+    const a = output.split("\n"), b = expected.stdout.split("\n");
+    const i = a.findIndex((line, n) => line !== b[n]);
+    console.error(`--verify refused: line ${i + 1} differs from HEAD`);
+    return 1;
+  }
+  console.log(`--verify ${args.verify}: matches HEAD (${proof.summary})`);
+  return 0;
 }
 
 // realpath, not resolve: a run through a symlink to this script must still execute main()
