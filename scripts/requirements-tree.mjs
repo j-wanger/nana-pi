@@ -17,10 +17,10 @@ const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
-const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
-const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
+export const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
+export const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
 const MARKDOWN_TABLE_DELIMITER_CELL = /^:?-+:?$/;
-function markdownTableCells(line) {
+export function markdownTableCells(line) {
   if (!line.includes("|")) return null;
   const cells = line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
   return cells.length >= 2 ? cells : null;
@@ -404,7 +404,7 @@ function checkNearMissHeadings(parsed) {
 // padded header (a markdown formatter, or one trailing space), a blank line inside a table, or
 // a row inside a code fence must not undercount the rows a no-tree ledger holds, or make a
 // ledger that has rows read as having none.
-function countRequirementRowLines(parsed) {
+export function countRequirementRowLines(parsed) {
   let count = 0;
   for (let i = 0; i < parsed.lines.length; i++) {
     if (requirementRowId(parsed.lines[i])) count++;

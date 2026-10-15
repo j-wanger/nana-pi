@@ -1,6 +1,6 @@
 ---
 name: requirements
-description: Work the standing requirement set — REQUIREMENTS.md rows, the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract. Use when the user mentions requirements, REQUIREMENTS.md, a requirement, trace, "which rows" cover something, no hardcoding, the code map, a module header, the README or readme-check, conflicts between rows, or asks what is failing now. Also for the audit mode that extracts rows from an existing project.
+description: Work the standing requirement set — REQUIREMENTS.md rows, the `req:` trace rail, sealed tunables, module contract headers, the code map, the README contract, the requirements tree and lifting a flat ledger into it. Use when the user mentions requirements, REQUIREMENTS.md, a requirement, trace, "which rows" cover something, no hardcoding, the code map, a module header, the README or readme-check, conflicts between rows, the requirements tree, a lift into the tree, or asks what is failing now. Also for the audit mode that extracts rows from an existing project.
 ---
 
 # Requirements — the standing set, the trace rail, the code map
@@ -128,6 +128,8 @@ Once the ledger has a tree (capability → feature → subgroup headings), add e
 A ledger without a requirements tree keeps its numbered sections; its next step is a lift into the tree, with every row kept byte-identical, then a regroup into capabilities and features that the owner approves. Until then, a ledger with rows and no tree yet is refused by the checker command and the product report with one line naming the row count, saying the ledger has no requirements tree yet, and pointing back here for the next step — in place of one problem per row.
 
 Check the tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .`. The product report (`node "$HOME/nana-pi/scripts/product-report.mjs" --root .`) needs the tree, `HANDOFF.md` and git in the project root to build.
+
+Lift the flat ledger with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root .`: a dry run that shows the plan and the proof line, writing nothing — every purpose is a "Not yet sorted:" placeholder. If the ledger holds uncommitted edits, tell the owner; never commit, stash or discard another session's lines to get past the refusal. Run `--write` only after the owner's yes, and only while REQUIREMENTS.md matches HEAD in every worktree of the repository — the lift refuses otherwise, naming the reason. A shape the default refuses (a hand-built partial tree, say) takes `--emit-mapping` to save the starting mapping, then an edit, a commit, and `--mapping` to apply it. Check the tree, then commit `REQUIREMENTS.md` by its own path with the proof line in the commit message; the reviewer re-runs `--verify <base>` on the tip. Lift only when no other lane is editing the ledger; name no regroup command until that lane lands.
 
 ## 5. Audit mode — an existing project with no rows yet
 
