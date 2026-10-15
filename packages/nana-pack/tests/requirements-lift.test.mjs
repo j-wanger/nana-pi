@@ -418,6 +418,29 @@ if (process.platform !== "win32") {
   // match, the kept-span check, the kept-section-missing check and the closing-heading-missing
   // check all at once; this tamper needs only the one still standing to red).
   T.keptSectionDropped = probe(goodOut.replace(/\n## Deliberate omissions\n\n1\. A deliberate omission\.\n?$/, "\n"));
+  // Build brief 4 §A's own three named escapes (seat-verify-0dc5d1d.md "Notes": these pass both
+  // the proof and the tree check today) -- each caught only by the new input-derived multiset
+  // count, not by any region-by-region check above, since none of the three moves, drops or
+  // reorders a line any existing check looks at; it only adds a line a region's own recogniser
+  // accepts generically without counting it, or a line that region-matching does not look at.
+  // An extra, rowless header+delimiter pair appended right after a real table: the per-node
+  // prose loop recognises ANY header+delimiter pair and marks it consumed unconditionally, so
+  // the stray-line scan never sees it.
+  T.extraHeaderPair = probe(goodOut.replace(
+    "| R-002 | The second thing shall work. | untested | — |\n\n## FEAT-002",
+    "| R-002 | The second thing shall work. | untested | — |\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n\n## FEAT-002"));
+  // A second "Purpose:" line in a node: the per-node prose loop's field-label regex matches it
+  // too and marks it consumed, with no count of how many such lines a node may legitimately have.
+  T.duplicatePurposeLine = probe(goodOut.replace(
+    "## FEAT-001 · 1. One\nPurpose: Not yet sorted: the rows of old section \"1. One\".\nStatus: active",
+    "## FEAT-001 · 1. One\nPurpose: Not yet sorted: the rows of old section \"1. One\".\nPurpose: Not yet sorted: the rows of old section \"1. One\".\nStatus: active"));
+  // A stray fenced block between the head and the first node's heading: outside head's own
+  // fixed-length prefix (so the exact head check never sees it) and before any node's region
+  // (so no node's own prose match ever scans it); the old stray-line scan pre-marks every
+  // fenced line consumed, whatever it holds.
+  T.strayFenceBeforeFirstNode = probe(goodOut.replace(
+    "Intro prose for the fixture.\n\n# CAP-01",
+    "Intro prose for the fixture.\n\n```\nstray fenced content\n```\n\n# CAP-01"));
   // Each entry asserts BOTH that the probe is red AND that it names the SPECIFIC problem text
   // the check it targets emits (brief 3 §D) — a redundant check elsewhere catching the same
   // tamper under a DIFFERENT message would not, by itself, satisfy the pattern.
@@ -445,6 +468,9 @@ if (process.platform !== "win32") {
     ["a section's lines out of order", T.sectionLinesOutOfOrder, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
     ["a G row in another reserved subgroup", T.gRowWrongSubgroup, /not its seed subgroup/],
     ["a kept tail section dropped entirely", T.keptSectionDropped, /tail: kept section ".*" is missing from the output/],
+    ["an extra, rowless header pair appended after a table", T.extraHeaderPair, /line accounting:.*unaccounted extra/],
+    ["a second Purpose: line in a node", T.duplicatePurposeLine, /line accounting:.*unaccounted extra/],
+    ["a stray fenced block between the head and the first node", T.strayFenceBeforeFirstNode, /line accounting:.*unaccounted extra/],
   ];
   const allRed = tz.every(([, r, pattern]) => r.problems.length > 0 && r.problems.some((p) => pattern.test(p)));
   const baselineClean = baseline.problems.length === 0;

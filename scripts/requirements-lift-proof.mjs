@@ -528,6 +528,76 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
   for (let i = 0; i < outBare.length; i++) { if (!consumed[i] && outBare[i] !== "") strayLines.push(i + 1); }
   if (strayLines.length) problems.push(`line(s) ${strayLines.slice(0, 5).join(", ")}${strayLines.length > 5 ? ` and ${strayLines.length - 5} more` : ""} in the output are not accounted for by the head, any node or the tail`);
 
+  // Line accounting derived from the input alone (build brief 4 §A "Rule"): a COUNT-based
+  // backstop, independent of the region-by-region matching above, which reasons node by node
+  // and so misses a line whose whole region moved, a duplicate of a kind a region recognises
+  // GENERICALLY (a second generated field line, an extra header pair), or a stray fenced block
+  // (the stray-line scan above pre-marks every fenced line consumed, whatever it holds, and the
+  // per-node prose loop marks any field-labelled or header+delimiter LOOKING line consumed with
+  // no count). Build two multisets of raw segments, blank ones dropped (today's positional
+  // blank-line checks above already cover blanks for in-place and re-laid leaves):
+  //   INPUT, minus (1) an old heading line a node or the tail names as a `from` source (never a
+  //   kept section's own heading, which is carried, not replaced); (2) -- when that heading is
+  //   itself tree-form -- its own field-line block, as the tree parser defines it; (3) each
+  //   requirement-table header+delimiter pair inside such a heading's own old span.
+  //   OUTPUT, minus a node's own heading, the tail's closing heading, each node's own FIRST
+  //   field-line block, and each header+delimiter pair in a node's region that has a row
+  //   following it before the next one -- a SECOND field line, or an extra, rowless, header
+  //   pair, is left counted on this side, so it shows as an unmatched extra.
+  // The two multisets, counted (not just recognised), must be exactly equal.
+  {
+    const namedFromLines = [];
+    for (const { node } of nodesForHead) for (const f of node.from ?? []) namedFromLines.push(f.line);
+    for (const f of mapping.tail?.from ?? []) namedFromLines.push(f.line);
+    const inExcluded = new Array(inBare.length).fill(false);
+    for (const line of namedFromLines) {
+      const idx = line - 1;
+      if (idx < 0 || idx >= inExcluded.length) continue;
+      inExcluded[idx] = true; // the old heading line itself
+      const treeId = TREE_HEADING.exec(inBare[idx])?.[2] ?? null;
+      for (const i of fieldBlockAt(inBare, inAllHeadingLines, line, treeId)) inExcluded[i] = true;
+      const after = inAllHeadingLines.filter((l) => l > line).sort((a, b) => a - b);
+      const regionEnd = after.length ? after[0] - 1 : inBare.length;
+      for (let i = idx + 1; i < regionEnd; i++) {
+        if (isTableHeaderAt(inBare, i)) { inExcluded[i] = true; inExcluded[i + 1] = true; i++; }
+      }
+    }
+    const outHeadingLinesAll = outHeadingScan.map((h) => h.line);
+    const outExcluded = new Array(outBare.length).fill(false);
+    for (const { id } of nodes) {
+      const h = outHeadingScan.find((x) => x.id === id);
+      if (!h) continue;
+      const hIdx = h.line - 1;
+      outExcluded[hIdx] = true; // the node's own (generated or replaced) heading line
+      for (const i of fieldBlockAt(outBare, outHeadingLinesAll, h.line, id)) outExcluded[i] = true;
+      const after = outHeadingLinesAll.filter((l) => l > h.line).sort((a, b) => a - b);
+      const regionEnd = after.length ? after[0] - 1 : outBare.length;
+      for (let i = hIdx + 1; i < regionEnd; i++) {
+        if (isTableHeaderAt(outBare, i)) {
+          let hasRow = false;
+          for (let j = i + 2; j < regionEnd; j++) { if (outBare[j] === TABLE_HEADER_TEXT) break; if (requirementRowId(outBare[j])) { hasRow = true; break; } }
+          if (hasRow) { outExcluded[i] = true; outExcluded[i + 1] = true; }
+          i++;
+        }
+      }
+    }
+    if (tailHasContent) {
+      const closingH = outHeadingScan.find((h) => bare(outSegs[h.line - 1] ?? "") === mapping.tail.heading);
+      if (closingH) outExcluded[closingH.line - 1] = true;
+    }
+    const multisetOf = (segs, excluded) => segs.filter((s, i) => !excluded[i] && !isBlankSeg(s));
+    const inMulti = multisetOf(inSegs, inExcluded);
+    const outMulti = multisetOf(outSegs, outExcluded);
+    if (JSON.stringify([...inMulti].sort()) !== JSON.stringify([...outMulti].sort())) {
+      const countOf = (arr) => { const m = new Map(); for (const s of arr) m.set(s, (m.get(s) ?? 0) + 1); return m; };
+      const cin = countOf(inMulti), cout = countOf(outMulti);
+      let missing = 0, extra = 0, sample = null;
+      for (const [s, n] of cin) { const d = n - (cout.get(s) ?? 0); if (d > 0) { missing += d; sample ??= JSON.stringify(s); } }
+      for (const [s, n] of cout) { const d = n - (cin.get(s) ?? 0); if (d > 0) { extra += d; sample ??= JSON.stringify(s); } }
+      problems.push(`line accounting: the input and output do not carry the same non-blank lines once headings, field lines and table structure are set aside (${missing} missing, ${extra} unaccounted extra, e.g. ${sample})`);
+    }
+  }
+
   const linesInserted = Math.max(0, outSegs.length - (keptCount + proseCarried + headLines + keptTailLines));
   const summary = `lift proof: ${keptCount} rows kept byte-identical; ${proseCarried} prose lines carried; ${headingsReplaced} headings replaced; ${linesInserted} lines inserted; tree check ${ct.problems.length} problems`;
   return { problems, summary, rows: keptCount, prose: proseCarried, headings: headingsReplaced, inserted: linesInserted };
