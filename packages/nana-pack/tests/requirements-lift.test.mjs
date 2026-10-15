@@ -859,6 +859,36 @@ if (process.platform !== "win32") {
 }
 
 {
+  // E2: a MERGE (one old heading's `from` folded into another node's `from`, that old node
+  // gone from the tree) prints its own move line, naming the retired heading and its new home
+  // — distinct from T20's row moves (where the old node still exists, just emptied). Before
+  // this fix, a merge printed no line at all: the owner's plan would hide it.
+  const dir = gitRepo("t34", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  const cap = map.tree[0];
+  const f1 = cap.features.find((f) => f.id === "FEAT-001");
+  const f2 = cap.features.find((f) => f.id === "FEAT-002");
+  f1.rows = [...f1.rows, ...f2.rows];
+  f1.from = [...f1.from, ...f2.from]; // the merge: FEAT-002's own old heading folds into FEAT-001's `from`
+  cap.features = cap.features.filter((f) => f !== f2);
+  writeFileSync(mapPath, JSON.stringify(map));
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "merge");
+  const dry = lift(["--root", dir, "--mapping", mapPath]);
+  const mergeLine = lines(dry.stdout).filter((l) => (l.includes("->") || l.includes("→")) && l.includes("FEAT-002") && l.includes("FEAT-001"));
+  const w = lift(["--root", dir, "--mapping", mapPath, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const noMoreFeat2 = !out.includes("FEAT-002");
+  const allRowsUnderF1 = out.slice(out.indexOf("FEAT-001"), out.indexOf("## Open questions") < 0 ? out.length : out.indexOf("## Open questions")).includes("| R-003 |");
+  // req: R-1162
+  check("R-1162: a merge (an old heading folded into another node's from) prints its own move line, naming the retired heading and its new home",
+    dry.status === 0 && mergeLine.length === 1 && w.status === 0 && noMoreFeat2 && allRowsUnderF1,
+    `dry=${dry.status} mergeLine=${JSON.stringify(mergeLine)} w=${w.status} noMoreFeat2=${noMoreFeat2} allRowsUnderF1=${allRowsUnderF1}`);
+}
+
+{
   const lfDir = gitRepo("t21-lf", flatLedger());
   const mapPath = join(lfDir, "map.json");
   lift(["--root", lfDir, "--emit-mapping", mapPath]);
