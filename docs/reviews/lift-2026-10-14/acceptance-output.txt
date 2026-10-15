@@ -1,0 +1,138 @@
+ok   (harness) git merge-base main HEAD resolves
+ok   (harness) the scratch folder is outside the checkout
+ok   (harness) the seat's six ledger copies under /Users/jwang/.cache/nana-lift-ledgers exist and match their pinned SHA-256
+ok   (harness) the seat's ledger copies: aml-desk 365 rows, basketball-geek 171 (165 at HEAD), trading-zone 197, yokai-world a tree, the prose-only ledger no row (research-ledgers.md §1–§5)
+ok   (harness) the seed parses to CAP-90, FEAT-900, SUB-900 to SUB-904 with 22 G rows, and the Python seed carries the closing heading
+ok   (d) scripts/requirements-lift.mjs and scripts/requirements-lift-proof.mjs exist (§4 In)
+ok   (a) seat-titles 1 prints `seat-titles 1: 0 missing` and exits 0 (§5: every T1–T31 title exists under its req: marker)
+ok   (d) aml-desk: the dry run exits 0, prints one line per planned heading (49), no move line and the proof line with 365 rows, 49 headings replaced and tree check 0 problems, writes nothing (R-1162, R-1163, §3.5)
+ok   (d) aml-desk: --write on a clean committed copy exits 0 with the same proof line, stages nothing and commits nothing (R-1164, §3.8)
+ok   (d) aml-desk: every dry-run plan line carries its heading's row count, its own rows and its children's, as the written ledger holds them (R-1162)
+ok   (d) aml-desk: the written ledger differs from the input, every row line is byte-identical with its ending, the ID multiset equal, in file order (R-1163, R-1165)
+ok   (d) aml-desk: every other input line survives once in input order and every added line is a declared kind (R-1163, R-1165)
+ok   (d) aml-desk: the title and the 12 lines before the first section stay verbatim in place (R-1165 rule 1)
+ok   (d) aml-desk: Open questions and Deliberate omissions stay verbatim, in order, under the seed's closing heading after every row and tree heading (R-1165 rule 5)
+ok   (d) aml-desk: every default purpose, and every capability's outcome, starts "Not yet sorted:", and every feature reads Status: active (R-1165, S11)
+ok   (d) aml-desk: the tree checker passes the lifted ledger (R-1163)
+ok   (d) aml-desk: 6 capabilities, 41 features, 2 subgroups, in the dry run and in the written ledger (§5)
+ok   (d) aml-desk: each Part, ## and ### becomes a capability, feature and subgroup in file order with its old heading text as label and parent by level (R-1165 rule 2)
+ok   (d) aml-desk: the three headless fragments each gain the exact table header: 3 header pairs inserted (§5, R-1165 §3.4)
+ok   (d) basketball-geek HEAD: the dry run exits 0, prints one line per planned heading (10), no move line and the proof line with 165 rows, 9 headings replaced and tree check 0 problems, writes nothing (R-1162, R-1163, §3.5)
+ok   (d) basketball-geek HEAD: --write on a clean committed copy exits 0 with the same proof line, stages nothing and commits nothing (R-1164, §3.8)
+ok   (d) basketball-geek HEAD: every dry-run plan line carries its heading's row count, its own rows and its children's, as the written ledger holds them (R-1162)
+ok   (d) basketball-geek HEAD: the written ledger differs from the input, every row line is byte-identical with its ending, the ID multiset equal, in file order (R-1163, R-1165)
+ok   (d) basketball-geek HEAD: every other input line survives once in input order and every added line is a declared kind (R-1163, R-1165)
+ok   (d) basketball-geek HEAD: the title and the 4 lines before the first section stay verbatim in place (R-1165 rule 1)
+ok   (d) basketball-geek HEAD: Open questions and Deliberate omissions stay verbatim, in order, under the seed's closing heading after every row and tree heading (R-1165 rule 5)
+ok   (d) basketball-geek HEAD: every default purpose, and every capability's outcome, starts "Not yet sorted:", and every feature reads Status: active (R-1165, S11)
+ok   (d) basketball-geek HEAD: the tree checker passes the lifted ledger (R-1163)
+ok   (d) basketball-geek HEAD: CAP-01 · Not yet sorted holds FEAT-001 to FEAT-009, each with its old heading text, no subgroup: 1/9/0 (§5, R-1165 rule 3)
+ok   (d) trading-zone: the dry run exits 0, prints one line per planned heading (20), no move line and the proof line with 197 rows, 17 headings replaced and tree check 0 problems, writes nothing (R-1162, R-1163, §3.5)
+ok   (d) trading-zone: --write on a clean committed copy exits 0 with the same proof line, stages nothing and commits nothing (R-1164, §3.8)
+ok   (d) trading-zone: every dry-run plan line carries its heading's row count, its own rows and its children's, as the written ledger holds them (R-1162)
+ok   (d) trading-zone: the written ledger differs from the input, every row line is byte-identical with its ending, the ID multiset equal, in file order (R-1163, R-1165)
+ok   (d) trading-zone: every other input line survives once in input order and every added line is a declared kind (R-1163, R-1165)
+ok   (d) trading-zone: the title and the 54 lines before the first section stay verbatim in place (R-1165 rule 1)
+ok   (d) trading-zone: Open questions and Deliberate omissions stay verbatim, in order, under the seed's closing heading after every row and tree heading (R-1165 rule 5)
+ok   (d) trading-zone: every default purpose, and every capability's outcome, starts "Not yet sorted:", and every feature reads Status: active (R-1165, S11)
+ok   (d) trading-zone: the tree checker passes the lifted ledger (R-1163)
+ok   (d) trading-zone: the capabilities are CAP-01, CAP-90, CAP-02 in that order, FEAT-001–004 under CAP-01, FEAT-900 under CAP-90, FEAT-005–FEAT-011 under CAP-02 (§5, R-1165 rule 3, §3.5 check 9)
+ok   (d) trading-zone: the whole heading sequence, labels and parents equal the default rule derived from the input (R-1165, §3.5 check 9)
+ok   (d) trading-zone: CAP-90, FEAT-900 and SUB-900 to SUB-904 carry the seed's labels, purposes, outcome and status (R-1165 rule 4, §3.2)
+ok   (d) trading-zone: every G row sits in the seed subgroup whose table holds it, under FEAT-900 and CAP-90, and no R row sits in CAP-90 (R-1163, R-1165)
+ok   (d) trading-zone: the emitted default mapping, committed and passed back with --mapping --write, writes the default lift's bytes (R-1162, R-1166)
+ok   (d) trading-zone: the tip's proveLift passes the true default lift with and without fromDefault, and refuses it tampered so sections 5–11 sit under CAP-90 (mapping and output), with fromDefault naming a placement problem the mapping mode does not (R-1163, §3.5 check 9)
+ok   (d) trading-zone: in mapping mode the tip's proveLift refuses an output whose FEAT-004 sits under CAP-02 while the mapping declares CAP-01 (R-1163)
+ok   (d) yokai-world: the dry run exits 1 naming its 42 tree headings, prints no proof line and writes nothing (§5, R-1167)
+ok   (d) a prose-only ledger: the dry run exits 1 saying no requirement rows, with no proof line (§5, R-1167)
+ok   (harness) the mixed copy holds both LF and CRLF row lines
+ok   (v) basketball-geek CRLF: the dry run and --write exit 0, 171/171 rows keep their bytes and endings, the BOM is kept iff present, and the checker passes (§5, R-1163)
+ok   (v) basketball-geek CRLF: the ledger was rewritten, and every other input line survives once in input order, bytes and ending included (R-1163)
+ok   (v) basketball-geek BOM+CRLF: the dry run and --write exit 0, 171/171 rows keep their bytes and endings, the BOM is kept iff present, and the checker passes (§5, R-1163)
+ok   (v) basketball-geek BOM+CRLF: the ledger was rewritten, and every other input line survives once in input order, bytes and ending included (R-1163)
+ok   (v) basketball-geek mixed-ending: the dry run and --write exit 0, 171/171 rows keep their bytes and endings, the BOM is kept iff present, and the checker passes (§5, R-1163)
+ok   (v) basketball-geek mixed-ending: the ledger was rewritten, and every other input line survives once in input order, bytes and ending included (R-1163)
+ok   (v) basketball-geek with an ANSI row appended: the dry run exits 1 naming line 241, prints no proof line and leaves the ledger unchanged (§5, R-1167, §3.2 Reads)
+ok   (harness) a scratch repository holds basketball-geek's committed HEAD ledger and a lane worktree
+ok   (w) with the six uncommitted rows in the main checkout, --write from the lane worktree exits 1 naming that checkout and leaves both ledgers unchanged (§5, R-1164)
+ok   (w) a project in a subfolder (proj/): with the six uncommitted rows in the main checkout's proj/, --write from the lane worktree's proj/ exits 1 naming the main checkout and leaves both ledgers unchanged (R-1164, §3.6)
+ok   (w) with every worktree clean, --write from the lane worktree exits 0 and replaces the ledger (R-1164)
+ok   (w) the lifted lane ledger is 1/9/0 with every row byte-identical (§5)
+ok   (w) --verify <base> on the committed lift exits 0 (§5, R-1168)
+ok   (w) --verify <base> with an uncommitted edit to the committed lift exits 1 naming REQUIREMENTS.md, and the edit is then discarded (R-1168)
+ok   (w) --verify <base> on a hand-edited lift (the clean lift verified) exits 1 naming its first differing line, 22 (R-1168)
+ok   (w) --emit-mapping on the noted lift exits 0 and writes only the named file (R-1162)
+ok   (w) the emitted mapping is the identity: lift 1, the LF-form pin and row count, every heading mapped to itself with its label and purpose, rows in file order (§3.2, R-1162)
+ok   (w) --emit-mapping refuses a file that exists (the first emit wrote it) and leaves it unchanged (R-1162, §3.6)
+ok   (w) the identity mapping round-trips: --mapping prints one line per heading and no move line, and --write leaves the ledger's bytes unchanged (R-1162, R-1166)
+ok   (w) the identity mapping hand-edits into the rehearsal's proposal: two capabilities, one merge, three moved rows, one proposed feature, FEAT-009 moved under CAP-02 (§5)
+ok   (w) the regroup rehearsal validates and proves: the dry run exits 0 with the proof line and 165 rows, one line per planned heading and one per move, naming FEAT-004 → FEAT-006 and FEAT-007 → FEAT-001 (§5, R-1162, R-1166)
+ok   (w) --write with the proposal untracked exits 1 naming the mapping file and leaves the ledger unchanged (R-1164)
+ok   (w) the committed proposal writes: exit 0, its headings, labels, purposes and parents in its order, FEAT-010 proposed and empty (R-1166, R-1163)
+ok   (w) each leaf holds its rows in the proposal's order, the three moved rows at their new homes (R-1166)
+ok   (w) every line of the rehearsal's dry-run plan carries its heading's row count as the regrouped ledger holds it (R-1162)
+ok   (w) each prose note lands once under the node its old section maps to: section 3's under FEAT-002 (the merge), section 4's under FEAT-004 (rows moved out), section 9's under FEAT-009 (moved under CAP-02) (R-1166)
+ok   (w) the regrouped ledger keeps every row byte-identical, every prose line once and every blank line (R-1163)
+ok   (w) the tree checker passes the regrouped ledger (R-1163)
+ok   (w) --verify <the noted lift> with the committed proposal exits 0 (R-1168)
+ok   (w) --verify with an uncommitted change to the mapping file exits 1 naming proposal.json, and the change is then discarded (R-1168)
+ok   (w) a mapping saved with a UTF-8 BOM (Windows PowerShell 5.1 -Encoding UTF8) is accepted: exit 0 with the proof line (R-1166, R-1167)
+ok   (w) an ANSI (cp1252) mapping is refused: exit 1 naming its line 14, no proof line (R-1167, §3.2 Reads)
+ok   (w) no --root, --write with --emit-mapping, --mapping with --emit-mapping and a <rev> starting - each exit 2 with a usage line naming --root (R-1167, §3.6)
+ok   (w) --write with --verify, and --emit-mapping with --verify, each exit 2 with a usage line naming --root and create no file (R-1167, §3.6)
+ok   (w) run through a symlink to the script, the dry run on the flat HEAD copy still prints its plan and proof line (§3.6, R-1162)
+ok   (harness) every scratch repository the run made persists core.autocrlf=false in its own config
+ok   (s) the requirements skill names the lift's dry run exactly and T29's three phrases (R-1169)
+ok   (s) the skill description gains "requirements tree" and "lift" (§3.7)
+ok   (guard) the requirements skill keeps R-1154's carve-out sentence (§3.7)
+ok   (s) the requirements skill says to tell the owner about uncommitted ledger edits (R-1169, §3.7)
+ok   (s) every flag the skill shows for the lift, inside backticks or not, appears in the lift's source as a whole flag, and the skill shows --root and --write (R-1169)
+ok   (harness) CHANGE §2 gives one-shall text for each of R-1162 to R-1169, and the lane adds eight rows
+ok   (e) R-1162 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1163 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1164 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1165 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1166 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1167 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1168 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1169 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1162–R-1168 follow R-1161 line by line in FEAT-028 (§2)
+ok   (e) R-1169 follows R-1156 line by line in FEAT-032 (§2)
+ok   (e) R-1162's evidence cites its 4 §5 title(s) as the rail reads them
+ok   (e) R-1163's evidence cites its 4 §5 title(s) as the rail reads them
+ok   (e) R-1164's evidence cites its 5 §5 title(s) as the rail reads them
+ok   (e) R-1165's evidence cites its 6 §5 title(s) as the rail reads them
+ok   (e) R-1166's evidence cites its 4 §5 title(s) as the rail reads them
+ok   (e) R-1167's evidence cites its 6 §5 title(s) as the rail reads them
+ok   (e) R-1168's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1169's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1162 to R-1169 and R-291 read implemented
+ok   (guard) R-291's evidence keeps every base citation other than the base leaf-total title
+ok   (guard) no base row changes its Requirement text or Status (§2)
+ok   (e) the row set is the base's plus R-1162 to R-1169, each once: leaf total 1128 → 1136 (§2)
+ok   (e) the leaf totals agree with R-291's renamed title (T30)
+ok   (guard) nana-pi's tree headings are the base's (68; §2 "headings stay 68")
+ok   (harness) R-1162 to R-1169 are unused at the base (§2)
+ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0 (§5 Suite)
+ok   (guard) git diff --name-only d9cf0bc..HEAD lists only §4 In paths and this review folder
+ok   (guard) the merge-base diff touches nothing §3.8 names
+ok   (f) requirements-tree.mjs differs from the base by exactly four `export` keywords on TABLE_HEADER, TABLE_DELIMITER, markdownTableCells and countRequirementRowLines (§3.1, §4, §3.8)
+ok   (f) the tree module exports the four names (§3.1)
+ok   (f) the lift module exports its tunables by name: UNSORTED_PREFIX "Not yet sorted:", PROBLEM_LINE_CAP 40, MAPPING_FORMAT 1, CANONICAL_DELIMITER |---|---|---|---|, and the rest defined (§3.1)
+ok   (f) the proof module imports only the tree module, the trace shim and node builtins, and reaches no lift module (R-1163, §3.1, T7)
+ok   (f) the lift's source runs no git add, commit, stash, reset, checkout or restore (§3.8)
+ok   (guard) the tree module's main guard is the base's line, unchanged (§3.8)
+ok   (f) README names both new scripts, the lift command with --root beside its git need (§4, readme-check's every-script rule)
+ok   (guard) node scripts/requirements-tree.mjs --check exits 0 (§5 Suite)
+ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0 (§5 Suite)
+ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0 (§5 Suite)
+ok   (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In, the land checklist)
+ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
+ok   (harness) uvx copier is available (templates-render.test.mjs runs with NANA_TEST_REQUIRE_COPIER=1)
+ok   (g) packages/nana-pack/tests/requirements-lift.test.mjs exits 0 (§5 Suite)
+ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0 (§5 Suite)
+ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0 (§5 Suite)
+ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
+ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
+cases: 136/136 (build cases red: 0/110; guard and harness red: 0/26)
+lift acceptance: 0 mismatch(es)
