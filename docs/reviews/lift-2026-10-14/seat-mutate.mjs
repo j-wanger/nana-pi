@@ -56,7 +56,7 @@ import { fileURLToPath } from "node:url";
 
 const LANE_REPO = "/Users/jwang/nana-pi-wt/lift";
 const LANE_BRANCH = "feat/lift";
-const TIP = process.env.SEAT_MUTATE_TIP || "0dc5d1d";
+const TIP = process.env.SEAT_MUTATE_TIP || "9eadde0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // os.tmpdir(), never beside this script: a scratch git worktree inside the lane folder breaks copier-based suite
 // tests run there ("No url found for submodule path …/wt"). The tree lane's runner ran from the session scratchpad.
@@ -65,6 +65,8 @@ const WT = path.join(SCRATCH, "wt");
 const RUNS = path.join(SCRATCH, "runs");
 const KEEP = process.env.SEAT_MUTATE_KEEP === "1";
 const DRY = process.env.SEAT_MUTATE_DRY === "1";
+const LOGDIR = process.env.SEAT_MUTATE_LOGDIR || null; // per-pair test output, for evidence (seat copy only)
+if (LOGDIR) fs.mkdirSync(LOGDIR, { recursive: true });
 const TIMEOUT_MS = 10 * 60 * 1000;
 
 const DECLARED = [
@@ -76,6 +78,7 @@ const DECLARED = [
 	"(f) 6/4: row added after R-1169 and the outline regenerated, so only the 1,136 literal is stale",
 	"(g) 1/1 both emitters; 1/2 in-place prose (blanks included) emitted at the next node; 2/1 check 3 by ID; 2/2 check 6 as sets; 5/4 at seedNodeText",
 	"(h) build 3 re-anchors: 2/3 skips every stray-line check the proof now has (matchProse's non-blank refusal, interleaved and trailing, proof :380, :384, with the skipped lines marked consumed, and the whole-output stray scan, :450); 2/4, 2/5, 2/7 at matchProse (:405-406), 2/5 sorting the region's {seg, idx} entries by seg; 3/4 at writeLedgerAtomic's re-read (lift :673)",
+	"(i) build 4/4b re-anchors (tip 9eadde0): 4/17 at validateMapping's new last-emitted-line rule (`if (!nothingAfter) problems.push(`, lift :541), disabled whole as before; new pair M (build brief 4 §A \"Rule\"): the proof's input-derived multiset comparison (proof :591) disabled; judged on T6 and, inside T6's FAIL detail, the three tz labels the build added for it",
 ];
 
 // ── test files ──────────────────────────────────────────────────────────────────────────────
@@ -171,6 +174,7 @@ const PAIRS = [
 	{ n: "2/9", name: "proof applies the default's input-derived placement to a --mapping run", edits: [one(PROOF, "  if (fromDefault) {\n    const derived = deriveDefaultSequence(inputText, seed);", "  {\n    const derived = deriveDefaultSequence(inputText, seed);"), one(PROOF, "      if (!(node.from ?? []).length) continue;\n      const fromRows = [];", "      if (!fromDefault || !(node.from ?? []).length) continue;\n      const fromRows = [];")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/10", name: "proof skips the reserved-node row check", edits: [one(PROOF, "  for (const row of outRows) {", "  for (const row of []) {")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/11", name: "proof lets an unterminated last row gain an ending", edits: [one(PROOF, ROW_KEPT, "    if (o === seg || (!/\\n$/.test(seg) && (o === seg + \"\\n\" || o === seg + \"\\r\\n\"))) keptCount++;")], tests: LIFT_T, expectRed: [T6] },
+	{ n: "M", name: "proof skips the input-derived line-accounting count (the multiset of non-blank segments)", edits: [one(PROOF, "    if (JSON.stringify([...inMulti].sort()) !== JSON.stringify([...outMulti].sort())) {", "    if (false) {")], tests: LIFT_T, expectRed: [T6], expectWhy: ["an extra, rowless header pair appended after a table", "a second Purpose: line in a node", "a stray fenced block between the head and the first node"] },
 	{ n: "2/12", name: "proof imports a helper from the lift module", edits: [one(PROOF, "import { requirementRowId } from \"./requirements-trace.mjs\";\n", "import { requirementRowId } from \"./requirements-trace.mjs\";\nimport { isFlatLedger } from \"./requirements-lift.mjs\";\n")], tests: LIFT_T, expectRed: [T7] },
 	// Row 3: gate, verify, emit, guard, identity
 	{ n: "3/1", name: "gate drops `ls-files`", edits: [one(LIFT, "  const lsErr = git(cwd, [\"ls-files\", \"--error-unmatch\", \"--\", relPath]);\n  if (lsErr.status === null) return { ok: false, reason: \"git is not on PATH\" };\n  if (lsErr.status !== 0) return { ok: false, reason: `${relPath} is untracked` };\n", "")], tests: LIFT_T, expectRed: [T9] },
@@ -203,7 +207,7 @@ const PAIRS = [
 	{ n: "4/14", name: "repeated-row-ID check dropped", edits: [one(LIFT, "    if (seenIds.has(id)) problems.push(`line ${i + 1}: requirement row ${id} repeats line ${seenIds.get(id)}`);\n    else seenIds.set(id, i + 1);", "    seenIds.set(id, i + 1);")], tests: LIFT_T, expectRed: [T22] },
 	{ n: "4/15", name: "invalid-JSON check dropped", edits: [one(LIFT, "  try { parsed = JSON.parse(raw); } catch (e) { return { problems: [`${path}: not valid JSON (${e.message})`] }; }", "  parsed = JSON.parse(raw);")], tests: LIFT_T, expectRed: [T25] },
 	{ n: "4/16", name: "mapping version check dropped", edits: [one(LIFT, "  if (parsed.lift !== MAPPING_FORMAT) return { problems: [`${path}: mapping is lift version ${JSON.stringify(parsed.lift)}, not ${MAPPING_FORMAT}`] };\n", "")], tests: LIFT_T, expectRed: [T25] },
-	{ n: "4/17", name: "a line after an unterminated last row accepted", edits: [one(LIFT, "      if (hasTail || lastLeafRows.at(-1) !== lastId) problems.push(", "      if (false) problems.push(")], tests: LIFT_T, expectRed: [T24] },
+	{ n: "4/17", name: "a line after an unterminated last row accepted", edits: [one(LIFT, "      if (!nothingAfter) problems.push(", "      if (false) problems.push(")], tests: LIFT_T, expectRed: [T24] },
 	// Row 5: the default mapping
 	{ n: "5/1", name: "the title becomes a capability", edits: [one(LIFT, "  const title = all[0] && all[0].level === 1 && all[0].line === 1 ? all[0] : null;", "  const title = null;")], tests: LIFT_T, expectRed: [T13] },
 	{ n: "5/2", name: "labels drop \"1. \"", edits: [times(LIFT, "label: h.label, purpose: `${UNSORTED_PREFIX}", "label: h.label.replace(/^\\d+[a-z]?\\.\\s*/, \"\"), purpose: `${UNSORTED_PREFIX}", 3)], tests: LIFT_T, expectRed: [T13] },
@@ -382,6 +386,7 @@ try {
 			const allFails = [], passTitles = [], crashed = [];
 			for (const rel of p.tests) {
 				const r = await runTest(rel);
+				if (LOGDIR) fs.writeFileSync(path.join(LOGDIR, `${p.n.replace(/\//g, "-")}--${path.basename(rel)}.log`), r.out);
 				passTitles.push(...lineTitles(r.out, "PASS"));
 				allFails.push(...lineTitles(r.out, "FAIL").map((t) => ({ rel, t })));
 				if (fileCrashed(r.out)) crashed.push(`${path.basename(rel)} THREW (later checks never ran): ${short(r.out.trim().split("\n").filter((l) => /^[A-Za-z]*Error\b/.test(l)).at(-1) ?? "", 120)}`);
@@ -395,12 +400,17 @@ try {
 			const declaredRed = declared.filter(failed);
 			const declaredGreen = declared.filter((s) => !failed(s));
 			const unnamed = allFails.filter(({ t }) => ![...judged, ...declared].some((s) => isTitle(t, s)));
-			const extra = `${declaredRed.length ? `; also (declared): ${declaredRed.map((s) => short(s, 80)).join(" | ")}` : ""}${declaredGreen.length ? `; declared but GREEN: ${declaredGreen.map((s) => JSON.stringify(s)).join(", ")}` : ""}${namedGreen.length ? `; named but GREEN: ${namedGreen.map((s) => JSON.stringify(s)).join(", ")}` : ""}${notReached.length ? `; named but NOT REACHED: ${notReached.map((s) => JSON.stringify(s)).join(", ")}` : ""}${unnamed.length ? `; UNNAMED red: ${unnamed.map(({ rel, t }) => `[${path.basename(rel)}] ${short(t, 110)}`).join(" | ")}` : ""}; ${allFails.length} FAIL total (${diff})${crashed.length ? `; CRASH ${crashed.join(" || ")}` : ""}`;
+			// expectWhy (pair M): labels that must appear in the judged title's own FAIL detail, so "reds the cases the build
+			// added" is judged on the aggregate test's named sub-cases, not only on its title.
+			const whyText = allFails.filter(({ t }) => judged.some((s) => isTitle(t, s))).map(({ t }) => t).join("\n");
+			const whyMissing = (p.expectWhy ?? []).filter((l) => !whyText.includes(`${l}: `));
+			const whyNote = p.expectWhy ? `; FAIL detail names ${p.expectWhy.length - whyMissing.length}/${p.expectWhy.length} expected labels${whyMissing.length ? ` (MISSING: ${whyMissing.map((l) => JSON.stringify(l)).join(", ")})` : ""}` : "";
+			const extra = `${whyNote}${declaredRed.length ? `; also (declared): ${declaredRed.map((s) => short(s, 80)).join(" | ")}` : ""}${declaredGreen.length ? `; declared but GREEN: ${declaredGreen.map((s) => JSON.stringify(s)).join(", ")}` : ""}${namedGreen.length ? `; named but GREEN: ${namedGreen.map((s) => JSON.stringify(s)).join(", ")}` : ""}${notReached.length ? `; named but NOT REACHED: ${notReached.map((s) => JSON.stringify(s)).join(", ")}` : ""}${unnamed.length ? `; UNNAMED red: ${unnamed.map(({ rel, t }) => `[${path.basename(rel)}] ${short(t, 110)}`).join(" | ")}` : ""}; ${allFails.length} FAIL total (${diff})${crashed.length ? `; CRASH ${crashed.join(" || ")}` : ""}`;
 			if (matched.length) {
 				tally.red++;
-				if (namedGreen.length || notReached.length) tally.namedGreen++;
+				if (namedGreen.length || notReached.length || whyMissing.length) tally.namedGreen++;
 				if (unnamed.length) tally.unnamedRed++;
-				if (!namedGreen.length && !notReached.length && !unnamed.length) tally.exact++;
+				if (!namedGreen.length && !notReached.length && !whyMissing.length && !unnamed.length) tally.exact++;
 				log(`RED ${p.n} ${p.name} — ${matched.length}/${judged.length} named: ${matched.map((t) => short(t, 100)).join(" | ")}${extra}`);
 			} else if (allFails.length || crashed.length) {
 				tally.red++;

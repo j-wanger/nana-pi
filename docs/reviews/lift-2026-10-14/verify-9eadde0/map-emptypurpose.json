@@ -1,0 +1,351 @@
+{
+ "lift": 1,
+ "pin": {
+  "sha256": "6d4a1b4d3f3363091aef9e40d178e0294dda91f582310c1cd48c546a0fd31e2b",
+  "rows": 171
+ },
+ "head": {
+  "through": 4
+ },
+ "tree": [
+  {
+   "id": "CAP-01",
+   "label": "Not yet sorted",
+   "purpose": "Not yet sorted: a synthetic capability for sections the ledger places under no Part.",
+   "outcome": "Not yet sorted: a synthetic capability for sections the ledger places under no Part.",
+   "from": [
+    {
+     "line": 5,
+     "heading": "# CAP-01 · Not yet sorted"
+    }
+   ],
+   "features": [
+    {
+     "id": "FEAT-001",
+     "label": "1. Data sourcing and rate limits",
+     "purpose": "Not yet sorted: the rows of old section \"1. Data sourcing and rate limits\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 8,
+       "heading": "## FEAT-001 · 1. Data sourcing and rate limits"
+      }
+     ],
+     "rows": [
+      "R-001",
+      "R-002",
+      "R-003",
+      "R-004",
+      "R-005",
+      "R-006",
+      "R-083",
+      "R-084",
+      "R-085",
+      "R-110",
+      "R-111",
+      "R-112",
+      "R-113",
+      "R-115",
+      "R-116",
+      "R-117",
+      "R-118",
+      "R-135",
+      "R-136",
+      "R-166",
+      "R-168",
+      "R-171"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-002",
+     "label": "2. Cache and persistence",
+     "purpose": "Not yet sorted: the rows of old section \"2. Cache and persistence\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 37,
+       "heading": "## FEAT-002 · 2. Cache and persistence"
+      }
+     ],
+     "rows": [
+      "R-007",
+      "R-008",
+      "R-009",
+      "R-010",
+      "R-011",
+      "R-012",
+      "R-086",
+      "R-087",
+      "R-114",
+      "R-131",
+      "R-132",
+      "R-167",
+      "R-169",
+      "R-170"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-003",
+     "label": "3. Identity and crosswalk",
+     "purpose": "",
+     "status": "active",
+     "from": [
+      {
+       "line": 58,
+       "heading": "## FEAT-003 · 3. Identity and crosswalk"
+      }
+     ],
+     "rows": [
+      "R-013",
+      "R-014",
+      "R-015",
+      "R-016",
+      "R-124",
+      "R-125",
+      "R-137",
+      "R-138",
+      "R-150",
+      "R-151",
+      "R-160"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-004",
+     "label": "4. Analytics and valuation",
+     "purpose": "Not yet sorted: the rows of old section \"4. Analytics and valuation\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 76,
+       "heading": "## FEAT-004 · 4. Analytics and valuation"
+      }
+     ],
+     "rows": [
+      "R-017",
+      "R-018",
+      "R-019",
+      "R-020",
+      "R-021",
+      "R-022",
+      "R-023",
+      "R-024",
+      "R-025",
+      "R-026",
+      "R-027",
+      "R-028",
+      "R-029",
+      "R-030",
+      "R-031",
+      "R-032",
+      "R-033",
+      "R-034",
+      "R-035",
+      "R-036",
+      "R-037",
+      "R-038",
+      "R-039",
+      "R-040",
+      "R-041",
+      "R-042",
+      "R-043",
+      "R-044",
+      "R-045",
+      "R-046",
+      "R-047",
+      "R-088",
+      "R-089",
+      "R-090",
+      "R-091",
+      "R-092",
+      "R-093",
+      "R-094",
+      "R-095",
+      "R-096",
+      "R-097",
+      "R-098",
+      "R-099",
+      "R-153"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-005",
+     "label": "5. Build arena and draft simulation",
+     "purpose": "Not yet sorted: the rows of old section \"5. Build arena and draft simulation\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 127,
+       "heading": "## FEAT-005 · 5. Build arena and draft simulation"
+      }
+     ],
+     "rows": [
+      "R-048",
+      "R-049",
+      "R-050",
+      "R-051",
+      "R-052",
+      "R-053",
+      "R-054",
+      "R-100",
+      "R-101",
+      "R-121",
+      "R-122",
+      "R-123"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-006",
+     "label": "6. Reports and provenance",
+     "purpose": "Not yet sorted: the rows of old section \"6. Reports and provenance\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 146,
+       "heading": "## FEAT-006 · 6. Reports and provenance"
+      }
+     ],
+     "rows": [
+      "R-055",
+      "R-056",
+      "R-057",
+      "R-058",
+      "R-059",
+      "R-060",
+      "R-061",
+      "R-062",
+      "R-063",
+      "R-064",
+      "R-065",
+      "R-102",
+      "R-103",
+      "R-104",
+      "R-105"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-007",
+     "label": "7. Intelligence base (claims)",
+     "purpose": "Not yet sorted: the rows of old section \"7. Intelligence base (claims)\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 168,
+       "heading": "## FEAT-007 · 7. Intelligence base (claims)"
+      }
+     ],
+     "rows": [
+      "R-066",
+      "R-067",
+      "R-068",
+      "R-069",
+      "R-070",
+      "R-071",
+      "R-072",
+      "R-073",
+      "R-074",
+      "R-075",
+      "R-076",
+      "R-077",
+      "R-106",
+      "R-107",
+      "R-108",
+      "R-109",
+      "R-120"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-008",
+     "label": "8. CLI and reports surface",
+     "purpose": "Not yet sorted: the rows of old section \"8. CLI and reports surface\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 192,
+       "heading": "## FEAT-008 · 8. CLI and reports surface"
+      }
+     ],
+     "rows": [
+      "R-078",
+      "R-079",
+      "R-080",
+      "R-081",
+      "R-082",
+      "R-119"
+     ],
+     "subgroups": []
+    },
+    {
+     "id": "FEAT-009",
+     "label": "9. Distributional valuation (direction from Jake 2026-10-01, after Ratball's category-effectiveness study)",
+     "purpose": "Not yet sorted: the rows of old section \"9. Distributional valuation (direction from Jake 2026-10-01, after Ratball's category-effectiveness study)\".",
+     "status": "active",
+     "from": [
+      {
+       "line": 205,
+       "heading": "## FEAT-009 · 9. Distributional valuation (direction from Jake 2026-10-01, after Ratball's category-effectiveness study)"
+      }
+     ],
+     "rows": [
+      "R-126",
+      "R-127",
+      "R-128",
+      "R-129",
+      "R-130",
+      "R-133",
+      "R-134",
+      "R-139",
+      "R-140",
+      "R-141",
+      "R-142",
+      "R-143",
+      "R-144",
+      "R-145",
+      "R-146",
+      "R-147",
+      "R-148",
+      "R-149",
+      "R-152",
+      "R-154",
+      "R-155",
+      "R-156",
+      "R-157",
+      "R-158",
+      "R-159",
+      "R-161",
+      "R-162",
+      "R-163",
+      "R-164",
+      "R-165"
+     ],
+     "subgroups": []
+    }
+   ]
+  }
+ ],
+ "tail": {
+  "heading": "# Open questions and deliberate omissions",
+  "from": [
+   {
+    "line": 242,
+    "heading": "# Open questions and deliberate omissions"
+   }
+  ],
+  "keep": [
+   {
+    "line": 243,
+    "heading": "## Open questions"
+   },
+   {
+    "line": 256,
+    "heading": "## Deliberate omissions"
+   }
+  ]
+ }
+}
