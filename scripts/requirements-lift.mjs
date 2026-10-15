@@ -803,7 +803,14 @@ function repoRootFor(dir) {
   return r.status === 0 ? canonical(r.stdout.trim()) : null;
 }
 
-export function main(argv = process.argv.slice(2)) {
+/**
+ * `fns` (defaulting to the real node:fs functions) reaches only the final `writeLedgerAtomic`
+ * call below, so a test can exercise the re-read-to-rename race THROUGH this function's own
+ * code path -- argument parsing, the ledger read, the proof, the git gate -- and not only
+ * against the bare helper directly (build brief 4 §C; the seat's "W3 main bypasses
+ * writeLedgerAtomic" and "W4 main proves against a fresh re-read" mutations).
+ */
+export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFileSync, renameSync, rmSync }) {
   const args = { root: null, mapping: null, emitMapping: null, write: false, verify: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -913,7 +920,7 @@ export function main(argv = process.argv.slice(2)) {
   const wtScan = worktreeScan(repoRoot, relLedger);
   if (!wtScan.ok) { console.error(`--write refused: ${wtScan.reason}`); return 1; }
 
-  const written = writeLedgerAtomic(ledgerPath, buf, output);
+  const written = writeLedgerAtomic(ledgerPath, buf, output, fns);
   if (!written.ok) { console.error(`--write refused: ${written.reason}`); return 1; }
   return 0;
 }

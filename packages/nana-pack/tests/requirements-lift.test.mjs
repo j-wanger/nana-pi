@@ -7,7 +7,7 @@
  * @errors A failed check prints its reason and exits non-zero.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, delimiter } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -677,6 +677,31 @@ if (process.platform !== "win32") {
   check("R-1164: a failed rename removes the temp file and refuses, naming the reason, and leaves the ledger unchanged",
     result.ok === false && /could not replace the ledger/.test(result.reason ?? "") && /simulated rename failure/.test(result.reason ?? "") && removedTmpPath === `${ledgerPath}.lift-${process.pid}.tmp` && untouched,
     JSON.stringify({ result, removedTmpPath }));
+}
+
+{
+  // Build brief 4 §C: the --write path itself must go through writeLedgerAtomic with its
+  // re-read, reached through main()'s OWN code path (argument parsing, the ledger read, the
+  // proof, the full git gate) -- not only against the bare helper directly, as T12 does. main()
+  // takes the same injectable file functions writeLedgerAtomic does, reaching only that one
+  // call; a bypass (writing straight through the real fs, or proving against a fresh re-read
+  // instead of the bytes the proof actually ran against) must not go unnoticed.
+  const dir = gitRepo("t12c", flatLedger());
+  const ledgerPath = join(dir, "REQUIREMENTS.md");
+  const before = readLedger(dir);
+  let wroteReal = false, renamedReal = false;
+  const fns = {
+    readFileSync: () => Buffer.from("not the proved bytes"),
+    writeFileSync: (p, data) => { wroteReal = true; writeFileSync(p, data); },
+    renameSync: (a, b) => { renamedReal = true; renameSync(a, b); },
+    rmSync,
+  };
+  const status = LIFT_MODULE.main(["--root", dir, "--write"], fns);
+  const after = readLedger(dir);
+  // req: R-1164
+  check("R-1164: --write reached through main's own path refuses when the injected re-read disagrees with the proved bytes, and never writes or renames",
+    status === 1 && !wroteReal && !renamedReal && after.equals(before),
+    `status=${status} wroteReal=${wroteReal} renamedReal=${renamedReal} changed=${!after.equals(before)}`);
 }
 
 if (process.platform !== "win32") {
