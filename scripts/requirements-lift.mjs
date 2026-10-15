@@ -803,19 +803,31 @@ function gitClean(cwd, relPath) {
   if (diff.status !== 0) return { ok: false, reason: `${relPath} differs from HEAD` };
   return { ok: true };
 }
-/** Every non-bare worktree of the repository holding `rootDir`, each checked clean for its own copy of relPath. */
-function worktreeScan(rootDir, relPath) {
+/**
+ * Every non-bare worktree of the repository holding `rootDir`, each checked clean for its own
+ * copy of every `{ relPath, label }` entry -- the ledger AND, when one is supplied, the
+ * `--mapping` file (build brief 7 item 2: sol MUST 2; astra SHOULDs 2 and 4). `git diff --quiet
+ * HEAD` catches a change whether it is staged, unstaged or a removal; the earlier check then
+ * distinguished "this worktree never tracks this path" from "a real dirty copy" with `ls-files
+ * --error-unmatch`, which reads the INDEX -- a worktree that has STAGED the path's removal is no
+ * longer in the index, so that check wrongly read it as untracked and skipped it. `cat-file -e
+ * HEAD:<path>` reads HEAD instead, so a path HEAD tracks there but the index or working tree has
+ * removed still counts as dirty.
+ */
+function worktreeScan(rootDir, entries) {
   const list = git(rootDir, ["worktree", "list", "--porcelain"]);
   if (list.status !== 0) return { ok: false, reason: "git worktree list failed" };
   const dirs = list.stdout.split("\n").filter((l) => l.startsWith("worktree ")).map((l) => canonical(l.slice("worktree ".length).trim()));
   for (const dir of dirs) {
     const prefix = git(dir, ["rev-parse", "--show-prefix"]).stdout.trim();
-    const candidate = join(prefix, relPath).split(sep).join("/");
-    const diff = git(dir, ["diff", "--quiet", "HEAD", "--", candidate]);
-    if (diff.status === 0) continue;
-    const ls = git(dir, ["ls-files", "--error-unmatch", "--", candidate]);
-    if (ls.status !== 0) continue; // not tracked in that worktree at all (e.g. a different subfolder) — not this ledger
-    return { ok: false, reason: `an uncommitted edit to the ledger sits in worktree ${dir}` };
+    for (const { relPath, label } of entries) {
+      const candidate = join(prefix, relPath).split(sep).join("/");
+      const diff = git(dir, ["diff", "--quiet", "HEAD", "--", candidate]);
+      if (diff.status === 0) continue;
+      const tracked = git(dir, ["cat-file", "-e", `HEAD:${candidate}`]);
+      if (tracked.status !== 0) continue; // HEAD does not track this path in that worktree (e.g. a different subfolder) — not this file
+      return { ok: false, reason: `an uncommitted change to ${label} sits in worktree ${dir}` };
+    }
   }
   return { ok: true };
 }
@@ -954,12 +966,14 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
   const relLedger = relative(repoRoot, canonical(ledgerPath)).split(sep).join("/");
   const clean = gitClean(repoRoot, relLedger);
   if (!clean.ok) { console.error(`--write refused: ${clean.reason}`); return 1; }
+  const wtEntries = [{ relPath: relLedger, label: "the ledger" }];
   if (mappingPath) {
     const relMap = relative(repoRoot, canonical(mappingPath)).split(sep).join("/");
     const mapClean = gitClean(repoRoot, relMap);
     if (!mapClean.ok) { console.error(`--write refused: mapping ${mapClean.reason}`); return 1; }
+    wtEntries.push({ relPath: relMap, label: "the grouping file" });
   }
-  const wtScan = worktreeScan(repoRoot, relLedger);
+  const wtScan = worktreeScan(repoRoot, wtEntries);
   if (!wtScan.ok) { console.error(`--write refused: ${wtScan.reason}`); return 1; }
 
   const written = writeLedgerAtomic(ledgerPath, buf, output, fns);

@@ -760,6 +760,42 @@ if (process.platform !== "win32") {
 }
 
 {
+  // build brief 7 item 2 (sol MUST 2; astra SHOULDs 2 and 4): the worktree scan must ALSO cover
+  // the --mapping file's root-relative path (today only the ledger is scanned), and must count
+  // a path HEAD tracks but a worktree's index or working tree has REMOVED as dirty too -- not
+  // skip it as "untracked in that worktree" (`ls-files --error-unmatch` fails once a path is
+  // staged for removal there, even though HEAD still tracks it in that worktree).
+  const cases2 = [];
+  // (a) an uncommitted edit to the GROUPING file in a second worktree.
+  {
+    const main = gitRepo("t9b-mapping", flatLedger());
+    const mapPath = join(main, "map.json");
+    lift(["--root", main, "--emit-mapping", mapPath]);
+    gitC(main, "add", "-A"); gitC(main, "commit", "-qm", "map");
+    const laneDir = join(scratchRoot, "t9b-mapping-lane");
+    const wt = gitC(main, "worktree", "add", "-q", "-b", "t9b-mapping-lane", laneDir);
+    writeFileSync(join(laneDir, "map.json"), `${readFileSync(join(laneDir, "map.json"), "utf8")}\n`);
+    const beforeMain = readLedger(main);
+    const r = lift(["--root", main, "--mapping", mapPath, "--write"]);
+    cases2.push({ label: "dirty-grouping-second-worktree", ok: wt.status === 0 && r.status === 1 && !crashed(r) && own(r.stderr).some((l) => l.includes(laneDir) || l.includes("t9b-mapping-lane")) && readLedger(main).equals(beforeMain) });
+  }
+  // (b) a second worktree has staged the LEDGER's removal (still tracked at HEAD there).
+  {
+    const main = gitRepo("t9b-removal", flatLedger());
+    const laneDir = join(scratchRoot, "t9b-removal-lane");
+    const wt = gitC(main, "worktree", "add", "-q", "-b", "t9b-removal-lane", laneDir);
+    const rm = gitC(laneDir, "rm", "-q", "REQUIREMENTS.md");
+    const beforeMain = readLedger(main);
+    const r = lift(["--root", main, "--write"]);
+    cases2.push({ label: "staged-removal-second-worktree", ok: wt.status === 0 && rm.status === 0 && r.status === 1 && !crashed(r) && own(r.stderr).some((l) => l.includes(laneDir) || l.includes("t9b-removal-lane")) && readLedger(main).equals(beforeMain) });
+  }
+  const bad2 = cases2.filter((c) => !c.ok).map((c) => c.label);
+  // req: R-1164
+  check("R-1164: --write refuses when another worktree has an uncommitted change to the grouping file, or has staged the ledger's removal, naming that worktree",
+    bad2.length === 0, bad2.join(", "));
+}
+
+{
   const sub = "proj";
   const dir = scratchDir("t10");
   writeLedger(join(dir, sub), flatLedger());
