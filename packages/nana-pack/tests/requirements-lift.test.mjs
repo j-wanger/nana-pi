@@ -317,13 +317,100 @@ if (process.platform !== "win32") {
   lift(["--root", uDir, "--emit-mapping", uMapPath]);
   const uMap = JSON.parse(readFileSync(uMapPath, "utf8"));
   T.unterminatedGivenEnding = proveLift(untermBase, uMap, uOut.endsWith("\n") ? uOut : `${uOut}\n`, SEED_TEXT, { fromDefault: true });
-  const tz = [["R-1163: proof names a dropped row", T.droppedRow], ["a changed byte", T.changedByte], ["a stripped CR", T.strippedCR], ["a new row-shaped line", T.newRowShapedLine], ["a reordered leaf", T.reorderedLeaf], ["a lost prose line", T.lostProseLine], ["prose moved to another node", T.proseMovedToAnotherNode], ["a dropped blank line", T.droppedBlankLine], ["two swapped lines", T.swappedLines], ["rows out of input order", T.rowsOutOfOrder], ["a duplicated row", T.duplicatedRow], ["a renumbered ID", T.renumberedId], ["a row moved into a fence", T.rowMovedIntoFence], ["a heading-ID collision", T.headingIdCollision], ["an unterminated last row given an ending", T.unterminatedGivenEnding]];
-  const allRed = tz.every(([, r]) => r.problems.length > 0);
+  // Split capability: a synthetic second "Not yet sorted" capability inserted mid-run, so
+  // FEAT-002 (one generated capability's worth) sits under a NEW CAP-02 instead of CAP-01 —
+  // check 9's default-derived sequence expects exactly one capability over this whole run.
+  T.splitCapability = probe(goodOut.replace("## FEAT-002 ·", `# CAP-02 · ${LIFT_MODULE.UNSORTED_LABEL}\nPurpose: ${LIFT_MODULE.UNSORTED_TEXT}\nOutcome: ${LIFT_MODULE.UNSORTED_TEXT}\n## FEAT-002 ·`));
+  // CAP-90 nesting: a product feature's capability heading removed, so it falls under CAP-90
+  // by plain nesting (trading-zone's shape) — no R row may sit under CAP-90 (checks 9, reserved).
+  (() => {
+    const gBase = flatLedgerWithG();
+    const gDir = gitRepo("t6-g", gBase);
+    lift(["--root", gDir, "--write"]);
+    const gOut = readLedger(gDir).toString("utf8");
+    const gMapPath = join(gDir, "map.json");
+    lift(["--root", gDir, "--emit-mapping", gMapPath]);
+    const gMap = JSON.parse(readFileSync(gMapPath, "utf8"));
+    const nested = gOut.replace(/\n# CAP-\d{2} · Not yet sorted\nPurpose: [^\n]*\nOutcome: [^\n]*\n(?=## FEAT-\d{3} · 2\. After)/, "\n");
+    T.cap90Nesting = proveLift(gBase, gMap, nested, SEED_TEXT, { fromDefault: true });
+  })();
+  // A blank line dropped from a RE-LAID leaf's prose: rows reordered via a hand-edited identity
+  // mapping (so the leaf is no longer "in place") and lifted again, then one blank line removed
+  // from its carried prose.
+  (() => {
+    const proseBase = ["# prose fixture", "", "## 1. One", "", "Prose line A.", "", "Prose line B.", "", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | first thing shall work. | untested | — |", "| R-002 | second thing shall work. | untested | — |", ""].join("\n");
+    const pDir = gitRepo("t6-relaid", proseBase);
+    lift(["--root", pDir, "--write"]);
+    const liftedOnce = readLedger(pDir).toString("utf8");
+    const pMapPath = join(pDir, "map.json");
+    lift(["--root", pDir, "--emit-mapping", pMapPath]);
+    const pMap = JSON.parse(readFileSync(pMapPath, "utf8"));
+    pMap.tree[0].features[0].rows = [...pMap.tree[0].features[0].rows].reverse(); // declared order now differs from input order: re-laid
+    writeFileSync(pMapPath, JSON.stringify(pMap));
+    gitC(pDir, "add", "-A"); gitC(pDir, "commit", "-qm", "reorder");
+    lift(["--root", pDir, "--mapping", pMapPath, "--write"]);
+    const relaidOut = readLedger(pDir).toString("utf8");
+    const tampered = relaidOut.replace("Prose line A.\n\nProse line B.\n", "Prose line A.\nProse line B.\n");
+    T.blankDroppedRelaid = proveLift(liftedOnce, pMap, tampered, SEED_TEXT, { fromDefault: false });
+  })();
+  // A section's (non-row) lines out of input order, with no mapping: two prose lines inside
+  // one section swapped, distinct from a leaf's ROWS out of order (T.rowsOutOfOrder) above.
+  (() => {
+    const proseBase2 = ["# prose fixture two", "", "## 1. One", "", "Prose line A.", "", "Prose line B.", "", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | first thing shall work. | untested | — |", "| R-002 | second thing shall work. | untested | — |", ""].join("\n");
+    const dir4 = gitRepo("t6-order", proseBase2);
+    lift(["--root", dir4, "--write"]);
+    const goodOut4 = readLedger(dir4).toString("utf8");
+    const mapDir4 = gitRepo("t6-order-map", proseBase2);
+    const mapPath4 = join(mapDir4, "map.json");
+    lift(["--root", mapDir4, "--emit-mapping", mapPath4]);
+    const mapObj4 = JSON.parse(readFileSync(mapPath4, "utf8"));
+    const swapped = goodOut4.replace("Prose line A.\n\nProse line B.\n", "Prose line B.\n\nProse line A.\n");
+    T.sectionLinesOutOfOrder = proveLift(proseBase2, mapObj4, swapped, SEED_TEXT, { fromDefault: true });
+  })();
+  // A G row in another reserved subgroup: SUB-901's one row physically swapped into SUB-900's
+  // table, with no mapping change — the proof's own G-row-subgroup rule, not the validator's.
+  (() => {
+    const gBase2 = flatLedgerWithG();
+    const gDir2 = gitRepo("t6-gsub", gBase2);
+    lift(["--root", gDir2, "--write"]);
+    const gOut2 = readLedger(gDir2).toString("utf8");
+    const gMapPath2 = join(gDir2, "map.json");
+    lift(["--root", gDir2, "--emit-mapping", gMapPath2]);
+    const gMap2 = JSON.parse(readFileSync(gMapPath2, "utf8"));
+    const moved = gOut2.replace("| G-004 | fixture general row three shall hold. | untested | — |\n\n", "").replace("| G-001 | fixture general row one shall hold. | untested | — |\n", "| G-001 | fixture general row one shall hold. | untested | — |\n| G-004 | fixture general row three shall hold. | untested | — |\n");
+    T.gRowWrongSubgroup = proveLift(gBase2, gMap2, moved, SEED_TEXT, { fromDefault: true });
+  })();
+  // Each entry asserts BOTH that the probe is red AND that it names the SPECIFIC problem text
+  // the check it targets emits (brief 3 §D) — a redundant check elsewhere catching the same
+  // tamper under a DIFFERENT message would not, by itself, satisfy the pattern.
+  const tz = [
+    ["R-1163: proof names a dropped row", T.droppedRow, /appears 0 time\(s\) in the output/],
+    ["a changed byte", T.changedByte, /output bytes differ from the input/],
+    ["a stripped CR", T.strippedCR, /output bytes differ from the input/],
+    ["a new row-shaped line", T.newRowShapedLine, /appears in the output but not in the input/],
+    ["a reordered leaf", T.reorderedLeaf, /output row order .* differs from the mapping's/],
+    ["a lost prose line", T.lostProseLine, /^head: the first \d+ line\(s\) are not carried verbatim/],
+    ["prose moved to another node", T.proseMovedToAnotherNode, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
+    ["a dropped blank line", T.droppedBlankLine, /^head: the first \d+ line\(s\) are not carried verbatim/],
+    ["two swapped lines", T.swappedLines, /are not accounted for by the head, any node or the tail/],
+    ["rows out of input order", T.rowsOutOfOrder, /does not follow the input's own order for its old section\(s\)/],
+    ["a duplicated row", T.duplicatedRow, /appears more than once in the output/],
+    ["a renumbered ID", T.renumberedId, /appears 0 time\(s\) in the output|appears in the output but not in the input/],
+    ["a row moved into a fence", T.rowMovedIntoFence, /output row order \[\] differs from the mapping's/],
+    ["a heading-ID collision", T.headingIdCollision, /duplicate heading ID/],
+    ["an unterminated last row given an ending", T.unterminatedGivenEnding, /the input's last line has no line ending, but the output's last line does/],
+    ["a split capability", T.splitCapability, /the output's heading sequence does not equal the sequence derived from the input alone/],
+    ["CAP-90 nesting (reserved R-row rule)", T.cap90Nesting, /an R row sits under reserved capability CAP-90/],
+    ["a blank line dropped from a re-laid leaf", T.blankDroppedRelaid, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
+    ["a section's lines out of order", T.sectionLinesOutOfOrder, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
+    ["a G row in another reserved subgroup", T.gRowWrongSubgroup, /not its seed subgroup/],
+  ];
+  const allRed = tz.every(([, r, pattern]) => r.problems.length > 0 && r.problems.some((p) => pattern.test(p)));
   const baselineClean = baseline.problems.length === 0;
   // req: R-1163
   check("R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order",
     baselineClean && allRed,
-    `baseline=${baseline.problems.join(";")} ` + tz.filter(([, r]) => r.problems.length === 0).map(([label]) => label).join(", "));
+    `baseline=${baseline.problems.join(";")} ` + tz.filter(([, r, pattern]) => !(r.problems.length > 0 && r.problems.some((p) => pattern.test(p)))).map(([label, r]) => `${label}: ${JSON.stringify(r.problems)}`).join(" | "));
 }
 
 {
