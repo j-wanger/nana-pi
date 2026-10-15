@@ -1,0 +1,33 @@
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1162: a dry run prints one line per planned heading, no move, and the proof line, and writes nothing
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1162: --emit-mapping writes only the named new file and refuses one that exists
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1162: run through a symlink to the script, the dry run still prints its plan
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1162: --emit-mapping on a lifted ledger writes the identity mapping, which --mapping applies with no move line and the same bytes
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1163: the default lift passes its proof, keeps every row line byte-identical and in file order, the row-ID multiset equal and the tree checker clean
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1163: CRLF, BOM-and-CRLF, mixed-ending and unterminated ledgers keep every row line byte-identical with its own ending
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1163: the proof module imports nothing from the lift module
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1164: --write replaces a clean tracked ledger with the proved bytes in a project in a subfolder of its repository
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1164: --write refuses an uncommitted, staged-only, untracked or git-less ledger, an unborn HEAD, git missing from PATH and an uncommitted ledger edit in a second worktree, naming that worktree, and leaves the ledger unchanged
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1164: --write refuses a mapping file in a subfolder that is untracked or differs from HEAD, and one outside the repository, naming the reason, and accepts a committed one
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1164: --write accepts a clean CRLF checkout under core.autocrlf=true and keeps its CRLF rows
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1164: --write refuses when the ledger changes between the proof and the rename
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1165: the default makes each Part a capability and each ## and ### a feature and subgroup in file order, keeping old heading text as labels and the title and intro in place
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1165: every default purpose and outcome starts with the unsorted prefix, and the prefix is "Not yet sorted:"
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1165: sections under no Part, and sections after the general-engineering sections, open a Not yet sorted capability
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1165: the general-engineering sections take the seed's CAP-90, FEAT-900 and SUB-900 to SUB-904 headings, purposes and row homes
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1165: Open questions and Deliberate omissions stay verbatim under the seed's closing heading
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1165: prose between table fragments stays between them, and each headless or padded fragment gets the exact table header
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1166: the mapping --emit-mapping writes, passed back with --mapping, gives the default lift's bytes
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1166: a mapping applies to a lifted ledger, moving rows between features in its order and naming each move
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1166: one mapping applies to a ledger's LF and CRLF copies
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1167: without --mapping, the lift refuses a ledger with a tree or near-tree heading, or a row the default cannot place, naming them
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1167: a mapping missing 1,000 rows prints at most the problem-line cap and the count of the rest
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1167 fixture: a run without --root, or with --write and --emit-mapping together, exits 2 with usage
+NO-FILE  packages/nana-pack/tests/requirements-lift.test.mjs — R-1168: --verify passes a committed lift with its mapping in a subfolder against its base and names a hand-edited one's first differing line, in a project in a subfolder
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,136
+NOT-GONE packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,128
+seat-titles 1: 32 missing
