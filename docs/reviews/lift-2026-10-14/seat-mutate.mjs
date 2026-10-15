@@ -56,7 +56,7 @@ import { fileURLToPath } from "node:url";
 
 const LANE_REPO = "/Users/jwang/nana-pi-wt/lift";
 const LANE_BRANCH = "feat/lift";
-const TIP = process.env.SEAT_MUTATE_TIP || "f6b34d4";
+const TIP = process.env.SEAT_MUTATE_TIP || "54fd34f";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // os.tmpdir(), never beside this script: a scratch git worktree inside the lane folder breaks copier-based suite
 // tests run there ("No url found for submodule path …/wt"). The tree lane's runner ran from the session scratchpad.
@@ -79,6 +79,7 @@ const DECLARED = [
 	"(g) 1/1 both emitters; 1/2 in-place prose (blanks included) emitted at the next node; 2/1 check 3 by ID; 2/2 check 6 as sets; 5/4 at seedNodeText",
 	"(h) build 3 re-anchors: 2/3 skips every stray-line check the proof now has (matchProse's non-blank refusal, interleaved and trailing, proof :380, :384, with the skipped lines marked consumed, and the whole-output stray scan, :450); 2/4, 2/5, 2/7 at matchProse (:405-406), 2/5 sorting the region's {seg, idx} entries by seg; 3/4 at writeLedgerAtomic's re-read (lift :673)",
 	"(j) build 5 (tip f6b34d4): 5/5 re-anchored to its original two default-mapping sites (`(h) => h.level === 2 && KEPT_SECTIONS.includes(h.label)`, lift :273, :340); build 5's structuralTailLines (lift :234) uses the same filter text and is left unmutated. New pairs: T1 isTableHeaderAt's row check dropped in lift and proof (T1/1 lift only, T1/2 proof only); T2 base refusals reported alone before the later stage again; T3 head/tail field-label exemption removed (T3/1 head only, T3/2 tail only); T4/1-T4/4 --verify's mapping-blob NUL, encoding, JSON and version refusals each dropped (lift :991, :993, :996, :998)",
+	"(k) build 6 (tip 54fd34f): no re-anchor needed (dry run 71/71 apply; T3/1 unchanged, its test now matches line 3's \"Purpose:\"). New pairs: E1 the proof's output-side header/delimiter matcher drops any exact pair again, no row check (proof :489, `&& isTableHeaderAt(regionBare, i)` removed); E2 the default builder's orphan-subgroup check removed (lift :336, the `if (!feat)` line)",
 	"(i) build 4/4b re-anchors (tip 9eadde0): 4/17 at validateMapping's new last-emitted-line rule (`if (!nothingAfter) problems.push(`, lift :541), disabled whole as before; new pair M (build brief 4 §A \"Rule\"): the proof's input-derived multiset comparison (proof :591) disabled; judged on T6 and, inside T6's FAIL detail, the three tz labels the build added for it",
 ];
 
@@ -130,6 +131,8 @@ const T29 = "requirements skill names the lift's dry run, the owner's yes before
 const T33 = "R-1163: a 4-column table that holds no requirement row keeps its header and delimiter lines, flat and tree-form";
 const T34 = "R-1167: one refusal names every base problem, and a field-labelled line in the head or tail is not one";
 const T35 = "R-1168: --verify refuses an ANSI byte or a repeated row ID in the ledger blob, and a NUL byte, an encoding mismatch, invalid JSON or another lift version in the mapping blob, exactly as --write would for the same bytes on disk";
+const T36 = "R-1163: an empty requirement table under a proposed feature is carried, header and delimiter included";
+const T37 = "R-1167: a ledger with base problems and a subgroup with no feature above it is refused naming its problems, never a crash";
 const T30 = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,136";
 void T1; void T14; void T19; void T23; void T27; // titles §5 names in no pair; kept for the record
 
@@ -233,6 +236,9 @@ const PAIRS = [
 	{ n: "T4/2", name: "--verify's mapping-blob encoding refusal dropped", edits: [one(LIFT, "    if (mapEncLine !== null) { console.error(", "    if (false) { console.error(")], tests: LIFT_T, expectRed: [T35] },
 	{ n: "T4/3", name: "--verify's mapping-blob invalid-JSON refusal dropped", edits: [one(LIFT, "    try { mapping = JSON.parse(raw); } catch (e) { console.error(`--verify refused: HEAD:./${relMap} is not valid JSON (${e.message})`); return 1; }", "    mapping = JSON.parse(raw);")], tests: LIFT_T, expectRed: [T35] },
 	{ n: "T4/4", name: "--verify's mapping-blob lift-version refusal dropped", edits: [one(LIFT, "    if (mapping.lift !== MAPPING_FORMAT) { console.error(", "    if (false) { console.error(")], tests: LIFT_T, expectRed: [T35] },
+	// Build 6 (seat revision (k))
+	{ n: "E1", name: "the proof's output-side matcher drops any header/delimiter pair again (no row check)", edits: [one(PROOF, " && DELIM.test(regionBare[i + 1] ?? \"\") && isTableHeaderAt(regionBare, i)) { consumed[idx] = true;", " && DELIM.test(regionBare[i + 1] ?? \"\")) { consumed[idx] = true;")], tests: LIFT_T, expectRed: [T36] },
+	{ n: "E2", name: "the default builder's orphan-subgroup check removed", edits: [one(LIFT, "    if (!feat) { problems.push(`line ${h.line}: level 3 section \"${h.label}\" has no level 2 feature above it; the default cannot place it`); i++; continue; }\n", "")], tests: LIFT_T, expectRed: [T37] },
 	// Row 6: skill and ledger literal
 	{ n: "6/1", name: "skill drops \"only after the owner's yes\"", edits: [one(REQ_SKILL, "Run `--write` only after the owner's yes, and only while", "Run `--write` once the owner has seen the plan, and only while")], tests: SKILL_T, expectRed: [T29] },
 	{ n: "6/2", name: "skill drops \"in every worktree\"", edits: [one(REQ_SKILL, "matches HEAD in every worktree of the repository", "matches HEAD in this worktree")], tests: SKILL_T, expectRed: [T29] },
