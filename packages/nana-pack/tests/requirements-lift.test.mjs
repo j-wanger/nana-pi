@@ -209,7 +209,16 @@ if (process.platform !== "win32") {
 }
 
 {
-  const dir = gitRepo("t31", flatLedger());
+  // R-002 sits physically before R-001 in the input, so a leaf sorted by ID (R-1162's identity
+  // mapping must list rows in FILE order, not ID order) would change these bytes.
+  const outOfIdOrder = (() => {
+    const ls = flatLedger().split("\n");
+    const i1 = ls.findIndex((l) => l.startsWith("| R-001 |"));
+    const i2 = ls.findIndex((l) => l.startsWith("| R-002 |"));
+    [ls[i1], ls[i2]] = [ls[i2], ls[i1]];
+    return ls.join("\n");
+  })();
+  const dir = gitRepo("t31", outOfIdOrder);
   const w = lift(["--root", dir, "--write"]);
   const lifted = readLedger(dir);
   const idPath = join(dir, "identity.json");
@@ -231,7 +240,19 @@ if (process.platform !== "win32") {
 // ==================================================================================================
 
 {
-  const text = flatLedger().replace("| R-003 | The third thing shall work. | untested | — |", "| R-003 | The third thing shall work.  | untested | — |"); // trailing space in the cell
+  const text = (() => {
+    // Trailing space INSIDE a cell, and a SEPARATE row with trailing whitespace at the very
+    // end of its line (outside any cell) — a line-end trim would catch only the second shape.
+    let t = flatLedger().replace("| R-003 | The third thing shall work. | untested | — |", "| R-003 | The third thing shall work.  | untested | — |  ");
+    // R-001 and R-002 physically swapped: file order now differs from ID-ascending order, so a
+    // "sort by ID" mutation (which would coincidentally reproduce the already-ascending default
+    // fixture) changes the output here.
+    const ls = t.split("\n");
+    const i1 = ls.findIndex((l) => l.startsWith("| R-001 |"));
+    const i2 = ls.findIndex((l) => l.startsWith("| R-002 |"));
+    [ls[i1], ls[i2]] = [ls[i2], ls[i1]];
+    return ls.join("\n");
+  })();
   const dir = writeLedger(scratchDir("t4"), text);
   const r = lift(["--root", dir]);
   const proof = proofOf(r.stdout);
