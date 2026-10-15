@@ -516,6 +516,20 @@ if (process.platform !== "win32") {
     const r = lift(["--root", dir, "--write"]);
     cases.push({ label: "unborn-HEAD", ok: r.status === 1 && !crashed(r) && readLedger(dir).equals(before) });
   }
+  // staged but unborn HEAD: `ls-files --error-unmatch` succeeds (the file IS in the index), so
+  // this is the only case that reaches `git diff --quiet HEAD` with no commit to diff against
+  // (status 128) -- unlike the untracked "unborn HEAD" case above, which ls-files alone already
+  // refuses (3/6: null/128 read as clean, pinned by its own wording here).
+  {
+    const dir = scratchDir("t9-staged-unborn");
+    writeLedger(dir, flatLedger());
+    gitC(dir, "init", "-q", "-b", "main");
+    gitC(dir, "config", "core.autocrlf", "false");
+    gitC(dir, "add", "-A");
+    const before = readLedger(dir);
+    const r = lift(["--root", dir, "--write"]);
+    cases.push({ label: "staged-unborn-HEAD", ok: r.status === 1 && !crashed(r) && own(r.stderr).some((l) => /HEAD has no commit yet/.test(l)) && readLedger(dir).equals(before) });
+  }
   // git missing from PATH
   {
     const dir = gitRepo("t9-nopath", flatLedger());
@@ -575,15 +589,32 @@ if (process.platform !== "win32") {
 }
 
 {
+  // gitC (used by gitRepo) pins -c core.autocrlf=false on every call it makes, including its
+  // own "add", so the blob it commits is never actually normalised: a byte compare of that
+  // blob against the CRLF working file would coincidentally still agree (both CRLF), which
+  // would not catch a mutation that byte-compares instead of using "git diff --quiet" (3/2).
+  // Committing with the bare git() helper instead (persisted config, no per-call override) lets
+  // the repo's own core.autocrlf=true actually normalise the STORED blob to LF while the
+  // working file stays CRLF -- the real shape research-design.md §2 names.
   const text = flatLedger().replace(/\n/g, "\r\n");
-  const dir = gitRepo("t11", text, { autocrlf: "true" });
+  const dir = scratchDir("t11");
+  writeLedger(dir, text);
+  git(dir, "init", "-q", "-b", "main");
+  git(dir, "config", "user.name", "test");
+  git(dir, "config", "user.email", "test@example.invalid");
+  git(dir, "config", "commit.gpgsign", "false");
+  git(dir, "config", "core.autocrlf", "true");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-qm", "init");
+  const blobLf = git(dir, "show", "HEAD:./REQUIREMENTS.md").stdout;
+  const workingCrlf = readLedger(dir).toString("utf8");
   const w = lift(["--root", dir, "--write"]);
   const out = readLedger(dir).toString("utf8");
   const crlfRows = out.split(/(?<=\n)/).filter((l) => /^\| R-\d{3} \|/.test(l)).every((l) => l.endsWith("\r\n"));
   // req: R-1164
   check("R-1164: --write accepts a clean CRLF checkout under core.autocrlf=true and keeps its CRLF rows",
-    w.status === 0 && crlfRows,
-    `w=${w.status} ` + own(w.stderr).join(" | "));
+    blobLf !== workingCrlf && w.status === 0 && crlfRows,
+    `blobEqualsWorking=${blobLf === workingCrlf} w=${w.status} ` + own(w.stderr).join(" | "));
 }
 
 {
