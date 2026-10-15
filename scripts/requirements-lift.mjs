@@ -658,6 +658,30 @@ export function applyMapping(text, mapping, seed) {
   return (text.startsWith(BOM) ? BOM : "") + out.join("");
 }
 
+// ---------------------------------------------------------------------- the atomic write step (R-1164)
+
+/**
+ * Re-reads the ledger immediately before replacing it, refusing when it no longer equals the
+ * bytes the proof ran against (`provedBuf`), then writes through a temp file beside it and
+ * renames that over the ledger; a failed rename removes the temp file and refuses, naming the
+ * reason. File functions are injected (defaulting to the real `node:fs` ones) so a test can
+ * exercise the re-read-to-rename window directly, without racing a second process against this
+ * one (CHANGE.md §3.6; T12).
+ */
+export function writeLedgerAtomic(ledgerPath, provedBuf, output, fns = { readFileSync, writeFileSync, renameSync, rmSync }) {
+  const reread = fns.readFileSync(ledgerPath);
+  if (!reread.equals(provedBuf)) return { ok: false, reason: `${ledgerPath} changed since the proof` };
+  const tmp = `${ledgerPath}.lift-${process.pid}.tmp`;
+  try {
+    fns.writeFileSync(tmp, output);
+    fns.renameSync(tmp, ledgerPath);
+  } catch (e) {
+    try { fns.rmSync(tmp, { force: true }); } catch {}
+    return { ok: false, reason: `could not replace the ledger (${e.message})` };
+  }
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------- git gate (R-1164)
 
 function git(cwd, args) { return spawnSync("git", args, { cwd, encoding: "utf8" }); }
@@ -813,17 +837,8 @@ export function main(argv = process.argv.slice(2)) {
   const wtScan = worktreeScan(repoRoot, relLedger);
   if (!wtScan.ok) { console.error(`--write refused: ${wtScan.reason}`); return 1; }
 
-  const reread = readFileSync(ledgerPath);
-  if (!reread.equals(buf)) { console.error(`--write refused: ${ledgerPath} changed since the proof`); return 1; }
-  const tmp = `${ledgerPath}.lift-${process.pid}.tmp`;
-  try {
-    writeFileSync(tmp, output);
-    renameSync(tmp, ledgerPath);
-  } catch (e) {
-    try { rmSync(tmp, { force: true }); } catch {}
-    console.error(`--write refused: could not replace the ledger (${e.message})`);
-    return 1;
-  }
+  const written = writeLedgerAtomic(ledgerPath, buf, output);
+  if (!written.ok) { console.error(`--write refused: ${written.reason}`); return 1; }
   return 0;
 }
 

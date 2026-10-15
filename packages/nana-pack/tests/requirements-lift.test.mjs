@@ -566,27 +566,51 @@ if (process.platform !== "win32") {
 }
 
 {
+  // The write step's OWN file functions are injected (CHANGE.md §3.6), so this exercises the
+  // re-read-to-rename window directly: the ledger is clean and the proof already ran against
+  // `provedBuf`, but the injected read returns DIFFERENT bytes, as if another process had
+  // edited the file in the instant between the proof and this call — distinct from editing the
+  // file before the run even starts, which the earlier HEAD-vs-ledger gate check would catch
+  // instead (the gap this test used to leave).
   const dir = gitRepo("t12", flatLedger());
-  const orig = readLedger(dir);
-  // Race: change the ledger's bytes right after the CLI reads it, before it renames the temp
-  // file over it, by racing a background writer against a build with an injected delay is not
-  // available without touching the module under test, so this exercises the SAME refusal path
-  // the gate takes at the re-read: an edit landing between the initial read and --write.
-  const race = spawnSync(process.execPath, ["--input-type=module", "-e", `
-    import { readFileSync, writeFileSync } from "node:fs";
-    import { spawnSync } from "node:child_process";
-    const path = ${JSON.stringify(join(dir, "REQUIREMENTS.md"))};
-    const before = readFileSync(path);
-    writeFileSync(path, before.toString("utf8") + "\\n");
-    const r = spawnSync(${JSON.stringify(process.execPath)}, [${JSON.stringify(LIFT)}, "--root", ${JSON.stringify(dir)}, "--write"], { encoding: "utf8" });
-    console.log(JSON.stringify({ status: r.status, stderr: r.stderr }));
-  `], { encoding: "utf8" });
-  const result = JSON.parse(lines(race.stdout).at(-1) ?? "{}");
-  const after = readLedger(dir);
+  const ledgerPath = join(dir, "REQUIREMENTS.md");
+  const provedBuf = readLedger(dir);
+  const raceBuf = Buffer.from(`${provedBuf.toString("utf8")}\n`, "utf8");
+  let wroteTemp = false, renamed = false;
+  const injected = {
+    readFileSync: () => raceBuf,
+    writeFileSync: () => { wroteTemp = true; },
+    renameSync: () => { renamed = true; },
+    rmSync: () => {},
+  };
+  const result = LIFT_MODULE.writeLedgerAtomic(ledgerPath, provedBuf, "would-be lifted output", injected);
+  const untouched = readLedger(dir).equals(provedBuf);
   // req: R-1164
   check("R-1164: --write refuses when the ledger changes between the proof and the rename",
-    result.status === 1 && !/Cannot find module|\bERR_[A-Z_]+/.test(result.stderr ?? "") && !after.equals(orig),
-    JSON.stringify(result).slice(0, 300));
+    result.ok === false && /changed since the proof/.test(result.reason ?? "") && !wroteTemp && !renamed && untouched,
+    JSON.stringify(result));
+}
+
+{
+  // A failed rename (CHANGE.md residual 6: antivirus or the indexer, more likely than an
+  // editor) removes the temp file and refuses, naming the reason, rather than leaving a stray
+  // ".tmp" file or a half-replaced ledger.
+  const dir = gitRepo("t12b", flatLedger());
+  const ledgerPath = join(dir, "REQUIREMENTS.md");
+  const provedBuf = readLedger(dir);
+  let removedTmpPath = null;
+  const injected = {
+    readFileSync: () => provedBuf,
+    writeFileSync: () => {},
+    renameSync: () => { throw new Error("EPERM: simulated rename failure"); },
+    rmSync: (p) => { removedTmpPath = p; },
+  };
+  const result = LIFT_MODULE.writeLedgerAtomic(ledgerPath, provedBuf, "would-be lifted output", injected);
+  const untouched = readLedger(dir).equals(provedBuf);
+  // req: R-1164
+  check("R-1164: a failed rename removes the temp file and refuses, naming the reason, and leaves the ledger unchanged",
+    result.ok === false && /could not replace the ledger/.test(result.reason ?? "") && /simulated rename failure/.test(result.reason ?? "") && removedTmpPath === `${ledgerPath}.lift-${process.pid}.tmp` && untouched,
+    JSON.stringify({ result, removedTmpPath }));
 }
 
 if (process.platform !== "win32") {
@@ -681,13 +705,17 @@ if (process.platform !== "win32") {
   const dir = gitRepo("t17", flatLedger());
   lift(["--root", dir, "--write"]);
   const out = readLedger(dir).toString("utf8");
-  const closeIdx = out.indexOf(LIFT_MODULE.CLOSING_HEADING);
+  // The canonical text is a sealed literal here, never read back from the (possibly mutated)
+  // module: comparing the output only against LIFT_MODULE.CLOSING_HEADING would trivially agree
+  // with itself if that constant were retyped (R-1165 5/6).
+  const canonicalClosing = "# Open questions and deliberate omissions";
+  const closeIdx = out.indexOf(canonicalClosing);
   const openIdx = out.indexOf("## Open questions");
   const omitIdx = out.indexOf("## Deliberate omissions");
   // req: R-1165
   check("R-1165: Open questions and Deliberate omissions stay verbatim under the seed's closing heading",
-    closeIdx >= 0 && openIdx > closeIdx && omitIdx > openIdx && out.includes("1. An open question.") && out.includes("1. A deliberate omission."),
-    `close=${closeIdx} open=${openIdx} omit=${omitIdx}`);
+    LIFT_MODULE.CLOSING_HEADING === canonicalClosing && closeIdx >= 0 && openIdx > closeIdx && omitIdx > openIdx && out.includes("1. An open question.") && out.includes("1. A deliberate omission."),
+    `close=${closeIdx} open=${openIdx} omit=${omitIdx} CLOSING_HEADING=${JSON.stringify(LIFT_MODULE.CLOSING_HEADING)}`);
 }
 
 {
@@ -839,11 +867,18 @@ if (process.platform !== "win32") {
   const rField = lift(["--root", dirField]);
   const fieldLine = fieldText.split("\n").findIndex((l) => l === "Status: active") + 1;
 
+  // A repeated row ID (R-1167, mutation 4/14: dropping this specific check must still red
+  // here, naming the wording checks 2/3's byte-per-ID accounting needs one line per ID).
+  const repeatedText = flatLedger().replace("| R-002 | The second thing shall work. | untested | — |", "| R-002 | The second thing shall work. | untested | — |\n| R-002 | A repeat of the second thing. | untested | — |");
+  const dirRepeated = writeLedger(scratchDir("t22-repeated"), repeatedText);
+  const rRepeated = lift(["--root", dirRepeated]);
+  const repeatedOk = rRepeated.status === 1 && !crashed(rRepeated) && own(rRepeated.stderr).some((l) => /requirement row R-002 repeats line/.test(l));
+
   const named = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${n}\\b`).test(l));
   // req: R-1167
   check("R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line",
-    r16.status === 1 && !crashed(r16) && rA.status === 1 && named(rA, ansiLine) && rNoRows.status === 1 && !crashed(rNoRows) && named(rFenced, fencedLine) && named(rL4, l4Line) && named(rSetext, setextLine) && named(rAlso, alsoLine) && named(rField, fieldLine),
-    JSON.stringify({ r16: r16.status, rA: own(rA.stderr)[0], rNoRows: own(rNoRows.stderr)[0], rFenced: own(rFenced.stderr)[0], rL4: own(rL4.stderr)[0], rSetext: own(rSetext.stderr)[0], rAlso: own(rAlso.stderr)[0], rField: own(rField.stderr)[0] }));
+    r16.status === 1 && !crashed(r16) && rA.status === 1 && named(rA, ansiLine) && rNoRows.status === 1 && !crashed(rNoRows) && named(rFenced, fencedLine) && named(rL4, l4Line) && named(rSetext, setextLine) && named(rAlso, alsoLine) && named(rField, fieldLine) && repeatedOk,
+    JSON.stringify({ r16: r16.status, rA: own(rA.stderr)[0], rNoRows: own(rNoRows.stderr)[0], rFenced: own(rFenced.stderr)[0], rL4: own(rL4.stderr)[0], rSetext: own(rSetext.stderr)[0], rAlso: own(rAlso.stderr)[0], rField: own(rField.stderr)[0], repeated: own(rRepeated.stderr)[0] }));
 }
 
 {
@@ -914,8 +949,32 @@ if (process.platform !== "win32") {
     return lift(["--root", gDir, "--mapping", mp]);
   })();
   const underProposed = tryMap((m) => { m.tree[0].features[1].status = "proposed"; }, "proposed-with-rows");
+  // A line after an unterminated last row (4/17): a mapping that places something after the
+  // ledger's unterminated final row, asserting the validator's OWN wording for the rule (not
+  // just a generic refusal some other check could also produce).
+  const unterminatedAfter = (() => {
+    const untermBase = "# u fixture\n\n## 1. One\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | the last thing shall work. | untested | — |";
+    const uDir = gitRepo("t24-unterm", untermBase);
+    lift(["--root", uDir, "--write"]);
+    const uMapPath = join(uDir, "map.json");
+    lift(["--root", uDir, "--emit-mapping", uMapPath]);
+    const m = JSON.parse(readFileSync(uMapPath, "utf8"));
+    m.tail = { heading: "# Open questions and deliberate omissions", from: [], keep: [{ line: 1, heading: "# u fixture" }] }; // places a line after the unterminated last row
+    writeFileSync(uMapPath, JSON.stringify(m));
+    gitC(uDir, "add", "-A"); gitC(uDir, "commit", "-qm", "bad tail");
+    return lift(["--root", uDir, "--mapping", uMapPath]);
+  })();
   const red = (r) => r.status === 1 && !crashed(r);
-  const bad = [["pin", wrongPin], ["missing", missingRow], ["repeated", repeatedRow], ["unknown", unknownRow], ["twice", headingTwice], ["never", headingNever], ["gOutsideSub", gOutsideSub], ["rInReserved", rInReserved], ["underProposed", underProposed]].filter(([, r]) => !red(r)).map(([l]) => l);
+  const named = (r, re) => red(r) && own(r.stderr).some((l) => re.test(l));
+  const bad = [
+    ["pin", red(wrongPin)], ["missing", red(missingRow)], ["repeated", red(repeatedRow)], ["unknown", red(unknownRow)],
+    ["twice", named(headingTwice, /is named more than once/)],
+    ["never", red(headingNever)],
+    ["gOutsideSub", named(gOutsideSub, /belongs to the seed subgroup/)],
+    ["rInReserved", named(rInReserved, /reserved node holds R row/)],
+    ["underProposed", red(underProposed)],
+    ["unterminatedAfter", named(unterminatedAfter, /ends with an unterminated row/)],
+  ].filter(([, ok]) => !ok).map(([l]) => l);
   // req: R-1167
   check("R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature",
     bad.length === 0, bad.join(", "));
@@ -954,11 +1013,32 @@ if (process.platform !== "win32") {
   writeFileSync(bomMap, `﻿${mapText}`);
   const rBom = lift(["--root", dir, "--mapping", bomMap]);
 
+  // A NUL byte (4/12), each named with the SPECIFIC wording its own check emits, not whatever a
+  // later, redundant check would say instead once the earlier one is removed.
+  const nulMap = join(dir, "map-nul.json");
+  writeFileSync(nulMap, Buffer.concat([Buffer.from(mapText.slice(0, 10), "utf8"), Buffer.from([0]), Buffer.from(mapText.slice(10), "utf8")]));
+  const rNul = lift(["--root", dir, "--mapping", nulMap]);
+  const nulOk = rNul.status === 1 && !crashed(rNul) && own(rNul.stderr).some((l) => /NUL byte/.test(l));
+
+  // Invalid JSON syntax, valid UTF-8, no NUL (4/15).
+  const brokenJsonMap = join(dir, "map-brokenjson.json");
+  writeFileSync(brokenJsonMap, `${mapText.slice(0, -1)}, }`);
+  const rBrokenJson = lift(["--root", dir, "--mapping", brokenJsonMap]);
+  const brokenJsonOk = rBrokenJson.status === 1 && !crashed(rBrokenJson) && own(rBrokenJson.stderr).some((l) => /not valid JSON/.test(l));
+
+  // Another lift mapping version (4/16).
+  const verMapObj = JSON.parse(mapText);
+  verMapObj.lift = 2;
+  const verMap = join(dir, "map-version.json");
+  writeFileSync(verMap, JSON.stringify(verMapObj));
+  const rVer = lift(["--root", dir, "--mapping", verMap]);
+  const verOk = rVer.status === 1 && !crashed(rVer) && own(rVer.stderr).some((l) => /lift version/.test(l));
+
   const named = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${n}\\b`).test(l));
   // req: R-1167 R-1166
   check("R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted",
-    r16.status === 1 && !crashed(r16) && named(rAnsi, ansiMapLine) && rBroken.status === 1 && !crashed(rBroken) && rOutside.status === 1 && !crashed(rOutside) && rBom.status === 0,
-    JSON.stringify({ r16: own(r16.stderr)[0], rAnsi: own(rAnsi.stderr)[0], rBroken: own(rBroken.stderr)[0], rOutside: own(rOutside.stderr)[0], rBom: rBom.status }));
+    r16.status === 1 && !crashed(r16) && named(rAnsi, ansiMapLine) && rBroken.status === 1 && !crashed(rBroken) && rOutside.status === 1 && !crashed(rOutside) && rBom.status === 0 && nulOk && brokenJsonOk && verOk,
+    JSON.stringify({ r16: own(r16.stderr)[0], rAnsi: own(rAnsi.stderr)[0], rBroken: own(rBroken.stderr)[0], rOutside: own(rOutside.stderr)[0], rBom: rBom.status, nul: own(rNul.stderr)[0], brokenJson: own(rBrokenJson.stderr)[0], ver: own(rVer.stderr)[0] }));
 }
 
 {
