@@ -668,7 +668,14 @@ export function main(argv = process.argv.slice(2)) {
       if (built.problems.length) { for (const p of capProblems(built.problems)) console.error(p); return 1; }
       mapping = built.mapping; fromDefault = true;
     } else {
-      console.error(`${ledgerPath}: this ledger is neither flat nor a passing tree; supply --mapping (${ct.problems[0] ?? "see the tree checker"})`);
+      // R-1167, T23: name the tree (or near-tree) heading(s) found, not just the tree
+      // checker's generic first problem — a hand-built partial tree (real CAP/FEAT/SUB
+      // headings) and a near-miss heading both need --mapping, for different reasons.
+      const treeHeadingCount = ct.parsed.headings.length;
+      const detail = treeHeadingCount > 0
+        ? `this ledger already holds ${treeHeadingCount} capability, feature or subgroup heading(s) and is not a passing tree (${ct.problems[0] ?? "see the tree checker"})`
+        : (ct.problems[0] ?? "see the tree checker");
+      console.error(`${ledgerPath}: this ledger is neither flat nor a passing tree; supply --mapping (${detail})`);
       return 1;
     }
   }
