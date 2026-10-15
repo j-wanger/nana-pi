@@ -63,3 +63,12 @@ The touched test files green (`node scripts/test.mjs <file>`); `node docs/review
 ≤ 30 lines, first line `VERDICT: DONE | PARTIAL | BLOCKED`: commits; A–D each with the red you saw first; every survivor
 you argue equivalent and why; the touched test files' summary lines; the last line of each seat output; the one claim
 most likely wrong.
+
+## Resume note (seat, 2026-10-15)
+Build 4's first builder hung mid-turn after five commits (`2df705f` D, `bcf2229` part of A and the 2/4 and 2/11 pins,
+`32d9aa9` B, `decf6e2` and `da51251` part of C) with an uncommitted edit to `requirements-lift.test.mjs` (two new C
+pins: a kept tail section dropped entirely; a wrong `head.through` named by validator and proof). A fresh builder
+continues: (1) finish that edit — run the file, keep what is right, commit; (2) A's core: the input-derived multiset
+of non-blank segments (§A "Rule") — `bcf2229` added named-heading, region-order and field-block checks but not the
+count; add it, with a test that reds when the count is disabled; (3) the remaining C pins: every survivor in
+`verify-0dc5d1d/` not yet pinned (say which are equivalent and why); (4) report as the brief says.
