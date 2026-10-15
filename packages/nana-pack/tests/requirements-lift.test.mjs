@@ -1774,5 +1774,34 @@ if (process.platform !== "win32") {
     bad.join(", ") + " " + own(vAnsi.stderr).concat(own(vRepeated.stderr), own(vNul.stderr), own(vVer.stderr), own(vEnc.stderr), own(vJson.stderr)).join(" | "));
 }
 
+{
+  // build brief 7 item 1 (sol r1 MUST 1): --verify decoded HEAD's blob through spawnSync's own
+  // lossy "utf8" option and compared decoded STRINGS, so an invalid HEAD byte that happens to
+  // decode to the same replacement character as the base's own (valid) U+FFFD passed as if the
+  // bytes matched. Base holds a row with a literal U+FFFD (valid UTF-8; forbidden only in
+  // mapping strings, never in ledger text); the default lift keeps that row byte-identical; HEAD
+  // is then hand-tampered, replacing those 3 bytes with the single invalid byte 0xE9 (which Node's
+  // utf8 decoder also replaces with U+FFFD) before committing.
+  const dir = scratchDir("t39-fffd");
+  const fffdText = flatLedger().replace("The second thing shall work.", "The second thing shall work: �.");
+  writeLedger(dir, fffdText);
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", "false");
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "base with U+FFFD");
+  const baseRev = gitC(dir, "rev-parse", "HEAD").stdout.trim();
+  const w = lift(["--root", dir, "--write"]);
+  const liftedBuf = readFileSync(join(dir, "REQUIREMENTS.md"));
+  const fffdBytes = Buffer.from("�", "utf8"); // EF BF BD
+  const idx = liftedBuf.indexOf(fffdBytes);
+  const tampered = idx < 0 ? liftedBuf : Buffer.concat([liftedBuf.subarray(0, idx), Buffer.from([0xe9]), liftedBuf.subarray(idx + fffdBytes.length)]);
+  writeFileSync(join(dir, "REQUIREMENTS.md"), tampered);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "lift (HEAD byte tampered)");
+  const v = lift(["--root", dir, "--verify", baseRev]);
+  // req: R-1168
+  check("R-1168: --verify refuses a HEAD ledger whose bytes differ from the applied output's, including an invalid UTF-8 byte that decodes like the base",
+    w.status === 0 && idx >= 0 && v.status === 1 && !crashed(v) && own(v.stderr).some((l) => /bytes are not valid UTF-8/.test(l) && l.includes("HEAD")),
+    `write=${w.status} idx=${idx} verify=${v.status} ` + own(v.stderr).join(" | "));
+}
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

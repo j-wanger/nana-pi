@@ -1011,18 +1011,33 @@ function runVerify(rootDir, args, seed) {
   }
   const inputBlob = gitBuf(repoRoot, ["show", `${args.verify}:./${relLedger}`]);
   if (inputBlob.status !== 0) { console.error(`--verify refused: could not read ${args.verify}:./${relLedger}`); return 1; }
-  const expected = git(repoRoot, ["show", `HEAD:./${relLedger}`]);
-  if (expected.status !== 0) { console.error(`--verify refused: could not read HEAD:./${relLedger}`); return 1; }
+  // Build brief 7 item 1 (sol r1 MUST 1): read HEAD with the SAME buffer reader as the base
+  // revision, never spawnSync's own "utf8" option -- that lossy decode silently turns an
+  // invalid byte into U+FFFD before any check or comparison ever saw it, so a hand-tampered
+  // HEAD byte that happens to decode like the base's own (valid) U+FFFD passed as if the bytes
+  // matched (R-1168).
+  const expectedBlob = gitBuf(repoRoot, ["show", `HEAD:./${relLedger}`]);
+  if (expectedBlob.status !== 0) { console.error(`--verify refused: could not read HEAD:./${relLedger}`); return 1; }
   const inputBuf = inputBlob.stdout;
   const inputText = inputBuf.toString("utf8");
   // Every base-ledger refusal --write runs on bytes read from disk, run here on the SAME blob
   // bytes (build brief 4 §B): NUL, no rows, an encoding mismatch, a fenced row, a repeated row
-  // ID, an unsupported heading, and a field-labelled line outside its heading's own field block.
+  // ID, an unsupported heading, and a field-labelled line outside its heading's own field block
+  // (and, by build brief 7 item 3, any "Also applies:" line anywhere -- shares are refused in
+  // every ledger form, never silently dropped). Build brief 7 item 1 runs the SAME checks on
+  // the committed HEAD blob too, not only on the revision being verified: a byte-invalid or
+  // share-carrying HEAD must be named and refused, not merely compared.
   const inputParsed = parseLedger(inputText);
   const inputReadProblem = ledgerReadProblem(inputText, inputParsed);
   if (inputReadProblem) { console.error(`--verify refused: ${args.verify}:./${relLedger}: ${inputReadProblem}`); return 1; }
   const inputBase = baseRefusals(inputBuf, inputText, inputParsed);
   if (inputBase.length) { for (const p of capProblems(inputBase)) console.error(`--verify refused: ${args.verify}:./${relLedger}: ${p}`); return 1; }
+  const expectedText = expectedBlob.stdout.toString("utf8");
+  const expectedParsed = parseLedger(expectedText);
+  const expectedReadProblem = ledgerReadProblem(expectedText, expectedParsed);
+  if (expectedReadProblem) { console.error(`--verify refused: HEAD:./${relLedger}: ${expectedReadProblem}`); return 1; }
+  const expectedBase = baseRefusals(expectedBlob.stdout, expectedText, expectedParsed);
+  if (expectedBase.length) { for (const p of capProblems(expectedBase)) console.error(`--verify refused: HEAD:./${relLedger}: ${p}`); return 1; }
 
   if (mapping) {
     // the pin check --write also runs (via readMapping) for a supplied mapping: it must be
@@ -1050,8 +1065,11 @@ function runVerify(rootDir, args, seed) {
   const proof = proveLift(inputText, mapping, output, seed.text, { fromDefault });
   if (proof.problems.length) { for (const p of capProblems(proof.problems)) console.error(`--verify refused: ${p}`); return 1; }
 
-  if (output !== expected.stdout) {
-    const a = output.split("\n"), b = expected.stdout.split("\n");
+  // Compare the applied output's own bytes against HEAD's, not decoded text (sol r1 MUST 1):
+  // the two sides have already each been proved valid UTF-8 above, so this is the general,
+  // principled check -- not reliant on the encoding-mismatch refusal catching every case.
+  if (!Buffer.from(output, "utf8").equals(expectedBlob.stdout)) {
+    const a = output.split("\n"), b = expectedText.split("\n");
     const i = a.findIndex((line, n) => line !== b[n]);
     console.error(`--verify refused: line ${i + 1} differs from HEAD`);
     return 1;
