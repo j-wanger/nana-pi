@@ -590,7 +590,7 @@ function gitClean(cwd, relPath) {
 function worktreeScan(rootDir, relPath) {
   const list = git(rootDir, ["worktree", "list", "--porcelain"]);
   if (list.status !== 0) return { ok: false, reason: "git worktree list failed" };
-  const dirs = list.stdout.split("\n").filter((l) => l.startsWith("worktree ")).map((l) => l.slice("worktree ".length).trim());
+  const dirs = list.stdout.split("\n").filter((l) => l.startsWith("worktree ")).map((l) => canonical(l.slice("worktree ".length).trim()));
   for (const dir of dirs) {
     const prefix = git(dir, ["rev-parse", "--show-prefix"]).stdout.trim();
     const candidate = join(prefix, relPath).split(sep).join("/");
@@ -605,13 +605,22 @@ function worktreeScan(rootDir, relPath) {
 
 // ---------------------------------------------------------------------- CLI
 
+// fs.realpathSync's cached JS fallback neither expands a Windows 8.3 short name (RUNNER~1) to its
+// long form nor corrects a path's case on a case-insensitive filesystem, while git always reports
+// its own fully expanded, correctly cased form; relating an uncorrected path to git's with
+// path.relative() then climbs out of the repository (CI run 38738434830). realpathSync.native asks
+// the OS directly and matches git on both counts; elsewhere the cached realpathSync is equivalent.
+const REALPATH = process.platform === "win32" ? realpathSync.native : realpathSync;
+/** Best-effort canonical form of an existing path; the original path when it cannot be resolved. */
+function canonical(p) { try { return REALPATH(p); } catch { return p; } }
+
 function usage() {
   console.error("Usage: requirements-lift.mjs --root <dir> [--mapping <file> | --emit-mapping <file>] [--write | --verify <rev>]");
   return 2;
 }
 function repoRootFor(dir) {
   const r = git(dir, ["rev-parse", "--show-toplevel"]);
-  return r.status === 0 ? r.stdout.trim() : null;
+  return r.status === 0 ? canonical(r.stdout.trim()) : null;
 }
 
 export function main(argv = process.argv.slice(2)) {
@@ -631,8 +640,7 @@ export function main(argv = process.argv.slice(2)) {
   if (modeCount > 1) return usage();
   if (args.emitMapping && (args.mapping || args.write || args.verify !== null)) return usage();
 
-  let rootDir = resolve(process.cwd(), args.root);
-  try { rootDir = realpathSync(rootDir); } catch {}
+  let rootDir = canonical(resolve(process.cwd(), args.root));
   const seed = loadSeed(REPO_ROOT);
 
   if (args.verify !== null) return runVerify(rootDir, args, seed);
@@ -650,8 +658,8 @@ export function main(argv = process.argv.slice(2)) {
   let mapping, fromDefault = false, mappingPath = null;
   if (args.mapping) {
     mappingPath = resolve(rootDir, args.mapping);
-    const realRoot = realpathSync(rootDir);
-    const realMap = (() => { try { return realpathSync(mappingPath); } catch { return resolve(mappingPath); } })();
+    const realRoot = rootDir; // already canonical
+    const realMap = canonical(mappingPath);
     if (!realMap.startsWith(realRoot + sep) && realMap !== realRoot) { console.error(`${mappingPath}: lies outside --root`); return 1; }
     mappingPath = realMap;
     const read = readMapping(mappingPath, rootDir, text);
@@ -709,11 +717,11 @@ export function main(argv = process.argv.slice(2)) {
 
   const repoRoot = repoRootFor(rootDir);
   if (!repoRoot) { console.error(`${rootDir}: git is not on PATH, or this is not a git repository`); return 1; }
-  const relLedger = relative(repoRoot, ledgerPath).split(sep).join("/");
+  const relLedger = relative(repoRoot, canonical(ledgerPath)).split(sep).join("/");
   const clean = gitClean(repoRoot, relLedger);
   if (!clean.ok) { console.error(`--write refused: ${clean.reason}`); return 1; }
   if (mappingPath) {
-    const relMap = relative(repoRoot, mappingPath).split(sep).join("/");
+    const relMap = relative(repoRoot, canonical(mappingPath)).split(sep).join("/");
     const mapClean = gitClean(repoRoot, relMap);
     if (!mapClean.ok) { console.error(`--write refused: mapping ${mapClean.reason}`); return 1; }
   }
@@ -737,12 +745,12 @@ export function main(argv = process.argv.slice(2)) {
 function runVerify(rootDir, args, seed) {
   const repoRoot = repoRootFor(rootDir);
   if (!repoRoot) { console.error(`${rootDir}: git is not on PATH, or this is not a git repository`); return 1; }
-  const relLedger = relative(repoRoot, resolve(rootDir, "REQUIREMENTS.md")).split(sep).join("/");
+  const relLedger = relative(repoRoot, canonical(resolve(rootDir, "REQUIREMENTS.md"))).split(sep).join("/");
   const headClean = gitClean(repoRoot, relLedger);
   if (!headClean.ok) { console.error(`--verify refused: ${relLedger} ${headClean.reason}`); return 1; }
   let mapping = null;
   if (args.mapping) {
-    const mappingPath = (() => { try { return realpathSync(resolve(rootDir, args.mapping)); } catch { return resolve(rootDir, args.mapping); } })();
+    const mappingPath = canonical(resolve(rootDir, args.mapping));
     const relMap = relative(repoRoot, mappingPath).split(sep).join("/");
     const mapClean = gitClean(repoRoot, relMap);
     if (!mapClean.ok) { console.error(`--verify refused: ${relMap} ${mapClean.reason}`); return 1; }

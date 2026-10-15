@@ -9,7 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, delimiter } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { proveLift } from "../../../scripts/requirements-lift-proof.mjs";
@@ -52,6 +52,22 @@ function gitRepo(prefix, text, { autocrlf = "false" } = {}) {
   return dir;
 }
 function readLedger(dir) { try { return readFileSync(join(dir, "REQUIREMENTS.md")); } catch { return null; } }
+/**
+ * A minimal `git` on its own PATH entry (POSIX only): for `rev-parse --show-toplevel` it reports
+ * `toplevel` literally, never asking the real git; every other subcommand execs the real git
+ * untouched. Stands in for the CI run 38738434830 Windows shape, where git's own reported top
+ * level is spelled differently (the long form) from the one the lift already resolved for --root
+ * (the short 8.3 form) — reproduced here with a second, real symlink alias of the same repository
+ * instead, since a plain symlink is already fully resolved identically by git and by Node on a
+ * POSIX box (R-1164).
+ */
+function gitStub(toplevel) {
+  const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  const dir = scratchDir("gitstub");
+  const script = `#!/bin/sh\nif [ "$1" = "rev-parse" ] && [ "$2" = "--show-toplevel" ]; then\n  echo ${JSON.stringify(toplevel)}\n  exit 0\nfi\nexec ${JSON.stringify(real)} "$@"\n`;
+  writeFileSync(join(dir, "git"), script, { mode: 0o755 });
+  return dir;
+}
 
 // ---------------------------------------------------------------- fixture ledgers (built here, never a real project's)
 
@@ -484,6 +500,35 @@ if (process.platform !== "win32") {
   check("R-1164: --write refuses when the ledger changes between the proof and the rename",
     result.status === 1 && !/Cannot find module|\bERR_[A-Z_]+/.test(result.stderr ?? "") && !after.equals(orig),
     JSON.stringify(result).slice(0, 300));
+}
+
+if (process.platform !== "win32") {
+  const sub = "proj";
+  const dir = scratchDir("t32");
+  writeLedger(join(dir, sub), flatLedger());
+  mkdirSync(join(dir, sub, "maps"), { recursive: true });
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", "false");
+  gitC(dir, "add", "-A");
+  gitC(dir, "commit", "-qm", "base");
+  const base = gitC(dir, "rev-parse", "HEAD").stdout.trim();
+
+  const altLink = join(scratchRoot, "t32-git-alias");
+  try { symlinkSync(dir, altLink); } catch {}
+  const stubDir = gitStub(altLink);
+  const stubEnv = { ...cleanEnv(), PATH: `${stubDir}${delimiter}${process.env.PATH ?? ""}` };
+  const liftStub = (args) => node([LIFT, ...args], join(dir, sub), { env: stubEnv });
+
+  const mapPath = join(dir, sub, "maps", "map.json");
+  const emit = liftStub(["--root", join(dir, sub), "--emit-mapping", mapPath]);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  const w = liftStub(["--root", join(dir, sub), "--mapping", mapPath, "--write"]);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "lift");
+  const v = liftStub(["--root", join(dir, sub), "--mapping", mapPath, "--verify", base]);
+  // req: R-1164
+  check("R-1164: --write and --verify relate the ledger and mapping to the repository when --root is spelled differently from git's top level",
+    emit.status === 0 && w.status === 0 && v.status === 0 && !crashed(emit) && !crashed(w) && !crashed(v),
+    `emit=${emit.status} w=${w.status} v=${v.status} ` + own(emit.stderr).concat(own(w.stderr), own(v.stderr)).join(" | "));
 }
 
 // ==================================================================================================
