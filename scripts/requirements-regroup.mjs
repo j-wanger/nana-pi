@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, seedNodeText } from "./requirements-lift.mjs";
+import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, oldFeatIdOf, seedNodeText } from "./requirements-lift.mjs";
 import { REPO_ROOT, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { citesOf, requirementRowId } from "./requirements-trace.mjs";
 
@@ -517,26 +517,32 @@ function claimProblems(proposal, records) {
 // sits in that feature's `also_applies` for a share verdict, so a new share's target resolves
 // carried and a dropped one resolves refuted or asked (seat amendment 2).
 //
-// Seat amendment 3 widens this past `shares_added`: when a proposal merges or demotes a
+// Seat amendment 3 widened this past `shares_added`: when a proposal merges or demotes a
 // feature that shares a row, the lift carries that share into the feature that absorbs it —
 // onto `also_applies` directly, with no `shares_added` ever declared, so checking that key
-// alone misses it (the fail-open bug the amendment names). The real test is the input
-// ledger's own feature of the SAME ID: a row in `also_applies` that feature already shared
-// stays unreviewed (nothing changed for it); a row it did not — whether newly declared or
-// merely carried in by a merge or a demotion — needs a share verdict. A flat ledger's
-// features share nothing, so every one of their shares needs review.
+// alone misses it. Its own test was the input ledger's feature of the SAME ID holding the
+// share, which seat amendment 4 found too loose: a proposal can reuse an input feature's ID
+// for a feature built from a DIFFERENT old heading, and that coincidence alone exempted a row
+// the reused ID's old feature happened to share (the fail-open bug amendment 4 names). Every
+// row in `shares_added` or `shares_dropped` always needs its own verdict; every OTHER row in
+// `also_applies` is exempt only when the input ledger's feature of the same ID already held it
+// AND this feature's own or its subgroups' `from` actually names that input feature's old
+// heading — i.e. this feature continues it, not merely reuses its ID.
 function shareDeclarationProblems(proposal, ledgerText) {
   const problems = [];
   const inputAlsoApplies = new Map(
     parseLedger(ledgerText).headings.filter((h) => h.id?.startsWith("FEAT-")).map((h) => [h.id, new Set(h.alsoApplies)]),
   );
   const sharesTo = (id, to) => verdictFor(proposal, id)?.verdict === "share" && (verdictFor(proposal, id)?.targets ?? []).some((t) => t.to === to);
+  const continuesOldFeature = (node, id) =>
+    (node.from ?? []).some((f) => oldFeatIdOf(f) === id) || (node.subgroups ?? []).some((sub) => (sub.from ?? []).some((f) => oldFeatIdOf(f) === id));
   for (const x of flattenProposalNodes(proposal)) {
     if (x.level !== 2) continue;
     const alreadyShared = inputAlsoApplies.get(x.id) ?? new Set();
+    const declaredAdded = new Set(x.node.shares_added ?? []);
     for (const id of x.node.also_applies ?? []) {
-      if (alreadyShared.has(id)) continue;
-      if (!sharesTo(id, x.id)) problems.push(`${x.id}: also_applies names ${id}, which the input ledger's feature of this ID did not share and which has no share verdict targeting ${x.id}`);
+      if (!declaredAdded.has(id) && alreadyShared.has(id) && continuesOldFeature(x.node, x.id)) continue;
+      if (!sharesTo(id, x.id)) problems.push(`${x.id}: also_applies names ${id}, which has no share verdict targeting ${x.id}`);
     }
     for (const id of x.node.shares_dropped ?? []) if (!sharesTo(id, x.id)) problems.push(`${x.id}: shares_dropped names ${id}, which has no share verdict targeting ${x.id}`);
   }

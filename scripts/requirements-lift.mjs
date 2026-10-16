@@ -261,8 +261,12 @@ function shareLineRefusals(bareLines, segs, parsed) {
   }
   return problems;
 }
-/** Old FEAT- heading id a mapping `from` entry's heading text names, as the tree heading pattern reads it, or null. */
-function oldFeatIdOf(fromEntry) {
+/** Old FEAT- heading id a mapping `from` entry's heading text names, as the tree heading pattern reads it, or null.
+ * Exported (seat amendment 4, R-1187): the regroup checker reads the same old id, off the same
+ * `from` entries, to tell a feature that continues an old heading from one that merely reuses
+ * its new id -- one shared reading, so the checker and the lift can never read a `from` entry's
+ * old id differently. */
+export function oldFeatIdOf(fromEntry) {
   const m = TREE_HEADING.exec(fromEntry?.heading ?? "");
   return m && m[2].startsWith("FEAT-") ? m[2] : null;
 }
