@@ -522,6 +522,10 @@ if (process.platform !== "win32") {
     const feat = mappingNodesOf(q).find((x) => x.id === "FEAT-002").node;
     feat.shares_added = ["R-010"];
     feat.shares_dropped = ["R-009"];
+    feat.also_applies = ["R-010"];
+    const v10 = verdictOf(q, "R-010"); delete v10.reason; v10.verdict = "share"; v10.targets = [{ to: "FEAT-002", reason: "FEAT-002 also reads the escaping rule (shares-keys add)" }];
+    const v9 = verdictOf(q, "R-009"); delete v9.reason; v9.verdict = "share"; v9.targets = [{ to: "FEAT-002", reason: "FEAT-002 no longer needs its own copy of the HTML-file rule (shares-keys drop)" }];
+    q.regroup.refuted.push({ id: "R-009", to: "FEAT-002", reason: "FEAT-002's old share is dropped once it reads the rule directly (shares-keys drop refuted)" });
   });
   const dir = fxRoot("shares-keys", p);
   const { problems } = regroupProblems(p, FX, dir);
@@ -697,6 +701,99 @@ if (process.platform !== "win32") {
   const goodOk = good.r.status === 0 && !crashed(good.r);
   // req: R-1184
   check("R-1184: a rejected claim named in no question is refused, and one named in a question passes", bad.ok && goodOk, bad.why || `good status=${good.r.status}`);
+}
+
+// ================================================================== T24 (seat amendment 2, R-1187: shares need a share verdict)
+{
+  // A tree-form ledger (only a tree ledger can carry an existing share to drop): CAP-01 holds
+  // FEAT-001 (R-001, already sharing R-002) and FEAT-002 (R-002).
+  const TH2 = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const T = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha", f2: "## FEAT-002 · Bravo" };
+  const TREE_FX = [
+    T.cap, "", "Purpose: capability purpose for the shares fixture.", "Outcome: a visible outcome for the shares fixture.", "",
+    T.f1, "", "Purpose: alpha feature purpose.", "Status: active", "Also applies: R-002", "", ...TH2,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+    T.f2, "", "Purpose: bravo feature purpose.", "Status: active", "", ...TH2,
+    "| R-002 | WHEN bravo runs, it shall do bravo things. | implemented | `tests/bravo.test.mjs::R-002: bravo` |", "",
+  ].join("\n");
+  const treeDir = join(scratchRoot, "t24-tree-fx");
+  mkdirSync(join(treeDir, "tests"), { recursive: true });
+  writeFileSync(join(treeDir, "tests", "alpha.test.mjs"), "// fixture test file\n");
+  writeFileSync(join(treeDir, "tests", "bravo.test.mjs"), "// fixture test file\n");
+  const f = (h) => ({ line: lineOf(TREE_FX, h), heading: h });
+  /** The honest identity proposal: FEAT-001 drops its share of R-002 (refuted), FEAT-002 adds a share of R-001 (carried) — the seat r3 case: a reason recording a refused move, resolved as a carried share. */
+  function treeFxProposal() {
+    return {
+      tree: [{ id: "CAP-01", label: "Cap", purpose: "Capability purpose for the shares fixture.", outcome: "A visible outcome for the shares fixture.", from: [f(T.cap)], features: [
+        { id: "FEAT-001", label: "Alpha", purpose: "Alpha feature purpose.", status: "active", also_applies: [], shares_dropped: ["R-002"], from: [f(T.f1)], rows: ["R-001"], subgroups: [] },
+        { id: "FEAT-002", label: "Bravo", purpose: "Bravo feature purpose.", status: "active", also_applies: ["R-001"], shares_added: ["R-001"], from: [f(T.f2)], rows: ["R-002"], subgroups: [] },
+      ] }],
+      regroup: {
+        reasons: [],
+        placed: {},
+        evidence: {},
+        review: {
+          drafter: "anthropic", reviewer: "openai",
+          verdicts: [
+            { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-002", reason: "the reviewer first refused R-001's move to FEAT-002, but the drafter revised this row into a share to the same feature (seat r3 case)" }] },
+            { id: "R-002", at: "FEAT-002", verdict: "share", targets: [{ to: "FEAT-001", reason: "FEAT-001 now reads R-002 directly from FEAT-002, so its own copy of the share is dropped" }] },
+          ],
+          claims: [
+            { node: "CAP-01", field: "purpose", text: "Capability purpose for the shares fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+            { node: "CAP-01", field: "outcome", text: "A visible outcome for the shares fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+            { node: "FEAT-001", field: "purpose", text: "Alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+            { node: "FEAT-002", field: "purpose", text: "Bravo feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+          ],
+        },
+        refuted: [{ id: "R-002", to: "FEAT-001", reason: "FEAT-001's own copy of the share is dropped once FEAT-002 reads R-002 directly" }],
+        questions: [],
+      },
+    };
+  }
+  /** A mutated copy of the honest tree proposal. */
+  function treeVariant(fn) { const p = structuredClone(treeFxProposal()); fn(p); return p; }
+  const featOf = (p, id) => p.tree[0].features.find((x) => x.id === id);
+  const verdictOfT = (p, id) => p.regroup.review.verdicts.find((v) => v.id === id);
+
+  const honest = treeFxProposal();
+  const honestOk = regroupProblems(honest, TREE_FX, treeDir).problems.length === 0;
+
+  // A dropped share's target may also pass resolved by a question, not only refuted.
+  const askedDrop = treeVariant((p) => {
+    p.regroup.refuted = [];
+    p.regroup.questions = [{ ask: "Should FEAT-001 drop its own copy of R-002 (ask)?", recommendation: "Yes, drop it (recommend).", about: [{ id: "R-002", to: "FEAT-001" }] }];
+  });
+  const askedDropOk = regroupProblems(askedDrop, TREE_FX, treeDir).problems.length === 0;
+
+  // Case: shares_added names a row with no share verdict targeting the feature (keep verdict, no target).
+  const addedNoVerdict = treeVariant((p) => {
+    featOf(p, "FEAT-002").also_applies = [];
+    verdictOfT(p, "R-001").verdict = "keep"; delete verdictOfT(p, "R-001").targets;
+    verdictOfT(p, "R-001").reason = "R-001 stays in place (keep)";
+  });
+  // Case: shares_dropped names a row with no share verdict targeting the feature (keep verdict, no target).
+  const droppedNoVerdict = treeVariant((p) => {
+    p.regroup.refuted = [];
+    verdictOfT(p, "R-002").verdict = "keep"; delete verdictOfT(p, "R-002").targets;
+    verdictOfT(p, "R-002").reason = "R-002 stays in place (keep)";
+  });
+  // Case: the row's verdict targeting the feature is "move", not "share" — a share declaration
+  // is not satisfied by a move (the target still resolves, by refutal, so only R-1187 catches this).
+  const movedNotShared = treeVariant((p) => {
+    featOf(p, "FEAT-002").also_applies = [];
+    const v = verdictOfT(p, "R-001"); v.verdict = "move"; v.targets[0].reason = "moved instead of shared (wrong code)";
+    p.regroup.refuted.push({ id: "R-001", to: "FEAT-002", reason: "the move is refused outright (wrong code)" });
+  });
+
+  const addedRefused = regroupProblems(addedNoVerdict, TREE_FX, treeDir).problems;
+  const droppedRefused = regroupProblems(droppedNoVerdict, TREE_FX, treeDir).problems;
+  const movedRefused = regroupProblems(movedNotShared, TREE_FX, treeDir).problems;
+  const names = (problems, ...words) => problems.some((p) => words.every((w) => p.includes(w)));
+
+  // req: R-1187
+  check("R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked",
+    honestOk && askedDropOk && names(addedRefused, "FEAT-002", "R-001") && names(droppedRefused, "FEAT-001", "R-002") && names(movedRefused, "FEAT-002", "R-001"),
+    `honest=${honestOk} askedDrop=${askedDropOk} added=${addedRefused.slice(0, 2).join(" | ")} dropped=${droppedRefused.slice(0, 2).join(" | ")} moved=${movedRefused.slice(0, 2).join(" | ")}`);
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

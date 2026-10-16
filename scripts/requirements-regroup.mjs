@@ -391,10 +391,28 @@ function claimProblems(proposal, records) {
   return problems;
 }
 
-// ---------------------------------------------------------------------- all regroup checks (R-1172 to R-1177, R-1184)
-// Exported so a test can call the checks directly (CHANGE §3.4 item 2; residual 2): the lift
-// itself refuses an `also_applies` line until regroup-shares lands, so the "carried" share
-// outcome can be exercised only by calling this function, never through the CLI.
+// ---------------------------------------------------------------------- R-1187: a declared share needs a share verdict
+// A feature's `shares_added` or `shares_dropped` names a row only when the review record
+// itself backs that change: the row's own verdict must be `share` (never `move`, which names
+// a different placement) with that feature among its targets. R-1187 needs no outcome clause
+// of its own — R-1175 already demands exactly one outcome per target, and "carried" already
+// means the row sits in that feature's `also_applies` for a share verdict, so an added share's
+// target resolves carried and a dropped one resolves refuted or asked (seat amendment 2).
+function shareDeclarationProblems(proposal) {
+  const problems = [];
+  const sharesTo = (id, to) => verdictFor(proposal, id)?.verdict === "share" && (verdictFor(proposal, id)?.targets ?? []).some((t) => t.to === to);
+  for (const x of flattenProposalNodes(proposal)) {
+    if (x.level !== 2) continue;
+    for (const id of x.node.shares_added ?? []) if (!sharesTo(id, x.id)) problems.push(`${x.id}: shares_added names ${id}, which has no share verdict targeting ${x.id}`);
+    for (const id of x.node.shares_dropped ?? []) if (!sharesTo(id, x.id)) problems.push(`${x.id}: shares_dropped names ${id}, which has no share verdict targeting ${x.id}`);
+  }
+  return problems;
+}
+
+// ---------------------------------------------------------------------- all regroup checks (R-1172 to R-1177, R-1184, R-1187)
+// Exported so a test can call the checks directly (CHANGE §3.4 item 2; residual 2): a share
+// scenario needs a tree-form ledger with an existing `Also applies:` line to drop, which is
+// lighter to build by calling this function directly than through the full lift CLI.
 export function regroupProblems(proposal, ledgerText, rootDir) {
   const records = detectMoves(ledgerText, proposal);
   const ledgerRows = ledgerRowsFor(proposal, ledgerText, readRequirementRows(parseLedger(ledgerText)));
@@ -409,6 +427,7 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
     ...reasonProblems(proposal, records),
     ...evidenceProblems(proposal, rootDir),
     ...reviewProblems(proposal, ledgerRows),
+    ...shareDeclarationProblems(proposal),
     ...placedProblems(proposal, ledgerRows, rootDir),
     ...claimProblems(proposal, records),
   ];
