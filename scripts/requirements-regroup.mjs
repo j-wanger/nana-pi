@@ -230,6 +230,20 @@ function reasonProblems(proposal, records) {
   return problems;
 }
 
+// ---------------------------------------------------------------------- R-1177 (M1): evidence shape, before anything reads it
+/** Every `regroup.evidence` value must be an array of strings, named by path — gap feature or
+ * not — so nothing that reads it (the --out pre-check included, which runs before the lift
+ * ever starts) can crash on an object, a number or a boolean. */
+function evidenceShapeProblems(proposal) {
+  const problems = [];
+  const evidence = proposal?.regroup?.evidence;
+  if (!isPlainObject(evidence)) return problems;
+  for (const [id, paths] of Object.entries(evidence)) {
+    if (!Array.isArray(paths) || paths.some((p) => typeof p !== "string")) problems.push(`regroup.evidence.${id}: must be an array of strings, not ${JSON.stringify(paths)}`);
+  }
+  return problems;
+}
+
 // ---------------------------------------------------------------------- R-1174: proposed-feature evidence
 function evidenceProblems(proposal, rootDir) {
   const problems = [];
@@ -247,7 +261,7 @@ function evidenceProblems(proposal, rootDir) {
 /** Every path named anywhere in regroup.evidence, resolved under <dir>; used by the --out collision check. */
 function allEvidenceAbsPaths(proposal, rootDir) {
   const out = [];
-  for (const paths of Object.values(proposal?.regroup?.evidence ?? {})) for (const raw of paths ?? []) { const abs = underRoot(rootDir, raw); if (abs) out.push(abs); }
+  for (const paths of Object.values(proposal?.regroup?.evidence ?? {})) for (const raw of Array.isArray(paths) ? paths : []) { const abs = underRoot(rootDir, raw); if (abs) out.push(abs); }
   return out;
 }
 
@@ -420,7 +434,7 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
   // targets is the wrong shape (an object instead of an array, a null entry), every other
   // check below reads that same field and would throw instead of refusing (R-1177, "never
   // a crash") — so a shape problem is reported on its own, before anything else reads it.
-  const shapeProblems = keyProblems(proposal);
+  const shapeProblems = [...keyProblems(proposal), ...evidenceShapeProblems(proposal)];
   if (shapeProblems.length) return { problems: shapeProblems, records, ledgerRows };
   const problems = [
     ...placeholderProblems(proposal),
@@ -602,6 +616,17 @@ export function main(argv = process.argv.slice(2)) {
 
   let proposalEarly = null;
   try { proposalEarly = JSON.parse(stripBom(readFileSync(proposalPath, "utf8"))); } catch { /* the lift will name this */ }
+  // R-1177 (M1): an evidence shape problem is named and the earlier page removed before the
+  // --out pre-check below ever reads regroup.evidence (allEvidenceAbsPaths would otherwise
+  // throw on an object, a number or a boolean there, crashing before the lift even runs).
+  if (proposalEarly) {
+    const earlyProblems = evidenceShapeProblems(proposalEarly);
+    if (earlyProblems.length) {
+      for (const p of capProblems(earlyProblems)) console.error(p);
+      removeEarlierPage(outPath);
+      return 1;
+    }
+  }
   const evidenceInputs = proposalEarly ? allEvidenceAbsPaths(proposalEarly, rootDir) : [];
   const inputPaths = [ledgerPath, proposalPath, LIFT_SCRIPT, ...evidenceInputs];
   if (existsSync(outPath) && statSync(outPath).isDirectory()) {

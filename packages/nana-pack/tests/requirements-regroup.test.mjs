@@ -605,6 +605,32 @@ if (process.platform !== "win32") {
     misses.length === 0 && noRecOk && shapeMisses.length === 0, `misses=${misses.join(",")} noRecOk=${noRecOk} shapeMisses=${shapeMisses.join(",")}`);
 }
 
+// ================================================================== R-1177 (M1: an evidence value never crashes, gap or not)
+{
+  // Each case first runs an honest proposal at a shared --out (so a stale page would survive a
+  // crash), then the bad-shape proposal at that same --out: refused by name, never a crash,
+  // and the earlier page removed — the --out pre-check (allEvidenceAbsPaths) reads evidence
+  // before the lift even runs, so an object, a number or a boolean there must never reach it.
+  const evidenceShapeCases = [
+    ["FEAT-005 (a gap) evidence is an object", variant((q) => { q.regroup.evidence["FEAT-005"] = { path: "src/report/render.mjs" }; }), "regroup.evidence.FEAT-005"],
+    ["FEAT-005 (a gap) evidence is a number", variant((q) => { q.regroup.evidence["FEAT-005"] = 5; }), "regroup.evidence.FEAT-005"],
+    ["FEAT-005 (a gap) evidence is true", variant((q) => { q.regroup.evidence["FEAT-005"] = true; }), "regroup.evidence.FEAT-005"],
+    ["FEAT-004 (not a gap) evidence is an object", variant((q) => { q.regroup.evidence["FEAT-004"] = { path: "tests/render.test.mjs" }; }), "regroup.evidence.FEAT-004"],
+  ];
+  const misses = [];
+  for (const [label, p, name] of evidenceShapeCases) {
+    const pagePath = join(scratchRoot, `evidence-shape-${++caseN}.md`);
+    const first = runFx(`evidence-shape-pass-${caseN}`, fxProposal(), { out: pagePath });
+    if (!(first.r.status === 0 && existsSync(pagePath))) { misses.push(`${label}: honest setup run failed`); continue; }
+    const second = runFx(`evidence-shape-fail-${caseN}`, p, { out: pagePath });
+    const ok = second.r.status === 1 && !crashed(second.r) && mentions(second.r, name) && !existsSync(pagePath);
+    if (!ok) misses.push(`${label}: status=${second.r.status} crashed=${crashed(second.r)} page=${existsSync(pagePath)} ` + own(second.r.stderr).slice(0, 2).join(" | "));
+  }
+  // req: R-1177
+  check("R-1177: an evidence value written as an object, a number or a boolean is refused by name before the --out pre-check reads it, for a gap or a non-gap feature, and a failing run still removes an earlier page",
+    misses.length === 0, misses.join(" / "));
+}
+
 // ================================================================== T14
 {
   const pass = runFx("page-order", fxProposal());
