@@ -1,14 +1,14 @@
 # Change declaration — roster-notice: a configurable builder lineup, shown with how to change it at every session start in both seats
 
 *Lane `roster-notice` (the fleet lane) · `feat/roster-notice` · `~/nana-pi-wt/roster-notice`, from current `main` once `feat/regroup` lands (at most two lanes at once)
-· cites at `2dbc817` · 2026-10-16 · seat draft 4 (seat revisions 3 and 4, change log at the end), not reviewed; replaces the fleet half of `../CHANGE.md`, whose rulings half moves
+· cites at `2dbc817` · 2026-10-16 · seat draft 6 (seat revisions 3 to 6, change log at the end), after sol's plan review round 1; replaces the fleet half of `../CHANGE.md`, whose rulings half moves
 to a later lane. Features: FEAT-006, FEAT-023, FEAT-013 (SUB-012, SUB-013, SUB-015), FEAT-014 (SUB-019), FEAT-015, FEAT-018, FEAT-032; test literals only in FEAT-011
 (R-082, R-083, R-780), FEAT-017 (R-954, R-958), FEAT-021 (R-685) and FEAT-028 (R-291). Class FORMAT (the roster file gains a slot and an entry kind; lane mode gains an
 option and two refusals): two plan-review rounds. Builder: the larger-lane builder (the Claude Code model `sonnet`, a Claude Code subagent in the lane worktree; many files, a
 hook, a lane-mode change). It touches `packages/nana-setup/` and a hook: install check on macOS before `nana-land` (`AGENTS.md:147`). Stakes: medium, reversible — a new
 hook entry on every machine, Windows included, and a roster and lane-mode change whose bug stops every lane launch (it fails closed and names the cause; a revert undoes it).
 Evidence beside this file: `research-roster.md`, `research-surfaces.md`, `research-alter.md`, `design-critique.md`, `design-critique-r3.md`, `factcheck.md`, `factcheck-r3.md`,
-`probe-shapes.mjs`, `fc/`, `fc3/`, `probe/`, `r4probe/`, `notice-lengths.mjs`; `../factcheck-repo.md`, `../research-startup.md`; `hooks.md` is the Claude Code hooks reference
+`probe-shapes.mjs`, `fc/`, `fc3/`, `probe/`, `r4probe/`, `notice-lengths.mjs`, `sol-plan-r1.md`; `../factcheck-repo.md`, `../research-startup.md`; `hooks.md` is the Claude Code hooks reference
 saved from code.claude.com on 2026-10-12 into the seat's scratchpad (`../../hooks.md`), not beside this file. "Ran" = run on this Mac; "Read" = read at `2dbc817`, not run; INFERRED = not read or run. The owner
 is "the owner" throughout, with no name and no word-for-word quote, so this file can enter a public review corpus unchanged.*
 
@@ -28,10 +28,11 @@ at start-up and can change it. The owner also asked that the plan carry no name 
 - **No surface says how to change it, and a change is a whole-roster hand edit.** The only route is a hand edit of the `roster` block that only the pack README describes
   (`README.md:214-224`); a roster replaces every slot, so changing one slot means writing them all; doctor, state, the desk and pi show nothing of it (`research-alter.md` §1.2).
 
-**Threat model.** In scope, honest variation in our tools' output and users' files: a roster absent, default, valid with or without `largerBuilder`, holding a pi or a
+**Threat model.** In scope, honest variation in our tools' output and users' files: a roster absent, default, valid with or without `largerBuilder` or a scout, holding a pi or a
 Claude Code entry, a Claude Code entry naming a model the Claude Code seat cannot start (a full model name, a bracketed variant), or refused for each refusal kind (bad
 JSON, a non-object, a missing or extra slot or field, a bad value, a directory, over the cap, a dangling symlink, an unreadable file); a BOM or CRLF; a model id that
-contains its provider string; `PI_CODING_AGENT_DIR` inside or outside the home folder, relative, holding ` (`, or set only in the shell profile; an older checkout reading a
+contains its provider string; two providers serving one model id; `PI_CODING_AGENT_DIR` inside or outside the home folder, `~`-prefixed, relative (the seat's folder and a
+lane worktree then resolve it to two different files), holding ` (`, or set only in the shell profile; an older checkout reading a
 newer file, a newer checkout reading an older one, and a revert; `--lane-size` missing its value, unknown, absent while `largerBuilder` is set, written as
 `--lane-size=larger`, or given to an older pi-worker; a user-scope file that already holds other keys (the installer seeds `objective`); another extension's info notice at
 the same start; empty, malformed, missing or unreadable hook stdin; a Claude Code child that pi-subagents starts; every Claude source and pi reason; no UI; Windows
@@ -41,7 +42,7 @@ misleading model name, a forged roster file or hook input. A finding outside the
 ## 2. Requirement delta
 
 Main's highest ID is R-1183; `feat/regroup` (now `656dc86`, main merged in) adds R-1170 to R-1180, R-1184 and R-1187; R-1185 and R-1186 are mutation fixtures; R-1190 to
-R-1219 are unused on main, `feat/regroup`, every other local and remote branch and both worktrees' files (Ran 2026-10-16, grep count 0). One `shall` per row. A new row enters `planned` and flips to `implemented`, with its evidence
+R-1219 are unused on main, `feat/regroup`, every other local and remote branch and both worktrees' files (Ran 2026-10-16, grep count 0; R-1215 to R-1219 re-Ran in seat revision 6). One `shall` per row. A new row enters `planned` and flips to `implemented`, with its evidence
 cell, in the commit whose code turns its marked tests green; in between the trace rail is red, because it fails a `planned` row that a marker traces
 (`templates/typescript/template/tests/requirements-trace.ts:16-21`). A reworded row stays `implemented` and lands in the commit whose test pins its new clause. Rows are
 placed by feature ID, never by line, because the regroup moves lines.
@@ -58,12 +59,12 @@ placed by feature ID, never by line, because the regroup moves lines.
 | R-1191 | added, FEAT-006 | IF pi-worker lane mode receives `--lane-size larger` and the roster's larger-lane builder is a Claude Code entry, THEN it shall refuse before taking the worktree lock or starting pi, naming `roster.largerBuilder`, stating that pi-worker starts pi entries only, and naming both ways out as the user's choice: asking the user to start it as a subagent from a Claude Code seat, or to put a pi entry in `largerBuilder`. |
 | R-1192 | added, FEAT-006 | WHEN the roster command runs with `--json`, it shall either print one JSON object holding only a `roster` key whose value is the resolved roster with every slot in print order, and exit 0, or print the resolver's refusal on stderr and exit 1. |
 | R-1193 | added, SUB-019 | The shared working pattern shall state that, when the roster sets `largerBuilder`, a seat builds a larger or riskier lane with it, a pi entry through `pi-worker --lane-size larger` and a Claude Code entry as a Claude Code subagent in the lane worktree, and a small lane through `pi-worker --lane-size small`. |
-| R-1194 | added, FEAT-023 | The roster notice shall be one line that starts `nana active · roster` and names every roster slot holding an entry by its model and any thinking level. |
+| R-1194 | added, FEAT-023 | The roster notice shall be one line that starts `nana active · roster` and names the builder, any larger-lane builder, the reviewer and the land, each entry by its model and any thinking level. |
 | R-1195 | added, FEAT-023 | The roster notice shall build each roster entry from its model and thinking only, never from its provider field. |
 | R-1196 | added, FEAT-023 | WHERE the roster sets a larger-lane builder, the roster notice shall name it `for larger lanes` before the builder `for small lanes`. |
 | R-1197 | added, FEAT-023 | The roster notice shall follow a Claude Code entry's model with `(Claude Code only)`. |
 | R-1198 | added, FEAT-023 | WHILE the roster's land is null, the roster notice shall read `land seat`. |
-| R-1199 | added, FEAT-023 | WHILE the roster's scout is null, the roster notice shall name no scout. |
+| R-1199 | added, FEAT-023 | The roster notice shall name no scout, set or null. |
 | R-1200 | added, FEAT-023 | WHILE the roster's larger-lane builder is null, the roster notice shall name the builder with no size label. |
 | R-1201 | added, FEAT-023 | The roster notice shall carry `(default)` after `roster` exactly when the resolver returned the default roster. |
 | R-1202 | added, FEAT-023 | IF the roster resolver refuses the roster, THEN the roster notice shall start `nana active · roster refused:` followed by the resolver's problem with the roster file's path set aside, then cut before its first ` (`, then every control character and line break replaced by a space, then the path put back. |
@@ -79,6 +80,7 @@ placed by feature ID, never by line, because the regroup moves lines.
 | R-1212 | added, FEAT-006 | IF pi-worker lane mode receives no `--lane-size` and the roster's larger-lane builder is not null, THEN it shall refuse before taking the worktree lock or starting pi, naming `largerBuilder`, `--lane-size larger` and `--lane-size small`. |
 | R-1213 | added, SUB-019 | The shared working pattern shall state that a seat that cannot start the roster's larger-lane builder stops and asks the user rather than starting another. |
 | R-1214 | added, SUB-019 | The shared working pattern shall state that, when the roster sets no `largerBuilder`, the builder builds every lane. |
+| R-1215 | added, FEAT-023 | WHILE `PI_CODING_AGENT_DIR` is set to a value that stays relative after pi's path normalisation, the roster notice shall read `nana active · roster unknown: PI_CODING_AGENT_DIR is relative, so each folder may read a different roster file` then the change pointer, naming no lineup whatever the roster resolver returns. |
 | R-301 | reworded (SUB-012) | "the four Claude Code Node hooks" becomes "the five" (rest unchanged). |
 | R-1051 | reworded (SUB-015) | …shall wire the objective, adoption, shared-memory, roster notice and verifier-pipe settings entries to the checkout's own `packages/nana-setup/claude/hooks/<hook>.mjs`. |
 | R-1063 | reworded (SUB-015) | Adds "and the roster notice entry one JSON object whose `systemMessage` starts `nana active · roster`" after the shared-memory clause (rest unchanged). |
@@ -87,11 +89,11 @@ placed by feature ID, never by line, because the regroup moves lines.
 | R-658 | reworded (FEAT-032) | "all seven extension functions" becomes "all eight". |
 | R-1075 | evidence only (FEAT-015) | Its cell's citation `install-check.test.mjs::dispatch: the three SessionStart entries start before any of them finishes` takes the renamed title (§5.2). R-1051's and R-658's cells likewise take their renamed titles. |
 
-25 rows added (R-1190 to R-1214), 12 reworded, none retired; R-1075 changes its evidence cell only. R-960 keeps its text: "refuse missing or invalid option values"
+26 rows added (R-1190 to R-1215), 12 reworded, none retired; R-1075 changes its evidence cell only. R-960 keeps its text: "refuse missing or invalid option values"
 already covers `--lane-size`, and W4 cites it. R-1058, R-1074, R-1076, R-1081, R-680 and R-685 keep their text; their tests' literals or lists change (§5.2). R-1126, R-1127
 and R-1128 stay untouched: the bullet behind R-1193, R-1213 and R-1214 is a separate bullet, so the default-pattern bullet and nana-soul's copy do not change. Each reworded
 row's evidence cell gains the new check that pins its new clause, R-1120 excepted (above). Leaf total on main 1,139 (`requirements-tree.test.mjs:40,55`; the regroup tip
-`656dc86` says 1,152); the lane adds 25 to whatever main holds at its base.
+`656dc86` says 1,152); the lane adds 26 to whatever main holds at its base.
 
 ## 3. Design
 
@@ -134,34 +136,52 @@ split). N2 holds the `CLAUDE_CODE_SUBAGENT_MODELS` literal; every other test imp
 `(Claude Code only)`, `WIDGET_KEY` `nana-roster` (chosen: one key, so a later show replaces the earlier one; contract R-1210), `CHANGE_POINTER` `change: "roster" in`
 (contract rows R-1194, R-1196, R-1197, R-1201 to R-1203; the pointer can later become a `set` command line by this one value), `REFUSAL_CUT` ` (` (contract R-1202: the
 values the validator echoes follow it, `nana-roster.mjs:40,57,67,71,79,107,110`; the file path, which `:34` and `:37-40` put before it, is set aside first; the key names
-`:63` and `:85` echo come before it and stay, residual 8), `SHOW_SOURCES` `startup, resume, fork, clear, new` (chosen: a new session is a session start, so Claude Code's
+`:63` and `:85` echo come before it and stay, residual 8), `RELATIVE_DIR_TEXT` `unknown: PI_CODING_AGENT_DIR is relative, so each folder may read a different
+roster file` (contract R-1215; chosen words: it names the variable to fix and why, as doctor's warn row does, `doctor.mjs:439-440`), `SHOW_SOURCES` `startup, resume, fork, clear, new` (chosen: a new session is a session start, so Claude Code's
 clear and pi's new show it; compact and reload continue a session that has seen the notice; each seat meets only its own names, `hooks.md:1190-1194`, `types.d.ts:553-559`;
 contract R-1206, R-1210). L3 alone holds the notice config's sealed literals; every other test imports the names.
 
 **3.4 One module composes the notice.** New `packages/nana-pack/lib/roster-notice.mjs`, *@purpose* "Compose the one-line session-start roster notice from a roster result
-and the roster file", *@effects* none. One export, `rosterNotice(result, file)`. Segments join with ` · `: the roster (or the refusal), then the change pointer. A refusal's
+and the roster file", *@effects* none. One export, `rosterNotice(result, file, relative)`. Segments join with ` · `: the roster (or the refusal, or the unknown text), then
+the change pointer. A refusal's
 problem text first has every occurrence of the absolute roster path replaced by a placeholder holding no ` (`, is cut at `REFUSAL_CUT`, goes through `displayText`
 (`display.mjs:109`), and then gets `tildeify(file)` back in the placeholder's place. `tildeify` (`packages/nana-setup/lib/paths.mjs:101-104`; same layer, so no third copy;
 the first import from a nana-pack source module into nana-setup, where today only pack tests do, Read, and the code map's one `packages` layer allows it) rewrites only a path that starts with the home folder (Read), and `dangling symlink: ${file}` (`nana-roster.mjs:34`) puts the path after other text, so the path is set aside
 rather than passed through it; a path holding ` (`, such as an agent dir under `My (old)`, then survives the cut whole. Model ids only: no provider, no host name, no absolute
 home path.
 - Each entry is built from its `model` and `thinking` fields only and never reads `provider`, so a model id that contains its provider string, such as provider `acme`
-  with model `acme-large`, prints whole (R-1195).
-- Examples (Ran `notice-lengths.mjs`, its revision-3 strings, typed by hand): default roster under D1's null, this Mac, 144 characters — `nana active · roster (default):
-  builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra · change: "roster" in ~/.pi/agent/nana-pack.json`. Under D1's other answer, 208 characters, the builders
-  read `builders sonnet (Claude Code only) for larger lanes and gpt-6-luna high for small lanes`. A five-slot file roster, 205. Refused, 169 characters — `nana active ·
-  roster refused: roster.builder.provider must be a non-empty string with no whitespace or control character · change: "roster" in ~/.pi/agent/nana-pack.json`.
+  with model `acme-large`, prints whole (R-1195). The notice thus names each entry by model and thinking only; `nana-roster` prints the providers
+  (`nana-roster.mjs:119-127`) and a lane's builder line the one it starts (`pi-worker.mjs:99`). The provider stays out because the notice also enters the Claude seat's
+  context (R-1205), and a seat that copies the line into a repository file must not carry a machine's provider: a standing rule keeps machine provider names out of
+  repository files (the README's roster example uses `example-gateway`, `README.md:221`). Two providers serving one model id therefore read alike (residual 23).
+- The notice never names the scout, set or null (R-1199): no nana rule or launcher starts one (residual 21), so naming it would read as part of the lineup a seat runs;
+  `nana-roster` still prints it.
+- Each seat passes `relative` as `piAgentDirIsCwdRelative()` (`agent-dir.mjs:84-92`): true when `PI_CODING_AGENT_DIR` is set and stays relative after pi's
+  `normalizePath`, judged by the platform's own `path.isAbsolute`, so `~/…` and a `file://` URL count as absolute, as pi resolves them (`:39-55`); a check on the raw value
+  would call both relative (Ran on this Mac). While it is true, the notice reads the prefix, `RELATIVE_DIR_TEXT` and the pointer, naming no lineup whatever the resolver returned (R-1215):
+  the notice's process and a lane's pi-worker each resolve the value against their own folder (`agent-dir.mjs:67-76`, `pi-worker.mjs:96`), so a lineup the notice named
+  could differ from the one the lane starts. The pointer names the file this process resolved. Prior art agrees: install refuses a relative value
+  (`nana-setup.mjs:119-127`), doctor warns (`doctor.mjs:439-440`), and the desk pins an absolute value into each child (`apps/desk/server.mjs:157,163-164`), so a desk
+  session names the lineup.
+- Examples (Ran `notice-lengths.mjs`, its revision-3 strings, typed by hand; revision 6's two new counts Ran with `node -e` on the same strings): default roster under
+  D1's null, this Mac, 144 characters — `nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra · change: "roster" in
+  ~/.pi/agent/nana-pack.json`. Under D1's other answer, 208 characters, the builders read `builders sonnet (Claude Code only) for larger lanes and gpt-6-luna high for
+  small lanes`. A file roster with all five slots set, 180 (no scout named). Refused, 169 characters — `nana active · roster refused: roster.builder.provider must be a
+  non-empty string with no whitespace or control character · change: "roster" in ~/.pi/agent/nana-pack.json`. Relative, 166 characters, with
+  `PI_CODING_AGENT_DIR=pi-agent` read from `~/nana-pi` — `nana active · roster unknown: PI_CODING_AGENT_DIR is relative, so each folder may read a different roster
+  file · change: "roster" in ~/nana-pi/pi-agent/nana-pack.json`.
 - The pointer does not name `--json`: its runnable form, `; print it: node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" --json`, adds 78 characters and takes the
-  five-slot line to 283, longer than any line draft 2 accepted (at most 247; Ran `notice-lengths.mjs`). The README's roster section names it instead (§3.8).
+  five-slot line to 258, longer than any line draft 2 accepted (at most 247; Ran `notice-lengths.mjs`, less the scout segment). The README's roster section names it
+  instead (§3.8).
 
 **3.5 Claude Code seat.** New `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`. Static imports: node built-ins only. Inside one try it dynamically imports the
-module and config, `resolveRoster` (`nana-roster.mjs:98`), `piAgentDir` (`agent-dir.mjs:67`) and `readHookInput` (`packages/nana-setup/lib/shared-memory-input.mjs:11`,
+module and config, `resolveRoster` (`nana-roster.mjs:98`), `piAgentDir` and `piAgentDirIsCwdRelative` (`agent-dir.mjs:67`, `:84`) and `readHookInput` (`packages/nana-setup/lib/shared-memory-input.mjs:11`,
 whose header names only the shared-memory hook today and widens to both, `:3`); reads `source` from the input in its own inner try, so an input read error, which
 `readHookInput` lets propagate (`:7`), counts as no source (none also for a TTY, empty, non-JSON or source-less input); prints `{"systemMessage": L, "hookSpecificOutput":
 {"hookEventName": "SessionStart", "additionalContext": L}}`, leaving out `systemMessage` for compact. It exports its runner with the input stream injected, so H2 feeds
-a stream that fails on read (Ran: a directory given as a spawned child's stdin reads as empty, not as an error, `r4probe/stdin-dir.mjs`). It reads no cwd of its own, but
+a stream that fails on read (Ran: a directory given as a spawned child's stdin reads as empty, not as an error, `r4probe/stdin-dir.mjs`). It reads no cwd of its own;
 `piAgentDir` resolves a relative `PI_CODING_AGENT_DIR` against the process cwd (`agent-dir.mjs:67-76`), as pi resolves it against its own start folder (pack README
-`:858`; residual 18). It starts no child process. The catch prints the unavailable object with `err.code ?? err.name` only, because a module error message holds an
+`:858`), so with a relative value the hook names no lineup (R-1215, §3.4; residual 18). It starts no child process. The catch prints the unavailable object with `err.code ?? err.name` only, because a module error message holds an
 absolute path; that one constant lives in the hook, since the fail-open path cannot rely on an import. `hook-producer.mjs:15-21` is no precedent for that: the existing
 hooks' markers live in a lib they import statically, and the objective marker embeds the CLI path. It starts no second node.
 - Wiring: `nodeHook("nana-roster-notice.mjs", "nana: roster notice")` in `desiredHooks` (`settings.mjs:189-228`; no matcher, so it joins the matcher-less SessionStart group
@@ -174,7 +194,7 @@ hooks' markers live in a lib they import statically, and the objective marker em
   memory (plain-text contracts), `statusLine` (one user-owned slot).
 
 **3.6 pi seat.** New `packages/nana-pack/extensions/nana-roster-notice.ts` (the manifests load the folder, `package.json:22`): on `session_start` with `ctx.hasUI` and a
-reason in `SHOW_SOURCES` (pi 1.0.2: startup, reload, new, resume, fork, `types.d.ts:553-559`), it calls the same composition and sets one widget,
+reason in `SHOW_SOURCES` (pi 1.0.2: startup, reload, new, resume, fork, `types.d.ts:553-559`), it calls the same composition with the same relative check and sets one widget,
 `ctx.ui.setWidget(WIDGET_KEY, [L])`, above the editor (pi 1.0.2's default placement, `interactive-mode.js:1821-1853`; `types.d.ts:101`). Not `notify`: the TUI shows an info
 notice as a status line, and a second info status with nothing between them replaces the first (Read: `interactive-mode.js:2270-2280`, `:3060-3078`). nana-handoff raises
 `compaction summary picked up from …` as info at startup (`nana-handoff.ts:420`) and loads just before this extension (Ran: `readdirSync` order on this Mac; pi does not
@@ -214,7 +234,8 @@ pasted over it drops `objective` and any `gate` or `postEdit` block — Read: `p
 until it parses (Ran, `research-alter.md` §2, `probe/malformed-probe.mjs`); the Lane builder paragraph (`README.md:208`) gains `--lane-size` and, in its refusal list, "a
 launch with no `--lane-size` once the roster sets `largerBuilder`" (R-1212), and keeps its other words; "Seven extensions" (`:28`) becomes eight, with a table row; the
 "What you will see" list (`README.md:367-375`) gains a widget item, the roster notice above the editor at each session start until the next reset, and says that the
-compaction-summary toast it lists still shows because the notice is a widget, not a toast. Root README (`:11`, the packages bullet, and `:166`), both `package.json` descriptions, nana-setup README (`:37`, `:45`, `:438` "five" becomes six), the desk README runtime matrix
+compaction-summary toast it lists still shows because the notice is a widget, not a toast; the item says the notice names each builder, the reviewer and the land by model
+and thinking, never a provider or the scout (`nana-roster` prints both), and reads `roster unknown` while `PI_CODING_AGENT_DIR` is relative. Root README (`:11`, the packages bullet, and `:166`), both `package.json` descriptions, nana-setup README (`:37`, `:45`, `:438` "five" becomes six), the desk README runtime matrix
 (three surface lists gain "roster notice"; doc only, because contract notes live where the consumer reads them), the shared runtime table (Notify column for the three nana
 rows; no new column, so "ten capabilities" holds), `skill-claims.mjs` `EXEMPTIONS` gains one name, `nana-roster-notice.mjs` (Ran: the claim scanner flags only the hook's
 `.mjs` name, `sh-skill-claims.out`; an exemption for the extension name would print `STALE exemption`, `skill-claims.test.mjs:75`), count comments
@@ -223,7 +244,8 @@ rows; no new column, so "ten capabilities" holds), `skill-claims.mjs` `EXEMPTION
 
 **3.9 What NOT to do.** No change to the other hooks, `nana-lifecycle.ts`, pi-review, the watchdog, the builder preamble (R-1110), the default-pattern and seat land review
 bullets (R-1126 to R-1128), nana-soul, desk code, the objective or any memory file (the seat updates its roster memory after the land). No `claude -p` launch, no `set`
-command, no doctor roster row, no pi prompt section, no footer chip, no git call, no open-lanes segment, no `NANA_ROLE` check in either seat. Nothing the lane writes adds a
+command, no doctor roster row, no pi prompt section, no footer chip, no git call, no open-lanes segment, no `NANA_ROLE` check in either seat, no change to how lane mode
+resolves the agent dir (residual 18). Nothing the lane writes adds a
 provider, host name, absolute home path or owner name; a line it edits keeps any name already there.
 
 **3.10 Subtraction test.**
@@ -241,6 +263,7 @@ provider, host name, absolute home path or owner name; a line it edits keeps any
 | Change pointer | the owner's stated purpose: the user alters the lineup | names the file only; the runnable `--json` line would add 78 characters |
 | `--json` print | a one-slot change becomes set the file's `roster` member to the printed value and change one value, not every slot by hand | read-only; no `set` (D2), no doctor row |
 | Refusal cut and `~` | refusals echo values, quoted file text and the absolute path (Ran) | one cut marker, one placeholder, no parser |
+| Unknown line (R-1215) | with a relative agent dir the notice's folder and a lane worktree read two files, so a named lineup could differ from the one a lane starts | one config value and one boolean from the existing helper; lane mode unchanged (residual 18) |
 | `additionalContext` | the Claude seat model knows the lineup and the pointer, also after clear and compact | pi gets no prompt section: the shared section names the roster command |
 | Install-check branch | an unbranched row passes on empty stdout (`install-check.mjs:273`) | one predicate, its own prefix copy |
 
@@ -261,17 +284,17 @@ Exact titles under `// req:` lines, red before the code, frozen in `seat-titles.
 sealed literals and N2 the subagent model list. PATH-less runs use an empty folder; fixture providers are placeholder strings found nowhere else in the fixture, so a leak is
 a substring hit, except L2's one fixture whose model id contains its provider, which L2 checks by the exact entry text.
 
-**5.1 New checks (35 titles, plus 4 loop instances).**
+**5.1 New checks (36 titles, plus 4 loop instances).**
 - **`packages/nana-pack/tests/roster-notice.test.mjs`:**
-  L1 `// req: R-1194` `roster notice: one line that starts with the prefix and names each set slot by model and thinking`.
+  L1 `// req: R-1194` `roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking`.
   L2 `// req: R-1195` `roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a
   model id that contains its provider`.
-  L3 `// req: R-1194 R-1196 R-1197 R-1201 R-1202 R-1203 R-1206 R-1210` `roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and
-  cut, change pointer, shown start sources and widget key`.
+  L3 `// req: R-1194 R-1196 R-1197 R-1201 R-1202 R-1203 R-1206 R-1210 R-1215` `roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal
+  head and cut, change pointer, relative-dir text, shown start sources and widget key`.
   L4 `// req: R-1196` `roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes`.
   L5 `// req: R-1197` `roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not`.
   L6 `// req: R-1198` `roster notice: a null land reads land seat`.
-  L7 `// req: R-1199` `roster notice: a null scout is left out`.
+  L7 `// req: R-1199` `roster notice: a scout is never named, set or null`.
   L8 `// req: R-1200` `roster notice: a lone builder carries no size label`.
   L9 `// req: R-1201` `roster notice: only the default roster is marked default, and a file roster equal to the default is not`.
   L10 `// req: R-1202` `roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays
@@ -284,6 +307,8 @@ a substring hit, except L2's one fixture whose model id contains its provider, w
   roster included, and raise no notify`.
   L14 `// req: R-1210` `extension: no UI, and the reload reason, each set no widget and raise nothing`.
   L15 `// req: R-1211` `parity: the hook and the extension show the same notice for a default, a file and a refused roster` (agent dir outside both homes).
+  L16 `// req: R-1215` `relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused
+  roster` (both seats started in one folder whose `rel/nana-pack.json` holds the roster, with `PI_CODING_AGENT_DIR=rel`).
 - **`packages/nana-setup/tests/roster-notice-hook.test.mjs`:** H1 `// req: R-1205` `roster notice hook: one JSON object with the notice as SessionStart context on every
   source and with no source, and exit 0`. H2 `// req: R-1206` `roster notice hook: the notice is a user message for startup, resume, clear and fork, for a missing
   or unreadable source and for an input that fails on read, and not for compact` (the read failure through the injected stream, §3.5). H3 `// req: R-1207` `roster notice hook: a copy that cannot load its modules prints the unavailable notice in both fields with no path, and exits 0`.
@@ -346,7 +371,7 @@ a substring hit, except L2's one fixture whose model id contains its provider, w
 | `nana-roster.test.mjs:40` sealed default roster is luna high builder, sol reviewer, astra land and no scout | R-1120 | green; gains one assertion for `largerBuilder` (null, or the Claude Code entry under D1's other answer); title kept, so R-1120's evidence cell stays as it is |
 | `nana-roster.test.mjs:209` roster command prints one line per slot and the source | R-1123 | red; both exact stdouts gain `largerBuilder: none` after the builder |
 | `readme-check.test.mjs:75` front-door descriptions name both runtimes and all seven extensions (marker `:74`) | R-658 | renamed "all eight", list gains `roster notice`; R-658's evidence cell takes the new title |
-| `requirements-tree.test.mjs:40` …leaf counts total 1,139 | R-291 | red; the total at the base plus 25 |
+| `requirements-tree.test.mjs:40` …leaf counts total 1,139 | R-291 | red; the total at the base plus 26 |
 | `requirements-trace.test.mjs:61` REQUIREMENTS.md and the markers the suite carries agree | — | red while a marker traces a `planned` row or an evidence cell cites a renamed title; green once the rows flip and the R-1075, R-1051 and R-658 cells take the new titles |
 | `code-map.test.mjs:39`, `npm run map:check` | G-004, G-009, G-010 | red until the map is regenerated |
 
@@ -370,7 +395,7 @@ and 15; its SHOULD items are folded as seat revision 4 lists (item 12).
 **5.4 Wrong code first.** Each pair edits code or text, never an assertion, and must red exactly the named checks (N/N in the seat's mutation runner on macOS, where the
 win32-degrade checks run under the forced platform; X1, X2 and the `hooks-win32-exec.test.mjs:182` instance run on the Windows leg only and are outside the runner). Each
 pair on the larger-lanes bullet (60, 63, 64) edits the shared file and nana-pi's regenerated region alike, as pair 57 does, so `templates-render.test.mjs:274` stays
-green. 67 pairs.
+green. 68 pairs.
 
 | # | Wrong code | Reds |
 |---|---|---|
@@ -384,7 +409,7 @@ green. 67 pairs.
 | 8 | the Claude Code mark is left out | L5 |
 | 9 | pi entries get the Claude Code mark too | L5 |
 | 10 | a null land prints nothing | L6 |
-| 11 | a null scout prints `scout none` | L7 |
+| 11 | the notice names a set scout | L7 |
 | 12 | a file roster equal to the default is marked `(default)` | L9 |
 | 13 | the whole refusal is shown, value echo included | L10 |
 | 14 | the problem text skips `displayText`, so a key holding a line feed survives | L10 |
@@ -441,11 +466,12 @@ green. 67 pairs.
 | 65 | the hook reads its input inside the module try, so an input read error prints the unavailable notice | H2 |
 | 66 | the notice removes each provider string from the line, so model `acme-large` under provider `acme` prints as `-large` | L2 |
 | 67 | the larger-lanes bullet leaves out the small-lane route through `pi-worker --lane-size small` | T1 |
+| 68 | the notice ignores its `relative` argument, so a relative `PI_CODING_AGENT_DIR` shows the lineup or the refusal | L16 |
 
-Recount: notice 1-18 and 66 (19), extension 19-23 and 62 (6), hook 24-31 and 65 (9), installer and install check 32-39 (8), roster and lane mode 40-56 and 61 (18), text
-57-60, 63, 64 and 67 (7); 19 + 6 + 9 + 8 + 18 + 7 = 67, numbered 1 to 67 with no gap (61 to 67 appended so earlier pair numbers keep their meaning). Every new check except the
-Windows-only X1, X2 and the `hooks-win32-exec.test.mjs:182` instance has at least one pair the runner runs (T1 63, T2 60, T3 64; Ran `fc3/claims-probe-r4.mjs`: the claim
-scanner finds no claim in the bullet or in pair 63's or 64's text).
+Recount: notice 1-18, 66 and 68 (20), extension 19-23 and 62 (6), hook 24-31 and 65 (9), installer and install check 32-39 (8), roster and lane mode 40-56 and 61 (18),
+text 57-60, 63, 64 and 67 (7); 20 + 6 + 9 + 8 + 18 + 7 = 68, numbered 1 to 68 with no gap (61 to 68 appended so earlier pair numbers keep their meaning). Every new check
+except the Windows-only X1, X2 and the `hooks-win32-exec.test.mjs:182` instance has at least one pair the runner runs (T1 63, T2 60, T3 64, L16 68; Ran
+`fc3/claims-probe-r4.mjs`: the claim scanner finds no claim in the bullet or in pair 63's or 64's text).
 
 **Seat acceptance** (seen failing at the base). On this Mac: the hook with `{"source":"startup"}` prints one JSON object holding §3.4's default line; `pi --mode rpc
 --no-session` in the repo writes one `setWidget` request whose `widgetLines` hold only the same text, and no `notify` request (R-1211 by hand); `claude -p --output-format
@@ -496,7 +522,7 @@ requirement text and keeps the cited check's title.
 **Seat decisions (declared, not asked).** S1 Shape B, key `largerBuilder`, Claude Code entry `{runtime, model}` with the model from the four subagent names. S2 The picker
 ships here (placement ii: one lane, the lineup as its first commit group), because the owner tied the notice to altering the lineup and a slot no seat can start from lane
 mode would be display-only. S3 The notice says "roster", the word the user edits and the command prints; "fleet" stays a lane nickname. S4 One notice form in both seats,
-`(Claude Code only)` included. S5 pi shows a widget, never a notify: an info notify would erase another extension's info notice at the same start (§3.6), and a warning
+`(Claude Code only)` included, naming models and thinking but never a provider or the scout, and no lineup under a relative agent dir (§3.4). S5 pi shows a widget, never a notify: an info notify would erase another extension's info notice at the same start (§3.6), and a warning
 would repeat config.ts's (R-082). S6 Shown at every session start in both seats: startup, resume and fork, plus Claude Code's clear and pi's new, since a new session is a session
 start; compact and reload continue a session and stay out; Claude context on every source; no pi prompt section. S7 `--json` ships here as the
 read-only half of changing the lineup; the notice's pointer stays the file, and `set` stays D2. S8 Both the new shared bullet and the refusal text tell a seat what to do
@@ -522,16 +548,20 @@ new bullet only after `nana-setup project` runs there, and a Windows project who
 R-1212 makes every seat there choose a size once the slot is set, so the remaining effect is that the choice rests on the refusal text alone. 16. The roster command ignores
 any argument other than `--json`, as it ignores all today, so a typo prints the plain lines. 17. A non-lane `pi-worker` or `pi-review` call whose pi arguments leave out
 `-p` or ask for RPC is outside the documented launch; such a child could put the notice into its output file (INFERRED). 18. A relative `PI_CODING_AGENT_DIR` resolves
-against each process's own folder, as pi does today (pack README `:858`), so a hook started in Claude Code's project folder and a pi started elsewhere can name two
-roster files; R-1211 holds for one file, and each notice shows the path it read. 19. The hook runs with Claude Code's environment (`hooks.md:414`, `:754`), while Claude
+against each process's own folder, as pi does today (pack README `:858`), so the notice names no lineup then (R-1215) and points at the file its own process resolved.
+Lane mode keeps today's behaviour: pi-worker resolves the value against the lane worktree (`pi-worker.mjs:96`) and starts that folder's builder, whose model and source
+its builder line prints (R-1124); a relative value's lineup is visible only there. 19. The hook runs with Claude Code's environment (`hooks.md:414`, `:754`), while Claude
 Code's Bash tool starts from the user's shell profile (INFERRED): a `PI_CODING_AGENT_DIR` exported only in the profile, with Claude Code started from an app or an IDE,
 makes the notice read the home agent dir while the seat's `pi-worker` reads the other one; the notice's path shows which (INFERRED). 20. Residual 14 has a known caller:
 pi-subagents 0.75.0, the version doctor requires (`doctor.mjs:164`), starts Claude Code children with `--setting-sources user` (Read: `claude-code-adapter.js:222`), so
 each child runs the hook, and its environment allowlist (`:14-47`) holds no `PI_CODING_AGENT_DIR`, so a child's context can name a different roster file from the pi seat's.
-21. The notice names a scout when the roster sets one, although no nana code or rule starts a scout (Ran: `git grep -i scout` finds only the roster's own parse and print
-and the README). 22. The desk's nana-pack editor posts every top-level key of the file back (Read: `apps/desk/public/app.js:2186`) and the server refuses any key outside its
+21. The notice never names the scout (R-1199), because no nana code or rule starts one (re-Ran: `git grep -i scout` outside tests finds only the roster's own parse and
+print, the README and the desk's note on pi-subagents' built-in scout agent); `nana-roster` still prints it, and a later lane that gives the scout a launcher adds it to
+the notice with one row. 22. The desk's nana-pack editor posts every top-level key of the file back (Read: `apps/desk/public/app.js:2186`) and the server refuses any key outside its
 list (`apps/desk/server.mjs:1385`, `:2358-2359`): it already refuses every save of the user-scope file on an installed machine, which holds `objective`, and once that file
-holds `roster` it also refuses that key by name; the lane invites users to add the key and does not change the desk.
+holds `roster` it also refuses that key by name; the lane invites users to add the key and does not change the desk. 23. The notice names each entry by model and
+thinking only (R-1195; §3.4 gives the reason), so two providers serving one model id read alike in it; `nana-roster` and a lane's builder line name the provider
+(`nana-roster.mjs:119-127`, `pi-worker.mjs:99`).
 
 **Later lanes.** (a) Headless Claude Code builder through lane mode (D5): replaces R-1191's refusal with a launch; needs a runtime-chosen launcher in the shared watchdog
 (touches R-1125, which pi-review shares), a stall threshold measured for `claude`, D5's permission mode, a print-mode preamble rule (rewords R-1110), a Windows `claude`
@@ -635,4 +665,27 @@ Each seat decision on `design-critique-r3.md` S1 to S11 and `factcheck-r3.md`'s 
 
 1. Once `largerBuilder` is set, R-1212 refuses a launch with no size, so the bullet now also says that a small lane goes through `pi-worker --lane-size small`; R-1193
    carries it (one behaviour: the route by lane size and entry kind). T1 asserts it, and a new pair 67 (the bullet drops the small-lane route) reds T1. Pairs: 67.
+
+## Seat revision 6 (2026-10-16): sol plan r1
+
+Each seat decision on `sol-plan-r1.md`, each repo fact re-verified at `2dbc817`, as applied:
+1. MUST 1 (a relative agent dir can show one lineup and launch another). New row R-1215 (FEAT-023; unused on main, on `feat/regroup` at `656dc86`, on every branch and in
+   every worktree, Ran): while `PI_CODING_AGENT_DIR` stays relative after pi's normalisation, the notice reads `roster unknown: …` and the change pointer and names no
+   lineup. Read: `piAgentDir` resolves a relative value against the process cwd (`agent-dir.mjs:67-76`) and lane mode resolves it in the lane worktree
+   (`pi-worker.mjs:96`). The notice detects it with the existing `piAgentDirIsCwdRelative()` (`agent-dir.mjs:84-92`), which applies the platform's `path.isAbsolute` to
+   pi's normalised value, so `~/…` and `file://` stay absolute (Ran: it returns true for `rel` and false for `~/x`, `file:///tmp/x` and `/abs`, where a raw
+   `path.isAbsolute` is false for the first three). `rosterNotice` gains a `relative` argument (§3.4); the hook
+   and the extension pass it (§3.5, §3.6); `RELATIVE_DIR_TEXT` joins the notice config with its provenance (§3.3); L3 seals it and gains R-1215; new L16 checks both
+   seats; new pair 68 reds L16. Lane mode is unchanged (§3.9); residual 18 is rewritten to say so. §3.10 gains a row, §3.8's README item and the threat model name the
+   case, and §3.4 gives a 166-character example. Prior art, Read: install refuses (`nana-setup.mjs:119-127`), doctor warns (`doctor.mjs:439-440`), the desk pins
+   (`apps/desk/server.mjs:157,163-164`).
+2. SHOULD 2 (the provider). Kept out: the notice also enters the Claude seat's context, and a seat that copies it into a repository file must not carry a machine's
+   provider, which a standing rule keeps out of repository files (the README's example uses `example-gateway`, `README.md:221`). §3.4, S4 and §3.8's README item now
+   say the notice names each entry by model and thinking and that `nana-roster` prints providers (`nana-roster.mjs:119-127`); new residual 23 says two providers serving
+   one model id read alike.
+3. SHOULD 3 (the scout). The notice never names the scout: R-1194 names the builder, any larger-lane builder, the reviewer and the land; R-1199 becomes "name no scout,
+   set or null". L1 and L7 retitled; pair 11 becomes "the notice names a set scout"; §3.4 gains a bullet; the five-slot example drops to 180 characters and its `--json`
+   form to 258 (Ran with `node -e`); the threat model adds a set scout; residual 21 is rewritten (re-Ran `git grep -i scout`).
+4. Recount: 26 rows added (R-1190 to R-1215), 12 reworded, 1 evidence-only (R-1075); 36 new titles plus 4 loop instances; 68 pairs, numbered 1 to 68 with no gap
+   (pair 68 appended); the tree total is the base plus 26; residuals 1 to 23.
 
