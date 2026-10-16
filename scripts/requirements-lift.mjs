@@ -152,10 +152,11 @@ function firstEncodingMismatchLine(buf) {
  * the tree parser never scans one for fields -- so `id` null returns empty. Build brief 4 §A,
  * MUST 1(b): only these lines are a replaced heading's own regenerated field lines; a
  * field-labelled line anywhere else (a second "Purpose:", an "Outcome:" under a feature, which
- * the tree parser never reads, or ANY "Also applies:" line -- build brief 7 item 3: shares are
- * refused in every ledger form, so an "Also applies:" line is never treated as regeneratable
- * field content, in a feature's own span or anywhere else) is ordinary carried prose, never
- * silently dropped by the writer nor exempted from the base refusal below.
+ * the tree parser never reads, or ANY "Also applies:" line -- this lane's one share reader
+ * (R-1181/R-1167, §3.1) handles a feature heading's own first such line as its share line
+ * elsewhere, never as regeneratable field content here; every other "Also applies:" line stays
+ * ordinary carried prose, refused by the base refusal below when it is not that first line) is
+ * never silently dropped by the writer nor exempted from the base refusal below.
  */
 function fieldBlockAt(bareLines, allHeadingLines, headingLine, id) {
   const set = new Set();
@@ -223,10 +224,76 @@ function baseRefusals(buf, text, parsed) {
     if (fieldBlock.has(i)) continue; // a tree heading's own, legitimate field line
     if (i < headEnd || tailLines.has(i)) continue; // head/tail prose: carried verbatim, never replaced
     if (bareLines[i].startsWith("|")) continue; // table structure or continuation
-    if (!/^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i])) continue;
+    if (/^Also applies:/.test(bareLines[i])) continue; // §3.1: checked separately below, every span included
+    if (!/^(Purpose|Outcome|Status):/.test(bareLines[i])) continue;
     problems.push(`line ${i + 1}: carried prose starts with a field label ("${bareLines[i].split(":")[0]}:")`);
   }
+  problems.push(...shareLineRefusals(bareLines, segments(text), parsed));
   return problems;
+}
+/**
+ * §3.1, R-1167: a share line is exactly a feature heading's `alsoAppliesLines[0]`, as the tree
+ * parser (`parsed`, already computed by the caller) reads it -- the one legitimate "Also
+ * applies:" line in the whole ledger for that feature. Every other one -- fenced, in the head or
+ * tail, under a capability or subgroup, a second line in a feature's own span, or one in a flat
+ * ledger (no FEAT- heading at all) -- is refused by name, whether or not it is also fenced or
+ * inside head/tail prose (checked here, independent of and before those skips above). The one
+ * allowed line is refused too when it is the file's last line and carries no terminator (only
+ * the last raw segment can lack one): the writer could not place it after Status with a byte
+ * ending to copy.
+ */
+function shareLineRefusals(bareLines, segs, parsed) {
+  const problems = [];
+  const allowed = new Set();
+  for (const h of parsed.headings) {
+    if (!h.id?.startsWith("FEAT-")) continue;
+    const first = h.alsoAppliesLines?.[0];
+    if (first) allowed.add(first.line);
+  }
+  for (let i = 0; i < bareLines.length; i++) {
+    if (!/^Also applies:/.test(bareLines[i])) continue;
+    const lineNo = i + 1;
+    if (allowed.has(lineNo)) {
+      if (i === bareLines.length - 1 && !/\n$/.test(segs[i] ?? "")) problems.push(`line ${lineNo}: the share line has no line ending (end the file with a line break first)`);
+      continue;
+    }
+    problems.push(`line ${lineNo}: "Also applies:" is not a feature heading's first share line as the tree checker reads it`);
+  }
+  return problems;
+}
+/** Old FEAT- heading id a mapping `from` entry's heading text names, as the tree heading pattern reads it, or null. */
+function oldFeatIdOf(fromEntry) {
+  const m = TREE_HEADING.exec(fromEntry?.heading ?? "");
+  return m && m[2].startsWith("FEAT-") ? m[2] : null;
+}
+/** Every old FEAT- heading (with its shares, share line, heading line and raw segment) that carries at least one legitimate share line, keyed by id. */
+function shareInfoOf(parsed, segs) {
+  const map = new Map();
+  for (const h of parsed.headings) {
+    if (!h.id?.startsWith("FEAT-")) continue;
+    const first = h.alsoAppliesLines?.[0];
+    if (!first) continue;
+    map.set(h.id, { shares: h.alsoApplies.slice(), line: first.line, headingLine: h.line, seg: segs[first.line - 1] });
+  }
+  return map;
+}
+/** The old feature headings (with shares) a feature node's own `from` and its subgroups' `from` name, in order (§3.2 "Carried(F)" sources). */
+function shareSourcesOf(node, shareInfo) {
+  const out = [];
+  for (const f of node.from ?? []) { const id = oldFeatIdOf(f); if (id && shareInfo.has(id)) out.push(shareInfo.get(id)); }
+  for (const sub of node.subgroups ?? []) for (const f of sub.from ?? []) { const id = oldFeatIdOf(f); if (id && shareInfo.has(id)) out.push(shareInfo.get(id)); }
+  return out;
+}
+/** Carried(F) (§3.2): the union of F's source headings' shares, first seen first, deduped. */
+function carriedSharesOf(node, shareInfo) {
+  const seen = new Set(), carried = [];
+  for (const src of shareSourcesOf(node, shareInfo)) for (const id of src.shares) if (!seen.has(id)) { seen.add(id); carried.push(id); }
+  return carried;
+}
+/** carried(F) less its declared `shares_dropped`, plus its declared `shares_added`, in that order (§2 R-1181/1182). */
+function wantedSharesOf(node, shareInfo) {
+  const dropped = new Set(node.shares_dropped ?? []);
+  return [...carriedSharesOf(node, shareInfo).filter((id) => !dropped.has(id)), ...(node.shares_added ?? [])];
 }
 /** 0-based line indices under a kept section (Open questions / Deliberate omissions, by label)
  * or the closing heading's own span: the structural TAIL, carried verbatim and never replaced. */
@@ -439,6 +506,10 @@ function shapeProblems(mapping) {
     if (value === undefined) return;
     if (!Array.isArray(value) || value.some((v) => typeof v !== "string")) problems.push(`${where}: "also_applies" must be an array of strings`);
   };
+  const checkShareList = (value, where, label) => {
+    if (value === undefined) return;
+    if (!Array.isArray(value) || value.some((v) => typeof v !== "string")) problems.push(`${where}: "${label}" must be an array of strings`);
+  };
   if (mapping.head !== undefined && !isPlainObject(mapping.head)) problems.push('mapping: "head" must be an object');
   if (isPlainObject(mapping.head) && mapping.head.through !== undefined && typeof mapping.head.through !== "number") problems.push('mapping: "head.through" must be a number');
   if (mapping.tree !== undefined && !Array.isArray(mapping.tree)) { problems.push('mapping: "tree" must be an array'); return problems; }
@@ -451,6 +522,8 @@ function shapeProblems(mapping) {
       checkFrom(feat.from, feat.id);
       checkRows(feat.rows, feat.id);
       checkAlsoApplies(feat.also_applies, feat.id);
+      checkShareList(feat.shares_added, feat.id, "shares_added");
+      checkShareList(feat.shares_dropped, feat.id, "shares_dropped");
       if (feat.subgroups !== undefined && !Array.isArray(feat.subgroups)) { problems.push(`${feat.id}: "subgroups" must be an array`); continue; }
       for (const sub of feat.subgroups ?? []) {
         if (!isPlainObject(sub) || typeof sub.id !== "string") { problems.push(`${feat.id}: a subgroup is not an object with a string "id"`); continue; }
@@ -540,6 +613,12 @@ function validateMapping(mapping, text, seed) {
   for (const f of mapping.tail?.from ?? []) nameHeading(f, "tail");
   for (const k of mapping.tail?.keep ?? []) nameHeading(k, "tail.keep");
 
+  // §3.2, R-1167 mapping clause: also_applies/shares_added/shares_dropped against the shares
+  // each feature's own old heading(s) carry in the INPUT, never from the output or from
+  // also_applies itself (R-1182 keeps the proof's recount independent; this is the validator's
+  // own, separate, upfront check so a bad declaration is refused before any write is attempted).
+  problems.push(...shareProblems(mapping, shareInfoOf(parseLedger(text), segments(text)), realRowIds));
+
   // head.through must end just before the EARLIEST named old heading (§3.2): a smaller value
   // silently drops real input lines that belong to no node and no tail entry — nothing else
   // here ever looks at them, since they are neither a row nor a named heading.
@@ -579,6 +658,46 @@ function validateMapping(mapping, text, seed) {
       const nothingAfter = !hasTail && lastNodeOverall && lastNodeOverall.level > 1 && expandRowIds((lastNodeOverall.node.rows ?? []).join(",")).at(-1) === lastId;
       if (!nothingAfter) problems.push(`line ${lastLineNo}: the ledger ends with an unterminated row ${lastId}; a mapping may place nothing after it (end the file with a line break first)`);
     }
+  }
+  return problems;
+}
+/**
+ * R-1167's mapping clause (§3.2): every feature's `also_applies`, `shares_added` and
+ * `shares_dropped` against the shares its own old feature heading(s) carry in the input, never
+ * against the output or against `also_applies` itself. A sharing old heading named by a
+ * capability's or the tail's own `from` -- never a feature's or a subgroup's -- is refused too:
+ * named there, its share line would vanish (no feature destination regenerates or copies it).
+ */
+function shareProblems(mapping, shareInfo, realRowIds) {
+  const problems = [];
+  const checkRepeat = (arr, label, id) => { const seen = new Set(); for (const r of arr ?? []) { if (seen.has(r)) problems.push(`${id}: ${label} lists ${r} more than once`); seen.add(r); } };
+  for (const cap of mapping.tree ?? []) {
+    for (const f of cap.from ?? []) {
+      const oldId = oldFeatIdOf(f);
+      if (oldId && shareInfo.has(oldId)) problems.push(`${cap.id}: names old feature heading (line ${shareInfo.get(oldId).headingLine}) that carries shares, which must be named by a feature, not a capability`);
+    }
+    for (const feat of cap.features ?? []) {
+      const carried = carriedSharesOf(feat, shareInfo);
+      const also = Array.isArray(feat.also_applies) ? feat.also_applies : [];
+      const dropped = Array.isArray(feat.shares_dropped) ? feat.shares_dropped : [];
+      const added = Array.isArray(feat.shares_added) ? feat.shares_added : [];
+      checkRepeat(also, "also_applies", feat.id);
+      checkRepeat(dropped, "shares_dropped", feat.id);
+      checkRepeat(added, "shares_added", feat.id);
+      for (const d of dropped) if (!carried.includes(d)) problems.push(`${feat.id}: shares_dropped names ${d}, which it does not carry`);
+      for (const a of added) {
+        if (carried.includes(a)) problems.push(`${feat.id}: shares_added names ${a}, which it already carries`);
+        else if (!realRowIds.has(a)) problems.push(`${feat.id}: shares_added names ${a}, which is not a requirement row`);
+      }
+      const want = new Set(wantedSharesOf(feat, shareInfo));
+      const alsoSet = new Set(also);
+      for (const id of want) if (!alsoSet.has(id)) problems.push(`${feat.id}: share ${id} is missing from also_applies; declare it in shares_dropped`);
+      for (const id of alsoSet) if (!want.has(id)) problems.push(`${feat.id}: also_applies holds ${id}, which is not carried; declare it in shares_added`);
+    }
+  }
+  for (const f of mapping.tail?.from ?? []) {
+    const oldId = oldFeatIdOf(f);
+    if (oldId && shareInfo.has(oldId)) problems.push(`tail: names old feature heading (line ${shareInfo.get(oldId).headingLine}) that carries shares, which must be named by a feature, not the tail`);
   }
   return problems;
 }
@@ -672,6 +791,7 @@ function sectionBody(node, segs, bareLines, fenced, allHeadingLines, mode) {
         if (fenced[i]) { out.push(segs[i]); continue; }
         if (requirementRowId(bareLines[i])) continue;
         if (isOldFieldLine(i)) continue; // the old heading's own field line (already tree-form): regenerated fresh, never carried
+        if (/^Also applies:/.test(bareLines[i])) continue; // §3.1: the feature's share line, emitted separately, never as body prose
         if (isTableHeaderAt(bareLines, i)) { i++; continue; }
         out.push(segs[i]);
       }
@@ -681,6 +801,7 @@ function sectionBody(node, segs, bareLines, fenced, allHeadingLines, mode) {
       while (i < end) {
         if (fenced[i]) { out.push(segs[i]); i++; continue; }
         if (isOldFieldLine(i)) { i++; continue; }
+        if (/^Also applies:/.test(bareLines[i])) { i++; continue; } // §3.1: emitted separately, never as body content
         if (isTableHeaderAt(bareLines, i)) {
           const eol = eolOf(segs[i + 1]);
           out.push(`${TABLE_HEADER}${eol}`, `${TABLE_DELIMITER_TEXT}${eol}`);
@@ -715,6 +836,17 @@ export function applyMapping(text, mapping, seed) {
 
   const rowSegs = new Map();
   bareLines.forEach((l, i) => { if (fenced[i]) return; const id = requirementRowId(l); if (id) rowSegs.set(id, segs[i]); });
+  const shareInfo = shareInfoOf(parseLedger(text), segs);
+  /** R-1181 §3.3: a kept feature (exactly one source share line, no declared change) gets that
+   * line's raw bytes, verbatim, moved right after Status; any other feature gets the line
+   * generated from its wanted shares with the input's own line ending, or no line at all. */
+  const shareLineFor = (feat) => {
+    const sources = shareSourcesOf(feat, shareInfo);
+    const changes = (feat.shares_added?.length ?? 0) > 0 || (feat.shares_dropped?.length ?? 0) > 0;
+    if (sources.length === 1 && !changes) return sources[0].seg;
+    const want = wantedSharesOf(feat, shareInfo);
+    return want.length ? `Also applies: ${want.join(", ")}${eol}` : null;
+  };
 
   const emitProseOnly = (node) => sectionBody(node, segs, bareLines, fenced, allHeadingLines, "prose");
   /** A leaf's whole body: in place (prose and tables interleaved, headers normalised) when its
@@ -737,7 +869,9 @@ export function applyMapping(text, mapping, seed) {
       const reservedFeat = RESERVED_IDS.has(feat.id);
       const featText = reservedFeat ? seedNodeText(feat.id, seed) : { label: feat.label, purpose: feat.purpose, status: feat.status };
       out.push(`## ${feat.id} · ${featText.label}${eol}`);
-      out.push(...fieldLines([["Purpose", featText.purpose], ["Status", featText.status], ["Also applies", feat.also_applies?.length ? feat.also_applies.join(", ") : undefined]], eol));
+      out.push(...fieldLines([["Purpose", featText.purpose], ["Status", featText.status]], eol));
+      const shareLine = shareLineFor(feat);
+      if (shareLine !== null) out.push(shareLine);
       out.push(...emitBody(feat));
       for (const sub of feat.subgroups ?? []) {
         const reservedSub = RESERVED_IDS.has(sub.id);
@@ -978,6 +1112,12 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
   // R-1170 speaks only of an explicit --mapping run: the default and identity dry runs (no
   // --mapping) stay silent, as R-1162 already pinned (requirements-lift.test.mjs:178, :228).
   if (args.mapping) for (const r of detectMoves(text, mapping)) console.log(r.rows.length ? `line ${r.line}: ${r.heading} -> ${r.to} (rows ${r.rows.join(", ")})` : `line ${r.line}: ${r.heading} -> ${r.to}`);
+  // R-1183: one line per share a feature's shares_added or shares_dropped declares, mapping order.
+  for (const { id, node, level } of flattenNodes(mapping)) {
+    if (level !== 2) continue;
+    for (const r of node.shares_added ?? []) console.log(`${id}: share ${r} added`);
+    for (const r of node.shares_dropped ?? []) console.log(`${id}: share ${r} dropped`);
+  }
   if (proof.problems.length) { for (const p of capProblems(proof.problems)) console.error(p); return 1; }
   console.log(proof.summary);
 
@@ -1059,8 +1199,9 @@ function runVerify(rootDir, args, seed) {
   // Every base-ledger refusal --write runs on bytes read from disk, run here on the SAME blob
   // bytes (build brief 4 §B): NUL, no rows, an encoding mismatch, a fenced row, a repeated row
   // ID, an unsupported heading, and a field-labelled line outside its heading's own field block
-  // (and, by build brief 7 item 3, any "Also applies:" line anywhere -- shares are refused in
-  // every ledger form, never silently dropped). Build brief 7 item 1 runs the SAME checks on
+  // (and, by this lane's one-reader rule, R-1181/R-1167 §3.1, any "Also applies:" line that is
+  // not a feature heading's first share line as the tree checker reads it, or has no line
+  // ending -- never silently accepted or dropped). Build brief 7 item 1 runs the SAME checks on
   // the committed HEAD blob too, not only on the revision being verified: a byte-invalid or
   // share-carrying HEAD must be named and refused, not merely compared.
   const inputParsed = parseLedger(inputText);

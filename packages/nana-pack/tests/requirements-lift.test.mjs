@@ -14,6 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { proveLift } from "../../../scripts/requirements-lift-proof.mjs";
 import * as LIFT_MODULE from "../../../scripts/requirements-lift.mjs";
+import { parseLedger } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -1239,6 +1240,411 @@ if (process.platform !== "win32") {
     `lf=${run1.status} crlf=${run2.status} ` + own(run1.stderr).concat(own(run2.stderr)).join(" | "));
 }
 
+// ---------------------------------------------------------------- shares fixtures (regroup-shares; §5 T1-T8; never nana-pi's own ledger)
+
+const SHDR = "| ID | Requirement | Status | Evidence |", SDLM = "|---|---|---|---|";
+const SEED_EMPTY = { byId: new Map(), subOf: new Map() };
+/** A passing tree: CAP-01 with FEAT-001 (R-001, no share), FEAT-002 (R-002; shares R-001,R-004
+ *  no-space), SUB-001 (R-003), FEAT-003 (R-004; shares R-002), FEAT-004 (R-005; shares R-001),
+ *  the closing heading with both kept sections. Each slot inserts lines; `unterminated` drops
+ *  the file's final line break. */
+function sharesLedger(o = {}) {
+  const L = [];
+  const ins = (arr) => { for (const l of arr ?? []) L.push(l); };
+  L.push("# Fixture requirements"); ins(o.head); L.push("", "Intro prose for the fixture.", "");
+  L.push("# CAP-01 · What the product does", "Purpose: name what this product does.", "Outcome: name the outcome this capability delivers."); ins(o.cap); L.push("");
+  L.push("## FEAT-001 · First feature", "Purpose: name the first feature.", "Status: active"); ins(o.f1Field); L.push("", SHDR, SDLM, "| R-001 | The first feature shall work. | untested | — |"); ins(o.f1After); L.push("");
+  L.push("## FEAT-002 · Second feature", "Purpose: name the second feature.", "Status: active"); ins(o.f2Field ?? ["Also applies: R-001,R-004"]); L.push("", SHDR, SDLM, "| R-002 | The second feature shall work. | untested | — |"); ins(o.f2After); L.push("");
+  L.push("### SUB-001 · A subgroup", "Purpose: name the subgroup."); ins(o.sub); L.push("", SHDR, SDLM, "| R-003 | The subgroup shall work. | untested | — |", "");
+  L.push("## FEAT-003 · Third feature", "Purpose: name the third feature.", "Status: active"); ins(o.f3Field ?? ["Also applies: R-002"]); L.push("", SHDR, SDLM, "| R-004 | The third feature shall work. | untested | — |", "");
+  L.push("## FEAT-004 · Fourth feature", "Purpose: name the fourth feature.", "Status: active"); ins(o.f4Field ?? ["Also applies: R-001"]); L.push("", SHDR, SDLM, "| R-005 | The fourth feature shall work. | untested | — |"); ins(o.f4After);
+  if (o.tail !== false) { L.push("", "# Open questions and deliberate omissions"); ins(o.closing); L.push("", "## Open questions"); ins(o.open); L.push("", "1. (none yet)", "", "## Deliberate omissions", "", "- (none yet)"); }
+  return L.join("\n") + (o.unterminated ? "" : "\n");
+}
+/** A flat ledger (no tree heading) whose first section holds a share line. */
+function flatSharesLedger() {
+  return ["# Flat fixture", "", "Intro prose.", "", "## 1. One", "", "Also applies: R-002", "", SHDR, SDLM, "| R-001 | One shall work. | untested | — |", "", "## 2. Two", "", SHDR, SDLM, "| R-002 | Two shall work. | untested | — |", ""].join("\n");
+}
+/** Raw "Also applies:" segments (own terminator included), in file order, after any BOM. */
+function shareSegs(buf) {
+  const t = (Buffer.isBuffer(buf) ? buf.toString("utf8") : (buf ?? "")).replace(/^﻿/, "");
+  return t === "" ? [] : t.split(/(?<=\n)/).filter((s) => /^Also applies:/.test(s));
+}
+const lineOf = (text, target) => text.split("\n").findIndex((l) => l === target) + 1;
+const NOT_FIRST = (k) => `line ${k}: "Also applies:" is not a feature heading's first share line as the tree checker reads it`;
+const NO_ENDING = (k) => `line ${k}: the share line has no line ending (end the file with a line break first)`;
+const PROOF_LINE_TEST = (s) => PROOF_RE.test(s);
+const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropped)\b/.test(l) && /\bFEAT-\d{3}\b/.test(l) && /\b[RG]-\d{3,4}\b/.test(l));
+
+// ==================================================================================================
+// R-1181, R-1182, R-1183 (shares), and R-1167's reworded share refusal
+// ==================================================================================================
+
+{
+  // T1: R-1181's byte preservation through the identity mapping.
+  const base = sharesLedger();
+  const crlfBase = base.replace(/\n/g, "\r\n");
+  const bomCrlf = `﻿${crlfBase}`;
+  const mixed = base.split(/(?<=\n)/).map((s) => (/^Also applies:/.test(s) ? s.replace(/\n$/, "\r\n") : s)).join("");
+  const variants = [["LF no-space list", base], ["CRLF", crlfBase], ["BOM+CRLF", bomCrlf], ["mixed-ending", mixed]];
+  const byteResults = variants.map(([label, text]) => {
+    const dir = gitRepo(`t1-bytes-${label.replace(/\W+/g, "")}`, text);
+    const w = lift(["--root", dir, "--write"]);
+    const out = readLedger(dir);
+    const inShares = shareSegs(Buffer.from(text, "utf8"));
+    const outShares = shareSegs(out ?? Buffer.alloc(0));
+    const ok = w.status === 0 && inShares.length === 3 && JSON.stringify(outShares) === JSON.stringify(inShares);
+    return { label, ok, status: w.status, err: own(w.stderr).slice(0, 2) };
+  });
+
+  const afterTable = sharesLedger({ f4Field: [], f4After: ["", "Also applies: R-001"] });
+  const dirAfter = gitRepo("t1-after-table", afterTable);
+  const wAfter = lift(["--root", dirAfter, "--write"]);
+  const outAfter = readLedger(dirAfter)?.toString("utf8") ?? "";
+  const beforeLines = afterTable.split(/(?<=\n)/);
+  const fromIdx = beforeLines.findIndex((l) => l === "Also applies: R-001\n");
+  const statusIdx = beforeLines.findIndex((l, i) => l.startsWith("Status: active") && beforeLines[i - 2]?.startsWith("## FEAT-004 "));
+  const wantAfter = (() => { const c = [...beforeLines]; const [line] = c.splice(fromIdx, 1); c.splice(statusIdx + 1, 0, line); return c.join(""); })();
+  const moveOk = wAfter.status === 0 && fromIdx > statusIdx && outAfter === wantAfter;
+
+  // empty shares_added/shares_dropped declared (sol r1 SHOULD 1): also means no change, kept byte-identical.
+  const emptyMap = structuredClone(LIFT_MODULE.buildIdentityMapping(base));
+  const f2e = emptyMap.tree.flatMap((c) => c.features).find((f) => f.id === "FEAT-002");
+  f2e.shares_added = []; f2e.shares_dropped = [];
+  const dirEmpty = writeLedger(scratchDir("t1-empty"), base);
+  const mapEmptyPath = join(dirEmpty, "map.json");
+  writeFileSync(mapEmptyPath, JSON.stringify(emptyMap));
+  const dryEmpty = lift(["--root", dirEmpty, "--mapping", mapEmptyPath]);
+  const outEmpty = LIFT_MODULE.applyMapping(base, emptyMap, SEED_EMPTY);
+  const emptyOk = dryEmpty.status === 0 && planShareLinesOf(dryEmpty.stdout).length === 0 && shareSegs(Buffer.from(outEmpty, "utf8")).includes("Also applies: R-001,R-004\n");
+
+  const badBytes = byteResults.filter((r) => !r.ok);
+  // req: R-1181
+  check("R-1181: the identity mapping of a tree-form ledger with shares writes each Also applies line byte-identical, LF, CRLF, mixed-ending, BOM and no-space lists included, and a line after its table moves up with its bytes kept",
+    badBytes.length === 0 && moveOk && emptyOk,
+    JSON.stringify(badBytes) + ` moveOk=${moveOk} afterStatus=${wAfter.status} emptyOk=${emptyOk} dryEmpty=${own(dryEmpty.stderr).slice(0, 2)}`);
+}
+
+{
+  // T2: R-1181 merge and demotion carry shares to the feature/subgroup-holder.
+  const mergeText = sharesLedger({ f4Field: ["Also applies: R-001, R-002"] });
+  const identM = LIFT_MODULE.buildIdentityMapping(mergeText);
+  const mergeMap = structuredClone(identM);
+  const capM = mergeMap.tree[0];
+  const f3m = capM.features.find((f) => f.id === "FEAT-003"), f4m = capM.features.find((f) => f.id === "FEAT-004");
+  f3m.from = [...f3m.from, ...f4m.from];
+  f3m.rows = [...f3m.rows, ...f4m.rows];
+  f3m.also_applies = ["R-001", "R-002"];
+  capM.features = capM.features.filter((f) => f !== f4m);
+  const dirMerge = writeLedger(scratchDir("t2-merge"), mergeText);
+  const mapMergePath = join(dirMerge, "map.json");
+  writeFileSync(mapMergePath, JSON.stringify(mergeMap));
+  const dryMerge = lift(["--root", dirMerge, "--mapping", mapMergePath]);
+  const outMerge = LIFT_MODULE.applyMapping(mergeText, mergeMap, SEED_EMPTY);
+  const outMergeParsed = parseLedger(outMerge);
+  const f3Out = outMergeParsed.headings.find((h) => h.id === "FEAT-003");
+  const f4Out = outMergeParsed.headings.find((h) => h.id === "FEAT-004");
+  const moveLine = lines(dryMerge.stdout).some((l) => l.includes("FEAT-004") && l.includes("FEAT-003") && l.includes("->"));
+  const mergeOk = dryMerge.status === 0 && proofOf(dryMerge.stdout) !== null && moveLine && Boolean(f3Out) && !f4Out
+    && [...(f3Out?.alsoApplies ?? [])].sort().join(",") === "R-001,R-002" && (f3Out?.alsoAppliesLines?.length ?? 0) === 1;
+
+  const demoteText = sharesLedger({ f3Field: ["Also applies: R-002\r"] });
+  const identD = LIFT_MODULE.buildIdentityMapping(demoteText);
+  const demoteMap = structuredClone(identD);
+  const capD = demoteMap.tree[0];
+  const f1d = capD.features.find((f) => f.id === "FEAT-001"), f3d = capD.features.find((f) => f.id === "FEAT-003");
+  f1d.subgroups = [...(f1d.subgroups ?? []), { id: "SUB-002", label: "Third feature", purpose: "name the third feature.", from: f3d.from, rows: f3d.rows }];
+  f1d.also_applies = ["R-002"];
+  capD.features = capD.features.filter((f) => f !== f3d);
+  const dirDemote = writeLedger(scratchDir("t2-demote"), demoteText);
+  const mapDemotePath = join(dirDemote, "map.json");
+  writeFileSync(mapDemotePath, JSON.stringify(demoteMap));
+  const dryDemote = lift(["--root", dirDemote, "--mapping", mapDemotePath]);
+  const outDemote = LIFT_MODULE.applyMapping(demoteText, demoteMap, SEED_EMPTY);
+  const outDemoteParsed = parseLedger(outDemote);
+  const f1Out = outDemoteParsed.headings.find((h) => h.id === "FEAT-001");
+  const sub2Out = outDemoteParsed.headings.find((h) => h.id === "SUB-002");
+  const f1ShareSeg = outDemote.split(/(?<=\n)/)[(f1Out?.alsoAppliesLines?.[0]?.line ?? 0) - 1];
+  const demoteOk = dryDemote.status === 0 && proofOf(dryDemote.stdout) !== null
+    && Boolean(sub2Out) && sub2Out.parent?.id === "FEAT-001" && !outDemoteParsed.headings.some((h) => h.id === "FEAT-003")
+    && f1ShareSeg === "Also applies: R-002\r\n";
+
+  // req: R-1181
+  check("R-1181: a feature merged with another, or demoted to a subgroup, carries the shares of every old feature heading it names to the feature that holds it",
+    mergeOk && demoteOk,
+    JSON.stringify({ mergeOk, demoteOk }) + " " + own(dryMerge.stderr).concat(own(dryDemote.stderr)).join(" | "));
+}
+
+{
+  // T3: R-1181 --write through a committed mapping declaring a drop and an add, and --verify.
+  const base = sharesLedger();
+  const dir = gitRepo("t3-base", base);
+  const idMap = LIFT_MODULE.buildIdentityMapping(base);
+  const map = structuredClone(idMap);
+  const f2 = map.tree[0].features.find((f) => f.id === "FEAT-002");
+  const f3 = map.tree[0].features.find((f) => f.id === "FEAT-003");
+  f2.shares_dropped = ["R-004"]; f2.also_applies = ["R-001"];
+  f3.shares_added = ["R-005"]; f3.also_applies = ["R-002", "R-005"];
+  const mapPath = join(dir, "map.json");
+  writeFileSync(mapPath, JSON.stringify(map));
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  const beforeHead = gitC(dir, "rev-parse", "HEAD").stdout.trim();
+  const dry = lift(["--root", dir, "--mapping", mapPath]);
+  const w = lift(["--root", dir, "--mapping", mapPath, "--write"]);
+  const out = readLedger(dir)?.toString("utf8") ?? "";
+  const outParsed = parseLedger(out);
+  const f2Out = outParsed.headings.find((h) => h.id === "FEAT-002");
+  const f3Out = outParsed.headings.find((h) => h.id === "FEAT-003");
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "lift");
+  const v = lift(["--root", dir, "--verify", beforeHead, "--mapping", mapPath]);
+  const ok = dry.status === 0 && w.status === 0
+    && JSON.stringify([...(f2Out?.alsoApplies ?? [])].sort()) === JSON.stringify(["R-001"])
+    && JSON.stringify([...(f3Out?.alsoApplies ?? [])].sort()) === JSON.stringify(["R-002", "R-005"])
+    && v.status === 0;
+  // req: R-1181
+  check("R-1181: --write lifts a committed ledger with shares through a committed mapping that declares a drop and an add, and --verify with --mapping passes it",
+    ok,
+    JSON.stringify({ dry: dry.status, w: w.status, v: v.status }) + " " + own(dry.stderr).concat(own(w.stderr), own(v.stderr)).slice(0, 6).join(" | "));
+}
+
+{
+  // T4: R-1182's proof, called directly, over seven hand-tampered outputs (and a control pass).
+  const inputText = sharesLedger({ f2Field: ["Also applies: R-001,R-004,R-005"] });
+  const idMap = LIFT_MODULE.buildIdentityMapping(inputText);
+  const mapping = structuredClone(idMap);
+  const f2 = mapping.tree[0].features.find((f) => f.id === "FEAT-002");
+  f2.shares_dropped = ["R-004"]; f2.also_applies = ["R-001"];
+  const goodOutput = LIFT_MODULE.applyMapping(inputText, mapping, SEED_EMPTY);
+  const control = proveLift(inputText, mapping, goodOutput, SEED_TEXT, { fromDefault: false });
+
+  const outLines = goodOutput.split(/(?<=\n)/);
+  const findLine = (needle) => outLines.findIndex((l) => l === needle);
+  const i3 = findLine("Also applies: R-002\n"); // FEAT-003's kept line
+  const i4 = findLine("Also applies: R-001\n"); // FEAT-004's kept line (exact: FEAT-002's own is the longer "Also applies: R-001, R-005" line)
+  const i2 = findLine("Also applies: R-001, R-005\n"); // FEAT-002's regenerated line
+
+  const tamperMissing = outLines.slice(0, i3).concat(outLines.slice(i3 + 1)).join("");
+  const probeMissing = proveLift(inputText, mapping, tamperMissing, SEED_TEXT, { fromDefault: false });
+
+  const tamperAdded = outLines.slice(0, i4).concat([outLines[i4].replace(/\n$/, ", R-002\n")], outLines.slice(i4 + 1)).join("");
+  const probeAdded = proveLift(inputText, mapping, tamperAdded, SEED_TEXT, { fromDefault: false });
+
+  const tamperRecount = outLines.slice(0, i2).concat([`Also applies: R-001${/\r\n$/.test(outLines[i2]) ? "\r\n" : "\n"}`], outLines.slice(i2 + 1)).join("");
+  const probeRecount = proveLift(inputText, mapping, tamperRecount, SEED_TEXT, { fromDefault: false });
+
+  const tamperChanged = outLines.slice(0, i4).concat([outLines[i4].replace(/\n$/, "\r\n")], outLines.slice(i4 + 1)).join("");
+  const probeChanged = proveLift(inputText, mapping, tamperChanged, SEED_TEXT, { fromDefault: false });
+
+  const withoutI4 = outLines.slice(0, i4).concat(outLines.slice(i4 + 1));
+  const i1Status = withoutI4.findIndex((l) => l.startsWith("Status: active"));
+  const tamperMoved = withoutI4.slice(0, i1Status + 1).concat([outLines[i4]], withoutI4.slice(i1Status + 1)).join("");
+  const probeMoved = proveLift(inputText, mapping, tamperMoved, SEED_TEXT, { fromDefault: false });
+
+  const iOutcome = outLines.findIndex((l) => l.startsWith("Outcome:"));
+  const tamperCapCopy = outLines.slice(0, iOutcome + 1).concat([outLines[i4]], outLines.slice(iOutcome + 1)).join("");
+  const probeCapCopy = proveLift(inputText, mapping, tamperCapCopy, SEED_TEXT, { fromDefault: false });
+
+  const mapUnknown = structuredClone(idMap);
+  const f3u = mapUnknown.tree[0].features.find((f) => f.id === "FEAT-003");
+  f3u.shares_added = ["R-999"]; f3u.also_applies = ["R-002", "R-999"];
+  const outUnknown = LIFT_MODULE.applyMapping(inputText, mapUnknown, SEED_EMPTY);
+  const probeUnknown = proveLift(inputText, mapUnknown, outUnknown, SEED_TEXT, { fromDefault: false });
+
+  const has = (res, ...words) => res.problems.some((p) => words.every((w) => p.includes(w)));
+  const cases = [
+    ["undeclared dropped share", control.problems.length === 0 && has(probeMissing, "FEAT-003")],
+    ["undeclared added share", has(probeAdded, "FEAT-004")],
+    ["share lost beside a declared drop", has(probeRecount, "FEAT-002") && has(probeRecount, "R-005")],
+    ["changed byte in a kept share line", probeChanged.problems.length > 0],
+    ["kept line moved to another feature", probeMoved.problems.length > 0],
+    ["kept line copied under a capability", probeCapCopy.problems.length > 0],
+    ["added share naming no input row", has(probeUnknown, "R-999")],
+  ];
+  const bad = cases.filter(([, ok]) => !ok).map(([label]) => label);
+  // req: R-1182
+  check("R-1182: the proof names an undeclared dropped share, an undeclared added share, a share lost beside a declared drop, a changed byte in a kept share line, a kept line moved to another feature, a kept line copied under a capability and an added share naming no input row",
+    bad.length === 0,
+    JSON.stringify(bad) + " " + JSON.stringify({ control: control.problems, missing: probeMissing.problems, added: probeAdded.problems, recount: probeRecount.problems, changed: probeChanged.problems, moved: probeMoved.problems, capCopy: probeCapCopy.problems, unknown: probeUnknown.problems }).slice(0, 2000));
+}
+
+{
+  // T5: R-1182 -- a declared drop and add prove; a row moved into the feature that shares it
+  // proves only once that share is declared dropped (no implicit drop, §3.2).
+  const base = sharesLedger();
+  const idMap = LIFT_MODULE.buildIdentityMapping(base);
+  const mapOk = structuredClone(idMap);
+  const f2 = mapOk.tree[0].features.find((f) => f.id === "FEAT-002");
+  const f3 = mapOk.tree[0].features.find((f) => f.id === "FEAT-003");
+  f2.shares_dropped = ["R-004"]; f2.also_applies = ["R-001"];
+  f3.shares_added = ["R-005"]; f3.also_applies = ["R-002", "R-005"];
+  const outOk = LIFT_MODULE.applyMapping(base, mapOk, SEED_EMPTY);
+  const proofOk = proveLift(base, mapOk, outOk, SEED_TEXT, { fromDefault: false });
+
+  const mapMoveNoDrop = structuredClone(idMap);
+  const f1m = mapMoveNoDrop.tree[0].features.find((f) => f.id === "FEAT-001");
+  const f4m = mapMoveNoDrop.tree[0].features.find((f) => f.id === "FEAT-004");
+  f1m.rows = f1m.rows.filter((r) => r !== "R-001");
+  f4m.rows = [...f4m.rows, "R-001"];
+  const outMoveNoDrop = LIFT_MODULE.applyMapping(base, mapMoveNoDrop, SEED_EMPTY);
+  const proofMoveNoDrop = proveLift(base, mapMoveNoDrop, outMoveNoDrop, SEED_TEXT, { fromDefault: false });
+  const homedProblem = proofMoveNoDrop.problems.some((p) => p.includes("FEAT-004") && p.includes("R-001") && p.includes("is homed in this feature"));
+
+  const mapMoveDrop = structuredClone(mapMoveNoDrop);
+  const f4d = mapMoveDrop.tree[0].features.find((f) => f.id === "FEAT-004");
+  f4d.shares_dropped = ["R-001"]; delete f4d.also_applies;
+  const outMoveDrop = LIFT_MODULE.applyMapping(base, mapMoveDrop, SEED_EMPTY);
+  const proofMoveDrop = proveLift(base, mapMoveDrop, outMoveDrop, SEED_TEXT, { fromDefault: false });
+
+  const ok = proofOk.problems.length === 0 && homedProblem && proofMoveDrop.problems.length === 0;
+  // req: R-1182
+  check("R-1182: a declared drop and a declared add prove, and a row moved into the feature that shares it proves only with that share declared dropped",
+    ok,
+    JSON.stringify({ proofOk: proofOk.problems, homedProblem, proofMoveDrop: proofMoveDrop.problems, proofMoveNoDrop: proofMoveNoDrop.problems }).slice(0, 1500));
+}
+
+{
+  // T6: R-1183 -- the dry run prints one line per declared added/dropped share, before the
+  // proof line, mapping order, and none for a kept, merged or demoted feature's shares.
+  const base = sharesLedger();
+  const idMap = LIFT_MODULE.buildIdentityMapping(base);
+  const mapP = structuredClone(idMap);
+  const f1 = mapP.tree[0].features.find((f) => f.id === "FEAT-001");
+  const f2 = mapP.tree[0].features.find((f) => f.id === "FEAT-002");
+  f1.shares_added = ["R-002", "R-004"]; f1.also_applies = ["R-002", "R-004"];
+  f2.shares_dropped = ["R-004"]; f2.also_applies = ["R-001"];
+  const dirP = writeLedger(scratchDir("t6-plan"), base);
+  const mapPPath = join(dirP, "map.json");
+  writeFileSync(mapPPath, JSON.stringify(mapP));
+  const dryP = lift(["--root", dirP, "--mapping", mapPPath]);
+  const outLines = lines(dryP.stdout);
+  const shareLines = planShareLinesOf(dryP.stdout);
+  const proofIdx = outLines.findIndex((l) => PROOF_LINE_TEST(l));
+  const beforeProof = proofIdx >= 0 && shareLines.every((l) => outLines.indexOf(l) < proofIdx);
+  const planOk = dryP.status === 0 && shareLines.length === 3
+    && shareLines[0]?.includes("FEAT-001") && shareLines[0]?.includes("R-002") && shareLines[0]?.includes("added")
+    && shareLines[1]?.includes("FEAT-001") && shareLines[1]?.includes("R-004") && shareLines[1]?.includes("added")
+    && shareLines[2]?.includes("FEAT-002") && shareLines[2]?.includes("R-004") && shareLines[2]?.includes("dropped")
+    && beforeProof;
+
+  const mergeText = sharesLedger({ f4Field: ["Also applies: R-001, R-002"] });
+  const identM = LIFT_MODULE.buildIdentityMapping(mergeText);
+  const mergeMap = structuredClone(identM);
+  const capM = mergeMap.tree[0];
+  const f3m = capM.features.find((f) => f.id === "FEAT-003"), f4m = capM.features.find((f) => f.id === "FEAT-004");
+  f3m.from = [...f3m.from, ...f4m.from]; f3m.rows = [...f3m.rows, ...f4m.rows]; f3m.also_applies = ["R-001", "R-002"];
+  capM.features = capM.features.filter((f) => f !== f4m);
+  const dirM = writeLedger(scratchDir("t6-merge"), mergeText);
+  const mapMPath = join(dirM, "map.json");
+  writeFileSync(mapMPath, JSON.stringify(mergeMap));
+  const dryM = lift(["--root", dirM, "--mapping", mapMPath]);
+  const mergeShareLines = planShareLinesOf(dryM.stdout);
+
+  const demoteText = sharesLedger({ f3Field: ["Also applies: R-002\r"] });
+  const identD = LIFT_MODULE.buildIdentityMapping(demoteText);
+  const demoteMap = structuredClone(identD);
+  const capD = demoteMap.tree[0];
+  const f1d = capD.features.find((f) => f.id === "FEAT-001"), f3d = capD.features.find((f) => f.id === "FEAT-003");
+  f1d.subgroups = [...(f1d.subgroups ?? []), { id: "SUB-002", label: "Third feature", purpose: "name the third feature.", from: f3d.from, rows: f3d.rows }];
+  f1d.also_applies = ["R-002"];
+  capD.features = capD.features.filter((f) => f !== f3d);
+  const dirD = writeLedger(scratchDir("t6-demote"), demoteText);
+  const mapDPath = join(dirD, "map.json");
+  writeFileSync(mapDPath, JSON.stringify(demoteMap));
+  const dryD = lift(["--root", dirD, "--mapping", mapDPath]);
+  const demoteShareLines = planShareLinesOf(dryD.stdout);
+
+  const ok = planOk && dryM.status === 0 && mergeShareLines.length === 0 && dryD.status === 0 && demoteShareLines.length === 0;
+  // req: R-1183
+  check("R-1183: a mapping's dry run prints one line per declared added or dropped share before the proof line, and none for a kept, merged or demoted feature's shares",
+    ok,
+    JSON.stringify({ shareLines, dryMStatus: dryM.status, mergeShareLines, dryDStatus: dryD.status, demoteShareLines }) + " " + own(dryP.stderr).concat(own(dryM.stderr), own(dryD.stderr)).slice(0, 6).join(" | "));
+}
+
+{
+  // T7: R-1167 -- one reader: every "Also applies:" line that is not a feature heading's first,
+  // as the tree checker reads it, is refused by name in every mode; so is an unterminated one.
+  const SHAPES = [
+    ["a second one", sharesLedger({ f2Field: ["Also applies: R-001,R-004", "Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["a second one after a feature's table", sharesLedger({ f2After: ["", "Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["one under a capability", sharesLedger({ cap: ["Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["one under a subgroup", sharesLedger({ sub: ["Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["one in the head", sharesLedger({ head: ["", "Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["one under a kept section", sharesLedger({ open: ["", "Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["one in the closing heading's span", sharesLedger({ closing: ["", "Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["a fenced one", sharesLedger({ f2After: ["", "```text", "Also applies: R-005", "```"] }), "Also applies: R-005", NOT_FIRST],
+    ["one under a fence closer underlined by ---", sharesLedger({ f1After: ["", "```text", "example", "```", "---", "Also applies: R-005"] }), "Also applies: R-005", NOT_FIRST],
+    ["one in a flat ledger", flatSharesLedger(), "Also applies: R-002", NOT_FIRST],
+    ["a share line with no line ending", sharesLedger({ f4Field: [], f4After: ["", "Also applies: R-001"], tail: false, unterminated: true }), "Also applies: R-001", NO_ENDING],
+  ];
+  const shapesBad = [];
+  for (const [label, text, target, reasonFn] of SHAPES) {
+    const at = lineOf(text, target);
+    const why = reasonFn(at);
+    const dirDry = writeLedger(scratchDir("t7-dry"), text);
+    const beforeDry = readLedger(dirDry);
+    const dry = lift(["--root", dirDry]);
+    const noDryWrite = readLedger(dirDry)?.equals(beforeDry) ?? false;
+    const dirEmit = writeLedger(scratchDir("t7-emit"), text);
+    const emitPath = join(dirEmit, "map.json");
+    const emit = lift(["--root", dirEmit, "--emit-mapping", emitPath]);
+    const emitWroteNothing = (() => { try { readFileSync(emitPath); return false; } catch { return true; } })();
+    const repo = gitRepo("t7-git", text);
+    const beforeWrite = readLedger(repo);
+    const w = lift(["--root", repo, "--write"]);
+    const unchangedWrite = readLedger(repo)?.equals(beforeWrite) ?? false;
+    const v = lift(["--root", repo, "--verify", "HEAD"]);
+    const namedAll = [dry, emit, w, v].every((r) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => l === why || l.endsWith(`: ${why}`)));
+    if (!(namedAll && noDryWrite && emitWroteNothing && unchangedWrite)) {
+      shapesBad.push({ label, why, dry: own(dry.stderr).slice(0, 1), emit: own(emit.stderr).slice(0, 1), w: own(w.stderr).slice(0, 1), v: own(v.stderr).slice(0, 1), noDryWrite, emitWroteNothing, unchangedWrite });
+    }
+  }
+  // req: R-1167
+  check("R-1167: an Also applies line that is not a feature heading's first as the tree checker reads it (a second one, one under a capability or subgroup, in the head, a kept section or the closing heading's span, a fenced one, one under a fence closer underlined by ---) and a share line with no line ending are refused naming the line in the dry run, --emit-mapping, --write and --verify",
+    shapesBad.length === 0,
+    JSON.stringify(shapesBad).slice(0, 3000));
+}
+
+{
+  // T8: R-1167's mapping clause -- also_applies/shares_added/shares_dropped against the input's
+  // own shares (§3.2), plus the seat SHOULD 2 repeats.
+  const base = sharesLedger();
+  const idMap = LIFT_MODULE.buildIdentityMapping(base);
+  const f = (m, id) => m.tree.flatMap((c) => c.features).find((x) => x.id === id);
+  const edit = (fn) => { const c = structuredClone(idMap); fn(c); return c; };
+  const CASES = [
+    ["an undeclared drop", edit((m) => { f(m, "FEAT-002").also_applies = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-004\b/.test(l) && /shares_dropped/.test(l)],
+    ["an undeclared add", edit((m) => { f(m, "FEAT-001").also_applies = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l) && /shares_added/.test(l)],
+    ["a declared drop it does not carry", edit((m) => { f(m, "FEAT-001").shares_dropped = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l)],
+    ["a declared add it already carries", edit((m) => { f(m, "FEAT-002").shares_added = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-001\b/.test(l) && /already carries/.test(l)],
+    ["a declared add of an unknown row", edit((m) => { const ft = f(m, "FEAT-001"); ft.shares_added = ["R-999"]; ft.also_applies = ["R-999"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-999\b/.test(l) && /is not a requirement row/.test(l)],
+    ["a sharing feature heading named by a capability", edit((m) => { const f3 = f(m, "FEAT-003"); m.tree[0].from = [...m.tree[0].from, ...f3.from]; f3.from = []; delete f3.also_applies; }), (l) => /capabilit|CAP-01/i.test(l)],
+    ["a sharing feature heading named by the tail", edit((m) => { const f3 = f(m, "FEAT-003"); m.tail.from = [...m.tail.from, ...f3.from]; f3.from = []; delete f3.also_applies; }), (l) => /tail/i.test(l) && /must be named by a feature, not the tail/.test(l)],
+    ["shares_added held as a string", edit((m) => { f(m, "FEAT-001").shares_added = "R-002"; }), (l) => /\bFEAT-001\b/.test(l) && /shares_added/.test(l)],
+    ["a repeated ID in also_applies", edit((m) => { f(m, "FEAT-002").also_applies = ["R-001", "R-004", "R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-001\b/.test(l)],
+    ["a repeated ID in shares_added", edit((m) => { const ft = f(m, "FEAT-001"); ft.shares_added = ["R-002", "R-002"]; ft.also_applies = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l) && /shares_added lists/.test(l)],
+    ["a repeated ID in shares_dropped", edit((m) => { const ft = f(m, "FEAT-002"); ft.shares_dropped = ["R-004", "R-004"]; ft.also_applies = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-004\b/.test(l)],
+  ];
+  const dir = gitRepo("t8-shares-validator", base);
+  const files = CASES.map(([, mapping], k) => { const p = join(dir, `v${k}.json`); writeFileSync(p, JSON.stringify(mapping)); return p; });
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "maps");
+  const beforeLedger = readLedger(dir);
+  const bad = [];
+  CASES.forEach(([label, , matches], k) => {
+    const p = files[k];
+    const dry = lift(["--root", dir, "--mapping", p]);
+    const w = lift(["--root", dir, "--mapping", p, "--write"]);
+    const unchanged = readLedger(dir)?.equals(beforeLedger) ?? false;
+    const v = lift(["--root", dir, "--verify", "HEAD", "--mapping", p]);
+    const dryNamed = dry.status === 1 && !crashed(dry) && own(dry.stderr).some(matches);
+    const ok = dryNamed && proofOf(dry.stdout) === null && w.status === 1 && !crashed(w) && unchanged && v.status === 1 && !crashed(v);
+    if (!ok) bad.push({ label, dry: own(dry.stderr).slice(0, 2), w: own(w.stderr).slice(0, 2), v: own(v.stderr).slice(0, 2), unchanged });
+  });
+  // req: R-1167
+  check("R-1167: a mapping that drops or adds a share without declaring it, declares a drop it does not carry or an add it carries or of an unknown row, names a sharing feature heading in a capability or the tail, or holds shares_added as a string is refused, each named, and --write and --verify leave the ledger unchanged",
+    bad.length === 0,
+    JSON.stringify(bad).slice(0, 3000));
+}
+
 // ==================================================================================================
 // R-1167
 // ==================================================================================================
@@ -1298,94 +1704,6 @@ if (process.platform !== "win32") {
   check("R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line",
     r16.status === 1 && !crashed(r16) && ansiNamed && rNoRows.status === 1 && !crashed(rNoRows) && named(rFenced, fencedLine) && named(rL4, l4Line) && named(rSetext, setextLine) && named(rAlso, alsoLine) && named(rField, fieldLine) && repeatedOk,
     JSON.stringify({ r16: r16.status, rA: own(rA.stderr)[0], rNoRows: own(rNoRows.stderr)[0], rFenced: own(rFenced.stderr)[0], rL4: own(rL4.stderr)[0], rSetext: own(rSetext.stderr)[0], rAlso: own(rAlso.stderr)[0], rField: own(rField.stderr)[0], repeated: own(rRepeated.stderr)[0] }));
-}
-
-{
-  // build brief 7 item 3 (astra r1 MUST), using astra's own repro: a PASSING two-feature tree
-  // whose second feature carries `Also applies: R-001`. In a tree-form ledger that line falls
-  // inside FEAT-002's own "replaceable field block" (regenerated fresh by the writer, like its
-  // Purpose/Status lines), so it was never a base-refusal problem and a grouping that simply
-  // omits `also_applies` silently drops the share. R-1167 and HANDOFF say a ledger holding
-  // shares is refused -- in every mode, flat or tree-form, never silently dropped.
-  const shareText = [
-    "# Fixture requirements", "",
-    "# CAP-01 · What the product does",
-    "Purpose: name what this product does.",
-    "Outcome: name the outcome this capability delivers.", "",
-    "## FEAT-001 · First feature",
-    "Purpose: name the first feature the audit finds.",
-    "Status: active", "",
-    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
-    "| R-001 | The first feature shall work. | untested | — |", "",
-    "## FEAT-002 · Second feature",
-    "Purpose: name the second feature.",
-    "Status: active",
-    "Also applies: R-001", "",
-    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
-    "| R-002 | The second feature shall work. | untested | — |", "",
-    "# Open questions and deliberate omissions", "",
-    "## Open questions", "", "1. (none yet)", "",
-    "## Deliberate omissions", "", "- (none yet)", "",
-  ].join("\n");
-  const shareLine = shareText.split("\n").findIndex((l) => l === "Also applies: R-001") + 1;
-  const named3 = (r) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${shareLine}\\b`).test(l) && /Also applies/.test(l));
-
-  // sanity: astra's own repro calls this ledger a PASSING tree under the tree checker.
-  const checked = node([join(REPO_ROOT, "scripts/requirements-tree.mjs"), "--root", writeLedger(scratchDir("t22b-sanity"), shareText)]);
-
-  const rDry = lift(["--root", writeLedger(scratchDir("t22b-dry"), shareText)]);
-  const dirEmit = writeLedger(scratchDir("t22b-emit"), shareText);
-  const rEmit = lift(["--root", dirEmit, "--emit-mapping", join(dirEmit, "map.json")]);
-  const dirWrite = gitRepo("t22b-write", shareText);
-  const beforeWrite = readLedger(dirWrite);
-  const rWrite = lift(["--root", dirWrite, "--write"]);
-  // --verify, the BASE blob (args.verify's own revision carries the share).
-  const dirVerifyBase = gitRepo("t22b-vbase", shareText);
-  const rVerifyBase = lift(["--root", dirVerifyBase, "--verify", "HEAD"]);
-  // --verify, the HEAD blob: a CLEAN base (no "Also applies:" anywhere), a mapping whose
-  // optional `also_applies` declares a NEW share -- the writer's own, otherwise-legitimate
-  // `fieldLines` call would materialise that as a literal "Also applies:" line in the output.
-  // The HEAD blob is forged directly (`LIFT_MODULE.applyMapping`, as t33 does for its own
-  // tampered-mapping case) and committed, standing in for a HEAD a once-permissive --write
-  // produced, or one hand-edited to add a share -- `--verify` must refuse it on its own, not
-  // only rely on `--write` having refused it first.
-  const dirVerifyHead = gitRepo("t22b-vhead", flatLedger());
-  const baseRevVH = gitC(dirVerifyHead, "rev-parse", "HEAD").stdout.trim();
-  const mapPathVH = join(dirVerifyHead, "map.json");
-  lift(["--root", dirVerifyHead, "--emit-mapping", mapPathVH]);
-  const mapVH = JSON.parse(readFileSync(mapPathVH, "utf8"));
-  mapVH.tree[0].features[1].also_applies = ["R-001"]; // FEAT-002 ("2. Two") now also applies to R-001
-  writeFileSync(mapPathVH, JSON.stringify(mapVH));
-  gitC(dirVerifyHead, "add", "-A"); gitC(dirVerifyHead, "commit", "-qm", "map (declares a share)");
-  const forgedHead = LIFT_MODULE.applyMapping(flatLedger(), mapVH, { byId: new Map(), subOf: new Map() });
-  writeFileSync(join(dirVerifyHead, "REQUIREMENTS.md"), forgedHead);
-  gitC(dirVerifyHead, "add", "-A"); gitC(dirVerifyHead, "commit", "-qm", "lift (forged: HEAD carries a new share)");
-  const rVerifyHead = lift(["--root", dirVerifyHead, "--mapping", mapPathVH, "--verify", baseRevVH]);
-  // --write, the SAME mapping, directly: the mapping-driven avenue into a share-carrying output
-  // must be refused at --write too, not only caught later by --verify.
-  const dirWriteAlso = gitRepo("t22b-write-also", flatLedger());
-  const mapPathWA = join(dirWriteAlso, "map.json");
-  lift(["--root", dirWriteAlso, "--emit-mapping", mapPathWA]);
-  const mapWA = JSON.parse(readFileSync(mapPathWA, "utf8"));
-  mapWA.tree[0].features[1].also_applies = ["R-001"]; // FEAT-002 ("2. Two") now also applies to R-001
-  writeFileSync(mapPathWA, JSON.stringify(mapWA));
-  gitC(dirWriteAlso, "add", "-A"); gitC(dirWriteAlso, "commit", "-qm", "map (declares a share)");
-  const beforeWriteAlso = readLedger(dirWriteAlso);
-  const rWriteAlso = lift(["--root", dirWriteAlso, "--mapping", mapPathWA, "--write"]);
-
-  const cases3 = [
-    { label: "dry-run", ok: checked.status === 0 && named3(rDry) },
-    { label: "emit-mapping", ok: rEmit.status === 1 && !crashed(rEmit) },
-    { label: "write", ok: rWrite.status === 1 && !crashed(rWrite) && readLedger(dirWrite).equals(beforeWrite) },
-    { label: "verify-base-blob", ok: rVerifyBase.status === 1 && !crashed(rVerifyBase) },
-    { label: "verify-head-blob", ok: rVerifyHead.status === 1 && !crashed(rVerifyHead) },
-    { label: "write-also-applies-mapping", ok: rWriteAlso.status === 1 && !crashed(rWriteAlso) && readLedger(dirWriteAlso).equals(beforeWriteAlso) },
-  ];
-  const bad3 = cases3.filter((c) => !c.ok).map((c) => c.label);
-  // req: R-1167
-  check("R-1167: a tree-form ledger with an Also applies line in a feature's field block is refused, in every mode, never silently dropped",
-    bad3.length === 0,
-    bad3.join(", ") + " " + JSON.stringify({ treeCheck: checked.status, dry: own(rDry.stderr)[0], emit: own(rEmit.stderr)[0], write: own(rWrite.stderr)[0], vbase: own(rVerifyBase.stderr)[0], vhead: own(rVerifyHead.stderr)[0] }));
 }
 
 {
