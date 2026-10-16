@@ -463,6 +463,23 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     [`reason for line ${L22} -> SUB-001 missing, with its claim kept so only the missing-reason check catches it`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); }), [String(L22)]],
   ];
   const { ok, why } = allRefused(cases);
+  // Item 6 (M5): the moved-reason case. Line 30's own reason to FEAT-002 is given AT line 15
+  // instead (its line field changed, claim kept in step), so line 15 -> FEAT-002 now carries
+  // two reasons and line 30 -> FEAT-002 carries none — a per-key count, not a line/heading-text
+  // multiset shortfall, is the only way both halves are caught at once.
+  const movedP = variant((q) => {
+    const r30 = q.regroup.reasons.find((r) => r.line === L30 && r.to === "FEAT-002");
+    r30.line = L15;
+    const c30 = q.regroup.review.claims.find((c) => c.line === L30 && c.to === "FEAT-002");
+    c30.line = L15;
+  });
+  const movedRun = runFx("moved-reason", movedP);
+  const movedOk = movedRun.r.status === 1 && !crashed(movedRun.r) && !existsSync(movedRun.page) &&
+    saysOwn(movedRun.r, `line ${L15} -> FEAT-002 has more than one reason`) &&
+    saysOwn(movedRun.r, `line ${L30} -> FEAT-002 has no reason`);
+  // req: R-1173
+  check(`R-1173: line ${L30}'s reason for -> FEAT-002 given at line ${L15} instead is refused naming both line ${L15}'s excess reason and line ${L30}'s missing one`,
+    movedOk, `status=${movedRun.r.status} crashed=${crashed(movedRun.r)} page=${existsSync(movedRun.page)} ` + own(movedRun.r.stderr).slice(0, 3).join(" | "));
   // req: R-1173
   check("R-1173: each line the lift reports needs exactly one reason by old line and node, a missing, repeated or stale reason is refused, and two same-text headings are reasoned apart", ok, why);
 }
