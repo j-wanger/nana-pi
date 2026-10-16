@@ -1,0 +1,183 @@
+ok   (harness) git merge-base main HEAD resolves
+ok   (harness) the scratch folder is outside the checkout
+ok   (harness) the lift exports PROBLEM_LINE_CAP and UNSORTED_PREFIX "Not yet sorted:" (§3.4: imported from the lift)
+MISS (a) seat-titles 1 prints `seat-titles 1: 0 missing` and exits 0 (§5: every T1–T23 title exists under its req: marker) → ["seat-titles 1: 3 missing",1] (want ["seat-titles 1: 0 missing",0]) [MISSING packages/nana-pack/tests/requirements-regroup.test.mjs — R-1177: a proposal whose feature declares shares_added and shares_dropped holds no unknown key and passes the regroup checker | MISSING packages/nana-pack/tests/requirements-regroup.test.mjs — R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and]
+ok   (harness) the fixture: two `## 2. Build at production size` headings at different lines, and this script's R-1170 reader gives the eleven lines §3.2 implies for the proposal
+ok   (harness) the fixture's text-placed rows (R-1176, read here) are the seven the proposal places, and every row is longer than GIST_WORDS words
+ok   (harness) the honest proposal passes the checkout's lift dry run (exit 0, one proof line), the lift ignoring its `regroup` object and holding G-004 in the seed's SUB-901 (§3.3, A §2)
+ok   (l) flat fixture: the mapping's dry run exits 0 and prints exactly one `line N: <heading> -> <node>` line per named heading and one `… -> <node> (rows …)` line per old line and new home (R-1170, §3.2)
+ok   (l) flat fixture: the two "## 2. Build at production size" headings print apart, keyed by line 15 and 30, and line 30's move to FEAT-004 lists R-008 (R-1170, T1)
+ok   (guard) flat fixture: the default dry run (no --mapping) prints no `->` line (R-1162, R-1170 speaks only of --mapping)
+ok   (guard) lifted fixture: the identity mapping's dry run prints no `->` line (R-1162; a heading named by its own node is not reported)
+ok   (l) lifted fixture: FEAT-003 folded into FEAT-002 prints its heading line `-> FEAT-002`, R-009 moved prints FEAT-004's line `-> FEAT-001 (rows R-009)`, and nothing else (R-1170)
+ok   (f) the lift exports detectMoves, which returns §3.2's {line, heading, to, rows} records for the flat fixture, heading records without rows (§3.2, §4)
+ok   (r) scripts/requirements-regroup.mjs exists (§4 In)
+ok   (r) the honest proposal passes: exit 0, the page written at --out opening with PAGE_HEAD, nothing under the root changed (R-1171, T2)
+ok   (r) the page carries no timestamp: a second run of the same proposal writes the same bytes (§3.4 item 3)
+ok   (r) the proposal saved with a UTF-8 BOM and CRLF endings (PowerShell 5.1, Git for Windows; the lift's BOM rule) passes and writes its page (threat model, §3.3)
+ok   (r) a proposal the lift's dry run refuses: exit 1, no page, and every line the lift prints for it appears in the command's output (R-1171, T2, §3.4 item 1)
+ok   (r) run through a symlink to the script, the command still writes its page (R-1171, T3, §3.4's realpath main guard)
+ok   (r) --out naming the ledger (R-1171, T19) → exit 1, that file byte-identical, nothing under the root changed
+ok   (r) --out naming the proposal (R-1171, T19) → exit 1, that file byte-identical, nothing under the root changed
+ok   (r) --out naming an evidence path the proposal cites (R-1171: each evidence path is an input) → exit 1, that file byte-identical, nothing under the root changed
+ok   (r) --out a symlink to the proposal (R-1171, T20) → exit 1, that file byte-identical, nothing under the root changed
+ok   (r) --out the ledger through a symlinked folder (R-1171: the real path, symlinks followed) → exit 1, that file byte-identical, nothing under the root changed
+ok   (r) --out naming the lift the command runs (a scratch mirror of the checkout's scripts, which itself passes the honest proposal) → exit 1, the lift byte-identical (R-1171)
+ok   (r) a failing run removes an earlier review page at --out (R-1171, T21)
+ok   (r) a failing run leaves a file at --out that is not a review page unchanged (R-1171, T21)
+ok   (r) a pin of 64 zeros, refused only by the lift, with --out holding a passing run's page → exit 1, the lift's "pin does not match this ledger" line in the output, no file left at --out (R-1171, T2, T21)
+ok   (r) a run missing --root, --proposal or --out exits 2 with a usage line naming all three flags, and writes no page (R-1177, T12)
+ok   (r) FEAT-001 keeps a "Not yet sorted:" purpose (R-1172, T4) → exit 1 naming FEAT-001, no page, nothing else changed
+ok   (r) CAP-02 keeps a "Not yet sorted:" outcome (R-1172, T4) → exit 1 naming CAP-02, no page, nothing else changed
+ok   (r) SUB-001 keeps a "Not yet sorted:" purpose (R-1172, T4) → exit 1 naming SUB-001, no page, nothing else changed
+ok   (r) the reserved CAP-90, FEAT-900, SUB-900 and SUB-901 may keep a "Not yet sorted:" purpose and outcome, with no claim verdict for them: exit 0 and a page (R-1172: SUB-900 to SUB-904, R-1184, T4, T22)
+ok   (r) the reason for line 22 → SUB-001 missing (its claim dropped too) (R-1173, T5) → exit 1 naming /(?<![\w-])22(?![\w-])/, no page, nothing else changed
+ok   (r) the reason for line 37 → FEAT-004 repeated (R-1173, T5) → exit 1 naming /(?<![\w-])37(?![\w-])/, no page, nothing else changed
+ok   (r) a stale reason for line 7 → FEAT-002, a line the lift reports only for FEAT-001 (R-1173, T5) → exit 1 naming /(?<![\w-])7(?![\w-])/, no page, nothing else changed
+ok   (r) the same stale reason for line 7 → FEAT-002 with its own accepted claim, so only the stale-reason check can refuse it (R-1173, T5: "each reason names such a line") → exit 1 naming /(?<![\w-])7(?![\w-])/, no page, nothing else changed
+ok   (r) the second "## 2. Build at production size" reasoned by text: line 15 given twice for FEAT-002 and line 30 → FEAT-002 left without one (R-1173, T5) → exit 1 naming /(?<![\w-])30(?![\w-])/, no page, nothing else changed
+ok   (r) the proposed FEAT-005 names no evidence path (R-1174, T6) → exit 1 naming FEAT-005, no page, nothing else changed
+ok   (r) the proposed FEAT-005's evidence list is empty (R-1174, T6) → exit 1 naming FEAT-005, no page, nothing else changed
+ok   (r) the proposed FEAT-005 names a missing path (R-1174, T6) → exit 1 naming src/report/missing.mjs, no page, nothing else changed
+ok   (r) the proposed FEAT-005 names an existing file that `..` leads outside the root (R-1174, T6) → exit 1 naming ../outside.txt, no page, nothing else changed
+ok   (r) the proposed FEAT-005 names an absolute path to an existing file outside the root (R-1174) → exit 1 naming FEAT-005, no page, nothing else changed
+ok   (r) the review record misses R-009 (R-1175, T7) → exit 1 naming R-009, no page, nothing else changed
+ok   (r) the review record repeats R-009 (R-1175, T7) → exit 1 naming R-009, no page, nothing else changed
+ok   (r) R-008's verdict names a stale home, FEAT-002, after the proposal moved it to FEAT-004 (R-1175, T7) → exit 1 naming R-008, no page, nothing else changed
+ok   (r) R-009's verdict is neither keep, move nor share (R-1175, T7) → exit 1 naming R-009, no page, nothing else changed
+ok   (r) R-003's move names FEAT-999, a target the proposal does not hold (R-1175, T7) → exit 1 naming FEAT-999, no page, nothing else changed
+ok   (r) R-009's keep verdict has an empty reason (R-1175, T7) → exit 1 naming R-009, no page, nothing else changed
+ok   (r) R-005's share target FEAT-001 carries no reason of its own (R-1175, T7) → exit 1 naming R-005, no page, nothing else changed
+ok   (r) R-003's move names two targets, each with a reason and refuted (R-1175: one target for a move) → exit 1 naming R-003, no page, nothing else changed
+ok   (r) R-003's move target is left unresolved: neither refuted nor asked (R-1175, T8) → exit 1 naming R-003, no page, nothing else changed
+ok   (r) R-005's share target FEAT-004 is left unresolved while FEAT-001 stays asked (R-1175, T8: keyed by row and target) → exit 1 naming R-005, FEAT-004, no page, nothing else changed
+ok   (r) R-005's share target FEAT-004 is resolved twice: refuted and asked (R-1175, T8) → exit 1 naming R-005, no page, nothing else changed
+ok   (r) the review record names no reviewer lineage (R-1175: "names the drafter's and the reviewer's model lineage") → exit 1 naming /reviewer/i, no page, nothing else changed
+ok   (r) R-003's move names no target, and nothing refutes or asks one (R-1175: a move with targets, one target for a move) → exit 1 naming R-003, no page, nothing else changed
+ok   (r) R-003's refutation of FEAT-004 has an empty reason (R-1175: "named in `refuted` with a reason", T8) → exit 1 naming R-003, no page, nothing else changed
+ok   (r) R-003's move to FEAT-004 refuted twice, and R-005's share to FEAT-001 asked by both questions (R-1175, T8: exactly one outcome per target, counted) → exit 1 naming R-003, R-005, no page, nothing else changed
+ok   (r) R-005's share target FEAT-001 carries an empty reason (R-1175, T7: targets "that each carry their own non-empty reason") → exit 1 naming R-005, no page, nothing else changed
+ok   (r) the honest proposal's share of R-005 is asked for FEAT-001 and refuted for FEAT-004, and it passes (R-1175, T8; a carried outcome waits for regroup-shares, residual 2)
+ok   (r) drafter and reviewer share a lineage with no same-family declaration (R-1175, T9) → exit 1 naming /same-family|lineage/i, no page, nothing else changed
+ok   (r) drafter and reviewer of one lineage, declared same-family (a review key PROPOSAL_KEYS holds, valued "same-family" or true), pass (R-1175, T9)
+ok   (p) a same-family record's page reads "same-family review" and never "another lineage" (R-1178, T15)
+ok   (r) text-placed R-006 has no placed reason (R-1176, T10) → exit 1 naming R-006, no page, nothing else changed
+ok   (r) R-005, whose Evidence names a path that does not exist, has no placed reason (R-1176, T10: existence read, not mere mention) → exit 1 naming R-005, no page, nothing else changed
+ok   (r) R-001, whose Evidence names an existing test file, has a placed reason (R-1176, T10) → exit 1 naming R-001, no page, nothing else changed
+ok   (r) text-placed R-003's placed reason is empty (R-1176) → exit 1 naming R-003, no page, nothing else changed
+ok   (r) FEAT-001's purpose has no claim verdict (R-1184, T22) → exit 1 naming FEAT-001, no page, nothing else changed
+ok   (r) CAP-02's outcome has no claim verdict (R-1184, T22) → exit 1 naming CAP-02, no page, nothing else changed
+ok   (r) SUB-001's purpose has no claim verdict (R-1184, T22: each subgroup's purpose) → exit 1 naming SUB-001, no page, nothing else changed
+ok   (r) the reason for line 37 → FEAT-004 has no claim verdict (R-1184, T22) → exit 1 naming /(?<![\w-])37(?![\w-])/, no page, nothing else changed
+ok   (r) FEAT-004's purpose has two claim verdicts (R-1184, T22) → exit 1 naming FEAT-004, no page, nothing else changed
+ok   (r) FEAT-002's purpose claim quotes a stale text (R-1184, T22) → exit 1 naming FEAT-002, no page, nothing else changed
+ok   (r) SUB-001's purpose claim has an empty reason (R-1184, T22) → exit 1 naming SUB-001, no page, nothing else changed
+ok   (r) CAP-01's purpose claim is neither accept nor reject (R-1184, T22) → exit 1 naming CAP-01, no page, nothing else changed
+ok   (r) the rejected claim on line 30 → FEAT-004's reason is named in no question (R-1184, T23) → exit 1 naming /(?<![\w-])30(?![\w-])/, no page, nothing else changed
+ok   (r) FEAT-001's purpose claim is rejected and named in no question (R-1184, T23) → exit 1 naming FEAT-001, no page, nothing else changed
+ok   (r) the honest proposal holds a rejected reason claim named in a question, and passes (R-1184, T23)
+ok   (r) a misspelled key at each of the 18 object levels (top, pin, head, capability, feature, subgroup, from, tail, keep, regroup, reason, review, verdict, target, claim, refuted, question, about) → exit 1 naming its path, no page (R-1177, T13)
+ok   (r) a question without its recommendation (R-1177, T13) → exit 1 naming recommendation, no page, nothing else changed
+ok   (r) a feature holding a capability's key, tree[0].features[0].outcome (R-1177, T13: per-level fields) → exit 1 naming tree[0].features[0].outcome, no page, nothing else changed
+ok   (r) a subgroup holding a feature's key, tree[0].features[1].subgroups[0].status (R-1177, T13: per-level fields) → exit 1 naming tree[0].features[1].subgroups[0].status, no page, nothing else changed
+ok   (r) a verdict holding a reason's key, regroup.review.verdicts[0].why (R-1177, T13: per-level fields) → exit 1 naming regroup.review.verdicts[0].why, no page, nothing else changed
+ok   (r) a proposal with 50 misspelled top-level keys → exit 1 in at most PROBLEM_LINE_CAP + 1 lines, naming at most PROBLEM_LINE_CAP keys and the count of the rest (R-1177, T11)
+ok   (p) the page opens with PAGE_HEAD, then, before the first question, the proposal's SHA-256, the pin, the lift's proof line, both lineages and the placement and claim verdict counts (R-1178, T14)
+ok   (p) then the numbered questions, each with its recommendation, before the feature table (R-1178, T14)
+ok   (p) one feature table lists every feature, and each feature without subgroups with its row count and status mix (R-1178, T14)
+ok   (p) then every capability, feature and subgroup with its purpose, each capability's outcome and the proposed FEAT-005's evidence path, before the reported lines (R-1178, T14)
+ok   (p) then each line the lift reports, its reason beside its old line, node and moved row IDs, both same-text headings apart (R-1179, T16)
+ok   (p) then each move and share target on its own line by row and target, with its own reason and outcome (refuted or asked; R-005 asked for FEAT-001, refuted for FEAT-004) (R-1179, T16)
+ok   (p) then each rejected claim with its reason, identifying the claim (R-1179, T16)
+ok   (p) then each text-placed row with its ID, opening GIST_WORDS words, home and reason on one line (R-1179, T16)
+ok   (p) and only then the appendix: each row's full text appears once, after the lists, under its new node (R-1179, T16)
+ok   (m) FEAT-001 adds R-009 as a share while R-009's verdict stays keep (R-1187, T24) → exit 1 naming R-009, FEAT-001, no page, nothing else changed
+ok   (m) R-003's refuted move target FEAT-004 is also added as a share (R-1187, T24) → exit 1 naming R-003, FEAT-004, no page, nothing else changed
+MISS (m) a share added with a share verdict targeting its feature passes, and the page lists R-009 → FEAT-001 marked share, carried, with its reason (R-1187, R-1179, T24, T16) → [1,false,false,false] (want [0,false,true,true]) [line accounting: the input and output do not carry the same non-blank lines once headings, field lines and table structure are set aside (0 missing, 1 unaccounted extra, e.g. "Also applies: R-009\n")]
+MISS (m) a refused move the drafter replaced by a share to the same feature passes as a carried share (R-1175, R-1187; sol plan r3) → [1,false] (want [0,false]) [line accounting: the input and output do not carry the same non-blank lines once headings, field lines and table structure are set aside (0 missing, 1 unaccounted extra, e.g. "Also applies: R-003\n")]
+MISS (m) each target line is marked move or share: R-003 → FEAT-004 move, R-005 → FEAT-001 and R-005 → FEAT-004 share (R-1179, T16) → [false,false,false] (want [true,true,true]) [R-003 -> FEAT-004: refuted — the import log is read when the pages render (target alpha) | R-005 -> FEAT-001: asked — the build budget also bounds file loading (target bravo)]
+MISS (m) an asked target names its question's number: R-005 → FEAT-001 reads "asked in question 1" (R-1179, T16) → false (want true) [R-005 -> FEAT-001: asked — the build budget also bounds file loading (target bravo)]
+MISS (m) every reserved node in the proposal shows the seed's label and purpose on the page, never a blank (R-1178 as reworded, T14) → [true,["CAP-90","FEAT-900","SUB-900","SUB-901"]] (want [true,[]])
+MISS (m) the feature table names each feature with its label and its status (R-1178 as reworded, T14) → ["FEAT-001","FEAT-002","FEAT-004","FEAT-005"] (want []) [| FEAT-001 | 3 | 2 implemented, 1 planned | / | FEAT-002 | 4 | 2 implemented, 1 planned, 1 untested | / | FEAT-004 | 3 | 1 implemented, 1 violated, 1 planned |]
+MISS (m) no node heading on the page is indented four or more spaces (a Markdown code block) (R-1178, T14) → 3 (want 0)
+ok   (harness) the seat's aml-desk and basketball-geek HEAD copies under /Users/jwang/.cache/nana-lift-ledgers exist and match their pinned SHA-256
+ok   (harness) aml-desk's copy: the lift emits its default mapping (exit 0)
+ok   (harness) aml-desk: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows
+ok   (x) aml-desk: the proposal's dry run exits 0 and prints exactly its 50 reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5)
+ok   (x) aml-desk: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance)
+info (x) aml-desk: the mechanical packet is 29983 words, appendix included (the seat records the real one's words and minutes, §7 J2)
+ok   (guard) aml-desk, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)
+ok   (harness) basketball-geek's HEAD copy: the lift emits its default mapping (exit 0)
+ok   (y) basketball-geek HEAD: a proposal merging FEAT-002 into FEAT-001 and moving R-013 to FEAT-004: the check exits 0 and writes its page (§5 seat acceptance)
+ok   (guard) basketball-geek HEAD in a scratch git copy: the committed proposal writes with --write, and after the commit `--verify <base> --mapping <proposal>` exits 0 while plain `--verify <base>` exits 1 (§3.5 step 6, FR 43)
+ok   (s) the skill description carries "regroup" (R-1180)
+ok   (s) exactly one skill paragraph names the regroup check as R-1180's command (R-1180, T17)
+ok   (s) that paragraph says every row's placement and every purpose, outcome and section reason are reviewed by another model lineage or a same-family reviewer named as such, --write only after the owner's yes with the proposal committed, `--verify <base> --mapping <proposal>`, and a gap as a proposed feature with no rows (R-1180, T17)
+ok   (s) that paragraph lists what the agent reads, J1's recommendation: req: markers, @purpose headers, the code map, the README, OBJECTIVE.md and HANDOFF (R-1180, §3.5 step 2)
+ok   (s) in that paragraph `--verify <base>` never appears without `--mapping` (R-1180, FR 43)
+ok   (s) every flag inside the regroup command's span is in the regroup's source, and every flag elsewhere in the paragraph is in the lift's (R-1180, §3.5: T29's /lift/ scan)
+ok   (s) the lift paragraph's old clause "name no regroup command until that lane lands" is gone (§3.5)
+ok   (guard) the requirements skill keeps T29's lift phrases (R-1169)
+ok   (guard) T29's scan: every flag the skill shows in a paragraph about the lift, outside a regroup span, is in the lift's source (R-1169)
+ok   (harness) CHANGE §2 and seat amendment 2 give one-shall text for each of R-1170 to R-1180, R-1184 and R-1187, and the lane adds thirteen rows
+ok   (e) R-1170 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1171 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1172 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1173 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1174 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1175 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1176 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1177 is one row carrying CHANGE §2's text with exactly one "shall"
+MISS (e) R-1178 is one row carrying CHANGE §2's text with exactly one "shall" → [1,1,"The review page shall open with the proposal's SHA-256, the lift's pin and proof line, the drafter's and reviewer's lineages — reading \"same-family review\" when they match — and the placement and claim verdict counts, then list the numbered questions each with its recommendation, one table o (want [1,1,"The review page shall open with the proposal's SHA-256, the lift's pin and proof line, the drafter's and reviewer's lineages — reading \"same-family review\" when they match — and the placement and claim verdict counts, then list the numbered questions each with its recommendation, one table o)
+MISS (e) R-1179 is one row carrying CHANGE §2's text with exactly one "shall" → [1,1,"After R-1178's parts, the review page shall list each line R-1170 reports with its reason and moved row IDs, each move and share target by row and target with its own reason and outcome — carried, refuted or asked —, each rejected claim with its reason, each text-placed row's ID, opening `GIST (want [1,1,"After R-1178's parts, the review page shall list each line R-1170 reports with its reason and moved row IDs, each move and share target by row and target, marked move or share, with its own reason and outcome — carried, refuted, or asked with its question's number —, each rejected claim with i)
+ok   (e) R-1180 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1184 is one row carrying CHANGE §2's text with exactly one "shall"
+MISS (e) R-1187 is one row carrying CHANGE §2's text with exactly one "shall" → [0,0,null] (want [1,1,"The regroup checker shall refuse a proposal unless each row a feature's `shares_added` or `shares_dropped` names has a `share` verdict with that feature among its targets."])
+MISS (e) R-1170, R-1171, R-1172, R-1173, R-1174, R-1175, R-1176, R-1177, R-1178, R-1179, R-1184, R-1187 follow R-1168 line by line in FEAT-028 (§2) → [["R-1187"],["R-1187"]] (want [[],[]])
+ok   (e) R-1180 follows R-1169 line by line in FEAT-032 (§2)
+ok   (e) R-1170's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1171's evidence cites its 5 §5 title(s) as the rail reads them
+ok   (e) R-1172's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1173's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1174's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1175's evidence cites its 3 §5 title(s) as the rail reads them
+ok   (e) R-1176's evidence cites its 1 §5 title(s) as the rail reads them
+MISS (e) R-1177's evidence cites its 4 §5 title(s) as the rail reads them → ["packages/nana-pack/tests/requirements-regroup.test.mjs::R-1177: a proposal whose feature declares shares_added and shares_dropped holds no unknown key and passes the regroup checker (not in the test file)"] (want [])
+ok   (e) R-1178's evidence cites its 2 §5 title(s) as the rail reads them
+ok   (e) R-1179's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1180's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1184's evidence cites its 2 §5 title(s) as the rail reads them
+MISS (e) R-1187's evidence cites its 1 §5 title(s) as the rail reads them → ["packages/nana-pack/tests/requirements-regroup.test.mjs::R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked (not in the test file)"] (want [])
+MISS (e) R-1170 to R-1180, R-1184, R-1187 and R-291 read implemented → ["R-1187"] (want [])
+ok   (guard) R-1181 to R-1183 stay unused: no ledger row and no req: marker names them (§2: held for regroup-shares)
+ok   (guard) R-291's evidence keeps every base citation other than the base leaf-total title
+ok   (guard) no base row changes its Requirement text or Status (§2)
+MISS (e) the row set is the base's plus R-1170 to R-1180, R-1184 and R-1187, each once: leaf total 1136 → 1149 (§2) → {"added":["R-1170","R-1171","R-1172","R-1173","R-1174","R-1175","R-1176","R-1177","R-1178","R-1179","R-1180","R-1184"],"removed":[],"count":1148} (want {"added":["R-1170","R-1171","R-1172","R-1173","R-1174","R-1175","R-1176","R-1177","R-1178","R-1179","R-1180","R-1184","R-1187"],"removed":[],"count":1149})
+MISS (e) the leaf totals agree with R-291's renamed title (T18) → [1136,1149] (want [1136,1148])
+ok   (guard) nana-pi's tree headings are the base's (68; §2 "no heading is added")
+ok   (harness) R-1170 to R-1184 are unused in the base ledger (§2)
+ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0 (§5 Suite)
+ok   (guard) git diff --name-only e451c90..HEAD lists only §4 In paths and this review folder
+ok   (guard) the merge-base diff touches nothing §3.6 names (the proof, the tree checker, the product report, the seeds, the five pi skills, nana-setup), less the seat amendment's trace template
+ok   (guard) the trace template's change is the citation split moved unchanged into one exported citesOf (seat amendment 2026-10-16)
+ok   (guard) the lift differs from the base only inside detectMoves and the plan loop's print after the row counts (§3.2, §3.6: "Nothing else in the lift changes")
+ok   (f) scripts/requirements-regroup.mjs opens with the six-tag header and §3.4's purpose sentence
+ok   (f) packages/nana-pack/tests/requirements-regroup.test.mjs opens with the six-tag header (§4 In)
+ok   (f) the regroup module exports its tunables by name: VERDICTS keep/move/share, CLAIM_VERDICTS accept/reject, GIST_WORDS 12, PAGE_HEAD, PAGE_SECTIONS, PROPOSAL_KEYS and LIFT_SCRIPT naming the lift (§3.4)
+ok   (f) the regroup module imports PROBLEM_LINE_CAP, UNSORTED_PREFIX and detectMoves from the lift and parseLedger and readRequirementRows from the tree module, defines neither tunable itself, and spawns process.execPath with no shell (§3.4)
+ok   (f) README names the regroup script on a physical line whose first bare scripts/ path is scripts/requirements-regroup.mjs (§4 In; readme-check gives a line's flags to that path)
+ok   (guard) node scripts/requirements-tree.mjs --check exits 0 (§5 Suite)
+ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0 (§5 Suite)
+ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0 (§5 Suite)
+MISS (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In, the land checklist) → ["HANDOFF.md","docs/sessions/2026-10.md"] (want [])
+MISS (f) HANDOFF.md gains residual 8's line for Jake, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8) → false (want true)
+ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
+ok   (harness) uvx copier is available (templates-render.test.mjs runs with NANA_TEST_REQUIRE_COPIER=1)
+ok   (guard) packages/nana-pack/tests/requirements-lift.test.mjs exits 0 (§5 Suite)
+ok   (g) packages/nana-pack/tests/requirements-regroup.test.mjs exits 0 (§5 Suite)
+ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0 (§5 Suite)
+ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0 (§5 Suite)
+MISS (g) every §5 title prints PASS exactly once and never FAIL or SKIP → ["R-1177: a proposal whose feature declares shares_added and s","R-1187: a share added or dropped with no share verdict targe","R-291: every real heading's committed IDs survive expansion "] (want []) [25 titles]
+ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
+cases: 160/180 (build cases red: 20/144; guard and harness red: 0/36)
+regroup acceptance: 20 mismatch(es)

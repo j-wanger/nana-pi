@@ -48,7 +48,7 @@ export function expansions(source) {
 // moves from the base's total to base + 12 (CHANGE §2: 1,136 → 1,148 at e451c90). The base total is READ from the
 // merge base's requirements-tree test, never hard-coded, so a merge of a newer main moves both literals with it.
 const TREE_PREFIX = "R-291: every real heading's committed IDs survive expansion and leaf counts total ";
-export const LANE_ROWS_ADDED = 12; // CHANGE §2: R-1170 to R-1180 and R-1184 added; no row reworded or retired
+export const LANE_ROWS_ADDED = 13; // CHANGE §2: R-1170 to R-1180 and R-1184; seat amendment 2: R-1187. No base row reworded or retired
 export function treeTitles(root = repoRoot()) {
 	const base = spawnSync("git", ["merge-base", "main", "HEAD"], { cwd: root, encoding: "utf8" });
 	if (base.status !== 0) return { error: `git merge-base main HEAD failed: ${base.stderr.trim()}` };
@@ -90,6 +90,9 @@ export function required(build, root = repoRoot()) {
 			row(RG, "R-1179: the page lists each reported line with its reason and rows, each move and share target with its own outcome, each rejected claim with its reason, each text-placed row with its reason, and every row only in the appendix after them", ["R-1179"]), // T16
 			row(RG, "R-1184: each purpose and outcome outside the reserved nodes and each reported line's reason needs exactly one accept or reject verdict with a reason and the claim's current text, a missing, repeated, stale or reasonless one is refused, and a reserved node needs none", ["R-1184"]), // T22
 			row(RG, "R-1184: a rejected claim named in no question is refused, and one named in a question passes", ["R-1184"]), // T23
+			// Seat amendment 2 (2026-10-16), after regroup-shares landed: the shares plan's T10 (verbatim) and T24.
+			row(RG, "R-1177: a proposal whose feature declares shares_added and shares_dropped holds no unknown key and passes the regroup checker", ["R-1177"]), // T10 (shares plan)
+			row(RG, "R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked", ["R-1187"]), // T24
 			// templates-render.test.mjs, beside checkRequirementsSkillTreeText (§4, :454-499).
 			row(TR, "requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has", ["R-1180"]), // T17
 			// requirements-tree.test.mjs: R-291 renamed (base total plus twelve).

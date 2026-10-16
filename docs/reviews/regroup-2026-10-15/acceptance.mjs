@@ -785,6 +785,43 @@ console.log(JSON.stringify(Array.isArray(recs) ? recs.map((r) => ({ line: r?.lin
 		out("(p) and only then the appendix: each row's full text appears once, after the lists, under its new node (R-1179, T16)", [lastPlaced > 0, appendixMiss], [true, []]);
 	}
 
+	// ---------------------------------------------------------------- (m) seat amendment 2: shares in the review record
+	// R-1187, and R-1178/R-1179 as reworded. Read independently: the reserved nodes' seed text from the checkout's own
+	// templates/_shared/requirements-general.md. A dropped share needs a tree-form ledger; T24 alone pins that case here.
+	{
+		const addShare = (q, row, feat) => { const f = mappingNodes(q).find((x) => x.id === feat).node; f.also_applies = [...(f.also_applies ?? []), row]; f.shares_added = [...(f.shares_added ?? []), row]; };
+		const shareVerdict = (q, row, feat, why) => { const v = verdictOf(q, row); delete v.reason; v.verdict = "share"; v.targets = [{ to: feat, reason: why }]; };
+		refused("(m) FEAT-001 adds R-009 as a share while R-009's verdict stays keep (R-1187, T24)", variant((q) => addShare(q, "R-009", "FEAT-001")), ["R-009", "FEAT-001"]);
+		refused("(m) R-003's refuted move target FEAT-004 is also added as a share (R-1187, T24)", variant((q) => addShare(q, "R-003", "FEAT-004")), ["R-003", "FEAT-004"]);
+		const SHARE_WHY = "the build budget also bounds file loading (share m1)";
+		const sh = runFx("m-share-carried", variant((q) => { addShare(q, "R-009", "FEAT-001"); shareVerdict(q, "R-009", "FEAT-001", SHARE_WHY); }));
+		const shLine = (sh.text ?? "").split("\n").find((l) => word("R-009").test(l) && word("FEAT-001").test(l) && /share/i.test(l)) ?? "";
+		out("(m) a share added with a share verdict targeting its feature passes, and the page lists R-009 → FEAT-001 marked share, carried, with its reason (R-1187, R-1179, T24, T16)",
+			[sh.r.status, crashed(sh.r), /carried/i.test(shLine), (sh.text ?? "").includes(SHARE_WHY)], [0, false, true, true], shLine || own(sh.r.stderr).slice(0, 2).join(" | "));
+		// sol plan r3: a move the reviewer refused and the drafter replaced by a share to the same feature is an honest proposal.
+		const inst = runFx("m-shared-instead", variant((q) => {
+			q.regroup.refuted = q.regroup.refuted.filter((r) => !(r.id === "R-003" && r.to === "FEAT-004"));
+			addShare(q, "R-003", "FEAT-004"); shareVerdict(q, "R-003", "FEAT-004", "the reviewer refused the move; the row also applies to rendering, so it is shared instead (share m2)");
+		}));
+		out("(m) a refused move the drafter replaced by a share to the same feature passes as a carried share (R-1175, R-1187; sol plan r3)", [inst.r.status, crashed(inst.r)], [0, false], own(inst.r.stderr).slice(0, 2).join(" | "));
+		const page = pass.text ?? "";
+		const tline = (id, to) => page.split("\n").find((l) => new RegExp(`(?<![\\w-])${id}(?![\\w-]).*(?<![\\w-])${to}(?![\\w-])`).test(l) && /refuted|carried|asked/i.test(l)) ?? "";
+		out("(m) each target line is marked move or share: R-003 → FEAT-004 move, R-005 → FEAT-001 and R-005 → FEAT-004 share (R-1179, T16)",
+			[/\bmove\b/i.test(tline("R-003", "FEAT-004")), /\bshare\b/i.test(tline("R-005", "FEAT-001")), /\bshare\b/i.test(tline("R-005", "FEAT-004"))], [true, true, true], [tline("R-003", "FEAT-004"), tline("R-005", "FEAT-001")].join(" | "));
+		out("(m) an asked target names its question's number: R-005 → FEAT-001 reads \"asked in question 1\" (R-1179, T16)", /asked in question 1\b/i.test(tline("R-005", "FEAT-001")), true, tline("R-005", "FEAT-001"));
+		const seed = (() => { try { return fs.readFileSync(path.join(root, "templates", "_shared", "requirements-general.md"), "utf8").replace(/\r\n/g, "\n"); } catch { return ""; } })();
+		const seedText = (id) => { const ls = seed.split("\n"); const i = ls.findIndex((l) => new RegExp(`^#{1,3} ${id} · `).test(l)); if (i < 0) return null; const label = ls[i].replace(/^#{1,3} \S+ · /, ""); let purpose = null; for (let k = i + 1; k < ls.length && !/^#/.test(ls[k]); k++) { const m = /^Purpose: (.*)$/.exec(ls[k]); if (m) { purpose = m[1]; break; } } return { label, purpose }; };
+		const resIds = mappingNodes(P0).filter((x) => RESERVED.has(x.id)).map((x) => x.id);
+		out("(m) every reserved node in the proposal shows the seed's label and purpose on the page, never a blank (R-1178 as reworded, T14)",
+			[resIds.length > 0, resIds.filter((id) => { const t = seedText(id); return !t || !t.purpose || !page.includes(t.label) || !page.includes(t.purpose); })], [true, []]);
+		const tableStart = page.search(/^\|.*FEAT-0\d\d/m);
+		const tableRows = tableStart < 0 ? [] : page.slice(tableStart).split("\n").filter((l) => l.startsWith("|"));
+		const feats = mappingNodes(P0).filter((x) => x.level === 2 && !RESERVED.has(x.id));
+		out("(m) the feature table names each feature with its label and its status (R-1178 as reworded, T14)",
+			feats.filter((x) => { const l = tableRows.find((r) => word(x.id).test(r)) ?? ""; return !l.includes(x.node.label) || !word(x.node.status).test(l); }).map((x) => x.id), [], tableRows.slice(0, 3).join(" / "));
+		out("(m) no node heading on the page is indented four or more spaces (a Markdown code block) (R-1178, T14)", page.split("\n").filter((l) => /^ {4,}\S/.test(l) && /(CAP|FEAT|SUB)-\d/.test(l)).length, 0);
+	}
+
 	// ---------------------------------------------------------------- (x) aml-desk and (y) basketball-geek: the copies
 	ledgerCases: {
 		const SRC = { aml: "aml-desk", bg: "basketball-geek-HEAD" };
@@ -945,11 +982,14 @@ out("(guard) the requirements skill keeps T29's lift phrases (R-1169)", [LIFT_SK
 // ---------------------------------------------------------------- (e) rows
 const change = spec("CHANGE.md");
 const delta = change.slice(change.indexOf("## 2. Requirement delta"), change.indexOf("## 3. Design"));
-const drafts = new Map(delta.split("\n").filter((l) => /^\| R-\d+ \|/.test(l)).map((l) => { const c = l.split("|").map((s) => s.trim()); return [c[1], c[3]]; }));
-const NEW = [...Array.from({ length: 11 }, (_, i) => `R-${1170 + i}`), "R-1184"];
+const draftRows = (sec) => sec.split("\n").filter((l) => /^\| R-\d+ \|/.test(l)).map((l) => { const c = l.split("|").map((s) => s.trim()); return [c[1], c[3]]; });
+// Seat amendment 2 (2026-10-16) adds R-1187 and rewords R-1178 and R-1179; its table overrides §2's text for those rows.
+const amend2 = change.indexOf("## Seat amendment 2") >= 0 ? change.slice(change.indexOf("## Seat amendment 2")) : "";
+const drafts = new Map([...draftRows(delta), ...draftRows(amend2)]);
+const NEW = [...Array.from({ length: 11 }, (_, i) => `R-${1170 + i}`), "R-1184", "R-1187"];
 const HELD = ["R-1181", "R-1182", "R-1183"];
 const shalls = (s) => ((s ?? "").replace(/`[^`]*`/g, "").match(/\bshall\b/gi) ?? []).length;
-out("(harness) CHANGE §2 gives one-shall text for each of R-1170 to R-1180 and R-1184, and the lane adds twelve rows", [NEW.map((id) => shalls(drafts.get(id))), drafts.size, LANE_ROWS_ADDED], [NEW.map(() => 1), 12, 12]);
+out("(harness) CHANGE §2 and seat amendment 2 give one-shall text for each of R-1170 to R-1180, R-1184 and R-1187, and the lane adds thirteen rows", [NEW.map((id) => shalls(drafts.get(id))), drafts.size, LANE_ROWS_ADDED], [NEW.map(() => 1), 13, 13]);
 const reqLines = lines(text("REQUIREMENTS.md"));
 const baseReqLines = lines(atBase("REQUIREMENTS.md"));
 const rowAt = (id, ls = reqLines) => ls.findIndex((l) => new RegExp(`^\\|\\s*${id}\\s*\\|`).test(l));
@@ -960,7 +1000,10 @@ for (const id of NEW) {
 	out(`(e) ${id} is one row carrying CHANGE §2's text with exactly one "shall"`, [rows.length, shalls(cells(id)[2]), cells(id)[2] ?? null], [1, 1, drafts.get(id) ?? "(no draft)"]);
 }
 // §2: R-1170 after R-1168, R-1171 to R-1179 in turn, R-1184 after R-1179, in FEAT-028; R-1180 after R-1169 in FEAT-032.
-const BLOCKS = [["R-1168", "FEAT-028", [...NEW.slice(0, 10), "R-1184"]], ["R-1169", "FEAT-032", ["R-1180"]]];
+// Once regroup-shares is on the base, its rows R-1181 to R-1183 come first and this lane's follow them (the shares plan's
+// second-lander rule); seat amendment 2 puts R-1187 after R-1184.
+const sharesAnchor = ["R-1183", "R-1182", "R-1181"].find((id) => rowAt(id, baseReqLines) >= 0) ?? "R-1168";
+const BLOCKS = [[sharesAnchor, "FEAT-028", [...NEW.slice(0, 10), "R-1184", "R-1187"]], ["R-1169", "FEAT-032", ["R-1180"]]];
 for (const [anchor, home, ids] of BLOCKS) {
 	const chain = [anchor, ...ids];
 	out(`(e) ${ids.length > 1 ? `${ids.join(", ")} follow` : `${ids[0]} follows`} ${anchor} line by line in ${home} (§2)`,
@@ -976,20 +1019,21 @@ for (const id of NEW) {
 	const ev = cites(cells(id)[4]);
 	out(`(e) ${id}'s evidence cites its ${mine.length} §5 title(s) as the rail reads them`, want.length ? want.filter((c) => !ev.includes(c)) : "no §5 title for this row", []);
 }
-out("(e) R-1170 to R-1180, R-1184 and R-291 read implemented", [...NEW, "R-291"].filter((id) => (cells(id)[3] ?? "") !== "implemented"), []);
+out("(e) R-1170 to R-1180, R-1184, R-1187 and R-291 read implemented", [...NEW, "R-291"].filter((id) => (cells(id)[3] ?? "") !== "implemented"), []);
 {
 	const markers = [];
 	for (const dir of ["packages/nana-pack/tests", "packages/nana-knowledge/tests", "packages/nana-setup/tests", "packages/nana-stage/tests", "apps/bench/test", "apps/desk/test", "scripts"]) {
 		const walk = (d) => { let es = []; try { es = fs.readdirSync(path.join(root, d), { withFileTypes: true }); } catch { return; } for (const e of es) { const rel = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== "node_modules") walk(rel); } else if (/\.(mjs|js|ts|cjs)$/.test(e.name)) { const t = text(rel) ?? ""; for (const l of t.split("\n")) if (/\/\/\s*req:/.test(l) && HELD.some((h) => word(h).test(l))) markers.push(`${rel}: ${l.trim()}`); } } };
 		walk(dir);
 	}
-	out("(guard) R-1181 to R-1183 stay unused: no ledger row and no req: marker names them (§2: held for regroup-shares)", [HELD.filter((id) => rowAt(id) >= 0), markers], [[], []]);
+	if (HELD.every((id) => rowAt(id, baseReqLines) >= 0)) out("(guard) R-1181 to R-1183 are base rows now that regroup-shares has landed, each still one row", HELD.map((id) => reqLines.filter((l) => new RegExp(`^\\|\\s*${id}\\s*\\|`).test(l)).length), [1, 1, 1]);
+	else out("(guard) R-1181 to R-1183 stay unused: no ledger row and no req: marker names them (§2: held for regroup-shares)", [HELD.filter((id) => rowAt(id) >= 0), markers], [[], []]);
 }
 out("(guard) R-291's evidence keeps every base citation other than the base leaf-total title", rtTitles.error ? rtTitles.error : cites(cells("R-291", baseReqLines)[4]).filter((c) => !c.endsWith(rtTitles.before) && !cites(cells("R-291")[4]).includes(c)), []);
 const baseIds = baseReqLines.map((l) => ROW.exec(l)?.[1]).filter(Boolean);
 const headIds = reqLines.map((l) => ROW.exec(l)?.[1]).filter(Boolean);
 out("(guard) no base row changes its Requirement text or Status (§2)", baseIds.filter((id) => { const a = cells(id, baseReqLines), b = cells(id); return a[2] !== b[2] || a[3] !== b[3]; }), []);
-out(`(e) the row set is the base's plus R-1170 to R-1180 and R-1184, each once: leaf total ${baseIds.length} → ${baseIds.length + LANE_ROWS_ADDED} (§2)`,
+out(`(e) the row set is the base's plus R-1170 to R-1180, R-1184 and R-1187, each once: leaf total ${baseIds.length} → ${baseIds.length + LANE_ROWS_ADDED} (§2)`,
 	{ added: headIds.filter((id) => !baseIds.includes(id)).sort(), removed: baseIds.filter((id) => !headIds.includes(id)), count: headIds.length }, { added: [...NEW].sort(), removed: [], count: baseIds.length + NEW.length });
 out("(e) the leaf totals agree with R-291's renamed title (T18)", rtTitles.error ? rtTitles.error : [rtTitles.beforeTotal, rtTitles.afterTotal], [baseIds.length, headIds.length]);
 const treeHeads = (ls) => ls.filter((l) => /^#{1,3} (CAP|FEAT|SUB)-/.test(l));
@@ -1033,6 +1077,8 @@ out("(guard) the merge-base diff touches nothing §3.6 names (the proof, the tre
 const liftRest = (src) => {
 	if (src === null) return null;
 	const ls = src.split("\n");
+	// Seat amendment 2: the regroup page shows the reserved nodes' seed text, so the lift may export loadSeed and seedNodeText.
+	for (let k = 0; k < ls.length; k++) ls[k] = ls[k].replace(/^export function (loadSeed|seedNodeText)\(/, "function $1(");
 	const fi = ls.findIndex((l) => /^(?:export )?function detectMoves\(/.test(l));
 	if (fi < 0) return "no detectMoves";
 	let s = fi; while (s > 0 && /^(?:\/\*\*|\s\*)/.test(ls[s - 1])) s--;

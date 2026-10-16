@@ -305,3 +305,17 @@ main's 1,139 (the shares rows included) plus the 12 regroup rows plus R-1187 = *
 **Threat model and class** are unchanged: honest variation in scope, forgery out; format lane. Not reopened: anything else
 in this plan.
 
+### Plan review r3 on amendment 2 (2026-10-16): sol, SEND-BACK (`sol-plan-r3.md`); the seat's answer
+
+1. MUST, a refused move and an accepted share for one row and target. Declined, with a test. The review record judges the
+   proposal as it stands, as before this amendment: one verdict per row, one outcome per (row, target). When the reviewer
+   refuses a move to FEAT-B and the drafter revises the row into a share to FEAT-B, the revised proposal holds a `share`
+   verdict whose target is carried, and that verdict's reason records the refused move, as a resolved review comment does.
+   Nothing reaches the ledger unreviewed, and nothing is refused that the revised proposal honestly holds. Keying outcomes
+   by kind as well would change R-1175's frozen schema for a history the owner can read in the reason. The finding is not
+   fail-open, and the plan item is at its three-round cap. So it stays a recorded decision, not a fourth round. Acceptance
+   and T24 gain the case: a refused move replaced by a share to the same feature passes as a carried share.
+2. SHOULD, unpinned page clauses. Accepted. Wrong code first gains: node labels dropped (T14); feature status dropped from
+   the table (T14); the question number dropped from an asked target (T16). T14 and T16 assert each. The page writes an
+   asked target as `asked in question <n>`.
+
