@@ -1064,9 +1064,12 @@ if (process.platform !== "win32") {
 // ================================================================== R-1178/R-1179 (item 10: field lines never merge into one Markdown paragraph)
 {
   // Finding 26: two field lines with no blank line between them merge into one paragraph in
-  // a Markdown renderer. Each pair named there must have a blank line between them: the
-  // header's hashes and proof line, a question's ask and recommendation, a node's Purpose and
-  // Outcome, and a reported line and its reason.
+  // a Markdown renderer. Each pair named there is separated so a renderer never merges them:
+  // the header's hashes and proof line, a question's ask and recommendation, and a node's
+  // Purpose and Outcome each get a blank line; a reported line's reason is its own bullet list
+  // item instead (findings 26 and the acceptance harness's own line-adjacency read of this
+  // exact section both need the reason on the very next line, with no blank line before it —
+  // a bullet list still starts a new Markdown block right after a paragraph, no blank needed).
   const pass = runFx("no-merge-page", fxProposal());
   const page = pass.text ?? "";
   const lines = page.split("\n");
@@ -1074,7 +1077,8 @@ if (process.platform !== "win32") {
   const headerOk = blankAfter("Proposal SHA-256:") && blankAfter("Ledger pin SHA-256:");
   const questionOk = blankAfter("1. Should the build budget row");
   const nodeOk = blankAfter("### CAP-01 — Ingest") && blankAfter("Purpose: Load the analyst's source files into staging and build the dataset the desk reads.");
-  const lineOk = blankAfter(`Line ${L15}: "${H.build}"`);
+  const lineIdx = lines.findIndex((l) => l.startsWith(`Line ${L15}: "${H.build}"`));
+  const lineOk = lineIdx >= 0 && lines[lineIdx + 1]?.startsWith("- Reason:");
   // req: R-1178
   check("R-1178: the header's hashes and proof line, and a question's ask and recommendation, are each their own paragraph, never merged by a Markdown renderer",
     pass.r.status === 0 && headerOk && questionOk, `status=${pass.r.status} header=${headerOk} question=${questionOk}`);

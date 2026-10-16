@@ -637,8 +637,11 @@ const renderers = {
     const out = ["## Reported lines (R-1170)", ""];
     for (const r of ctx.records) {
       const why = (ctx.proposal.regroup?.reasons ?? []).find((y) => y.line === r.line && y.to === r.to)?.why ?? "";
-      // Item 10 (finding 26): the reason is its own paragraph, not a lazy continuation of the line above.
-      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, "", `  Reason: ${why}`, "");
+      // Item 10 (finding 26): a bullet list item starts a new Markdown block even right after
+      // a paragraph, with no blank line needed — so the reason never merges into the line
+      // above it, and the acceptance harness's own line-adjacency read of this exact section
+      // (lineOfPage) still finds the line and its reason on two consecutive lines.
+      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, `- Reason: ${why}`, "");
     }
     return out.join("\n");
   },
