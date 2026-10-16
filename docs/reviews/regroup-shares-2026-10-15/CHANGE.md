@@ -33,7 +33,7 @@ R-1181 to R-1183 are held by the regroup plan (regroup `:56-58`) and appear nowh
 
 | ID | Change | Text |
 |---|---|---|
-| R-1181 | added, FEAT-028 after R-1168 | WHEN the lift applies a mapping, it shall write after each feature's `Status:` line one `Also applies:` line holding the shares, as the tree parser reads them, of the old feature headings that the feature and its subgroups name, less its `shares_dropped` and plus its `shares_added`, or no line when none remain, and shall copy the old line byte-identical, line ending included, when that line is the feature's only source of shares and the feature declares no change. |
+| R-1181 | added, FEAT-028 after R-1168 | WHEN the lift applies a mapping, it shall write after each feature's `Status:` line one `Also applies:` line holding the shares, as the tree parser reads them, of the old feature headings that the feature and its subgroups name, less its `shares_dropped` and plus its `shares_added`, or no line when none remain, copying the old line byte-identical, line ending included, when that line is the feature's only source of shares and the feature declares no change. |
 | R-1182 | added, FEAT-028 | The lift's proof shall fail when an output feature's shares differ from those its named old feature headings carry in the input less its declared `shares_dropped` plus its declared `shares_added`, each side read as the tree parser reads it and never from `also_applies`, or when its line accounting, which counts each copied share line as a carried input line, finds one missing, changed or added. |
 | R-1183 | added, FEAT-028 | WHEN run with `--mapping <file>` and neither `--write` nor `--verify`, the lift shall print before the proof line one line per share a feature's `shares_added` or `shares_dropped` declares, naming the feature, the row and `added` or `dropped`, and no line for a share carried unchanged. |
 | R-1167 | reworded | Two clauses change; the rest stays byte for byte (`REQUIREMENTS.md:1347`). |
@@ -194,3 +194,16 @@ unterminated share line are refused. S11 The lane that lands second adds the two
 4. Repo WRONGs: literal 1,151 with both lanes; second lander adds the keys to `PROPOSAL_KEYS` and T10; regroup cites at `1066464`; A1 allows blank-line changes; §1 says what `:221-226` skip.
 5. G rows: A1 moves them on a copy only, as a test precondition; the line for Jake is removed; where they go is a later lane's question (residual 7).
 6. Not taken this round: the proof check's lower findings (empty-key meaning, R-1183 under `--write`, the summary's inserted count, repeats and ranges in the new keys).
+
+## Seat amendment (2026-10-15): R-1181 one shall
+
+The independent verifier found that §2's R-1181 carried two `shall`s ("it shall write … and shall copy …"). A row is one EARS sentence with one `shall`
+(requirements skill, `SKILL.md:9`; §2's own "One `shall` per row"), and the seat acceptance's §2 harness case read it red (`[2,1,1]`). §2 now holds the one-`shall`
+text below; every clause stays, "byte-identical, line ending included" and "only source of shares and the feature declares no change" among them. The meaning
+is unchanged: the copy is still the write's form for a kept feature, with the same condition.
+- Old: WHEN the lift applies a mapping, it shall write after each feature's `Status:` line one `Also applies:` line holding the shares, as the tree parser reads them, of
+  the old feature headings that the feature and its subgroups name, less its `shares_dropped` and plus its `shares_added`, or no line when none remain, and shall copy
+  the old line byte-identical, line ending included, when that line is the feature's only source of shares and the feature declares no change.
+- New: WHEN the lift applies a mapping, it shall write after each feature's `Status:` line one `Also applies:` line holding the shares, as the tree parser reads them, of
+  the old feature headings that the feature and its subgroups name, less its `shares_dropped` and plus its `shares_added`, or no line when none remain, copying the old
+  line byte-identical, line ending included, when that line is the feature's only source of shares and the feature declares no change.
