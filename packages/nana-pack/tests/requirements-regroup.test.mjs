@@ -522,10 +522,12 @@ if (process.platform !== "win32") {
   const tableOk = ["FEAT-001", "FEAT-002", "FEAT-004", "FEAT-005", "FEAT-900"].every((id) => tableBlock.includes(id)) && /\b3\b/.test(tableBlock) && /implemented/.test(tableBlock);
   const nodesBlock = page.slice(posNodes, posLines);
   const purposesOk = ["CAP-01", "FEAT-001", "SUB-001", "CAP-02", "FEAT-004", "FEAT-005"].every((id) => nodesBlock.includes(id)) && (nodesBlock.includes("src/report/render.mjs") || nodesBlock.includes("src\\report\\render.mjs"));
+  // Every node is nested (a feature's heading sits deeper than its capability's) and shows its label.
+  const nestedOk = nodesBlock.includes("Load source files") && nodesBlock.indexOf("#### FEAT-001") > nodesBlock.indexOf("### CAP-01") && nodesBlock.indexOf("##### SUB-001") > nodesBlock.indexOf("#### FEAT-002");
   // req: R-1178
   check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
-    pass.r.status === 0 && headerOk && orderOk && tableOk && purposesOk,
-    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} purposes=${purposesOk}`);
+    pass.r.status === 0 && headerOk && orderOk && tableOk && purposesOk && nestedOk,
+    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} purposes=${purposesOk} nested=${nestedOk}`);
 }
 
 // ================================================================== T15
@@ -545,22 +547,25 @@ if (process.platform !== "win32") {
   const posTargets = page.indexOf("## Move and share targets");
   const posClaims = page.indexOf("## Rejected claims");
   const posPlaced = page.indexOf("## Text-placed rows");
+  const posRefuted = page.indexOf("## Refuted items");
   const posAppendix = page.indexOf("## Appendix");
-  const orderOk = posLines > 0 && posLines < posTargets && posTargets < posClaims && posClaims < posPlaced && posPlaced < posAppendix;
+  const orderOk = posLines > 0 && posLines < posTargets && posTargets < posClaims && posClaims < posPlaced && posPlaced < posRefuted && posRefuted < posAppendix;
   const linesBlock = page.slice(posLines, posTargets);
-  const linesOk = new RegExp(`Line ${L30} -> FEAT-004 \\(rows R-008\\)`).test(linesBlock);
+  const linesOk = linesBlock.includes(`Line ${L30}: "${H.build}" -> FEAT-004 (rows R-008)`);
   const targetsBlock = page.slice(posTargets, posClaims);
   const targetsOk = /R-003 -> FEAT-004: refuted/.test(targetsBlock) && /R-005 -> FEAT-001: asked/.test(targetsBlock) && /R-005 -> FEAT-004: refuted/.test(targetsBlock);
   const claimsBlock = page.slice(posClaims, posPlaced);
   const claimsOk = claimsBlock.includes("reject zulu");
-  const placedBlock = page.slice(posPlaced, posAppendix);
+  const placedBlock = page.slice(posPlaced, posRefuted);
   const placedOk = FX_PLACED.every((id) => placedBlock.includes(id));
+  const refutedBlock = page.slice(posRefuted, posAppendix);
+  const refutedOk = refutedBlock.includes("R-003 -> FEAT-004: refuted") && refutedBlock.includes("refute alpha") && refutedBlock.includes("R-005 -> FEAT-004: refuted") && refutedBlock.includes("refute bravo");
   const appendixBlock = page.slice(posAppendix);
   const appendixOk = appendixBlock.includes("ten thousand accounts") && !page.slice(0, posAppendix).includes("ten thousand accounts");
   // req: R-1179
   check("R-1179: the page lists each reported line with its reason and rows, each move and share target with its own outcome, each rejected claim with its reason, each text-placed row with its reason, and every row only in the appendix after them",
-    pass.r.status === 0 && orderOk && linesOk && targetsOk && claimsOk && placedOk && appendixOk,
-    `order=${orderOk} lines=${linesOk} targets=${targetsOk} claims=${claimsOk} placed=${placedOk} appendix=${appendixOk}`);
+    pass.r.status === 0 && orderOk && linesOk && targetsOk && claimsOk && placedOk && refutedOk && appendixOk,
+    `order=${orderOk} lines=${linesOk} targets=${targetsOk} claims=${claimsOk} placed=${placedOk} refuted=${refutedOk} appendix=${appendixOk}`);
 }
 
 // ================================================================== T22

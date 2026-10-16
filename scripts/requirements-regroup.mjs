@@ -24,7 +24,7 @@ export const PAGE_HEAD = "# Regroup review packet";
 /** Chosen: enough words of a text-placed row's requirement to recognise it; the appendix holds the full text (12, T10/T16). */
 export const GIST_WORDS = 12;
 /** Contract: R-1178 and R-1179's order, pinned by T14 and T16. Each name dispatches to one render function below. */
-export const PAGE_SECTIONS = ["header", "questions", "table", "nodes", "lines", "targets", "claims", "placed", "appendix"];
+export const PAGE_SECTIONS = ["header", "questions", "table", "nodes", "lines", "targets", "claims", "placed", "refuted", "appendix"];
 /** Contract: a verdict's declared disposition for a row (R-1175). */
 export const VERDICTS = ["keep", "move", "share"];
 /** Contract: a claim's declared disposition for a purpose, outcome or section reason (R-1184). */
@@ -404,8 +404,7 @@ const renderers = {
     const sha = createHash("sha256").update(ctx.proposalBytes).digest("hex");
     const review = ctx.proposal.regroup?.review ?? {};
     const out = [PAGE_HEAD, "", `Proposal SHA-256: ${sha}`, `Ledger pin SHA-256: ${ctx.proposal.pin?.sha256 ?? ""}`, ctx.proofLine ?? "lift proof: (not captured)", ""];
-    if (ctx.same) out.push("same-family review", "");
-    else out.push(`Drafter: ${review.drafter}`, `Reviewer: ${review.reviewer} (another lineage)`, "");
+    out.push(`Drafter: ${review.drafter}`, `Reviewer: ${review.reviewer} (${ctx.same ? "same-family review" : "another lineage"})`, "");
     out.push(`Placement verdicts: ${(review.verdicts ?? []).length}`, `Claim verdicts: ${(review.claims ?? []).length}`, "");
     return out.join("\n");
   },
@@ -424,13 +423,17 @@ const renderers = {
     return out.join("\n");
   },
   nodes(ctx) {
+    // Nested by level (the flat list is already depth-first: capability, then its features,
+    // then each feature's subgroups), each with its ID, label and purpose (R-1178).
     const out = ["## Capabilities, features and subgroups", ""];
     for (const x of flattenProposalNodes(ctx.proposal)) {
-      out.push(`### ${x.id}`, `Purpose: ${x.node.purpose ?? ""}`);
-      if (x.level === 1) out.push(`Outcome: ${x.node.outcome ?? ""}`);
+      const indent = "  ".repeat(x.level - 1);
+      const mark = "#".repeat(x.level + 2);
+      out.push(`${indent}${mark} ${x.id} — ${x.node.label ?? ""}`, `${indent}Purpose: ${x.node.purpose ?? ""}`);
+      if (x.level === 1) out.push(`${indent}Outcome: ${x.node.outcome ?? ""}`);
       if ((x.node.status ?? "") === "proposed") {
         const ev = (ctx.proposal.regroup?.evidence?.[x.id] ?? []).map((p) => String(p).replace(/\\/g, "/"));
-        out.push(`Evidence: ${ev.join(", ")}`);
+        out.push(`${indent}Evidence: ${ev.join(", ")}`);
       }
       out.push("");
     }
@@ -440,7 +443,7 @@ const renderers = {
     const out = ["## Reported lines (R-1170)", ""];
     for (const r of ctx.records) {
       const why = (ctx.proposal.regroup?.reasons ?? []).find((y) => y.line === r.line && y.to === r.to)?.why ?? "";
-      out.push(`Line ${r.line} -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, `  Reason: ${why}`, "");
+      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, `  Reason: ${why}`, "");
     }
     return out.join("\n");
   },
@@ -477,6 +480,13 @@ const renderers = {
       out.push(`${row.id} -> ${home.get(row.id) ?? "?"}: "${gist}" — ${reason}`, "");
     }
     if (!any) out.push("(none)", "");
+    return out.join("\n");
+  },
+  refuted(ctx) {
+    const out = ["## Refuted items", ""];
+    const items = ctx.proposal.regroup?.refuted ?? [];
+    if (!items.length) return [...out, "(none)", ""].join("\n");
+    for (const r of items) out.push(`${r.id} -> ${r.to}: refuted — ${r.reason}`, "");
     return out.join("\n");
   },
   appendix(ctx) {
