@@ -677,6 +677,28 @@ if (process.platform !== "win32") {
   check("R-1174: a proposed feature with no evidence path, a missing path or a path leaving the root is refused, and an existing path written with backslashes passes", ok && passOk, why || `backslash pass status=${pass.r.status}`);
 }
 
+// ================================================================== Build 6 item 2 (R-1174): evidence through a symlink leaving the root
+{
+  // A symlink inside the root pointing at a folder outside it: FEAT-005's evidence path runs
+  // through "docs/generated", a symlink the case creates pointing outside the case root. The
+  // path is lexically under the root (a lexical check alone would pass it), but its real
+  // location is not.
+  const symProposal = variant((q) => { q.regroup.evidence["FEAT-005"] = ["docs/generated/plan.md"]; });
+  const dir = fxRoot("evidence-symlink-escape", symProposal);
+  const outsideDir = join(scratchRoot, `outside-evidence-${++caseN}`);
+  mkdirSync(outsideDir, { recursive: true });
+  writeFileSync(join(outsideDir, "plan.md"), "a plan the case root never holds\n");
+  try { symlinkSync(outsideDir, join(dir, "docs", "generated"), "dir"); } catch {}
+  const prop = join(dir, PROP_REL);
+  mkdirSync(join(scratchRoot, "pages"), { recursive: true });
+  const page = join(scratchRoot, "pages", `${++caseN}.md`);
+  const r = regroup(["--root", dir, "--proposal", prop, "--out", page], scratchRoot);
+  const ok = r.status === 1 && !crashed(r) && !existsSync(page) && saysOwn(r, "FEAT-005") && saysOwn(r, "docs/generated/plan.md") && saysOwn(r, "does not exist under the root");
+  // req: R-1174
+  check('R-1174: an evidence path through a symlink whose real location leaves the root is refused like a literal ".." leaves',
+    ok, `status=${r.status} ` + own(r.stderr).slice(0, 3).join(" | "));
+}
+
 // ================================================================== T7
 {
   const cases = [

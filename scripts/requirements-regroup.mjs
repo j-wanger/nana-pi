@@ -110,12 +110,21 @@ function evidencePathsOfCell(cell) {
     .map((p) => p.replace(/\\/g, "/"))
     .filter(Boolean);
 }
-/** Resolves a (possibly "\"-written) path under <dir>; null when it is missing or leaves the root. */
+/** Resolves a (possibly "\"-written) path under <dir>; null when it is missing, leaves the
+ * root lexically, or — for a path that exists — leaves it through a symlink somewhere on its
+ * own path (R-1174): its real location (`canonical`, the same symlink-safe reader
+ * `removeEarlierPage` uses below) must also sit under the root's own real location, compared
+ * the same way as the lexical check, so a link inside the root pointing outside it is refused
+ * the same as a literal "..". A path that does not exist cannot be realpath'd, so it is left to
+ * the caller's own existence check, unchanged. */
 function underRoot(dir, raw) {
   const norm = String(raw).replace(/\\/g, "/");
   const abs = resolve(dir, norm);
   const rel = relative(dir, abs);
   if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) return null;
+  if (!existsSync(abs)) return abs;
+  const realRel = relative(canonical(dir), canonical(abs));
+  if (realRel === "" || realRel.startsWith("..") || isAbsolute(realRel)) return null;
   return abs;
 }
 const existsUnder = (dir, raw) => { const abs = underRoot(dir, raw); return abs !== null && existsSync(abs); };
