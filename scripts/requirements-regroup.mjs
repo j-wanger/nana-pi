@@ -214,8 +214,9 @@ function reasonProblems(proposal, records) {
   const want = new Set(records.map((r) => `${r.line}|${r.to}`));
   const reasons = proposal.regroup?.reasons ?? [];
   const seen = new Map();
+  // Every reason's line/to type is already proven by typeProblems (the early shape bucket), so
+  // the template-literal key below never coerces an array or object into a false match (M3).
   for (const r of reasons) {
-    if (!Number.isInteger(r.line)) { problems.push(`regroup.reasons: line ${JSON.stringify(r.line)} must be an integer, not its typed value`); continue; }
     const key = `${r.line}|${r.to}`;
     if (!want.has(key)) { problems.push(`regroup.reasons: line ${r.line} -> ${r.to} is not a line the lift reports (a stale reason)`); continue; }
     seen.set(key, (seen.get(key) ?? 0) + 1);
@@ -241,6 +242,34 @@ function evidenceShapeProblems(proposal) {
   for (const [id, paths] of Object.entries(evidence)) {
     if (!Array.isArray(paths) || paths.some((p) => typeof p !== "string")) problems.push(`regroup.evidence.${id}: must be an array of strings, not ${JSON.stringify(paths)}`);
   }
+  return problems;
+}
+
+/**
+ * R-1173/R-1177 (M3): every field that names a row, node or line — a reason's `to`, a verdict's
+ * `id`/`at`, a target's `to`, a refuted entry's `id`/`to`, a claim's `node`/`to`/`line`, and a
+ * question's `about` entries — has its exact declared type, refused by path when it does not.
+ * This runs in the shape bucket, before any check builds a key by template-literal coercion
+ * (an array like `["CAP-01"]` stringifies to "CAP-01" and would otherwise pass as a match).
+ */
+function typeProblems(proposal) {
+  const problems = [];
+  const str = (path, v) => { if (v !== undefined && typeof v !== "string") problems.push(`${path}: must be a string, not ${JSON.stringify(v)}`); };
+  const int = (path, v) => { if (v !== undefined && !Number.isInteger(v)) problems.push(`${path}: must be an integer, not ${JSON.stringify(v)}`); };
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  arr(proposal.regroup?.reasons).forEach((r, i) => { if (isPlainObject(r)) { int(`regroup.reasons[${i}].line`, r.line); str(`regroup.reasons[${i}].to`, r.to); } });
+  arr(proposal.regroup?.review?.verdicts).forEach((v, i) => {
+    if (!isPlainObject(v)) return;
+    str(`regroup.review.verdicts[${i}].id`, v.id);
+    str(`regroup.review.verdicts[${i}].at`, v.at);
+    arr(v.targets).forEach((t, j) => { if (isPlainObject(t)) str(`regroup.review.verdicts[${i}].targets[${j}].to`, t.to); });
+  });
+  arr(proposal.regroup?.review?.claims).forEach((c, i) => { if (isPlainObject(c)) { str(`regroup.review.claims[${i}].node`, c.node); str(`regroup.review.claims[${i}].to`, c.to); int(`regroup.review.claims[${i}].line`, c.line); } });
+  arr(proposal.regroup?.refuted).forEach((r, i) => { if (isPlainObject(r)) { str(`regroup.refuted[${i}].id`, r.id); str(`regroup.refuted[${i}].to`, r.to); } });
+  arr(proposal.regroup?.questions).forEach((q, i) => {
+    if (!isPlainObject(q)) return;
+    arr(q.about).forEach((a, j) => { if (isPlainObject(a)) { str(`regroup.questions[${i}].about[${j}].id`, a.id); str(`regroup.questions[${i}].about[${j}].to`, a.to); str(`regroup.questions[${i}].about[${j}].node`, a.node); int(`regroup.questions[${i}].about[${j}].line`, a.line); } });
+  });
   return problems;
 }
 
@@ -382,7 +411,7 @@ function claimLabel(req) { return req.kind === "node" ? `${req.node} ${req.field
 function claimProblems(proposal, records) {
   const problems = [];
   const claims = proposal.regroup?.review?.claims ?? [];
-  for (const c of claims) if (c.line !== undefined && !Number.isInteger(c.line)) problems.push(`regroup.review.claims: line ${JSON.stringify(c.line)} must be an integer, not its typed value`);
+  // Every claim's node/to/line type is already proven by typeProblems (the early shape bucket).
   const matches = (c, req) => (req.kind === "node" ? c.node === req.node && c.field === req.field : c.line === req.line && c.to === req.to);
   for (const req of requiredClaimKeys(proposal, records)) {
     const hit = claims.filter((c) => matches(c, req));
@@ -434,7 +463,7 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
   // targets is the wrong shape (an object instead of an array, a null entry), every other
   // check below reads that same field and would throw instead of refusing (R-1177, "never
   // a crash") — so a shape problem is reported on its own, before anything else reads it.
-  const shapeProblems = [...keyProblems(proposal), ...evidenceShapeProblems(proposal)];
+  const shapeProblems = [...keyProblems(proposal), ...evidenceShapeProblems(proposal), ...typeProblems(proposal)];
   if (shapeProblems.length) return { problems: shapeProblems, records, ledgerRows };
   const problems = [
     ...placeholderProblems(proposal),

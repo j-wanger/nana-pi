@@ -403,6 +403,9 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     [`stale reason for line ${L7}`, variant((q) => { q.regroup.reasons.push({ line: L7, to: "FEAT-002", why: "a reason for a line the lift does not report (stale)" }); }), [String(L7)]],
     [`two same-text headings reasoned by text (line ${L30})`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-002"); r.line = L15; q.regroup.review.claims = q.regroup.review.claims.filter((c) => !(c.line === L30 && c.to === "FEAT-002")); }), [String(L30)]],
     [`reason for line ${L30} -> FEAT-004 given as the string "${L30}", not an integer`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-004"); r.line = String(r.line); }), [String(L30)]],
+    // M3: a reason's "to" of ["CAP-01"] stringifies to "CAP-01" inside a template-literal key
+    // and would otherwise pass by coercion — it must be refused by its own exact type instead.
+    [`reason for line -> CAP-01 given "to" as ["CAP-01"], not a string`, variant((q) => { const r = q.regroup.reasons.find((y) => y.to === "CAP-01"); r.to = ["CAP-01"]; }), ["regroup.reasons", "to"]],
     // Mutation survivor 4/1 (brief 2, "Also fix"): the matching claim stayed in sync with the
     // deleted reason's line/to key (its text comparison skips when the reason is simply gone),
     // so only the missing-reason check itself can catch this one.
@@ -632,11 +635,18 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   // object instead of an array, and a null verdict entry, are refused by the shape check
   // with a named path, before anything else reads them.
   const baseIdx = i3(fxProposal());
+  const q9Idx = fxProposal().regroup.review.verdicts.findIndex((v) => v.id === "R-009");
   const shapeCases = [
     ["R-003's move targets is an object instead of an array", variant((q) => { q.regroup.review.verdicts[i3(q)].targets = { to: "FEAT-004", reason: "x" }; }), [`regroup.review.verdicts[${baseIdx}].targets`]],
     ["a question's about is an object instead of an array", variant((q) => { q.regroup.questions[0].about = { id: "R-005", to: "FEAT-001" }; }), ["regroup.questions[0].about"]],
     ["regroup.reasons is an object instead of an array", variant((q) => { q.regroup.reasons = Object.fromEntries(q.regroup.reasons.map((r, i) => [i, r])); }), ["regroup.reasons"]],
     ["a verdict entry is null", variant((q) => { q.regroup.review.verdicts.push(null); }), ["regroup.review.verdicts"]],
+    // M3: id, at, to and node fields are refused by their exact type, never read by coercion.
+    ["R-009's verdict id is an array, not a string", variant((q) => { verdictOf(q, "R-009").id = ["R-009"]; }), [`regroup.review.verdicts[${q9Idx}].id`]],
+    ["R-009's verdict at is an array, not a string", variant((q) => { verdictOf(q, "R-009").at = ["FEAT-004"]; }), [`regroup.review.verdicts[${q9Idx}].at`]],
+    ["R-003's move target to is an array, not a string", variant((q) => { verdictOf(q, "R-003").targets[0].to = ["FEAT-004"]; }), [`regroup.review.verdicts[${baseIdx}].targets[0].to`]],
+    ["a refuted entry's id is an array, not a string", variant((q) => { q.regroup.refuted[0].id = ["R-003"]; }), ["regroup.refuted[0].id"]],
+    ["CAP-01's purpose claim node is an array, not a string", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].node = ["CAP-01"]; }), ["node"]],
   ];
   const shapeMisses = [];
   for (const [label, p, names] of shapeCases) if (!refusedCase(p, names)) shapeMisses.push(label);
