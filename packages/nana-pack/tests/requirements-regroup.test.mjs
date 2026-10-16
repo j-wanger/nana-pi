@@ -560,7 +560,7 @@ if (process.platform !== "win32") {
   const placeholderEscapedOk = csText !== null && csText.includes("&lt;placeholder&gt;") && !csText.includes("<placeholder>");
   const codeSpanVerbatimOk = csText !== null && csText.includes("`<provider>`") && !csText.includes("&lt;provider&gt;");
   // req: R-1179
-  check("R-1179: a row holding both a bare <placeholder> and a Markdown code span `<provider>` shows the first escaped and the second verbatim, in its gist and the appendix",
+  check("R-1179: a row holding both a bare <placeholder> and a code span naming <provider> shows the first escaped and the second verbatim, in its gist and the appendix",
     csRun.status === 0 && !crashed(csRun) && placeholderEscapedOk && codeSpanVerbatimOk,
     `status=${csRun.status} ` + own(csRun.stderr).slice(0, 2).join(" | ") + ` placeholder=${placeholderEscapedOk} codeSpan=${codeSpanVerbatimOk}`);
 }
