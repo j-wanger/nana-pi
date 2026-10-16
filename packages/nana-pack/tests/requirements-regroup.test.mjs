@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { GIST_WORDS, PAGE_HEAD, isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
-import { buildIdentityMapping } from "../../../scripts/requirements-lift.mjs";
+import { PROBLEM_LINE_CAP, buildIdentityMapping } from "../../../scripts/requirements-lift.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -872,17 +872,20 @@ if (process.platform !== "win32") {
 
 // ================================================================== T11
 {
-  const N = 60; // > PROBLEM_LINE_CAP (40)
+  const N = PROBLEM_LINE_CAP + 20; // > PROBLEM_LINE_CAP, so the cap and "… and N more" both fire
   const p = variant((q) => { for (let k = 1; k <= N; k++) q[`x${String(k).padStart(2, "0")}`] = k; });
   const x = runFx("cap", p);
   const errLines = own(x.r.stderr);
   const shown = new Set(errLines.flatMap((l) => [...l.matchAll(/(?<![\w-])x\d{2}(?![\w-])/g)].map((m) => m[0])));
   // Item 9 (finding 45): the exact count of the REST (N minus the cap, 20), not just any
   // digit near "more" — printing the total (60) instead must go red.
-  const restMatch = errLines.some((l) => new RegExp(`\\b${N - 40}\\b[^\\n]*\\bmore\\b`).test(l));
+  const restMatch = errLines.some((l) => new RegExp(`\\b${N - PROBLEM_LINE_CAP}\\b[^\\n]*\\bmore\\b`).test(l));
   const totalMismatch = !errLines.some((l) => new RegExp(`\\b${N}\\b[^\\n]*\\bmore\\b`).test(l));
+  // Item 8: the cap's own name, not an inline 40/41 literal — retuning PROBLEM_LINE_CAP must
+  // change no test.
+  const ok = x.r.status === 1 && !crashed(x.r) && errLines.length <= PROBLEM_LINE_CAP + 1 && shown.size > 0 && shown.size <= PROBLEM_LINE_CAP && restMatch && totalMismatch && !existsSync(x.page);
   // req: R-1177
-  check("R-1177: a proposal with more problems than the cap prints at most the problem-line cap and the count of the rest", x.r.status === 1 && !crashed(x.r) && errLines.length <= 41 && shown.size > 0 && shown.size <= 40 && restMatch && totalMismatch && !existsSync(x.page),
+  check("R-1177: a proposal with more problems than the cap prints at most the problem-line cap and the count of the rest", ok,
     `lines=${errLines.length} shown=${shown.size} rest=${restMatch} totalMismatch=${totalMismatch}`);
 }
 
