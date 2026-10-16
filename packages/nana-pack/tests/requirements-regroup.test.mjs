@@ -1087,12 +1087,22 @@ if (process.platform !== "win32") {
     nodesBlock.includes("a rendered project's engineering promises are visible and checkable from day one") &&
     nodesBlock.includes("hold the general engineering rows every nana project ships, unedited per project") &&
     nodesBlock.includes("Keep engineering promises checkable") && nodesBlock.includes("Adopt the general engineering requirements");
+  // Item 5 (finding 12): every capability's own label, purpose and outcome — CAP-02's, not
+  // only CAP-01's, so dropping CAP-02's own text (while keeping its heading's ID) goes red.
+  const capLabelOk = nodesBlock.includes("### CAP-01 — Ingest") && nodesBlock.includes("### CAP-02 — Report");
+  const capPurposeOutcomeOk = nodesBlock.includes("Render the analyst pages from the full dataset and publish only what the floor allows.") &&
+    nodesBlock.includes("Each analyst page is one escaped HTML file built from unsampled tables.");
+  // Item 5 (finding 12): a subgroup's own label and purpose (SUB-001's), not just its ID.
+  const subgroupTextOk = nodesBlock.includes("##### SUB-001 — Sizing") && nodesBlock.includes("Print the staging table sizes after each full build.");
+  // Item 5 (finding 12): a reserved subgroup's own seed label and purpose (SUB-900's), never
+  // blank — the honest fixture's SUB-900 carries no label or purpose of its own.
+  const reservedSubOk = nodesBlock.includes("Configuration and provenance") && nodesBlock.includes("a tunable is defined once, with provenance, and a retune changes no code.");
   // Seat-titles (frozen, build 1 §5, T14): this exact title is required verbatim; the
   // strengthened clauses above (item 4) are asserted in the body, not the title.
   // req: R-1178
   check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
-    pass.r.status === 0 && headerOk && orderOk && recommendationOk && tableOk && tableStatusOk && tableReservedOk && statusMixOk && purposesOk && purposeTextOk && outcomeTextOk && nestedOk && noIndentOk && reservedOk,
-    `status=${pass.r.status} header=${headerOk} order=${orderOk} recommendation=${recommendationOk} table=${tableOk} tableStatus=${tableStatusOk} tableReserved=${tableReservedOk} statusMix=${statusMixOk} purposes=${purposesOk} purposeText=${purposeTextOk} outcomeText=${outcomeTextOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
+    pass.r.status === 0 && headerOk && orderOk && recommendationOk && tableOk && tableStatusOk && tableReservedOk && statusMixOk && purposesOk && purposeTextOk && outcomeTextOk && nestedOk && noIndentOk && reservedOk && capLabelOk && capPurposeOutcomeOk && subgroupTextOk && reservedSubOk,
+    `status=${pass.r.status} header=${headerOk} order=${orderOk} recommendation=${recommendationOk} table=${tableOk} tableStatus=${tableStatusOk} tableReserved=${tableReservedOk} statusMix=${statusMixOk} purposes=${purposesOk} purposeText=${purposeTextOk} outcomeText=${outcomeTextOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk} capLabel=${capLabelOk} capPurposeOutcome=${capPurposeOutcomeOk} subgroupText=${subgroupTextOk} reservedSub=${reservedSubOk}`);
 }
 // M2 (T14): a proposal that gives FEAT-900 other label/status text still shows the lift's
 // seed text in the table — never the proposal's, which the lift ignores for a reserved node.
@@ -1199,12 +1209,76 @@ if (process.platform !== "win32") {
     appendixBlock.slice(posAppFeat001, posAppFeat002).includes("R-001") &&
     !appendixBlock.slice(posAppFeat001, posAppFeat002).includes("R-004") &&
     appendixBlock.slice(posAppFeat002).includes("R-004");
+  // Item 5 (finding 13): every ledger row ID shows in the appendix under its OWN node's
+  // heading, a subgroup included — R-006 under SUB-001, G-004 under SUB-901, not lumped
+  // under their parent feature (whose own section the check above already covers).
+  const appendixHeadings = [...appendixBlock.matchAll(/^### Appendix — ([A-Z]+-\d+)$/gm)].map((m) => ({ id: m[1], index: m.index }));
+  const appendixSectionOf = (id) => {
+    const i = appendixHeadings.findIndex((h) => h.id === id);
+    if (i < 0) return null;
+    const start = appendixHeadings[i].index;
+    const end = i + 1 < appendixHeadings.length ? appendixHeadings[i + 1].index : appendixBlock.length;
+    return appendixBlock.slice(start, end);
+  };
+  const appendixSubOk = (appendixSectionOf("SUB-001") ?? "").includes("R-006") && (appendixSectionOf("SUB-901") ?? "").includes("G-004");
   // Seat-titles (frozen, build 1 §5, T16): this exact title is required verbatim; the
   // strengthened clauses above (item 4) are asserted in the body, not the title.
   // req: R-1179
   check("R-1179: the page lists each reported line with its reason and rows, each move and share target with its own outcome, each rejected claim with its reason, each text-placed row with its reason, and every row only in the appendix after them",
-    pass.r.status === 0 && orderOk && linesOk && lineReasonOk && targetsOk && targetReasonOk && claimsOk && placedOk && placedFieldsOk && refutedOk && appendixOk && appendixGroupOk,
-    `order=${orderOk} lines=${linesOk} lineReason=${lineReasonOk} targets=${targetsOk} targetReason=${targetReasonOk} claims=${claimsOk} placed=${placedOk} placedFields=${placedFieldsOk} refuted=${refutedOk} appendix=${appendixOk} appendixGroup=${appendixGroupOk}`);
+    pass.r.status === 0 && orderOk && linesOk && lineReasonOk && targetsOk && targetReasonOk && claimsOk && placedOk && placedFieldsOk && refutedOk && appendixOk && appendixGroupOk && appendixSubOk,
+    `order=${orderOk} lines=${linesOk} lineReason=${lineReasonOk} targets=${targetsOk} targetReason=${targetReasonOk} claims=${claimsOk} placed=${placedOk} placedFields=${placedFieldsOk} refuted=${refutedOk} appendix=${appendixOk} appendixGroup=${appendixGroupOk} appendixSub=${appendixSubOk}`);
+}
+
+// ================================================================== Item 5 (T16, finding 14): an asked target named in the SECOND question, not the first
+{
+  const QTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const QT = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha", f2: "## FEAT-002 · Bravo" };
+  const ASKQ2_FX = [
+    QT.cap, "", "Purpose: capability purpose for the asked-question fixture.", "Outcome: a visible outcome for the asked-question fixture.", "",
+    QT.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...QTH,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+    QT.f2, "", "Purpose: bravo feature purpose.", "Status: active", "", ...QTH,
+    "| R-002 | WHEN bravo runs, it shall do bravo things. | implemented | `tests/bravo.test.mjs::R-002: bravo` |", "",
+  ].join("\n");
+  const askDir = join(scratchRoot, `askq2-fx-${++caseN}`);
+  mkdirSync(join(askDir, "tests"), { recursive: true });
+  writeFileSync(join(askDir, "tests", "alpha.test.mjs"), "// fixture test file\n");
+  writeFileSync(join(askDir, "tests", "bravo.test.mjs"), "// fixture test file\n");
+  writeFileSync(join(askDir, "REQUIREMENTS.md"), ASKQ2_FX);
+  const askMapping = {
+    ...buildIdentityMapping(ASKQ2_FX),
+    regroup: {
+      reasons: [], placed: {}, evidence: {},
+      review: {
+        drafter: "anthropic", reviewer: "openai",
+        verdicts: [
+          { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-002", reason: "alpha's rule also binds bravo (asked-q2 share)" }] },
+          { id: "R-002", at: "FEAT-002", verdict: "keep", reason: "R-002 stays at Bravo (keep)" },
+        ],
+        claims: [
+          { node: "CAP-01", field: "purpose", text: "capability purpose for the asked-question fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "CAP-01", field: "outcome", text: "a visible outcome for the asked-question fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "FEAT-001", field: "purpose", text: "alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+          { node: "FEAT-002", field: "purpose", text: "bravo feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+        ],
+      },
+      refuted: [],
+      questions: [
+        { ask: "Is the fixture's own wording fine as written (ask one)?", recommendation: "Yes, leave it as written (recommend one).", about: [] },
+        { ask: "Should R-001 also serve FEAT-002 (ask two)?", recommendation: "Yes, share it (recommend two).", about: [{ id: "R-001", to: "FEAT-002" }] },
+      ],
+    },
+  };
+  mkdirSync(join(askDir, "docs", "regroup"), { recursive: true });
+  writeFileSync(join(askDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(askMapping, null, 2)}\n`);
+  const askPage = join(scratchRoot, `askq2-page-${++caseN}.md`);
+  const askRun = regroup(["--root", askDir, "--proposal", join(askDir, "docs", "regroup", "proposal.json"), "--out", askPage], scratchRoot);
+  const askText = (() => { try { return readFileSync(askPage, "utf8"); } catch { return null; } })();
+  const askedQ2Ok = askText !== null && /R-001 \(home FEAT-001\) -> FEAT-002 \[share\]: proposed because .*asked-q2 share.* — asked in question 2\b/.test(askText);
+  // req: R-1179
+  check('R-1179: an asked target named in the SECOND question reads "asked in question 2", not a constant "question 1"',
+    askRun.status === 0 && !crashed(askRun) && askedQ2Ok,
+    `status=${askRun.status} ` + own(askRun.stderr).slice(0, 2).join(" | "));
 }
 
 // ================================================================== T22
