@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, oldFeatIdOf, seedNodeText } from "./requirements-lift.mjs";
+import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, seedNodeText } from "./requirements-lift.mjs";
 import { REPO_ROOT, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { citesOf, requirementRowId } from "./requirements-trace.mjs";
 
@@ -537,6 +537,13 @@ function claimProblems(proposal, records) {
 // `also_applies` is exempt only when the input ledger's feature of the same ID already held it
 // AND this feature's own or its subgroups' `from` actually names that input feature's old
 // heading — i.e. this feature continues it, not merely reuses its ID.
+//
+// "That input feature's old heading" is read off the SAME `from` entries this module already
+// holds, by the tree heading pattern alone — a local, independent reading (never imported from
+// the lift, which §3.6 freezes outside detectMoves) of the one old id a `from` entry's heading
+// text names, or null when that heading is not a FEAT- heading.
+const TREE_FEAT_HEADING = /^#{1,3} (FEAT-\d{3}) · /;
+const oldFeatIdOf = (fromEntry) => TREE_FEAT_HEADING.exec(fromEntry?.heading ?? "")?.[1] ?? null;
 function shareDeclarationProblems(proposal, ledgerText) {
   const problems = [];
   const inputAlsoApplies = new Map(
