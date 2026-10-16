@@ -289,7 +289,18 @@ function typeProblems(proposal) {
   // pattern this module used to copy (finding 44, now removed) missed it.
   arr(proposal.tree).forEach((cap, ci) => {
     if (!isPlainObject(cap)) return;
-    arr(cap.features).forEach((feat, fj) => { if (isPlainObject(feat)) str(`tree[${ci}].features[${fj}].status`, feat.status); });
+    arr(cap.features).forEach((feat, fj) => {
+      if (!isPlainObject(feat)) return;
+      str(`tree[${ci}].features[${fj}].status`, feat.status);
+      // Item 1 (finding 0, a regression): the tree parser trims a Status: value before
+      // matching it, so a padded "proposed " or "proposed\t" reaches the written ledger as a
+      // plain, untested "proposed" — but isGap below compares by strict === against the
+      // UNTRIMMED value, so it never recognises the padded text as a gap and never demands
+      // evidence for it. Refused here, by its own padded text, before isGap ever reads it.
+      if (typeof feat.status === "string" && feat.status !== feat.status.trim()) {
+        problems.push(`tree[${ci}].features[${fj}].status: ${JSON.stringify(feat.status)} is padded; a status must equal its own trimmed text`);
+      }
+    });
   });
   return problems;
 }

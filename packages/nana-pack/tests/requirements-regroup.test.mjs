@@ -972,6 +972,29 @@ if (process.platform !== "win32") {
     `proposed status=${proposedRun.r.status} ` + own(proposedRun.r.stderr).slice(0, 2).join(" | ") + `; active status=${activeRun.r.status} ` + own(activeRun.r.stderr).slice(0, 2).join(" | "));
 }
 
+// ================================================================== Item 1 (finding 0): a padded status is refused in the shape check, with no evidence ever demanded for it
+{
+  const paddedCases = [
+    ["a trailing space", "proposed "],
+    ["a leading space", " active"],
+    ["a trailing tab", "proposed\t"],
+  ];
+  const misses = [];
+  for (const [label, status] of paddedCases) {
+    const p = variant((q) => {
+      mappingNodesOf(q).find((x) => x.id === "FEAT-005").node.status = status;
+      delete q.regroup.evidence["FEAT-005"];
+    });
+    const run = runFx(`padded-status-${label}`, p);
+    const ok = run.r.status === 1 && !crashed(run.r) && !existsSync(run.page) &&
+      saysOwn(run.r, "tree[1].features[1].status") && saysOwn(run.r, "is padded") && saysOwn(run.r, "trimmed");
+    if (!ok) misses.push(`${label}: status=${JSON.stringify(status)} run.status=${run.r.status} ` + own(run.r.stderr).slice(0, 2).join(" | "));
+  }
+  // req: R-1177
+  check("R-1177: a feature status that differs from its own trimmed self (a trailing space, a leading space or a trailing tab) is refused in the shape check, with no evidence ever demanded for it",
+    misses.length === 0, misses.join(" / "));
+}
+
 // ================================================================== T14
 {
   const pass = runFx("page-order", fxProposal());
