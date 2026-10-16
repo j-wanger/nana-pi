@@ -14,6 +14,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves } from "./requirements-lift.mjs";
 import { expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
+import { requirementRowId } from "./requirements-trace.mjs";
 
 // ---------------------------------------------------------------------- tunables (§3.4)
 /** Path: the lift this command spawns read-only, resolved beside this module (so a mirror copy spawns its own). */
@@ -109,6 +110,25 @@ function underRoot(dir, raw) {
 const existsUnder = (dir, raw) => { const abs = underRoot(dir, raw); return abs !== null && existsSync(abs); };
 /** R-1176: a row is text-placed when its Evidence cell names no path that exists under <dir>. */
 function isTextPlaced(dir, row) { return !evidencePathsOfCell(row.evidence).some((p) => existsUnder(dir, p)); }
+/** A row's cells read straight off its raw line, by requirementRowId alone — a fallback for a row a real
+ * project's ledger holds outside any table readRequirementRows recognises (e.g. a blank line breaks a
+ * table's header continuation mid-section, so the rows after it belong to no table the tree parser scans). */
+function rawRowFallback(ledgerText, id) {
+  for (const line of ledgerText.split(/\r?\n/)) {
+    if (requirementRowId(line) !== id) continue;
+    const cells = line.split("|").map((s) => s.trim());
+    return { id, requirement: cells[2] ?? "", status: cells[3] ?? "", evidence: cells[4] ?? "" };
+  }
+  return null;
+}
+/** readRequirementRows's rows, plus a fallback entry for every row the proposal's tree names that it missed. */
+function ledgerRowsFor(proposal, ledgerText, tableRows) {
+  const byId = new Map(tableRows.map((r) => [r.id, r]));
+  for (const x of flattenProposalNodes(proposal)) for (const id of expandRowIds((x.node.rows ?? []).join(","))) {
+    if (!byId.has(id)) { const r = rawRowFallback(ledgerText, id); if (r) byId.set(id, r); }
+  }
+  return [...byId.values()];
+}
 
 // ---------------------------------------------------------------------- R-1177: proposal key shape
 function keyProblems(proposal) {
@@ -211,11 +231,13 @@ function allEvidenceAbsPaths(proposal, rootDir) {
 
 // ---------------------------------------------------------------------- R-1175: the review record
 function targetOutcomeCount(proposal, id, to) {
+  // Each matching entry counts on its own (a target resolved twice over the SAME outcome — refuted
+  // twice, or asked by two different questions — is "resolved more than once" just as a mixed one is).
   let n = 0;
   const target = flattenProposalNodes(proposal).find((x) => x.id === to);
   if (target?.node?.also_applies?.includes(id)) n++;
-  if ((proposal.regroup?.refuted ?? []).some((r) => r.id === id && r.to === to)) n++;
-  if ((proposal.regroup?.questions ?? []).some((q) => (q.about ?? []).some((a) => a.id === id && a.to === to))) n++;
+  n += (proposal.regroup?.refuted ?? []).filter((r) => r.id === id && r.to === to).length;
+  for (const q of proposal.regroup?.questions ?? []) n += (q.about ?? []).filter((a) => a.id === id && a.to === to).length;
   return n;
 }
 export function resolveTargetOutcome(proposal, id, to) {
@@ -331,7 +353,7 @@ function claimProblems(proposal, records) {
 // ---------------------------------------------------------------------- all regroup checks (R-1172 to R-1177, R-1184)
 function regroupProblems(proposal, ledgerText, rootDir) {
   const records = detectMoves(ledgerText, proposal);
-  const ledgerRows = readRequirementRows(parseLedger(ledgerText));
+  const ledgerRows = ledgerRowsFor(proposal, ledgerText, readRequirementRows(parseLedger(ledgerText)));
   const problems = [
     ...keyProblems(proposal),
     ...placeholderProblems(proposal),
