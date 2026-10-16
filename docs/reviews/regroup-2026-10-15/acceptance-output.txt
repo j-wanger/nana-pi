@@ -105,7 +105,7 @@ ok   (harness) aml-desk's copy: the lift emits its default mapping (exit 0)
 ok   (harness) aml-desk: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows
 ok   (x) aml-desk: the proposal's dry run exits 0 and prints exactly its 50 reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5)
 ok   (x) aml-desk: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance)
-info (x) aml-desk: the mechanical packet is 30356 words, appendix included (the seat records the real one's words and minutes, §7 J2)
+info (x) aml-desk: the mechanical packet is 30407 words, appendix included (the seat records the real one's words and minutes, §7 J2)
 ok   (guard) aml-desk, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)
 ok   (harness) basketball-geek's HEAD copy: the lift emits its default mapping (exit 0)
 ok   (y) basketball-geek HEAD: a proposal merging FEAT-002 into FEAT-001 and moving R-013 to FEAT-004: the check exits 0 and writes its page (§5 seat acceptance)
