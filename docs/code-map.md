@@ -657,7 +657,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the plan and proof lines on stdout, a written REQUIREMENTS.md or mapping file, or a named refusal on stderr
 - **effects** — disk (reads the ledger, the mapping and the seed; writes REQUIREMENTS.md or a mapping file through a temp file and rename), process (runs git read-only; exit 0/1/2)
 - **errors** — exit 2 for a usage error, naming --root; exit 1 for a named refusal (encoding, structure, a failed git gate, a failed proof); never a crash on honest input variation
-- **callers** — `packages/nana-pack/tests/requirements-lift.test.mjs`, `scripts/requirements-regroup.mjs`
+- **callers** — `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `scripts/requirements-regroup.mjs`
 - **callees** — `scripts/requirements-lift-proof.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/requirements-regroup.mjs`
@@ -1812,7 +1812,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (creates fixtures and scratch files under the OS temp directory; never touches a real project), process (spawns node as a child)
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-regroup.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-regroup.mjs`
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
 
