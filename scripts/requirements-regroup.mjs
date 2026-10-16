@@ -13,7 +13,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, s
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, seedNodeText } from "./requirements-lift.mjs";
-import { REPO_ROOT, STATUS, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
+import { REPO_ROOT, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { citesOf, requirementRowId } from "./requirements-trace.mjs";
 
 // ---------------------------------------------------------------------- tunables (§3.4)
@@ -308,10 +308,14 @@ function allEvidenceAbsPaths(proposal, rootDir) {
 }
 
 // ---------------------------------------------------------------------- item 9(f): feature status
-/** A feature's status must match the tree checker's own pattern (requirements-tree.mjs's
- * STATUS, imported, never copied): proposed, active, frozen (<why>) or retired (<why>). A
- * reserved feature's status is the lift's seed, never the proposal's, so it is exempt like
- * its purpose and outcome (R-1172). */
+// requirements-tree.mjs's own STATUS pattern (its line 19), duplicated, never imported:
+// scripts/requirements-tree.mjs is outside this lane's scope (CHANGE §4), as the frozen
+// acceptance check's §4 In path list enforces, so this copy must change in step with it by
+// hand rather than through an export this lane is not scoped to add.
+const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
+/** A feature's status must match the tree checker's own pattern: proposed, active, frozen
+ * (<why>) or retired (<why>). A reserved feature's status is the lift's seed, never the
+ * proposal's, so it is exempt like its purpose and outcome (R-1172). */
 function statusProblems(proposal) {
   const problems = [];
   for (const x of flattenProposalNodes(proposal)) {
