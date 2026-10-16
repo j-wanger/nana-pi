@@ -235,9 +235,11 @@ function evidenceProblems(proposal, rootDir) {
   const problems = [];
   const evidence = proposal.regroup?.evidence ?? {};
   for (const x of flattenProposalNodes(proposal)) {
-    if (x.level !== 2 || (x.node.status ?? "") !== "proposed") continue;
+    // A feature with no rows of its own and none in any subgroup is a gap whatever its
+    // declared status says — an "active" label does not dodge R-1174's evidence demand.
+    if (x.level !== 2 || !(x.node.status === "proposed" || featureRowIds(x.node).length === 0)) continue;
     const paths = evidence[x.id];
-    if (!Array.isArray(paths) || paths.length === 0) { problems.push(`${x.id}: proposed feature names no evidence path`); continue; }
+    if (!Array.isArray(paths) || paths.length === 0) { problems.push(`${x.id}: a gap feature with no rows names no evidence path`); continue; }
     for (const raw of paths) if (!existsUnder(rootDir, raw)) problems.push(`${x.id}: evidence path "${raw}" does not exist under the root`);
   }
   return problems;

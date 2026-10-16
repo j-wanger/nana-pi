@@ -363,11 +363,21 @@ if (process.platform !== "win32") {
 
 // ================================================================== T6
 {
+  // A real file one level above any case root (every case root is scratchRoot/cases/<N>-...),
+  // so the "leads outside the root" mutation pair (5/3) cannot be masked by the missing-path
+  // refusal — that only happens when `../outside.txt` does not exist, which it now does.
+  mkdirSync(join(scratchRoot, "cases"), { recursive: true });
+  writeFileSync(join(scratchRoot, "cases", "outside.txt"), "not under any fixture root\n");
   const cases = [
     ["FEAT-005 names no evidence path", variant((q) => { delete q.regroup.evidence["FEAT-005"]; }), ["FEAT-005"]],
     ["FEAT-005's evidence list is empty", variant((q) => { q.regroup.evidence["FEAT-005"] = []; }), ["FEAT-005"]],
     ["FEAT-005 names a missing path", variant((q) => { q.regroup.evidence["FEAT-005"] = ["src/report/missing.mjs"]; }), ["src/report/missing.mjs"]],
     ["FEAT-005 names a path that `..` leads outside the root", variant((q) => { q.regroup.evidence["FEAT-005"] = ["../outside.txt"]; }), ["FEAT-005"]],
+    // An "active" feature with no rows anywhere (not even in a subgroup) is a gap in
+    // disguise; it needs evidence just as a "proposed" gap does (Also fix, build brief 2).
+    ["an active feature with no rows and no evidence path is refused like a gap", variant((q) => {
+      q.tree[1].features.push({ id: "FEAT-006", label: "Archive analyst pages", purpose: "Archive the rendered analyst pages after the case closes; no row holds it yet.", status: "active", from: [], rows: [], subgroups: [] });
+    }), ["FEAT-006"]],
   ];
   const { ok, why } = allRefused(cases);
   const pass = runFx("backslash-pass", fxProposal());
