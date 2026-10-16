@@ -152,10 +152,11 @@ function firstEncodingMismatchLine(buf) {
  * the tree parser never scans one for fields -- so `id` null returns empty. Build brief 4 §A,
  * MUST 1(b): only these lines are a replaced heading's own regenerated field lines; a
  * field-labelled line anywhere else (a second "Purpose:", an "Outcome:" under a feature, which
- * the tree parser never reads, or ANY "Also applies:" line -- build brief 7 item 3: shares are
- * refused in every ledger form, so an "Also applies:" line is never treated as regeneratable
- * field content, in a feature's own span or anywhere else) is ordinary carried prose, never
- * silently dropped by the writer nor exempted from the base refusal below.
+ * the tree parser never reads, or ANY "Also applies:" line -- this lane's one share reader
+ * (R-1181/R-1167, §3.1) handles a feature heading's own first such line as its share line
+ * elsewhere, never as regeneratable field content here; every other "Also applies:" line stays
+ * ordinary carried prose, refused by the base refusal below when it is not that first line) is
+ * never silently dropped by the writer nor exempted from the base refusal below.
  */
 function fieldBlockAt(bareLines, allHeadingLines, headingLine, id) {
   const set = new Set();
@@ -1196,8 +1197,9 @@ function runVerify(rootDir, args, seed) {
   // Every base-ledger refusal --write runs on bytes read from disk, run here on the SAME blob
   // bytes (build brief 4 §B): NUL, no rows, an encoding mismatch, a fenced row, a repeated row
   // ID, an unsupported heading, and a field-labelled line outside its heading's own field block
-  // (and, by build brief 7 item 3, any "Also applies:" line anywhere -- shares are refused in
-  // every ledger form, never silently dropped). Build brief 7 item 1 runs the SAME checks on
+  // (and, by this lane's one-reader rule, R-1181/R-1167 §3.1, any "Also applies:" line that is
+  // not a feature heading's first share line as the tree checker reads it, or has no line
+  // ending -- never silently accepted or dropped). Build brief 7 item 1 runs the SAME checks on
   // the committed HEAD blob too, not only on the revision being verified: a byte-invalid or
   // share-carrying HEAD must be named and refused, not merely compared.
   const inputParsed = parseLedger(inputText);

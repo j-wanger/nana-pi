@@ -1413,7 +1413,7 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
   const idMap = LIFT_MODULE.buildIdentityMapping(inputText);
   const mapping = structuredClone(idMap);
   const f2 = mapping.tree[0].features.find((f) => f.id === "FEAT-002");
-  f2.shares_dropped = ["R-004"]; f2.also_applies = ["R-001", "R-005"];
+  f2.shares_dropped = ["R-004"]; f2.also_applies = ["R-001"];
   const goodOutput = LIFT_MODULE.applyMapping(inputText, mapping, SEED_EMPTY);
   const control = proveLift(inputText, mapping, goodOutput, SEED_TEXT, { fromDefault: false });
 
@@ -1615,13 +1615,13 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
     ["an undeclared drop", edit((m) => { f(m, "FEAT-002").also_applies = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-004\b/.test(l) && /shares_dropped/.test(l)],
     ["an undeclared add", edit((m) => { f(m, "FEAT-001").also_applies = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l) && /shares_added/.test(l)],
     ["a declared drop it does not carry", edit((m) => { f(m, "FEAT-001").shares_dropped = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l)],
-    ["a declared add it already carries", edit((m) => { f(m, "FEAT-002").shares_added = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-001\b/.test(l)],
-    ["a declared add of an unknown row", edit((m) => { const ft = f(m, "FEAT-001"); ft.shares_added = ["R-999"]; ft.also_applies = ["R-999"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-999\b/.test(l)],
+    ["a declared add it already carries", edit((m) => { f(m, "FEAT-002").shares_added = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-001\b/.test(l) && /already carries/.test(l)],
+    ["a declared add of an unknown row", edit((m) => { const ft = f(m, "FEAT-001"); ft.shares_added = ["R-999"]; ft.also_applies = ["R-999"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-999\b/.test(l) && /is not a requirement row/.test(l)],
     ["a sharing feature heading named by a capability", edit((m) => { const f3 = f(m, "FEAT-003"); m.tree[0].from = [...m.tree[0].from, ...f3.from]; f3.from = []; delete f3.also_applies; }), (l) => /capabilit|CAP-01/i.test(l)],
-    ["a sharing feature heading named by the tail", edit((m) => { const f3 = f(m, "FEAT-003"); m.tail.from = [...m.tail.from, ...f3.from]; f3.from = []; delete f3.also_applies; }), (l) => /tail/i.test(l)],
+    ["a sharing feature heading named by the tail", edit((m) => { const f3 = f(m, "FEAT-003"); m.tail.from = [...m.tail.from, ...f3.from]; f3.from = []; delete f3.also_applies; }), (l) => /tail/i.test(l) && /must be named by a feature, not the tail/.test(l)],
     ["shares_added held as a string", edit((m) => { f(m, "FEAT-001").shares_added = "R-002"; }), (l) => /\bFEAT-001\b/.test(l) && /shares_added/.test(l)],
     ["a repeated ID in also_applies", edit((m) => { f(m, "FEAT-002").also_applies = ["R-001", "R-004", "R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-001\b/.test(l)],
-    ["a repeated ID in shares_added", edit((m) => { const ft = f(m, "FEAT-001"); ft.shares_added = ["R-002", "R-002"]; ft.also_applies = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l)],
+    ["a repeated ID in shares_added", edit((m) => { const ft = f(m, "FEAT-001"); ft.shares_added = ["R-002", "R-002"]; ft.also_applies = ["R-002"]; }), (l) => /\bFEAT-001\b/.test(l) && /\bR-002\b/.test(l) && /shares_added lists/.test(l)],
     ["a repeated ID in shares_dropped", edit((m) => { const ft = f(m, "FEAT-002"); ft.shares_dropped = ["R-004", "R-004"]; ft.also_applies = ["R-001"]; }), (l) => /\bFEAT-002\b/.test(l) && /\bR-004\b/.test(l)],
   ];
   const dir = gitRepo("t8-shares-validator", base);
