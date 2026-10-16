@@ -136,44 +136,62 @@ function keyProblems(proposal) {
     if (!isPlainObject(obj)) return;
     for (const k of Object.keys(obj)) if (!allowed.includes(k)) problems.push(`${path}.${k}: key is not one of ${allowed.join(", ")} (its level's fields)`);
   };
+  /**
+   * `value`'s [index, item] entries, the way an honest array-of-objects field is read
+   * elsewhere in this module; `value` given as something other than an array (an object,
+   * a string, a number) is refused by name instead of throwing when the caller's next line
+   * calls `.entries()` or reads a field off a non-array (R-1177, "never a crash"). An item
+   * that is itself not a plain object (a `null` entry) is refused the same way, named by its
+   * own index, and left out of the entries handed back so the caller never dereferences it.
+   */
+  const arrayEntries = (value, path) => {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) { problems.push(`${path}: expected an array, not an object`); return []; }
+    const out = [];
+    for (const [i, item] of value.entries()) {
+      if (!isPlainObject(item)) { problems.push(`${path}[${i}]: entry is not an object`); continue; }
+      out.push([i, item]);
+    }
+    return out;
+  };
   checkObj(proposal, PROPOSAL_KEYS.top, "proposal");
   checkObj(proposal.pin, PROPOSAL_KEYS.pin, "pin");
   checkObj(proposal.head, PROPOSAL_KEYS.head, "head");
   if (isPlainObject(proposal.tail)) {
     checkObj(proposal.tail, PROPOSAL_KEYS.tail, "tail");
-    for (const [fi, f] of (proposal.tail.from ?? []).entries()) checkObj(f, PROPOSAL_KEYS.from, `tail.from[${fi}]`);
-    for (const [ki, k] of (proposal.tail.keep ?? []).entries()) checkObj(k, PROPOSAL_KEYS.keep, `tail.keep[${ki}]`);
+    for (const [fi, f] of arrayEntries(proposal.tail.from, "tail.from")) checkObj(f, PROPOSAL_KEYS.from, `tail.from[${fi}]`);
+    for (const [ki, k] of arrayEntries(proposal.tail.keep, "tail.keep")) checkObj(k, PROPOSAL_KEYS.keep, `tail.keep[${ki}]`);
   }
-  for (const [ci, cap] of (proposal.tree ?? []).entries()) {
+  for (const [ci, cap] of arrayEntries(proposal.tree, "tree")) {
     checkObj(cap, PROPOSAL_KEYS.capability, `tree[${ci}]`);
-    for (const [fi, f] of (cap.from ?? []).entries()) checkObj(f, PROPOSAL_KEYS.from, `tree[${ci}].from[${fi}]`);
-    for (const [fj, feat] of (cap.features ?? []).entries()) {
+    for (const [fi, f] of arrayEntries(cap.from, `tree[${ci}].from`)) checkObj(f, PROPOSAL_KEYS.from, `tree[${ci}].from[${fi}]`);
+    for (const [fj, feat] of arrayEntries(cap.features, `tree[${ci}].features`)) {
       checkObj(feat, PROPOSAL_KEYS.feature, `tree[${ci}].features[${fj}]`);
-      for (const [fi, f] of (feat.from ?? []).entries()) checkObj(f, PROPOSAL_KEYS.from, `tree[${ci}].features[${fj}].from[${fi}]`);
-      for (const [si, sub] of (feat.subgroups ?? []).entries()) {
+      for (const [fi, f] of arrayEntries(feat.from, `tree[${ci}].features[${fj}].from`)) checkObj(f, PROPOSAL_KEYS.from, `tree[${ci}].features[${fj}].from[${fi}]`);
+      for (const [si, sub] of arrayEntries(feat.subgroups, `tree[${ci}].features[${fj}].subgroups`)) {
         checkObj(sub, PROPOSAL_KEYS.subgroup, `tree[${ci}].features[${fj}].subgroups[${si}]`);
-        for (const [fi, f] of (sub.from ?? []).entries()) checkObj(f, PROPOSAL_KEYS.from, `tree[${ci}].features[${fj}].subgroups[${si}].from[${fi}]`);
+        for (const [fi, f] of arrayEntries(sub.from, `tree[${ci}].features[${fj}].subgroups[${si}].from`)) checkObj(f, PROPOSAL_KEYS.from, `tree[${ci}].features[${fj}].subgroups[${si}].from[${fi}]`);
       }
     }
   }
   if (isPlainObject(proposal.regroup)) {
     checkObj(proposal.regroup, PROPOSAL_KEYS.regroup, "regroup");
-    for (const [ri, r] of (proposal.regroup.reasons ?? []).entries()) checkObj(r, PROPOSAL_KEYS.reason, `regroup.reasons[${ri}]`);
+    for (const [ri, r] of arrayEntries(proposal.regroup.reasons, "regroup.reasons")) checkObj(r, PROPOSAL_KEYS.reason, `regroup.reasons[${ri}]`);
     if (isPlainObject(proposal.regroup.review)) {
       checkObj(proposal.regroup.review, PROPOSAL_KEYS.review, "regroup.review");
-      for (const [vi, v] of (proposal.regroup.review.verdicts ?? []).entries()) {
+      for (const [vi, v] of arrayEntries(proposal.regroup.review.verdicts, "regroup.review.verdicts")) {
         checkObj(v, PROPOSAL_KEYS.verdict, `regroup.review.verdicts[${vi}]`);
-        for (const [ti, t] of (v.targets ?? []).entries()) checkObj(t, PROPOSAL_KEYS.target, `regroup.review.verdicts[${vi}].targets[${ti}]`);
+        for (const [ti, t] of arrayEntries(v.targets, `regroup.review.verdicts[${vi}].targets`)) checkObj(t, PROPOSAL_KEYS.target, `regroup.review.verdicts[${vi}].targets[${ti}]`);
       }
-      for (const [ci, c] of (proposal.regroup.review.claims ?? []).entries()) checkObj(c, PROPOSAL_KEYS.claim, `regroup.review.claims[${ci}]`);
+      for (const [ci, c] of arrayEntries(proposal.regroup.review.claims, "regroup.review.claims")) checkObj(c, PROPOSAL_KEYS.claim, `regroup.review.claims[${ci}]`);
     }
-    for (const [ri, r] of (proposal.regroup.refuted ?? []).entries()) checkObj(r, PROPOSAL_KEYS.refuted, `regroup.refuted[${ri}]`);
-    for (const [qi, q] of (proposal.regroup.questions ?? []).entries()) {
+    for (const [ri, r] of arrayEntries(proposal.regroup.refuted, "regroup.refuted")) checkObj(r, PROPOSAL_KEYS.refuted, `regroup.refuted[${ri}]`);
+    for (const [qi, q] of arrayEntries(proposal.regroup.questions, "regroup.questions")) {
       checkObj(q, PROPOSAL_KEYS.question, `regroup.questions[${qi}]`);
-      for (const [ai, a] of (q.about ?? []).entries()) checkObj(a, PROPOSAL_KEYS.about, `regroup.questions[${qi}].about[${ai}]`);
+      for (const [ai, a] of arrayEntries(q.about, `regroup.questions[${qi}].about`)) checkObj(a, PROPOSAL_KEYS.about, `regroup.questions[${qi}].about[${ai}]`);
     }
   }
-  for (const [qi, q] of (proposal.regroup?.questions ?? []).entries()) if (!nonEmpty(q.recommendation)) problems.push(`regroup.questions[${qi}]: question has no recommendation`);
+  for (const [qi, q] of arrayEntries(proposal.regroup?.questions, "regroup.questions")) if (!nonEmpty(q.recommendation)) problems.push(`regroup.questions[${qi}]: question has no recommendation`);
   return problems;
 }
 
@@ -356,8 +374,13 @@ function claimProblems(proposal, records) {
 export function regroupProblems(proposal, ledgerText, rootDir) {
   const records = detectMoves(ledgerText, proposal);
   const ledgerRows = ledgerRowsFor(proposal, ledgerText, readRequirementRows(parseLedger(ledgerText)));
+  // The shape check runs alone first: once a field like regroup.reasons or a verdict's
+  // targets is the wrong shape (an object instead of an array, a null entry), every other
+  // check below reads that same field and would throw instead of refusing (R-1177, "never
+  // a crash") — so a shape problem is reported on its own, before anything else reads it.
+  const shapeProblems = keyProblems(proposal);
+  if (shapeProblems.length) return { problems: shapeProblems, records, ledgerRows };
   const problems = [
-    ...keyProblems(proposal),
     ...placeholderProblems(proposal),
     ...reasonProblems(proposal, records),
     ...evidenceProblems(proposal, rootDir),

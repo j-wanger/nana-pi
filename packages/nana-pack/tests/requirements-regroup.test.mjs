@@ -302,9 +302,17 @@ if (process.platform !== "win32") {
   writeFileSync(notes, body);
   const third = runFx("not-a-page-fail", failing, { out: notes });
   const untouched = third.r.status === 1 && !crashed(third.r) && readFileSync(notes, "utf8") === body;
+  // A run that would otherwise crash on a malformed shape (brief 2 item 3) is refused, not
+  // crashed, and still removes an earlier page at --out.
+  const pagePath2 = join(scratchRoot, "earlier-page-shape.md");
+  const firstShape = runFx("earlier-page-shape", fxProposal(), { out: pagePath2 });
+  const hadPage2 = existsSync(pagePath2);
+  const shapeFail = variant((q) => { q.regroup.review.verdicts.push(null); });
+  const secondShape = runFx("earlier-page-shape-fail", shapeFail, { out: pagePath2 });
+  const removedShape = firstShape.r.status === 0 && hadPage2 && secondShape.r.status === 1 && !crashed(secondShape.r) && !existsSync(pagePath2);
   // req: R-1171
-  check("R-1171: a failing run removes an earlier review page at --out and leaves a file there that is not a review page unchanged", removed && untouched,
-    `removed=${removed} untouched=${untouched}`);
+  check("R-1171: a failing run removes an earlier review page at --out and leaves a file there that is not a review page unchanged", removed && untouched && removedShape,
+    `removed=${removed} untouched=${untouched} removedShape=${removedShape}`);
 }
 
 // ================================================================== T4
@@ -478,8 +486,21 @@ if (process.platform !== "win32") {
   }
   const noRec = variant((q) => { delete q.regroup.questions[0].recommendation; });
   const noRecOk = refusedCase(noRec, ["recommendation"]);
+  // Shape crashes (brief 2 item 3, "never a crash"): targets, about or reasons given as an
+  // object instead of an array, and a null verdict entry, are refused by the shape check
+  // with a named path, before anything else reads them.
+  const baseIdx = i3(fxProposal());
+  const shapeCases = [
+    ["R-003's move targets is an object instead of an array", variant((q) => { q.regroup.review.verdicts[i3(q)].targets = { to: "FEAT-004", reason: "x" }; }), [`regroup.review.verdicts[${baseIdx}].targets`]],
+    ["a question's about is an object instead of an array", variant((q) => { q.regroup.questions[0].about = { id: "R-005", to: "FEAT-001" }; }), ["regroup.questions[0].about"]],
+    ["regroup.reasons is an object instead of an array", variant((q) => { q.regroup.reasons = Object.fromEntries(q.regroup.reasons.map((r, i) => [i, r])); }), ["regroup.reasons"]],
+    ["a verdict entry is null", variant((q) => { q.regroup.review.verdicts.push(null); }), ["regroup.review.verdicts"]],
+  ];
+  const shapeMisses = [];
+  for (const [label, p, names] of shapeCases) if (!refusedCase(p, names)) shapeMisses.push(label);
   // req: R-1177
-  check("R-1177: a misspelled key in any object level of a proposal is refused naming its path, and so is a question without a recommendation", misses.length === 0 && noRecOk, `misses=${misses.join(",")} noRecOk=${noRecOk}`);
+  check("R-1177: a misspelled key in any object level of a proposal is refused naming its path, and so is a question without a recommendation",
+    misses.length === 0 && noRecOk && shapeMisses.length === 0, `misses=${misses.join(",")} noRecOk=${noRecOk} shapeMisses=${shapeMisses.join(",")}`);
 }
 
 // ================================================================== T14
