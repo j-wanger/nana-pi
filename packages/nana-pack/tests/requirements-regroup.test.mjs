@@ -338,6 +338,14 @@ if (process.platform !== "win32") {
     ["FEAT-001 keeps a placeholder purpose", variant((q) => { mappingNodesOf(q).find((x) => x.id === "FEAT-001").node.purpose = `${UNSORTED} the rows of old section "1. Load files".`; }), ["FEAT-001"]],
     ["CAP-02 keeps a placeholder outcome", variant((q) => { q.tree[1].outcome = `${UNSORTED} the rows of old section "Part B. Report" sorted into the tree.`; }), ["CAP-02"]],
     ["SUB-001 keeps a placeholder purpose", variant((q) => { mappingNodesOf(q).find((x) => x.id === "SUB-001").node.purpose = `${UNSORTED} the rows of old section "2a. Sizing".`; }), ["SUB-001"]],
+    // Mutation survivor 2/8 (brief 2, "Also fix"): R-1184's stale-claim-text check was masking
+    // the placeholder check, since the claim's quoted text no longer matched the new purpose.
+    // Here the claim is kept in sync, so only the placeholder check itself can catch it.
+    ["FEAT-001 keeps a placeholder purpose with its claim kept in sync, so only the placeholder check catches it", variant((q) => {
+      const ph = `${UNSORTED} the rows of old section "1. Load files".`;
+      mappingNodesOf(q).find((x) => x.id === "FEAT-001").node.purpose = ph;
+      q.regroup.review.claims.find((c) => c.node === "FEAT-001" && c.field === "purpose").text = ph;
+    }), ["FEAT-001"]],
   ];
   const { ok: refuseOk, why } = allRefused(cases);
   const exempt = variant((q) => { const c = q.tree.find((x) => x.id === "CAP-90"); c.purpose = `${UNSORTED} reserved.`; c.outcome = `${UNSORTED} reserved.`; c.features[0].purpose = `${UNSORTED} reserved.`; for (const sg of c.features[0].subgroups) sg.purpose = `${UNSORTED} reserved.`; });
@@ -355,6 +363,10 @@ if (process.platform !== "win32") {
     [`stale reason for line ${L7}`, variant((q) => { q.regroup.reasons.push({ line: L7, to: "FEAT-002", why: "a reason for a line the lift does not report (stale)" }); }), [String(L7)]],
     [`two same-text headings reasoned by text (line ${L30})`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-002"); r.line = L15; q.regroup.review.claims = q.regroup.review.claims.filter((c) => !(c.line === L30 && c.to === "FEAT-002")); }), [String(L30)]],
     [`reason for line ${L30} -> FEAT-004 given as the string "${L30}", not an integer`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-004"); r.line = String(r.line); }), [String(L30)]],
+    // Mutation survivor 4/1 (brief 2, "Also fix"): the matching claim stayed in sync with the
+    // deleted reason's line/to key (its text comparison skips when the reason is simply gone),
+    // so only the missing-reason check itself can catch this one.
+    [`reason for line ${L22} -> SUB-001 missing, with its claim kept so only the missing-reason check catches it`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); }), [String(L22)]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1173
