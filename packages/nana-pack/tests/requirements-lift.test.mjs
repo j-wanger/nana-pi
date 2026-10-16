@@ -1302,7 +1302,7 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
   const wAfter = lift(["--root", dirAfter, "--write"]);
   const outAfter = readLedger(dirAfter)?.toString("utf8") ?? "";
   const beforeLines = afterTable.split(/(?<=\n)/);
-  const fromIdx = beforeLines.findIndex((l) => l.startsWith("Also applies: R-001"));
+  const fromIdx = beforeLines.findIndex((l) => l === "Also applies: R-001\n");
   const statusIdx = beforeLines.findIndex((l, i) => l.startsWith("Status: active") && beforeLines[i - 2]?.startsWith("## FEAT-004 "));
   const wantAfter = (() => { const c = [...beforeLines]; const [line] = c.splice(fromIdx, 1); c.splice(statusIdx + 1, 0, line); return c.join(""); })();
   const moveOk = wAfter.status === 0 && fromIdx > statusIdx && outAfter === wantAfter;
@@ -1418,10 +1418,10 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
   const control = proveLift(inputText, mapping, goodOutput, SEED_TEXT, { fromDefault: false });
 
   const outLines = goodOutput.split(/(?<=\n)/);
-  const findLine = (needle) => outLines.findIndex((l) => l.startsWith(needle));
-  const i3 = findLine("Also applies: R-002"); // FEAT-003's kept line
-  const i4 = findLine("Also applies: R-001"); // FEAT-004's kept line (first match; FEAT-002's own is "Also applies: R-001, R-005" by then)
-  const i2 = findLine("Also applies: R-001, R-005"); // FEAT-002's regenerated line
+  const findLine = (needle) => outLines.findIndex((l) => l === needle);
+  const i3 = findLine("Also applies: R-002\n"); // FEAT-003's kept line
+  const i4 = findLine("Also applies: R-001\n"); // FEAT-004's kept line (exact: FEAT-002's own is the longer "Also applies: R-001, R-005" line)
+  const i2 = findLine("Also applies: R-001, R-005\n"); // FEAT-002's regenerated line
 
   const tamperMissing = outLines.slice(0, i3).concat(outLines.slice(i3 + 1)).join("");
   const probeMissing = proveLift(inputText, mapping, tamperMissing, SEED_TEXT, { fromDefault: false });

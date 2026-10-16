@@ -123,6 +123,48 @@ function seedStructure(seedText) {
 }
 const RESERVED = new Set(["CAP-90", "FEAT-900", "SUB-900", "SUB-901", "SUB-902", "SUB-903", "SUB-904"]);
 
+// -------------------------------------------------------------- shares (§3.1, §3.4; R-1163: duplicated, never imported from the lift module)
+
+/** Every old FEAT- heading (with its shares and first share line) in the INPUT, keyed by id -- the one reader (§3.1), re-derived here independently of the lift module. */
+function shareInfoOf(inputText) {
+  const parsed = parseLedger(inputText);
+  const map = new Map();
+  for (const h of parsed.headings) {
+    if (!h.id?.startsWith("FEAT-")) continue;
+    const first = h.alsoAppliesLines?.[0];
+    if (first) map.set(h.id, { shares: h.alsoApplies.slice(), line: first.line });
+  }
+  return map;
+}
+/** Old FEAT- heading id a mapping `from` entry's heading text names, or null. */
+function oldFeatIdOf(fromEntry) {
+  const m = TREE_HEADING.exec(fromEntry?.heading ?? "");
+  return m && m[2].startsWith("FEAT-") ? m[2] : null;
+}
+/** The old feature headings (with shares) a feature node's own `from` and its subgroups' `from` name, in order. */
+function shareSourcesOf(node, shareInfo) {
+  const out = [];
+  for (const f of node.from ?? []) { const id = oldFeatIdOf(f); if (id && shareInfo.has(id)) out.push(shareInfo.get(id)); }
+  for (const sub of node.subgroups ?? []) for (const f of sub.from ?? []) { const id = oldFeatIdOf(f); if (id && shareInfo.has(id)) out.push(shareInfo.get(id)); }
+  return out;
+}
+/** Carried(F) (§3.2): the union of F's source headings' shares, first seen first, deduped. */
+function carriedSharesOf(node, shareInfo) {
+  const seen = new Set(), carried = [];
+  for (const src of shareSourcesOf(node, shareInfo)) for (const id of src.shares) if (!seen.has(id)) { seen.add(id); carried.push(id); }
+  return carried;
+}
+/** carried(F) less its declared `shares_dropped`, plus its declared `shares_added` -- read from the MAPPING's own declarations, never from the output's `also_applies` (R-1182, seat revision 2). */
+function wantedSharesOf(node, shareInfo) {
+  const dropped = new Set(node.shares_dropped ?? []);
+  return [...carriedSharesOf(node, shareInfo).filter((id) => !dropped.has(id)), ...(node.shares_added ?? [])];
+}
+/** A feature is kept (§3.3) when its input carries exactly one source share line and it declares neither shares_added nor shares_dropped. */
+function isKeptFeature(node, shareInfo) {
+  const changes = (node.shares_added?.length ?? 0) > 0 || (node.shares_dropped?.length ?? 0) > 0;
+  return shareSourcesOf(node, shareInfo).length === 1 && !changes;
+}
+
 // -------------------------------------------------------------- mapping walk helpers
 
 /** Every node in the mapping, flattened in output order, each with its level, parent id and its own data. */
@@ -241,6 +283,7 @@ function deriveDefaultSequence(inputText, seed) {
 export function proveLift(inputText, mapping, outputText, seedText, { fromDefault = false } = {}) {
   const problems = [];
   const seed = seedStructure(seedText ?? "");
+  const shareInfo = shareInfoOf(inputText);
 
   // 1. BOM
   const inBom = inputText.startsWith(BOM), outBom = outputText.startsWith(BOM);
@@ -326,6 +369,19 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     const want = nodeRows(node);
     const got = outRows.filter((r) => (r.heading?.id === id)).map((r) => r.id);
     if (JSON.stringify(got) !== JSON.stringify(want)) problems.push(`${id}: output row order ${JSON.stringify(got)} differs from the mapping's ${JSON.stringify(want)}`);
+  }
+  // 6b (R-1182 recount, §3.4b): each feature's output shares, read by the tree parser, must
+  // equal carried(F) less its declared shares_dropped plus its declared shares_added, as a set
+  // -- read from the INPUT and the MAPPING's own declarations, never from the output's
+  // `also_applies` (seat revision 2: a declared drop beside a silent one is still named).
+  for (const { id, level, node } of nodes) {
+    if (level !== 2) continue;
+    const want = new Set(wantedSharesOf(node, shareInfo));
+    const outHeading = outParsed.headings.find((h) => h.id === id);
+    const got = new Set(outHeading?.alsoApplies ?? []);
+    const missing = [...want].filter((x) => !got.has(x));
+    const extra = [...got].filter((x) => !want.has(x));
+    if (missing.length || extra.length) problems.push(`${id}: output shares ${JSON.stringify([...got])} differ from carried less shares_dropped plus shares_added ${JSON.stringify([...want])}${missing.length ? ` (missing ${missing.join(", ")})` : ""}${extra.length ? ` (extra ${extra.join(", ")})` : ""}`);
   }
   // Outcome is compared too (build brief 4 §A): meaningful only for a CAP- heading, where it is
   // the capability's own second field line; FEAT-/SUB- entries carry no outcome on either side,
@@ -444,6 +500,7 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
         const id = requirementRowId(inBare[i]);
         if (id) continue; // rows: accounted by check 3
         if (fieldBlock.has(i)) continue; // the old heading's own field line, regenerated fresh
+        if (/^Also applies:/.test(inBare[i])) continue; // §3.4a: the feature's share line, never positional prose
         if (isTableHeaderAt(inBare, i)) { i++; continue; } // old header+delimiter pair: structural, replaced
         out.push(inSegs[i]);
       }
@@ -593,6 +650,18 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     if (tailHasContent) {
       const closingH = outHeadingScan.find((h) => bare(outSegs[h.line - 1] ?? "") === mapping.tail.heading);
       if (closingH) outExcluded[closingH.line - 1] = true;
+    }
+    // §3.4c: a kept feature's share line stays a counted line on both sides, like any carried
+    // line, so a deleted, changed or duplicated kept line shows up here on its own. Only a
+    // REGENERATED feature's input source line(s) and its one new output line are set aside.
+    for (const { id, level, node } of nodes) {
+      if (level !== 2 || isKeptFeature(node, shareInfo)) continue;
+      for (const src of shareSourcesOf(node, shareInfo)) { const idx = src.line - 1; if (idx >= 0 && idx < inExcluded.length) inExcluded[idx] = true; }
+      const outHeading = outHeadingScan.find((h) => h.id === id);
+      if (!outHeading) continue;
+      const after = outHeadingLinesAll.filter((l) => l > outHeading.line).sort((a, b) => a - b);
+      const regionEnd = after.length ? after[0] - 1 : outBare.length;
+      for (let i = outHeading.line; i < regionEnd; i++) { if (/^Also applies:/.test(outBare[i])) { outExcluded[i] = true; break; } }
     }
     const multisetOf = (segs, excluded) => segs.filter((s, i) => !excluded[i] && !isBlankSeg(s));
     const inMulti = multisetOf(inSegs, inExcluded);
