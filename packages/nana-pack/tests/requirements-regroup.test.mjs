@@ -1341,6 +1341,25 @@ if (process.platform !== "win32") {
   check("R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked",
     honestOk && askedDropOk && names(addedRefused, "FEAT-002", "R-001") && names(droppedRefused, "FEAT-001", "R-002") && names(movedRefused, "FEAT-002", "R-001"),
     `honest=${honestOk} askedDrop=${askedDropOk} added=${addedRefused.slice(0, 2).join(" | ")} dropped=${droppedRefused.slice(0, 2).join(" | ")} moved=${movedRefused.slice(0, 2).join(" | ")}`);
+
+  // Item 3(a) (finding 27, amendment 3): FEAT-001 keeps its EXISTING share of R-002 unchanged
+  // (also_applies still names it, no shares_dropped) — amendment 3's own exemption is that a
+  // share that stays needs no verdict review of its own. R-002's own verdict, unrelated to the
+  // share, is a plain "keep" at its home (Bravo), with no target.
+  const keptShare = treeVariant((p) => {
+    const f1 = featOf(p, "FEAT-001");
+    delete f1.shares_dropped;
+    f1.also_applies = ["R-002"];
+    p.regroup.refuted = [];
+    const v2 = verdictOfT(p, "R-002");
+    delete v2.targets;
+    v2.verdict = "keep";
+    v2.reason = "R-002 stays at Bravo; FEAT-001's existing share of it is unchanged (keep)";
+  });
+  const keptShareOk = regroupProblems(keptShare, TREE_FX, treeDir).problems.length === 0;
+  // req: R-1187
+  check("R-1187: a feature that keeps an existing share unchanged (also_applies names it still, no shares_dropped) needs no share verdict for it",
+    keptShareOk, `problems=${regroupProblems(keptShare, TREE_FX, treeDir).problems.slice(0, 2).join(" | ")}`);
 }
 
 // ================================================================== T24 (seat amendment 3, R-1187: a merge or a demotion that carries a share)
@@ -1416,6 +1435,24 @@ if (process.platform !== "win32") {
   // req: R-1187
   check("R-1187: a feature's merge that carries another feature's share onto also_applies is refused with no share verdict and passes, carried, with one",
     mergeNoOk && mergeYesOk, `no=${mergeNoOk} status=${mergeNoRun.status} ` + own(mergeNoRun.stderr).slice(0, 2).join(" | ") + `; yes=${mergeYesOk} status=${mergeYesRun.status} ` + own(mergeYesRun.stderr).slice(0, 2).join(" | "));
+
+  // Item 3(b) (finding 15): R-001's share verdict targets FEAT-001 (its own home), not FEAT-003
+  // (the feature actually absorbing Bravo's carried share) — "with that feature among its
+  // targets" is unchecked otherwise, so a verdict naming the wrong feature would let the
+  // merged share reach the ledger with no real review of it.
+  const mergeWrongTarget = { ...mergeMapping(), regroup: mergeRegroup([
+    { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-001", reason: "wrong target: names R-001's own home, not the feature actually absorbing Bravo's share (merge share, wrong target)" }] },
+    { id: "R-002", at: "FEAT-003", verdict: "keep", reason: "R-002 moves to Charlie with the merge (keep)" },
+    { id: "R-003", at: "FEAT-003", verdict: "keep", reason: "R-003 stays at Charlie (keep)" },
+  ]) };
+  const mergeWrongPage = join(scratchRoot, `merge-wrong-page-${++caseN}.md`);
+  writeFileSync(join(mergeDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(mergeWrongTarget, null, 2)}\n`);
+  const mergeWrongRun = regroup(["--root", mergeDir, "--proposal", join(mergeDir, "docs", "regroup", "proposal.json"), "--out", mergeWrongPage], scratchRoot);
+  const mergeWrongOk = mergeWrongRun.status === 1 && !crashed(mergeWrongRun) && !existsSync(mergeWrongPage) &&
+    saysOwn(mergeWrongRun, "FEAT-003") && saysOwn(mergeWrongRun, "R-001") && saysOwn(mergeWrongRun, "also_applies") && saysOwn(mergeWrongRun, "has no share verdict targeting FEAT-003");
+  // req: R-1187
+  check("R-1187: a merge's carried share is refused when its row's share verdict targets a feature other than the one actually absorbing it, naming the absorbing feature",
+    mergeWrongOk, `status=${mergeWrongRun.status} ` + own(mergeWrongRun.stderr).slice(0, 2).join(" | "));
 }
 {
   // The demotion case: Bravo (still a top-level feature above) instead becomes a SUBGROUP of
