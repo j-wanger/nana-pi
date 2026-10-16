@@ -404,18 +404,35 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
 // ================================================================== T4
 {
   const UNSORTED = "Not yet sorted:";
+  // Item 5 (M4): every case keeps its matching claim's quoted text in step with the mutated
+  // purpose/outcome, so R-1184's stale-claim-text check cannot refuse it first — only the
+  // placeholder check itself (R-1172) can, and each case asserts that check's own words
+  // ("purpose still starts with" / "outcome still starts with"), not just the node's ID.
+  const placeholderOf = (id) => `${UNSORTED} the rows of old section "${id} (M4 fixture)".`;
+  const syncClaim = (q, node, field, text) => { q.regroup.review.claims.find((c) => c.node === node && c.field === field).text = text; };
   const cases = [
-    ["FEAT-001 keeps a placeholder purpose", variant((q) => { mappingNodesOf(q).find((x) => x.id === "FEAT-001").node.purpose = `${UNSORTED} the rows of old section "1. Load files".`; }), ["FEAT-001"]],
-    ["CAP-02 keeps a placeholder outcome", variant((q) => { q.tree[1].outcome = `${UNSORTED} the rows of old section "Part B. Report" sorted into the tree.`; }), ["CAP-02"]],
-    ["SUB-001 keeps a placeholder purpose", variant((q) => { mappingNodesOf(q).find((x) => x.id === "SUB-001").node.purpose = `${UNSORTED} the rows of old section "2a. Sizing".`; }), ["SUB-001"]],
-    // Mutation survivor 2/8 (brief 2, "Also fix"): R-1184's stale-claim-text check was masking
-    // the placeholder check, since the claim's quoted text no longer matched the new purpose.
-    // Here the claim is kept in sync, so only the placeholder check itself can catch it.
-    ["FEAT-001 keeps a placeholder purpose with its claim kept in sync, so only the placeholder check catches it", variant((q) => {
-      const ph = `${UNSORTED} the rows of old section "1. Load files".`;
+    ["FEAT-001 keeps a placeholder purpose, claim kept in step", variant((q) => {
+      const ph = placeholderOf("FEAT-001");
       mappingNodesOf(q).find((x) => x.id === "FEAT-001").node.purpose = ph;
-      q.regroup.review.claims.find((c) => c.node === "FEAT-001" && c.field === "purpose").text = ph;
-    }), ["FEAT-001"]],
+      syncClaim(q, "FEAT-001", "purpose", ph);
+    }), ["FEAT-001", "purpose still starts with"]],
+    ["CAP-02 keeps a placeholder outcome, claim kept in step", variant((q) => {
+      const ph = placeholderOf("CAP-02");
+      q.tree[1].outcome = ph;
+      syncClaim(q, "CAP-02", "outcome", ph);
+    }), ["CAP-02", "outcome still starts with"]],
+    ["SUB-001 keeps a placeholder purpose, claim kept in step", variant((q) => {
+      const ph = placeholderOf("SUB-001");
+      mappingNodesOf(q).find((x) => x.id === "SUB-001").node.purpose = ph;
+      syncClaim(q, "SUB-001", "purpose", ph);
+    }), ["SUB-001", "purpose still starts with"]],
+    // Item 5 (M4): a capability's own purpose, not only its outcome — the only node level T4
+    // had never covered.
+    ["CAP-01 keeps a placeholder purpose, claim kept in step", variant((q) => {
+      const ph = placeholderOf("CAP-01");
+      q.tree[0].purpose = ph;
+      syncClaim(q, "CAP-01", "purpose", ph);
+    }), ["CAP-01", "purpose still starts with"]],
   ];
   const { ok: refuseOk, why } = allRefused(cases);
   const exempt = variant((q) => { const c = q.tree.find((x) => x.id === "CAP-90"); c.purpose = `${UNSORTED} reserved.`; c.outcome = `${UNSORTED} reserved.`; c.features[0].purpose = `${UNSORTED} reserved.`; for (const sg of c.features[0].subgroups) sg.purpose = `${UNSORTED} reserved.`; });
