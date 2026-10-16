@@ -500,29 +500,31 @@ const renderers = {
     return out.join("\n");
   },
   table(ctx) {
+    // R-1178 reworded: each row also carries the feature's label and status — a proposed gap
+    // reads "proposed" plainly, its own declared status, never a computed override.
     const feats = flattenProposalNodes(ctx.proposal).filter((x) => x.level === 2);
-    const out = ["## Features", "", "| Feature | Rows | Status mix |", "|---|---|---|"];
-    for (const x of feats) { const ids = featureRowIds(x.node); out.push(`| ${x.id} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`); }
+    const out = ["## Features", "", "| Feature | Label | Status | Rows | Status mix |", "|---|---|---|---|---|"];
+    for (const x of feats) { const ids = featureRowIds(x.node); out.push(`| ${x.id} | ${x.node.label ?? ""} | ${x.node.status ?? ""} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`); }
     out.push("");
     return out.join("\n");
   },
   nodes(ctx) {
-    // Nested by level (the flat list is already depth-first: capability, then its features,
-    // then each feature's subgroups), each with its ID, label and purpose (R-1178). A reserved
-    // node (M4) shows the label, purpose and outcome the lift's seed writes — never blank, and
-    // never proposal text the lift ignores, since the proposal need not (and often does not)
-    // carry one at all.
+    // Nested by HEADING LEVEL alone (the flat list is already depth-first: capability, then its
+    // features, then each feature's subgroups), each with its ID, label and purpose (R-1178) —
+    // no leading spaces: four of them make a Markdown code block, not a nested heading (finding
+    // 33), so nesting reads from the "#" count alone. A reserved node (M4) shows the label,
+    // purpose and outcome the lift's seed writes — never blank, and never proposal text the
+    // lift ignores, since the proposal need not (and often does not) carry one at all.
     const out = ["## Capabilities, features and subgroups", ""];
     for (const x of flattenProposalNodes(ctx.proposal)) {
       const reserved = RESERVED_NODES.has(x.id);
       const text = reserved ? seedNodeText(x.id, ctx.seed) : x.node;
-      const indent = "  ".repeat(x.level - 1);
       const mark = "#".repeat(x.level + 2);
-      out.push(`${indent}${mark} ${x.id} — ${text.label ?? ""}`, `${indent}Purpose: ${text.purpose ?? ""}`);
-      if (x.level === 1) out.push(`${indent}Outcome: ${text.outcome ?? ""}`);
+      out.push(`${mark} ${x.id} — ${text.label ?? ""}`, `Purpose: ${text.purpose ?? ""}`);
+      if (x.level === 1) out.push(`Outcome: ${text.outcome ?? ""}`);
       if ((x.node.status ?? "") === "proposed") {
         const ev = (ctx.proposal.regroup?.evidence?.[x.id] ?? []).map((p) => String(p).replace(/\\/g, "/"));
-        out.push(`${indent}Evidence: ${ev.join(", ")}`);
+        out.push(`Evidence: ${ev.join(", ")}`);
       }
       out.push("");
     }
@@ -537,12 +539,17 @@ const renderers = {
     return out.join("\n");
   },
   targets(ctx) {
+    // R-1179 reworded: each target line is marked move or share, gives the row's current
+    // home, and an asked target names its question's number rather than just "asked".
     const out = ["## Move and share targets", ""];
+    const questions = ctx.proposal.regroup?.questions ?? [];
     for (const v of ctx.proposal.regroup?.review?.verdicts ?? []) {
       if (v.verdict !== "move" && v.verdict !== "share") continue;
       for (const t of v.targets ?? []) {
-        const label = resolveTargetOutcome(ctx.proposal, v.id, t.to) ?? "unresolved";
-        out.push(`${v.id} -> ${t.to}: ${label} — ${t.reason}`, "");
+        const outcome = resolveTargetOutcome(ctx.proposal, v.id, t.to);
+        const qNum = outcome === "asked" ? questions.findIndex((q) => (q.about ?? []).some((a) => a.id === v.id && a.to === t.to)) + 1 : null;
+        const label = outcome === "asked" ? `asked in question ${qNum}` : outcome ?? "unresolved";
+        out.push(`${v.id} (home ${v.at}) -> ${t.to} [${v.verdict}]: ${label} — ${t.reason}`, "");
       }
     }
     return out.join("\n");

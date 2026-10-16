@@ -688,7 +688,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const dry = lift(["--root", pass.dir, "--mapping", pass.prop], scratchRoot);
   const proofLine = lines(dry.stdout).find((l) => l.startsWith("lift proof: "));
   const posQ1 = page.indexOf("1. Should the build budget row");
-  const posTable = page.indexOf("| Feature | Rows | Status mix |");
+  const posTable = page.indexOf("| Feature | Label | Status | Rows | Status mix |");
   const posNodes = page.indexOf("## Capabilities, features and subgroups");
   const posLines = page.indexOf("## Reported lines");
   const hdr = posQ1 > 0 ? page.slice(0, posQ1) : "";
@@ -697,10 +697,16 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const orderOk = posQ1 > 0 && posQ1 < posTable && posTable < posNodes && posNodes < posLines;
   const tableBlock = page.slice(posTable, posNodes);
   const tableOk = ["FEAT-001", "FEAT-002", "FEAT-004", "FEAT-005", "FEAT-900"].every((id) => tableBlock.includes(id)) && /\b3\b/.test(tableBlock) && /implemented/.test(tableBlock);
+  // R-1178 reworded: the feature table also carries each feature's label and status — a
+  // proposed gap (FEAT-005) reads "proposed" plainly (sol r3: "feature status dropped").
+  const tableStatusOk = tableBlock.includes("Build at production size") && tableBlock.includes("Render analyst pages") && /proposed/.test(tableBlock) && /active/.test(tableBlock);
   const nodesBlock = page.slice(posNodes, posLines);
   const purposesOk = ["CAP-01", "FEAT-001", "SUB-001", "CAP-02", "FEAT-004", "FEAT-005"].every((id) => nodesBlock.includes(id)) && (nodesBlock.includes("src/report/render.mjs") || nodesBlock.includes("src\\report\\render.mjs"));
   // Every node is nested (a feature's heading sits deeper than its capability's) and shows its label.
   const nestedOk = nodesBlock.includes("Load source files") && nodesBlock.indexOf("#### FEAT-001") > nodesBlock.indexOf("### CAP-01") && nodesBlock.indexOf("##### SUB-001") > nodesBlock.indexOf("#### FEAT-002");
+  // Nodes nest by heading level alone, with no leading spaces (four spaces make a Markdown
+  // code block, not a nested heading — finding 33).
+  const noIndentOk = !/^[ \t]+#/m.test(nodesBlock) && !/^[ \t]+(Purpose|Outcome|Evidence):/m.test(nodesBlock);
   // M4: a reserved node (CAP-90, FEAT-900, SUB-900...) shows the lift's seed text, never blank
   // and never proposal text the lift ignores — the honest fixture's reserved nodes carry no
   // label, purpose or outcome of their own, so this is blank unless the page reads the seed.
@@ -709,8 +715,8 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     nodesBlock.includes("Keep engineering promises checkable") && nodesBlock.includes("Adopt the general engineering requirements");
   // req: R-1178
   check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
-    pass.r.status === 0 && headerOk && orderOk && tableOk && purposesOk && nestedOk && reservedOk,
-    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} purposes=${purposesOk} nested=${nestedOk} reserved=${reservedOk}`);
+    pass.r.status === 0 && headerOk && orderOk && tableOk && tableStatusOk && purposesOk && nestedOk && noIndentOk && reservedOk,
+    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} tableStatus=${tableStatusOk} purposes=${purposesOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
 }
 
 // ================================================================== T15
@@ -736,7 +742,11 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const linesBlock = page.slice(posLines, posTargets);
   const linesOk = linesBlock.includes(`Line ${L30}: "${H.build}" -> FEAT-004 (rows R-008)`);
   const targetsBlock = page.slice(posTargets, posClaims);
-  const targetsOk = /R-003 -> FEAT-004: refuted/.test(targetsBlock) && /R-005 -> FEAT-001: asked/.test(targetsBlock) && /R-005 -> FEAT-004: refuted/.test(targetsBlock);
+  // R-1179 reworded: each target line is marked move or share, gives the row's current home,
+  // and an asked target reads "asked in question <n>" (sol r3: "question number dropped").
+  const targetsOk = /R-003 \(home FEAT-001\) -> FEAT-004 \[move\]: refuted/.test(targetsBlock) &&
+    /R-005 \(home FEAT-002\) -> FEAT-001 \[share\]: asked in question 1\b/.test(targetsBlock) &&
+    /R-005 \(home FEAT-002\) -> FEAT-004 \[share\]: refuted/.test(targetsBlock);
   const claimsBlock = page.slice(posClaims, posPlaced);
   const claimsOk = claimsBlock.includes("reject zulu");
   const placedBlock = page.slice(posPlaced, posRefuted);
