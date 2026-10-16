@@ -1024,8 +1024,10 @@ if (process.platform !== "win32") {
     nodesBlock.includes("a rendered project's engineering promises are visible and checkable from day one") &&
     nodesBlock.includes("hold the general engineering rows every nana project ships, unedited per project") &&
     nodesBlock.includes("Keep engineering promises checkable") && nodesBlock.includes("Adopt the general engineering requirements");
+  // Seat-titles (frozen, build 1 §5, T14): this exact title is required verbatim; the
+  // strengthened clauses above (item 4) are asserted in the body, not the title.
   // req: R-1178
-  check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions each with its recommendation, the feature table with each feature's status mix and subtree row count, and every node with its purpose, a capability's outcome, a reserved node's seed outcome and each proposed feature's evidence",
+  check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
     pass.r.status === 0 && headerOk && orderOk && recommendationOk && tableOk && tableStatusOk && tableReservedOk && statusMixOk && purposesOk && purposeTextOk && outcomeTextOk && nestedOk && noIndentOk && reservedOk,
     `status=${pass.r.status} header=${headerOk} order=${orderOk} recommendation=${recommendationOk} table=${tableOk} tableStatus=${tableStatusOk} tableReserved=${tableReservedOk} statusMix=${statusMixOk} purposes=${purposesOk} purposeText=${purposeTextOk} outcomeText=${outcomeTextOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
 }
@@ -1130,8 +1132,10 @@ if (process.platform !== "win32") {
     appendixBlock.slice(posAppFeat001, posAppFeat002).includes("R-001") &&
     !appendixBlock.slice(posAppFeat001, posAppFeat002).includes("R-004") &&
     appendixBlock.slice(posAppFeat002).includes("R-004");
+  // Seat-titles (frozen, build 1 §5, T16): this exact title is required verbatim; the
+  // strengthened clauses above (item 4) are asserted in the body, not the title.
   // req: R-1179
-  check("R-1179: the page lists each reported line with its reason and rows, each move and share target with its own reason and outcome, each rejected claim named with its reason, each text-placed row with its gist, home and reason, and every row grouped by node only in the appendix after them",
+  check("R-1179: the page lists each reported line with its reason and rows, each move and share target with its own outcome, each rejected claim with its reason, each text-placed row with its reason, and every row only in the appendix after them",
     pass.r.status === 0 && orderOk && linesOk && lineReasonOk && targetsOk && targetReasonOk && claimsOk && placedOk && placedFieldsOk && refutedOk && appendixOk && appendixGroupOk,
     `order=${orderOk} lines=${linesOk} lineReason=${lineReasonOk} targets=${targetsOk} targetReason=${targetReasonOk} claims=${claimsOk} placed=${placedOk} placedFields=${placedFieldsOk} refuted=${refutedOk} appendix=${appendixOk} appendixGroup=${appendixGroupOk}`);
 }
