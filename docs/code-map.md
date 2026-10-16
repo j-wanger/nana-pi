@@ -667,7 +667,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the review page written to <page> on success, or a named refusal on stderr with no page written
 - **effects** — disk (reads the ledger and the proposal; writes <page> through a plain write, removing an earlier page of its own on failure), process (spawns the lift read-only, no shell; exit 0/1/2)
 - **errors** — exit 2 for a usage error, naming --root, --proposal and --out; exit 1 for a named refusal (an --out collision, a lift problem, a regroup check); never a crash on honest input variation
-- **callers** — —
+- **callers** — `packages/nana-pack/tests/requirements-regroup.test.mjs`
 - **callees** — `scripts/requirements-lift.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/requirements-trace.mjs`
@@ -1812,7 +1812,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (creates fixtures and scratch files under the OS temp directory; never touches a real project), process (spawns node as a child)
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-regroup.mjs`
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
 
