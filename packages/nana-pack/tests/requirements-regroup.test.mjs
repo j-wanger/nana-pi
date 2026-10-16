@@ -184,6 +184,22 @@ function allRefused(cases) {
   }
   return { ok: true, why: "" };
 }
+/**
+ * A private copy of the regroup/lift module graph, laid out exactly like this checkout
+ * (scripts/ beside templates/typescript/template/tests/ so every relative import still
+ * resolves), under the scratch root. Used to aim --out at "the lift script" without ever
+ * pointing at the tracked scripts/requirements-lift.mjs in this checkout (item 8b).
+ */
+function mirrorScripts() {
+  const mirror = join(scratchRoot, `mirror-${++caseN}`);
+  const files = [
+    "scripts/requirements-regroup.mjs", "scripts/requirements-lift.mjs", "scripts/requirements-lift-proof.mjs",
+    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs",
+    "templates/typescript/template/tests/requirements-trace.ts",
+  ];
+  for (const rel of files) { const dest = join(mirror, rel); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, readFileSync(join(REPO_ROOT, rel))); }
+  return { regroup: join(mirror, "scripts/requirements-regroup.mjs"), lift: join(mirror, "scripts/requirements-lift.mjs") };
+}
 
 // ================================================================== T1 is pinned in requirements-lift.test.mjs (R-1170).
 
@@ -290,12 +306,16 @@ if (process.platform !== "win32") {
 }
 {
   // Pin R-1171's "the lift and each evidence path" clause: --out naming the lift script, or
-  // an evidence path the proposal names, is refused and leaves that file byte-identical.
+  // an evidence path the proposal names, is refused and leaves that file byte-identical. The
+  // lift-script case runs against a private mirror of the module graph (item 8b), never the
+  // scripts/requirements-lift.mjs tracked in this checkout — a regression here must not
+  // overwrite a real source file.
   const dir = fxRoot("t19c-lift-and-evidence", fxProposal());
   const prop = join(dir, PROP_REL);
-  const liftBefore = readFileSync(LIFT);
-  const liftRun = regroup(["--root", dir, "--proposal", prop, "--out", LIFT], scratchRoot);
-  const liftOk = liftRun.status === 1 && !crashed(liftRun) && readFileSync(LIFT).equals(liftBefore);
+  const mirror = mirrorScripts();
+  const liftBefore = readFileSync(mirror.lift);
+  const liftRun = regroup(["--root", dir, "--proposal", prop, "--out", mirror.lift], scratchRoot, mirror.regroup);
+  const liftOk = liftRun.status === 1 && !crashed(liftRun) && readFileSync(mirror.lift).equals(liftBefore);
   const evidencePath = join(dir, "src", "report", "render.mjs");
   const evBefore = readFileSync(evidencePath);
   const evRun = regroup(["--root", dir, "--proposal", prop, "--out", evidencePath], scratchRoot);
@@ -317,7 +337,9 @@ if (process.platform !== "win32") {
   const body = "# my notes\n\nThis file is not a review page.\n";
   writeFileSync(notes, body);
   const third = runFx("not-a-page-fail", failing, { out: notes });
-  const untouched = third.r.status === 1 && !crashed(third.r) && readFileSync(notes, "utf8") === body;
+  // Survivor 2/7: a removed file fails this check instead of throwing ENOENT and crashing
+  // the whole test file before any later check runs.
+  const untouched = third.r.status === 1 && !crashed(third.r) && existsSync(notes) && readFileSync(notes, "utf8") === body;
   // A run that would otherwise crash on a malformed shape (brief 2 item 3) is refused, not
   // crashed, and still removes an earlier page at --out.
   const pagePath2 = join(scratchRoot, "earlier-page-shape.md");
@@ -401,8 +423,12 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     [`reason for line ${L22} -> SUB-001 missing`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); q.regroup.review.claims = q.regroup.review.claims.filter((c) => c.line !== L22); }), [String(L22)]],
     [`reason for line ${L37} -> FEAT-004 repeated`, variant((q) => { q.regroup.reasons.push({ ...q.regroup.reasons.find((r) => r.line === L37 && r.to === "FEAT-004") }); }), [String(L37)]],
     [`stale reason for line ${L7}`, variant((q) => { q.regroup.reasons.push({ line: L7, to: "FEAT-002", why: "a reason for a line the lift does not report (stale)" }); }), [String(L7)]],
-    [`two same-text headings reasoned by text (line ${L30})`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-002"); r.line = L15; q.regroup.review.claims = q.regroup.review.claims.filter((c) => !(c.line === L30 && c.to === "FEAT-002")); }), [String(L30)]],
-    [`reason for line ${L30} -> FEAT-004 given as the string "${L30}", not an integer`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-004"); r.line = String(r.line); }), [String(L30)]],
+    // Survivor 4/4: L15 and L30 both hold the heading text "Build at production size", each
+    // with its own reason to FEAT-002. Removing only L30's — never touching its claim, so no
+    // other check also fires — reds only when reasons key by line, never by heading text (a
+    // text key would wrongly see L15's reason as already covering L30 too).
+    [`two same-text headings stay distinct by line, not text (line ${L30} -> FEAT-002's own reason removed)`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L30 && r.to === "FEAT-002")); }), [String(L30), "FEAT-002", "no reason"]],
+    [`reason for line ${L30} -> FEAT-004 given as the string "${L30}", not an integer`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-004"); r.line = String(r.line); }), [String(L30), "must be an integer"]],
     // M3: a reason's "to" of ["CAP-01"] stringifies to "CAP-01" inside a template-literal key
     // and would otherwise pass by coercion — it must be refused by its own exact type instead.
     [`reason for line -> CAP-01 given "to" as ["CAP-01"], not a string`, variant((q) => { const r = q.regroup.reasons.find((y) => y.to === "CAP-01"); r.to = ["CAP-01"]; }), ["regroup.reasons", "to"]],
@@ -430,9 +456,13 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     ["FEAT-005 names a path that `..` leads outside the root", variant((q) => { q.regroup.evidence["FEAT-005"] = ["../outside.txt"]; }), ["FEAT-005"]],
     // An "active" feature with no rows anywhere (not even in a subgroup) is a gap in
     // disguise; it needs evidence just as a "proposed" gap does (Also fix, build brief 2).
+    // Its own purpose claim is added too (survivor B2/16): otherwise R-1184's missing-claim
+    // check refuses the same proposal first, so only a check removed for this exact case —
+    // not R-1174's evidence demand — would have been caught.
     ["an active feature with no rows and no evidence path is refused like a gap", variant((q) => {
       q.tree[1].features.push({ id: "FEAT-006", label: "Archive analyst pages", purpose: "Archive the rendered analyst pages after the case closes; no row holds it yet.", status: "active", from: [], rows: [], subgroups: [] });
-    }), ["FEAT-006"]],
+      q.regroup.review.claims.push({ node: "FEAT-006", field: "purpose", text: "Archive the rendered analyst pages after the case closes; no row holds it yet.", verdict: "accept", reason: "the claim matches the fixture's feature (claim FEAT-006)" });
+    }), ["FEAT-006", "evidence"]],
   ];
   const { ok, why } = allRefused(cases);
   const pass = runFx("backslash-pass", fxProposal());
@@ -548,7 +578,10 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   mkdirSync(join(dir, "tests"), { recursive: true });
   writeFileSync(join(dir, "tests", "mini.test.mjs"), "// fixture test file\n");
   // basketball-geek writes evidence the trace rail's plain way: no backticks, split on commas.
-  const plainCell = "tests/mini.test.mjs::R-900: plain form evidence, tests/missing.test.mjs::a title, with a comma in it";
+  // The missing citation comes FIRST (item 8d): if the cell is read as one whole string
+  // instead of split on its comma, the path extracted is the missing one, wrongly marking
+  // this text-placed — only a real comma split reaches the second, real citation.
+  const plainCell = "tests/missing.test.mjs::a title with a comma in it, tests/mini.test.mjs::R-900: plain form evidence";
   const backtickCell = "`tests/mini.test.mjs::R-900: backtick form evidence`";
   const missingCell = "tests/missing.test.mjs::a title that names no real path";
   const plainOk = !isTextPlaced(dir, { id: "R-900", evidence: plainCell });
@@ -772,7 +805,8 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     ["FEAT-002's purpose claim quotes a stale text", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-002" && c.field === "purpose")].text = "Build the dataset (an older wording)."; }), ["FEAT-002"]],
     ["SUB-001's purpose claim has an empty reason", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "SUB-001")].reason = ""; }), ["SUB-001"]],
     ["CAP-01's purpose claim is neither accept nor reject", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].verdict = "maybe"; }), ["CAP-01"]],
-    [`line ${L7} -> FEAT-001 reason's claim line is a string, not an integer`, variant((q) => { const c = q.regroup.review.claims[claimAt(q, (c) => c.line === L7 && c.to === "FEAT-001")]; c.line = String(c.line); }), [String(L7)]],
+    // Survivor B2/9: names the type check's own message, not only the row/line value.
+    [`line ${L7} -> FEAT-001 reason's claim line is a string, not an integer`, variant((q) => { const c = q.regroup.review.claims[claimAt(q, (c) => c.line === L7 && c.to === "FEAT-001")]; c.line = String(c.line); }), [String(L7), "must be an integer"]],
   ];
   const { ok, why } = allRefused(cases);
   const exempt = runFx("reserved-no-claims", variant((q) => {}));
