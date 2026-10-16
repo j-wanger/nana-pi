@@ -288,6 +288,22 @@ if (process.platform !== "win32") {
   // req: R-1171
   check("R-1171: an --out naming a directory is refused, never a crash", ok, `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
 }
+{
+  // Pin R-1171's "the lift and each evidence path" clause: --out naming the lift script, or
+  // an evidence path the proposal names, is refused and leaves that file byte-identical.
+  const dir = fxRoot("t19c-lift-and-evidence", fxProposal());
+  const prop = join(dir, PROP_REL);
+  const liftBefore = readFileSync(LIFT);
+  const liftRun = regroup(["--root", dir, "--proposal", prop, "--out", LIFT], scratchRoot);
+  const liftOk = liftRun.status === 1 && !crashed(liftRun) && readFileSync(LIFT).equals(liftBefore);
+  const evidencePath = join(dir, "src", "report", "render.mjs");
+  const evBefore = readFileSync(evidencePath);
+  const evRun = regroup(["--root", dir, "--proposal", prop, "--out", evidencePath], scratchRoot);
+  const evOk = evRun.status === 1 && !crashed(evRun) && readFileSync(evidencePath).equals(evBefore);
+  // req: R-1171
+  check("R-1171: an --out naming the lift script or a proposal's evidence path is refused and leaves that file byte-identical",
+    liftOk && evOk, `lift status=${liftRun.status} ok=${liftOk}; evidence status=${evRun.status} ok=${evOk}`);
+}
 
 // ================================================================== T21
 {
@@ -394,6 +410,33 @@ if (process.platform !== "win32") {
   const passOk = pass.r.status === 0 && !crashed(pass.r);
   // req: R-1175
   check("R-1175: each move or share target needs exactly one outcome keyed by row and target, so a share carried to one feature and refuted for another passes, and a target left unresolved or resolved twice is refused", ok && passOk, why || `mixed-share pass status=${pass.r.status}`);
+}
+
+// ================================================================== R-1175 (direct call: CHANGE §3.4 item 2 / residual 2)
+{
+  // The lift itself refuses an `also_applies` line until regroup-shares lands, so the
+  // "carried" outcome can be exercised only by calling regroupProblems/resolveTargetOutcome
+  // directly, never through the CLI (pins the clause that only an untested direct call covered).
+  const shareP = variant((q) => {
+    q.regroup.refuted = q.regroup.refuted.filter((r) => !(r.id === "R-005" && r.to === "FEAT-004"));
+    mappingNodesOf(q).find((x) => x.id === "FEAT-004").node.also_applies = ["R-005"];
+  });
+  const shareDir = fxRoot("direct-carried-share", shareP);
+  const sharedProblems = regroupProblems(shareP, FX, shareDir).problems;
+  const sharedOutcome = resolveTargetOutcome(shareP, "R-005", "FEAT-004");
+
+  const moveP = variant((q) => {
+    q.regroup.refuted = q.regroup.refuted.filter((r) => !(r.id === "R-003" && r.to === "FEAT-004"));
+    mappingNodesOf(q).find((x) => x.id === "FEAT-004").node.also_applies = ["R-003"];
+  });
+  const moveDir = fxRoot("direct-no-carry-for-move", moveP);
+  const moveProblems = regroupProblems(moveP, FX, moveDir).problems;
+  const moveOutcome = resolveTargetOutcome(moveP, "R-003", "FEAT-004");
+
+  // req: R-1175
+  check("R-1175: regroupProblems called directly accepts a share's target carried in also_applies, and a move target never counts as carried even when also_applies names it",
+    sharedProblems.length === 0 && sharedOutcome === "carried" && moveOutcome !== "carried" && moveProblems.some((p) => p.includes("R-003") && p.includes("unresolved")),
+    `shareProblems=${sharedProblems.length} share=${sharedOutcome} move=${moveOutcome} moveProblems=${moveProblems.slice(0, 2).join(" | ")}`);
 }
 
 // ================================================================== T9

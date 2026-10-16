@@ -248,19 +248,24 @@ function allEvidenceAbsPaths(proposal, rootDir) {
 }
 
 // ---------------------------------------------------------------------- R-1175: the review record
+/** The row's own verdict entry, or undefined when none names it. */
+function verdictFor(proposal, id) { return (proposal.regroup?.review?.verdicts ?? []).find((v) => v.id === id); }
+/** also_applies carries a row only for a share (R-1175: "carried" is for a share only; a move target never counts as carried). */
+function isCarried(proposal, id, to) {
+  const target = flattenProposalNodes(proposal).find((x) => x.id === to);
+  return verdictFor(proposal, id)?.verdict === "share" && !!target?.node?.also_applies?.includes(id);
+}
 function targetOutcomeCount(proposal, id, to) {
   // Each matching entry counts on its own (a target resolved twice over the SAME outcome — refuted
   // twice, or asked by two different questions — is "resolved more than once" just as a mixed one is).
   let n = 0;
-  const target = flattenProposalNodes(proposal).find((x) => x.id === to);
-  if (target?.node?.also_applies?.includes(id)) n++;
+  if (isCarried(proposal, id, to)) n++;
   n += (proposal.regroup?.refuted ?? []).filter((r) => r.id === id && r.to === to).length;
   for (const q of proposal.regroup?.questions ?? []) n += (q.about ?? []).filter((a) => a.id === id && a.to === to).length;
   return n;
 }
 export function resolveTargetOutcome(proposal, id, to) {
-  const target = flattenProposalNodes(proposal).find((x) => x.id === to);
-  if (target?.node?.also_applies?.includes(id)) return "carried";
+  if (isCarried(proposal, id, to)) return "carried";
   if ((proposal.regroup?.refuted ?? []).some((r) => r.id === id && r.to === to)) return "refuted";
   if ((proposal.regroup?.questions ?? []).some((q) => (q.about ?? []).some((a) => a.id === id && a.to === to))) return "asked";
   return null;
