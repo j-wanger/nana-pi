@@ -223,6 +223,16 @@ function mirrorScripts() {
   // req: R-1171
   check("R-1171: a passing proposal writes the review page, and one the lift's dry run refuses writes no page and names the lift's problem", okPass && okRefused,
     `pass: status=${pass.r.status} text=${pass.text !== null} refused: status=${badRun.r.status} words=${liftWords.length}`);
+  // Item 9 (finding 40): a run the LIFT refuses (not only a regroup-level problem) still
+  // removes an earlier review page at --out.
+  const liftFailPage = join(scratchRoot, `lift-fail-page-${++caseN}.md`);
+  const liftFailFirst = runFx("lift-fail-earlier-page", fxProposal(), { out: liftFailPage });
+  const hadLiftFailPage = liftFailFirst.r.status === 0 && existsSync(liftFailPage);
+  const liftFailSecond = runFx("lift-fail-earlier-page-fail", bad, { out: liftFailPage });
+  const liftFailRemoved = hadLiftFailPage && liftFailSecond.r.status === 1 && !crashed(liftFailSecond.r) && !existsSync(liftFailPage);
+  // req: R-1171
+  check("R-1171: a run the lift's dry run refuses removes an earlier review page at --out, same as a regroup-level refusal", liftFailRemoved,
+    `hadPage=${hadLiftFailPage} status=${liftFailSecond.r.status} page=${existsSync(liftFailPage)}`);
 }
 
 // ================================================================== T3
@@ -480,7 +490,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     saysOwn(movedRun.r, `line ${L15} -> FEAT-002 has more than one reason`) &&
     saysOwn(movedRun.r, `line ${L30} -> FEAT-002 has no reason`);
   // req: R-1173
-  check(`R-1173: line ${L30}'s reason for -> FEAT-002 given at line ${L15} instead is refused naming both line ${L15}'s excess reason and line ${L30}'s missing one`,
+  check("R-1173: line 30's reason for -> FEAT-002 given at line 15 instead is refused naming both line 15's excess reason and line 30's missing one",
     movedOk, `status=${movedRun.r.status} crashed=${crashed(movedRun.r)} page=${existsSync(movedRun.page)} ` + own(movedRun.r.stderr).slice(0, 3).join(" | "));
   // req: R-1173
   check("R-1173: each line the lift reports needs exactly one reason by old line and node, a missing, repeated or stale reason is refused, and two same-text headings are reasoned apart", ok, why);
@@ -532,6 +542,14 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     // Item 8 (B2/23): the unknown-row message's own words — "names no move or share target",
     // the OTHER check that also names R-999, reads differently and must not be mistaken for it.
     ["a question's about entry names a row the ledger does not hold", variant((q) => { q.regroup.questions[0].about.push({ id: "R-999", to: "FEAT-001" }); }), ["R-999", "which is not in this ledger"]],
+    // Item 9 (finding 38): a refuted entry's own reason, empty.
+    ["a refuted entry's reason is empty", variant((q) => { q.regroup.refuted[0].reason = ""; }), ["R-003", "FEAT-004", "has an empty reason"]],
+    // Item 9 (finding 38): a move or share verdict naming targets as an empty array (not a
+    // missing field) is still "no target named".
+    ["R-003's move verdict names targets as an empty array", variant((q) => { verdictOf(q, "R-003").targets = []; }), ["R-003", "names no target"]],
+    // Item 9 (finding 38): a target refuted twice (two refuted entries for the same row and
+    // target), not only a target mixed between refuted and asked (T8's own case).
+    ["R-003's move target FEAT-004 is refuted twice", variant((q) => { q.regroup.refuted.push({ ...q.regroup.refuted.find((r) => r.id === "R-003" && r.to === "FEAT-004") }); }), ["R-003", "FEAT-004", "resolved more than once"]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1175
@@ -549,15 +567,34 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const { ok, why } = allRefused(cases);
   const pass = runFx("mixed-share-pass", fxProposal());
   const passOk = pass.r.status === 0 && !crashed(pass.r);
+  // Item 9 (finding 42): the title's "a share carried … passes" needs an actual carried share,
+  // run through the command — now that the lift carries shares for real (seat amendment 2
+  // landed), not only through a direct call to regroupProblems. FEAT-002 adds a fresh share of
+  // R-010 (owned by FEAT-004); the input ledger is flat, so this is a brand new share, not one
+  // carried from an old heading.
+  const sharedPass = variant((q) => {
+    const feat002 = mappingNodesOf(q).find((x) => x.id === "FEAT-002").node;
+    feat002.shares_added = ["R-010"];
+    feat002.also_applies = ["R-010"];
+    const v10 = verdictOf(q, "R-010");
+    delete v10.reason;
+    v10.verdict = "share";
+    v10.targets = [{ to: "FEAT-002", reason: "the escaping rule also bounds the production-size build (shared through the command)" }];
+  });
+  const sharedRun = runFx("carried-share-via-command", sharedPass);
+  const sharedPage = sharedRun.text ?? "";
+  const sharedOk = sharedRun.r.status === 0 && !crashed(sharedRun.r) && /R-010 \(home FEAT-004\) -> FEAT-002 \[share\]: carried/.test(sharedPage);
   // req: R-1175
-  check("R-1175: each move or share target needs exactly one outcome keyed by row and target, so a share carried to one feature and refuted for another passes, and a target left unresolved or resolved twice is refused", ok && passOk, why || `mixed-share pass status=${pass.r.status}`);
+  check("R-1175: each move or share target needs exactly one outcome keyed by row and target, so a share carried to one feature and refuted for another passes, and a target left unresolved or resolved twice is refused", ok && passOk && sharedOk, why || `mixed-share pass status=${pass.r.status} shared status=${sharedRun.r.status} shared=${sharedOk}`);
 }
 
 // ================================================================== R-1175 (direct call: CHANGE §3.4 item 2 / residual 2)
 {
-  // The lift itself refuses an `also_applies` line until regroup-shares lands, so the
-  // "carried" outcome can be exercised only by calling regroupProblems/resolveTargetOutcome
-  // directly, never through the CLI (pins the clause that only an untested direct call covered).
+  // T8 above now exercises a genuine carried share through the real command (seat amendment 2
+  // landed). This direct call is still needed for the move case: a real lift run would always
+  // refuse an `also_applies` that names a row no `shares_added` backs, so the only way to pin
+  // "a move's target is never carried even when also_applies wrongly names it" is to build that
+  // inconsistent state by hand and call regroupProblems/resolveTargetOutcome directly.
   const shareP = variant((q) => {
     q.regroup.refuted = q.regroup.refuted.filter((r) => !(r.id === "R-005" && r.to === "FEAT-004"));
     mappingNodesOf(q).find((x) => x.id === "FEAT-004").node.also_applies = ["R-005"];
@@ -605,6 +642,16 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   // req: R-1175
   check("R-1175: a record whose drafter and reviewer share a lineage is refused unless it declares same-family", badOk && goodOk && caseOnlyOk && falseFlagOk && trailingSpaceOk,
     `bad status=${badRun.r.status} good status=${goodRun.r.status} caseOnly status=${caseOnlyRun.r.status} falseFlag status=${falseFlagRun.r.status} trailingSpace status=${trailingSpaceRun.r.status}`);
+}
+// Item 9 (finding 38): a review record must NAME its drafter and reviewer lineages — an empty
+// or missing one is refused on its own, apart from the same-lineage clause above.
+{
+  const noDrafter = variant((q) => { delete q.regroup.review.drafter; });
+  const noDrafterOk = refusedCase(noDrafter, ["names no drafter lineage"]);
+  const emptyReviewer = variant((q) => { q.regroup.review.reviewer = ""; });
+  const emptyReviewerOk = refusedCase(emptyReviewer, ["names no reviewer lineage"]);
+  // req: R-1175
+  check("R-1175: a review record names no drafter or an empty reviewer lineage is refused", noDrafterOk && emptyReviewerOk, `noDrafter=${noDrafterOk} emptyReviewer=${emptyReviewerOk}`);
 }
 
 // ================================================================== T10
@@ -668,10 +715,13 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const x = runFx("cap", p);
   const errLines = own(x.r.stderr);
   const shown = new Set(errLines.flatMap((l) => [...l.matchAll(/(?<![\w-])x\d{2}(?![\w-])/g)].map((m) => m[0])));
-  const restMatch = errLines.some((l) => /\b(\d+)\b[^\n]*\bmore\b/.test(l));
+  // Item 9 (finding 45): the exact count of the REST (N minus the cap, 20), not just any
+  // digit near "more" — printing the total (60) instead must go red.
+  const restMatch = errLines.some((l) => new RegExp(`\\b${N - 40}\\b[^\\n]*\\bmore\\b`).test(l));
+  const totalMismatch = !errLines.some((l) => new RegExp(`\\b${N}\\b[^\\n]*\\bmore\\b`).test(l));
   // req: R-1177
-  check("R-1177: a proposal with more problems than the cap prints at most the problem-line cap and the count of the rest", x.r.status === 1 && !crashed(x.r) && errLines.length <= 41 && shown.size > 0 && shown.size <= 40 && restMatch && !existsSync(x.page),
-    `lines=${errLines.length} shown=${shown.size} rest=${restMatch}`);
+  check("R-1177: a proposal with more problems than the cap prints at most the problem-line cap and the count of the rest", x.r.status === 1 && !crashed(x.r) && errLines.length <= 41 && shown.size > 0 && shown.size <= 40 && restMatch && totalMismatch && !existsSync(x.page),
+    `lines=${errLines.length} shown=${shown.size} rest=${restMatch} totalMismatch=${totalMismatch}`);
 }
 
 // ================================================================== T12
@@ -971,6 +1021,15 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const bad = allRefused([
     [`line ${L30} -> FEAT-004's rejected reason named in no question`, variant((q) => { q.regroup.questions = q.regroup.questions.slice(0, 1); }), [String(L30)]],
     ["FEAT-001's purpose claim is rejected and named in no question", variant((q) => { const c = q.regroup.review.claims[claimAt(q, (y) => y.node === "FEAT-001" && y.field === "purpose")]; c.verdict = "reject"; }), ["FEAT-001"]],
+    // Item 9 (finding 49): the match keys by field as well as node — CAP-01's purpose and
+    // outcome are both rejected, but the question names only the purpose field, so the
+    // outcome's rejection must still be named in no question (a node-only match would
+    // wrongly see the purpose question as covering the outcome too).
+    ["CAP-01's outcome is rejected and named in no question, though a question names CAP-01's purpose field", variant((q) => {
+      q.regroup.review.claims[claimAt(q, (y) => y.node === "CAP-01" && y.field === "purpose")].verdict = "reject";
+      q.regroup.review.claims[claimAt(q, (y) => y.node === "CAP-01" && y.field === "outcome")].verdict = "reject";
+      q.regroup.questions.push({ ask: "Should CAP-01's purpose be reworded (ask field-match)?", recommendation: "Yes (recommend field-match).", about: [{ node: "CAP-01", field: "purpose" }] });
+    }), ["CAP-01", "outcome", "named in no question"]],
   ]);
   const good = runFx("rejected-in-question-pass", fxProposal());
   const goodOk = good.r.status === 0 && !crashed(good.r);
