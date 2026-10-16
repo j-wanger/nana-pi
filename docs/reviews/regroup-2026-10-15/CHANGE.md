@@ -346,3 +346,20 @@ and passes with one, and its page line reads `share` and `carried`.
 **Review.** The plan item is at its three-round cap. This amendment is recorded here and named in the final review brief
 for sol and astra, who review the whole lane, so it gets no separate plan round.
 
+## Seat amendment 4 (2026-10-16): only a share that stays on its own feature goes unreviewed
+
+sol's final review round 1 (`sol-r1.md`, MUST 1) found a share reaching the ledger unreviewed. A proposal can reuse an
+input feature's ID for a feature built from a different old heading and declare `shares_added` for a row the old feature
+of that ID happened to share. Amendment 3's exemption looks only at the ID, so the checker asks for no verdict and the
+page never shows the share. The seat names it a fail-open bug and narrows the exemption.
+
+| ID | Change | Text |
+|---|---|---|
+| R-1187 | reworded | The regroup checker shall refuse a proposal unless each row a feature's `shares_added` or `shares_dropped` names, and each other row its `also_applies` names that is not a share the input ledger's feature of the same ID held and that feature's own `from` carries over, has a `share` verdict with that feature among its targets. |
+
+So a declared add or drop always needs a verdict. A carried share needs none only when the feature continues the input
+feature of its ID: it names that feature's old heading in its own or its subgroups' `from`, and that feature shared the
+row. Every other share in `also_applies` — moved by a merge or a demotion, or riding on a reused ID — needs one.
+
+**Tests.** T24 keeps its title and gains the reused-ID case: refused without a share verdict, passing with one.
+
