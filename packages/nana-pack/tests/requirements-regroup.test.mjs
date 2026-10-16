@@ -551,9 +551,14 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const falseFlag = variant((q) => { q.regroup.review.same_family = true; });
   const falseFlagRun = runFx("different-lineage-false-flag", falseFlag);
   const falseFlagOk = falseFlagRun.r.status === 1 && !crashed(falseFlagRun.r) && mentions(falseFlagRun.r, /same_family/i);
+  // Item 9: lineage names compare trimmed as well as case-folded — a trailing space is still
+  // one shared lineage, not "another lineage" (finding 36).
+  const trailingSpace = variant((q) => { q.regroup.review.reviewer = `${q.regroup.review.drafter} `; });
+  const trailingSpaceRun = runFx("same-lineage-trailing-space-no-flag", trailingSpace);
+  const trailingSpaceOk = trailingSpaceRun.r.status === 1 && !crashed(trailingSpaceRun.r) && (mentions(trailingSpaceRun.r, /same-family/i) || mentions(trailingSpaceRun.r, /lineage/i));
   // req: R-1175
-  check("R-1175: a record whose drafter and reviewer share a lineage is refused unless it declares same-family", badOk && goodOk && caseOnlyOk && falseFlagOk,
-    `bad status=${badRun.r.status} good status=${goodRun.r.status} caseOnly status=${caseOnlyRun.r.status} falseFlag status=${falseFlagRun.r.status}`);
+  check("R-1175: a record whose drafter and reviewer share a lineage is refused unless it declares same-family", badOk && goodOk && caseOnlyOk && falseFlagOk && trailingSpaceOk,
+    `bad status=${badRun.r.status} good status=${goodRun.r.status} caseOnly status=${caseOnlyRun.r.status} falseFlag status=${falseFlagRun.r.status} trailingSpace status=${trailingSpaceRun.r.status}`);
 }
 
 // ================================================================== T10
@@ -920,6 +925,95 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   check("R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked",
     honestOk && askedDropOk && names(addedRefused, "FEAT-002", "R-001") && names(droppedRefused, "FEAT-001", "R-002") && names(movedRefused, "FEAT-002", "R-001"),
     `honest=${honestOk} askedDrop=${askedDropOk} added=${addedRefused.slice(0, 2).join(" | ")} dropped=${droppedRefused.slice(0, 2).join(" | ")} moved=${movedRefused.slice(0, 2).join(" | ")}`);
+}
+
+// ================================================================== Item 9: smaller refusals, each with a case
+{
+  // (b) A refuted entry, or a question "about" entry with an id, naming no move or share
+  // target of its row is refused (finding 41: a stray entry shown on the page).
+  const strayRefuted = variant((q) => { q.regroup.refuted.push({ id: "R-009", to: "FEAT-001", reason: "stray: R-009 names no such target" }); });
+  const strayRefutedOk = refusedCase(strayRefuted, ["R-009", "FEAT-001"]);
+  const strayAbout = variant((q) => { q.regroup.questions[0].about.push({ id: "R-009", to: "FEAT-001" }); });
+  const strayAboutOk = refusedCase(strayAbout, ["R-009", "FEAT-001"]);
+  // req: R-1175
+  check("R-1175: a refuted entry or a question about entry naming no move or share target of its row is refused", strayRefutedOk && strayAboutOk,
+    `refuted=${strayRefutedOk} about=${strayAboutOk}`);
+}
+{
+  // (c) A claim verdict matching no required purpose, outcome or reason is refused (finding 42).
+  const strayClaim = variant((q) => { q.regroup.review.claims.push({ node: "FEAT-999", field: "purpose", text: "x", verdict: "accept", reason: "a stray claim for a node outside this proposal" }); });
+  const ok = refusedCase(strayClaim, ["FEAT-999"]);
+  // req: R-1184
+  check("R-1184: a claim verdict matching no required purpose, outcome or reason is refused", ok);
+}
+{
+  // (d) A keep verdict carrying targets is refused (finding 43).
+  const keepWithTargets = variant((q) => { const v = verdictOf(q, "R-009"); v.targets = [{ to: "FEAT-001", reason: "stray target on a keep verdict" }]; });
+  const ok = refusedCase(keepWithTargets, ["R-009", "keep"]);
+  // req: R-1175
+  check("R-1175: a keep verdict carrying targets is refused", ok);
+}
+{
+  // (e) A question without "ask" is refused (finding 23).
+  const noAsk = variant((q) => { delete q.regroup.questions[0].ask; });
+  const ok = refusedCase(noAsk, ["ask"]);
+  // req: R-1177
+  check("R-1177: a question without ask is refused", ok);
+}
+{
+  // (f) A feature status the tree checker's status pattern refuses is refused. Through the
+  // full CLI the lift's own output-side check would refuse this first (the lift writes the
+  // status verbatim and validates its own output), so this is pinned by a direct call — the
+  // same reason R-1175's "carried" clause is (CHANGE §3.4 item 2).
+  const badStatus = variant((q) => { q.tree[1].features[0].status = "deprecated"; });
+  const dir = fxRoot("bad-status-direct", badStatus);
+  const statusProblemsFound = regroupProblems(badStatus, FX, dir).problems;
+  const ok = statusProblemsFound.some((p) => p.includes("FEAT-004") && p.includes("status"));
+  // req: R-1177
+  check("R-1177: a feature status the tree checker's status pattern refuses is refused", ok, `problems=${statusProblemsFound.slice(0, 3).join(" | ")}`);
+}
+{
+  // (g) Only a proposed or active feature with no rows counts as a gap; a frozen or retired
+  // one with no rows passes (finding 37).
+  const frozenGap = variant((q) => {
+    q.tree[1].features.push({ id: "FEAT-007", label: "Freeze analyst pages", purpose: "A frozen feature that holds no row yet.", status: "frozen (superseded by FEAT-004)", from: [], rows: [], subgroups: [] });
+    q.regroup.review.claims.push({ node: "FEAT-007", field: "purpose", text: "A frozen feature that holds no row yet.", verdict: "accept", reason: "the claim matches the fixture's feature (claim FEAT-007)" });
+  });
+  const frozenOk = runFx("frozen-gap-pass", frozenGap);
+  const frozenPass = frozenOk.r.status === 0 && !crashed(frozenOk.r);
+  const retiredGap = variant((q) => {
+    q.tree[1].features.push({ id: "FEAT-008", label: "Retire analyst pages", purpose: "A retired feature that holds no row.", status: "retired (folded into FEAT-004)", from: [], rows: [], subgroups: [] });
+    q.regroup.review.claims.push({ node: "FEAT-008", field: "purpose", text: "A retired feature that holds no row.", verdict: "accept", reason: "the claim matches the fixture's feature (claim FEAT-008)" });
+  });
+  const retiredOk = runFx("retired-gap-pass", retiredGap);
+  const retiredPass = retiredOk.r.status === 0 && !crashed(retiredOk.r);
+  // req: R-1174
+  check("R-1174: a frozen or retired feature with no rows is not a gap and needs no evidence", frozenPass && retiredPass,
+    `frozen status=${frozenOk.r.status} ` + own(frozenOk.r.stderr).slice(0, 2).join(" | ") + `; retired status=${retiredOk.r.status} ` + own(retiredOk.r.stderr).slice(0, 2).join(" | "));
+}
+{
+  // (h) An evidence citation's path is its text before "::", then before the first space,
+  // less a trailing :<line> or :<line>-<line> (findings 28/30): a locator, a quoted title or
+  // a "·" join after the real path does not make the row text-placed.
+  const dir = join(scratchRoot, "r1176-locator-form");
+  mkdirSync(join(dir, "src", "report"), { recursive: true });
+  writeFileSync(join(dir, "src", "report", "render.mjs"), "export {};\n");
+  const space = !isTextPlaced(dir, { id: "R-900", evidence: "src/report/render.mjs §5" });
+  const lineRange = !isTextPlaced(dir, { id: "R-901", evidence: "src/report/render.mjs:41-53" });
+  const singleLine = !isTextPlaced(dir, { id: "R-902", evidence: "src/report/render.mjs:41" });
+  const dotJoin = !isTextPlaced(dir, { id: "R-903", evidence: "src/report/render.mjs · a quoted section title" });
+  // req: R-1176
+  check("R-1176: an evidence citation's path is read before the first space, less a trailing :<line> or :<line>-<line>, so a locator does not make the row text-placed",
+    space && lineRange && singleLine && dotJoin, `space=${space} lineRange=${lineRange} singleLine=${singleLine} dotJoin=${dotJoin}`);
+}
+{
+  // (h) the text-placed refusal names the check's own wording ("names no path that exists"),
+  // the row text's phrase, not that the row "has no evidence".
+  const noPlacedReason = variant((q) => { delete q.regroup.placed["R-006"]; });
+  const run = runFx("placed-wording", noPlacedReason);
+  const ok = run.r.status === 1 && !crashed(run.r) && mentions(run.r, "names no path that exists");
+  // req: R-1176
+  check('R-1176: the text-placed refusal says the Evidence cell "names no path that exists", not that it has no evidence', ok, `status=${run.r.status} ` + own(run.r.stderr).slice(0, 2).join(" | "));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

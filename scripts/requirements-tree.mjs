@@ -16,7 +16,7 @@ export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
-const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
+export const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 export const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
 export const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
 const MARKDOWN_TABLE_DELIMITER_CELL = /^:?-+:?$/;

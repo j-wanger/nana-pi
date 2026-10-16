@@ -13,7 +13,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, s
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, seedNodeText } from "./requirements-lift.mjs";
-import { REPO_ROOT, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
+import { REPO_ROOT, STATUS, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { citesOf, requirementRowId } from "./requirements-trace.mjs";
 
 // ---------------------------------------------------------------------- tunables (§3.4)
@@ -64,7 +64,8 @@ const BOM = "﻿";
 const stripBom = (text) => (text.startsWith(BOM) ? text.slice(1) : text);
 const nonEmpty = (s) => typeof s === "string" && s.trim().length > 0;
 /** Two lineage strings name the same lineage case-insensitively (clarification 1). */
-const sameLineage = (a, b) => nonEmpty(a) && nonEmpty(b) && a.toLowerCase() === b.toLowerCase();
+/** Lineage names compare trimmed and case-folded (item 9): a trailing space is still one shared lineage, not "another lineage". */
+const sameLineage = (a, b) => nonEmpty(a) && nonEmpty(b) && a.trim().toLowerCase() === b.trim().toLowerCase();
 function capProblems(problems) {
   if (problems.length <= PROBLEM_LINE_CAP) return problems;
   return [...problems.slice(0, PROBLEM_LINE_CAP), `… and ${problems.length - PROBLEM_LINE_CAP} more problem(s)`];
@@ -94,9 +95,14 @@ function featureRowIds(feat) {
   return [...own, ...sub];
 }
 /** The rail's evidence-path form (citesOf, imported, never copied): each citation's text before "::", or the whole citation when it carries none, "\" read as "/". */
+/** A citation's path (item 9h): the text before "::", then before the first space (a
+ * locator — §5, "a title", a "·" join — follows the real path), less a trailing :<line>
+ * or :<line>-<line>. */
 function evidencePathsOfCell(cell) {
   return citesOf(String(cell ?? ""))
     .map((c) => (c.includes("::") ? c.split("::")[0] : c))
+    .map((c) => c.split(" ")[0])
+    .map((c) => c.replace(/:\d+(?:-\d+)?$/, ""))
     .map((p) => p.replace(/\\/g, "/"))
     .filter(Boolean);
 }
@@ -193,7 +199,10 @@ function keyProblems(proposal) {
       for (const [ai, a] of arrayEntries(q.about, `regroup.questions[${qi}].about`)) checkObj(a, PROPOSAL_KEYS.about, `regroup.questions[${qi}].about[${ai}]`);
     }
   }
-  for (const [qi, q] of arrayEntries(proposal.regroup?.questions, "regroup.questions")) if (!nonEmpty(q.recommendation)) problems.push(`regroup.questions[${qi}]: question has no recommendation`);
+  for (const [qi, q] of arrayEntries(proposal.regroup?.questions, "regroup.questions")) {
+    if (!nonEmpty(q.recommendation)) problems.push(`regroup.questions[${qi}]: question has no recommendation`);
+    if (!nonEmpty(q.ask)) problems.push(`regroup.questions[${qi}]: question has no ask`); // item 9(e)
+  }
   return problems;
 }
 
@@ -278,9 +287,13 @@ function evidenceProblems(proposal, rootDir) {
   const problems = [];
   const evidence = proposal.regroup?.evidence ?? {};
   for (const x of flattenProposalNodes(proposal)) {
-    // A feature with no rows of its own and none in any subgroup is a gap whatever its
-    // declared status says — an "active" label does not dodge R-1174's evidence demand.
-    if (x.level !== 2 || !(x.node.status === "proposed" || featureRowIds(x.node).length === 0)) continue;
+    // A feature with no rows of its own and none in any subgroup is a gap when it is
+    // "proposed" or "active" — an "active" label does not dodge R-1174's evidence demand.
+    // A "frozen" or "retired" feature with no rows is not a gap: the tree and the lift
+    // accept it as is (item 9g, finding 37).
+    if (x.level !== 2) continue;
+    const isGap = x.node.status === "proposed" || (x.node.status === "active" && featureRowIds(x.node).length === 0);
+    if (!isGap) continue;
     const paths = evidence[x.id];
     if (!Array.isArray(paths) || paths.length === 0) { problems.push(`${x.id}: a gap feature with no rows names no evidence path`); continue; }
     for (const raw of paths) if (!existsUnder(rootDir, raw)) problems.push(`${x.id}: evidence path "${raw}" does not exist under the root`);
@@ -292,6 +305,20 @@ function allEvidenceAbsPaths(proposal, rootDir) {
   const out = [];
   for (const paths of Object.values(proposal?.regroup?.evidence ?? {})) for (const raw of Array.isArray(paths) ? paths : []) { const abs = underRoot(rootDir, raw); if (abs) out.push(abs); }
   return out;
+}
+
+// ---------------------------------------------------------------------- item 9(f): feature status
+/** A feature's status must match the tree checker's own pattern (requirements-tree.mjs's
+ * STATUS, imported, never copied): proposed, active, frozen (<why>) or retired (<why>). A
+ * reserved feature's status is the lift's seed, never the proposal's, so it is exempt like
+ * its purpose and outcome (R-1172). */
+function statusProblems(proposal) {
+  const problems = [];
+  for (const x of flattenProposalNodes(proposal)) {
+    if (x.level !== 2 || RESERVED_NODES.has(x.id)) continue;
+    if (!STATUS.test(x.node.status ?? "")) problems.push(`${x.id}: status ${JSON.stringify(x.node.status)} does not match proposed, active, "frozen (<why>)" or "retired (<why>)"`);
+  }
+  return problems;
 }
 
 // ---------------------------------------------------------------------- R-1175: the review record
@@ -347,6 +374,8 @@ function reviewProblems(proposal, ledgerRows) {
     if (wantHome !== undefined && v.at !== wantHome) problems.push(`regroup.review.verdicts: ${v.id}'s verdict names a stale home "${v.at}" (now ${wantHome})`);
     if (v.verdict === "keep") {
       if (!nonEmpty(v.reason)) problems.push(`regroup.review.verdicts: ${v.id}'s keep verdict has an empty reason`);
+      // Item 9(d): a keep verdict names no other placement, so it carries no target.
+      if ((v.targets ?? []).length > 0) problems.push(`regroup.review.verdicts: ${v.id}'s keep verdict carries a target, but a keep names no other placement`);
       continue;
     }
     const targets = v.targets ?? [];
@@ -360,13 +389,22 @@ function reviewProblems(proposal, ledgerRows) {
       else if (n > 1) problems.push(`regroup: ${v.id} -> ${t.to} target is resolved more than once`);
     }
   }
+  // Item 9(b): a row's move or share target that a refuted entry or a question's "about"
+  // entry names, so a stray entry (a row/target pair no verdict ever declared) is refused
+  // rather than silently shown on the page (finding 41).
+  const isDeclaredTarget = (id, to) => {
+    const v = verdicts.find((x) => x.id === id);
+    return (v?.verdict === "move" || v?.verdict === "share") && (v.targets ?? []).some((t) => t.to === to);
+  };
   for (const r of proposal.regroup?.refuted ?? []) {
     if (!ledgerIds.has(r.id)) problems.push(`regroup.refuted: ${r.id} is not a row in this ledger`);
     if (!nonEmpty(r.reason)) problems.push(`regroup.refuted: ${r.id} -> ${r.to} has an empty reason`);
+    if (ledgerIds.has(r.id) && !isDeclaredTarget(r.id, r.to)) problems.push(`regroup.refuted: ${r.id} -> ${r.to} names no move or share target of ${r.id}'s own verdict`);
   }
   for (const q of proposal.regroup?.questions ?? []) {
     for (const a of q.about ?? []) {
       if (a.id !== undefined && !ledgerIds.has(a.id)) problems.push(`regroup.questions: about entry names row ${a.id}, which is not in this ledger`);
+      else if (a.id !== undefined && a.to !== undefined && !isDeclaredTarget(a.id, a.to)) problems.push(`regroup.questions: about entry ${a.id} -> ${a.to} names no move or share target of ${a.id}'s own verdict`);
     }
   }
   return problems;
@@ -381,7 +419,7 @@ function placedProblems(proposal, ledgerRows, rootDir) {
   for (const row of ledgerRows) {
     const reason = placed[row.id];
     if (isTextPlaced(rootDir, row)) {
-      if (!nonEmpty(reason)) problems.push(`regroup.placed: ${row.id} is text-placed (no evidence path under the root) but has no placed reason`);
+      if (!nonEmpty(reason)) problems.push(`regroup.placed: ${row.id}'s Evidence cell names no path that exists under the root, so it is text-placed, but regroup.placed has no reason for it`);
     } else if (reason !== undefined) {
       problems.push(`regroup.placed: ${row.id} has local evidence but also carries a placed reason`);
     }
@@ -413,7 +451,8 @@ function claimProblems(proposal, records) {
   const claims = proposal.regroup?.review?.claims ?? [];
   // Every claim's node/to/line type is already proven by typeProblems (the early shape bucket).
   const matches = (c, req) => (req.kind === "node" ? c.node === req.node && c.field === req.field : c.line === req.line && c.to === req.to);
-  for (const req of requiredClaimKeys(proposal, records)) {
+  const required = requiredClaimKeys(proposal, records);
+  for (const req of required) {
     const hit = claims.filter((c) => matches(c, req));
     const label = claimLabel(req);
     if (hit.length === 0) { problems.push(`regroup.review.claims: ${label} has no claim verdict`); continue; }
@@ -422,6 +461,13 @@ function claimProblems(proposal, records) {
     if (!CLAIM_VERDICTS.includes(c.verdict)) problems.push(`regroup.review.claims: ${label}'s claim verdict is neither accept nor reject`);
     if (!nonEmpty(c.reason)) problems.push(`regroup.review.claims: ${label}'s claim has an empty reason`);
     if (req.text !== null && c.text !== req.text) problems.push(`regroup.review.claims: ${label}'s claim quotes a stale text`);
+  }
+  // Item 9(c): a claim verdict matching no required purpose, outcome or reason is a stray
+  // (finding 42) — it would otherwise inflate the page's claim-verdict count unnoticed.
+  for (const c of claims) {
+    if (required.some((req) => matches(c, req))) continue;
+    const label = c.node !== undefined ? `${c.node} ${c.field}` : `line ${c.line} -> ${c.to} reason`;
+    problems.push(`regroup.review.claims: a claim for ${label} matches no required purpose, outcome or reason`);
   }
   for (const c of claims) {
     if (c.verdict !== "reject") continue;
@@ -467,6 +513,7 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
   if (shapeProblems.length) return { problems: shapeProblems, records, ledgerRows };
   const problems = [
     ...placeholderProblems(proposal),
+    ...statusProblems(proposal),
     ...reasonProblems(proposal, records),
     ...evidenceProblems(proposal, rootDir),
     ...reviewProblems(proposal, ledgerRows),
