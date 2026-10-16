@@ -265,14 +265,14 @@ function oldFeatIdOf(fromEntry) {
   const m = TREE_HEADING.exec(fromEntry?.heading ?? "");
   return m && m[2].startsWith("FEAT-") ? m[2] : null;
 }
-/** Every old FEAT- heading (with its shares, line and raw segment) that carries at least one legitimate share line, keyed by id. */
+/** Every old FEAT- heading (with its shares, share line, heading line and raw segment) that carries at least one legitimate share line, keyed by id. */
 function shareInfoOf(parsed, segs) {
   const map = new Map();
   for (const h of parsed.headings) {
     if (!h.id?.startsWith("FEAT-")) continue;
     const first = h.alsoAppliesLines?.[0];
     if (!first) continue;
-    map.set(h.id, { shares: h.alsoApplies.slice(), line: first.line, seg: segs[first.line - 1] });
+    map.set(h.id, { shares: h.alsoApplies.slice(), line: first.line, headingLine: h.line, seg: segs[first.line - 1] });
   }
   return map;
 }
@@ -673,7 +673,7 @@ function shareProblems(mapping, shareInfo, realRowIds) {
   for (const cap of mapping.tree ?? []) {
     for (const f of cap.from ?? []) {
       const oldId = oldFeatIdOf(f);
-      if (oldId && shareInfo.has(oldId)) problems.push(`${cap.id}: names old feature heading (line ${shareInfo.get(oldId).line}) that carries shares, which must be named by a feature, not a capability`);
+      if (oldId && shareInfo.has(oldId)) problems.push(`${cap.id}: names old feature heading (line ${shareInfo.get(oldId).headingLine}) that carries shares, which must be named by a feature, not a capability`);
     }
     for (const feat of cap.features ?? []) {
       const carried = carriedSharesOf(feat, shareInfo);
@@ -696,7 +696,7 @@ function shareProblems(mapping, shareInfo, realRowIds) {
   }
   for (const f of mapping.tail?.from ?? []) {
     const oldId = oldFeatIdOf(f);
-    if (oldId && shareInfo.has(oldId)) problems.push(`tail: names old feature heading (line ${shareInfo.get(oldId).line}) that carries shares, which must be named by a feature, not the tail`);
+    if (oldId && shareInfo.has(oldId)) problems.push(`tail: names old feature heading (line ${shareInfo.get(oldId).headingLine}) that carries shares, which must be named by a feature, not the tail`);
   }
   return problems;
 }
