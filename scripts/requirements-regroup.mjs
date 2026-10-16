@@ -571,8 +571,13 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
 // ---------------------------------------------------------------------- the page (R-1178, R-1179)
 /** Item 10 (finding 30): row text placed on the page may hold a bare "<placeholder>" that a
  * Markdown renderer reads as literal (and unrecognised) HTML, vanishing it; escaping angle
- * brackets keeps it visible text, in a gist or the appendix alike. */
-const escapeAngles = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+ * brackets keeps it visible text, in a gist or the appendix alike. Item 2 (finding 39): a
+ * row's own Markdown code span (`` `<provider>` ``) must render verbatim, not escaped — the
+ * text is split apart on code spans first, and only the text OUTSIDE them is escaped. */
+const escapeAngles = (s) => String(s ?? "")
+  .split(/(`[^`]*`)/)
+  .map((part, i) => (i % 2 === 1 ? part : part.replace(/</g, "&lt;").replace(/>/g, "&gt;")))
+  .join("");
 function statusMixOf(ids, rowStatus) {
   const counts = new Map();
   for (const id of ids) { const s = rowStatus.get(id) ?? "untested"; counts.set(s, (counts.get(s) ?? 0) + 1); }

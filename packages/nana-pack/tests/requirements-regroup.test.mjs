@@ -523,6 +523,46 @@ if (process.platform !== "win32") {
     `status=${phRun.status} ` + own(phRun.stderr).slice(0, 2).join(" | ") + ` escaped=${escapedOk}`);
 }
 
+// ================================================================== Item 2 (finding 39): a Markdown code span is never escaped, even when the row also holds a bare placeholder
+{
+  const CTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const CT = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha" };
+  const CODE_SPAN_FX = [
+    CT.cap, "", "Purpose: capability purpose for the code-span fixture.", "Outcome: a visible outcome for the code-span fixture.", "",
+    CT.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...CTH,
+    "| R-001 | WHEN alpha calls `<provider>`, it shall replace every <placeholder> with its bound value. | implemented | — |", "",
+  ].join("\n");
+  const csDir = join(scratchRoot, `code-span-fx-${++caseN}`);
+  mkdirSync(join(csDir, "docs", "regroup"), { recursive: true });
+  writeFileSync(join(csDir, "REQUIREMENTS.md"), CODE_SPAN_FX);
+  const csMapping = {
+    ...buildIdentityMapping(CODE_SPAN_FX),
+    regroup: {
+      reasons: [], placed: { "R-001": "placed by its text alone, which names this node's work" }, evidence: {},
+      review: {
+        drafter: "anthropic", reviewer: "openai",
+        verdicts: [{ id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" }],
+        claims: [
+          { node: "CAP-01", field: "purpose", text: "capability purpose for the code-span fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "CAP-01", field: "outcome", text: "a visible outcome for the code-span fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "FEAT-001", field: "purpose", text: "alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+        ],
+      },
+      refuted: [], questions: [],
+    },
+  };
+  writeFileSync(join(csDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(csMapping, null, 2)}\n`);
+  const csPage = join(scratchRoot, `code-span-page-${++caseN}.md`);
+  const csRun = regroup(["--root", csDir, "--proposal", join(csDir, "docs", "regroup", "proposal.json"), "--out", csPage], scratchRoot);
+  const csText = (() => { try { return readFileSync(csPage, "utf8"); } catch { return null; } })();
+  const placeholderEscapedOk = csText !== null && csText.includes("&lt;placeholder&gt;") && !csText.includes("<placeholder>");
+  const codeSpanVerbatimOk = csText !== null && csText.includes("`<provider>`") && !csText.includes("&lt;provider&gt;");
+  // req: R-1179
+  check("R-1179: a row holding both a bare <placeholder> and a Markdown code span `<provider>` shows the first escaped and the second verbatim, in its gist and the appendix",
+    csRun.status === 0 && !crashed(csRun) && placeholderEscapedOk && codeSpanVerbatimOk,
+    `status=${csRun.status} ` + own(csRun.stderr).slice(0, 2).join(" | ") + ` placeholder=${placeholderEscapedOk} codeSpan=${codeSpanVerbatimOk}`);
+}
+
 // ================================================================== T4
 {
   const UNSORTED = "Not yet sorted:";
