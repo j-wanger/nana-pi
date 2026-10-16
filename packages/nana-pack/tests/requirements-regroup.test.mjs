@@ -565,6 +565,38 @@ if (process.platform !== "win32") {
     `status=${csRun.status} ` + own(csRun.stderr).slice(0, 2).join(" | ") + ` placeholder=${placeholderEscapedOk} codeSpan=${codeSpanVerbatimOk}`);
 }
 
+// ================================================================== Build 6 item 3 (R-1178, R-1179): proposal text escaped everywhere, not only the gists and the appendix
+{
+  // A bare "<placeholder>" and a code span naming "<provider>" sit together in BOTH a
+  // feature's own purpose (the nodes renderer) and a reported line's reason (the lines
+  // renderer) -- proposal text the earlier escaping tests never touched (those cover only a
+  // row's own text, the gist and the appendix).
+  const escVariant = variant((q) => {
+    const f1 = q.tree[0].features[0]; // FEAT-001
+    f1.purpose = "Route each request to its <placeholder> target, naming the binding as `<provider>`.";
+    const pc = q.regroup.review.claims.find((c) => c.node === "FEAT-001" && c.field === "purpose");
+    pc.text = f1.purpose;
+    const r = q.regroup.reasons.find((x) => x.line === L15 && x.to === "FEAT-002");
+    r.why = "Moves because the <placeholder> target changes together with `<provider>`.";
+    const rc = q.regroup.review.claims.find((c) => c.line === L15 && c.to === "FEAT-002");
+    rc.text = r.why;
+  });
+  const run = runFx("escape-everywhere", escVariant);
+  const page = run.text ?? "";
+  const purposeLineOk = /Purpose: .*&lt;placeholder&gt;.*`<provider>`/.test(page);
+  const reasonLineOk = /- Reason: .*&lt;placeholder&gt;.*`<provider>`/.test(page);
+  const noBareOk = !page.includes("<placeholder>");
+  const codeSpanOk = !page.includes("&lt;provider&gt;");
+  // req: R-1178
+  check("R-1178: a feature's purpose holding a bare <placeholder> and a code span naming <provider> shows the first escaped and the second verbatim",
+    run.r.status === 0 && !crashed(run.r) && purposeLineOk && noBareOk && codeSpanOk,
+    `status=${run.r.status} purpose=${purposeLineOk} noBare=${noBareOk} codeSpan=${codeSpanOk} ` + own(run.r.stderr).slice(0, 2).join(" | "));
+  // req: R-1179
+  check("R-1179: a reported line's reason holding a bare <placeholder> and a code span naming <provider> shows the first escaped and the second verbatim",
+    run.r.status === 0 && !crashed(run.r) && reasonLineOk && noBareOk && codeSpanOk,
+    `status=${run.r.status} reason=${reasonLineOk} noBare=${noBareOk} codeSpan=${codeSpanOk} ` + own(run.r.stderr).slice(0, 2).join(" | "));
+}
+
 // ================================================================== T4
 {
   const UNSORTED = "Not yet sorted:";

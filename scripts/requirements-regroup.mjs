@@ -616,7 +616,7 @@ const renderers = {
     const out = ["## Questions", ""];
     // Item 10 (finding 26): the recommendation is its own paragraph, not a lazy continuation
     // of the numbered "ask" line.
-    qs.forEach((q, i) => out.push(`${i + 1}. ${q.ask}`, "", `   Recommendation: ${q.recommendation}`, ""));
+    qs.forEach((q, i) => out.push(`${i + 1}. ${escapeAngles(q.ask)}`, "", `   Recommendation: ${escapeAngles(q.recommendation)}`, ""));
     return out.join("\n");
   },
   table(ctx) {
@@ -630,7 +630,7 @@ const renderers = {
     for (const x of feats) {
       const text = RESERVED_NODES.has(x.id) ? seedNodeText(x.id, ctx.seed) : x.node;
       const ids = featureRowIds(x.node);
-      out.push(`| ${x.id} | ${text.label ?? ""} | ${text.status ?? ""} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`);
+      out.push(`| ${x.id} | ${escapeAngles(text.label ?? "")} | ${escapeAngles(text.status ?? "")} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`);
     }
     out.push("");
     return out.join("\n");
@@ -649,8 +649,8 @@ const renderers = {
       const mark = "#".repeat(x.level + 2);
       // Item 10 (finding 26): Purpose/Outcome/Evidence are each their own paragraph, a blank
       // line apart, so a Markdown renderer never merges them into one.
-      out.push(`${mark} ${x.id} — ${text.label ?? ""}`, "", `Purpose: ${text.purpose ?? ""}`);
-      if (x.level === 1) out.push("", `Outcome: ${text.outcome ?? ""}`);
+      out.push(`${mark} ${x.id} — ${escapeAngles(text.label ?? "")}`, "", `Purpose: ${escapeAngles(text.purpose ?? "")}`);
+      if (x.level === 1) out.push("", `Outcome: ${escapeAngles(text.outcome ?? "")}`);
       // Item 10 (finding 29): an active feature with no rows is a gap too (R-1174's own
       // isGap test), and needs its evidence shown the same way a proposed one's is.
       const isGap = x.level === 2 && (x.node.status === "proposed" || (x.node.status === "active" && featureRowIds(x.node).length === 0));
@@ -672,7 +672,7 @@ const renderers = {
       // a paragraph, with no blank line needed — so the reason never merges into the line
       // above it, and the acceptance harness's own line-adjacency read of this exact section
       // (lineOfPage) still finds the line and its reason on two consecutive lines.
-      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, `- Reason: ${why}`, "");
+      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, `- Reason: ${escapeAngles(why)}`, "");
     }
     return out.join("\n");
   },
@@ -693,9 +693,9 @@ const renderers = {
         const outcome = resolveTargetOutcome(ctx.proposal, v.id, t.to);
         const qNum = outcome === "asked" ? questions.findIndex((q) => (q.about ?? []).some((a) => a.id === v.id && a.to === t.to)) + 1 : null;
         const label = outcome === "asked" ? `asked in question ${qNum}`
-          : outcome === "refuted" ? `refuted — ${refuted.find((r) => r.id === v.id && r.to === t.to)?.reason ?? ""}`
+          : outcome === "refuted" ? `refuted — ${escapeAngles(refuted.find((r) => r.id === v.id && r.to === t.to)?.reason ?? "")}`
           : outcome ?? "unresolved";
-        out.push(`${v.id} (home ${v.at}) -> ${t.to} [${v.verdict}]: proposed because ${t.reason} — ${label}`, "");
+        out.push(`${v.id} (home ${v.at}) -> ${t.to} [${v.verdict}]: proposed because ${escapeAngles(t.reason)} — ${label}`, "");
       }
     }
     return out.join("\n");
@@ -706,7 +706,7 @@ const renderers = {
     if (!rejected.length) return [...out, "(none)", ""].join("\n");
     for (const c of rejected) {
       const label = c.node !== undefined ? `${c.node} ${c.field}` : `line ${c.line} -> ${c.to}`;
-      out.push(`Rejected claim: ${label}`, `  Reason: ${c.reason}`, "");
+      out.push(`Rejected claim: ${label}`, `  Reason: ${escapeAngles(c.reason)}`, "");
     }
     return out.join("\n");
   },
@@ -719,7 +719,7 @@ const renderers = {
       if (reason === undefined) continue;
       any = true;
       const gist = escapeAngles(row.requirement.split(/\s+/).slice(0, GIST_WORDS).join(" "));
-      out.push(`${row.id} -> ${home.get(row.id) ?? "?"}: "${gist}" — ${reason}`, "");
+      out.push(`${row.id} -> ${home.get(row.id) ?? "?"}: "${gist}" — ${escapeAngles(reason)}`, "");
     }
     if (!any) out.push("(none)", "");
     return out.join("\n");
@@ -728,7 +728,7 @@ const renderers = {
     const out = ["## Refuted items", ""];
     const items = ctx.proposal.regroup?.refuted ?? [];
     if (!items.length) return [...out, "(none)", ""].join("\n");
-    for (const r of items) out.push(`${r.id} -> ${r.to}: refuted — ${r.reason}`, "");
+    for (const r of items) out.push(`${r.id} -> ${r.to}: refuted — ${escapeAngles(r.reason)}`, "");
     return out.join("\n");
   },
   appendix(ctx) {
