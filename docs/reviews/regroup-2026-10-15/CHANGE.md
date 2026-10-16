@@ -319,3 +319,30 @@ in this plan.
    the table (T14); the question number dropped from an asked target (T16). T14 and T16 assert each. The page writes an
    asked target as `asked in question <n>`.
 
+## Seat amendment 3 (2026-10-16): a share that a merge moves to another feature is reviewed too
+
+The seat's independent check of build 3 (`seat-verify-656dc86.md`) found a share reaching the ledger unreviewed. When a
+proposal merges or demotes a feature that shares a row, the lift carries that share into the feature that absorbs it.
+The lift reports no share change, because the share is carried, not declared. The checker then asks for no share verdict,
+and the owner's page never names the share. The written ledger gains `Also applies: R-003` under a feature that never
+shared R-003. Amendment 2 meant every share placement to be reviewed, and this one is not, so the seat names it a
+fail-open bug and widens R-1187.
+
+**Row.**
+
+| ID | Change | Text |
+|---|---|---|
+| R-1187 | reworded | The regroup checker shall refuse a proposal unless each row that a feature's `also_applies` names and that the input ledger's feature of the same ID does not share, and each row its `shares_dropped` names, has a `share` verdict with that feature among its targets. |
+
+"The input ledger's feature of the same ID" is read from the input ledger by the tree parser's share reader, the one the
+lift and the shares proof use. A flat ledger shares nothing. So a declared added share, and a share a merge or demotion
+moves onto another feature, both need a verdict, and R-1175 then demands its outcome. A share that stays on the same
+feature needs none. A share that leaves with a merged-away feature ID is not a drop of a live feature, and needs no
+verdict either. The page lists every such target under R-1179, so the owner sees it.
+
+**Tests.** T24 keeps its title and gains the merge case and the demotion case: each is refused without a share verdict
+and passes with one, and its page line reads `share` and `carried`.
+
+**Review.** The plan item is at its three-round cap. This amendment is recorded here and named in the final review brief
+for sol and astra, who review the whole lane, so it gets no separate plan round.
+

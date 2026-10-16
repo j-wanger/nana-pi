@@ -41,6 +41,7 @@ if (LOGDIR) fs.mkdirSync(LOGDIR, { recursive: true });
 const TIMEOUT_MS = 10 * 60 * 1000;
 
 const DECLARED = [
+	"(g) build brief 3 (seat, 2026-10-16): 2/6, 2/7, 7/23, 8/3, 8/4, 9/3, B2/8, B2/9, B2/14, B2/16, B2/17 and B2/18 re-anchored to build 3's code, each keeping its wrong behaviour (B2/8 and B2/9 now drop the reason and claim line sites of the shape bucket's exact-type check, which replaced build 2's in-check integer tests; 9/3 keys the outcome by the row's first target before the label and question number are derived; B2/18 forces one heading level, since build 3 nests by heading level with no indent); T18 follows the merge's leaf total to 1,152; B3/1-B3/44 cover build 3's new checks, judged on the titles build brief 3 names (T10S, T24 and T38-T47 added): item 1 B3/1-B3/2 (both also red T24, declared), item 2 B3/3-B3/6, item 3 B3/7-B3/9, item 4 B3/10-B3/14, item 5 one exact-type site per pair B3/15-B3/26, item 6 B3/27, item 7 B3/28-B3/33, item 9 B3/34-B3/44",
 	"(f) build brief 2 (seat, 2026-10-16): 2/4, 2/5, 5/1, 6/10, 7/23, 8/4, 8/6, 9/1, 9/6 and 10/5 re-anchored to build 2's code (2/5 now forces the real-path fallback by blinding the inode compare, since an existing alias is otherwise caught by inode); B2/1-B2/23 cover build 2's new checks (B2/10, B2/11 and B2/23 are the unknown-row refusals (d) found missing at build 1), judged on the titles build brief 2 names (T32-T37 added)",
 	"(a) test sets: row 1 (the lift) runs requirements-lift.test.mjs AND requirements-regroup.test.mjs, because the checker imports detectMoves and spawns the lift; rows 2-9 run requirements-regroup.test.mjs (templates-render reads only the regroup source's --root/--proposal/--out spellings, which no pair changes); row 10's skill pairs run templates-render, skill-claims and readme-check (all three read the skill); 10/6 runs requirements-tree",
 	"(b) §5's table numbers its rows 1, 2, 4, 5, 6, 7, 8, 9, 10 (no row 3); ids follow those numbers and count across a row's \"·\" groups: 2/8-2/9 are row 2's T4 pairs, 6/1-6/5 T7, 6/6-6/9 T8, 6/10 T9, 6/11-6/17 T22, 6/18 T23, 7/1-7/2 T10, 7/3 T11, 7/4 T12, 7/5-7/22 T13's 18 levels, 7/23 T13's recommendation, 8/1-8/5 T14, 8/6 T15, 9/1-9/6 T16, 10/1-10/5 T17, 10/6 T18 (80 pairs)",
@@ -93,7 +94,21 @@ const T37 = "R-1176: a row whose evidence names an existing path in the trace ra
 const T22 = "R-1184: each purpose and outcome outside the reserved nodes and each reported line's reason needs exactly one accept or reject verdict with a reason and the claim's current text, a missing, repeated, stale or reasonless one is refused, and a reserved node needs none";
 const T23 = "R-1184: a rejected claim named in no question is refused, and one named in a question passes";
 const T17 = "requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has";
-const T18 = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,148";
+const T18 = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,152";
+// Build brief 3's titles (copied from requirements-regroup.test.mjs at 656dc86). T10S is amendment 2's "T10" (the shares
+// plan's title); this runner's T10 is already R-1176's placed title.
+const T10S = "R-1177: a proposal whose feature declares shares_added and shares_dropped holds no unknown key and passes the regroup checker";
+const T24 = "R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked";
+const T38 = "R-1171: an --out the command cannot write is refused by name, exit 1, with no stack trace";
+const T39 = "R-1177: an evidence value written as an object, a number or a boolean is refused by name before the --out pre-check reads it, for a gap or a non-gap feature, and a failing run still removes an earlier page";
+const T40 = "R-1175: a refuted entry or a question about entry naming no move or share target of its row is refused";
+const T41 = "R-1184: a claim verdict matching no required purpose, outcome or reason is refused";
+const T42 = "R-1175: a keep verdict carrying targets is refused";
+const T43 = "R-1177: a question without ask is refused";
+const T44 = "R-1177: a feature status the tree checker's status pattern refuses is refused";
+const T45 = "R-1174: a frozen or retired feature with no rows is not a gap and needs no evidence";
+const T46 = "R-1176: an evidence citation's path is read before the first space, less a trailing :<line> or :<line>-<line>, so a locator does not make the row text-placed";
+const T47 = 'R-1176: the text-placed refusal says the Evidence cell "names no path that exists", not that it has no evidence';
 
 // ── edits ───────────────────────────────────────────────────────────────────────────────────
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
@@ -130,8 +145,8 @@ const PAIRS = [
 	{ n: "2/3", name: "the guard uses the resolve form", edits: [one(RGS, "if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exit(main());", "if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) process.exit(main());")], tests: RG_T, expectRed: [T3] },
 	{ n: "2/4", name: "the --out clash check dropped", edits: [one(RGS, "  if (inputPaths.some((p) => samePath(outPath, p))) {", "  if (false) {")], tests: RG_T, expectRed: [T19, T20, T32, T33, T35] },
 	{ n: "2/5", name: "the clash compared without realpath (inodes unavailable, so the fallback decides)", edits: [one(RGS, "function statId(p) { try {", "function statId(p) { return null; try {"), one(RGS, "  return nearestRealPath(a) === nearestRealPath(b);", "  return resolve(a) === resolve(b);")], tests: RG_T, expectRed: [T20] },
-	{ n: "2/6", name: "a failed run leaves an earlier page", edits: [one(RGS, "function removeEarlierPage(outPath) {\n  let existing;", "function removeEarlierPage(outPath) {\n  return;\n  let existing;")], tests: RG_T, expectRed: [T21] },
-	{ n: "2/7", name: "a failed run removes any file at --out", edits: [one(RGS, "  if (existing.startsWith(PAGE_HEAD)) {", "  if (true) {")], tests: RG_T, expectRed: [T21] },
+	{ n: "2/6", name: "a failed run leaves an earlier page", edits: [one(RGS, "function removeEarlierPage(outPath) {\n", "function removeEarlierPage(outPath) {\n  return;\n")], tests: RG_T, expectRed: [T21] },
+	{ n: "2/7", name: "a failed run removes any file at --out", edits: [one(RGS, "  if (firstLineOf(existing) === PAGE_HEAD) {", "  if (true) {")], tests: RG_T, expectRed: [T21] },
 	{ n: "2/8", name: "placeholder check dropped", edits: [one(RGS, "    ...placeholderProblems(proposal),\n", "")], tests: RG_T, expectRed: [T4] },
 	{ n: "2/9", name: "placeholder check applied to reserved nodes too", edits: [one(RGS, "    if (RESERVED_NODES.has(x.id)) continue;\n    if (String(x.node.purpose", "    if (String(x.node.purpose")], tests: RG_T, expectRed: [T4] },
 	// Row 4: reasons (R-1173)
@@ -171,18 +186,18 @@ const PAIRS = [
 	{ n: "7/3", name: "cap removed", edits: [one(RGS, "  if (problems.length <= PROBLEM_LINE_CAP) return problems;", "  return problems;")], tests: RG_T, expectRed: [T11] },
 	{ n: "7/4", name: "missing --out accepted", edits: [one(RGS, "  if (!args.root || !args.proposal || !args.out) return usage();", "  if (!args.root || !args.proposal) return usage();")], tests: RG_T, expectRed: [T12] },
 	...KEY_LEVELS.map((level, i) => ({ n: `7/${5 + i}`, name: `the key check skipped at the ${level} level`, edits: [one(RGS, KEY_SITE, `${KEY_SITE}    if (allowed === PROPOSAL_KEYS.${level}) return;\n`)], tests: RG_T, expectRed: [T13] })),
-	{ n: "7/23", name: "question without recommendation accepted", edits: [one(RGS, "\"regroup.questions\")) if (!nonEmpty(q.recommendation)) problems.push(", "\"regroup.questions\")) if (false) problems.push(")], tests: RG_T, expectRed: [T13] },
+	{ n: "7/23", name: "question without recommendation accepted", edits: [one(RGS, "    if (!nonEmpty(q.recommendation)) problems.push(", "    if (false) problems.push(")], tests: RG_T, expectRed: [T13] },
 	// Row 8: the page's opening parts (R-1178)
 	{ n: "8/1", name: "questions after the table", edits: [one(RGS, "export const PAGE_SECTIONS = [\"header\", \"questions\", \"table\",", "export const PAGE_SECTIONS = [\"header\", \"table\", \"questions\",")], tests: RG_T, expectRed: [T14] },
 	{ n: "8/2", name: "proof line omitted", edits: [one(RGS, "ctx.proofLine ?? \"lift proof: (not captured)\", \"\"];", "\"lift proof: (not captured)\", \"\"];")], tests: RG_T, expectRed: [T14] },
-	{ n: "8/3", name: "status mix omitted", edits: [one(RGS, "out.push(`| ${x.id} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`);", "out.push(`| ${x.id} | ${ids.length} | |`);")], tests: RG_T, expectRed: [T14] },
-	{ n: "8/4", name: "gap evidence omitted", edits: [one(RGS, "        out.push(`${indent}Evidence: ${ev.join(\", \")}`);\n", "")], tests: RG_T, expectRed: [T14] },
+	{ n: "8/3", name: "status mix omitted", edits: [one(RGS, "| ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`);", "| ${ids.length} | |`);")], tests: RG_T, expectRed: [T14] },
+	{ n: "8/4", name: "gap evidence omitted", edits: [one(RGS, "        out.push(`Evidence: ${ev.join(\", \")}`);\n", "")], tests: RG_T, expectRed: [T14] },
 	{ n: "8/5", name: "claim counts omitted", edits: [one(RGS, "out.push(`Placement verdicts: ${(review.verdicts ?? []).length}`, `Claim verdicts: ${(review.claims ?? []).length}`, \"\");", "out.push(`Placement verdicts: ${(review.verdicts ?? []).length}`, \"\");")], tests: RG_T, expectRed: [T14] },
 	{ n: "8/6", name: "same-family printed as another lineage", edits: [one(RGS, "(${ctx.same ? \"same-family review\" : \"another lineage\"})", "(another lineage)")], tests: RG_T, expectRed: [T15] },
 	// Row 9: the page's lists (R-1179)
 	{ n: "9/1", name: "moved row IDs omitted", edits: [one(RGS, "${r.rows.length ? ` (rows ${r.rows.join(\", \")})` : \"\"}`, `  Reason: ${why}`", "`, `  Reason: ${why}`")], tests: RG_T, expectRed: [T16] },
 	{ n: "9/2", name: "share verdicts omitted", edits: [one(RGS, "      if (v.verdict !== \"move\" && v.verdict !== \"share\") continue;", "      if (v.verdict !== \"move\") continue;")], tests: RG_T, expectRed: [T16] },
-	{ n: "9/3", name: "share outcome printed per row, not per target", edits: [one(RGS, "        const label = resolveTargetOutcome(ctx.proposal, v.id, t.to) ?? \"unresolved\";", "        const label = resolveTargetOutcome(ctx.proposal, v.id, (v.targets ?? [])[0]?.to) ?? \"unresolved\";")], tests: RG_T, expectRed: [T16] },
+	{ n: "9/3", name: "share outcome printed per row, not per target", edits: [one(RGS, "        const outcome = resolveTargetOutcome(ctx.proposal, v.id, t.to);", "        const outcome = resolveTargetOutcome(ctx.proposal, v.id, (v.targets ?? [])[0]?.to);")], tests: RG_T, expectRed: [T16] },
 	{ n: "9/4", name: "rejected claims omitted", edits: [one(RGS, "    const rejected = (ctx.proposal.regroup?.review?.claims ?? []).filter((c) => c.verdict === \"reject\");", "    const rejected = [];")], tests: RG_T, expectRed: [T16] },
 	{ n: "9/5", name: "text-placed list omitted", edits: [one(RGS, "      if (reason === undefined) continue;\n      any = true;", "      if (true) continue;\n      any = true;")], tests: RG_T, expectRed: [T16] },
 	{ n: "9/6", name: "appendix before the lists", edits: [one(RGS, "\"table\", \"nodes\", \"lines\", \"targets\", \"claims\", \"placed\", \"refuted\", \"appendix\"];", "\"table\", \"nodes\", \"appendix\", \"lines\", \"targets\", \"claims\", \"placed\", \"refuted\"];")], tests: RG_T, expectRed: [T16] },
@@ -201,22 +216,77 @@ const PAIRS = [
 	{ n: "B2/5", name: "the lift and evidence paths left out of the clash inputs", edits: [one(RGS, "const inputPaths = [ledgerPath, proposalPath, LIFT_SCRIPT, ...evidenceInputs];", "const inputPaths = [ledgerPath, proposalPath];")], tests: RG_T, expectRed: [T35] },
 	{ n: "B2/6", name: "a non-array field accepted silently", edits: [one(RGS, "    if (!Array.isArray(value)) { problems.push(`${path}: expected an array, not an object`); return []; }", "    if (!Array.isArray(value)) return [];")], tests: RG_T, expectRed: [T13] },
 	{ n: "B2/7", name: "a null entry skipped silently", edits: [one(RGS, "      if (!isPlainObject(item)) { problems.push(`${path}[${i}]: entry is not an object`); continue; }", "      if (!isPlainObject(item)) continue;")], tests: RG_T, expectRed: [T13] },
-	{ n: "B2/8", name: "a reason's string line number accepted", edits: [one(RGS, "    if (!Number.isInteger(r.line)) { problems.push(`regroup.reasons: line ${JSON.stringify(r.line)} must be an integer, not its typed value`); continue; }", "    if (false) { continue; }")], tests: RG_T, expectRed: [T5] },
-	{ n: "B2/9", name: "a claim's string line number accepted", edits: [one(RGS, "  for (const c of claims) if (c.line !== undefined && !Number.isInteger(c.line)) problems.push(", "  for (const c of claims) if (false) problems.push(")], tests: RG_T, expectRed: [T22] },
+	{ n: "B2/8", name: "a reason's string line number accepted", edits: [one(RGS, "int(`regroup.reasons[${i}].line`, r.line); ", "")], tests: RG_T, expectRed: [T5] },
+	{ n: "B2/9", name: "a claim's string line number accepted", edits: [one(RGS, " int(`regroup.review.claims[${i}].line`, c.line);", "")], tests: RG_T, expectRed: [T22] },
 	{ n: "B2/10", name: "a refuted entry naming an unknown row accepted", edits: [one(RGS, "    if (!ledgerIds.has(r.id)) problems.push(`regroup.refuted: ${r.id} is not a row in this ledger`);", "    if (false) problems.push(`regroup.refuted: ${r.id} is not a row in this ledger`);")], tests: RG_T, expectRed: [T7] },
 	{ n: "B2/11", name: "a placed entry naming an unknown row accepted", edits: [one(RGS, "  for (const id of Object.keys(placed)) if (!ledgerIds.has(id)) problems.push(", "  for (const id of Object.keys(placed)) if (false) problems.push(")], tests: RG_T, expectRed: [T10] },
 	{ n: "B2/23", name: "a question's about entry naming an unknown row accepted", edits: [one(RGS, "      if (a.id !== undefined && !ledgerIds.has(a.id)) problems.push(", "      if (false) problems.push(")], tests: RG_T, expectRed: [T7] },
 	{ n: "B2/12", name: "carried never reported", edits: [one(RGS, "  if (isCarried(proposal, id, to)) return \"carried\";", "  if (false) return \"carried\";")], tests: RG_T, expectRed: [T36] },
 	{ n: "B2/13", name: "a move target counted as carried", edits: [one(RGS, "  return verdictFor(proposal, id)?.verdict === \"share\" && !!target?.node?.also_applies?.includes(id);", "  return !!target?.node?.also_applies?.includes(id);")], tests: RG_T, expectRed: [T36] },
-	{ n: "B2/14", name: "lineages compared case-sensitively", edits: [one(RGS, "a.toLowerCase() === b.toLowerCase();", "a === b;")], tests: RG_T, expectRed: [T9] },
+	{ n: "B2/14", name: "lineages compared case-sensitively", edits: [one(RGS, "a.trim().toLowerCase() === b.trim().toLowerCase();", "a.trim() === b.trim();")], tests: RG_T, expectRed: [T9] },
 	{ n: "B2/15", name: "same_family accepted for different lineages", edits: [one(RGS, "  if (nonEmpty(review.drafter) && nonEmpty(review.reviewer) && !sameLineage(review.drafter, review.reviewer) && flagged) {", "  if (false) {")], tests: RG_T, expectRed: [T9] },
-	{ n: "B2/16", name: "an active feature with no rows needs no evidence", edits: [one(RGS, "    if (x.level !== 2 || !(x.node.status === \"proposed\" || featureRowIds(x.node).length === 0)) continue;", "    if (x.level !== 2 || x.node.status !== \"proposed\") continue;")], tests: RG_T, expectRed: [T6] },
-	{ n: "B2/17", name: "node labels dropped from the page", edits: [one(RGS, "out.push(`${indent}${mark} ${x.id} — ${x.node.label ?? \"\"}`, ", "out.push(`${indent}${mark} ${x.id}`, ")], tests: RG_T, expectRed: [T14] },
-	{ n: "B2/18", name: "nodes listed flat (no indent, one heading level)", edits: [one(RGS, "      const indent = \"  \".repeat(x.level - 1);\n      const mark = \"#\".repeat(x.level + 2);", "      const indent = \"\";\n      const mark = \"###\";")], tests: RG_T, expectRed: [T14] },
+	{ n: "B2/16", name: "an active feature with no rows needs no evidence", edits: [one(RGS, "    const isGap = x.node.status === \"proposed\" || (x.node.status === \"active\" && featureRowIds(x.node).length === 0);", "    const isGap = x.node.status === \"proposed\";")], tests: RG_T, expectRed: [T6] },
+	{ n: "B2/17", name: "node labels dropped from the page", edits: [one(RGS, "out.push(`${mark} ${x.id} — ${text.label ?? \"\"}`, ", "out.push(`${mark} ${x.id}`, ")], tests: RG_T, expectRed: [T14] },
+	{ n: "B2/18", name: "nodes listed flat (one heading level; build 3 carries no indent to drop)", edits: [one(RGS, "      const mark = \"#\".repeat(x.level + 2);", "      const mark = \"###\";")], tests: RG_T, expectRed: [T14] },
 	{ n: "B2/19", name: "old heading text dropped from reported lines", edits: [one(RGS, "out.push(`Line ${r.line}: \"${r.heading}\" -> ${r.to}", "out.push(`Line ${r.line} -> ${r.to}")], tests: RG_T, expectRed: [T16] },
 	{ n: "B2/20", name: "the refuted-items section dropped", edits: [one(RGS, "\"placed\", \"refuted\", \"appendix\"];", "\"placed\", \"appendix\"];")], tests: RG_T, expectRed: [T16] },
 	{ n: "B2/21", name: "a refuted item's reason dropped", edits: [one(RGS, "out.push(`${r.id} -> ${r.to}: refuted — ${r.reason}`, \"\");", "out.push(`${r.id} -> ${r.to}: refuted`, \"\");")], tests: RG_T, expectRed: [T16] },
 	{ n: "B2/22", name: "the drafter's lineage dropped from the header", edits: [one(RGS, "    out.push(`Drafter: ${review.drafter}`, `Reviewer:", "    out.push(`Reviewer:")], tests: RG_T, expectRed: [T14] },
+	// Build brief 3 (seat, 2026-10-16): pairs for the checks build 3 added, in the brief's item order.
+	// Item 1 (T10, M5): the shares keys. T24's honest tree proposal carries both keys, so it reds too (declared).
+	{ n: "B3/1", name: "PROPOSAL_KEYS.feature lacks shares_added", edits: [one(RGS, "\"subgroups\", \"shares_added\", \"shares_dropped\"],", "\"subgroups\", \"shares_dropped\"],")], tests: RG_T, expectRed: [T10S], alsoRed: [T24] },
+	{ n: "B3/2", name: "PROPOSAL_KEYS.feature lacks shares_dropped", edits: [one(RGS, "\"subgroups\", \"shares_added\", \"shares_dropped\"],", "\"subgroups\", \"shares_added\"],")], tests: RG_T, expectRed: [T10S], alsoRed: [T24] },
+	// Item 2 (R-1187, M6)
+	{ n: "B3/3", name: "R-1187's share-declaration check dropped", edits: [one(RGS, "    ...shareDeclarationProblems(proposal),\n", "")], tests: RG_T, expectRed: [T24] },
+	{ n: "B3/4", name: "R-1187 applied to shares_added only", edits: [one(RGS, "x.node.shares_dropped ?? []", "[]")], tests: RG_T, expectRed: [T24] },
+	{ n: "B3/5", name: "R-1187 applied to shares_dropped only", edits: [one(RGS, "x.node.shares_added ?? []", "[]")], tests: RG_T, expectRed: [T24] },
+	{ n: "B3/6", name: "a move verdict accepted in place of share for a declared share", edits: [one(RGS, "const sharesTo = (id, to) => verdictFor(proposal, id)?.verdict === \"share\" &&", "const sharesTo = (id, to) => [\"share\", \"move\"].includes(verdictFor(proposal, id)?.verdict) &&")], tests: RG_T, expectRed: [T24] },
+	// Item 3 (M1): evidence values
+	{ n: "B3/7", name: "evidence values not shape-checked", edits: [one(RGS, "    if (!Array.isArray(paths) || paths.some((p) => typeof p !== \"string\")) problems.push(`regroup.evidence.${id}:", "    if (false) problems.push(`regroup.evidence.${id}:")], tests: RG_T, expectRed: [T39] },
+	{ n: "B3/8", name: "an evidence array's entries not checked as strings", edits: [one(RGS, "!Array.isArray(paths) || paths.some((p) => typeof p !== \"string\")", "!Array.isArray(paths)")], tests: RG_T, expectRed: [T39] },
+	{ n: "B3/9", name: "the early evidence refusal leaves an earlier page", edits: [one(RGS, "      for (const p of capProblems(earlyProblems)) console.error(p);\n      removeEarlierPage(outPath);\n", "      for (const p of capProblems(earlyProblems)) console.error(p);\n")], tests: RG_T, expectRed: [T39] },
+	// Item 4 (M2): only a review page is removed
+	{ n: "B3/10", name: "an earlier page recognised by prefix again", edits: [one(RGS, "  if (firstLineOf(existing) === PAGE_HEAD) {", "  if (firstLineOf(existing).startsWith(PAGE_HEAD)) {")], tests: RG_T, expectRed: [T21] },
+	{ n: "B3/11", name: "the BOM not stripped before the first-line compare", edits: [one(RGS, "  const line = stripBom(text)", "  const line = (text)")], tests: RG_T, expectRed: [T21] },
+	{ n: "B3/12", name: "the trailing CR not stripped before the first-line compare", edits: [one(RGS, "  return line.endsWith(\"\\r\") ? line.slice(0, -1) : line;", "  return line;")], tests: RG_T, expectRed: [T21] },
+	{ n: "B3/13", name: "a symlinked --out: the link removed instead of its target", edits: [one(RGS, "  try { if (lstatSync(outPath).isSymbolicLink()) real = realpathSync(outPath); } catch { return; }", "  try { lstatSync(outPath); } catch { return; }")], tests: RG_T, expectRed: [T21] },
+	{ n: "B3/14", name: "an unwritable --out not refused (the write error thrown)", edits: [one(RGS, "  } catch (e) {\n    console.error(`${outPath}: refused — could not write the review page", "  } catch (e) { throw e;\n    console.error(`${outPath}: refused — could not write the review page")], tests: RG_T, expectRed: [T38] },
+	// Item 5 (M3): each exact-type check, one site per pair (B2/8 and B2/9 are the reason and claim line sites)
+	...[
+		["a reason's to", "str(`regroup.reasons[${i}].to`, r.to);", [T5]],
+		["a verdict's id", "str(`regroup.review.verdicts[${i}].id`, v.id);", [T13]],
+		["a verdict's at", "str(`regroup.review.verdicts[${i}].at`, v.at);", [T13]],
+		["a target's to", "str(`regroup.review.verdicts[${i}].targets[${j}].to`, t.to);", [T13]],
+		["a claim's node", "str(`regroup.review.claims[${i}].node`, c.node);", [T13]],
+		["a claim's to", "str(`regroup.review.claims[${i}].to`, c.to);", [T13]],
+		["a refuted entry's id", "str(`regroup.refuted[${i}].id`, r.id);", [T13]],
+		["a refuted entry's to", "str(`regroup.refuted[${i}].to`, r.to);", [T13]],
+		["a question about entry's id", "str(`regroup.questions[${i}].about[${j}].id`, a.id);", [T13]],
+		["a question about entry's to", "str(`regroup.questions[${i}].about[${j}].to`, a.to);", [T13]],
+		["a question about entry's node", "str(`regroup.questions[${i}].about[${j}].node`, a.node);", [T13]],
+		["a question about entry's line", "int(`regroup.questions[${i}].about[${j}].line`, a.line);", [T13]],
+	].map(([what, call, titles], k) => ({ n: `B3/${15 + k}`, name: `${what}'s exact-type check dropped`, edits: [one(RGS, call, ";")], tests: RG_T, expectRed: titles })), // ";" keeps a bare `if (...)` a statement
+	// Item 6 (M4): reserved nodes as the lift writes them
+	{ n: "B3/27", name: "reserved nodes printed from the proposal again", edits: [one(RGS, "      const text = reserved ? seedNodeText(x.id, ctx.seed) : x.node;", "      const text = x.node;")], tests: RG_T, expectRed: [T14] },
+	// Item 7: the page per R-1178 and R-1179 as reworded
+	{ n: "B3/28", name: "feature label dropped from the table", edits: [one(RGS, "| ${x.id} | ${x.node.label ?? \"\"} | ${x.node.status ?? \"\"} |", "| ${x.id} | | ${x.node.status ?? \"\"} |")], tests: RG_T, expectRed: [T14] },
+	{ n: "B3/29", name: "feature status dropped from the table", edits: [one(RGS, "| ${x.node.status ?? \"\"} | ${ids.length} |", "| | ${ids.length} |")], tests: RG_T, expectRed: [T14] },
+	{ n: "B3/30", name: "node headings indented by level again", edits: [one(RGS, "      out.push(`${mark} ${x.id} — ", "      out.push(`${\"  \".repeat(x.level - 1)}${mark} ${x.id} — ")], tests: RG_T, expectRed: [T14] },
+	{ n: "B3/31", name: "a target line's move/share mark dropped", edits: [one(RGS, " -> ${t.to} [${v.verdict}]: ${label}", " -> ${t.to}: ${label}")], tests: RG_T, expectRed: [T16] },
+	{ n: "B3/32", name: "a target line's current home dropped", edits: [one(RGS, "out.push(`${v.id} (home ${v.at}) -> ${t.to}", "out.push(`${v.id} -> ${t.to}")], tests: RG_T, expectRed: [T16] },
+	{ n: "B3/33", name: "an asked target's question number dropped", edits: [one(RGS, "        const label = outcome === \"asked\" ? `asked in question ${qNum}` : outcome ?? \"unresolved\";", "        const label = outcome ?? \"unresolved\";")], tests: RG_T, expectRed: [T16] },
+	// Item 9: smaller refusals
+	{ n: "B3/34", name: "lineage names compared untrimmed", edits: [one(RGS, "a.trim().toLowerCase() === b.trim().toLowerCase();", "a.toLowerCase() === b.toLowerCase();")], tests: RG_T, expectRed: [T9] },
+	{ n: "B3/35", name: "a stray refuted entry accepted", edits: [one(RGS, "    if (ledgerIds.has(r.id) && !isDeclaredTarget(r.id, r.to)) problems.push(", "    if (false) problems.push(")], tests: RG_T, expectRed: [T40] },
+	{ n: "B3/36", name: "a stray question about entry accepted", edits: [one(RGS, "      else if (a.id !== undefined && a.to !== undefined && !isDeclaredTarget(a.id, a.to)) problems.push(", "      else if (false) problems.push(")], tests: RG_T, expectRed: [T40] },
+	{ n: "B3/37", name: "a stray claim verdict accepted", edits: [one(RGS, "    if (required.some((req) => matches(c, req))) continue;", "    continue;")], tests: RG_T, expectRed: [T41] },
+	{ n: "B3/38", name: "a keep verdict carrying targets accepted", edits: [one(RGS, "      if ((v.targets ?? []).length > 0) problems.push(`regroup.review.verdicts: ${v.id}'s keep verdict carries a target", "      if (false) problems.push(`regroup.review.verdicts: ${v.id}'s keep verdict carries a target")], tests: RG_T, expectRed: [T42] },
+	{ n: "B3/39", name: "a question without ask accepted", edits: [one(RGS, "    if (!nonEmpty(q.ask)) problems.push(", "    if (false) problems.push(")], tests: RG_T, expectRed: [T43] },
+	{ n: "B3/40", name: "a feature status outside the tree's pattern accepted", edits: [one(RGS, "    if (!STATUS.test(x.node.status ?? \"\")) problems.push(", "    if (false) problems.push(")], tests: RG_T, expectRed: [T44] },
+	{ n: "B3/41", name: "a frozen or retired feature with no rows counted as a gap", edits: [one(RGS, "    const isGap = x.node.status === \"proposed\" || (x.node.status === \"active\" && featureRowIds(x.node).length === 0);", "    const isGap = x.node.status === \"proposed\" || featureRowIds(x.node).length === 0;")], tests: RG_T, expectRed: [T45] },
+	{ n: "B3/42", name: "an evidence citation's path not cut at the first space", edits: [one(RGS, "    .map((c) => c.split(\" \")[0])\n", "")], tests: RG_T, expectRed: [T46] },
+	{ n: "B3/43", name: "an evidence citation's trailing :<line> or :<line>-<line> kept", edits: [one(RGS, "    .map((c) => c.replace(/:\\d+(?:-\\d+)?$/, \"\"))\n", "")], tests: RG_T, expectRed: [T46] },
+	{ n: "B3/44", name: "the text-placed refusal's old wording (no \"names no path that exists\")", edits: [one(RGS, "${row.id}'s Evidence cell names no path that exists under the root, so it is text-placed, but regroup.placed has no reason for it", "${row.id} is text-placed (no evidence path under the root) but has no placed reason")], tests: RG_T, expectRed: [T47] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────

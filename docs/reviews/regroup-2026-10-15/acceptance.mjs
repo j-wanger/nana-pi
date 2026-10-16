@@ -1038,7 +1038,7 @@ out(`(e) the row set is the base's plus R-1170 to R-1180, R-1184 and R-1187, eac
 out("(e) the leaf totals agree with R-291's renamed title (T18)", rtTitles.error ? rtTitles.error : [rtTitles.beforeTotal, rtTitles.afterTotal], [baseIds.length, headIds.length]);
 const treeHeads = (ls) => ls.filter((l) => /^#{1,3} (CAP|FEAT|SUB)-/.test(l));
 out(`(guard) nana-pi's tree headings are the base's (${treeHeads(baseReqLines).length}; §2 "no heading is added")`, treeHeads(reqLines), treeHeads(baseReqLines));
-out("(harness) R-1170 to R-1184 are unused in the base ledger (§2)", baseReqLines.filter((l) => /\bR-11(7\d|8[0-4])\b/.test(l)).length, 0);
+out("(harness) this lane's rows R-1170 to R-1180, R-1184 and R-1187 are unused in the base ledger (§2; R-1181 to R-1183 are regroup-shares' own, on main once it lands)", baseReqLines.filter((l) => NEW.some((id) => word(id).test(l))).length, 0);
 const rail = node(["scripts/requirements-trace.mjs"]);
 out("(guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0 (§5 Suite)", rail.status, 0, (rail.stdout + rail.stderr).split("\n").filter((l) => /^\s{2}\S/.test(l)).slice(0, 5).join(" | "));
 

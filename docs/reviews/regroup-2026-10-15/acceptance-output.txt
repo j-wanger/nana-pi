@@ -155,7 +155,7 @@ ok   (guard) no base row changes its Requirement text or Status (§2)
 ok   (e) the row set is the base's plus R-1170 to R-1180, R-1184 and R-1187, each once: leaf total 1139 → 1152 (§2)
 ok   (e) the leaf totals agree with R-291's renamed title (T18)
 ok   (guard) nana-pi's tree headings are the base's (68; §2 "no heading is added")
-MISS (harness) R-1170 to R-1184 are unused in the base ledger (§2) → 3 (want 0)
+ok   (harness) this lane's rows R-1170 to R-1180, R-1184 and R-1187 are unused in the base ledger (§2; R-1181 to R-1183 are regroup-shares' own, on main once it lands)
 ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0 (§5 Suite)
 ok   (guard) git diff --name-only 2dbc817..HEAD lists only §4 In paths and this review folder
 ok   (guard) the merge-base diff touches nothing §3.6 names (the proof, the tree checker, the product report, the seeds, the five pi skills, nana-setup), less the seat amendment's trace template
@@ -179,5 +179,5 @@ ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0 (§5 Sui
 ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0 (§5 Suite)
 ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 177/180 (build cases red: 2/144; guard and harness red: 1/36)
-regroup acceptance: 3 mismatch(es)
+cases: 178/180 (build cases red: 2/144; guard and harness red: 0/36)
+regroup acceptance: 2 mismatch(es)
