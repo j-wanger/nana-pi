@@ -305,7 +305,15 @@ function reviewProblems(proposal, ledgerRows) {
       else if (n > 1) problems.push(`regroup: ${v.id} -> ${t.to} target is resolved more than once`);
     }
   }
-  for (const r of proposal.regroup?.refuted ?? []) if (!nonEmpty(r.reason)) problems.push(`regroup.refuted: ${r.id} -> ${r.to} has an empty reason`);
+  for (const r of proposal.regroup?.refuted ?? []) {
+    if (!ledgerIds.has(r.id)) problems.push(`regroup.refuted: ${r.id} is not a row in this ledger`);
+    if (!nonEmpty(r.reason)) problems.push(`regroup.refuted: ${r.id} -> ${r.to} has an empty reason`);
+  }
+  for (const q of proposal.regroup?.questions ?? []) {
+    for (const a of q.about ?? []) {
+      if (a.id !== undefined && !ledgerIds.has(a.id)) problems.push(`regroup.questions: about entry names row ${a.id}, which is not in this ledger`);
+    }
+  }
   return problems;
 }
 
@@ -313,6 +321,8 @@ function reviewProblems(proposal, ledgerRows) {
 function placedProblems(proposal, ledgerRows, rootDir) {
   const problems = [];
   const placed = proposal.regroup?.placed ?? {};
+  const ledgerIds = new Set(ledgerRows.map((r) => r.id));
+  for (const id of Object.keys(placed)) if (!ledgerIds.has(id)) problems.push(`regroup.placed: ${id} is not a row in this ledger`);
   for (const row of ledgerRows) {
     const reason = placed[row.id];
     if (isTextPlaced(rootDir, row)) {

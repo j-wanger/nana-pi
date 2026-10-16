@@ -370,6 +370,11 @@ if (process.platform !== "win32") {
     ["R-003's move names an unknown target", variant((q) => { verdictOf(q, "R-003").targets[0].to = "FEAT-999"; q.regroup.refuted[0].to = "FEAT-999"; }), ["FEAT-999"]],
     ["R-009's keep verdict has an empty reason", variant((q) => { verdictOf(q, "R-009").reason = ""; }), ["R-009"]],
     ["R-005's share target carries no reason of its own", variant((q) => { delete verdictOf(q, "R-005").targets[0].reason; }), ["R-005"]],
+    // Unknown rows (brief 2 item 6; brief 1's clarification 5): a verdict, a refuted entry or
+    // a question's about entry naming a row the ledger does not hold is refused, naming it.
+    ["review record's verdict names a row the ledger does not hold", variant((q) => { q.regroup.review.verdicts.push({ id: "R-999", at: "FEAT-001", verdict: "keep", reason: "bogus" }); }), ["R-999"]],
+    ["a refuted entry names a row the ledger does not hold", variant((q) => { q.regroup.refuted.push({ id: "R-999", to: "FEAT-004", reason: "bogus" }); }), ["R-999"]],
+    ["a question's about entry names a row the ledger does not hold", variant((q) => { q.regroup.questions[0].about.push({ id: "R-999", to: "FEAT-001" }); }), ["R-999"]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1175
@@ -410,6 +415,9 @@ if (process.platform !== "win32") {
     ["R-005 (no local evidence) has no placed reason", variant((q) => { delete q.regroup.placed["R-005"]; }), ["R-005"]],
     ["R-001 (has local evidence) carries a placed reason", variant((q) => { q.regroup.placed["R-001"] = "placed by text (extra)"; }), ["R-001"]],
     ["text-placed R-003's placed reason is empty", variant((q) => { q.regroup.placed["R-003"] = ""; }), ["R-003"]],
+    // Unknown rows (brief 2 item 6; brief 1's clarification 5): a placed entry naming a row
+    // the ledger does not hold exits 0 today (MUST 6); now it is refused, naming it.
+    ["a placed entry names a row the ledger does not hold", variant((q) => { q.regroup.placed["R-999"] = "bogus placed reason"; }), ["R-999"]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1176
