@@ -44,6 +44,11 @@ const saysOwn = (r, x) => { const s = own(r?.stderr).join("\n"); return x instan
 const word = (n) => new RegExp(`(?<![\\w-])${n}(?![\\w-])`);
 const bare = (seg) => seg.replace(/\r?\n$/, "");
 const lineOf = (txt, heading, nth = 1) => { let k = 0; const ls = txt.split("\n"); for (let i = 0; i < ls.length; i++) if (ls[i] === heading && ++k === nth) return i + 1; return -1; };
+/** Build 6 item 4 (T14, mutation survivor B5/7): FEAT-900's own table row names both its seed
+ * label and its seed status ("active"), pinned by that one row — not by the two substrings
+ * appearing anywhere in the table, where another row's own "active" status would mask a
+ * blanked FEAT-900 cell. */
+const feat900RowOk = (block) => /\|\s*FEAT-900\s*\|\s*Adopt the general engineering requirements\s*\|\s*active\s*\|/.test(block);
 
 const scratchRoot = tmpDir(join(tmpdir(), "regroup-test-"));
 let caseN = 0;
@@ -1124,8 +1129,10 @@ if (process.platform !== "win32") {
   const tableStatusOk = tableBlock.includes("Build at production size") && tableBlock.includes("Render analyst pages") && /proposed/.test(tableBlock) && /active/.test(tableBlock);
   // M2: the table's reserved FEAT-900 row shows the lift's seed label and status (as the node
   // list already does), never blank — the honest fixture's lift's own default start, since the
-  // proposal names no label or status of its own for FEAT-900.
-  const tableReservedOk = tableBlock.includes("Adopt the general engineering requirements") && /\bactive\b/.test(tableBlock);
+  // proposal names no label or status of its own for FEAT-900. Build 6 item 4 (mutation
+  // survivor B5/7): pinned by FEAT-900's OWN row, not by the label and "active" appearing
+  // anywhere in the table — another row's own "active" status must not mask a blanked FEAT-900 cell.
+  const tableReservedOk = feat900RowOk(tableBlock);
   // Item 4 (M3): a feature's own subtree row count and status mix, not just any digit anywhere
   // in the table — FEAT-002 carries its own rows (R-004 implemented, R-005 planned, R-007
   // implemented) plus SUB-001's row (R-006 untested): 4 rows, "2 implemented, 1 planned, 1 untested".
@@ -1179,7 +1186,8 @@ if (process.platform !== "win32") {
   const posTable = page.indexOf("| Feature | Label | Status | Rows | Status mix |");
   const posNodes = page.indexOf("## Capabilities, features and subgroups");
   const tableBlock = page.slice(posTable, posNodes);
-  const seedOk = tableBlock.includes("Adopt the general engineering requirements") && /\bactive\b/.test(tableBlock);
+  // Build 6 item 4 (mutation survivor B5/7): FEAT-900's own row, not the table at large.
+  const seedOk = feat900RowOk(tableBlock);
   const ignoredOk = !tableBlock.includes("Bogus label the lift ignores") && !tableBlock.includes("bogus reason the lift ignores");
   // req: R-1178
   check("R-1178: the feature table shows FEAT-900's label and status from the lift's seed, never other text a proposal gives it",
