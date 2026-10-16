@@ -1005,8 +1005,11 @@ out("(guard) the trace rail is green: node scripts/requirements-trace.mjs exits 
 // `templates-render.test.mjs` …, `requirements-tree.test.mjs` …. `README.md` names the new script on its own physical line …
 // `REQUIREMENTS.md` (12 rows), regenerated `docs/requirements-tree.md` and `docs/code-map.md`, `HANDOFF.md`,
 // `docs/sessions/2026-10.md`, this corpus."
+const TRACE_TEMPLATE = "templates/typescript/template/tests/requirements-trace.ts";
 const SCOPE = [REGROUP_SCRIPT, RG, LIFT_SCRIPT, LT, "packages/nana-pack/skills/requirements/SKILL.md", TR, RT,
-	"README.md", "REQUIREMENTS.md", "docs/requirements-tree.md", "docs/code-map.md", "HANDOFF.md", "docs/sessions/2026-10.md"];
+	"README.md", "REQUIREMENTS.md", "docs/requirements-tree.md", "docs/code-map.md", "HANDOFF.md", "docs/sessions/2026-10.md",
+	// Seat amendment (2026-10-16): the trace rail's citation split, extracted unchanged so the checker imports it.
+	"scripts/requirements-trace.mjs", TRACE_TEMPLATE];
 const SCOPE_PREFIX = "docs/reviews/regroup-2026-10-15/";
 const diff = git("diff", "--name-only", `${base}..HEAD`);
 const changed = diff.stdout.split("\n").filter(Boolean);
@@ -1015,7 +1018,17 @@ out(`(guard) git diff --name-only ${base.slice(0, 7)}..HEAD lists only §4 In pa
 // the seeds; the five pi skills …; `packages/nana-setup/**`; any other project's files."
 const FIVE = ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"];
 const FROZEN_PREFIX = [PROOF_SCRIPT, RT_SCRIPT, "scripts/product-report", "templates/", "packages/nana-setup/", ...FIVE.map((s) => `packages/nana-pack/skills/${s}/`)];
-out("(guard) the merge-base diff touches nothing §3.6 names (the proof, the tree checker, the product report, the seeds, the five pi skills, nana-setup)", changed.filter((p) => FROZEN_PREFIX.some((x) => p.startsWith(x))), []);
+out("(guard) the merge-base diff touches nothing §3.6 names (the proof, the tree checker, the product report, the seeds, the five pi skills, nana-setup), less the seat amendment's trace template", changed.filter((p) => p !== TRACE_TEMPLATE && FROZEN_PREFIX.some((x) => p.startsWith(x))), []);
+// Seat amendment (2026-10-16): the template's diff is the citation split moved into an exported citesOf, nothing else.
+{
+	const td = git("diff", "-U0", `${base}..HEAD`, "--", TRACE_TEMPLATE);
+	const minus = td.stdout.split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---")).map((l) => l.slice(1).trim());
+	const plus = td.stdout.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++")).map((l) => l.slice(1).trim());
+	const moved = minus.filter((l) => !l.startsWith("//") && l !== "const cites = (" && l !== ")");
+	const ok = td.status === 0 && plus.includes("export function citesOf(evidence: string): string[] {") && plus.includes("const cites = citesOf(evidence);")
+		&& moved.every((l) => plus.includes(l)) && plus.filter((l) => /^export /.test(l)).length === 1;
+	out("(guard) the trace template's change is the citation split moved unchanged into one exported citesOf (seat amendment 2026-10-16)", ok, true, `minus=${minus.length} plus=${plus.length}`);
+}
 /** The lift with detectMoves (its JSDoc and body) and the plan loop's move print removed: what §3.6 freezes. */
 const liftRest = (src) => {
 	if (src === null) return null;

@@ -258,3 +258,50 @@ sol, SEND-BACK (`sol-plan-r1.md`). Counts after: 12 rows (R-1184 new), leaf tota
 5. SHOULD, packet length: the budget is the owner minutes Jake accepted with §6's table; runs report words, minutes and overruns. Not enforced, by the seat's ruling (J2, §5).
 6. SHOULD, stale page: a failed run removes an earlier review page and touches no other file (R-1171, T21 starts with one); residual 5 rewritten.
 7. SHOULD, token method: §6 shows raw input per role and billed tokens apart, with each role's re-read multiplier; the rehearsal measures the multipliers.
+
+## Seat amendment (2026-10-16): the trace rail's citation split
+
+Build brief 2 item 1 told the builder to read an Evidence cell "exactly as the trace rail reads it … import it, never copy
+it". The rail's split was inline in `loadRequirements`, so build 2 moved it unchanged into an exported `citesOf` in
+`templates/typescript/template/tests/requirements-trace.ts`, called it from `loadRequirements`, and re-exported it from
+`scripts/requirements-trace.mjs`. No behaviour changes: the same expression, the same trim and the same placeholder drop.
+§3.6 froze `templates/`; this amendment adds those two files to §4 In for that extraction only. A new project rendered
+from the next template tag gets the extra export. Acceptance checks that the template's diff is that extraction and
+nothing else.
+
+## Seat amendment 2 (2026-10-16): shares in the review record, now that regroup-shares has landed
+
+Reopened under the plan rule that only a named fail-open bug reopens a frozen plan. The seat's independent check of build 2
+(`seat-verify-228f37c.md`, the merge findings) merged main `2dbc817` into the build and found this: a proposal can add or
+drop a share (`shares_added`, `shares_dropped`) with no share verdict. The lift applies it, the checker exits 0, and the
+owner's page never shows it. A refuted move target can also be added as a share while the page reads "refuted", and
+`--write` then writes the share. The owner's 2026-10-10 ruling put every placement, shares included, under one review.
+
+**Rows.**
+
+| ID | Change | Text |
+|---|---|---|
+| R-1187 | added, FEAT-028, after R-1184 | The regroup checker shall refuse a proposal unless each row a feature's `shares_added` or `shares_dropped` names has a `share` verdict with that feature among its targets. |
+| R-1178 | reworded | The review page shall open with the proposal's SHA-256, the lift's pin and proof line, the drafter's and reviewer's lineages — reading "same-family review" when they match — and the placement and claim verdict counts, then list the numbered questions each with its recommendation, one table of every feature with its label, status, row count and status mix, and every capability, feature and subgroup with its label and purpose as the lift will write them, each capability's outcome and each proposed feature's evidence paths. |
+| R-1179 | reworded | After R-1178's parts, the review page shall list each line R-1170 reports with its reason and moved row IDs, each move and share target by row and target, marked move or share, with its own reason and outcome — carried, refuted, or asked with its question's number —, each rejected claim with its reason, each text-placed row's ID, opening `GIST_WORDS` words, home and reason, and only then an appendix of every row's ID and requirement text under its new node. |
+
+R-1187 needs no outcome clause of its own. R-1175 already demands exactly one outcome per target, and "carried" means the
+row sits in that feature's `also_applies` for a `share` verdict. So an added share's target is carried, and a dropped
+share's target, which the lift has removed from `also_applies`, must be refuted or asked. A move target is never carried,
+so a refuted move target that is also added as a share fails R-1187: its verdict is `move`, not `share`. R-1178 and R-1179
+gain the label, status, "as the lift will write them" (the reserved nodes' seed text, never blanks or proposal text the
+lift ignores) and the move-or-share mark. These close the check's reserved-node and target-list findings. Leaf total:
+main's 1,139 (the shares rows included) plus the 12 regroup rows plus R-1187 = **1,152**.
+
+**Tests** (exact titles; `// req:` above each):
+- T10 (the shares plan's title, verbatim) · `// req: R-1177` · `R-1177: a proposal whose feature declares shares_added and shares_dropped holds no unknown key and passes the regroup checker`.
+- T24 · `// req: R-1187` · `R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked` (a tree-form fixture, since only a tree ledger can drop a share; each refusal asserts R-1187's own message).
+- T14 and T16 keep their titles; they gain the reserved nodes' seed text, labels, feature status and the move-or-share mark.
+
+**Wrong code first.** R-1187's check dropped (T24); the check applied to `shares_added` only (T24, dropped case); applied to
+`shares_dropped` only (T24, added case); `move` accepted in place of `share` (T24); reserved nodes printed from the proposal
+(T14); the move-or-share mark dropped (T16); `PROPOSAL_KEYS` lacks `shares_added` / `shares_dropped` (T10 ×2).
+
+**Threat model and class** are unchanged: honest variation in scope, forgery out; format lane. Not reopened: anything else
+in this plan.
+
