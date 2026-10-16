@@ -516,6 +516,20 @@ if (process.platform !== "win32") {
     plainOk && backtickOk && missingOk, `plain=${plainOk} backtick=${backtickOk} missing(still text-placed)=${missingOk}`);
 }
 
+// ================================================================== T10 (shares plan, verbatim: amendment 2, seat-titles.mjs)
+{
+  const p = variant((q) => {
+    const feat = mappingNodesOf(q).find((x) => x.id === "FEAT-002").node;
+    feat.shares_added = ["R-010"];
+    feat.shares_dropped = ["R-009"];
+  });
+  const dir = fxRoot("shares-keys", p);
+  const { problems } = regroupProblems(p, FX, dir);
+  // req: R-1177
+  check("R-1177: a proposal whose feature declares shares_added and shares_dropped holds no unknown key and passes the regroup checker",
+    problems.length === 0, `problems=${problems.slice(0, 3).join(" | ")}`);
+}
+
 // ================================================================== T11
 {
   const N = 60; // > PROBLEM_LINE_CAP (40)

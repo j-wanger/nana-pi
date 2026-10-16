@@ -41,7 +41,7 @@ export const PROPOSAL_KEYS = {
   pin: ["sha256", "rows"],
   head: ["through"],
   capability: ["id", "label", "purpose", "outcome", "from", "features"],
-  feature: ["id", "label", "purpose", "status", "also_applies", "from", "rows", "subgroups"],
+  feature: ["id", "label", "purpose", "status", "also_applies", "from", "rows", "subgroups", "shares_added", "shares_dropped"],
   subgroup: ["id", "label", "purpose", "from", "rows"],
   from: ["line", "heading"],
   tail: ["heading", "from", "keep"],
