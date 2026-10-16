@@ -213,6 +213,7 @@ function reasonProblems(proposal, records) {
   const reasons = proposal.regroup?.reasons ?? [];
   const seen = new Map();
   for (const r of reasons) {
+    if (!Number.isInteger(r.line)) { problems.push(`regroup.reasons: line ${JSON.stringify(r.line)} must be an integer, not its typed value`); continue; }
     const key = `${r.line}|${r.to}`;
     if (!want.has(key)) { problems.push(`regroup.reasons: line ${r.line} -> ${r.to} is not a line the lift reports (a stale reason)`); continue; }
     seen.set(key, (seen.get(key) ?? 0) + 1);
@@ -345,6 +346,7 @@ function claimLabel(req) { return req.kind === "node" ? `${req.node} ${req.field
 function claimProblems(proposal, records) {
   const problems = [];
   const claims = proposal.regroup?.review?.claims ?? [];
+  for (const c of claims) if (c.line !== undefined && !Number.isInteger(c.line)) problems.push(`regroup.review.claims: line ${JSON.stringify(c.line)} must be an integer, not its typed value`);
   const matches = (c, req) => (req.kind === "node" ? c.node === req.node && c.field === req.field : c.line === req.line && c.to === req.to);
   for (const req of requiredClaimKeys(proposal, records)) {
     const hit = claims.filter((c) => matches(c, req));

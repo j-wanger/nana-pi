@@ -338,6 +338,7 @@ if (process.platform !== "win32") {
     [`reason for line ${L37} -> FEAT-004 repeated`, variant((q) => { q.regroup.reasons.push({ ...q.regroup.reasons.find((r) => r.line === L37 && r.to === "FEAT-004") }); }), [String(L37)]],
     [`stale reason for line ${L7}`, variant((q) => { q.regroup.reasons.push({ line: L7, to: "FEAT-002", why: "a reason for a line the lift does not report (stale)" }); }), [String(L7)]],
     [`two same-text headings reasoned by text (line ${L30})`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-002"); r.line = L15; q.regroup.review.claims = q.regroup.review.claims.filter((c) => !(c.line === L30 && c.to === "FEAT-002")); }), [String(L30)]],
+    [`reason for line ${L30} -> FEAT-004 given as the string "${L30}", not an integer`, variant((q) => { const r = q.regroup.reasons.find((y) => y.line === L30 && y.to === "FEAT-004"); r.line = String(r.line); }), [String(L30)]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1173
@@ -573,6 +574,7 @@ if (process.platform !== "win32") {
     ["FEAT-002's purpose claim quotes a stale text", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-002" && c.field === "purpose")].text = "Build the dataset (an older wording)."; }), ["FEAT-002"]],
     ["SUB-001's purpose claim has an empty reason", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "SUB-001")].reason = ""; }), ["SUB-001"]],
     ["CAP-01's purpose claim is neither accept nor reject", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].verdict = "maybe"; }), ["CAP-01"]],
+    [`line ${L7} -> FEAT-001 reason's claim line is a string, not an integer`, variant((q) => { const c = q.regroup.review.claims[claimAt(q, (c) => c.line === L7 && c.to === "FEAT-001")]; c.line = String(c.line); }), [String(L7)]],
   ];
   const { ok, why } = allRefused(cases);
   const exempt = runFx("reserved-no-claims", variant((q) => {}));
