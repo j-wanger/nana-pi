@@ -474,19 +474,35 @@ function claimProblems(proposal, records) {
   return problems;
 }
 
-// ---------------------------------------------------------------------- R-1187: a declared share needs a share verdict
-// A feature's `shares_added` or `shares_dropped` names a row only when the review record
-// itself backs that change: the row's own verdict must be `share` (never `move`, which names
-// a different placement) with that feature among its targets. R-1187 needs no outcome clause
-// of its own — R-1175 already demands exactly one outcome per target, and "carried" already
-// means the row sits in that feature's `also_applies` for a share verdict, so an added share's
-// target resolves carried and a dropped one resolves refuted or asked (seat amendment 2).
-function shareDeclarationProblems(proposal) {
+// ---------------------------------------------------------------------- R-1187: a declared or carried share needs a share verdict
+// A row counts as a new share for a feature only when the review record itself backs that
+// change: the row's own verdict must be `share` (never `move`, which names a different
+// placement) with that feature among its targets. R-1187 needs no outcome clause of its own —
+// R-1175 already demands exactly one outcome per target, and "carried" already means the row
+// sits in that feature's `also_applies` for a share verdict, so a new share's target resolves
+// carried and a dropped one resolves refuted or asked (seat amendment 2).
+//
+// Seat amendment 3 widens this past `shares_added`: when a proposal merges or demotes a
+// feature that shares a row, the lift carries that share into the feature that absorbs it —
+// onto `also_applies` directly, with no `shares_added` ever declared, so checking that key
+// alone misses it (the fail-open bug the amendment names). The real test is the input
+// ledger's own feature of the SAME ID: a row in `also_applies` that feature already shared
+// stays unreviewed (nothing changed for it); a row it did not — whether newly declared or
+// merely carried in by a merge or a demotion — needs a share verdict. A flat ledger's
+// features share nothing, so every one of their shares needs review.
+function shareDeclarationProblems(proposal, ledgerText) {
   const problems = [];
+  const inputAlsoApplies = new Map(
+    parseLedger(ledgerText).headings.filter((h) => h.id?.startsWith("FEAT-")).map((h) => [h.id, new Set(h.alsoApplies)]),
+  );
   const sharesTo = (id, to) => verdictFor(proposal, id)?.verdict === "share" && (verdictFor(proposal, id)?.targets ?? []).some((t) => t.to === to);
   for (const x of flattenProposalNodes(proposal)) {
     if (x.level !== 2) continue;
-    for (const id of x.node.shares_added ?? []) if (!sharesTo(id, x.id)) problems.push(`${x.id}: shares_added names ${id}, which has no share verdict targeting ${x.id}`);
+    const alreadyShared = inputAlsoApplies.get(x.id) ?? new Set();
+    for (const id of x.node.also_applies ?? []) {
+      if (alreadyShared.has(id)) continue;
+      if (!sharesTo(id, x.id)) problems.push(`${x.id}: also_applies names ${id}, which the input ledger's feature of this ID did not share and which has no share verdict targeting ${x.id}`);
+    }
     for (const id of x.node.shares_dropped ?? []) if (!sharesTo(id, x.id)) problems.push(`${x.id}: shares_dropped names ${id}, which has no share verdict targeting ${x.id}`);
   }
   return problems;
@@ -510,7 +526,7 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
     ...reasonProblems(proposal, records),
     ...evidenceProblems(proposal, rootDir),
     ...reviewProblems(proposal, ledgerRows),
-    ...shareDeclarationProblems(proposal),
+    ...shareDeclarationProblems(proposal, ledgerText),
     ...placedProblems(proposal, ledgerRows, rootDir),
     ...claimProblems(proposal, records),
   ];

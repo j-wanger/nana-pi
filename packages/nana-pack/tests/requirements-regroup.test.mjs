@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { PAGE_HEAD, isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
+import { buildIdentityMapping } from "../../../scripts/requirements-lift.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -955,9 +956,9 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   });
   const askedDropOk = regroupProblems(askedDrop, TREE_FX, treeDir).problems.length === 0;
 
-  // Case: shares_added names a row with no share verdict targeting the feature (keep verdict, no target).
+  // Case: FEAT-002's also_applies still names R-001 (a new share, unknown to the input ledger's
+  // own FEAT-002), but no share verdict targets FEAT-002 for it (keep verdict, no target).
   const addedNoVerdict = treeVariant((p) => {
-    featOf(p, "FEAT-002").also_applies = [];
     verdictOfT(p, "R-001").verdict = "keep"; delete verdictOfT(p, "R-001").targets;
     verdictOfT(p, "R-001").reason = "R-001 stays in place (keep)";
   });
@@ -970,7 +971,6 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   // Case: the row's verdict targeting the feature is "move", not "share" — a share declaration
   // is not satisfied by a move (the target still resolves, by refutal, so only R-1187 catches this).
   const movedNotShared = treeVariant((p) => {
-    featOf(p, "FEAT-002").also_applies = [];
     const v = verdictOfT(p, "R-001"); v.verdict = "move"; v.targets[0].reason = "moved instead of shared (wrong code)";
     p.regroup.refuted.push({ id: "R-001", to: "FEAT-002", reason: "the move is refused outright (wrong code)" });
   });
@@ -984,6 +984,152 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   check("R-1187: a share added or dropped with no share verdict targeting its feature is refused, an added one with that verdict passes as carried, and a dropped one passes only refuted or asked",
     honestOk && askedDropOk && names(addedRefused, "FEAT-002", "R-001") && names(droppedRefused, "FEAT-001", "R-002") && names(movedRefused, "FEAT-002", "R-001"),
     `honest=${honestOk} askedDrop=${askedDropOk} added=${addedRefused.slice(0, 2).join(" | ")} dropped=${droppedRefused.slice(0, 2).join(" | ")} moved=${movedRefused.slice(0, 2).join(" | ")}`);
+}
+
+// ================================================================== T24 (seat amendment 3, R-1187: a merge or a demotion that carries a share)
+{
+  // A separate tree-form ledger: CAP-01 holds three features. Bravo shares Alpha's row R-001;
+  // Charlie shares nothing. Both the merge and the demotion case fold Bravo (and its carried
+  // share of R-001) into Charlie, through the real lift — now that regroup-shares has landed,
+  // the lift carries a feature's or a subgroup's merge source shares onto the node absorbing
+  // it, with no shares_added ever declared (the fail-open bug amendment 3 names).
+  const MTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const MT = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha", f2: "## FEAT-002 · Bravo", f3: "## FEAT-003 · Charlie" };
+  const MERGE_FX = [
+    MT.cap, "", "Purpose: capability purpose for the merge fixture.", "Outcome: a visible outcome for the merge fixture.", "",
+    MT.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...MTH,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+    MT.f2, "", "Purpose: bravo feature purpose.", "Status: active", "Also applies: R-001", "", ...MTH,
+    "| R-002 | WHEN bravo runs, it shall do bravo things. | implemented | `tests/bravo.test.mjs::R-002: bravo` |", "",
+    MT.f3, "", "Purpose: charlie feature purpose.", "Status: active", "", ...MTH,
+    "| R-003 | WHEN charlie runs, it shall do charlie things. | implemented | `tests/charlie.test.mjs::R-003: charlie` |", "",
+  ].join("\n");
+  const mergeDir = join(scratchRoot, `t24-merge-fx-${++caseN}`);
+  mkdirSync(join(mergeDir, "tests"), { recursive: true });
+  for (const n of ["alpha", "bravo", "charlie"]) writeFileSync(join(mergeDir, "tests", `${n}.test.mjs`), "// fixture test file\n");
+  writeFileSync(join(mergeDir, "REQUIREMENTS.md"), MERGE_FX);
+  const f2Line = lineOf(MERGE_FX, MT.f2);
+  const mergeClaims = [
+    { node: "CAP-01", field: "purpose", text: "capability purpose for the merge fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+    { node: "CAP-01", field: "outcome", text: "a visible outcome for the merge fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+    { node: "FEAT-001", field: "purpose", text: "alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+    { node: "FEAT-003", field: "purpose", text: "charlie feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+    { line: f2Line, to: "FEAT-003", text: "Bravo's row and its share of R-001 fold into Charlie (merge reason)", verdict: "accept", reason: "the claim matches the fixture's reason" },
+  ];
+  /** The merge: FEAT-002 (Bravo) vanishes; FEAT-003 (Charlie) absorbs its row (R-002) and,
+   * via the merged-in `from`, its carried share of R-001 — never declared through shares_added. */
+  function mergeMapping() {
+    const m = structuredClone(buildIdentityMapping(MERGE_FX));
+    const feats = m.tree[0].features;
+    const f2 = feats.find((f) => f.id === "FEAT-002");
+    const f3 = feats.find((f) => f.id === "FEAT-003");
+    f3.rows = [...f3.rows, ...f2.rows];
+    f3.from = [...f3.from, ...f2.from];
+    f3.also_applies = ["R-001"];
+    m.tree = [{ ...m.tree[0], features: feats.filter((f) => f.id !== "FEAT-002") }];
+    return m;
+  }
+  const mergeRegroup = (verdicts) => ({
+    reasons: [{ line: f2Line, to: "FEAT-003", why: "Bravo's row and its share of R-001 fold into Charlie (merge reason)" }],
+    placed: {}, evidence: {},
+    review: { drafter: "anthropic", reviewer: "openai", verdicts, claims: mergeClaims },
+    refuted: [], questions: [],
+  });
+  const mergeNoVerdict = { ...mergeMapping(), regroup: mergeRegroup([
+    { id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" },
+    { id: "R-002", at: "FEAT-003", verdict: "keep", reason: "R-002 moves to Charlie with the merge (keep)" },
+    { id: "R-003", at: "FEAT-003", verdict: "keep", reason: "R-003 stays at Charlie (keep)" },
+  ]) };
+  const mergeWithVerdict = { ...mergeMapping(), regroup: mergeRegroup([
+    { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-003", reason: "the merge carries Alpha's row into Charlie, now reviewed (merge share)" }] },
+    { id: "R-002", at: "FEAT-003", verdict: "keep", reason: "R-002 moves to Charlie with the merge (keep)" },
+    { id: "R-003", at: "FEAT-003", verdict: "keep", reason: "R-003 stays at Charlie (keep)" },
+  ]) };
+  mkdirSync(join(mergeDir, "docs", "regroup"), { recursive: true });
+  const mergeNoPage = join(scratchRoot, `merge-no-page-${++caseN}.md`);
+  writeFileSync(join(mergeDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(mergeNoVerdict, null, 2)}\n`);
+  const mergeNoRun = regroup(["--root", mergeDir, "--proposal", join(mergeDir, "docs", "regroup", "proposal.json"), "--out", mergeNoPage], scratchRoot);
+  const mergeNoOk = mergeNoRun.status === 1 && !crashed(mergeNoRun) && !existsSync(mergeNoPage) && saysOwn(mergeNoRun, "FEAT-003") && saysOwn(mergeNoRun, "R-001") && saysOwn(mergeNoRun, "also_applies");
+  const mergeYesPage = join(scratchRoot, `merge-yes-page-${++caseN}.md`);
+  writeFileSync(join(mergeDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(mergeWithVerdict, null, 2)}\n`);
+  const mergeYesRun = regroup(["--root", mergeDir, "--proposal", join(mergeDir, "docs", "regroup", "proposal.json"), "--out", mergeYesPage], scratchRoot);
+  const mergePage = (() => { try { return readFileSync(mergeYesPage, "utf8"); } catch { return null; } })();
+  const mergeYesOk = mergeYesRun.status === 0 && !crashed(mergeYesRun) && mergePage !== null &&
+    /R-001 \(home FEAT-001\) -> FEAT-003 \[share\]: carried/.test(mergePage);
+  // req: R-1187
+  check("R-1187: a feature's merge that carries another feature's share onto also_applies is refused with no share verdict and passes, carried, with one",
+    mergeNoOk && mergeYesOk, `no=${mergeNoOk} status=${mergeNoRun.status} ` + own(mergeNoRun.stderr).slice(0, 2).join(" | ") + `; yes=${mergeYesOk} status=${mergeYesRun.status} ` + own(mergeYesRun.stderr).slice(0, 2).join(" | "));
+}
+{
+  // The demotion case: Bravo (still a top-level feature above) instead becomes a SUBGROUP of
+  // Charlie — demoted, not merged — and Charlie still absorbs its carried share of R-001, since
+  // a feature's carried shares include its subgroups' own merge sources too.
+  const MTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const DT = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha", f2: "## FEAT-002 · Bravo", f3: "## FEAT-003 · Charlie" };
+  const DEMOTE_FX = [
+    DT.cap, "", "Purpose: capability purpose for the demotion fixture.", "Outcome: a visible outcome for the demotion fixture.", "",
+    DT.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...MTH,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+    DT.f2, "", "Purpose: bravo feature purpose.", "Status: active", "Also applies: R-001", "", ...MTH,
+    "| R-002 | WHEN bravo runs, it shall do bravo things. | implemented | `tests/bravo.test.mjs::R-002: bravo` |", "",
+    DT.f3, "", "Purpose: charlie feature purpose.", "Status: active", "", ...MTH,
+    "| R-003 | WHEN charlie runs, it shall do charlie things. | implemented | `tests/charlie.test.mjs::R-003: charlie` |", "",
+  ].join("\n");
+  const demoteDir = join(scratchRoot, `t24-demote-fx-${++caseN}`);
+  mkdirSync(join(demoteDir, "docs", "regroup"), { recursive: true });
+  mkdirSync(join(demoteDir, "tests"), { recursive: true });
+  for (const n of ["alpha", "bravo", "charlie"]) writeFileSync(join(demoteDir, "tests", `${n}.test.mjs`), "// fixture test file\n");
+  writeFileSync(join(demoteDir, "REQUIREMENTS.md"), DEMOTE_FX);
+  const f2Line = lineOf(DEMOTE_FX, DT.f2);
+  const demoteClaims = [
+    { node: "CAP-01", field: "purpose", text: "capability purpose for the demotion fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+    { node: "CAP-01", field: "outcome", text: "a visible outcome for the demotion fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+    { node: "FEAT-001", field: "purpose", text: "alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+    { node: "FEAT-003", field: "purpose", text: "charlie feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+    { node: "SUB-001", field: "purpose", text: "Bravo feature purpose.", verdict: "accept", reason: "the claim matches the fixture's subgroup" },
+    { line: f2Line, to: "SUB-001", text: "Bravo is demoted to a subgroup of Charlie, carrying its share of R-001 (demotion reason)", verdict: "accept", reason: "the claim matches the fixture's reason" },
+  ];
+  /** The demotion: FEAT-002 (Bravo) becomes SUB-001, a subgroup of FEAT-003 (Charlie); Charlie
+   * carries SUB-001's merge source share (R-001) onto its own also_applies. */
+  function demoteMapping() {
+    const m = structuredClone(buildIdentityMapping(DEMOTE_FX));
+    const feats = m.tree[0].features;
+    const f2 = feats.find((f) => f.id === "FEAT-002");
+    const f3 = feats.find((f) => f.id === "FEAT-003");
+    f3.subgroups = [{ id: "SUB-001", label: "Bravo", purpose: "Bravo feature purpose.", from: f2.from, rows: f2.rows }];
+    f3.also_applies = ["R-001"];
+    m.tree = [{ ...m.tree[0], features: feats.filter((f) => f.id !== "FEAT-002") }];
+    return m;
+  }
+  const demoteRegroup = (verdicts) => ({
+    reasons: [{ line: f2Line, to: "SUB-001", why: "Bravo is demoted to a subgroup of Charlie, carrying its share of R-001 (demotion reason)" }],
+    placed: {}, evidence: {},
+    review: { drafter: "anthropic", reviewer: "openai", verdicts, claims: demoteClaims },
+    refuted: [], questions: [],
+  });
+  const demoteNoVerdict = { ...demoteMapping(), regroup: demoteRegroup([
+    { id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" },
+    { id: "R-002", at: "SUB-001", verdict: "keep", reason: "R-002 moves to Charlie's new subgroup with the demotion (keep)" },
+    { id: "R-003", at: "FEAT-003", verdict: "keep", reason: "R-003 stays at Charlie (keep)" },
+  ]) };
+  const demoteWithVerdict = { ...demoteMapping(), regroup: demoteRegroup([
+    { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-003", reason: "the demotion carries Alpha's row into Charlie, now reviewed (demotion share)" }] },
+    { id: "R-002", at: "SUB-001", verdict: "keep", reason: "R-002 moves to Charlie's new subgroup with the demotion (keep)" },
+    { id: "R-003", at: "FEAT-003", verdict: "keep", reason: "R-003 stays at Charlie (keep)" },
+  ]) };
+  const demoteNoPage = join(scratchRoot, `demote-no-page-${++caseN}.md`);
+  writeFileSync(join(demoteDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(demoteNoVerdict, null, 2)}\n`);
+  const demoteNoRun = regroup(["--root", demoteDir, "--proposal", join(demoteDir, "docs", "regroup", "proposal.json"), "--out", demoteNoPage], scratchRoot);
+  const demoteNoOk = demoteNoRun.status === 1 && !crashed(demoteNoRun) && !existsSync(demoteNoPage) && saysOwn(demoteNoRun, "FEAT-003") && saysOwn(demoteNoRun, "R-001") && saysOwn(demoteNoRun, "also_applies");
+  const demoteYesPage = join(scratchRoot, `demote-yes-page-${++caseN}.md`);
+  writeFileSync(join(demoteDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(demoteWithVerdict, null, 2)}\n`);
+  const demoteYesRun = regroup(["--root", demoteDir, "--proposal", join(demoteDir, "docs", "regroup", "proposal.json"), "--out", demoteYesPage], scratchRoot);
+  const demotePage = (() => { try { return readFileSync(demoteYesPage, "utf8"); } catch { return null; } })();
+  const demoteYesOk = demoteYesRun.status === 0 && !crashed(demoteYesRun) && demotePage !== null &&
+    /R-001 \(home FEAT-001\) -> FEAT-003 \[share\]: carried/.test(demotePage);
+  // req: R-1187
+  check("R-1187: a feature's demotion to a subgroup that carries its share onto the absorbing feature's also_applies is refused with no share verdict and passes, carried, with one",
+    demoteNoOk && demoteYesOk, `no=${demoteNoOk} status=${demoteNoRun.status} ` + own(demoteNoRun.stderr).slice(0, 2).join(" | ") + `; yes=${demoteYesOk} status=${demoteYesRun.status} ` + own(demoteYesRun.stderr).slice(0, 2).join(" | "));
 }
 
 // ================================================================== Item 9: smaller refusals, each with a case
