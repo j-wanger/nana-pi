@@ -496,6 +496,7 @@ function checkRegroupSkillText() {
 	const description = /^description:(.*)$/m.exec(frontmatter)?.[1] ?? "";
 	if (!/\bregroup\b/i.test(description)) return false;
 	if (reqSkill.includes("name no regroup command")) return false;
+	if (reqSkill.includes("Regroup the lifted tree")) return false;
 	const paras = skillRaw.split(/\n\s*\n/);
 	const rgParas = paras.filter((p) => collapse(p).includes(REGROUP_SKILL_CMD));
 	if (rgParas.length !== 1) return false;
@@ -504,6 +505,7 @@ function checkRegroupSkillText() {
 		"every row's placement", "every purpose, outcome and section reason", "lineage", "same-family",
 		"only after the owner's yes", "--write", "committed", "--verify <base> --mapping <proposal>", "proposed", "with no rows",
 		"req:", "@purpose", "code map", "README", "OBJECTIVE.md", "HANDOFF",
+		"flat or lifted", "regroup.read", "regroup.reasons", "regroup.placed", "regroup.evidence", "regroup.review",
 	];
 	if (!phrases.every((p) => para.includes(p))) return false;
 	if ((para.match(/--verify <base>(?! --mapping)/g) ?? []).length > 0) return false;
