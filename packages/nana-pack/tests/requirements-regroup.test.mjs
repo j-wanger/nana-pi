@@ -180,7 +180,9 @@ function runFx(label, p, { out = null, script = REGROUP } = {}) {
 /** One refusal: exit 1, naming every item in `names`, writing no page. Returns true/false. */
 function refusedCase(p, names, opts = {}) {
   const x = runFx(`c${caseN}`, p, opts);
-  return x.r.status === 1 && !crashed(x.r) && names.every((nm) => mentions(x.r, nm)) && !existsSync(x.page);
+  // Item 7: brief 4's rule, applied here too — stderr only, never the lift's own echoed
+  // stdout (row IDs, node IDs, line numbers), so a case naming only an ID pins nothing.
+  return x.r.status === 1 && !crashed(x.r) && names.every((nm) => saysOwn(x.r, nm)) && !existsSync(x.page);
 }
 /** Runs every {p, names} case; returns {ok, why} naming the first failing case. */
 function allRefused(cases) {
@@ -607,9 +609,9 @@ if (process.platform !== "win32") {
 // ================================================================== T5
 {
   const cases = [
-    [`reason for line ${L22} -> SUB-001 missing`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); q.regroup.review.claims = q.regroup.review.claims.filter((c) => c.line !== L22); }), [String(L22)]],
-    [`reason for line ${L37} -> FEAT-004 repeated`, variant((q) => { q.regroup.reasons.push({ ...q.regroup.reasons.find((r) => r.line === L37 && r.to === "FEAT-004") }); }), [String(L37)]],
-    [`stale reason for line ${L7}`, variant((q) => { q.regroup.reasons.push({ line: L7, to: "FEAT-002", why: "a reason for a line the lift does not report (stale)" }); }), [String(L7)]],
+    [`reason for line ${L22} -> SUB-001 missing`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); q.regroup.review.claims = q.regroup.review.claims.filter((c) => c.line !== L22); }), [String(L22), "has no reason"]],
+    [`reason for line ${L37} -> FEAT-004 repeated`, variant((q) => { q.regroup.reasons.push({ ...q.regroup.reasons.find((r) => r.line === L37 && r.to === "FEAT-004") }); }), [String(L37), "has more than one reason"]],
+    [`stale reason for line ${L7}`, variant((q) => { q.regroup.reasons.push({ line: L7, to: "FEAT-002", why: "a reason for a line the lift does not report (stale)" }); }), [String(L7), "a stale reason"]],
     // Survivor 4/4: L15 and L30 both hold the heading text "Build at production size", each
     // with its own reason to FEAT-002. Removing only L30's — never touching its claim, so no
     // other check also fires — reds only when reasons key by line, never by heading text (a
@@ -622,7 +624,7 @@ if (process.platform !== "win32") {
     // Mutation survivor 4/1 (brief 2, "Also fix"): the matching claim stayed in sync with the
     // deleted reason's line/to key (its text comparison skips when the reason is simply gone),
     // so only the missing-reason check itself can catch this one.
-    [`reason for line ${L22} -> SUB-001 missing, with its claim kept so only the missing-reason check catches it`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); }), [String(L22)]],
+    [`reason for line ${L22} -> SUB-001 missing, with its claim kept so only the missing-reason check catches it`, variant((q) => { q.regroup.reasons = q.regroup.reasons.filter((r) => !(r.line === L22)); }), [String(L22), "has no reason"]],
   ];
   const { ok, why } = allRefused(cases);
   // Item 6 (M5): the moved-reason case. Line 30's own reason to FEAT-002 is given AT line 15
@@ -654,10 +656,10 @@ if (process.platform !== "win32") {
   mkdirSync(join(scratchRoot, "cases"), { recursive: true });
   writeFileSync(join(scratchRoot, "cases", "outside.txt"), "not under any fixture root\n");
   const cases = [
-    ["FEAT-005 names no evidence path", variant((q) => { delete q.regroup.evidence["FEAT-005"]; }), ["FEAT-005"]],
-    ["FEAT-005's evidence list is empty", variant((q) => { q.regroup.evidence["FEAT-005"] = []; }), ["FEAT-005"]],
-    ["FEAT-005 names a missing path", variant((q) => { q.regroup.evidence["FEAT-005"] = ["src/report/missing.mjs"]; }), ["src/report/missing.mjs"]],
-    ["FEAT-005 names a path that `..` leads outside the root", variant((q) => { q.regroup.evidence["FEAT-005"] = ["../outside.txt"]; }), ["FEAT-005"]],
+    ["FEAT-005 names no evidence path", variant((q) => { delete q.regroup.evidence["FEAT-005"]; }), ["FEAT-005", "names no evidence path"]],
+    ["FEAT-005's evidence list is empty", variant((q) => { q.regroup.evidence["FEAT-005"] = []; }), ["FEAT-005", "names no evidence path"]],
+    ["FEAT-005 names a missing path", variant((q) => { q.regroup.evidence["FEAT-005"] = ["src/report/missing.mjs"]; }), ["src/report/missing.mjs", "does not exist under the root"]],
+    ["FEAT-005 names a path that `..` leads outside the root", variant((q) => { q.regroup.evidence["FEAT-005"] = ["../outside.txt"]; }), ["FEAT-005", "does not exist under the root"]],
     // An "active" feature with no rows anywhere (not even in a subgroup) is a gap in
     // disguise; it needs evidence just as a "proposed" gap does (Also fix, build brief 2).
     // Its own purpose claim is added too (survivor B2/16): otherwise R-1184's missing-claim
@@ -678,17 +680,20 @@ if (process.platform !== "win32") {
 // ================================================================== T7
 {
   const cases = [
-    ["review record misses R-009", variant((q) => { q.regroup.review.verdicts = q.regroup.review.verdicts.filter((v) => v.id !== "R-009"); }), ["R-009"]],
-    ["review record repeats R-009", variant((q) => { q.regroup.review.verdicts.push({ ...verdictOf(q, "R-009") }); }), ["R-009"]],
-    ["R-008's verdict names a stale home", variant((q) => { verdictOf(q, "R-008").at = "FEAT-002"; }), ["R-008"]],
-    ["R-009's verdict is neither keep, move nor share", variant((q) => { verdictOf(q, "R-009").verdict = "maybe"; }), ["R-009"]],
-    ["R-003's move names an unknown target", variant((q) => { verdictOf(q, "R-003").targets[0].to = "FEAT-999"; q.regroup.refuted[0].to = "FEAT-999"; }), ["FEAT-999"]],
-    ["R-009's keep verdict has an empty reason", variant((q) => { verdictOf(q, "R-009").reason = ""; }), ["R-009"]],
-    ["R-005's share target carries no reason of its own", variant((q) => { delete verdictOf(q, "R-005").targets[0].reason; }), ["R-005"]],
+    ["review record misses R-009", variant((q) => { q.regroup.review.verdicts = q.regroup.review.verdicts.filter((v) => v.id !== "R-009"); }), ["R-009", "has no verdict"]],
+    ["review record repeats R-009", variant((q) => { q.regroup.review.verdicts.push({ ...verdictOf(q, "R-009") }); }), ["R-009", "is repeated"]],
+    ["R-008's verdict names a stale home", variant((q) => { verdictOf(q, "R-008").at = "FEAT-002"; }), ["R-008", "names a stale home"]],
+    // Item 7 (T7's unknown verdict): removing the own-words check falls through to the
+    // "names no target" branch below, which also names R-009 — only the check's own exact
+    // phrase pins the right branch.
+    ["R-009's verdict is neither keep, move nor share", variant((q) => { verdictOf(q, "R-009").verdict = "maybe"; }), ["R-009", "is neither keep, move nor share"]],
+    ["R-003's move names an unknown target", variant((q) => { verdictOf(q, "R-003").targets[0].to = "FEAT-999"; q.regroup.refuted[0].to = "FEAT-999"; }), ["FEAT-999", "is not a node in this proposal"]],
+    ["R-009's keep verdict has an empty reason", variant((q) => { verdictOf(q, "R-009").reason = ""; }), ["R-009", "keep verdict has an empty reason"]],
+    ["R-005's share target carries no reason of its own", variant((q) => { delete verdictOf(q, "R-005").targets[0].reason; }), ["R-005", "target has an empty reason"]],
     // Unknown rows (brief 2 item 6; brief 1's clarification 5): a verdict, a refuted entry or
     // a question's about entry naming a row the ledger does not hold is refused, naming it.
-    ["review record's verdict names a row the ledger does not hold", variant((q) => { q.regroup.review.verdicts.push({ id: "R-999", at: "FEAT-001", verdict: "keep", reason: "bogus" }); }), ["R-999"]],
-    ["a refuted entry names a row the ledger does not hold", variant((q) => { q.regroup.refuted.push({ id: "R-999", to: "FEAT-004", reason: "bogus" }); }), ["R-999"]],
+    ["review record's verdict names a row the ledger does not hold", variant((q) => { q.regroup.review.verdicts.push({ id: "R-999", at: "FEAT-001", verdict: "keep", reason: "bogus" }); }), ["R-999", "regroup.review.verdicts", "is not a row in this ledger"]],
+    ["a refuted entry names a row the ledger does not hold", variant((q) => { q.regroup.refuted.push({ id: "R-999", to: "FEAT-004", reason: "bogus" }); }), ["R-999", "regroup.refuted", "is not a row in this ledger"]],
     // Item 8 (B2/23): the unknown-row message's own words — "names no move or share target",
     // the OTHER check that also names R-999, reads differently and must not be mistaken for it.
     ["a question's about entry names a row the ledger does not hold", variant((q) => { q.regroup.questions[0].about.push({ id: "R-999", to: "FEAT-001" }); }), ["R-999", "which is not in this ledger"]],
@@ -716,10 +721,10 @@ if (process.platform !== "win32") {
 // ================================================================== T8
 {
   const cases = [
-    ["R-003's move names two targets", variant((q) => { verdictOf(q, "R-003").targets.push({ to: "FEAT-002", reason: "also feeds the build (target delta)" }); q.regroup.refuted.push({ id: "R-003", to: "FEAT-002", reason: "it does not (refute delta)" }); }), ["R-003"]],
-    ["R-003's move target is left unresolved", variant((q) => { q.regroup.refuted = q.regroup.refuted.filter((x) => x.id !== "R-003"); }), ["R-003"]],
-    ["R-005's share target FEAT-004 is left unresolved", variant((q) => { q.regroup.refuted = q.regroup.refuted.filter((x) => x.id !== "R-005"); }), ["R-005", "FEAT-004"]],
-    ["R-005's share target FEAT-004 is resolved twice", variant((q) => { q.regroup.questions[0].about.push({ id: "R-005", to: "FEAT-004" }); }), ["R-005"]],
+    ["R-003's move names two targets", variant((q) => { verdictOf(q, "R-003").targets.push({ to: "FEAT-002", reason: "also feeds the build (target delta)" }); q.regroup.refuted.push({ id: "R-003", to: "FEAT-002", reason: "it does not (refute delta)" }); }), ["R-003", "names more than one target"]],
+    ["R-003's move target is left unresolved", variant((q) => { q.regroup.refuted = q.regroup.refuted.filter((x) => x.id !== "R-003"); }), ["R-003", "target is left unresolved"]],
+    ["R-005's share target FEAT-004 is left unresolved", variant((q) => { q.regroup.refuted = q.regroup.refuted.filter((x) => x.id !== "R-005"); }), ["R-005", "FEAT-004", "target is left unresolved"]],
+    ["R-005's share target FEAT-004 is resolved twice", variant((q) => { q.regroup.questions[0].about.push({ id: "R-005", to: "FEAT-004" }); }), ["R-005", "target is resolved more than once"]],
   ];
   const { ok, why } = allRefused(cases);
   const pass = runFx("mixed-share-pass", fxProposal());
@@ -1284,19 +1289,19 @@ if (process.platform !== "win32") {
 // ================================================================== T22
 {
   const cases = [
-    ["FEAT-001's purpose has no claim verdict", variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.node === "FEAT-001" && c.field === "purpose"), 1); }), ["FEAT-001"]],
-    ["CAP-02's outcome has no claim verdict", variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.node === "CAP-02" && c.field === "outcome"), 1); }), ["CAP-02"]],
-    ["SUB-001's purpose has no claim verdict", variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.node === "SUB-001" && c.field === "purpose"), 1); }), ["SUB-001"]],
-    [`line ${L37} -> FEAT-004 reason has no claim verdict`, variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.line === L37 && c.to === "FEAT-004"), 1); }), [String(L37)]],
-    ["FEAT-004's purpose has two claim verdicts", variant((q) => { q.regroup.review.claims.push({ ...q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-004" && c.field === "purpose")] }); }), ["FEAT-004"]],
-    ["FEAT-002's purpose claim quotes a stale text", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-002" && c.field === "purpose")].text = "Build the dataset (an older wording)."; }), ["FEAT-002"]],
+    ["FEAT-001's purpose has no claim verdict", variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.node === "FEAT-001" && c.field === "purpose"), 1); }), ["FEAT-001", "has no claim verdict"]],
+    ["CAP-02's outcome has no claim verdict", variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.node === "CAP-02" && c.field === "outcome"), 1); }), ["CAP-02", "has no claim verdict"]],
+    ["SUB-001's purpose has no claim verdict", variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.node === "SUB-001" && c.field === "purpose"), 1); }), ["SUB-001", "has no claim verdict"]],
+    [`line ${L37} -> FEAT-004 reason has no claim verdict`, variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.line === L37 && c.to === "FEAT-004"), 1); }), [String(L37), "has no claim verdict"]],
+    ["FEAT-004's purpose has two claim verdicts", variant((q) => { q.regroup.review.claims.push({ ...q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-004" && c.field === "purpose")] }); }), ["FEAT-004", "has more than one claim verdict"]],
+    ["FEAT-002's purpose claim quotes a stale text", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-002" && c.field === "purpose")].text = "Build the dataset (an older wording)."; }), ["FEAT-002", "claim quotes a stale text"]],
     // Item 6: a reason reworded AFTER its claim was recorded — the claim still quotes the old
     // text, so it is a stale-text claim too, not just a node's purpose or outcome.
     [`line ${L22} -> SUB-001's reason is reworded after review; its claim still quotes the old text`, variant((q) => {
       q.regroup.reasons.find((y) => y.line === L22 && y.to === "SUB-001").why += " (reworded after review)";
     }), [String(L22), "claim quotes a stale text"]],
-    ["SUB-001's purpose claim has an empty reason", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "SUB-001")].reason = ""; }), ["SUB-001"]],
-    ["CAP-01's purpose claim is neither accept nor reject", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].verdict = "maybe"; }), ["CAP-01"]],
+    ["SUB-001's purpose claim has an empty reason", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "SUB-001")].reason = ""; }), ["SUB-001", "claim has an empty reason"]],
+    ["CAP-01's purpose claim is neither accept nor reject", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].verdict = "maybe"; }), ["CAP-01", "claim verdict is neither accept nor reject"]],
     // Survivor B2/9: names the type check's own message, not only the row/line value.
     [`line ${L7} -> FEAT-001 reason's claim line is a string, not an integer`, variant((q) => { const c = q.regroup.review.claims[claimAt(q, (c) => c.line === L7 && c.to === "FEAT-001")]; c.line = String(c.line); }), [String(L7), "must be an integer"]],
   ];
@@ -1610,9 +1615,9 @@ if (process.platform !== "win32") {
   // (b) A refuted entry, or a question "about" entry with an id, naming no move or share
   // target of its row is refused (finding 41: a stray entry shown on the page).
   const strayRefuted = variant((q) => { q.regroup.refuted.push({ id: "R-009", to: "FEAT-001", reason: "stray: R-009 names no such target" }); });
-  const strayRefutedOk = refusedCase(strayRefuted, ["R-009", "FEAT-001"]);
+  const strayRefutedOk = refusedCase(strayRefuted, ["R-009", "FEAT-001", "names no move or share target"]);
   const strayAbout = variant((q) => { q.regroup.questions[0].about.push({ id: "R-009", to: "FEAT-001" }); });
-  const strayAboutOk = refusedCase(strayAbout, ["R-009", "FEAT-001"]);
+  const strayAboutOk = refusedCase(strayAbout, ["R-009", "FEAT-001", "names no move or share target"]);
   // req: R-1175
   check("R-1175: a refuted entry or a question about entry naming no move or share target of its row is refused", strayRefutedOk && strayAboutOk,
     `refuted=${strayRefutedOk} about=${strayAboutOk}`);
@@ -1620,21 +1625,21 @@ if (process.platform !== "win32") {
 {
   // (c) A claim verdict matching no required purpose, outcome or reason is refused (finding 42).
   const strayClaim = variant((q) => { q.regroup.review.claims.push({ node: "FEAT-999", field: "purpose", text: "x", verdict: "accept", reason: "a stray claim for a node outside this proposal" }); });
-  const ok = refusedCase(strayClaim, ["FEAT-999"]);
+  const ok = refusedCase(strayClaim, ["FEAT-999", "matches no required purpose, outcome or reason"]);
   // req: R-1184
   check("R-1184: a claim verdict matching no required purpose, outcome or reason is refused", ok);
 }
 {
   // (d) A keep verdict carrying targets is refused (finding 43).
   const keepWithTargets = variant((q) => { const v = verdictOf(q, "R-009"); v.targets = [{ to: "FEAT-001", reason: "stray target on a keep verdict" }]; });
-  const ok = refusedCase(keepWithTargets, ["R-009", "keep"]);
+  const ok = refusedCase(keepWithTargets, ["R-009", "carries a target, but a keep names no other placement"]);
   // req: R-1175
   check("R-1175: a keep verdict carrying targets is refused", ok);
 }
 {
   // (e) A question without "ask" is refused (finding 23).
   const noAsk = variant((q) => { delete q.regroup.questions[0].ask; });
-  const ok = refusedCase(noAsk, ["ask"]);
+  const ok = refusedCase(noAsk, ["question has no ask"]);
   // req: R-1177
   check("R-1177: a question without ask is refused", ok);
 }
