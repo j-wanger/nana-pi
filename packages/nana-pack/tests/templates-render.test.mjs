@@ -186,6 +186,8 @@ const CHECKER_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-tree.mjs" --
 const REPORT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/product-report.mjs" --root .';
 const LIFT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root .';
 const LIFT_SCRIPT = "scripts/requirements-lift.mjs";
+const REGROUP_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root . --proposal <file> --out <page>';
+const REGROUP_SCRIPT = "scripts/requirements-regroup.mjs";
 // R-1153: the "How this file is organized" section is single-sourced from this file and
 // pulled into both languages, both modes, with a Jinja include — never hand-duplicated.
 const SHARED_ORGANIZATION = fs.readFileSync(path.join(REPO, "templates", "_shared", "requirements-organization.md"), "utf-8");
@@ -471,6 +473,51 @@ function checkRequirementsSkillTreeText() {
 	// req: R-1169
 	check("requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has",
 		checkLiftSkillText(reqSkill));
+	// req: R-1180
+	check("requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has",
+		checkRegroupSkillText());
+}
+
+/**
+ * R-1180: the requirements skill's description names "regroup", one paragraph holds the regroup
+ * check as `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root . --proposal <file>
+ * --out <page>`, what the agent reads, that a reviewer of another model lineage (or a
+ * same-family reviewer named as such) checks every row's placement and every purpose, outcome
+ * and section reason before the owner sees the page, that `--write` runs only after the owner's
+ * yes with the proposal committed, the reviewer's `--verify <base> --mapping <proposal>`, a gap
+ * as a `proposed` feature with no rows, the old "name no regroup command" clause is gone, and
+ * the paragraph shows no flag outside the regroup's or the lift's own source (T17's own phrase
+ * check mirrors the acceptance oracle so a wrapped line cannot hide one).
+ */
+function checkRegroupSkillText() {
+	const skillRaw = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8");
+	const reqSkill = collapse(skillRaw);
+	const frontmatter = skillRaw.split(/^---$/m)[1] ?? "";
+	const description = /^description:(.*)$/m.exec(frontmatter)?.[1] ?? "";
+	if (!/\bregroup\b/i.test(description)) return false;
+	if (reqSkill.includes("name no regroup command")) return false;
+	const paras = skillRaw.split(/\n\s*\n/);
+	const rgParas = paras.filter((p) => collapse(p).includes(REGROUP_SKILL_CMD));
+	if (rgParas.length !== 1) return false;
+	const para = collapse(rgParas[0]);
+	const phrases = [
+		"every row's placement", "every purpose, outcome and section reason", "lineage", "same-family",
+		"only after the owner's yes", "--write", "committed", "--verify <base> --mapping <proposal>", "proposed", "with no rows",
+		"req:", "@purpose", "code map", "README", "OBJECTIVE.md", "HANDOFF",
+	];
+	if (!phrases.every((p) => para.includes(p))) return false;
+	if ((para.match(/--verify <base>(?! --mapping)/g) ?? []).length > 0) return false;
+	const FLAG = /(?<![\w-])--[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?![\w-])/g;
+	const wholeFlag = (src, f) => new RegExp(`(?<![\\w-])${f}(?![\\w-])`).test(src ?? "");
+	const regroupSource = fs.readFileSync(path.join(REPO, REGROUP_SCRIPT), "utf8");
+	const liftSource = fs.readFileSync(path.join(REPO, LIFT_SCRIPT), "utf8");
+	const spans = [...rgParas[0].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+	const inSpan = [...new Set(spans.filter((s) => s.includes("requirements-regroup.mjs")).flatMap((s) => s.match(FLAG) ?? []))];
+	const outside = [...new Set([...spans.filter((s) => !s.includes("requirements-regroup.mjs") && (s.includes("requirements-lift.mjs") || !/\.(?:mjs|cjs|js|ts|py)\b/.test(s))), rgParas[0].replace(/`[^`]*`/g, " ")].flatMap((s) => s.match(FLAG) ?? []))];
+	if (!["--root", "--proposal", "--out"].every((f) => inSpan.includes(f))) return false;
+	if (!inSpan.every((f) => wholeFlag(regroupSource, f))) return false;
+	if (!outside.every((f) => wholeFlag(liftSource, f))) return false;
+	return true;
 }
 
 /**
