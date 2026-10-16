@@ -8,7 +8,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -238,6 +238,55 @@ if (process.platform !== "win32") {
   // req: R-1171
   check("R-1171: an --out that is a symlink to the proposal is refused and leaves the proposal byte-identical", r.status === 1 && !crashed(r) && readFileSync(prop).equals(before),
     `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
+}
+
+// ================================================================== R-1171 (--out against every alias, build brief 2 item 2)
+{
+  // A case-only alias of the ledger, on a case-insensitive file system only; realpathSync keeps
+  // the case as typed (the MUST the seat found), so the fix compares by device and inode instead.
+  const probeDir = join(scratchRoot, "case-probe");
+  mkdirSync(probeDir, { recursive: true });
+  writeFileSync(join(probeDir, "CaseProbe.tmp"), "x");
+  const caseInsensitive = existsSync(join(probeDir, "caseprobe.tmp"));
+  if (caseInsensitive) {
+    const dir = fxRoot("t19b-case-alias", fxProposal());
+    const prop = join(dir, PROP_REL);
+    const ledgerUpper = join(dir, "REQUIREMENTS.MD");
+    const before = readFileSync(join(dir, "REQUIREMENTS.md"));
+    const r = regroup(["--root", dir, "--proposal", prop, "--out", ledgerUpper], scratchRoot);
+    const ok = r.status === 1 && !crashed(r) && readFileSync(join(dir, "REQUIREMENTS.md")).equals(before);
+    // req: R-1171
+    check("R-1171: an --out that is a case-only alias of the ledger is refused and leaves the ledger byte-identical", ok,
+      `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
+  }
+}
+{
+  // A hard link to the proposal: a different path, the same inode; realpathSync never resolves
+  // a hard link to its sibling, so the fix must compare device and inode, not the real path string.
+  const dir = fxRoot("t20b-hardlink", fxProposal());
+  const prop = join(dir, PROP_REL);
+  const link = join(scratchRoot, `prop-hardlink-${++caseN}.json`);
+  let linked = false;
+  try { linkSync(prop, link); linked = true; } catch { /* no hard-link support on this volume; skip */ }
+  if (linked) {
+    const before = readFileSync(prop);
+    const r = regroup(["--root", dir, "--proposal", prop, "--out", link], scratchRoot);
+    const ok = r.status === 1 && !crashed(r) && readFileSync(prop).equals(before);
+    // req: R-1171
+    check("R-1171: an --out that is a hard link to the proposal is refused and leaves the proposal byte-identical", ok,
+      `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
+  }
+}
+{
+  // A directory at --out is refused by name, never a crash (writeFileSync would otherwise throw EISDIR).
+  const dir = fxRoot("t-dir-out", fxProposal());
+  const prop = join(dir, PROP_REL);
+  const dirOut = join(scratchRoot, `dir-out-${++caseN}`);
+  mkdirSync(dirOut, { recursive: true });
+  const r = regroup(["--root", dir, "--proposal", prop, "--out", dirOut], scratchRoot);
+  const ok = r.status === 1 && !crashed(r) && existsSync(dirOut);
+  // req: R-1171
+  check("R-1171: an --out naming a directory is refused, never a crash", ok, `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
 }
 
 // ================================================================== T21

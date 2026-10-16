@@ -9,7 +9,7 @@
  */
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves } from "./requirements-lift.mjs";
@@ -493,6 +493,19 @@ function removeEarlierPage(outPath) {
   try { existing = readFileSync(outPath, "utf8"); } catch { return; }
   if (existing.startsWith(PAGE_HEAD)) { try { rmSync(outPath); } catch { /* best effort */ } }
 }
+/** <p>'s device+inode, or null when it does not exist (or cannot be stat'd). */
+function statId(p) { try { const s = statSync(p); return `${s.dev}:${s.ino}`; } catch { return null; } }
+/**
+ * True when a and b name the same file: by device and inode when both exist (so a
+ * case-only alias on a case-insensitive file system, and a hard link, are caught even
+ * though realpathSync keeps the case as typed and never resolves a hard link to its
+ * sibling), otherwise by real path (R-1171).
+ */
+function samePath(a, b) {
+  const ai = statId(a), bi = statId(b);
+  if (ai !== null && bi !== null) return ai === bi;
+  return nearestRealPath(a) === nearestRealPath(b);
+}
 const PROOF_LINE = /^lift proof: .*$/m;
 
 export function main(argv = process.argv.slice(2)) {
@@ -515,9 +528,11 @@ export function main(argv = process.argv.slice(2)) {
   try { proposalEarly = JSON.parse(stripBom(readFileSync(proposalPath, "utf8"))); } catch { /* the lift will name this */ }
   const evidenceInputs = proposalEarly ? allEvidenceAbsPaths(proposalEarly, rootDir) : [];
   const inputPaths = [ledgerPath, proposalPath, LIFT_SCRIPT, ...evidenceInputs];
-  const realOut = nearestRealPath(outPath);
-  const realInputs = inputPaths.map((p) => { try { return REALPATH(p); } catch { return resolve(p); } });
-  if (realInputs.includes(realOut)) {
+  if (existsSync(outPath) && statSync(outPath).isDirectory()) {
+    console.error(`${outPath}: refused — this path is a directory; nothing was written`);
+    return 1;
+  }
+  if (inputPaths.some((p) => samePath(outPath, p))) {
     console.error(`${outPath}: refused — this path is one of the run's inputs (the ledger, the proposal, the lift or an evidence path); nothing was written`);
     return 1;
   }
