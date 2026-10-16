@@ -9,7 +9,7 @@
  */
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves } from "./requirements-lift.mjs";
@@ -578,10 +578,21 @@ function nearestRealPath(p) {
     cur = parent;
   }
 }
+/** `text`'s first line, any BOM and trailing CR removed (M2: an earlier page is recognised by
+ * this line equalling PAGE_HEAD exactly, never by a prefix match — a file whose first line
+ * only begins with it is a different file, left alone). */
+function firstLineOf(text) {
+  const line = stripBom(text).split("\n")[0] ?? "";
+  return line.endsWith("\r") ? line.slice(0, -1) : line;
+}
 function removeEarlierPage(outPath) {
+  // A symlinked --out: rmSync on a symlink path unlinks the link itself, not its target, so
+  // the page removed is the file the link POINTS TO; the link stays, now dangling (M2).
+  let real = outPath;
+  try { if (lstatSync(outPath).isSymbolicLink()) real = realpathSync(outPath); } catch { return; }
   let existing;
-  try { existing = readFileSync(outPath, "utf8"); } catch { return; }
-  if (existing.startsWith(PAGE_HEAD)) { try { rmSync(outPath); } catch { /* best effort */ } }
+  try { existing = readFileSync(real, "utf8"); } catch { return; }
+  if (firstLineOf(existing) === PAGE_HEAD) { try { rmSync(real); } catch { /* best effort */ } }
 }
 /** <p>'s device+inode, or null when it does not exist (or cannot be stat'd). */
 function statId(p) { try { const s = statSync(p); return `${s.dev}:${s.ino}`; } catch { return null; } }
@@ -671,8 +682,16 @@ export function main(argv = process.argv.slice(2)) {
   const proofLine = PROOF_LINE.exec(liftRun.stdout)?.[0] ?? null;
   const page = renderPage({ proposal, ledgerRows, rowStatus, records, same, proofLine, proposalBytes: readFileSync(proposalPath) });
 
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, page);
+  // M2: an --out the run cannot write (an unwritable directory, for example) is a named
+  // refusal, exit 1, never an uncaught stack trace.
+  try {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, page);
+  } catch (e) {
+    console.error(`${outPath}: refused — could not write the review page (${e.message})`);
+    removeEarlierPage(outPath);
+    return 1;
+  }
   return 0;
 }
 

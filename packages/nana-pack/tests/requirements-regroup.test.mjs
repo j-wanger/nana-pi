@@ -8,12 +8,12 @@
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, lstatSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
+import { PAGE_HEAD, isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -326,9 +326,49 @@ if (process.platform !== "win32") {
   const shapeFail = variant((q) => { q.regroup.review.verdicts.push(null); });
   const secondShape = runFx("earlier-page-shape-fail", shapeFail, { out: pagePath2 });
   const removedShape = firstShape.r.status === 0 && hadPage2 && secondShape.r.status === 1 && !crashed(secondShape.r) && !existsSync(pagePath2);
+  // An earlier page is recognised by its FIRST LINE, BOM and trailing CR removed, equalling
+  // PAGE_HEAD exactly (M2) — a file whose first line only BEGINS with it is a different file
+  // and must survive untouched; a BOM or CRLF page is still recognised and removed.
+  const prefixOnly = join(scratchRoot, "prefix-only.md");
+  const prefixBody = `${PAGE_HEAD} EXTRA\n\nNot actually a review page.\n`;
+  writeFileSync(prefixOnly, prefixBody);
+  const prefixRun = runFx("prefix-only-fail", failing, { out: prefixOnly });
+  const prefixUntouched = prefixRun.r.status === 1 && !crashed(prefixRun.r) && existsSync(prefixOnly) && readFileSync(prefixOnly, "utf8") === prefixBody;
+  const bomPage = join(scratchRoot, "bom-page.md");
+  writeFileSync(bomPage, `﻿${PAGE_HEAD}\n\nBody.\n`);
+  const bomRun = runFx("bom-page-fail", failing, { out: bomPage });
+  const bomRemoved = bomRun.r.status === 1 && !crashed(bomRun.r) && !existsSync(bomPage);
+  const crlfPage = join(scratchRoot, "crlf-page.md");
+  writeFileSync(crlfPage, `${PAGE_HEAD}\r\n\r\nBody.\r\n`);
+  const crlfRun = runFx("crlf-page-fail", failing, { out: crlfPage });
+  const crlfRemoved = crlfRun.r.status === 1 && !crashed(crlfRun.r) && !existsSync(crlfPage);
+  // A symlinked --out: a failing run removes the page the link points to and leaves the link.
+  const linkTarget = join(scratchRoot, "symlink-target-page.md");
+  const linkPath = join(scratchRoot, "symlink-to-page.md");
+  const linkFirst = runFx("symlink-target-pass", fxProposal(), { out: linkTarget });
+  const hadTarget = linkFirst.r.status === 0 && existsSync(linkTarget);
+  try { symlinkSync(linkTarget, linkPath); } catch {}
+  const linkRun = runFx("symlink-out-fail", failing, { out: linkPath });
+  const linkStillThere = (() => { try { return lstatSync(linkPath).isSymbolicLink(); } catch { return false; } })();
+  const symlinkOk = hadTarget && linkRun.r.status === 1 && !crashed(linkRun.r) && !existsSync(linkTarget) && linkStillThere;
   // req: R-1171
-  check("R-1171: a failing run removes an earlier review page at --out and leaves a file there that is not a review page unchanged", removed && untouched && removedShape,
-    `removed=${removed} untouched=${untouched} removedShape=${removedShape}`);
+  check("R-1171: a failing run removes an earlier review page at --out and leaves a file there that is not a review page unchanged", removed && untouched && removedShape && prefixUntouched && bomRemoved && crlfRemoved && symlinkOk,
+    `removed=${removed} untouched=${untouched} removedShape=${removedShape} prefixUntouched=${prefixUntouched} bomRemoved=${bomRemoved} crlfRemoved=${crlfRemoved} symlinkOk=${symlinkOk}`);
+}
+
+// ================================================================== R-1171 (M2: an unwritable --out is a named refusal)
+if (process.platform !== "win32" && process.getuid?.() !== 0) {
+  const dir = fxRoot("unwritable-out", fxProposal());
+  const prop = join(dir, PROP_REL);
+  const outDir = join(scratchRoot, `unwritable-${++caseN}`);
+  mkdirSync(outDir, { recursive: true });
+  const outPath = join(outDir, "page.md");
+  chmodSync(outDir, 0o000);
+  let r;
+  try { r = regroup(["--root", dir, "--proposal", prop, "--out", outPath], scratchRoot); } finally { chmodSync(outDir, 0o755); }
+  const ok = r.status === 1 && !crashed(r) && own(r.stderr).length > 0;
+  // req: R-1171
+  check("R-1171: an --out the command cannot write is refused by name, exit 1, with no stack trace", ok, `status=${r.status} crashed=${crashed(r)} ` + own(r.stderr).slice(0, 2).join(" | "));
 }
 
 // ================================================================== T4
