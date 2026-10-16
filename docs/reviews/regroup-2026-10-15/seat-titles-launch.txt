@@ -1,0 +1,25 @@
+MISSING  packages/nana-pack/tests/requirements-lift.test.mjs — R-1170: on a flat ledger whose two sections share one heading text, a mapping's dry run prints each named heading's line, text and node, and each row move by old line with its row IDs
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1171: a passing proposal writes the review page, and one the lift's dry run refuses writes no page and names the lift's problem
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1171: run through a symlink to the script, the command still writes its page
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1171: an --out naming the ledger or the proposal is refused and leaves that file byte-identical
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1171: an --out that is a symlink to the proposal is refused and leaves the proposal byte-identical
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1171: a failing run removes an earlier review page at --out and leaves a file there that is not a review page unchanged
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1172: a node outside the reserved general-engineering nodes that keeps a "Not yet sorted:" purpose or outcome is refused
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1173: each line the lift reports needs exactly one reason by old line and node, a missing, repeated or stale reason is refused, and two same-text headings are reasoned apart
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1174: a proposed feature with no evidence path, a missing path or a path leaving the root is refused, and an existing path written with backslashes passes
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1175: a review record missing a row, repeating one, naming a stale home, an unknown verdict or target, an empty reason or a target without its own reason is refused
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1175: each move or share target needs exactly one outcome keyed by row and target, so a share carried to one feature and refuted for another passes, and a target left unresolved or resolved twice is refused
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1175: a record whose drafter and reviewer share a lineage is refused unless it declares same-family
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1176: a text-placed row without a placed reason, or a placed reason for a row with local evidence, is refused
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1177: a proposal with more problems than the cap prints at most the problem-line cap and the count of the rest
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1177 fixture: a run missing --root, --proposal or --out exits 2 with usage
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1177: a misspelled key in any object level of a proposal is refused naming its path, and so is a question without a recommendation
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1178: a same-family record reads "same-family review" on the page and never "another lineage"
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1179: the page lists each reported line with its reason and rows, each move and share target with its own outcome, each rejected claim with its reason, each text-placed row with its reason, and every row only in the appendix after them
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1184: each purpose and outcome outside the reserved nodes and each reported line's reason needs exactly one accept or reject verdict with a reason and the claim's current text, a missing, repeated, stale or reasonless one is refused, and a reserved node needs none
+NO-FILE  packages/nana-pack/tests/requirements-regroup.test.mjs — R-1184: a rejected claim named in no question is refused, and one named in a question passes
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,148
+NOT-GONE packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,136
+seat-titles 1: 24 missing
