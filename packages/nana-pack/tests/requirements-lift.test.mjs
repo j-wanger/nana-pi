@@ -2316,6 +2316,13 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
     "| R-003 | The third thing shall work. | untested | — |",
     "| R-004 | The fourth thing shall work. | untested | — |",
     "",
+    // Item 7 (M6): a level-3 subgroup heading, so the default mapping names one (SUB-001, under
+    // FEAT-003) and R-1170 must report it too, not only the capability and feature headings above it.
+    "### 2a. Two Sub", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-005 | The fifth thing shall work. | untested | — |",
+    "",
     "## Open questions", "",
     "1. An open question.", "",
     "## Deliberate omissions", "",
@@ -2330,6 +2337,8 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
   const f1 = capA?.features.find((f) => f.label === "1. One");
   const f2 = capA?.features.find((f) => f.label === "2. Two");
   const f3 = capB?.features.find((f) => f.label === "2. Two");
+  // Item 7 (M6): the new level-3 subgroup, under FEAT-003 (f3).
+  const sub1 = f3?.subgroups.find((s) => s.label === "2a. Two Sub");
   if (f2 && f3) {
     // Move R-004 from the second "## 2. Two" section's own feature (FEAT-003) into the first's (FEAT-002).
     f3.rows = f3.rows.filter((r) => r !== "R-004");
@@ -2345,10 +2354,19 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
   const h19 = f3 && headingAt(19, f3.id);
   const moved = f2 && recs.find((r) => r.line === 19 && r.to === f2.id && JSON.stringify(r.rows) === JSON.stringify(["R-004"]));
   const sameHeadingApart = h11 && h19 && h11.heading === h19.heading && h11.line !== h19.line;
+  // Item 7 (M6): "every named heading" means the capability headings and the subgroup heading
+  // too, not just the feature headings above — a print that skipped either would leave this
+  // test green otherwise.
+  const capALine = lineOf(sameHeadingLedger, "# Part A. Alpha");
+  const capBLine = lineOf(sameHeadingLedger, "# Part B. Beta");
+  const subLine = lineOf(sameHeadingLedger, "### 2a. Two Sub");
+  const hCapA = capA && headingAt(capALine, capA.id);
+  const hCapB = capB && headingAt(capBLine, capB.id);
+  const hSub = sub1 && headingAt(subLine, sub1.id);
   // req: R-1170
   check("R-1170: on a flat ledger whose two sections share one heading text, a mapping's dry run prints each named heading's line, text and node, and each row move by old line with its row IDs",
-    emit.status === 0 && Boolean(f1) && Boolean(f2) && Boolean(f3) && dry.status === 0 && Boolean(h5) && Boolean(h11) && Boolean(h19) && Boolean(moved) && Boolean(sameHeadingApart),
-    `emit=${emit.status} dry=${dry.status} f1=${f1?.id} f2=${f2?.id} f3=${f3?.id} recs=${JSON.stringify(recs)} ` + own(dry.stderr).join(" | "));
+    emit.status === 0 && Boolean(f1) && Boolean(f2) && Boolean(f3) && Boolean(sub1) && dry.status === 0 && Boolean(h5) && Boolean(h11) && Boolean(h19) && Boolean(moved) && Boolean(sameHeadingApart) && Boolean(hCapA) && Boolean(hCapB) && Boolean(hSub),
+    `emit=${emit.status} dry=${dry.status} f1=${f1?.id} f2=${f2?.id} f3=${f3?.id} sub1=${sub1?.id} capA=${hCapA ? capA.id : "miss"} capB=${hCapB ? capB.id : "miss"} sub=${hSub ? sub1.id : "miss"} recs=${JSON.stringify(recs)} ` + own(dry.stderr).join(" | "));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");
