@@ -773,6 +773,10 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   // R-1178 reworded: the feature table also carries each feature's label and status — a
   // proposed gap (FEAT-005) reads "proposed" plainly (sol r3: "feature status dropped").
   const tableStatusOk = tableBlock.includes("Build at production size") && tableBlock.includes("Render analyst pages") && /proposed/.test(tableBlock) && /active/.test(tableBlock);
+  // M2: the table's reserved FEAT-900 row shows the lift's seed label and status (as the node
+  // list already does), never blank — the honest fixture's lift's own default start, since the
+  // proposal names no label or status of its own for FEAT-900.
+  const tableReservedOk = tableBlock.includes("Adopt the general engineering requirements") && /\bactive\b/.test(tableBlock);
   const nodesBlock = page.slice(posNodes, posLines);
   const purposesOk = ["CAP-01", "FEAT-001", "SUB-001", "CAP-02", "FEAT-004", "FEAT-005"].every((id) => nodesBlock.includes(id)) && (nodesBlock.includes("src/report/render.mjs") || nodesBlock.includes("src\\report\\render.mjs"));
   // Every node is nested (a feature's heading sits deeper than its capability's) and shows its label.
@@ -788,8 +792,28 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     nodesBlock.includes("Keep engineering promises checkable") && nodesBlock.includes("Adopt the general engineering requirements");
   // req: R-1178
   check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
-    pass.r.status === 0 && headerOk && orderOk && tableOk && tableStatusOk && purposesOk && nestedOk && noIndentOk && reservedOk,
-    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} tableStatus=${tableStatusOk} purposes=${purposesOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
+    pass.r.status === 0 && headerOk && orderOk && tableOk && tableStatusOk && tableReservedOk && purposesOk && nestedOk && noIndentOk && reservedOk,
+    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} tableStatus=${tableStatusOk} tableReserved=${tableReservedOk} purposes=${purposesOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
+}
+// M2 (T14): a proposal that gives FEAT-900 other label/status text still shows the lift's
+// seed text in the table — never the proposal's, which the lift ignores for a reserved node.
+{
+  const otherText = variant((q) => {
+    const feat900 = mappingNodesOf(q).find((x) => x.id === "FEAT-900").node;
+    feat900.label = "Bogus label the lift ignores";
+    feat900.status = "frozen (bogus reason the lift ignores)";
+  });
+  const run = runFx("feat900-other-text", otherText);
+  const page = run.text ?? "";
+  const posTable = page.indexOf("| Feature | Label | Status | Rows | Status mix |");
+  const posNodes = page.indexOf("## Capabilities, features and subgroups");
+  const tableBlock = page.slice(posTable, posNodes);
+  const seedOk = tableBlock.includes("Adopt the general engineering requirements") && /\bactive\b/.test(tableBlock);
+  const ignoredOk = !tableBlock.includes("Bogus label the lift ignores") && !tableBlock.includes("bogus reason the lift ignores");
+  // req: R-1178
+  check("R-1178: the feature table shows FEAT-900's label and status from the lift's seed, never other text a proposal gives it",
+    run.r.status === 0 && !crashed(run.r) && seedOk && ignoredOk,
+    `status=${run.r.status} seed=${seedOk} ignored=${ignoredOk}`);
 }
 
 // ================================================================== T15

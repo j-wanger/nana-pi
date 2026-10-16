@@ -541,10 +541,17 @@ const renderers = {
   },
   table(ctx) {
     // R-1178 reworded: each row also carries the feature's label and status — a proposed gap
-    // reads "proposed" plainly, its own declared status, never a computed override.
+    // reads "proposed" plainly, its own declared status, never a computed override. M2: a
+    // reserved feature (FEAT-900) shows the lift's seed label and status, the same text the
+    // node list already reads — never blank on the lift's own default start, and never
+    // proposal text the lift ignores when it writes the ledger.
     const feats = flattenProposalNodes(ctx.proposal).filter((x) => x.level === 2);
     const out = ["## Features", "", "| Feature | Label | Status | Rows | Status mix |", "|---|---|---|---|---|"];
-    for (const x of feats) { const ids = featureRowIds(x.node); out.push(`| ${x.id} | ${x.node.label ?? ""} | ${x.node.status ?? ""} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`); }
+    for (const x of feats) {
+      const text = RESERVED_NODES.has(x.id) ? seedNodeText(x.id, ctx.seed) : x.node;
+      const ids = featureRowIds(x.node);
+      out.push(`| ${x.id} | ${text.label ?? ""} | ${text.status ?? ""} | ${ids.length} | ${statusMixOf(ids, ctx.rowStatus)} |`);
+    }
     out.push("");
     return out.join("\n");
   },
