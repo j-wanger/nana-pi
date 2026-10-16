@@ -169,8 +169,8 @@ ok   (f) README names the regroup script on a physical line whose first bare scr
 ok   (guard) node scripts/requirements-tree.mjs --check exits 0 (§5 Suite)
 ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0 (§5 Suite)
 ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0 (§5 Suite)
-MISS (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In, the land checklist) → ["HANDOFF.md","docs/sessions/2026-10.md"] (want [])
-MISS (f) HANDOFF.md gains residual 8's line for Jake, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8) → false (want true)
+ok   (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In, the land checklist)
+ok   (f) HANDOFF.md gains residual 8's line for Jake, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8)
 ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
 ok   (harness) uvx copier is available (templates-render.test.mjs runs with NANA_TEST_REQUIRE_COPIER=1)
 ok   (guard) packages/nana-pack/tests/requirements-lift.test.mjs exits 0 (§5 Suite)
@@ -179,5 +179,5 @@ ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0 (§5 Sui
 ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0 (§5 Suite)
 ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 178/180 (build cases red: 2/144; guard and harness red: 0/36)
-regroup acceptance: 2 mismatch(es)
+cases: 180/180 (build cases red: 0/144; guard and harness red: 0/36)
+regroup acceptance: 0 mismatch(es)
