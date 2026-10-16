@@ -308,7 +308,9 @@ if (process.platform !== "win32") {
   const dirOut = join(scratchRoot, `dir-out-${++caseN}`);
   mkdirSync(dirOut, { recursive: true });
   const r = regroup(["--root", dir, "--proposal", prop, "--out", dirOut], scratchRoot);
-  const ok = r.status === 1 && !crashed(r) && existsSync(dirOut);
+  // Item 8 (B2/4): the refusal's own words, not just the outward status/exists outcome a later,
+  // different catch (the write-failure one) could also produce.
+  const ok = r.status === 1 && !crashed(r) && existsSync(dirOut) && saysOwn(r, "this path is a directory");
   // req: R-1171
   check("R-1171: an --out naming a directory is refused, never a crash", ok, `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
 }
@@ -527,7 +529,9 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     // a question's about entry naming a row the ledger does not hold is refused, naming it.
     ["review record's verdict names a row the ledger does not hold", variant((q) => { q.regroup.review.verdicts.push({ id: "R-999", at: "FEAT-001", verdict: "keep", reason: "bogus" }); }), ["R-999"]],
     ["a refuted entry names a row the ledger does not hold", variant((q) => { q.regroup.refuted.push({ id: "R-999", to: "FEAT-004", reason: "bogus" }); }), ["R-999"]],
-    ["a question's about entry names a row the ledger does not hold", variant((q) => { q.regroup.questions[0].about.push({ id: "R-999", to: "FEAT-001" }); }), ["R-999"]],
+    // Item 8 (B2/23): the unknown-row message's own words — "names no move or share target",
+    // the OTHER check that also names R-999, reads differently and must not be mistaken for it.
+    ["a question's about entry names a row the ledger does not hold", variant((q) => { q.regroup.questions[0].about.push({ id: "R-999", to: "FEAT-001" }); }), ["R-999", "which is not in this ledger"]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1175
@@ -727,6 +731,14 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     ["R-003's move target to is an array, not a string", variant((q) => { verdictOf(q, "R-003").targets[0].to = ["FEAT-004"]; }), [`regroup.review.verdicts[${baseIdx}].targets[0].to`]],
     ["a refuted entry's id is an array, not a string", variant((q) => { q.regroup.refuted[0].id = ["R-003"]; }), ["regroup.refuted[0].id"]],
     ["CAP-01's purpose claim node is an array, not a string", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].node = ["CAP-01"]; }), ["node"]],
+    // Item 8 (B3/20, B3/22 to B3/26): the remaining exact-type checks — a reason-claim's own
+    // "to", a refuted entry's "to", and a question about entry's id, to, node and line.
+    [`line ${L30} -> FEAT-004 reason claim's to is an array, not a string`, variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.line === L30 && c.to === "FEAT-004")].to = ["FEAT-004"]; }), ["regroup.review.claims", "to"]],
+    ["a refuted entry's to is an array, not a string", variant((q) => { q.regroup.refuted[0].to = ["FEAT-004"]; }), ["regroup.refuted[0].to"]],
+    ["a question about entry's id is an array, not a string", variant((q) => { q.regroup.questions[0].about[0].id = ["R-005"]; }), ["regroup.questions[0].about[0].id"]],
+    ["a question about entry's to is an array, not a string", variant((q) => { q.regroup.questions[0].about[0].to = ["FEAT-001"]; }), ["regroup.questions[0].about[0].to"]],
+    ["a question about entry's node is an array, not a string", variant((q) => { q.regroup.questions[0].about[0].node = ["FEAT-001"]; }), ["regroup.questions[0].about[0].node"]],
+    ["a question about entry's line is a string, not an integer", variant((q) => { q.regroup.questions[0].about[0].line = String(L30); }), ["regroup.questions[0].about[0].line", "must be an integer"]],
   ];
   const shapeMisses = [];
   for (const [label, p, names] of shapeCases) if (!refusedCase(p, names)) shapeMisses.push(label);
@@ -746,6 +758,9 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     ["FEAT-005 (a gap) evidence is a number", variant((q) => { q.regroup.evidence["FEAT-005"] = 5; }), "regroup.evidence.FEAT-005"],
     ["FEAT-005 (a gap) evidence is true", variant((q) => { q.regroup.evidence["FEAT-005"] = true; }), "regroup.evidence.FEAT-005"],
     ["FEAT-004 (not a gap) evidence is an object", variant((q) => { q.regroup.evidence["FEAT-004"] = { path: "tests/render.test.mjs" }; }), "regroup.evidence.FEAT-004"],
+    // Item 8 (B3/8): FEAT-004 is not a gap, so R-1174's evidence-path demand never runs on it —
+    // only this shape check's own string-entry test can catch a non-string array entry here.
+    ["FEAT-004 (not a gap) evidence is an array holding a non-string", variant((q) => { q.regroup.evidence["FEAT-004"] = [123]; }), "regroup.evidence.FEAT-004"],
   ];
   const misses = [];
   for (const [label, p, name] of evidenceShapeCases) {
