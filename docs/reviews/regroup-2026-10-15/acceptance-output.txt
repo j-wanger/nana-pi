@@ -91,12 +91,21 @@ ok   (p) then each move and share target on its own line by row and target, with
 ok   (p) then each rejected claim with its reason, identifying the claim (R-1179, T16)
 ok   (p) then each text-placed row with its ID, opening GIST_WORDS words, home and reason on one line (R-1179, T16)
 ok   (p) and only then the appendix: each row's full text appears once, after the lists, under its new node (R-1179, T16)
+ok   (m) FEAT-001 adds R-009 as a share while R-009's verdict stays keep (R-1187, T24) → exit 1 naming R-009, FEAT-001, no page, nothing else changed
+ok   (m) R-003's refuted move target FEAT-004 is also added as a share (R-1187, T24) → exit 1 naming R-003, FEAT-004, no page, nothing else changed
+ok   (m) a share added with a share verdict targeting its feature passes, and the page lists R-009 → FEAT-001 marked share, carried, with its reason (R-1187, R-1179, T24, T16)
+ok   (m) a refused move the drafter replaced by a share to the same feature passes as a carried share (R-1175, R-1187; sol plan r3)
+ok   (m) each target line is marked move or share: R-003 → FEAT-004 move, R-005 → FEAT-001 and R-005 → FEAT-004 share (R-1179, T16)
+ok   (m) an asked target names its question's number: R-005 → FEAT-001 reads "asked in question 1" (R-1179, T16)
+ok   (m) every reserved node in the proposal shows the seed's label and purpose on the page, never a blank (R-1178 as reworded, T14)
+ok   (m) the feature table names each feature with its label and its status (R-1178 as reworded, T14)
+ok   (m) no node heading on the page is indented four or more spaces (a Markdown code block) (R-1178, T14)
 ok   (harness) the seat's aml-desk and basketball-geek HEAD copies under /Users/jwang/.cache/nana-lift-ledgers exist and match their pinned SHA-256
 ok   (harness) aml-desk's copy: the lift emits its default mapping (exit 0)
 ok   (harness) aml-desk: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows
 ok   (x) aml-desk: the proposal's dry run exits 0 and prints exactly its 50 reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5)
 ok   (x) aml-desk: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance)
-info (x) aml-desk: the mechanical packet is 29286 words, appendix included (the seat records the real one's words and minutes, §7 J2)
+info (x) aml-desk: the mechanical packet is 30356 words, appendix included (the seat records the real one's words and minutes, §7 J2)
 ok   (guard) aml-desk, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)
 ok   (harness) basketball-geek's HEAD copy: the lift emits its default mapping (exit 0)
 ok   (y) basketball-geek HEAD: a proposal merging FEAT-002 into FEAT-001 and moving R-013 to FEAT-004: the check exits 0 and writes its page (§5 seat acceptance)
@@ -110,7 +119,7 @@ ok   (s) every flag inside the regroup command's span is in the regroup's source
 ok   (s) the lift paragraph's old clause "name no regroup command until that lane lands" is gone (§3.5)
 ok   (guard) the requirements skill keeps T29's lift phrases (R-1169)
 ok   (guard) T29's scan: every flag the skill shows in a paragraph about the lift, outside a regroup span, is in the lift's source (R-1169)
-ok   (harness) CHANGE §2 gives one-shall text for each of R-1170 to R-1180 and R-1184, and the lane adds twelve rows
+ok   (harness) CHANGE §2 and seat amendment 2 give one-shall text for each of R-1170 to R-1180, R-1184 and R-1187, and the lane adds thirteen rows
 ok   (e) R-1170 is one row carrying CHANGE §2's text with exactly one "shall"
 ok   (e) R-1171 is one row carrying CHANGE §2's text with exactly one "shall"
 ok   (e) R-1172 is one row carrying CHANGE §2's text with exactly one "shall"
@@ -123,7 +132,8 @@ ok   (e) R-1178 is one row carrying CHANGE §2's text with exactly one "shall"
 ok   (e) R-1179 is one row carrying CHANGE §2's text with exactly one "shall"
 ok   (e) R-1180 is one row carrying CHANGE §2's text with exactly one "shall"
 ok   (e) R-1184 is one row carrying CHANGE §2's text with exactly one "shall"
-ok   (e) R-1170, R-1171, R-1172, R-1173, R-1174, R-1175, R-1176, R-1177, R-1178, R-1179, R-1184 follow R-1168 line by line in FEAT-028 (§2)
+ok   (e) R-1187 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1170, R-1171, R-1172, R-1173, R-1174, R-1175, R-1176, R-1177, R-1178, R-1179, R-1184, R-1187 follow R-1183 line by line in FEAT-028 (§2)
 ok   (e) R-1180 follows R-1169 line by line in FEAT-032 (§2)
 ok   (e) R-1170's evidence cites its 1 §5 title(s) as the rail reads them
 ok   (e) R-1171's evidence cites its 5 §5 title(s) as the rail reads them
@@ -132,22 +142,24 @@ ok   (e) R-1173's evidence cites its 1 §5 title(s) as the rail reads them
 ok   (e) R-1174's evidence cites its 1 §5 title(s) as the rail reads them
 ok   (e) R-1175's evidence cites its 3 §5 title(s) as the rail reads them
 ok   (e) R-1176's evidence cites its 1 §5 title(s) as the rail reads them
-ok   (e) R-1177's evidence cites its 3 §5 title(s) as the rail reads them
+ok   (e) R-1177's evidence cites its 4 §5 title(s) as the rail reads them
 ok   (e) R-1178's evidence cites its 2 §5 title(s) as the rail reads them
 ok   (e) R-1179's evidence cites its 1 §5 title(s) as the rail reads them
 ok   (e) R-1180's evidence cites its 1 §5 title(s) as the rail reads them
 ok   (e) R-1184's evidence cites its 2 §5 title(s) as the rail reads them
-ok   (e) R-1170 to R-1180, R-1184 and R-291 read implemented
-ok   (guard) R-1181 to R-1183 stay unused: no ledger row and no req: marker names them (§2: held for regroup-shares)
+ok   (e) R-1187's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1170 to R-1180, R-1184, R-1187 and R-291 read implemented
+ok   (guard) R-1181 to R-1183 are base rows now that regroup-shares has landed, each still one row
 ok   (guard) R-291's evidence keeps every base citation other than the base leaf-total title
 ok   (guard) no base row changes its Requirement text or Status (§2)
-ok   (e) the row set is the base's plus R-1170 to R-1180 and R-1184, each once: leaf total 1136 → 1148 (§2)
+ok   (e) the row set is the base's plus R-1170 to R-1180, R-1184 and R-1187, each once: leaf total 1139 → 1152 (§2)
 ok   (e) the leaf totals agree with R-291's renamed title (T18)
 ok   (guard) nana-pi's tree headings are the base's (68; §2 "no heading is added")
-ok   (harness) R-1170 to R-1184 are unused in the base ledger (§2)
+MISS (harness) R-1170 to R-1184 are unused in the base ledger (§2) → 3 (want 0)
 ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0 (§5 Suite)
-ok   (guard) git diff --name-only e451c90..HEAD lists only §4 In paths and this review folder
-ok   (guard) the merge-base diff touches nothing §3.6 names (the proof, the tree checker, the product report, the seeds, the five pi skills, nana-setup)
+ok   (guard) git diff --name-only 2dbc817..HEAD lists only §4 In paths and this review folder
+ok   (guard) the merge-base diff touches nothing §3.6 names (the proof, the tree checker, the product report, the seeds, the five pi skills, nana-setup), less the seat amendment's trace template
+ok   (guard) the trace template's change is the citation split moved unchanged into one exported citesOf (seat amendment 2026-10-16)
 ok   (guard) the lift differs from the base only inside detectMoves and the plan loop's print after the row counts (§3.2, §3.6: "Nothing else in the lift changes")
 ok   (f) scripts/requirements-regroup.mjs opens with the six-tag header and §3.4's purpose sentence
 ok   (f) packages/nana-pack/tests/requirements-regroup.test.mjs opens with the six-tag header (§4 In)
@@ -167,5 +179,5 @@ ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0 (§5 Sui
 ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0 (§5 Suite)
 ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 166/168 (build cases red: 2/133; guard and harness red: 0/35)
-regroup acceptance: 2 mismatch(es)
+cases: 177/180 (build cases red: 2/144; guard and harness red: 1/36)
+regroup acceptance: 3 mismatch(es)
