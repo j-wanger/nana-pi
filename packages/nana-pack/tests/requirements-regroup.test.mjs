@@ -33,6 +33,13 @@ const lift = (args, cwd) => node([LIFT, ...args], cwd);
 const crashed = (r) => /Cannot find module|\bERR_[A-Z_]+|^\s+at .+:\d+:\d+\)?$/m.test(r?.stderr ?? "") || r?.status === null;
 const said = (r) => [...own(r?.stderr), ...lines(r?.stdout)].join("\n");
 const mentions = (r, x) => (x instanceof RegExp ? x.test(said(r)) : said(r).includes(x));
+/**
+ * Build brief 4's rule for every refusal test from now on: a substring that only the test's
+ * own check prints, read from stderr alone — the lift's dry run echoes heading lines and row
+ * IDs on stdout even when it fails downstream, so a row ID or line number found anywhere in
+ * `said()` pins nothing.
+ */
+const saysOwn = (r, x) => { const s = own(r?.stderr).join("\n"); return x instanceof RegExp ? x.test(s) : s.includes(x); };
 const word = (n) => new RegExp(`(?<![\\w-])${n}(?![\\w-])`);
 const bare = (seg) => seg.replace(/\r?\n$/, "");
 const lineOf = (txt, heading, nth = 1) => { let k = 0; const ls = txt.split("\n"); for (let i = 0; i < ls.length; i++) if (ls[i] === heading && ++k === nth) return i + 1; return -1; };
@@ -719,6 +726,34 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     misses.length === 0, misses.join(" / "));
 }
 
+// ================================================================== R-1177 (M1: a feature status must be a string)
+{
+  // A status written as a one-element array stringifies to the same text inside a RegExp's
+  // implicit coercion but fails `=== "proposed"`/`=== "active"` by strict equality — the real
+  // bug: the gap check's isGap test then reads false, skips R-1174's evidence demand, and the
+  // lift happily writes the coerced string with no evidence ever named (findings 0, 10). The
+  // shape check now refuses a non-string status by its own path before anything reads it as a
+  // value, so the gap test and the page always read the same string.
+  const proposedArray = variant((q) => {
+    mappingNodesOf(q).find((x) => x.id === "FEAT-005").node.status = ["proposed"];
+    delete q.regroup.evidence["FEAT-005"];
+  });
+  const proposedRun = runFx("status-array-proposed", proposedArray);
+  const proposedOk = proposedRun.r.status === 1 && !crashed(proposedRun.r) && !existsSync(proposedRun.page) &&
+    saysOwn(proposedRun.r, "tree[1].features[1].status") && saysOwn(proposedRun.r, "must be a string");
+  const activeArray = variant((q) => {
+    q.tree[1].features.push({ id: "FEAT-010", label: "Gap feature for the status-array case", purpose: "A gap feature whose status is written as an array.", status: ["active"], from: [], rows: [], subgroups: [] });
+    q.regroup.review.claims.push({ node: "FEAT-010", field: "purpose", text: "A gap feature whose status is written as an array.", verdict: "accept", reason: "the claim matches the fixture's feature (claim FEAT-010)" });
+  });
+  const activeRun = runFx("status-array-active", activeArray);
+  const activeOk = activeRun.r.status === 1 && !crashed(activeRun.r) && !existsSync(activeRun.page) &&
+    saysOwn(activeRun.r, "tree[1].features[2].status") && saysOwn(activeRun.r, "must be a string");
+  // req: R-1177
+  check('R-1177: a feature status written as a one-element array (["proposed"] or ["active"]) on a feature with no rows and no evidence is refused in the shape check',
+    proposedOk && activeOk,
+    `proposed status=${proposedRun.r.status} ` + own(proposedRun.r.stderr).slice(0, 2).join(" | ") + `; active status=${activeRun.r.status} ` + own(activeRun.r.stderr).slice(0, 2).join(" | "));
+}
+
 // ================================================================== T14
 {
   const pass = runFx("page-order", fxProposal());
@@ -961,16 +996,17 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   check("R-1177: a question without ask is refused", ok);
 }
 {
-  // (f) A feature status the tree checker's status pattern refuses is refused. Through the
-  // full CLI the lift's own output-side check would refuse this first (the lift writes the
-  // status verbatim and validates its own output), so this is pinned by a direct call — the
-  // same reason R-1175's "carried" clause is (CHANGE §3.4 item 2).
+  // (f) A feature status the tree checker's status pattern refuses is refused. Build brief 4
+  // item 1 (finding 44) removed the regroup checker's own copy of the STATUS pattern: a copy
+  // reachable only through a direct call risked drifting from the tree checker's own, for no
+  // payoff, since the lift's output-side check (checkTree on the written ledger, via
+  // proveLift) already refuses this first in every real, full-CLI run — so this is now pinned
+  // through the command, not a direct call.
   const badStatus = variant((q) => { q.tree[1].features[0].status = "deprecated"; });
-  const dir = fxRoot("bad-status-direct", badStatus);
-  const statusProblemsFound = regroupProblems(badStatus, FX, dir).problems;
-  const ok = statusProblemsFound.some((p) => p.includes("FEAT-004") && p.includes("status"));
+  const run = runFx("bad-status-cli", badStatus);
+  const ok = run.r.status === 1 && !crashed(run.r) && !existsSync(run.page) && saysOwn(run.r, "invalid Status");
   // req: R-1177
-  check("R-1177: a feature status the tree checker's status pattern refuses is refused", ok, `problems=${statusProblemsFound.slice(0, 3).join(" | ")}`);
+  check("R-1177: a feature status the tree checker's status pattern refuses is refused", ok, `status=${run.r.status} ` + own(run.r.stderr).slice(0, 3).join(" | "));
 }
 {
   // (g) Only a proposed or active feature with no rows counts as a gap; a frozen or retired

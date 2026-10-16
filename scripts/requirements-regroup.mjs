@@ -279,6 +279,14 @@ function typeProblems(proposal) {
     if (!isPlainObject(q)) return;
     arr(q.about).forEach((a, j) => { if (isPlainObject(a)) { str(`regroup.questions[${i}].about[${j}].id`, a.id); str(`regroup.questions[${i}].about[${j}].to`, a.to); str(`regroup.questions[${i}].about[${j}].node`, a.node); int(`regroup.questions[${i}].about[${j}].line`, a.line); } });
   });
+  // M1: a feature's status must be its exact declared type, a string, refused by path before
+  // the gap check (isGap, by strict ===) or the page ever reads it as a value — a one-element
+  // array stringifies to the same text inside a RegExp's coercion, which is how the status
+  // pattern this module used to copy (finding 44, now removed) missed it.
+  arr(proposal.tree).forEach((cap, ci) => {
+    if (!isPlainObject(cap)) return;
+    arr(cap.features).forEach((feat, fj) => { if (isPlainObject(feat)) str(`tree[${ci}].features[${fj}].status`, feat.status); });
+  });
   return problems;
 }
 
@@ -305,24 +313,6 @@ function allEvidenceAbsPaths(proposal, rootDir) {
   const out = [];
   for (const paths of Object.values(proposal?.regroup?.evidence ?? {})) for (const raw of Array.isArray(paths) ? paths : []) { const abs = underRoot(rootDir, raw); if (abs) out.push(abs); }
   return out;
-}
-
-// ---------------------------------------------------------------------- item 9(f): feature status
-// requirements-tree.mjs's own STATUS pattern (its line 19), duplicated, never imported:
-// scripts/requirements-tree.mjs is outside this lane's scope (CHANGE §4), as the frozen
-// acceptance check's §4 In path list enforces, so this copy must change in step with it by
-// hand rather than through an export this lane is not scoped to add.
-const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
-/** A feature's status must match the tree checker's own pattern: proposed, active, frozen
- * (<why>) or retired (<why>). A reserved feature's status is the lift's seed, never the
- * proposal's, so it is exempt like its purpose and outcome (R-1172). */
-function statusProblems(proposal) {
-  const problems = [];
-  for (const x of flattenProposalNodes(proposal)) {
-    if (x.level !== 2 || RESERVED_NODES.has(x.id)) continue;
-    if (!STATUS.test(x.node.status ?? "")) problems.push(`${x.id}: status ${JSON.stringify(x.node.status)} does not match proposed, active, "frozen (<why>)" or "retired (<why>)"`);
-  }
-  return problems;
 }
 
 // ---------------------------------------------------------------------- R-1175: the review record
@@ -517,7 +507,6 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
   if (shapeProblems.length) return { problems: shapeProblems, records, ledgerRows };
   const problems = [
     ...placeholderProblems(proposal),
-    ...statusProblems(proposal),
     ...reasonProblems(proposal, records),
     ...evidenceProblems(proposal, rootDir),
     ...reviewProblems(proposal, ledgerRows),
