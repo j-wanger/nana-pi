@@ -1970,5 +1970,68 @@ if (process.platform !== "win32") {
     `write=${w.status} idx=${idx} verify=${v.status} ` + own(v.stderr).join(" | "));
 }
 
+// ==================================================================================================
+// R-1170
+// ==================================================================================================
+
+{
+  // Two sections share the heading text "## 2. Two" (lines 11 and 19 below), on a flat ledger: the
+  // default mapping names each one its own node (FEAT-002, FEAT-003), so `detectMoves` reports
+  // every named heading apart by line, and a row hand-moved between them reports apart too.
+  const sameHeadingLedger = [
+    "# fixture requirements", "",
+    "# Part A. Alpha", "",
+    "## 1. One", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-001 | The first thing shall work. | untested | — |",
+    "",
+    "## 2. Two", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-002 | The second thing shall work. | untested | — |",
+    "",
+    "# Part B. Beta", "",
+    "## 2. Two", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-003 | The third thing shall work. | untested | — |",
+    "| R-004 | The fourth thing shall work. | untested | — |",
+    "",
+    "## Open questions", "",
+    "1. An open question.", "",
+    "## Deliberate omissions", "",
+    "1. A deliberate omission.", "",
+  ].join("\n");
+  const dir = writeLedger(scratchDir("t40-same-heading"), sameHeadingLedger);
+  const mapPath = join(dir, "map.json");
+  const emit = lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  const capA = map.tree.find((c) => c.label === "Part A. Alpha");
+  const capB = map.tree.find((c) => c.label === "Part B. Beta");
+  const f1 = capA?.features.find((f) => f.label === "1. One");
+  const f2 = capA?.features.find((f) => f.label === "2. Two");
+  const f3 = capB?.features.find((f) => f.label === "2. Two");
+  if (f2 && f3) {
+    // Move R-004 from the second "## 2. Two" section's own feature (FEAT-003) into the first's (FEAT-002).
+    f3.rows = f3.rows.filter((r) => r !== "R-004");
+    f2.rows = [...f2.rows, "R-004"];
+  }
+  writeFileSync(mapPath, `${JSON.stringify(map, null, 2)}\n`);
+  const dry = lift(["--root", dir, "--mapping", mapPath]);
+  const REPORT = /^line (\d+): (.*) -> ((?:CAP|FEAT|SUB)-\d+)(?: \(rows ([^)]*)\))?$/;
+  const recs = lines(dry.stdout).map((l) => REPORT.exec(l)).filter(Boolean).map((m) => ({ line: +m[1], heading: m[2], to: m[3], rows: m[4] ? m[4].split(/,\s*/) : [] }));
+  const headingAt = (line, to) => recs.find((r) => r.line === line && r.to === to && r.rows.length === 0);
+  const h5 = f1 && headingAt(5, f1.id);
+  const h11 = f2 && headingAt(11, f2.id);
+  const h19 = f3 && headingAt(19, f3.id);
+  const moved = f2 && recs.find((r) => r.line === 19 && r.to === f2.id && JSON.stringify(r.rows) === JSON.stringify(["R-004"]));
+  const sameHeadingApart = h11 && h19 && h11.heading === h19.heading && h11.line !== h19.line;
+  // req: R-1170
+  check("R-1170: on a flat ledger whose two sections share one heading text, a mapping's dry run prints each named heading's line, text and node, and each row move by old line with its row IDs",
+    emit.status === 0 && Boolean(f1) && Boolean(f2) && Boolean(f3) && dry.status === 0 && Boolean(h5) && Boolean(h11) && Boolean(h19) && Boolean(moved) && Boolean(sameHeadingApart),
+    `emit=${emit.status} dry=${dry.status} f1=${f1?.id} f2=${f2?.id} f3=${f3?.id} recs=${JSON.stringify(recs)} ` + own(dry.stderr).join(" | "));
+}
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
