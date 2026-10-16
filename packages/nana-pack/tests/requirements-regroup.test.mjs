@@ -1290,6 +1290,11 @@ if (process.platform !== "win32") {
     [`line ${L37} -> FEAT-004 reason has no claim verdict`, variant((q) => { q.regroup.review.claims.splice(claimAt(q, (c) => c.line === L37 && c.to === "FEAT-004"), 1); }), [String(L37)]],
     ["FEAT-004's purpose has two claim verdicts", variant((q) => { q.regroup.review.claims.push({ ...q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-004" && c.field === "purpose")] }); }), ["FEAT-004"]],
     ["FEAT-002's purpose claim quotes a stale text", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "FEAT-002" && c.field === "purpose")].text = "Build the dataset (an older wording)."; }), ["FEAT-002"]],
+    // Item 6: a reason reworded AFTER its claim was recorded — the claim still quotes the old
+    // text, so it is a stale-text claim too, not just a node's purpose or outcome.
+    [`line ${L22} -> SUB-001's reason is reworded after review; its claim still quotes the old text`, variant((q) => {
+      q.regroup.reasons.find((y) => y.line === L22 && y.to === "SUB-001").why += " (reworded after review)";
+    }), [String(L22), "claim quotes a stale text"]],
     ["SUB-001's purpose claim has an empty reason", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "SUB-001")].reason = ""; }), ["SUB-001"]],
     ["CAP-01's purpose claim is neither accept nor reject", variant((q) => { q.regroup.review.claims[claimAt(q, (c) => c.node === "CAP-01" && c.field === "purpose")].verdict = "maybe"; }), ["CAP-01"]],
     // Survivor B2/9: names the type check's own message, not only the row/line value.
