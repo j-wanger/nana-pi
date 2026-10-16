@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -355,6 +356,23 @@ if (process.platform !== "win32") {
   const { ok, why } = allRefused(cases);
   // req: R-1176
   check("R-1176: a text-placed row without a placed reason, or a placed reason for a row with local evidence, is refused", ok, why);
+}
+
+// ================================================================== R-1176 (basketball-geek's plain evidence form)
+{
+  const dir = join(scratchRoot, "r1176-rail-form");
+  mkdirSync(join(dir, "tests"), { recursive: true });
+  writeFileSync(join(dir, "tests", "mini.test.mjs"), "// fixture test file\n");
+  // basketball-geek writes evidence the trace rail's plain way: no backticks, split on commas.
+  const plainCell = "tests/mini.test.mjs::R-900: plain form evidence, tests/missing.test.mjs::a title, with a comma in it";
+  const backtickCell = "`tests/mini.test.mjs::R-900: backtick form evidence`";
+  const missingCell = "tests/missing.test.mjs::a title that names no real path";
+  const plainOk = !isTextPlaced(dir, { id: "R-900", evidence: plainCell });
+  const backtickOk = !isTextPlaced(dir, { id: "R-900", evidence: backtickCell });
+  const missingOk = isTextPlaced(dir, { id: "R-901", evidence: missingCell });
+  // req: R-1176
+  check("R-1176: a row whose evidence names an existing path in the trace rail's plain or backtick form is evidence-placed",
+    plainOk && backtickOk && missingOk, `plain=${plainOk} backtick=${backtickOk} missing(still text-placed)=${missingOk}`);
 }
 
 // ================================================================== T11

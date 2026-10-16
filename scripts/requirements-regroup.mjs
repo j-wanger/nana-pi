@@ -14,7 +14,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves } from "./requirements-lift.mjs";
 import { expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
-import { requirementRowId } from "./requirements-trace.mjs";
+import { citesOf, requirementRowId } from "./requirements-trace.mjs";
 
 // ---------------------------------------------------------------------- tunables (§3.4)
 /** Path: the lift this command spawns read-only, resolved beside this module (so a mirror copy spawns its own). */
@@ -91,11 +91,10 @@ function featureRowIds(feat) {
   const sub = (feat.subgroups ?? []).flatMap((s) => expandRowIds((s.rows ?? []).join(",")));
   return [...own, ...sub];
 }
-/** The rail's evidence-path form: each backtick span's text before "::", or a whole span with no space, "\" read as "/". */
+/** The rail's evidence-path form (citesOf, imported, never copied): each citation's text before "::", or the whole citation when it carries none, "\" read as "/". */
 function evidencePathsOfCell(cell) {
-  return [...String(cell ?? "").matchAll(/`([^`]+)`/g)]
-    .map((m) => m[1])
-    .flatMap((s) => (s.includes("::") ? [s.split("::")[0]] : /\s/.test(s) ? [] : [s]))
+  return citesOf(String(cell ?? ""))
+    .map((c) => (c.includes("::") ? c.split("::")[0] : c))
     .map((p) => p.replace(/\\/g, "/"))
     .filter(Boolean);
 }
@@ -109,7 +108,7 @@ function underRoot(dir, raw) {
 }
 const existsUnder = (dir, raw) => { const abs = underRoot(dir, raw); return abs !== null && existsSync(abs); };
 /** R-1176: a row is text-placed when its Evidence cell names no path that exists under <dir>. */
-function isTextPlaced(dir, row) { return !evidencePathsOfCell(row.evidence).some((p) => existsUnder(dir, p)); }
+export function isTextPlaced(dir, row) { return !evidencePathsOfCell(row.evidence).some((p) => existsUnder(dir, p)); }
 /** A row's cells read straight off its raw line, by requirementRowId alone — a fallback for a row a real
  * project's ledger holds outside any table readRequirementRows recognises (e.g. a blank line breaks a
  * table's header continuation mid-section, so the rows after it belong to no table the tree parser scans). */
@@ -351,7 +350,10 @@ function claimProblems(proposal, records) {
 }
 
 // ---------------------------------------------------------------------- all regroup checks (R-1172 to R-1177, R-1184)
-function regroupProblems(proposal, ledgerText, rootDir) {
+// Exported so a test can call the checks directly (CHANGE §3.4 item 2; residual 2): the lift
+// itself refuses an `also_applies` line until regroup-shares lands, so the "carried" share
+// outcome can be exercised only by calling this function, never through the CLI.
+export function regroupProblems(proposal, ledgerText, rootDir) {
   const records = detectMoves(ledgerText, proposal);
   const ledgerRows = ledgerRowsFor(proposal, ledgerText, readRequirementRows(parseLedger(ledgerText)));
   const problems = [
