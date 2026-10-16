@@ -413,6 +413,116 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   check("R-1171: an --out the command cannot write is refused by name, exit 1, with no stack trace", ok, `status=${r.status} crashed=${crashed(r)} ` + own(r.stderr).slice(0, 2).join(" | "));
 }
 
+// ================================================================== R-1171 (item 10: --out /dev/stdout on a terminal must not hang)
+if (process.platform !== "win32") {
+  // A FIFO stands in for a terminal device: opening either for reading, with nothing on the
+  // other end, blocks forever. A failing run must never try to read an earlier page at --out
+  // unless that path is a REGULAR file — proven here with a 5-second timeout, well under the
+  // 120-second one every other case tolerates.
+  const fifoPath = join(scratchRoot, `page-fifo-${++caseN}`);
+  const mk = spawnSync("mkfifo", [fifoPath]);
+  if (mk.status === 0) {
+    const failing = variant((q) => { q.regroup.reasons = q.regroup.reasons.slice(1); });
+    const dir = fxRoot(`fifo-case-${caseN}`, failing);
+    const prop = join(dir, PROP_REL);
+    const r = node([REGROUP, "--root", dir, "--proposal", prop, "--out", fifoPath], scratchRoot, { timeout: 5000 });
+    const ok = r.status === 1 && r.signal === null && !crashed(r);
+    // req: R-1171
+    check("R-1171: a failing run reads --out for an earlier page only when it is a regular file, so a FIFO (standing in for a terminal) never hangs", ok,
+      `status=${r.status} signal=${r.signal} ` + own(r.stderr ?? "").slice(0, 2).join(" | "));
+  }
+}
+
+// ================================================================== R-1179 (item 10: empty target and reported-line sections print "(none)")
+{
+  // An identity mapping of a tiny tree-form ledger: nothing moves (every "from" names its own
+  // node's own old heading), so R-1170 reports no line; every row's verdict is "keep", so no
+  // move or share target exists either — both sections must print "(none)", not blank.
+  const NTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const NT = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha" };
+  const NONE_FX = [
+    NT.cap, "", "Purpose: capability purpose for the none-sections fixture.", "Outcome: a visible outcome for the none-sections fixture.", "",
+    NT.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...NTH,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+  ].join("\n");
+  const noneDir = join(scratchRoot, `none-sections-fx-${++caseN}`);
+  mkdirSync(join(noneDir, "docs", "regroup"), { recursive: true });
+  mkdirSync(join(noneDir, "tests"), { recursive: true });
+  writeFileSync(join(noneDir, "tests", "alpha.test.mjs"), "// fixture test file\n");
+  writeFileSync(join(noneDir, "REQUIREMENTS.md"), NONE_FX);
+  const noneMapping = {
+    ...buildIdentityMapping(NONE_FX),
+    regroup: {
+      reasons: [], placed: {}, evidence: {},
+      review: {
+        drafter: "anthropic", reviewer: "openai",
+        verdicts: [{ id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" }],
+        claims: [
+          { node: "CAP-01", field: "purpose", text: "capability purpose for the none-sections fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "CAP-01", field: "outcome", text: "a visible outcome for the none-sections fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "FEAT-001", field: "purpose", text: "alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+        ],
+      },
+      refuted: [], questions: [],
+    },
+  };
+  writeFileSync(join(noneDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(noneMapping, null, 2)}\n`);
+  const nonePage = join(scratchRoot, `none-sections-page-${++caseN}.md`);
+  const noneRun = regroup(["--root", noneDir, "--proposal", join(noneDir, "docs", "regroup", "proposal.json"), "--out", nonePage], scratchRoot);
+  const noneText = (() => { try { return readFileSync(nonePage, "utf8"); } catch { return null; } })();
+  const posLines = noneText?.indexOf("## Reported lines") ?? -1;
+  const posTargets = noneText?.indexOf("## Move and share targets") ?? -1;
+  const posClaims = noneText?.indexOf("## Rejected claims") ?? -1;
+  const linesNoneOk = posLines >= 0 && noneText.slice(posLines, posTargets).includes("(none)");
+  const targetsNoneOk = posTargets >= 0 && noneText.slice(posTargets, posClaims).includes("(none)");
+  // req: R-1179
+  check('R-1179: an empty "Reported lines" or "Move and share targets" section prints "(none)", same as every other empty section',
+    noneRun.status === 0 && !crashed(noneRun) && linesNoneOk && targetsNoneOk,
+    `status=${noneRun.status} ` + own(noneRun.stderr).slice(0, 2).join(" | ") + ` lines=${linesNoneOk} targets=${targetsNoneOk}`);
+}
+
+// ================================================================== R-1179 (item 10: a bare <placeholder> in row text is escaped in gists and the appendix)
+{
+  // The same tiny ledger, R-001's own text holding a bare "<placeholder>" (findings 30): a
+  // Markdown renderer reads an unescaped "<placeholder>" as literal, unrecognised HTML and
+  // drops it from view, in both the text-placed gist and the appendix.
+  const PTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const PT = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha" };
+  const PLACEHOLDER_FX = [
+    PT.cap, "", "Purpose: capability purpose for the placeholder fixture.", "Outcome: a visible outcome for the placeholder fixture.", "",
+    PT.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...PTH,
+    "| R-001 | WHEN alpha runs, it shall replace every <placeholder> with its bound value. | implemented | — |", "",
+  ].join("\n");
+  const phDir = join(scratchRoot, `placeholder-fx-${++caseN}`);
+  mkdirSync(join(phDir, "docs", "regroup"), { recursive: true });
+  writeFileSync(join(phDir, "REQUIREMENTS.md"), PLACEHOLDER_FX);
+  const phMapping = {
+    ...buildIdentityMapping(PLACEHOLDER_FX),
+    regroup: {
+      reasons: [], placed: { "R-001": "placed by its text alone, which names this node's work" }, evidence: {},
+      review: {
+        drafter: "anthropic", reviewer: "openai",
+        verdicts: [{ id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" }],
+        claims: [
+          { node: "CAP-01", field: "purpose", text: "capability purpose for the placeholder fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "CAP-01", field: "outcome", text: "a visible outcome for the placeholder fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+          { node: "FEAT-001", field: "purpose", text: "alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+        ],
+      },
+      refuted: [], questions: [],
+    },
+  };
+  writeFileSync(join(phDir, "docs", "regroup", "proposal.json"), `${JSON.stringify(phMapping, null, 2)}\n`);
+  const phPage = join(scratchRoot, `placeholder-page-${++caseN}.md`);
+  const phRun = regroup(["--root", phDir, "--proposal", join(phDir, "docs", "regroup", "proposal.json"), "--out", phPage], scratchRoot);
+  const phText = (() => { try { return readFileSync(phPage, "utf8"); } catch { return null; } })();
+  const escapedOk = phText !== null && phText.includes("&lt;placeholder&gt;") && !phText.includes("<placeholder>");
+  // req: R-1179
+  check('R-1179: a bare <placeholder> in row text is escaped ("&lt;placeholder&gt;") in its gist and the appendix, never a literal, vanishing HTML tag',
+    phRun.status === 0 && !crashed(phRun) && escapedOk,
+    `status=${phRun.status} ` + own(phRun.stderr).slice(0, 2).join(" | ") + ` escaped=${escapedOk}`);
+}
+
 // ================================================================== T4
 {
   const UNSORTED = "Not yet sorted:";
@@ -550,6 +660,13 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     // Item 9 (finding 38): a target refuted twice (two refuted entries for the same row and
     // target), not only a target mixed between refuted and asked (T8's own case).
     ["R-003's move target FEAT-004 is refuted twice", variant((q) => { q.regroup.refuted.push({ ...q.regroup.refuted.find((r) => r.id === "R-003" && r.to === "FEAT-004") }); }), ["R-003", "FEAT-004", "resolved more than once"]],
+    // Item 10 (finding 3): an about entry with an id but no "to" is refused, not silently accepted.
+    ["a question's about entry names R-009 with no \"to\"", variant((q) => { q.regroup.questions[0].about.push({ id: "R-009" }); }), ["R-009", "but no target"]],
+    // Item 10 (finding 3): an empty about entry (no id, node or line) is refused.
+    ["a question's about entry names nothing", variant((q) => { q.regroup.questions[0].about.push({}); }), ["about entry names nothing"]],
+    // Item 10 (finding 3): a claim-style about entry naming a claim that is NOT rejected
+    // (FEAT-002's purpose claim is accepted) is refused, not silently accepted.
+    ["a question's about entry names FEAT-002's purpose claim, which is accepted, not rejected", variant((q) => { q.regroup.questions[0].about.push({ node: "FEAT-002", field: "purpose" }); }), ["FEAT-002 purpose", "names no rejected claim"]],
   ];
   const { ok, why } = allRefused(cases);
   // req: R-1175
@@ -583,7 +700,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   });
   const sharedRun = runFx("carried-share-via-command", sharedPass);
   const sharedPage = sharedRun.text ?? "";
-  const sharedOk = sharedRun.r.status === 0 && !crashed(sharedRun.r) && /R-010 \(home FEAT-004\) -> FEAT-002 \[share\]: carried/.test(sharedPage);
+  const sharedOk = sharedRun.r.status === 0 && !crashed(sharedRun.r) && /R-010 \(home FEAT-004\) -> FEAT-002 \[share\]: proposed because .*shared through the command.* — carried/.test(sharedPage);
   // req: R-1175
   check("R-1175: each move or share target needs exactly one outcome keyed by row and target, so a share carried to one feature and refuted for another passes, and a target left unresolved or resolved twice is refused", ok && passOk && sharedOk, why || `mixed-share pass status=${pass.r.status} shared status=${sharedRun.r.status} shared=${sharedOk}`);
 }
@@ -801,8 +918,9 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
 {
   // Each case first runs an honest proposal at a shared --out (so a stale page would survive a
   // crash), then the bad-shape proposal at that same --out: refused by name, never a crash,
-  // and the earlier page removed — the --out pre-check (allEvidenceAbsPaths) reads evidence
-  // before the lift even runs, so an object, a number or a boolean there must never reach it.
+  // and the earlier page removed. Item 10 (finding 47): main() no longer special-cases this
+  // before the lift runs — allEvidenceAbsPaths already guards a non-array value, and the
+  // shape bucket inside regroupProblems refuses the same proposal with the same message.
   const evidenceShapeCases = [
     ["FEAT-005 (a gap) evidence is an object", variant((q) => { q.regroup.evidence["FEAT-005"] = { path: "src/report/render.mjs" }; }), "regroup.evidence.FEAT-005"],
     ["FEAT-005 (a gap) evidence is a number", variant((q) => { q.regroup.evidence["FEAT-005"] = 5; }), "regroup.evidence.FEAT-005"],
@@ -822,7 +940,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     if (!ok) misses.push(`${label}: status=${second.r.status} crashed=${crashed(second.r)} page=${existsSync(pagePath)} ` + own(second.r.stderr).slice(0, 2).join(" | "));
   }
   // req: R-1177
-  check("R-1177: an evidence value written as an object, a number or a boolean is refused by name before the --out pre-check reads it, for a gap or a non-gap feature, and a failing run still removes an earlier page",
+  check("R-1177: an evidence value written as an object, a number or a boolean is refused by name, for a gap or a non-gap feature, and a failing run still removes an earlier page",
     misses.length === 0, misses.join(" / "));
 }
 
@@ -941,6 +1059,28 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   check('R-1178: a same-family record reads "same-family review" on the page and never "another lineage"', run.r.status === 0 && page.includes("same-family review") && !/another lineage/i.test(page), `status=${run.r.status}`);
 }
 
+// ================================================================== R-1178/R-1179 (item 10: field lines never merge into one Markdown paragraph)
+{
+  // Finding 26: two field lines with no blank line between them merge into one paragraph in
+  // a Markdown renderer. Each pair named there must have a blank line between them: the
+  // header's hashes and proof line, a question's ask and recommendation, a node's Purpose and
+  // Outcome, and a reported line and its reason.
+  const pass = runFx("no-merge-page", fxProposal());
+  const page = pass.text ?? "";
+  const lines = page.split("\n");
+  const blankAfter = (needle) => { const i = lines.findIndex((l) => l.startsWith(needle)); return i >= 0 && i + 1 < lines.length && lines[i + 1] === ""; };
+  const headerOk = blankAfter("Proposal SHA-256:") && blankAfter("Ledger pin SHA-256:");
+  const questionOk = blankAfter("1. Should the build budget row");
+  const nodeOk = blankAfter("### CAP-01 — Ingest") && blankAfter("Purpose: Load the analyst's source files into staging and build the dataset the desk reads.");
+  const lineOk = blankAfter(`Line ${L15}: "${H.build}"`);
+  // req: R-1178
+  check("R-1178: the header's hashes and proof line, and a question's ask and recommendation, are each their own paragraph, never merged by a Markdown renderer",
+    pass.r.status === 0 && headerOk && questionOk, `status=${pass.r.status} header=${headerOk} question=${questionOk}`);
+  // req: R-1179
+  check("R-1179: a node's Purpose and Outcome, and a reported line and its reason, are each their own paragraph, never merged by a Markdown renderer",
+    pass.r.status === 0 && nodeOk && lineOk, `status=${pass.r.status} node=${nodeOk} line=${lineOk}`);
+}
+
 // ================================================================== T16
 {
   const pass = runFx("page-sections", fxProposal());
@@ -960,9 +1100,12 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const targetsBlock = page.slice(posTargets, posClaims);
   // R-1179 reworded: each target line is marked move or share, gives the row's current home,
   // and an asked target reads "asked in question <n>" (sol r3: "question number dropped").
-  const targetsOk = /R-003 \(home FEAT-001\) -> FEAT-004 \[move\]: refuted/.test(targetsBlock) &&
-    /R-005 \(home FEAT-002\) -> FEAT-001 \[share\]: asked in question 1\b/.test(targetsBlock) &&
-    /R-005 \(home FEAT-002\) -> FEAT-004 \[share\]: refuted/.test(targetsBlock);
+  // Item 10 (findings 25/27): the target's own argument is labelled "proposed because", and a
+  // refuted target also shows the refutation's own reason beside "refuted" — not only the
+  // target's own argument, which used to read (wrongly) as if it were the refutation's reason.
+  const targetsOk = /R-003 \(home FEAT-001\) -> FEAT-004 \[move\]: proposed because .*target alpha.* — refuted — .*refute alpha/.test(targetsBlock) &&
+    /R-005 \(home FEAT-002\) -> FEAT-001 \[share\]: proposed because .*target bravo.* — asked in question 1\b/.test(targetsBlock) &&
+    /R-005 \(home FEAT-002\) -> FEAT-004 \[share\]: proposed because .*target charlie.* — refuted — .*refute bravo/.test(targetsBlock);
   // Item 4 (M3): a target's own reason, not just its row/node/outcome — each of the three
   // targets above carries a distinct marker.
   const targetReasonOk = targetsBlock.includes("target alpha") && targetsBlock.includes("target bravo") && targetsBlock.includes("target charlie");
@@ -1198,7 +1341,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const mergeYesRun = regroup(["--root", mergeDir, "--proposal", join(mergeDir, "docs", "regroup", "proposal.json"), "--out", mergeYesPage], scratchRoot);
   const mergePage = (() => { try { return readFileSync(mergeYesPage, "utf8"); } catch { return null; } })();
   const mergeYesOk = mergeYesRun.status === 0 && !crashed(mergeYesRun) && mergePage !== null &&
-    /R-001 \(home FEAT-001\) -> FEAT-003 \[share\]: carried/.test(mergePage);
+    /R-001 \(home FEAT-001\) -> FEAT-003 \[share\]: proposed because .*merge share.* — carried/.test(mergePage);
   // req: R-1187
   check("R-1187: a feature's merge that carries another feature's share onto also_applies is refused with no share verdict and passes, carried, with one",
     mergeNoOk && mergeYesOk, `no=${mergeNoOk} status=${mergeNoRun.status} ` + own(mergeNoRun.stderr).slice(0, 2).join(" | ") + `; yes=${mergeYesOk} status=${mergeYesRun.status} ` + own(mergeYesRun.stderr).slice(0, 2).join(" | "));
@@ -1269,7 +1412,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const demoteYesRun = regroup(["--root", demoteDir, "--proposal", join(demoteDir, "docs", "regroup", "proposal.json"), "--out", demoteYesPage], scratchRoot);
   const demotePage = (() => { try { return readFileSync(demoteYesPage, "utf8"); } catch { return null; } })();
   const demoteYesOk = demoteYesRun.status === 0 && !crashed(demoteYesRun) && demotePage !== null &&
-    /R-001 \(home FEAT-001\) -> FEAT-003 \[share\]: carried/.test(demotePage);
+    /R-001 \(home FEAT-001\) -> FEAT-003 \[share\]: proposed because .*demotion share.* — carried/.test(demotePage);
   // req: R-1187
   check("R-1187: a feature's demotion to a subgroup that carries its share onto the absorbing feature's also_applies is refused with no share verdict and passes, carried, with one",
     demoteNoOk && demoteYesOk, `no=${demoteNoOk} status=${demoteNoRun.status} ` + own(demoteNoRun.stderr).slice(0, 2).join(" | ") + `; yes=${demoteYesOk} status=${demoteYesRun.status} ` + own(demoteYesRun.stderr).slice(0, 2).join(" | "));
@@ -1341,6 +1484,24 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
     `frozen status=${frozenOk.r.status} ` + own(frozenOk.r.stderr).slice(0, 2).join(" | ") + `; retired status=${retiredOk.r.status} ` + own(retiredOk.r.stderr).slice(0, 2).join(" | "));
 }
 {
+  // Item 10 (finding 29): an active feature with no rows is a gap too, and the page shows its
+  // evidence the same way a proposed gap's is shown — not only for status "proposed".
+  const activeGap = variant((q) => {
+    q.tree[1].features.push({ id: "FEAT-009", label: "Index analyst pages", purpose: "Index the rendered analyst pages for search; no row holds it yet.", status: "active", from: [], rows: [], subgroups: [] });
+    q.regroup.review.claims.push({ node: "FEAT-009", field: "purpose", text: "Index the rendered analyst pages for search; no row holds it yet.", verdict: "accept", reason: "the claim matches the fixture's feature (claim FEAT-009)" });
+    q.regroup.evidence["FEAT-009"] = ["src/report/render.mjs"];
+  });
+  const run = runFx("active-gap-evidence-page", activeGap);
+  const page = run.text ?? "";
+  const posNodes = page.indexOf("## Capabilities, features and subgroups");
+  const posFeat009 = posNodes >= 0 ? page.indexOf("FEAT-009", posNodes) : -1;
+  const evidenceBlock = posFeat009 >= 0 ? page.slice(posFeat009, posFeat009 + 400) : "";
+  const ok = run.r.status === 0 && !crashed(run.r) && evidenceBlock.includes("Evidence:") && (evidenceBlock.includes("src/report/render.mjs"));
+  // req: R-1178
+  check("R-1178: an active feature with no rows (a gap) shows its evidence on the page, the same way a proposed one's is shown", ok,
+    `status=${run.r.status} ` + own(run.r.stderr).slice(0, 2).join(" | ") + ` evidenceBlock=${evidenceBlock.slice(0, 120)}`);
+}
+{
   // (h) An evidence citation's path is its text before "::", then before the first space,
   // less a trailing :<line> or :<line>-<line> (findings 28/30): a locator, a quoted title or
   // a "·" join after the real path does not make the row text-placed.
@@ -1351,9 +1512,12 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const lineRange = !isTextPlaced(dir, { id: "R-901", evidence: "src/report/render.mjs:41-53" });
   const singleLine = !isTextPlaced(dir, { id: "R-902", evidence: "src/report/render.mjs:41" });
   const dotJoin = !isTextPlaced(dir, { id: "R-903", evidence: "src/report/render.mjs · a quoted section title" });
+  // Item 10 (finding 4): the real, existing path may follow the "·" join too, a title before
+  // it, not only lead it.
+  const dotJoinReversed = !isTextPlaced(dir, { id: "R-904", evidence: "a quoted section title · src/report/render.mjs" });
   // req: R-1176
   check("R-1176: an evidence citation's path is read before the first space, less a trailing :<line> or :<line>-<line>, so a locator does not make the row text-placed",
-    space && lineRange && singleLine && dotJoin, `space=${space} lineRange=${lineRange} singleLine=${singleLine} dotJoin=${dotJoin}`);
+    space && lineRange && singleLine && dotJoin && dotJoinReversed, `space=${space} lineRange=${lineRange} singleLine=${singleLine} dotJoin=${dotJoin} dotJoinReversed=${dotJoinReversed}`);
 }
 {
   // (h) the text-placed refusal names the check's own wording ("names no path that exists"),

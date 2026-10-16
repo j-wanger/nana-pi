@@ -100,6 +100,10 @@ function featureRowIds(feat) {
  * or :<line>-<line>. */
 function evidencePathsOfCell(cell) {
   return citesOf(String(cell ?? ""))
+    // Item 10 (finding 4): a "·" join may put the real, existing path on EITHER side of it
+    // (a title before it, or after) — read every side as its own candidate, so isTextPlaced's
+    // `.some(...)` finds the one that exists, whichever side it sits on.
+    .flatMap((c) => c.split(" · "))
     .map((c) => (c.includes("::") ? c.split("::")[0] : c))
     .map((c) => c.split(" ")[0])
     .map((c) => c.replace(/:\d+(?:-\d+)?$/, ""))
@@ -395,10 +399,30 @@ function reviewProblems(proposal, ledgerRows) {
     if (!nonEmpty(r.reason)) problems.push(`regroup.refuted: ${r.id} -> ${r.to} has an empty reason`);
     if (ledgerIds.has(r.id) && !isDeclaredTarget(r.id, r.to)) problems.push(`regroup.refuted: ${r.id} -> ${r.to} names no move or share target of ${r.id}'s own verdict`);
   }
+  // Item 10 (finding 3): every about entry is ONE of three shapes — a row target (`id`[,
+  // `to`]), a node claim (`node`[, `field`]) or a reason claim (`line`[, `to`]) — and each
+  // shape is validated in full: a row target names an id in this ledger AND a to naming a
+  // declared target of it; a claim-style entry (node or line present) names a claim that is
+  // actually rejected, never an accepted one or one that does not exist; an entry naming
+  // none of id/node/line is a stray that names nothing at all.
+  const claims = proposal.regroup?.review?.claims ?? [];
   for (const q of proposal.regroup?.questions ?? []) {
     for (const a of q.about ?? []) {
-      if (a.id !== undefined && !ledgerIds.has(a.id)) problems.push(`regroup.questions: about entry names row ${a.id}, which is not in this ledger`);
-      else if (a.id !== undefined && a.to !== undefined && !isDeclaredTarget(a.id, a.to)) problems.push(`regroup.questions: about entry ${a.id} -> ${a.to} names no move or share target of ${a.id}'s own verdict`);
+      if (a.id !== undefined) {
+        if (!ledgerIds.has(a.id)) { problems.push(`regroup.questions: about entry names row ${a.id}, which is not in this ledger`); continue; }
+        if (a.to === undefined) { problems.push(`regroup.questions: about entry names row ${a.id} but no target ("to")`); continue; }
+        if (!isDeclaredTarget(a.id, a.to)) problems.push(`regroup.questions: about entry ${a.id} -> ${a.to} names no move or share target of ${a.id}'s own verdict`);
+        continue;
+      }
+      if (a.node !== undefined || a.line !== undefined) {
+        const matches = a.node !== undefined ? claims.filter((c) => c.node === a.node && c.field === a.field) : claims.filter((c) => c.line === a.line && c.to === a.to);
+        if (!matches.some((c) => c.verdict === "reject")) {
+          const label = a.node !== undefined ? `${a.node} ${a.field}` : `line ${a.line} -> ${a.to}`;
+          problems.push(`regroup.questions: about entry for ${label} names no rejected claim`);
+        }
+        continue;
+      }
+      problems.push("regroup.questions: about entry names nothing (no id, node or line)");
     }
   }
   return problems;
@@ -534,6 +558,10 @@ export function regroupProblems(proposal, ledgerText, rootDir) {
 }
 
 // ---------------------------------------------------------------------- the page (R-1178, R-1179)
+/** Item 10 (finding 30): row text placed on the page may hold a bare "<placeholder>" that a
+ * Markdown renderer reads as literal (and unrecognised) HTML, vanishing it; escaping angle
+ * brackets keeps it visible text, in a gist or the appendix alike. */
+const escapeAngles = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 function statusMixOf(ids, rowStatus) {
   const counts = new Map();
   for (const id of ids) { const s = rowStatus.get(id) ?? "untested"; counts.set(s, (counts.get(s) ?? 0) + 1); }
@@ -541,18 +569,23 @@ function statusMixOf(ids, rowStatus) {
 }
 const renderers = {
   header(ctx) {
+    // Item 10 (finding 26): adjacent field lines with no blank line between them merge into
+    // one Markdown paragraph in a renderer, so every field here is its own line AND its own
+    // paragraph (a blank line on each side).
     const sha = createHash("sha256").update(ctx.proposalBytes).digest("hex");
     const review = ctx.proposal.regroup?.review ?? {};
-    const out = [PAGE_HEAD, "", `Proposal SHA-256: ${sha}`, `Ledger pin SHA-256: ${ctx.proposal.pin?.sha256 ?? ""}`, ctx.proofLine ?? "lift proof: (not captured)", ""];
-    out.push(`Drafter: ${review.drafter}`, `Reviewer: ${review.reviewer} (${ctx.same ? "same-family review" : "another lineage"})`, "");
-    out.push(`Placement verdicts: ${(review.verdicts ?? []).length}`, `Claim verdicts: ${(review.claims ?? []).length}`, "");
+    const out = [PAGE_HEAD, "", `Proposal SHA-256: ${sha}`, "", `Ledger pin SHA-256: ${ctx.proposal.pin?.sha256 ?? ""}`, "", ctx.proofLine ?? "lift proof: (not captured)", ""];
+    out.push(`Drafter: ${review.drafter}`, "", `Reviewer: ${review.reviewer} (${ctx.same ? "same-family review" : "another lineage"})`, "");
+    out.push(`Placement verdicts: ${(review.verdicts ?? []).length}`, "", `Claim verdicts: ${(review.claims ?? []).length}`, "");
     return out.join("\n");
   },
   questions(ctx) {
     const qs = ctx.proposal.regroup?.questions ?? [];
     if (!qs.length) return "## Questions\n\n(none)\n\n";
     const out = ["## Questions", ""];
-    qs.forEach((q, i) => out.push(`${i + 1}. ${q.ask}`, `   Recommendation: ${q.recommendation}`, ""));
+    // Item 10 (finding 26): the recommendation is its own paragraph, not a lazy continuation
+    // of the numbered "ask" line.
+    qs.forEach((q, i) => out.push(`${i + 1}. ${q.ask}`, "", `   Recommendation: ${q.recommendation}`, ""));
     return out.join("\n");
   },
   table(ctx) {
@@ -583,36 +616,52 @@ const renderers = {
       const reserved = RESERVED_NODES.has(x.id);
       const text = reserved ? seedNodeText(x.id, ctx.seed) : x.node;
       const mark = "#".repeat(x.level + 2);
-      out.push(`${mark} ${x.id} — ${text.label ?? ""}`, `Purpose: ${text.purpose ?? ""}`);
-      if (x.level === 1) out.push(`Outcome: ${text.outcome ?? ""}`);
-      if ((x.node.status ?? "") === "proposed") {
+      // Item 10 (finding 26): Purpose/Outcome/Evidence are each their own paragraph, a blank
+      // line apart, so a Markdown renderer never merges them into one.
+      out.push(`${mark} ${x.id} — ${text.label ?? ""}`, "", `Purpose: ${text.purpose ?? ""}`);
+      if (x.level === 1) out.push("", `Outcome: ${text.outcome ?? ""}`);
+      // Item 10 (finding 29): an active feature with no rows is a gap too (R-1174's own
+      // isGap test), and needs its evidence shown the same way a proposed one's is.
+      const isGap = x.level === 2 && (x.node.status === "proposed" || (x.node.status === "active" && featureRowIds(x.node).length === 0));
+      if (isGap) {
         const ev = (ctx.proposal.regroup?.evidence?.[x.id] ?? []).map((p) => String(p).replace(/\\/g, "/"));
-        out.push(`Evidence: ${ev.join(", ")}`);
+        out.push("", `Evidence: ${ev.join(", ")}`);
       }
       out.push("");
     }
     return out.join("\n");
   },
   lines(ctx) {
+    // Item 10 (finding 28): an empty section prints "(none)", same as every other section.
+    if (!ctx.records.length) return ["## Reported lines (R-1170)", "", "(none)", ""].join("\n");
     const out = ["## Reported lines (R-1170)", ""];
     for (const r of ctx.records) {
       const why = (ctx.proposal.regroup?.reasons ?? []).find((y) => y.line === r.line && y.to === r.to)?.why ?? "";
-      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, `  Reason: ${why}`, "");
+      // Item 10 (finding 26): the reason is its own paragraph, not a lazy continuation of the line above.
+      out.push(`Line ${r.line}: "${r.heading}" -> ${r.to}${r.rows.length ? ` (rows ${r.rows.join(", ")})` : ""}`, "", `  Reason: ${why}`, "");
     }
     return out.join("\n");
   },
   targets(ctx) {
     // R-1179 reworded: each target line is marked move or share, gives the row's current
-    // home, and an asked target names its question's number rather than just "asked".
+    // home, and an asked target names its question's number rather than just "asked". Item
+    // 10: the target's own argument is labelled "proposed because", never bare after a dash
+    // (findings 25/27 — read as if it were the refutation's own reason), and a refuted target
+    // ALSO shows the refutation's own reason beside "refuted", not only the target's.
+    const verdicts = ctx.proposal.regroup?.review?.verdicts ?? [];
+    const moveOrShare = verdicts.filter((v) => v.verdict === "move" || v.verdict === "share");
+    if (!moveOrShare.some((v) => (v.targets ?? []).length)) return ["## Move and share targets", "", "(none)", ""].join("\n");
     const out = ["## Move and share targets", ""];
     const questions = ctx.proposal.regroup?.questions ?? [];
-    for (const v of ctx.proposal.regroup?.review?.verdicts ?? []) {
-      if (v.verdict !== "move" && v.verdict !== "share") continue;
+    const refuted = ctx.proposal.regroup?.refuted ?? [];
+    for (const v of moveOrShare) {
       for (const t of v.targets ?? []) {
         const outcome = resolveTargetOutcome(ctx.proposal, v.id, t.to);
         const qNum = outcome === "asked" ? questions.findIndex((q) => (q.about ?? []).some((a) => a.id === v.id && a.to === t.to)) + 1 : null;
-        const label = outcome === "asked" ? `asked in question ${qNum}` : outcome ?? "unresolved";
-        out.push(`${v.id} (home ${v.at}) -> ${t.to} [${v.verdict}]: ${label} — ${t.reason}`, "");
+        const label = outcome === "asked" ? `asked in question ${qNum}`
+          : outcome === "refuted" ? `refuted — ${refuted.find((r) => r.id === v.id && r.to === t.to)?.reason ?? ""}`
+          : outcome ?? "unresolved";
+        out.push(`${v.id} (home ${v.at}) -> ${t.to} [${v.verdict}]: proposed because ${t.reason} — ${label}`, "");
       }
     }
     return out.join("\n");
@@ -635,7 +684,7 @@ const renderers = {
       const reason = ctx.proposal.regroup?.placed?.[row.id];
       if (reason === undefined) continue;
       any = true;
-      const gist = row.requirement.split(/\s+/).slice(0, GIST_WORDS).join(" ");
+      const gist = escapeAngles(row.requirement.split(/\s+/).slice(0, GIST_WORDS).join(" "));
       out.push(`${row.id} -> ${home.get(row.id) ?? "?"}: "${gist}" — ${reason}`, "");
     }
     if (!any) out.push("(none)", "");
@@ -655,7 +704,7 @@ const renderers = {
       const ids = expandRowIds((x.node.rows ?? []).join(","));
       if (!ids.length) continue;
       out.push(`### Appendix — ${x.id}`, "");
-      for (const id of ids) { const row = byId.get(id); if (row) out.push(`- ${id}: ${row.requirement}`); }
+      for (const id of ids) { const row = byId.get(id); if (row) out.push(`- ${id}: ${escapeAngles(row.requirement)}`); }
       out.push("");
     }
     return out.join("\n");
@@ -694,6 +743,11 @@ function removeEarlierPage(outPath) {
   // the page removed is the file the link POINTS TO; the link stays, now dangling (M2).
   let real = outPath;
   try { if (lstatSync(outPath).isSymbolicLink()) real = realpathSync(outPath); } catch { return; }
+  // Item 10: an earlier page is read only when <real> is a REGULAR file. --out /dev/stdout
+  // on a terminal names a character device; readFileSync on it blocks on terminal input
+  // forever, so a run failing for an unrelated reason must never try to read anything but
+  // a plain file here.
+  try { if (!statSync(real).isFile()) return; } catch { return; }
   let existing;
   try { existing = readFileSync(real, "utf8"); } catch { return; }
   if (firstLineOf(existing) === PAGE_HEAD) { try { rmSync(real); } catch { /* best effort */ } }
@@ -731,17 +785,10 @@ export function main(argv = process.argv.slice(2)) {
 
   let proposalEarly = null;
   try { proposalEarly = JSON.parse(stripBom(readFileSync(proposalPath, "utf8"))); } catch { /* the lift will name this */ }
-  // R-1177 (M1): an evidence shape problem is named and the earlier page removed before the
-  // --out pre-check below ever reads regroup.evidence (allEvidenceAbsPaths would otherwise
-  // throw on an object, a number or a boolean there, crashing before the lift even runs).
-  if (proposalEarly) {
-    const earlyProblems = evidenceShapeProblems(proposalEarly);
-    if (earlyProblems.length) {
-      for (const p of capProblems(earlyProblems)) console.error(p);
-      removeEarlierPage(outPath);
-      return 1;
-    }
-  }
+  // Item 10 (finding 47): no early evidence-shape refusal here — allEvidenceAbsPaths already
+  // guards a non-array evidence value (`Array.isArray(paths) ? paths : []`, never a crash),
+  // and the shape bucket inside regroupProblems below refuses the same proposal with the same
+  // message regardless; a second copy of that refusal here could only drift from it.
   const evidenceInputs = proposalEarly ? allEvidenceAbsPaths(proposalEarly, rootDir) : [];
   const inputPaths = [ledgerPath, proposalPath, LIFT_SCRIPT, ...evidenceInputs];
   if (existsSync(outPath) && statSync(outPath).isDirectory()) {
