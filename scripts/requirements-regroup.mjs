@@ -12,8 +12,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves } from "./requirements-lift.mjs";
-import { expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
+import { PROBLEM_LINE_CAP, UNSORTED_PREFIX, detectMoves, loadSeed, seedNodeText } from "./requirements-lift.mjs";
+import { REPO_ROOT, expandRowIds, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { citesOf, requirementRowId } from "./requirements-trace.mjs";
 
 // ---------------------------------------------------------------------- tunables (§3.4)
@@ -508,13 +508,18 @@ const renderers = {
   },
   nodes(ctx) {
     // Nested by level (the flat list is already depth-first: capability, then its features,
-    // then each feature's subgroups), each with its ID, label and purpose (R-1178).
+    // then each feature's subgroups), each with its ID, label and purpose (R-1178). A reserved
+    // node (M4) shows the label, purpose and outcome the lift's seed writes — never blank, and
+    // never proposal text the lift ignores, since the proposal need not (and often does not)
+    // carry one at all.
     const out = ["## Capabilities, features and subgroups", ""];
     for (const x of flattenProposalNodes(ctx.proposal)) {
+      const reserved = RESERVED_NODES.has(x.id);
+      const text = reserved ? seedNodeText(x.id, ctx.seed) : x.node;
       const indent = "  ".repeat(x.level - 1);
       const mark = "#".repeat(x.level + 2);
-      out.push(`${indent}${mark} ${x.id} — ${x.node.label ?? ""}`, `${indent}Purpose: ${x.node.purpose ?? ""}`);
-      if (x.level === 1) out.push(`${indent}Outcome: ${x.node.outcome ?? ""}`);
+      out.push(`${indent}${mark} ${x.id} — ${text.label ?? ""}`, `${indent}Purpose: ${text.purpose ?? ""}`);
+      if (x.level === 1) out.push(`${indent}Outcome: ${text.outcome ?? ""}`);
       if ((x.node.status ?? "") === "proposed") {
         const ev = (ctx.proposal.regroup?.evidence?.[x.id] ?? []).map((p) => String(p).replace(/\\/g, "/"));
         out.push(`${indent}Evidence: ${ev.join(", ")}`);
@@ -709,7 +714,8 @@ export function main(argv = process.argv.slice(2)) {
   const same = sameLineage(review.drafter, review.reviewer) && (review.same_family === true || review.same_family === "same-family");
   const rowStatus = new Map(ledgerRows.map((r) => [r.id, r.status]));
   const proofLine = PROOF_LINE.exec(liftRun.stdout)?.[0] ?? null;
-  const page = renderPage({ proposal, ledgerRows, rowStatus, records, same, proofLine, proposalBytes: readFileSync(proposalPath) });
+  const seed = loadSeed(REPO_ROOT);
+  const page = renderPage({ proposal, ledgerRows, rowStatus, records, same, proofLine, proposalBytes: readFileSync(proposalPath), seed });
 
   // M2: an --out the run cannot write (an unwritable directory, for example) is a named
   // refusal, exit 1, never an uncaught stack trace.

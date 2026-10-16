@@ -701,10 +701,16 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const purposesOk = ["CAP-01", "FEAT-001", "SUB-001", "CAP-02", "FEAT-004", "FEAT-005"].every((id) => nodesBlock.includes(id)) && (nodesBlock.includes("src/report/render.mjs") || nodesBlock.includes("src\\report\\render.mjs"));
   // Every node is nested (a feature's heading sits deeper than its capability's) and shows its label.
   const nestedOk = nodesBlock.includes("Load source files") && nodesBlock.indexOf("#### FEAT-001") > nodesBlock.indexOf("### CAP-01") && nodesBlock.indexOf("##### SUB-001") > nodesBlock.indexOf("#### FEAT-002");
+  // M4: a reserved node (CAP-90, FEAT-900, SUB-900...) shows the lift's seed text, never blank
+  // and never proposal text the lift ignores — the honest fixture's reserved nodes carry no
+  // label, purpose or outcome of their own, so this is blank unless the page reads the seed.
+  const reservedOk = nodesBlock.includes("every nana project carries the same baseline engineering promises, checkable the same way") &&
+    nodesBlock.includes("hold the general engineering rows every nana project ships, unedited per project") &&
+    nodesBlock.includes("Keep engineering promises checkable") && nodesBlock.includes("Adopt the general engineering requirements");
   // req: R-1178
   check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
-    pass.r.status === 0 && headerOk && orderOk && tableOk && purposesOk && nestedOk,
-    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} purposes=${purposesOk} nested=${nestedOk}`);
+    pass.r.status === 0 && headerOk && orderOk && tableOk && purposesOk && nestedOk && reservedOk,
+    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} purposes=${purposesOk} nested=${nestedOk} reserved=${reservedOk}`);
 }
 
 // ================================================================== T15

@@ -109,7 +109,7 @@ const eolOf = (seg) => (/\r\n$/.test(seg) ? "\r\n" : /\n$/.test(seg) ? "\n" : "\
 
 // ---------------------------------------------------------------------- the seed
 
-function loadSeed(rootForRepo) {
+export function loadSeed(rootForRepo) {
   const path = resolve(rootForRepo, GENERAL_SEED);
   const text = readFileSync(path, "utf8");
   const parsed = parseLedger(text);
@@ -119,7 +119,7 @@ function loadSeed(rootForRepo) {
   const byId = new Map(parsed.headings.map((h) => [h.id, h]));
   return { text, byId, subOf };
 }
-function seedNodeText(id, seed) {
+export function seedNodeText(id, seed) {
   const h = seed.byId.get(id);
   return { label: h?.label ?? "", purpose: h?.purpose ?? "", outcome: h?.outcome ?? "", status: h?.status ?? "" };
 }
