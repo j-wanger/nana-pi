@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { PAGE_HEAD, isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
+import { GIST_WORDS, PAGE_HEAD, isTextPlaced, regroupProblems, resolveTargetOutcome } from "../../../scripts/requirements-regroup.mjs";
 import { buildIdentityMapping } from "../../../scripts/requirements-lift.mjs";
 
 let fails = 0;
@@ -767,8 +767,14 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const posLines = page.indexOf("## Reported lines");
   const hdr = posQ1 > 0 ? page.slice(0, posQ1) : "";
   const propBytes = readFileSync(pass.prop);
-  const headerOk = page.startsWith("# Regroup review packet") && hdr.includes(sha(propBytes)) && hdr.includes(fxProposal().pin.sha256) && (proofLine === null || hdr.includes(proofLine)) && hdr.includes("anthropic") && hdr.includes("openai") && /placement verdicts: 13/i.test(hdr) && /claim verdicts: \d+/i.test(hdr);
+  // Item 4 (M3): the exact claim-verdict count, not just any digit, so dropping a claim from
+  // the header's own count goes red.
+  const claimCount = fxProposal().regroup.review.claims.length;
+  const headerOk = page.startsWith("# Regroup review packet") && hdr.includes(sha(propBytes)) && hdr.includes(fxProposal().pin.sha256) && (proofLine === null || hdr.includes(proofLine)) && hdr.includes("anthropic") && hdr.includes("openai") && /placement verdicts: 13/i.test(hdr) && new RegExp(`claim verdicts: ${claimCount}\\b`, "i").test(hdr);
   const orderOk = posQ1 > 0 && posQ1 < posTable && posTable < posNodes && posNodes < posLines;
+  // Item 4 (M3): a question's own recommendation, not just its "ask" line.
+  const qBlock = page.slice(posQ1, posTable);
+  const recommendationOk = qBlock.includes("recommend alpha");
   const tableBlock = page.slice(posTable, posNodes);
   const tableOk = ["FEAT-001", "FEAT-002", "FEAT-004", "FEAT-005", "FEAT-900"].every((id) => tableBlock.includes(id)) && /\b3\b/.test(tableBlock) && /implemented/.test(tableBlock);
   // R-1178 reworded: the feature table also carries each feature's label and status — a
@@ -778,8 +784,16 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   // list already does), never blank — the honest fixture's lift's own default start, since the
   // proposal names no label or status of its own for FEAT-900.
   const tableReservedOk = tableBlock.includes("Adopt the general engineering requirements") && /\bactive\b/.test(tableBlock);
+  // Item 4 (M3): a feature's own subtree row count and status mix, not just any digit anywhere
+  // in the table — FEAT-002 carries its own rows (R-004 implemented, R-005 planned, R-007
+  // implemented) plus SUB-001's row (R-006 untested): 4 rows, "2 implemented, 1 planned, 1 untested".
+  const statusMixOk = /\|\s*FEAT-002\s*\|[^|]*\|[^|]*\|\s*4\s*\|\s*2 implemented, 1 planned, 1 untested\s*\|/.test(tableBlock);
   const nodesBlock = page.slice(posNodes, posLines);
   const purposesOk = ["CAP-01", "FEAT-001", "SUB-001", "CAP-02", "FEAT-004", "FEAT-005"].every((id) => nodesBlock.includes(id)) && (nodesBlock.includes("src/report/render.mjs") || nodesBlock.includes("src\\report\\render.mjs"));
+  // Item 4 (M3): a non-reserved node's own purpose text, and a capability's own outcome text —
+  // not just its ID — so dropping the field (while keeping the heading) goes red.
+  const purposeTextOk = nodesBlock.includes("refusing unknown columns by name and logging each refusal");
+  const outcomeTextOk = nodesBlock.includes("Every source file the analyst drops is staged whole, refused by name or logged.");
   // Every node is nested (a feature's heading sits deeper than its capability's) and shows its label.
   const nestedOk = nodesBlock.includes("Load source files") && nodesBlock.indexOf("#### FEAT-001") > nodesBlock.indexOf("### CAP-01") && nodesBlock.indexOf("##### SUB-001") > nodesBlock.indexOf("#### FEAT-002");
   // Nodes nest by heading level alone, with no leading spaces (four spaces make a Markdown
@@ -788,13 +802,15 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   // M4: a reserved node (CAP-90, FEAT-900, SUB-900...) shows the lift's seed text, never blank
   // and never proposal text the lift ignores — the honest fixture's reserved nodes carry no
   // label, purpose or outcome of their own, so this is blank unless the page reads the seed.
+  // Item 4 (M3) adds the reserved capability's own seed OUTCOME, not only its purpose/label.
   const reservedOk = nodesBlock.includes("every nana project carries the same baseline engineering promises, checkable the same way") &&
+    nodesBlock.includes("a rendered project's engineering promises are visible and checkable from day one") &&
     nodesBlock.includes("hold the general engineering rows every nana project ships, unedited per project") &&
     nodesBlock.includes("Keep engineering promises checkable") && nodesBlock.includes("Adopt the general engineering requirements");
   // req: R-1178
-  check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions, the feature table with status mix, and every node with its purpose and each proposed feature's evidence",
-    pass.r.status === 0 && headerOk && orderOk && tableOk && tableStatusOk && tableReservedOk && purposesOk && nestedOk && noIndentOk && reservedOk,
-    `status=${pass.r.status} header=${headerOk} order=${orderOk} table=${tableOk} tableStatus=${tableStatusOk} tableReserved=${tableReservedOk} purposes=${purposesOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
+  check("R-1178: the page opens with both hashes, the proof line, the lineages and the placement and claim verdict counts, then the numbered questions each with its recommendation, the feature table with each feature's status mix and subtree row count, and every node with its purpose, a capability's outcome, a reserved node's seed outcome and each proposed feature's evidence",
+    pass.r.status === 0 && headerOk && orderOk && recommendationOk && tableOk && tableStatusOk && tableReservedOk && statusMixOk && purposesOk && purposeTextOk && outcomeTextOk && nestedOk && noIndentOk && reservedOk,
+    `status=${pass.r.status} header=${headerOk} order=${orderOk} recommendation=${recommendationOk} table=${tableOk} tableStatus=${tableStatusOk} tableReserved=${tableReservedOk} statusMix=${statusMixOk} purposes=${purposesOk} purposeText=${purposeTextOk} outcomeText=${outcomeTextOk} nested=${nestedOk} noIndent=${noIndentOk} reserved=${reservedOk}`);
 }
 // M2 (T14): a proposal that gives FEAT-900 other label/status text still shows the lift's
 // seed text in the table — never the proposal's, which the lift ignores for a reserved node.
@@ -839,24 +855,43 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const orderOk = posLines > 0 && posLines < posTargets && posTargets < posClaims && posClaims < posPlaced && posPlaced < posRefuted && posRefuted < posAppendix;
   const linesBlock = page.slice(posLines, posTargets);
   const linesOk = linesBlock.includes(`Line ${L30}: "${H.build}" -> FEAT-004 (rows R-008)`);
+  // Item 4 (M3): the reported line's own reason text, not just its heading and rows.
+  const l30r = WANT_RECORDS.findIndex((r) => r.line === L30 && r.to === "FEAT-004");
+  const lineReasonOk = linesBlock.includes(`reason item ${l30r}`);
   const targetsBlock = page.slice(posTargets, posClaims);
   // R-1179 reworded: each target line is marked move or share, gives the row's current home,
   // and an asked target reads "asked in question <n>" (sol r3: "question number dropped").
   const targetsOk = /R-003 \(home FEAT-001\) -> FEAT-004 \[move\]: refuted/.test(targetsBlock) &&
     /R-005 \(home FEAT-002\) -> FEAT-001 \[share\]: asked in question 1\b/.test(targetsBlock) &&
     /R-005 \(home FEAT-002\) -> FEAT-004 \[share\]: refuted/.test(targetsBlock);
+  // Item 4 (M3): a target's own reason, not just its row/node/outcome — each of the three
+  // targets above carries a distinct marker.
+  const targetReasonOk = targetsBlock.includes("target alpha") && targetsBlock.includes("target bravo") && targetsBlock.includes("target charlie");
   const claimsBlock = page.slice(posClaims, posPlaced);
-  const claimsOk = claimsBlock.includes("reject zulu");
+  // Item 4 (M3): the rejected claim's own name (its label line), not only its reason.
+  const claimsOk = claimsBlock.includes(`Rejected claim: line ${L30} -> FEAT-004`) && claimsBlock.includes("reject zulu");
   const placedBlock = page.slice(posPlaced, posRefuted);
   const placedOk = FX_PLACED.every((id) => placedBlock.includes(id));
+  // Item 4 (M3): a text-placed row's gist, home and reason — not just its ID. R-003 is
+  // text-placed, home FEAT-001, with "placed item 0" (its own index in FX_PLACED).
+  const r003Gist = "The loader shall record each refused file in the import log with the time, the file name and the refusal reason.".split(/\s+/).slice(0, GIST_WORDS).join(" ");
+  const placedFieldsOk = placedBlock.includes(`R-003 -> FEAT-001: "${r003Gist}" — placed by its text alone, which names this node's work (placed item ${FX_PLACED.indexOf("R-003")})`);
   const refutedBlock = page.slice(posRefuted, posAppendix);
   const refutedOk = refutedBlock.includes("R-003 -> FEAT-004: refuted") && refutedBlock.includes("refute alpha") && refutedBlock.includes("R-005 -> FEAT-004: refuted") && refutedBlock.includes("refute bravo");
   const appendixBlock = page.slice(posAppendix);
   const appendixOk = appendixBlock.includes("ten thousand accounts") && !page.slice(0, posAppendix).includes("ten thousand accounts");
+  // Item 4 (M3): the appendix groups rows under their OWN node's heading, not just anywhere
+  // after "## Appendix" — FEAT-002's own appendix section holds R-004, never FEAT-001's.
+  const posAppFeat001 = appendixBlock.indexOf("### Appendix — FEAT-001");
+  const posAppFeat002 = appendixBlock.indexOf("### Appendix — FEAT-002");
+  const appendixGroupOk = posAppFeat001 >= 0 && posAppFeat002 > posAppFeat001 &&
+    appendixBlock.slice(posAppFeat001, posAppFeat002).includes("R-001") &&
+    !appendixBlock.slice(posAppFeat001, posAppFeat002).includes("R-004") &&
+    appendixBlock.slice(posAppFeat002).includes("R-004");
   // req: R-1179
-  check("R-1179: the page lists each reported line with its reason and rows, each move and share target with its own outcome, each rejected claim with its reason, each text-placed row with its reason, and every row only in the appendix after them",
-    pass.r.status === 0 && orderOk && linesOk && targetsOk && claimsOk && placedOk && refutedOk && appendixOk,
-    `order=${orderOk} lines=${linesOk} targets=${targetsOk} claims=${claimsOk} placed=${placedOk} refuted=${refutedOk} appendix=${appendixOk}`);
+  check("R-1179: the page lists each reported line with its reason and rows, each move and share target with its own reason and outcome, each rejected claim named with its reason, each text-placed row with its gist, home and reason, and every row grouped by node only in the appendix after them",
+    pass.r.status === 0 && orderOk && linesOk && lineReasonOk && targetsOk && targetReasonOk && claimsOk && placedOk && placedFieldsOk && refutedOk && appendixOk && appendixGroupOk,
+    `order=${orderOk} lines=${linesOk} lineReason=${lineReasonOk} targets=${targetsOk} targetReason=${targetReasonOk} claims=${claimsOk} placed=${placedOk} placedFields=${placedFieldsOk} refuted=${refutedOk} appendix=${appendixOk} appendixGroup=${appendixGroupOk}`);
 }
 
 // ================================================================== T22
