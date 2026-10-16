@@ -796,6 +796,31 @@ if (process.platform !== "win32") {
 }
 
 {
+  // build brief 8 (sol r2 MUST): a worktree branched BEFORE the grouping file existed never
+  // tracks it at its own HEAD, so `git diff --quiet HEAD` there read a differing untracked copy
+  // as clean and the old scan skipped the entry entirely -- sol's exact repro. With no committed
+  // baseline in that worktree to diff against, the fix falls back to a direct byte compare
+  // against this run's own proved bytes, so an untracked-but-present copy that differs is dirty.
+  const main = gitRepo("t9c-untracked-grouping", flatLedger());
+  const laneDir = join(scratchRoot, "t9c-untracked-grouping-lane");
+  // branch the second worktree before map.json exists, so its own HEAD never tracks it.
+  const wt = gitC(main, "worktree", "add", "-q", "-b", "t9c-untracked-grouping-lane", laneDir);
+  const mapPath = join(main, "map.json");
+  const emit = lift(["--root", main, "--emit-mapping", mapPath]);
+  gitC(main, "add", "-A"); gitC(main, "commit", "-qm", "map");
+  // the lane now holds an UNTRACKED copy at the same path, with different (owner-edited) bytes.
+  writeFileSync(join(laneDir, "map.json"), `${readFileSync(mapPath, "utf8")}\n`);
+  const beforeMain = readLedger(main);
+  const r = lift(["--root", main, "--mapping", mapPath, "--write"]);
+  // req: R-1164
+  check("R-1164: --write refuses when another worktree holds an untracked grouping file at the same path that differs from this HEAD's",
+    wt.status === 0 && emit.status === 0 && r.status === 1 && !crashed(r) &&
+      own(r.stderr).some((l) => l.includes(laneDir) || l.includes("t9c-untracked-grouping-lane")) &&
+      readLedger(main).equals(beforeMain),
+    `wt=${wt.status} emit=${emit.status} r=${r.status} ` + own(r.stderr).join(" | "));
+}
+
+{
   const sub = "proj";
   const dir = scratchDir("t10");
   writeLedger(join(dir, sub), flatLedger());

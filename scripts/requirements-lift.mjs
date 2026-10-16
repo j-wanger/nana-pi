@@ -807,14 +807,21 @@ function gitClean(cwd, relPath) {
 }
 /**
  * Every non-bare worktree of the repository holding `rootDir`, each checked clean for its own
- * copy of every `{ relPath, label }` entry -- the ledger AND, when one is supplied, the
- * `--mapping` file (build brief 7 item 2: sol MUST 2; astra SHOULDs 2 and 4). `git diff --quiet
- * HEAD` catches a change whether it is staged, unstaged or a removal; the earlier check then
- * distinguished "this worktree never tracks this path" from "a real dirty copy" with `ls-files
- * --error-unmatch`, which reads the INDEX -- a worktree that has STAGED the path's removal is no
- * longer in the index, so that check wrongly read it as untracked and skipped it. `cat-file -e
- * HEAD:<path>` reads HEAD instead, so a path HEAD tracks there but the index or working tree has
- * removed still counts as dirty.
+ * copy of every `{ relPath, label, buf }` entry -- the ledger AND, when one is supplied, the
+ * `--mapping` file (`buf` is this run's own, already-proved bytes for that path). `git diff
+ * --quiet HEAD` compares a worktree's working tree to ITS OWN HEAD, correctly normalising for
+ * that worktree's own `core.autocrlf` (a clean CRLF checkout must not be flagged, CHANGE.md §3.6)
+ * and correctly reading a worktree's own clean, divergent, committed history as clean (another
+ * lane that has deliberately committed its own different REQUIREMENTS.md is not "dirty"). But
+ * `diff --quiet HEAD` reports a path clean whenever it is UNTRACKED there too, since an untracked
+ * file never enters the comparison at all -- so a worktree branched before the path ever existed
+ * can hold a real, differing owner copy on disk and still read as clean (build brief 8; sol r2
+ * MUST: the grouping-file worktree scan skips a path another worktree's HEAD does not track).
+ * When `diff --quiet` says clean, check whether the path is actually IN THAT WORKTREE'S INDEX
+ * (`ls-files --error-unmatch`): if so, diff already proved it clean (autocrlf included) and
+ * nothing more is needed; if not, and a file still sits on disk there, there is no committed
+ * baseline in that worktree to judge it against, so it is compared directly to this run's own
+ * proved bytes -- clean only if byte-identical.
  */
 function worktreeScan(rootDir, entries) {
   const list = git(rootDir, ["worktree", "list", "--porcelain"]);
@@ -822,13 +829,21 @@ function worktreeScan(rootDir, entries) {
   const dirs = list.stdout.split("\n").filter((l) => l.startsWith("worktree ")).map((l) => canonical(l.slice("worktree ".length).trim()));
   for (const dir of dirs) {
     const prefix = git(dir, ["rev-parse", "--show-prefix"]).stdout.trim();
-    for (const { relPath, label } of entries) {
-      const candidate = join(prefix, relPath).split(sep).join("/");
+    for (const { relPath, label, buf } of entries) {
+      const diskRel = join(prefix, relPath);
+      const candidate = diskRel.split(sep).join("/");
       const diff = git(dir, ["diff", "--quiet", "HEAD", "--", candidate]);
-      if (diff.status === 0) continue;
-      const tracked = git(dir, ["cat-file", "-e", `HEAD:${candidate}`]);
-      if (tracked.status !== 0) continue; // HEAD does not track this path in that worktree (e.g. a different subfolder) — not this file
-      return { ok: false, reason: `an uncommitted change to ${label} sits in worktree ${dir}` };
+      if (diff.status !== 0) {
+        const tracked = git(dir, ["cat-file", "-e", `HEAD:${candidate}`]);
+        if (tracked.status === 0) return { ok: false, reason: `an uncommitted change to ${label} sits in worktree ${dir}` };
+        continue; // HEAD does not track this path in that worktree (e.g. a different subfolder) — not this file
+      }
+      let onDisk;
+      try { onDisk = readFileSync(join(dir, diskRel)); } catch { onDisk = null; }
+      if (onDisk === null) continue; // nothing sits at this path there either -- clean
+      const indexed = git(dir, ["ls-files", "--error-unmatch", "--", candidate]);
+      if (indexed.status === 0) continue; // tracked there, and diff already proved it clean
+      if (!onDisk.equals(buf)) return { ok: false, reason: `an uncommitted change to ${label} sits in worktree ${dir}` };
     }
   }
   return { ok: true };
@@ -971,12 +986,12 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
   const relLedger = relative(repoRoot, canonical(ledgerPath)).split(sep).join("/");
   const clean = gitClean(repoRoot, relLedger);
   if (!clean.ok) { console.error(`--write refused: ${clean.reason}`); return 1; }
-  const wtEntries = [{ relPath: relLedger, label: "the ledger" }];
+  const wtEntries = [{ relPath: relLedger, label: "the ledger", buf }];
   if (mappingPath) {
     const relMap = relative(repoRoot, canonical(mappingPath)).split(sep).join("/");
     const mapClean = gitClean(repoRoot, relMap);
     if (!mapClean.ok) { console.error(`--write refused: mapping ${mapClean.reason}`); return 1; }
-    wtEntries.push({ relPath: relMap, label: "the grouping file" });
+    wtEntries.push({ relPath: relMap, label: "the grouping file", buf: readFileSync(mappingPath) });
   }
   const wtScan = worktreeScan(repoRoot, wtEntries);
   if (!wtScan.ok) { console.error(`--write refused: ${wtScan.reason}`); return 1; }
