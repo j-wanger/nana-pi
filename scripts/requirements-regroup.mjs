@@ -63,6 +63,8 @@ function isPlainObject(v) { return typeof v === "object" && v !== null && !Array
 const BOM = "﻿";
 const stripBom = (text) => (text.startsWith(BOM) ? text.slice(1) : text);
 const nonEmpty = (s) => typeof s === "string" && s.trim().length > 0;
+/** Two lineage strings name the same lineage case-insensitively (clarification 1). */
+const sameLineage = (a, b) => nonEmpty(a) && nonEmpty(b) && a.toLowerCase() === b.toLowerCase();
 function capProblems(problems) {
   if (problems.length <= PROBLEM_LINE_CAP) return problems;
   return [...problems.slice(0, PROBLEM_LINE_CAP), `… and ${problems.length - PROBLEM_LINE_CAP} more problem(s)`];
@@ -275,9 +277,12 @@ function reviewProblems(proposal, ledgerRows) {
   const review = proposal.regroup?.review ?? {};
   if (!nonEmpty(review.drafter)) problems.push("regroup.review: names no drafter lineage");
   if (!nonEmpty(review.reviewer)) problems.push("regroup.review: names no reviewer lineage");
-  if (nonEmpty(review.drafter) && nonEmpty(review.reviewer) && review.drafter === review.reviewer) {
-    const flag = review.same_family;
-    if (!(flag === true || flag === "same-family")) problems.push(`regroup.review: drafter and reviewer share one lineage ("${review.drafter}") but same_family is not declared`);
+  const flagged = review.same_family === true || review.same_family === "same-family";
+  if (sameLineage(review.drafter, review.reviewer) && !flagged) {
+    problems.push(`regroup.review: drafter and reviewer share one lineage ("${review.drafter}") but same_family is not declared`);
+  }
+  if (nonEmpty(review.drafter) && nonEmpty(review.reviewer) && !sameLineage(review.drafter, review.reviewer) && flagged) {
+    problems.push(`regroup.review: same_family is declared but the drafter ("${review.drafter}") and reviewer ("${review.reviewer}") lineages differ`);
   }
   const verdicts = review.verdicts ?? [];
   const allIds = new Set(flattenProposalNodes(proposal).map((x) => x.id));
@@ -615,7 +620,7 @@ export function main(argv = process.argv.slice(2)) {
   if (problems.length) return fail(problems);
 
   const review = proposal.regroup?.review ?? {};
-  const same = nonEmpty(review.drafter) && nonEmpty(review.reviewer) && review.drafter === review.reviewer && (review.same_family === true || review.same_family === "same-family");
+  const same = sameLineage(review.drafter, review.reviewer) && (review.same_family === true || review.same_family === "same-family");
   const rowStatus = new Map(ledgerRows.map((r) => [r.id, r.status]));
   const proofLine = PROOF_LINE.exec(liftRun.stdout)?.[0] ?? null;
   const page = renderPage({ proposal, ledgerRows, rowStatus, records, same, proofLine, proposalBytes: readFileSync(proposalPath) });

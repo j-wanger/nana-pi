@@ -447,8 +447,18 @@ if (process.platform !== "win32") {
   const good = variant((q) => { q.regroup.review.reviewer = q.regroup.review.drafter; q.regroup.review.same_family = true; });
   const goodRun = runFx("same-lineage-flagged", good);
   const goodOk = goodRun.r.status === 0 && !crashed(goodRun.r);
+  // Lineage names compare case-insensitively (clarification 1): a case-only difference is
+  // still one shared lineage, so it too needs same_family declared.
+  const caseOnly = variant((q) => { q.regroup.review.reviewer = q.regroup.review.drafter.toUpperCase(); });
+  const caseOnlyRun = runFx("same-lineage-case-only-no-flag", caseOnly);
+  const caseOnlyOk = caseOnlyRun.r.status === 1 && !crashed(caseOnlyRun.r) && (mentions(caseOnlyRun.r, /same-family/i) || mentions(caseOnlyRun.r, /lineage/i));
+  // same_family: true is itself refused when the lineages actually differ (clarification 1).
+  const falseFlag = variant((q) => { q.regroup.review.same_family = true; });
+  const falseFlagRun = runFx("different-lineage-false-flag", falseFlag);
+  const falseFlagOk = falseFlagRun.r.status === 1 && !crashed(falseFlagRun.r) && mentions(falseFlagRun.r, /same_family/i);
   // req: R-1175
-  check("R-1175: a record whose drafter and reviewer share a lineage is refused unless it declares same-family", badOk && goodOk, `bad status=${badRun.r.status} good status=${goodRun.r.status} ` + own(goodRun.r.stderr).slice(0, 2).join(" | "));
+  check("R-1175: a record whose drafter and reviewer share a lineage is refused unless it declares same-family", badOk && goodOk && caseOnlyOk && falseFlagOk,
+    `bad status=${badRun.r.status} good status=${goodRun.r.status} caseOnly status=${caseOnlyRun.r.status} falseFlag status=${falseFlagRun.r.status}`);
 }
 
 // ================================================================== T10
