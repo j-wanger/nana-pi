@@ -436,10 +436,21 @@ const rootKnob = mkRoot("knob-unset", {
 		"",
 	].join("\n"),
 });
-const knobSet = run(rootKnob, [], { NODE_OPTIONS: "--stack-trace-limit=50" }, [COVERAGE_ENV]);
-const knobAbsent = run(rootKnob, [], {}, [COVERAGE_ENV, "NODE_OPTIONS"]);
+// This file is itself a test file, so a real `npm run map:measure` sets NODE_V8_COVERAGE on
+// THIS process. Node copies a parent's own NODE_V8_COVERAGE into any child env that lacks the
+// key, even one `run()`'s deleteKeys already stripped it from — so the "absent" cases also
+// delete it from THIS process's own env before spawning (restored after), the same move R-618's
+// scrub test makes for the knob variable itself.
+const v8CoverageDir = path.join(TD, "caller-v8-coverage");
+const ambientV8Coverage = process.env.NODE_V8_COVERAGE;
+delete process.env.NODE_V8_COVERAGE;
+const knobSet = run(rootKnob, [], { NODE_OPTIONS: "--stack-trace-limit=50" }, [COVERAGE_ENV, "NODE_V8_COVERAGE"]);
+const knobAbsent = run(rootKnob, [], {}, [COVERAGE_ENV, "NODE_OPTIONS", "NODE_V8_COVERAGE"]);
+const knobV8Set = run(rootKnob, [], { NODE_V8_COVERAGE: v8CoverageDir }, [COVERAGE_ENV, "NODE_OPTIONS"]);
+if (ambientV8Coverage !== undefined) process.env.NODE_V8_COVERAGE = ambientV8Coverage;
 const knobEnvSet = readJson(knobSet.out_dir, "coverage-env.json");
 const knobEnvAbsent = readJson(knobAbsent.out_dir, "coverage-env.json");
+const knobEnvV8Set = readJson(knobV8Set.out_dir, "coverage-env.json");
 /** No RECORD_FILE or COMPLETION_FILE basename exists anywhere under `dir`. */
 function noKnobFiles(dir) {
 	const stack = [dir];
@@ -455,10 +466,11 @@ function noKnobFiles(dir) {
 	}
 	return true;
 }
-const knobUnsetOk = !knobSet.out.includes(KNOB_LINE) && !knobAbsent.out.includes(KNOB_LINE)
-	&& noKnobFiles(rootKnob) && noKnobFiles(knobSet.tmp) && noKnobFiles(knobAbsent.tmp)
+const knobUnsetOk = !knobSet.out.includes(KNOB_LINE) && !knobAbsent.out.includes(KNOB_LINE) && !knobV8Set.out.includes(KNOB_LINE)
+	&& noKnobFiles(rootKnob) && noKnobFiles(knobSet.tmp) && noKnobFiles(knobAbsent.tmp) && noKnobFiles(knobV8Set.tmp)
 	&& knobEnvSet?.options === "--stack-trace-limit=50" && knobEnvSet?.coverage === "undefined"
-	&& knobEnvAbsent?.options === "undefined" && knobEnvAbsent?.coverage === "undefined";
+	&& knobEnvAbsent?.options === "undefined" && knobEnvAbsent?.coverage === "undefined"
+	&& knobEnvV8Set?.options === "undefined" && knobEnvV8Set?.coverage === v8CoverageDir;
 // req: R-1270
 check("R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set", knobUnsetOk);
 
