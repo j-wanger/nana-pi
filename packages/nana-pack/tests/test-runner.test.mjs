@@ -21,6 +21,7 @@
 // other work on the machine.
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
+import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -29,6 +30,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
+const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
 // an isolated HOME for this file too, so it holds when run directly and not through the runner;
 // OUTER_HOME is what a fixture's per-file HOME must NOT be
@@ -49,6 +51,8 @@ function mkRoot(name, files) {
 	const root = path.join(TD, name);
 	fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
+	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
+	fs.copyFileSync(RUNTIME_MAP_CONFIG, path.join(root, "packages", "nana-pack", "lib", "runtime-map-config.mjs"));
 	for (const [rel, body] of Object.entries(files)) {
 		const p = path.join(root, rel);
 		fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -57,8 +61,9 @@ function mkRoot(name, files) {
 	return root;
 }
 
-/** Run the copied runner in `root`; returns {code, out, ms, out_dir, tmp}. */
-function run(root, args = [], extraEnv = {}) {
+/** Run the copied runner in `root`; returns {code, out, ms, out_dir, tmp}. `deleteKeys` strips
+ *  caller env vars before the copied runner's own process sees them. */
+function run(root, args = [], extraEnv = {}, deleteKeys = []) {
 	const tmp = tmpDir(path.join(TD, "tmpdir-"));
 	const out_dir = tmpDir(path.join(TD, "probeout-"));
 	const env = {
@@ -68,6 +73,7 @@ function run(root, args = [], extraEnv = {}) {
 		OUTER_HOME,
 		...extraEnv,
 	};
+	for (const k of deleteKeys) delete env[k];
 	const t0 = Date.now();
 	const r = spawnSync(process.execPath, [path.join(root, "scripts", "test.mjs"), ...args], {
 		cwd: root, env, encoding: "utf8", timeout: 120000,
@@ -418,6 +424,43 @@ const F = run(rootF, ["--self-test"]);
 check("--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero", F.out.includes("self-test: every fixture got its expected verdict") && totals(F.out)?.files === 3 && F.code === 1);
 const F2 = run(rootF, [], { NANA_TEST_SELFTEST: "1" });
 check("NANA_TEST_SELFTEST=1 is the same as --self-test", F2.out.includes("self-test: every fixture got its expected verdict") && totals(F2.out)?.files === 3 && F2.code === 1);
+
+// ── case I: the runtime-map coverage knob, unset (R-1270) ────────────────────────────────────
+const rootKnob = mkRoot("knob-unset", {
+	"packages/probe/tests/coverage-env.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/coverage-env.json", JSON.stringify({',
+		"\tcoverage: String(process.env.NODE_V8_COVERAGE), options: String(process.env.NODE_OPTIONS),",
+		"}));",
+		'console.log("PASS coverage-env fixture ran");',
+		"",
+	].join("\n"),
+});
+const knobSet = run(rootKnob, [], { NODE_OPTIONS: "--stack-trace-limit=50" }, [COVERAGE_ENV]);
+const knobAbsent = run(rootKnob, [], {}, [COVERAGE_ENV, "NODE_OPTIONS"]);
+const knobEnvSet = readJson(knobSet.out_dir, "coverage-env.json");
+const knobEnvAbsent = readJson(knobAbsent.out_dir, "coverage-env.json");
+/** No RECORD_FILE or COMPLETION_FILE basename exists anywhere under `dir`. */
+function noKnobFiles(dir) {
+	const stack = [dir];
+	while (stack.length) {
+		const d = stack.pop();
+		let entries;
+		try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+		for (const entry of entries) {
+			const p = path.join(d, entry.name);
+			if (entry.isDirectory()) stack.push(p);
+			else if (entry.name === RECORD_FILE || entry.name === COMPLETION_FILE) return false;
+		}
+	}
+	return true;
+}
+const knobUnsetOk = !knobSet.out.includes(KNOB_LINE) && !knobAbsent.out.includes(KNOB_LINE)
+	&& noKnobFiles(rootKnob) && noKnobFiles(knobSet.tmp) && noKnobFiles(knobAbsent.tmp)
+	&& knobEnvSet?.options === "--stack-trace-limit=50" && knobEnvSet?.coverage === "undefined"
+	&& knobEnvAbsent?.options === "undefined" && knobEnvAbsent?.coverage === "undefined";
+// req: R-1270
+check("R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set", knobUnsetOk);
 
 const testRoots = [
 	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })

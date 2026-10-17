@@ -3,15 +3,18 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST and NANA_TEST_TIMEOUT_MS,
- *  and the test files directly under each package's tests/ dir, apps/desk/test and apps/bench/test (e2e,
- *  studies and fixture dirs excluded)
+ * @inputs argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS and
+ *  NANA_COVERAGE_DIR (runtime-map's coverage knob), and the test files directly under each package's tests/
+ *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
- *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code
+ *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; while
+ *  NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds
+ *  record, plus one completion record naming the collected file count
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
- *  fixtures, all removed on every exit path)
+ *  fixtures, all removed on every exit path; while NANA_COVERAGE_DIR is set, a record and a completion
+ *  file under that folder, never removed by this runner)
  * @errors exit 1 when any file failed, timed out, died on a signal, matched nothing, or a self-test fixture
  *  missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
  */
@@ -25,6 +28,15 @@
 // knobs) plus PI_CODING_AGENT_DIR scrubbed from the child env, so the caller's context cannot
 // change what the suite tests. Nothing under apps/bench/studies/** or any fixture(s)/ directory is
 // ever collected.
+//
+// While NANA_COVERAGE_DIR (the runtime-map knob, imported by name from runtime-map-config.mjs)
+// names a folder, the runner prints it once before the first file's line, gives each collected
+// file its own run-position subfolder as that file's NODE_V8_COVERAGE (so Node's per-file V8
+// coverage lands there, its own and any child's that inherits the variable), writes a
+// {path, label, seconds} record there for every file including a SKIP, and writes one completion
+// record naming the collected file count once the loop ends. The knob sits outside NANA_TEST_ on
+// purpose: R-618's scrub above already keeps it out of every test file's own env with no new
+// code. Unset (the default), none of this runs and nothing changes.
 //
 // One line per file — PASS / FAIL / SKIP — then a total; exits 1 if any file failed.
 // The verdict is the exit code: a file FAILs if it exits non-zero, dies on a signal, times
@@ -48,6 +60,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
@@ -346,13 +359,25 @@ const display = (f) => (fixtureOf.has(f) ? "(self-test) " + path.basename(f) : r
 const width = Math.max(...files.map((f) => display(f).length));
 const started = Date.now();
 
+// ── the runtime-map coverage knob (R-1270): inert unless NANA_COVERAGE_DIR is set ──────────────
+const coverageDir = process.env[COVERAGE_ENV] || null;
+if (coverageDir) console.log(`${KNOB_LINE} ${coverageDir}`);
+let coveragePosition = 0;
+const writeRecord = (covFolder, record) => {
+	fs.mkdirSync(covFolder, { recursive: true });
+	fs.writeFileSync(path.join(covFolder, RECORD_FILE), JSON.stringify(record));
+};
+
 try {
 	for (const file of files) {
 		const name = display(file);
+		const covFolder = coverageDir ? path.join(coverageDir, String(coveragePosition).padStart(4, "0")) : null;
+		coveragePosition += 1;
 		const skipReason = SKIPS[rel(file)]?.();
 		if (skipReason) {
 			tally.SKIP++;
 			console.log(`SKIP  ${name.padEnd(width)}  ${skipReason}`);
+			if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
 			continue;
 		}
 		const fx = fixtureOf.get(file);
@@ -360,6 +385,7 @@ try {
 		activeFileTmp = fileTmp;
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
 		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
+		if (covFolder) env.NODE_V8_COVERAGE = covFolder;
 		if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
 		// run from the package dir (the dir holding tests/ or test/), the way every file was written
 		const cwd = fx ? scratch : path.dirname(path.dirname(file));
@@ -382,6 +408,7 @@ try {
 		const label = ok ? "PASS" : "FAIL";
 		tally[label]++;
 		console.log(`${label}  ${name.padEnd(width)}  ${stat}${why ? `  — ${why}` : ""}${held}`);
+		if (covFolder) writeRecord(covFolder, { path: rel(file), label, seconds: Number(secs) });
 		if (ok && f) warns.push(`WARN ${name}: FAIL line with exit 0`);
 		if (fx && fx.expect !== (ok ? (f ? "PASS+WARN" : "PASS") : "FAIL")) selfTestMismatch.push(name);
 		if (!ok) {
@@ -399,6 +426,10 @@ try {
 	}
 } finally {
 	cleanup();
+}
+if (coverageDir) {
+	fs.mkdirSync(coverageDir, { recursive: true });
+	fs.writeFileSync(path.join(coverageDir, COMPLETION_FILE), JSON.stringify({ files: files.length }));
 }
 
 const afterSnapshot = trackedSnapshot();
