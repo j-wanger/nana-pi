@@ -381,8 +381,8 @@ function checkInstructionContracts() {
 		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"') &&
 		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"'));
 	// req: R-1127
-	check("shared working pattern gives the land review to the seat when the roster sets no land model",
-		shared.includes("when the roster sets no land model") &&
+	check("R-1127: the shared seat land review applies in an install, hook or gate lane when the roster sets no land model",
+		shared.includes("in an install, hook or gate lane, when the roster sets no land model") &&
 		shared.includes("docs/reviews/<lane>-<date>/seat-land.md") &&
 		shared.includes("before the final round") &&
 		shared.includes("the independent slice review still covers every land"));
@@ -436,14 +436,17 @@ function checkInstructionContracts() {
 		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",
-		shared.includes("every plan names its threat model") &&
+		shared.includes("Every plan names its threat model") &&
 		shared.includes("honest variation in our tools' output is in scope") &&
 		shared.includes("deliberate forgery is out") &&
 		shared.includes("a finding outside the model is a residual"));
 	// req: R-1101
-	check("shared working pattern caps plan review at one or two rounds",
-		shared.includes("A small lane gets one plan-review round and a gate or format lane two") &&
-		shared.includes("only a named fail-open bug reopens the plan"));
+	// req: R-1300
+	check("R-1300: the shared working pattern gives an ordinary lane one final reviewer, defines install, hook and gate lanes, and says plans get no review round",
+		shared.includes("Review ladder: an ordinary lane gets one final reviewer, the roster's reviewer.") &&
+		shared.includes("An install, hook or gate lane also gets the land reviewer, the seat's wrong-code pairs and one independent check.") &&
+		shared.includes("An install, hook or gate lane changes nana-setup install, uninstall or doctor") &&
+		shared.includes("Plans get no review round") && !shared.includes("plan-review round") && !shared.includes("only a named fail-open bug reopens the plan"));
 	// req: R-1102
 	check("shared working pattern freezes edits after an all-LAND review",
 		shared.includes("Once every reviewer says LAND, nothing more is edited"));

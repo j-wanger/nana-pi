@@ -28,7 +28,7 @@ const RULE_1 = "- In Claude Code, launch each builder or reviewer as a backgroun
 const RULE_2 = "- While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.";
 const RULE_3 = "- Leave a running builder or reviewer alone until its completion notification arrives or a monitor reports a failure or a stall. Then act in that turn.";
 const RULE_4 = "- Verify once, when the build ends. Re-run the seat checks your brief names, read the builder's report, and look at every page or command output the change produces.";
-const RULE_5 = "- After any change of your own to code or tests, re-run the lane's mutation runner before the review.";
+const RULE_5 = "- In an install, hook or gate lane, re-run the lane's mutation runner after any change of your own to code or tests, before the review.";
 const RULE_6 = "- Send findings on a build back in the next brief instead of fixing the builder's work yourself.";
 const RULE_7 = "- Keep at most two lanes building and one more in planning, a nana default. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.";
 const RULE_8 = "- The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.";
@@ -60,7 +60,9 @@ check("seat guide carries: act on completion or a monitor's failure or stall", l
 // req: R-1140
 check("seat guide carries: verify once at the end", lines.filter((l) => l === RULE_4).length === 1, JSON.stringify(lines.filter((l) => l === RULE_4)));
 // req: R-1140
-check("seat guide carries: re-run the mutation runner after the seat's own change", lines.filter((l) => l === RULE_5).length === 1, JSON.stringify(lines.filter((l) => l === RULE_5)));
+check("seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review", lines.filter((l) => l === RULE_5).length === 1, JSON.stringify(lines.filter((l) => l === RULE_5)));
+// req: R-1140
+check("R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane", lines.filter((l) => l === RULE_5).length === 1 && RULE_5.startsWith("- In an install, hook or gate lane, re-run"), JSON.stringify(lines.filter((l) => l === RULE_5)));
 // req: R-1140
 check("seat guide carries: findings back in the next brief", lines.filter((l) => l === RULE_6).length === 1, JSON.stringify(lines.filter((l) => l === RULE_6)));
 // req: R-1140

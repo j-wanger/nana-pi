@@ -47,9 +47,8 @@ Sibling repo to `~/nana-agent-loop`.
 A project here keeps a standing, numbered contract — `REQUIREMENTS.md` — alongside its code, and
 new behaviour starts there: a requirement diff (add, split or retire a row; IDs are never
 renumbered), then tests carrying `req:` markers for IDs with three or four ASCII digits (four-digit IDs never start with zero), then the code. A trace check in the suite
-fails when a status disagrees with the markers, so the ledger cannot quietly overclaim; before a
-row is flipped to `implemented` somebody has to name the clause each cited test pins, and an
-independent reviewer asks exactly that. The same file carries the general engineering bar as rows
+fails when a status disagrees with the markers, so the ledger cannot quietly overclaim; a row is
+written no wider than its test, and an independent reviewer checks every land. The same file carries the general engineering bar as rows
 (`Part G`): tunables defined once in a declared config surface with their provenance and no inline
 literals, a six-tag contract header on every module, named exports and injected resources, and a
 generated code map whose `--check` is in the suite and whose `--impact` gives a change's blast

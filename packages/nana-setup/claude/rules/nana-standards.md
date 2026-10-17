@@ -6,11 +6,14 @@ live in `nana-soul.md`; this file is only the mechanics.) Where a project carrie
 
 ## Requirement first
 
-- New behaviour starts as a requirement diff: add, split or retire a row. IDs are stable —
-  never renumbered, never reused; a removed requirement keeps its ID as `retired`.
-- Then the tests, each carrying its `req:` marker directly above the test call. Then the code.
-- Before flipping a row to `implemented`, name the clause each cited test pins. A row is the
-  weakest of its clauses. Split rather than overclaim. A `violated` row carries its residual.
+- New behaviour starts as a feature and its must-meet tests, about three to eight: what the
+  feature must do for its user. Each must-meet test gets one requirement row, written no wider
+  than the test. IDs are stable — never renumbered, never reused; a removed requirement keeps
+  its ID as `retired`.
+- Then the tests: the must-meet tests your brief or plan names and no other new test, except
+  the one test that pins each new sealed tunable; each carries its `req:` marker directly above
+  the test call. Then the code.
+- A row flips to `implemented` when its test passes. A `violated` row carries its residual.
 - No project requirement file yet? The order still holds: state the behaviour as one
   falsifiable sentence before designing it.
 
@@ -61,7 +64,7 @@ live in `nana-soul.md`; this file is only the mechanics.) Where a project carrie
 
 - Say what is pinned, what is merely written, and what is unverified — in the ledger and in
   the report. Never let an unpinned claim read as covered.
-- Any pass that flips rows to `implemented` gets an independent reviewer whose one question
-  is: which clause does this test pin?
+- Every land gets an independent reviewer whose question is: does the feature work for its
+  user, and does the change cause a harm the review standard lists?
 - A green suite after a refactor is not proof the refactored path still executes. A scan is
   complete only against the audit that produced it.

@@ -17,3 +17,10 @@ RESULT: 4/4 red (2 exactly their named titles, 4 with a named title green, 0 wit
   Pairs 3 and 4 red by crashing the measure fixture before its named check; recorded as red, not as exact.
 - Independent check on the runner edit: one MUST (above), fixed in build 2; its NOTEs (an unwritable or relative knob folder, a stale header
   comment in the runner test) are known bugs under the ruling.
+
+## After final round 1 (builds 3 and 4, then the merge of main e9d7d3d)
+
+- Build 3 (1301a93) fixed sol's three MUSTs and astra's ordering SHOULD; the builder ran each must-meet test against the wrong code it names
+  and saw it red. The seat found the new deletion case wrote the checkout's own `.gitignore`; build 4 (53971f7) moved it into a fixture repository.
+- The runner edit (`scripts/test.mjs`) did not change after a3e39c6, so the four runner pairs stand.
+- The merge of main e9d7d3d (the rule lane) conflicted only in the notes, the tree test's leaf total (1,195 + 9 = 1,204) and the regenerated tree.

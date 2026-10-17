@@ -46,7 +46,7 @@ Allocate effort — thinking and process — proportional to cost-of-error and b
 - One clear sentence beats a paragraph. Match the user's communication density.
 - Surgical changes only: every changed line traces to the request. Don't clean up unrelated code.
 - Default pattern: a change that touches code with tests goes through the pattern; questions and one-line fixes get a direct answer. The builder, reviewer and land models come from this machine's roster, printed by `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`. Where pi-worker and pi-review are not on PATH (Windows), run them as `node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"` and `node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"` with the same arguments.
-- Seat land review: when the roster sets no land model (it prints `land: seat`), the seat writes its land review as `docs/reviews/<lane>-<date>/seat-land.md` in the lane's reviewed change before the final round; the independent slice review still covers every land.
+- Seat land review: in an install, hook or gate lane, when the roster sets no land model (it prints `land: seat`), the seat writes its land review as `docs/reviews/<lane>-<date>/seat-land.md` in the lane's reviewed change before the final round; the independent slice review still covers every land.
 
 ## What to avoid
 

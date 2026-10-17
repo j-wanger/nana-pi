@@ -13,9 +13,9 @@ Scope
 
 Tests
 - Follow requirement diff → tagged tests → code.
+- Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.
 - Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.
 - Mutation proof breaks the CODE, never inverts the assertion.
-- Fix the class, not the named example: cover every alias, option form and input shape the rule names.
 - A test harness awaits every async case under a per-case limit.
 - A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.
 - No test writes the repository it runs in; put fixtures in the OS temp directory.

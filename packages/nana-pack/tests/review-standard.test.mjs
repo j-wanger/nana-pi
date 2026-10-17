@@ -31,10 +31,22 @@ check("review standard asks for a last-line LAND or SEND-BACK verdict",
 // ---------------------------------------------------------------- R-1108: the MUST definition and the confirmation-round limit
 // req: R-1108
 check("review standard defines a MUST and limits confirmation rounds to the delta",
-	STANDARD_TEXT.includes("A MUST names a realistic input under the brief's threat model and a consequence that matters") &&
-	["data lost or corrupted", "a security or review boundary bypassed in practice", "wrong output someone acts on", "a broken install or hook", "a regression of behaviour main has today"]
+	STANDARD_TEXT.includes("A MUST is one of these: a must-meet test the brief names that is missing, or that still passes with the feature removed") &&
+	STANDARD_TEXT.includes("a bug that stops the feature's main use the brief names, on a platform the brief names") &&
+	["data lost or corrupted", "a test, build step or seat script that writes outside the lane worktree or the OS temp folder", "a broken install or hook", "something main does today that the brief does not set out to change no longer working"]
 		.every((consequence) => STANDARD_TEXT.includes(consequence)) &&
 	STANDARD_TEXT.includes("A confirmation round reviews only the change since the revision the brief names as the last round, and whether the named MUSTs are closed"),
+	STANDARD_TEXT);
+
+// req: R-1108
+check("R-1108: the review standard makes a missing or empty must-meet test, a broken main use on a named platform and the four listed harms a MUST, and every other finding a known bug",
+	STANDARD_TEXT.includes("a must-meet test the brief names that is missing, or that still passes with the feature removed") &&
+	STANDARD_TEXT.includes("a bug that stops the feature's main use the brief names, on a platform the brief names") &&
+	["data lost or corrupted", "a test, build step or seat script that writes outside the lane worktree or the OS temp folder", "a broken install or hook", "something main does today that the brief does not set out to change no longer working"]
+		.every((harm) => STANDARD_TEXT.includes(harm)) &&
+	STANDARD_TEXT.includes("the seat records them as known bugs, fixed when someone hits one") &&
+	!STANDARD_TEXT.includes("wrong output someone acts on") &&
+	!STANDARD_TEXT.includes("a security or review boundary bypassed"),
 	STANDARD_TEXT);
 
 // ---------------------------------------------------------------- R-1106: refusal before admission from a pack copy
