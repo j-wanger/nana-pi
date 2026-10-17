@@ -367,6 +367,58 @@ sentences was 77.8%/58.3%). These are diagnostic results on 24 sentences, not a 
 performance estimate, and the fixture pins no number — a floor would be a tunable with no
 provenance, and the check is report-only.
 
+## Seat mutation runner (`lib/mutation-runner.mjs`)
+
+A lane's seat acceptance runs its "wrong code first" pair table through this shared runner
+instead of each lane copying its own: `lib/mutation-runner.mjs` applies the table's pairs in
+scratch git worktrees of the lane's tip, splits them across shard processes, and writes one
+judged record. `lib/mutation-runner-config.mjs` holds every tunable and contract value the
+runner reads by name.
+
+A lane table is a small script at `docs/reviews/<lane>-<date>/seat-mutate.mjs`: constants,
+titles, a pair array, and one call.
+
+```js
+import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
+process.exitCode = await runMutations({
+  lane: "<lane>", self: import.meta.url, tip: "<commit>",
+  pairs: [{ n: "1", name: "<what the edit breaks>", edits: [{ file: "<path>", anchor: "<text>", replacement: "<text>", times: 1 }], tests: ["<path>"], expectRed: ["<title>"] }],
+});
+```
+
+```bash
+SEAT_MUTATE_OUT=<file> [SEAT_MUTATE_TIP=<rev>] [SEAT_MUTATE_DRY=1] [SEAT_MUTATE_SHARDS=<n>] \
+  [SEAT_MUTATE_STAGGER_SECS=<s>] [SEAT_MUTATE_LOGDIR=<dir>] [SEAT_MUTATE_KEEP=1] \
+  node docs/reviews/<lane>-<date>/seat-mutate.mjs [pair-id ...]
+```
+
+Pairs deal round-robin across `SEAT_MUTATE_SHARDS` shards (five by default), each shard
+staggered `SEAT_MUTATE_STAGGER_SECS` after the one before it, and the record is the landed line
+words: `seat-mutate: lane …`, `DECLARED`, `[k/N]` notes, `BASELINE ok`/`FAIL`/`RETRY`/`MISSING`,
+`RED`, `GREEN … SURVIVED`, `ANCHOR-MISS`, `SYNTAX`, `DRY ok`, `MISSING`, `RESULT`,
+`RESULT (DRY)`, and `seat-mutate: KEEP`. It exits 0 when every pair reds as named (or, with
+`SEAT_MUTATE_DRY=1`, every pair's edits apply and syntax-check), 2 when a pair is missing, a
+shard fails, the run is interrupted, or an input is refused, and 3 when any pair is ANCHOR-MISS
+(a bad anchor, a missing or escaping edit file) or SYNTAX (a mutated `.mjs`, `.js` or `.ts` file
+that fails to parse).
+
+With `SEAT_MUTATE_OUT` set, the runner takes an exclusive lock at `<record>.lock` before any
+worktree: a second run on the same record file refuses, naming the lock's holder; a lock whose
+process no longer runs is reported and replaced.
+
+A table's `config` may name only the overridable tunables — `SHARDS_DEFAULT`,
+`STAGGER_SECS_DEFAULT`, `FILE_TIMEOUT_MS`, `BASELINE_RETRIES`, `NPM_COMMAND` — merged over the
+config module; every other key is refused by name before any worktree.
+
+**Limits.** Never split a long mutation run while a full suite runs on the same machine (the
+seat guide's rule). A parent killed outright writes no record, leaves its shards to end on
+their own, and leaves its lock for the next run on that record to replace. On Windows a stop
+ends each shard outright rather than delivering a signal it can catch, and npm's config values
+are not read there. A table names a check's longer title when a shorter named title begins it,
+since a PASS or FAIL line matching the shorter one would otherwise read as that title too. A
+lane that needs a feature this runner does not have — stay-green pairs, case labels, skip
+reasons, script or pattern edits — keeps its own local runner.
+
 ## What you will see
 
 In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
