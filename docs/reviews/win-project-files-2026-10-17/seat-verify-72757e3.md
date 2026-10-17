@@ -11,3 +11,10 @@
   (`ci-windows-run-5-rerun.log`). The Windows leg's failing count is 60 of 150 files (main 9fcd4f2: 62).
 - macOS and both install checks green on CI; the Linux leg fails only `lane-write-guard.test.mjs`, as main does.
 - No wrong-code pairs and no independent check: an ordinary lane.
+
+## After final round 1 (build 6)
+
+- sol r1 sent back one MUST: the rename retry did not re-check AGENTS.md. Build 6 (573a36a) re-checks identity and bytes before every retry,
+  with a rename seam; its new case failed before the fix with the owner's save overwritten.
+- Full suite on the Mac on build 6: `150 files: 148 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7457 pass, 0 fail, 14 skip · 763.6s`; install check exit 0.
+- Windows run 6 (`ci-windows-run-6.log`): project-working-region 28/28, project 121/121, ci-workflow 12/12 on Windows.
