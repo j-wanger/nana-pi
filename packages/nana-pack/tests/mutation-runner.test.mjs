@@ -564,7 +564,7 @@ if (!posix) {
 	// reset must now override.
 	sh("git", ["-C", fx.root, "config", "core.autocrlf", "true"]);
 	const pairs = [
-		{ n: "1", name: "a line-break anchor applies under core.autocrlf=true", edits: [one("pkg/lib/c.ts", 'return "C-ORIGINAL";\n}', ['return "C-ORIGINAL";', "}", "export function valueC(): string {", '  return "C-RECHECKED";', "}"].join("\n"))], tests: [T1], expectRed: [] },
+		{ n: "1", name: "a line-break anchor applies under core.autocrlf=true", edits: [one("pkg/lib/c.ts", 'return "C-ORIGINAL";\n}', 'return "C-RECHECKED";\n}')], tests: [T1], expectRed: [] },
 	];
 	const r = await run(fx, "t.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1" });
 	const ok = r.result === 0 && /^GREEN 1 /m.test(r.text) && !/ANCHOR-MISS/.test(r.text);

@@ -83,12 +83,20 @@ function rewriteToCrlf(dir) {
 	visit(dir);
 }
 
+// R-604 gives this test FILE a fresh temp HOME/USERPROFILE (so it cannot read or write the
+// real machine's dotfiles); `uv`'s own package cache lives under the real one, so `uv --offline`
+// run from inside this file needs it back. `os.userInfo().homedir` reads the OS user database
+// directly, never the (overridden) HOME/USERPROFILE environment variable.
+const realHome = (() => { try { return os.userInfo().homedir; } catch { return process.env.HOME ?? process.env.USERPROFILE; } })();
+const uvEnv = { ...process.env, HOME: realHome, USERPROFILE: realHome };
+const runUv = (args, cwd) => spawnSync("uv", args, { cwd, encoding: "utf-8", timeout: 240_000, env: uvEnv });
+
 /** `uv`, offline, with a cached pytest it can add without a network fetch — the one dependency
  *  Python's trace rail needs that its dependency-free siblings (code-map, readme-check) do not,
  *  since `tests/conftest.py` imports pytest at module load. `--no-project` never touches the
  *  rendered project's own lock. */
 function pytestOffline() {
-	const probe = run("uv", ["run", "--offline", "--no-project", "--with", "pytest", "python3", "-c", "import pytest"], REPO);
+	const probe = runUv(["run", "--offline", "--no-project", "--with", "pytest", "python3", "-c", "import pytest"], REPO);
 	return probe.status === 0;
 }
 
@@ -104,7 +112,7 @@ async function traceProblems(language, dest) {
 	}
 	if (!pytestOffline()) return { error: "uv has no offline-cached pytest to import tests/conftest.py's check() with" };
 	const script = ["import sys", "sys.path.insert(0, 'tests')", "from pathlib import Path", "import conftest", "result = conftest.check(Path('.'))", "print('TRACE_PROBLEMS', len(result[2]))", "print('\\n'.join(result[2]))"].join("\n");
-	const r = run("uv", ["run", "--offline", "--no-project", "--with", "pytest", "python3", "-c", script], dest);
+	const r = runUv(["run", "--offline", "--no-project", "--with", "pytest", "python3", "-c", script], dest);
 	if (r.status !== 0 || !/TRACE_PROBLEMS 0/.test(out(r))) return { error: out(r).slice(-800) };
 	return { problems: [] };
 }
