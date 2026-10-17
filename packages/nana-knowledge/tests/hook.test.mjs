@@ -13,6 +13,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const td = tmpDir(path.join(os.tmpdir(), "nk-hook-"));
 const home = path.join(td, "home");
@@ -283,14 +284,14 @@ const corruptHook = await call(payload({ prompt: "what is the pi review round ca
 const corruptRows = fs.readFileSync(path.join(corruptHome, "pull.log"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
 // req: R-231
 check("corrupt index logs db-open-failed or query-failed, never no-hits", corruptHook.output === null && ["db-open-failed", "query-failed"].includes(corruptHook.reason) && corruptRows.at(-1).reason === corruptHook.reason);
-const corruptCliHook = spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "hook"], { input: JSON.stringify({ prompt: "what is the pi review round cap" }), encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: corruptHome } });
+const corruptCliHook = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "hook"], { input: JSON.stringify({ prompt: "what is the pi review round cap" }), encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: corruptHome } });
 check("CLI hook stays fail-open on a corrupt index", corruptCliHook.status === 0 && corruptCliHook.stdout === "" && corruptCliHook.stderr === "");
-const corruptCliQuery = spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "query", "review round cap"], { encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: corruptHome } });
+const corruptCliQuery = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "query", "review round cap"], { encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: corruptHome } });
 check("CLI query exits 1 on a corrupt index", corruptCliQuery.status === 1);
 process.env.NANA_KNOWLEDGE_HOME = home;
 
 // --- end to end through the CLI, the way Claude Code will call it ---
-const cli = new URL("../bin/nana-knowledge.ts", import.meta.url).pathname;
+const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
 const run = (input) => execFileSync(process.execPath, [cli, "hook"], {
 	input, encoding: "utf8", env: { ...process.env, NODE_NO_WARNINGS: "1", NANA_KNOWLEDGE_HOME: home },
 });

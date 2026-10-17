@@ -12,9 +12,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { desiredHooks } from "../lib/settings.mjs";
+import { desiredHooks, WIN_VERIFIER_MATCHER } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
-import { resolveLayout } from "../lib/paths.mjs";
+import { platform, resolveLayout } from "../lib/paths.mjs";
 import { runHook } from "../lib/verifier-hook.mjs";
 import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
 import { withPiStub } from "./stub-pi.mjs";
@@ -29,12 +29,26 @@ const root = path.resolve(pkg, "..", "..");
 const hook = path.join(pkg, "claude", "hooks", "verifier-pipe.mjs");
 const installedHome = tmpDir(path.join(os.tmpdir(), "nana-pipe-installed-"));
 const install = spawnSync(process.execPath, [path.join(pkg, "bin", "nana-setup.mjs"), "install", "--home", installedHome], { encoding: "utf8" });
-const installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
+// win32 install writes no ~/.claude/hooks symlink (stepHooks is a no-op there); the verifier
+// entry is wired in exec form straight at the checkout, so the installed script is read from
+// the settings entry's own args[0] instead of a symlink.
+const isWin32 = platform() === "win32";
+let installedHook;
+let installedHookMatches;
+if (isWin32) {
+	const installedSettings = JSON.parse(fs.readFileSync(path.join(installedHome, ".claude", "settings.json"), "utf8"));
+	const verifierEntry = (installedSettings.hooks?.PreToolUse ?? []).flatMap((g) => g.hooks ?? []).find((h) => Array.isArray(h.args) && h.args[0]?.endsWith("verifier-pipe.mjs"));
+	installedHook = verifierEntry?.args?.[0];
+	installedHookMatches = installedHook === hook;
+} else {
+	installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
+	installedHookMatches = fs.realpathSync(installedHook) === hook;
+}
 const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
 const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
 // req: R-985
 // req: R-984
-check("installed symlink asks on a verifier-pipe hit", install.status === 0 && fs.realpathSync(installedHook) === hook && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
+check("installed symlink asks on a verifier-pipe hit", install.status === 0 && installedHookMatches && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
 const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
 // req: R-984
 check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");
@@ -54,10 +68,15 @@ runHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_
 // req: R-984
 check("protocol writer reports predicate errors on stderr", protocolStdout === "" && /nana verifier-pipe:.*predicate failure.*abstaining/.test(protocolStderr));
 
-const hooks = desiredHooks({ hooksDir: "/tmp/claude/hooks", repoRoot: root });
+// desiredHooks has no platform default (an omitted platform key always yields POSIX shape,
+// never auto-detected) — the real OS is passed explicitly so this fixture and the doctor
+// fixture built from it below match what install actually writes on win32.
+const hooks = desiredHooks({ hooksDir: "/tmp/claude/hooks", repoRoot: root, platform: isWin32 ? "win32" : undefined });
 const pipe = hooks.find((entry) => entry.label === "PreToolUse verifier pipe");
 // req: R-985
-check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event === "PreToolUse" && pipe.matcher === "Bash" && pipe.spec.interpreters.includes("node") && pipe.spec.script === "verifier-pipe.mjs" && pipe.entry.command.startsWith("node "));
+check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event === "PreToolUse" && pipe.spec.interpreters.includes("node") && pipe.spec.script === "verifier-pipe.mjs" && (isWin32
+	? pipe.matcher === WIN_VERIFIER_MATCHER && pipe.entry.command === "node" && Array.isArray(pipe.entry.args) && pipe.entry.args[0]?.endsWith("verifier-pipe.mjs")
+	: pipe.matcher === "Bash" && pipe.entry.command.startsWith("node ")));
 
 {
 	const { decideHook } = await import(new URL("../lib/verifier-hook.mjs", import.meta.url).href);
@@ -95,13 +114,21 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 
 const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));
 const layout = resolveLayout({ home });
-fs.mkdirSync(layout.hooksDir, { recursive: true });
 fs.mkdirSync(layout.claudeHome, { recursive: true });
-fs.symlinkSync(hook, path.join(layout.hooksDir, "verifier-pipe.mjs"));
+if (isWin32) {
+	// win32 doctor reads only settings.json for this row (doctor.mjs's win branch above never
+	// resolves a hooksDir symlink); skip creating one — Windows needs an elevated privilege for
+	// fs.symlinkSync, and this row never looks at it.
+} else {
+	fs.mkdirSync(layout.hooksDir, { recursive: true });
+	fs.symlinkSync(hook, path.join(layout.hooksDir, "verifier-pipe.mjs"));
+}
 const missing = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
 // req: R-985
 check("doctor reports the missing user hook wiring unhealthy", missing?.status === "fail");
-const settings = { hooks: { PreToolUse: [{ matcher: pipe.matcher, hooks: [{ type: "command", command: pipe.entry.command }] }] } };
+// win32's exec-form entry needs its args array too (entryInvokes/hookTargets read it on win32);
+// the POSIX shell-form command string alone is still enough there.
+const settings = { hooks: { PreToolUse: [{ matcher: pipe.matcher, hooks: [{ type: "command", command: pipe.entry.command, ...(pipe.entry.args ? { args: pipe.entry.args } : {}) }] }] } };
 fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
 const healthy = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
 // req: R-985

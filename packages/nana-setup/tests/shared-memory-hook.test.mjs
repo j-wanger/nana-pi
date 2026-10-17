@@ -23,6 +23,7 @@ const check = (n, ok, extra) => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra ?? "");
 	if (!ok) fails++;
 };
+const skip = (n, why) => console.log("SKIP", n, "—", why);
 
 const tmps = [];
 function freshHome({ withIndex = true } = {}) {
@@ -136,7 +137,11 @@ const run = (home, env = {}, stdin = "", cwd) =>
 }
 
 /* --- deleted cwd: skip self-heal but still show the index -------------------------------- */
-{
+if (process.platform === "win32") {
+	// Windows refuses to remove a directory that is a live process's cwd, so this R-934 scenario
+	// cannot occur there (rmdirSync(process.cwd()) itself would throw inside the spawned child).
+	skip("deleted cwd: self-heal skipped, creates nothing, index still printed", "a Windows cwd cannot be deleted while in use");
+} else {
 	const home = freshHome();
 	const cwd = tmpDir(path.join(os.tmpdir(), "nana-deleted-cwd-"));
 	tmps.push(cwd);
