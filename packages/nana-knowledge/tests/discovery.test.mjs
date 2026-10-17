@@ -15,6 +15,7 @@ import * as cp from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 delete process.env.NANA_ROLE;
 const td = tmpDir(path.join(os.tmpdir(), "nk-discover-"));
@@ -77,6 +78,9 @@ const { search } = await import(new URL("../lib/query.ts", import.meta.url).href
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 const has = (roots, p) => roots.some((r) => r.path === p);
+// separator-neutral: a stored or printed path carries the platform's own separator (backslash on
+// win32), so a '/'-joined suffix check is normalised to forward slashes first.
+const slash = (p) => p.replace(/\\/g, "/");
 
 // --- discoverRoots, on its own ---
 const d = discoverRoots(DISCOVER);
@@ -198,7 +202,7 @@ check("a CONFIGURED exclude name is skipped the same way (drafts/)",
 db.close();
 
 // --- status marks them ---
-const status = cp.spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "status"],
+const status = cp.spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "status"],
 	{ encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: h5 } });
 // req: R-216
 check("status exits 0", status.status === 0);
@@ -221,14 +225,14 @@ writeSources(archiveHome, { roots: [{ path: archiveRoot, kind: "articles" }] });
 await build();
 const archiveDb = await openDb(path.join(archiveHome, "index.db"), {});
 const { runHook } = await import(new URL("../lib/hook.ts", import.meta.url).href);
-const queryCli = cp.spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "query", "quantum archive signal"], {
+const queryCli = cp.spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "query", "quantum archive signal"], {
 	encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: archiveHome },
 });
 // req: R-239
-check("query CLI still returns monthly session archives", queryCli.status === 0 && queryCli.stdout.includes("/sessions/2026-09.md"));
+check("query CLI still returns monthly session archives", queryCli.status === 0 && slash(queryCli.stdout).includes("/sessions/2026-09.md"));
 const automatic = await runHook(JSON.stringify({ prompt: "quantum archive signal", session_id: "archive-session", cwd: td }), { spawnFn: () => {} });
 // req: R-239
-check("hook filters archives before top-three ranking and prints only the non-archive article", automatic.reason === "ok" && automatic.hits.length === 1 && automatic.hits[0].path.endsWith("/article.md") && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\.md$/.test(h.path)));
+check("hook filters archives before top-three ranking and prints only the non-archive article", automatic.reason === "ok" && automatic.hits.length === 1 && slash(automatic.hits[0].path).endsWith("/article.md") && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\.md$/.test(h.path)));
 const nonArchiveMatches = search(archiveDb, "boundary token", 20, { excludeMonthlySessionArchives: true });
 // req: R-239
 check("README, date outside sessions, and non-monthly session notes are retained", ["README.md", "2026-09.md", "2026-09-notes.md"].every((name) => nonArchiveMatches.some((h) => h.path.endsWith(name))));
@@ -259,7 +263,7 @@ check("fresh seed discovers both roots without explicit nested roots", fresh.roo
 const seededStats = await build();
 const seededDb = await openDb(path.join(seedHome, "index.db"), {});
 // req: R-240
-check("fresh-seeded discovered files are searchable and indexed once", seededStats.files === 4 && search(seededDb, "needle blue hive", 10).some((h) => h.path.endsWith("/experiments/b.md")) && search(seededDb, "needle red loop", 10).some((h) => h.path.endsWith("/IDEAS.md")) && seededDb.prepare("SELECT COUNT(*) AS n FROM docs").get().n === 4);
+check("fresh-seeded discovered files are searchable and indexed once", seededStats.files === 4 && search(seededDb, "needle blue hive", 10).some((h) => slash(h.path).endsWith("/experiments/b.md")) && search(seededDb, "needle red loop", 10).some((h) => slash(h.path).endsWith("/IDEAS.md")) && seededDb.prepare("SELECT COUNT(*) AS n FROM docs").get().n === 4);
 seededDb.close();
 
 fs.rmSync(td, { recursive: true, force: true });

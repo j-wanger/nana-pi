@@ -29,6 +29,8 @@ const check = (n, ok, extra) => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra ?? "");
 	if (!ok) fails++;
 };
+const skip = (n, why) => console.log("SKIP", n, "—", why);
+const posixModeReason = "POSIX mode bits (win32 stat reports a fixed mode regardless of what was requested)";
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 const spec = (label) => wanted.find((w) => w.label === label).spec;
@@ -477,8 +479,12 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	check("owner command variant with arguments is preserved", after.hooks.UserPromptSubmit[0].hooks.some((h) => h.command === "bash ~/.claude/hooks/context-size-check.sh --custom"));
 	check("retirement reports that the hook was removed", /UserPromptSubmit context-size retirement/.test(r.stdout), r.stdout);
 	check("the knowledge hook was added", JSON.stringify(after).includes("nana-knowledge.ts"));
-	// req: R-321
-	check("file mode is preserved across the atomic write", (fs.statSync(path.join(home, ".claude", "settings.json")).mode & 0o777) === 0o600);
+	if (platform() === "win32") {
+		skip("file mode is preserved across the atomic write", posixModeReason);
+	} else {
+		// req: R-321
+		check("file mode is preserved across the atomic write", (fs.statSync(path.join(home, ".claude", "settings.json")).mode & 0o777) === 0o600);
+	}
 	check("no temp file is left behind", fs.readdirSync(path.join(home, ".claude")).every((f) => !f.includes(".tmp")));
 	const again = run(["install"], home);
 	check("re-install reports nothing to do", again.stdout.includes("nothing to do"));
@@ -597,7 +603,8 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const done = JSON.parse(fs.readFileSync(file, "utf8"));
 	check("after re-reading: the write goes through", JSON.stringify(done).includes("nana-objective.mjs"));
 	check("after re-reading: the foreign hook is still there", JSON.stringify(done).includes("someone-elses.sh"));
-	check("after re-reading: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
+	if (platform() === "win32") skip("after re-reading: mode preserved", posixModeReason);
+	else check("after re-reading: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
 }
 
 /* --- the lock holds the whole read -> write -> rename sequence ------------------------- */
@@ -750,7 +757,8 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const after = fs.readFileSync(file, "utf8");
 	check("post-write: a clean re-run writes our entries", after.includes("nana-objective.mjs"));
 	check("post-write: the foreign hook survives", after.includes("someone-elses.sh"));
-	check("post-write: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
+	if (platform() === "win32") skip("post-write: mode preserved", posixModeReason);
+	else check("post-write: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
 }
 
 /* --- install() passes the seam through, so the whole run is exercised ------------------- */
@@ -768,7 +776,17 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("full install: aborts on a write that lands after the temp file", err instanceof SetupError, String(err));
 	check("full install: the sneaked-in bytes survive", fs.readFileSync(file, "utf8") === '{"model":"sneaked-in"}\n');
 	check("full install: no temp or lock left behind", fs.readdirSync(path.join(home, ".claude")).every((f) => !f.includes(".tmp") && !f.includes(".lock")), fs.readdirSync(path.join(home, ".claude")).join(" "));
-	check("full install: the steps BEFORE settings did run (hooks are in place)", fs.lstatSync(path.join(home, ".claude", "hooks", "nana-objective.mjs")).isSymbolicLink());
+	if (platform() === "win32") {
+		// win32 wires hooks in exec form AS PART of stepSettings itself (stepHooks is a no-op
+		// there, settings.mjs:191-208), so settings.json carries no surviving evidence once that
+		// step aborts (the sneaked-in bytes check above proves it reverted). stepRules runs BEFORE
+		// stepSettings on every platform and, on win32, copies (never links) each rule — that copy
+		// is the equivalent "a step before settings ran" proof here.
+		const soulPath = path.join(home, ".claude", "rules", "nana-soul.md");
+		check("full install: the steps BEFORE settings did run (win32: a rule was copied, not linked)", fs.existsSync(soulPath) && !fs.lstatSync(soulPath).isSymbolicLink());
+	} else {
+		check("full install: the steps BEFORE settings did run (hooks are in place)", fs.lstatSync(path.join(home, ".claude", "hooks", "nana-objective.mjs")).isSymbolicLink());
+	}
 	check("full install: the steps AFTER settings did not (no pi seed)", !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 }
 
@@ -789,19 +807,30 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 		after,
 	] }] } };
 	fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
-	const dry = run(["install", "--dry-run"], home);
-	// req: R-908
-	check("dry-run reports the in-place legacy migration as would-migrate", dry.status === 0 && /SessionStart retired hook migration.*would migrate/i.test(dry.stdout));
-	const result = run(["install"], home);
-	// req: R-908
-	check("install reports the in-place legacy migration as UPDATED", result.status === 0 && /SessionStart retired hook migration.*updated/i.test(result.stdout));
-	const migrated = JSON.parse(fs.readFileSync(file, "utf8")).hooks.SessionStart[0].hooks;
-	const expected = ["nana-objective.mjs", "nana-shared-memory.mjs", "nana-adoption.mjs"];
-	// req: R-908
-	check("install migrates the three exact legacy commands in place without disturbing foreign objects", result.status === 0 && migrated.length === 6 && migrated[0].command === before.command && migrated[4].command === after.command && JSON.stringify(migrated[0]) === JSON.stringify(before) && JSON.stringify(migrated[4]) === JSON.stringify(after) && migrated.slice(1, 4).every((entry, index) => entry.command === `node ${shq(path.join(layout.hooksDir, expected[index]))}`));
-	const again = run(["install"], home);
-	// req: R-908
-	check("second install after migration reports nothing to do", again.status === 0 && /nothing to do/.test(again.stdout));
+	// migrateLegacyHooks runs only off win32 (steps.mjs:521) — win32 has no hooksDir symlink
+	// shape for a legacy SessionStart command to migrate INTO, so this whole scenario is
+	// POSIX-only there; each of its four checks is SKIPped individually, same slots, same titles.
+	const legacyReason = "migrateLegacyHooks is off on win32 (steps.mjs skips it; win32 install wires exec form directly, never through hooksDir)";
+	if (platform() === "win32") {
+		skip("dry-run reports the in-place legacy migration as would-migrate", legacyReason);
+		skip("install reports the in-place legacy migration as UPDATED", legacyReason);
+		skip("install migrates the three exact legacy commands in place without disturbing foreign objects", legacyReason);
+		skip("second install after migration reports nothing to do", legacyReason);
+	} else {
+		const dry = run(["install", "--dry-run"], home);
+		// req: R-908
+		check("dry-run reports the in-place legacy migration as would-migrate", dry.status === 0 && /SessionStart retired hook migration.*would migrate/i.test(dry.stdout));
+		const result = run(["install"], home);
+		// req: R-908
+		check("install reports the in-place legacy migration as UPDATED", result.status === 0 && /SessionStart retired hook migration.*updated/i.test(result.stdout));
+		const migrated = JSON.parse(fs.readFileSync(file, "utf8")).hooks.SessionStart[0].hooks;
+		const expected = ["nana-objective.mjs", "nana-shared-memory.mjs", "nana-adoption.mjs"];
+		// req: R-908
+		check("install migrates the three exact legacy commands in place without disturbing foreign objects", result.status === 0 && migrated.length === 6 && migrated[0].command === before.command && migrated[4].command === after.command && JSON.stringify(migrated[0]) === JSON.stringify(before) && JSON.stringify(migrated[4]) === JSON.stringify(after) && migrated.slice(1, 4).every((entry, index) => entry.command === `node ${shq(path.join(layout.hooksDir, expected[index]))}`));
+		const again = run(["install"], home);
+		// req: R-908
+		check("second install after migration reports nothing to do", again.status === 0 && /nothing to do/.test(again.stdout));
+	}
 }
 
 /* --- stale-hook migration uses the same concurrent-write protection ------------------- */

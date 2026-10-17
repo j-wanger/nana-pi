@@ -179,10 +179,38 @@ try {
 		// req: R-1063
 		check("roster notice: one JSON object whose user message starts with the roster notice prefix", typeof parsedNotice?.systemMessage === "string" && parsedNotice.systemMessage.startsWith("nana active · roster"), r.stdout + r.stderr);
 	}
+	// KH1 setup (R-1330): seed a real fixture store and build its index BEFORE any knowledge entry
+	// runs — runHook's ensureFreshIndex spawns its own detached background build the first time it
+	// sees a missing/stale index (the known build-lock race), and letting that fire first would
+	// leave this build racing it non-deterministically. Building here first means the index is
+	// already fresh when any hook call below reaches ensureFreshIndex, so no background build is
+	// ever spawned and the fixture's build is the only one. The fixture source sits OUTSIDE the
+	// weird-characters worktree/home path so its short path can never be elided out of the
+	// rendered display by DISPLAY_MAX.
+	const fixtureSrc = path.join(os.tmpdir(), `nana-kh1-src-${process.pid}`);
+	fs.mkdirSync(fixtureSrc, { recursive: true });
+	// title and body share no word with the "hello from the windows leg" prompt the plain exit-0
+	// check below sends: an accidental overlap would let THAT prompt match this fixture first and
+	// mark it shown this session, starving KH1's own matching prompt with reason "all-shown".
+	fs.writeFileSync(path.join(fixtureSrc, "windows-fixture.md"), "# Quasar telemetry notes\nnebula telescope horizon pathways region findings.\n");
+	const knowledgeHome = env.NANA_KNOWLEDGE_HOME;
+	fs.mkdirSync(knowledgeHome, { recursive: true });
+	fs.writeFileSync(path.join(knowledgeHome, "sources.json"), JSON.stringify({ roots: [{ path: fixtureSrc, kind: "articles" }] }));
+	const knowledgeEntry = entries["nana-knowledge.ts"].hook;
+	const built = spawnSync(knowledgeEntry.command, [knowledgeEntry.args[0], "build"], { shell: false, env, encoding: "utf8" });
 	{
-		const r = spawnEntry(entries["nana-knowledge.ts"].hook, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
+		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
 		// req: R-1058
 		check("knowledge: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
+	}
+	{
+		// KH1 (R-1330): exit 0 with no module error (above) proves nothing about the pull itself —
+		// run the INSTALLED command exactly as settings.json holds it, with a prompt that matches
+		// the fixture built above, and read a real pull block naming it.
+		const prompt = "tell me about the quasar nebula telescope horizon findings";
+		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt, cwd: project, session_id: "win32-exec" });
+		// req: R-1330
+		check("R-1330: on Windows the installed knowledge hook command prints a pull block naming the fixture file for a matching prompt", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md"), `build status ${built.status} ${built.stdout}${built.stderr}\n${detail(r)}`);
 	}
 
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
