@@ -215,27 +215,31 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 }
 
 {
-	// sol r1 MUST: a rename retry re-tried blindly after EPERM/EBUSY, so an editor's save made
-	// in the window between attempts was clobbered by the next retry. The injected `rename` seam
-	// throws EPERM once — simulating that window — and writes the owner's new content before
-	// throwing, the way a real editor save-and-close would land between this refresh's attempts.
+	// sol r1/r2 MUST: a rename retry re-tried blindly after EPERM/EBUSY, so an editor's save made
+	// in the window between attempts was clobbered by the next retry. The owner's write lands
+	// inside the injected `delay` seam — AFTER the refused rename, exactly where the real 20ms
+	// delay sits — so this only passes when the recheck runs AFTER the delay, not before it
+	// (sol r2: a write landing before the recheck but during the delay used to slip past, since
+	// the old order rechecked first and only then waited).
 	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
 	const target = path.join(dir, "AGENTS.md");
-	const ownerSave = "owner saved new content between rename attempts\n";
+	const ownerSave = "owner saved new content during the retry delay\n";
 	let thrown = false;
-	const result = refreshWorkingRegion(dir, { rename: (src, dest) => {
-		if (!thrown) {
-			thrown = true;
-			fs.writeFileSync(target, ownerSave);
-			const error = new Error("EPERM: operation not permitted, rename");
-			error.code = "EPERM";
-			throw error;
-		}
-		fs.renameSync(src, dest);
-	} });
+	const result = refreshWorkingRegion(dir, {
+		rename: (src, dest) => {
+			if (!thrown) {
+				thrown = true;
+				const error = new Error("EPERM: operation not permitted, rename");
+				error.code = "EPERM";
+				throw error;
+			}
+			fs.renameSync(src, dest);
+		},
+		delay: () => { fs.writeFileSync(target, ownerSave); },
+	});
 	const targetText = fs.readFileSync(target, "utf8");
 	// req: R-986
-	check("a retry does not overwrite an owner's save made between attempts", result.status === "skipped" && targetText === ownerSave && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")), `status=${result.status} detail=${JSON.stringify(result.detail)} target=${JSON.stringify(targetText)}`);
+	check("a retry does not overwrite an owner's save made during the delay", result.status === "skipped" && targetText === ownerSave && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")), `status=${result.status} detail=${JSON.stringify(result.detail)} target=${JSON.stringify(targetText)}`);
 }
 
 {

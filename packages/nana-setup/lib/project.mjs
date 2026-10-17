@@ -194,26 +194,28 @@ export const RENAME_RETRY_ATTEMPTS = 3;
 export const RENAME_RETRY_DELAY_MS = 20;
 
 /**
- * `rename` is the injectable seam (default the real `fs.renameSync`, the way `writeTemp` is).
- * `recheck` runs before every RETRY — not the first attempt, which follows the caller's own
- * fresh check — and must throw if the destination no longer matches what the refresh read: a
- * save made by the file's owner in the window between attempts must stop the next retry from
- * clobbering it (sol r1 MUST, 2026-10-17), not just the window before the first attempt.
+ * `rename` is the injectable seam (default the real `fs.renameSync`, the way `writeTemp` is);
+ * `delay` likewise stands in for the real wait. `recheck` runs AFTER the delay and before every
+ * RETRY — not the first attempt, which follows the caller's own fresh check — and must throw if
+ * the destination no longer matches what the refresh read: a save made by the file's owner
+ * anywhere in the window between attempts, INCLUDING during the delay itself, must stop the
+ * next retry from clobbering it (sol r1/r2 MUST, 2026-10-17). Checking before the delay would
+ * miss a save landing during it.
  */
-function renameWithRetry(src, dest, { rename = (from, to) => fs.renameSync(from, to), recheck = () => {} } = {}) {
+function renameWithRetry(src, dest, { rename = (from, to) => fs.renameSync(from, to), recheck = () => {}, delay = () => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS) } = {}) {
 	for (let attempt = 1; ; attempt++) {
 		try {
 			rename(src, dest);
 			return;
 		} catch (error) {
 			if (attempt >= RENAME_RETRY_ATTEMPTS || (error?.code !== "EPERM" && error?.code !== "EBUSY")) throw error;
+			delay();
 			recheck();
-			Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS);
 		}
 	}
 }
 
-export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8"), rename = (src, dest) => fs.renameSync(src, dest) } = {}) {
+export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8"), rename = (src, dest) => fs.renameSync(src, dest), delay } = {}) {
 	const target = path.join(dir, "AGENTS.md");
 	const st = lstatIdentity(target);
 	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
@@ -288,6 +290,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 			fdClosed = true;
 			renameWithRetry(temp, target, {
 				rename,
+				delay,
 				// Before every RETRY (fd is already closed by now, so this reads by path, the
 				// only way left to see what is actually there): the same 64-bit identity and the
 				// same bytes the refresh read. Either changing stops the retry from clobbering a
