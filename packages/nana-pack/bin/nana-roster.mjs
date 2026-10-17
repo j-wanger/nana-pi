@@ -3,8 +3,10 @@
  * @module packages/nana-pack/bin/nana-roster.mjs
  * @purpose Resolve and print this machine's roster from the user-scope nana-pack.json.
  * @inputs an agent dir (the CLI reads pi's active one) and its nana-pack.json, when present
- * @outputs resolveRoster(agentDir) -> {ok:true, roster, source} | {ok:false, file, problem}; the CLI
- *  prints one line per slot and a source line on stdout, or the refusal on stderr
+ * @outputs resolveRoster(agentDir) -> {ok:true, roster, source} | {ok:false, file, problem};
+ *  orderedRoster(roster) -> the roster with every slot in SLOT_PRINT_ORDER; the CLI prints one
+ *  line per slot and a source line on stdout, or with --json one JSON object {roster: ...}, or
+ *  the refusal on stderr
  * @effects disk (reads the user-scope nana-pack.json)
  * @errors resolveRoster never throws; the CLI exits 1 on a refused roster
  */
@@ -13,7 +15,7 @@ import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
-import { ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, THINKING_LEVELS } from './worker-config.mjs';
+import { ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS } from './worker-config.mjs';
 
 const ENTRY_FIELDS = Object.freeze(['provider', 'model', 'thinking']);
 
@@ -48,13 +50,36 @@ function kindOf(value) {
   return typeof value;
 }
 
-/** Validate one entry (or, for a nullable slot, null). Returns a problem string or null. */
+/** Validate one Claude Code entry ({runtime, model}). Returns a problem string or null. */
+function claudeCodeEntryProblem(slot, value) {
+  const keys = Object.keys(value);
+  const extra = keys.filter((k) => !['runtime', 'model'].includes(k));
+  if (extra.length) return `roster.${slot} has an unexpected field ${extra.join(', ')}`;
+  if (!('model' in value)) return `roster.${slot} is missing model`;
+  if (!CLAUDE_CODE_SUBAGENT_MODELS.includes(value.model)) {
+    return `roster.${slot}.model must be one of the Claude Code subagent model names (got ${JSON.stringify(value.model)})`;
+  }
+  return null;
+}
+
+/**
+ * Validate one entry (or, for a nullable or optional slot, null). A slot in CLAUDE_CODE_SLOTS
+ * whose value carries a `runtime` field is read as a Claude Code entry; every other slot, and
+ * every other value, is read as a pi entry, so a stray `runtime` field on a pi-only slot is
+ * refused as an unexpected field rather than silently accepted. Returns a problem string or null.
+ */
 function entryProblem(slot, value) {
   if (value === null) {
-    return NULLABLE_SLOTS.includes(slot) ? null : `roster.${slot} is not an entry (null)`;
+    return NULLABLE_SLOTS.includes(slot) || OPTIONAL_SLOTS.includes(slot) ? null : `roster.${slot} is not an entry (null)`;
   }
   if (typeof value !== 'object' || Array.isArray(value)) {
     return `roster.${slot} is not an entry (got ${kindOf(value)})`;
+  }
+  if (CLAUDE_CODE_SLOTS.includes(slot) && 'runtime' in value) {
+    if (value.runtime !== CLAUDE_CODE_RUNTIME) {
+      return `roster.${slot}.runtime must be "${CLAUDE_CODE_RUNTIME}" (got ${JSON.stringify(value.runtime)})`;
+    }
+    return claudeCodeEntryProblem(slot, value);
   }
   const keys = Object.keys(value);
   const missing = ENTRY_FIELDS.filter((f) => !(f in value));
@@ -73,7 +98,11 @@ function entryProblem(slot, value) {
   return null;
 }
 
-/** Validate the whole roster value (the parsed `roster` field). Returns {roster} or {problem}. */
+/**
+ * Validate the whole roster value (the parsed `roster` field). Returns {roster} or {problem}.
+ * The returned roster is a NORMALISED copy: an absent optional slot (R-1121) reads back as null,
+ * so every reader — the roster command, pi-worker and the notice — sees one form.
+ */
 export function validateRosterShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return { problem: `roster must be an object with ${ROSTER_SLOTS.join(', ')} (got ${kindOf(value)})` };
@@ -81,13 +110,17 @@ export function validateRosterShape(value) {
   const keys = Object.keys(value);
   const missing = ROSTER_SLOTS.filter((s) => !(s in value));
   if (missing.length) return { problem: `roster is missing ${missing.join(', ')}` };
-  const extra = keys.filter((k) => !ROSTER_SLOTS.includes(k));
+  const allowedSlots = [...ROSTER_SLOTS, ...OPTIONAL_SLOTS];
+  const extra = keys.filter((k) => !allowedSlots.includes(k));
   if (extra.length) return { problem: `roster has an unexpected field ${extra.join(', ')}` };
-  for (const slot of ROSTER_SLOTS) {
+  for (const slot of allowedSlots) {
+    if (!(slot in value)) continue;
     const problem = entryProblem(slot, value[slot]);
     if (problem) return { problem };
   }
-  return { roster: value };
+  const normalised = { ...value };
+  for (const slot of OPTIONAL_SLOTS) if (!(slot in normalised)) normalised[slot] = null;
+  return { roster: normalised };
 }
 
 /**
@@ -117,20 +150,31 @@ export function resolveRoster(agentDir) {
 
 /** Format the resolved roster as R-1123's lines: one per slot, in print order, then the source. */
 export function formatRosterLines(roster, source) {
-  const lines = ROSTER_SLOTS.map((slot) => {
+  const lines = SLOT_PRINT_ORDER.map((slot) => {
     const value = roster[slot];
-    if (value === null) return `${slot}: ${slot === 'scout' ? 'none' : 'seat'}`;
+    if (value === null) return `${slot}: ${slot === 'land' ? 'seat' : 'none'}`;
+    if (value.runtime === CLAUDE_CODE_RUNTIME) return `${slot}: ${CLAUDE_CODE_RUNTIME} ${value.model}`;
     return `${slot}: ${value.provider} ${value.model} ${value.thinking ?? 'default'}`;
   });
   lines.push(`source: ${source}`);
   return lines;
 }
 
+/** The resolved roster with every slot in SLOT_PRINT_ORDER (R-1192). */
+export function orderedRoster(roster) {
+  return Object.fromEntries(SLOT_PRINT_ORDER.map((slot) => [slot, roster[slot]]));
+}
+
 function main() {
+  const json = process.argv.includes('--json');
   const result = resolveRoster(piAgentDir());
   if (!result.ok) {
     process.stderr.write(`nana-roster: roster refused: ${result.file}: ${result.problem}\n`);
     process.exit(1);
+  }
+  if (json) {
+    process.stdout.write(`${JSON.stringify({ roster: orderedRoster(result.roster) })}\n`);
+    process.exit(0);
   }
   for (const line of formatRosterLines(result.roster, result.source)) process.stdout.write(`${line}\n`);
   process.exit(0);

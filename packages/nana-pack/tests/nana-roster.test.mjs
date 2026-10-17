@@ -17,8 +17,8 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "bin", "nana-roster.mjs");
-const { resolveRoster, validateRosterShape, formatRosterLines } = await import(new URL("../bin/nana-roster.mjs", import.meta.url).href);
-const { ROSTER_DEFAULTS, LANE_DEFAULTS } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
+const { resolveRoster, validateRosterShape, formatRosterLines, orderedRoster } = await import(new URL("../bin/nana-roster.mjs", import.meta.url).href);
+const { ROSTER_DEFAULTS, LANE_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -27,6 +27,7 @@ const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-roster-")));
 let agentCount = 0;
 const freshAgentDir = (label) => { const d = path.join(temp, `agent-${++agentCount}-${label}`); fs.mkdirSync(d, { recursive: true }); return d; };
 const entry = (provider, model, thinking) => ({ provider, model, thinking });
+const claudeEntry = (model) => ({ runtime: "claude-code", model });
 const sampleRoster = () => ({
 	scout: entry("example-gateway", "gpt-6-luna", "medium"),
 	builder: entry("example-gateway", "roster-model", "low"),
@@ -39,6 +40,7 @@ const writeRoster = (dir, roster) => writeRosterRaw(dir, JSON.stringify({ roster
 // req: R-1120
 check("sealed default roster is luna high builder, sol reviewer, astra land and no scout",
 	ROSTER_DEFAULTS.scout === null &&
+	ROSTER_DEFAULTS.largerBuilder === null &&
 	JSON.stringify(ROSTER_DEFAULTS.builder) === JSON.stringify({ provider: "openai-codex", model: "gpt-6-luna", thinking: "high" }) &&
 	JSON.stringify(ROSTER_DEFAULTS.reviewer) === JSON.stringify({ provider: "openai-codex", model: "gpt-5.6-sol", thinking: null }) &&
 	JSON.stringify(ROSTER_DEFAULTS.land) === JSON.stringify({ provider: "openai-codex", model: "gpt-6-astra", thinking: null }) &&
@@ -207,8 +209,8 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	const rFile = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dirSeatNone } });
 	// req: R-1123
 	check("roster command prints one line per slot and the source",
-		rDefault.status === 0 && rDefault.stdout === "scout: none\nbuilder: openai-codex gpt-6-luna high\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nsource: default\n" &&
-		rFile.status === 0 && rFile.stdout === `scout: none\nbuilder: example-gateway roster-model low\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nsource: ${file}\n`,
+		rDefault.status === 0 && rDefault.stdout === "scout: none\nbuilder: openai-codex gpt-6-luna high\nlargerBuilder: none\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nsource: default\n" &&
+		rFile.status === 0 && rFile.stdout === `scout: none\nbuilder: example-gateway roster-model low\nlargerBuilder: none\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nsource: ${file}\n`,
 		JSON.stringify({ rDefault, rFile }));
 }
 
@@ -218,6 +220,111 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	const r = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dir } });
 	// req: R-1123
 	check("roster command prints a refused roster on stderr and exits 1",
+		r.status === 1 && r.stdout === "" && r.stderr.includes(file) && r.stderr.includes("builder"),
+		JSON.stringify(r));
+}
+
+{
+	const dirNone = freshAgentDir("larger-absent");
+	writeRoster(dirNone, sampleRoster());
+	const rNone = resolveRoster(dirNone);
+	const dirPi = freshAgentDir("larger-pi");
+	const piLarger = entry("example-gateway", "larger-model", "high");
+	writeRoster(dirPi, { ...sampleRoster(), largerBuilder: piLarger });
+	const rPi = resolveRoster(dirPi);
+	const dirClaude = freshAgentDir("larger-claude");
+	writeRoster(dirClaude, { ...sampleRoster(), largerBuilder: claudeEntry("sonnet") });
+	const rClaude = resolveRoster(dirClaude);
+	// req: R-1121
+	check("a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written",
+		rNone.ok && rNone.roster.largerBuilder === null &&
+		rPi.ok && JSON.stringify(rPi.roster.largerBuilder) === JSON.stringify(piLarger) &&
+		rClaude.ok && JSON.stringify(rClaude.roster.largerBuilder) === JSON.stringify({ runtime: "claude-code", model: "sonnet" }),
+		JSON.stringify({ rNone, rPi, rClaude }));
+}
+
+{
+	const shaped = (mutate) => { const r = sampleRoster(); mutate(r); return r; };
+	const CASES = [
+		["largerBuilder string", shaped((r) => { r.largerBuilder = "x"; }), "largerBuilder"],
+		["largerBuilder array", shaped((r) => { r.largerBuilder = []; }), "largerBuilder"],
+		["largerBuilder runtime claude (unknown runtime)", shaped((r) => { r.largerBuilder = { runtime: "claude", model: "sonnet" }; }), "runtime"],
+		["largerBuilder runtime claude-code with thinking", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet", thinking: "high" }; }), "largerBuilder"],
+		["largerBuilder runtime claude-code without model", shaped((r) => { r.largerBuilder = { runtime: "claude-code" }; }), "model"],
+		["largerBuilder runtime claude-code full model name", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "claude-sonnet-5" }; }), "model"],
+		["largerBuilder runtime claude-code bracketed variant", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet[1m]" }; }), "model"],
+		["largerBuilder runtime claude-code model with a space", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet five" }; }), "model"],
+		["largerBuilder pi entry missing thinking", shaped((r) => { r.largerBuilder = { provider: "example-gateway", model: "x" }; }), "thinking"],
+		["builder runtime field", shaped((r) => { r.builder.runtime = "claude-code"; }), "runtime"],
+		["reviewer runtime field", shaped((r) => { r.reviewer.runtime = "claude-code"; }), "runtime"],
+		["largerBuilder null is accepted", shaped((r) => { r.largerBuilder = null; }), null],
+		["largerBuilder pi entry accepted", shaped((r) => { r.largerBuilder = entry("example-gateway", "x", "low"); }), null],
+		...CLAUDE_CODE_SUBAGENT_MODELS.map((m) => [`largerBuilder claude-code ${m} accepted`, shaped((r) => { r.largerBuilder = claudeEntry(m); }), null]),
+	];
+	const results = CASES.map(([label, roster, token]) => {
+		const { roster: ok, problem } = validateRosterShape(roster);
+		if (token === null) return [label, ok !== undefined && !problem];
+		return [label, Boolean(problem) && problem.includes(token)];
+	});
+	// req: R-1122
+	check("each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field",
+		results.every(([, pass]) => pass),
+		JSON.stringify(results.filter(([, pass]) => !pass)));
+}
+
+{
+	const dirNone = freshAgentDir("print-larger-none");
+	writeRoster(dirNone, sampleRoster());
+	const rNone = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dirNone } });
+	const dirPi = freshAgentDir("print-larger-pi");
+	writeRoster(dirPi, { ...sampleRoster(), largerBuilder: entry("example-gateway", "larger-model", "high") });
+	const rPi = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dirPi } });
+	const dirClaude = freshAgentDir("print-larger-claude");
+	writeRoster(dirClaude, { ...sampleRoster(), largerBuilder: claudeEntry("sonnet") });
+	const rClaude = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dirClaude } });
+	// req: R-1123
+	check("roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none",
+		rNone.status === 0 && rNone.stdout.includes("builder: example-gateway roster-model low\nlargerBuilder: none\n") &&
+		rPi.status === 0 && rPi.stdout.includes("builder: example-gateway roster-model low\nlargerBuilder: example-gateway larger-model high\n") &&
+		rClaude.status === 0 && rClaude.stdout.includes("builder: example-gateway roster-model low\nlargerBuilder: claude-code sonnet\n"),
+		JSON.stringify({ rNone, rPi, rClaude }));
+}
+
+{
+	const seedPath = path.resolve(root, "..", "nana-setup", "pi", "nana-pack.seed.json");
+	const seedText = fs.readFileSync(seedPath, "utf8");
+	const roundTrip = (rosterDir) => {
+		const jsonRun = spawnSync(process.execPath, [cli, "--json"], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: rosterDir } });
+		let parsed = null;
+		try { parsed = JSON.parse(jsonRun.stdout); } catch { parsed = null; }
+		const seedDir = freshAgentDir("json-roundtrip");
+		const seed = JSON.parse(seedText);
+		seed.roster = parsed?.roster;
+		fs.writeFileSync(path.join(seedDir, "nana-pack.json"), JSON.stringify(seed));
+		const resolved = resolveRoster(seedDir);
+		return { jsonRun, parsed, seed, resolved };
+	};
+	const defaultDir = freshAgentDir("json-default-source");
+	const defaultTrip = roundTrip(defaultDir);
+	const fileDir = freshAgentDir("json-file-source");
+	writeRoster(fileDir, sampleRoster());
+	const fileTrip = roundTrip(fileDir);
+	// req: R-1192
+	check("roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster",
+		defaultTrip.jsonRun.status === 0 && defaultTrip.parsed !== null && Object.keys(defaultTrip.parsed).length === 1 && "roster" in defaultTrip.parsed &&
+		JSON.stringify(defaultTrip.parsed.roster) === JSON.stringify(orderedRoster(ROSTER_DEFAULTS)) &&
+		defaultTrip.resolved.ok && JSON.stringify(defaultTrip.resolved.roster) === JSON.stringify(ROSTER_DEFAULTS) && defaultTrip.seed.objective?.projectFile === "OBJECTIVE.md" &&
+		fileTrip.jsonRun.status === 0 && fileTrip.parsed !== null && Object.keys(fileTrip.parsed).length === 1 && "roster" in fileTrip.parsed &&
+		fileTrip.resolved.ok && JSON.stringify(fileTrip.resolved.roster.builder) === JSON.stringify(sampleRoster().builder) && fileTrip.seed.objective?.projectFile === "OBJECTIVE.md",
+		JSON.stringify({ defaultTrip, fileTrip }));
+}
+
+{
+	const dir = freshAgentDir("json-refused");
+	const file = writeRoster(dir, { ...sampleRoster(), builder: null });
+	const r = spawnSync(process.execPath, [cli, "--json"], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dir } });
+	// req: R-1192
+	check("roster command --json prints a refused roster on stderr with empty stdout and exits 1",
 		r.status === 1 && r.stdout === "" && r.stderr.includes(file) && r.stderr.includes("builder"),
 		JSON.stringify(r));
 }
