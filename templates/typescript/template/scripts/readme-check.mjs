@@ -282,7 +282,7 @@ export function loadConfig(root) {
 export function shellLines(text) {
 	const out = [];
 	let lang = null;
-	for (const [i, line] of text.split("\n").entries()) {
+	for (const [i, line] of text.split(/\r?\n/).entries()) {
 		const fence = FENCE.exec(line);
 		if (fence) {
 			lang = lang === null ? fence[1].toLowerCase() : null;
@@ -322,7 +322,7 @@ export function looksLikePath(token) {
 function fencedLines(text) {
 	const out = new Set();
 	let open = false;
-	for (const [i, line] of text.split("\n").entries()) {
+	for (const [i, line] of text.split(/\r?\n/).entries()) {
 		if (FENCE.test(line)) {
 			open = !open;
 			out.add(i + 1);
@@ -348,7 +348,7 @@ export function commandSpan(span) {
 export function inlineCommandClaims(text) {
 	const out = [];
 	const fenced = fencedLines(text);
-	for (const [i, line] of text.split("\n").entries()) {
+	for (const [i, line] of text.split(/\r?\n/).entries()) {
 		if (fenced.has(i + 1)) continue;
 		for (const span of line.matchAll(BACKTICK)) {
 			for (const part of span[1].split(CHAIN)) {
@@ -385,7 +385,7 @@ function backtickedPaths(line, n) {
 
 export function pathClaims(text) {
 	const out = [];
-	for (const [i, line] of text.split("\n").entries())
+	for (const [i, line] of text.split(/\r?\n/).entries())
 		out.push(...backtickedPaths(line, i + 1));
 	for (const [line, command] of shellLines(text)) {
 		for (const token of command.split(/\s+/)) {
@@ -398,7 +398,7 @@ export function pathClaims(text) {
 
 export function flagClaims(text) {
 	const out = [];
-	for (const [i, line] of text.split("\n").entries()) {
+	for (const [i, line] of text.split(/\r?\n/).entries()) {
 		const scripts = [...line.matchAll(SCRIPT)].map((m) => m[1]);
 		if (!scripts.length) continue;
 		for (const flag of new Set(line.match(FLAG) ?? [])) {
@@ -410,7 +410,7 @@ export function flagClaims(text) {
 
 export function headings(text) {
 	return text
-		.split("\n")
+		.split(/\r?\n/)
 		.map((line) => HEADING.exec(line))
 		.filter(Boolean)
 		.map((m) => m[1].toLowerCase());
@@ -419,7 +419,7 @@ export function headings(text) {
 /** The prose before the first `##`, with the title line dropped. */
 export function firstParagraph(text) {
 	const out = [];
-	for (const line of text.split("\n")) {
+	for (const line of text.split(/\r?\n/)) {
 		if (line.startsWith("## ")) break;
 		if (line.startsWith("# ") || FENCE.test(line)) continue;
 		if (line.trim()) out.push(line.trim());

@@ -191,7 +191,9 @@ export function resetScratch(dir, tip, _config) {
 	}
 	const noHooks = path.join(path.dirname(dir), "no-hooks");
 	const hooksArg = fs.existsSync(noHooks) ? ["-c", `core.hooksPath=${noHooks}`] : [];
-	const r1 = sh("git", [...hooksArg, "-C", dir, "reset", "-q", "--hard", tip]);
+	// core.autocrlf=false (R-1322): the reset checks files out again, and the scratch worktree
+	// must hold the committed bytes whatever the repository's own autocrlf setting is.
+	const r1 = sh("git", [...hooksArg, "-c", "core.autocrlf=false", "-C", dir, "reset", "-q", "--hard", tip]);
 	if (r1.status !== 0) throw new Error(`git reset failed: ${r1.stderr}`);
 	const r2 = sh("git", [...hooksArg, "-C", dir, "clean", "-fdxq"]);
 	if (r2.status !== 0) throw new Error(`git clean failed: ${r2.stderr}`);
@@ -367,7 +369,10 @@ async function runOneShard(pairs, ctx) {
 	const offSignals = () => { for (const sig of ["SIGINT", "SIGTERM"]) process.off(sig, sigHandlers[sig]); };
 
 	try {
-		const add = sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "add", "--detach", wt, tipSha]);
+		// core.autocrlf=false (R-1322): the new scratch worktree holds the committed bytes
+		// whatever the repository's own autocrlf setting is, so a multi-line anchor that spans
+		// a line break still matches.
+		const add = sh("git", ["-c", `core.hooksPath=${noHooks}`, "-c", "core.autocrlf=false", "-C", repoRoot, "worktree", "add", "--detach", wt, tipSha]);
 		if (add.status !== 0) { log(`seat-mutate: worktree add ${tipSha} failed: ${short(add.stderr, 300)}`); return finish(EXIT_REFUSED); }
 		const worktreeReal = fs.realpathSync.native(wt);
 

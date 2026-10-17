@@ -69,7 +69,7 @@ export function requirementRowId(line: string): string | null {
 }
 
 function assertNoNearMissRows(text: string, file: string): void {
-	for (const [index, rawLine] of text.split("\n").entries()) {
+	for (const [index, rawLine] of text.split(/\r?\n/).entries()) {
 		const line = stripWhitespaceEnd(rawLine);
 		if (!ROW_CANDIDATE.test(line)) continue;
 		if (requirementRowId(line) !== null) continue;
@@ -235,7 +235,7 @@ export function citesOf(evidence: string): string[] {
 /** Parse already-normalized REQUIREMENTS.md text (the file reader removed its leading BOM) into rows by ID. Throws on a malformed table. */
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
-	for (const rawLine of text.split("\n")) {
+	for (const rawLine of text.split(/\r?\n/)) {
 		const normalized = stripWhitespaceEnd(rawLine);
 		if (requirementRowId(rawLine) === null && !ROW.test(normalized)) continue;
 		const m = ROW.exec(normalized);
@@ -271,7 +271,7 @@ export function loadRequirements(text: string): Map<string, Row> {
  */
 export function shallCounts(text: string): Map<string, number> {
 	const counts = new Map<string, number>();
-	for (const rawLine of text.split("\n")) {
+	for (const rawLine of text.split(/\r?\n/)) {
 		if (requirementRowId(rawLine) === null) continue;
 		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
@@ -337,7 +337,9 @@ export function scanSource(
 	callNames: string[] = CALL_NAMES,
 ): Marked[] {
 	const call0 = callNames === CALL_NAMES ? CALL : callRegex(callNames);
-	const lines = withoutLeadingBom(source).split("\n").map(stripWhitespaceEnd);
+	const lines = withoutLeadingBom(source)
+		.split(/\r?\n/)
+		.map(stripWhitespaceEnd);
 	const found: Marked[] = [];
 	let i = 0;
 	while (i < lines.length) {
@@ -532,7 +534,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	if (hasGeneral) {
 		const rowCells = (source: string): Map<string, string[]> => {
 			const found = new Map<string, string[]>();
-			for (const rawLine of source.split("\n")) {
+			for (const rawLine of source.split(/\r?\n/)) {
 				if (requirementRowId(rawLine) === null) continue;
 				const match = ROW.exec(stripWhitespaceEnd(rawLine));
 				if (!match) continue;
@@ -570,7 +572,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 			([id, cells]) => `| ${id} | ${cells.join(" | ")} |`,
 		);
 		text = `${projectText
-			.split("\n")
+			.split(/\r?\n/)
 			.map(stripWhitespaceEnd)
 			.filter((line) => requirementRowId(line) === null)
 			.join("\n")}\n${mergedLines.join("\n")}\n`;
