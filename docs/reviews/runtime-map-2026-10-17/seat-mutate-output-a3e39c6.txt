@@ -1,0 +1,19 @@
+seat-mutate: lane runtime-map, tip a3e39c683dfacd2ac28094ade69bf3f55512aff7, table 67140ae5232ab88f973b4b2684ad58a1efb7f06ece389ede8188bc064f9b0bf9, merge-base 43072d886f518b39f90955724c52119a148e9ce0, 4 pairs in 4 shards (1+1+1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-17T18:19:29.719Z
+DECLARED (a) the lane's own pairs are only on the runner edit, as must-meet.md's gate-lane class says; the measure and impact code get the ordinary bar
+[1/4] seat-mutate: lane runtime-map, shard 1/4, tip a3e39c683dfacd2ac28094ade69bf3f55512aff7, merge-base 43072d886f518b39f90955724c52119a148e9ce0, 1 pairs, darwin, node v22.22.2, 2026-10-17T18:19:30.104Z
+[1/4] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 39 PASS, 0 FAIL, )
+[1/4] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/4] seat-mutate: lane runtime-map, shard 2/4, tip a3e39c683dfacd2ac28094ade69bf3f55512aff7, merge-base 43072d886f518b39f90955724c52119a148e9ce0, 1 pairs, darwin, node v22.22.2, 2026-10-17T18:19:34.108Z
+[2/4] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 39 PASS, 0 FAIL, )
+[2/4] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/4] seat-mutate: lane runtime-map, shard 3/4, tip a3e39c683dfacd2ac28094ade69bf3f55512aff7, merge-base 43072d886f518b39f90955724c52119a148e9ce0, 1 pairs, darwin, node v22.22.2, 2026-10-17T18:19:38.117Z
+[3/4] BASELINE ok   packages/nana-pack/tests/runtime-map.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[3/4] RESULT: 1/1 red (0 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 0 survived
+[4/4] seat-mutate: lane runtime-map, shard 4/4, tip a3e39c683dfacd2ac28094ade69bf3f55512aff7, merge-base 43072d886f518b39f90955724c52119a148e9ce0, 1 pairs, darwin, node v22.22.2, 2026-10-17T18:19:42.119Z
+[4/4] BASELINE ok   packages/nana-pack/tests/runtime-map.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[4/4] RESULT: 1/1 red (0 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 the runner points every test file's NODE_V8_COVERAGE at a folder even with the knob unset — 1/1 named: R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completio…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the runner prints the knob line with the knob unset — 1/1 named: R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completio…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 the runner's completion record counts one file fewer than it collected — (no named case); named but NOT REACHED: R-1271: a fixture measurement credits each test file with the tracked files it ran, a node child's files included when the child's environment lacks the coverage variable, with the file's label and seconds, and credits no untracked file; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH runtime-map.test.mjs THREW (later checks never ran)
+RED 4 the runner writes no record for a test file that passes or fails — (no named case); named but NOT REACHED: R-1271: a fixture measurement credits each test file with the tracked files it ran, a node child's files included when the child's environment lacks the coverage variable, with the file's label and seconds, and credits no untracked file; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH runtime-map.test.mjs THREW (later checks never ran)
+RESULT: 4/4 red (2 exactly their named titles, 4 with a named title green, 0 with an unnamed red), 0 survived, across 4 shards
