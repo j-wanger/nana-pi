@@ -5,25 +5,28 @@
  * @inputs argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane
  *  mode this machine's roster (the user-scope nana-pack.json in pi's active agent dir)
  * @outputs worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane
- *  mode one `pi-worker: builder: …; source: …` line on stderr before pi starts
+ *  mode one `pi-worker: builder: …; source: …` line (`builder (larger lanes):` for a
+ *  `--lane-size larger` launch) on stderr before pi starts
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
- * @errors exit 1 on bad args, invalid lane, a refused roster, failed worker, or exceeded lane ceiling
+ * @errors exit 1 on bad args, invalid lane, an invalid or disallowed --lane-size, a refused
+ *  roster, failed worker, or exceeded lane ceiling
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
-import { LANE_DEFAULTS, LANE_MAX_SECS } from './worker-config.mjs';
+import { LANE_DEFAULTS, LANE_MAX_SECS, CLAUDE_CODE_RUNTIME, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
-const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N]\n';
+const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
+const LANE_ONLY_FLAGS = ['--lane', '--brief', '--max-secs', '--lane-size'];
 const all = process.argv;
 const separator = all.indexOf('--');
 const own = separator < 0 ? all : all.slice(0, separator);
-const ownOptionNames = new Set(['--out', '--stall-secs', '--retries', '--poll', '--lane', '--brief', '--max-secs']);
+const ownOptionNames = new Set(['--out', '--stall-secs', '--retries', '--poll', '--lane', '--brief', '--max-secs', '--lane-size']);
 const ownValues = new Map();
 let duplicateOwnOption = null;
 for (let i = 2; i < own.length; i++) {
@@ -39,12 +42,14 @@ const value = (flag) => ownValues.get(flag) ?? null;
 const lanePresent = ownValues.has('--lane');
 const briefPresent = ownValues.has('--brief');
 const maxPresent = ownValues.has('--max-secs');
+const laneSizePresent = ownValues.has('--lane-size');
 const laneMode = lanePresent;
 const lane = value('--lane');
 const brief = value('--brief');
 const maxRaw = value('--max-secs');
 const maxSecs = maxRaw === null ? LANE_MAX_SECS : Number(maxRaw);
-const filteredOwn = own.filter((arg, i) => !['--lane', '--brief', '--max-secs'].includes(arg) && !['--lane', '--brief', '--max-secs'].includes(own[i - 1]));
+const laneSizeRaw = value('--lane-size');
+const filteredOwn = own.filter((arg, i) => !LANE_ONLY_FLAGS.includes(arg) && !LANE_ONLY_FLAGS.includes(own[i - 1]));
 const argv = [...filteredOwn, ...(separator < 0 ? [] : ['--', ...all.slice(separator + 1)])];
 
 function git(...args) {
@@ -69,7 +74,7 @@ let validateLaneAttempt = () => null;
 // Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
 // pre-lane launcher (first occurrence wins) — astra land r7 on t3-launcher.
 if (duplicateOwnOption && laneMode) laneFailure(`duplicate option ${duplicateOwnOption}`);
-for (const [flag, present, arg] of [['--lane', lanePresent, lane], ['--brief', briefPresent, brief], ['--max-secs', maxPresent, maxRaw]]) {
+for (const [flag, present, arg] of [['--lane', lanePresent, lane], ['--brief', briefPresent, brief], ['--max-secs', maxPresent, maxRaw], ['--lane-size', laneSizePresent, laneSizeRaw]]) {
 	if (present && (arg === null || arg === '' || arg.startsWith('-'))) laneFailure(`${flag} requires a value`);
 }
 if (laneMode) {
@@ -95,8 +100,27 @@ if (laneMode) {
 	if (separator >= 0 && all.slice(separator + 1).length) laneFailure('caller pi arguments are refused in lane mode');
 	const rosterResult = resolveRoster(piAgentDir());
 	if (!rosterResult.ok) laneFailure(`roster refused: ${rosterResult.file}: ${rosterResult.problem}`);
-	const builder = rosterResult.roster.builder;
-	process.stderr.write(`pi-worker: builder: ${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}; source: ${rosterResult.source}\n`);
+	const roster = rosterResult.roster;
+	if (laneSizePresent && laneSizeRaw !== 'small' && laneSizeRaw !== 'larger') laneFailure(`--lane-size must be small or larger (got ${JSON.stringify(laneSizeRaw)})`);
+	// R-1212: once the slot is set, every launch on this machine must name a size — the notice
+	// reaches every project at once, but the shared bullet (R-1193) reaches only a project whose
+	// marker region is refreshed.
+	if (!laneSizePresent && roster.largerBuilder !== null) laneFailure('roster sets largerBuilder: pass --lane-size larger for a larger or riskier lane, or --lane-size small for a small one');
+	const laneSize = laneSizePresent ? laneSizeRaw : 'small';
+	let builder;
+	let builderLabel = 'builder';
+	if (laneSize === 'larger' && roster.largerBuilder !== null) {
+		if (roster.largerBuilder.runtime === CLAUDE_CODE_RUNTIME) {
+			// R-1191: pi-worker starts pi entries only; both ways out are the user's choice,
+			// never an order to edit the user's file (CHANGE.md 3.2, 3.7).
+			laneFailure('roster.largerBuilder is a Claude Code entry; pi-worker starts pi entries only: ask the user to start it as a subagent from a Claude Code seat, or to put a pi entry in largerBuilder');
+		}
+		builder = roster.largerBuilder;
+		builderLabel = LARGER_BUILDER_LABEL;
+	} else {
+		builder = roster[LANE_SIZE_SLOTS.small];
+	}
+	process.stderr.write(`pi-worker: ${builderLabel}: ${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}; source: ${rosterResult.source}\n`);
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	laneRoot = cwd; laneGitDir = dirs[0];
@@ -129,7 +153,7 @@ if (laneMode) {
 function fsReal(p) { return process.platform === 'win32' ? realpathSync.native(p) : realpathSync(p); }
 
 const w = parseWatchdogArgv(argv, { defaultRetries: 0 });
-if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); process.stderr.write(w.error === 'usage' ? (laneMode || own.some((arg) => ['--lane', '--brief', '--max-secs'].includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }
+if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); process.stderr.write(w.error === 'usage' ? (laneMode || own.some((arg) => LANE_ONLY_FLAGS.includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }
 if (laneMode && w.retries > 0) laneFailure('--retries greater than zero is refused in lane mode');
 const reviewFlag = ['--item', '--role', '--revision', '--over-cap', '--worker'].find((f) => w.ownArgs.includes(f));
 if (reviewFlag) {

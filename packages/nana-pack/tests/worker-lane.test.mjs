@@ -217,6 +217,74 @@ check("lane prints the resolved builder and roster source on stderr before start
 	builderLineFileRun.status === 0 && builderLinesFile.length === 1 && builderLinesFile[0] === `pi-worker: builder: example-gateway roster-model default; source: ${builderLineFile}`,
 	`${builderLineRun.stderr}\n---\n${builderLineFileRun.stderr}`);
 
+fs.rmSync(piSpawnMarker, { force: true });
+const w1Dir = freshAgentDir("lane-size-larger-pi");
+writeRoster(w1Dir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", "medium") });
+const w1Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w1Dir });
+const w1Args = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+// req: R-1190 R-961
+check("lane size larger starts pi with the larger-lane builder's provider, model and thinking, each flag once",
+	w1Run.status === 0 && [["--provider", "example-gateway"], ["--model", "larger-model"], ["--thinking", "medium"]].every(([flag, flagValue]) =>
+		w1Args.indexOf(flag) >= 0 && w1Args[w1Args.indexOf(flag) + 1] === flagValue && w1Args.filter((seen) => seen === flag).length === 1),
+	w1Run.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const w2Dir = freshAgentDir("lane-size-larger-null");
+writeRoster(w2Dir, sampleRoster());
+const w2Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w2Dir });
+const w2Args = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+// req: R-1190
+check("lane size larger with no larger-lane builder starts pi with the builder",
+	w2Run.status === 0 && w2Args.indexOf("--provider") >= 0 && w2Args[w2Args.indexOf("--provider") + 1] === "example-gateway" &&
+	w2Args.indexOf("--model") >= 0 && w2Args[w2Args.indexOf("--model") + 1] === "roster-model",
+	w2Run.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const w3Dir = freshAgentDir("lane-size-larger-claude");
+writeRoster(w3Dir, { ...sampleRoster(), largerBuilder: { runtime: "claude-code", model: "sonnet" } });
+const w3Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w3Dir });
+// req: R-1191
+check("lane size larger refuses a Claude Code larger-lane builder before lock or spawn, naming roster.largerBuilder and both ways out as the user's choice",
+	w3Run.status === 1 && w3Run.stderr.includes("roster.largerBuilder") && /starts pi entries only/.test(w3Run.stderr) &&
+	/subagent from a Claude Code seat/.test(w3Run.stderr) && /put a pi entry in largerBuilder/.test(w3Run.stderr) &&
+	!fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath),
+	w3Run.stderr);
+
+// req: R-960
+check("lane size with a missing or unknown value refuses before pi spawn", (() => {
+	const cases = [
+		["lane-size option missing", ["--lane", "alpha", "--brief", brief, "--lane-size"]],
+		["lane-size unknown value", ["--lane", "alpha", "--brief", brief, "--lane-size", "medium"]],
+	];
+	return cases.every(([, args]) => {
+		fs.rmSync(piSpawnMarker, { force: true });
+		const result = run(lane, args);
+		return result.status === 1 && /lane refused/.test(result.stderr) && !fs.existsSync(piSpawnMarker);
+	});
+})());
+
+fs.rmSync(piSpawnMarker, { force: true });
+const w5Dir = freshAgentDir("lane-size-larger-line");
+const w5File = writeRoster(w5Dir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", null) });
+const w5Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w5Dir });
+const w5Lines = w5Run.stderr.split(/\r?\n/).filter((l) => l.startsWith("pi-worker: builder"));
+// req: R-1124
+check("lane size larger prints the larger-lane builder line before starting pi",
+	w5Run.status === 0 && w5Lines.length === 1 && w5Lines[0] === `pi-worker: builder (larger lanes): example-gateway larger-model default; source: ${w5File}`,
+	w5Run.stderr);
+
+// req: R-1212
+check("with a larger-lane builder set, a launch with no lane size, the --lane-size=larger form included, is refused before lock or spawn, naming largerBuilder and both sizes", (() => {
+	const dir = freshAgentDir("lane-size-required");
+	writeRoster(dir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", null) });
+	const cases = [["no --lane-size", []], ["--lane-size=larger form", ["--lane-size=larger"]]];
+	return cases.every(([, extra]) => {
+		fs.rmSync(piSpawnMarker, { force: true });
+		const result = run(lane, ["--lane", "alpha", "--brief", brief, ...extra], { PI_CODING_AGENT_DIR: dir });
+		return result.status === 1 && result.stderr.includes("largerBuilder") && /--lane-size larger/.test(result.stderr) && /--lane-size small/.test(result.stderr) && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath);
+	});
+})());
+
 const laneSpawnCount = path.join(temp, "lane-spawns");
 fs.writeFileSync(pi, `#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`); fs.chmodSync(pi, 0o755);
 const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
