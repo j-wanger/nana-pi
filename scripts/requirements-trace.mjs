@@ -18,11 +18,13 @@ import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { check, ID, WHITESPACE, requirementRowId, scanSource } from "../templates/typescript/template/tests/requirements-trace.ts";
+import { check, ID, WHITESPACE, citesOf, requirementRowId, scanSource } from "../templates/typescript/template/tests/requirements-trace.ts";
 
 // Re-exported so the repo-level test's EARS fixtures (G-014/G-015) can call the generic
 // rail directly, over a scratch dir, rather than only through checkRepo() below.
-export { check, ID, WHITESPACE, requirementRowId, scanSource };
+// citesOf is re-exported so the regroup checker (R-1176) reads an Evidence cell's citations
+// exactly as this rail does, by import, never by a copied split.
+export { check, ID, WHITESPACE, citesOf, requirementRowId, scanSource };
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
 export const REPO_ROOT = resolve(

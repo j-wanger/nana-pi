@@ -109,7 +109,7 @@ const eolOf = (seg) => (/\r\n$/.test(seg) ? "\r\n" : /\n$/.test(seg) ? "\n" : "\
 
 // ---------------------------------------------------------------------- the seed
 
-function loadSeed(rootForRepo) {
+export function loadSeed(rootForRepo) {
   const path = resolve(rootForRepo, GENERAL_SEED);
   const text = readFileSync(path, "utf8");
   const parsed = parseLedger(text);
@@ -119,7 +119,7 @@ function loadSeed(rootForRepo) {
   const byId = new Map(parsed.headings.map((h) => [h.id, h]));
   return { text, byId, subOf };
 }
-function seedNodeText(id, seed) {
+export function seedNodeText(id, seed) {
   const h = seed.byId.get(id);
   return { label: h?.label ?? "", purpose: h?.purpose ?? "", outcome: h?.outcome ?? "", status: h?.status ?? "" };
 }
@@ -713,15 +713,17 @@ function flattenNodes(mapping) {
   return out;
 }
 /**
- * Old heading -> new node id, once per pair, for every row whose declared home differs from
- * the node that carries its old section (research-code.md §4: "the apply step derives and
- * prints the rows whose new home is not the node that carries their old section"). ALSO one
- * line per MERGE: a `from` entry whose own heading text still carries another node's tree id
- * (that old node is gone from the tree; its whole heading was folded into this one) — the row
- * loop alone prints nothing for a merge whose moved rows' new home already equals the node
- * scanning them, so the owner's plan would otherwise hide it entirely (R-1162, E2).
+ * One record per old heading line the mapping names whose own tree ID, if any, differs from the
+ * ID of the node naming it (every named heading of a flat ledger, since a flat heading carries no
+ * tree ID of its own; for a tree-form ledger, only a MERGE — a `from` entry whose own heading text
+ * still carries another node's tree id, that old node now gone from the tree) and one record per
+ * old line and new home for the rows physically under that line (up to the next heading) whose
+ * home is not the node naming it (R-1170). Each record is `{ line, heading, to, rows }`, a heading
+ * record carrying `rows: []`; records are keyed by old line, never by heading text, so two old
+ * sections sharing the same heading text are reported apart (R-1170). Exported for the regroup
+ * checker (R-1171) and the reviewer's plan print below, sorted by old line.
  */
-function detectMoves(text, mapping) {
+export function detectMoves(text, mapping) {
   const bareLines = segments(text).map(bare);
   const fenced = fenceMask(bareLines);
   const allHeadings = scanHeadings(bareLines, fenced);
@@ -730,27 +732,25 @@ function detectMoves(text, mapping) {
   const nodes = flattenNodes(mapping);
   const rowHome = new Map();
   for (const { id, node } of nodes) for (const r of expandRowIds((node.rows ?? []).join(","))) rowHome.set(r, id);
-  const moves = [];
-  const seen = new Set();
+  const records = [];
   for (const { id, node } of nodes) {
     for (const f of node.from ?? []) {
-      const oldId = treeIdAt.get(f.line);
-      if (oldId && oldId !== id) { const key = `merge:${f.heading}->${id}`; if (!seen.has(key)) { seen.add(key); moves.push([f.heading, id]); } }
+      const oldId = treeIdAt.get(f.line) ?? null;
+      if (oldId !== id) records.push({ line: f.line, heading: f.heading, to: id, rows: [] });
       const start = f.line;
       const after = allHeadingLines.filter((l) => l > f.line);
       const end = after.length ? Math.min(...after) - 1 : bareLines.length;
+      const movedByHome = new Map();
       for (let i = start; i < end; i++) {
         const r = requirementRowId(bareLines[i]);
         if (!r) continue;
         const home = rowHome.get(r);
-        if (home && home !== id) {
-          const key = `${f.heading}->${home}`;
-          if (!seen.has(key)) { seen.add(key); moves.push([f.heading, home]); }
-        }
+        if (home && home !== id) { if (!movedByHome.has(home)) movedByHome.set(home, []); movedByHome.get(home).push(r); }
       }
+      for (const [to, rows] of movedByHome) records.push({ line: f.line, heading: f.heading, to, rows });
     }
   }
-  return moves;
+  return records.sort((a, b) => a.line - b.line);
 }
 function capProblems(problems) {
   if (problems.length <= PROBLEM_LINE_CAP) return problems;
@@ -1109,7 +1109,9 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
     const subtreeCount = (id) => (ownRows.get(id) ?? 0) + (children.get(id) ?? []).reduce((s, c) => s + subtreeCount(c), 0);
     for (const n of planNodes) console.log(`${n.id}: ${subtreeCount(n.id)} row(s)`);
   }
-  for (const [oldHeading, newId] of detectMoves(text, mapping)) console.log(`${oldHeading} -> ${newId}`);
+  // R-1170 speaks only of an explicit --mapping run: the default and identity dry runs (no
+  // --mapping) stay silent, as R-1162 already pinned (requirements-lift.test.mjs:178, :228).
+  if (args.mapping) for (const r of detectMoves(text, mapping)) console.log(r.rows.length ? `line ${r.line}: ${r.heading} -> ${r.to} (rows ${r.rows.join(", ")})` : `line ${r.line}: ${r.heading} -> ${r.to}`);
   // R-1183: one line per share a feature's shares_added or shares_dropped declares, mapping order.
   for (const { id, node, level } of flattenNodes(mapping)) {
     if (level !== 2) continue;

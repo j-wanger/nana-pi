@@ -215,6 +215,23 @@ export interface Marked {
 	title: string;
 }
 
+/**
+ * Split one Evidence cell into its citations, the rail's own way: backtick spans when any
+ * backtick is present (so a comma inside a quoted title survives), otherwise a plain comma
+ * split — each trimmed, with an empty cell and the bare "—" placeholder dropped. A consumer
+ * outside this rail (the regroup checker's evidence-placement test, R-1176) imports this
+ * instead of copying the split, so both read one cell the same way.
+ */
+export function citesOf(evidence: string): string[] {
+	return (
+		evidence.includes("`")
+			? [...evidence.matchAll(/`([^`]+)`/g)].map((c) => c[1] as string)
+			: evidence.split(",")
+	)
+		.map(trimWhitespace)
+		.filter((c) => c !== "" && c !== "—");
+}
+
 /** Parse already-normalized REQUIREMENTS.md text (the file reader removed its leading BOM) into rows by ID. Throws on a malformed table. */
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
@@ -235,15 +252,7 @@ export function loadRequirements(text: string): Map<string, Row> {
 		if (!STATUSES.has(status))
 			throw new Error(`${id}: unknown status '${status}'`);
 		if (rows.has(id)) throw new Error(`duplicate id ${id}`);
-		// Citations are backticked (`tests/x.test.ts::title`) so a comma inside a title
-		// survives; an un-backticked cell is split on commas.
-		const cites = (
-			evidence.includes("`")
-				? [...evidence.matchAll(/`([^`]+)`/g)].map((c) => c[1] as string)
-				: evidence.split(",")
-		)
-			.map(trimWhitespace)
-			.filter((c) => c !== "" && c !== "—");
+		const cites = citesOf(evidence);
 		rows.set(id, {
 			status,
 			external: cites.length > 0 && cites.every((c) => EXTERNAL.test(c)),

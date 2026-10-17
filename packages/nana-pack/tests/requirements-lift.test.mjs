@@ -2288,5 +2288,125 @@ const planShareLinesOf = (stdout) => lines(stdout).filter((l) => /\b(added|dropp
     `write=${w.status} idx=${idx} verify=${v.status} ` + own(v.stderr).join(" | "));
 }
 
+// ==================================================================================================
+// R-1170
+// ==================================================================================================
+
+{
+  // Two sections share the heading text "## 2. Two" (lines 11 and 19 below), on a flat ledger: the
+  // default mapping names each one its own node (FEAT-002, FEAT-003), so `detectMoves` reports
+  // every named heading apart by line, and a row hand-moved between them reports apart too.
+  const sameHeadingLedger = [
+    "# fixture requirements", "",
+    "# Part A. Alpha", "",
+    "## 1. One", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-001 | The first thing shall work. | untested | — |",
+    "",
+    "## 2. Two", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-002 | The second thing shall work. | untested | — |",
+    "",
+    "# Part B. Beta", "",
+    "## 2. Two", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-003 | The third thing shall work. | untested | — |",
+    "| R-004 | The fourth thing shall work. | untested | — |",
+    "",
+    // Item 7 (M6): a level-3 subgroup heading, so the default mapping names one (SUB-001, under
+    // FEAT-003) and R-1170 must report it too, not only the capability and feature headings above it.
+    "### 2a. Two Sub", "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-005 | The fifth thing shall work. | untested | — |",
+    "",
+    "## Open questions", "",
+    "1. An open question.", "",
+    "## Deliberate omissions", "",
+    "1. A deliberate omission.", "",
+  ].join("\n");
+  const dir = writeLedger(scratchDir("t40-same-heading"), sameHeadingLedger);
+  const mapPath = join(dir, "map.json");
+  const emit = lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  const capA = map.tree.find((c) => c.label === "Part A. Alpha");
+  const capB = map.tree.find((c) => c.label === "Part B. Beta");
+  const f1 = capA?.features.find((f) => f.label === "1. One");
+  const f2 = capA?.features.find((f) => f.label === "2. Two");
+  const f3 = capB?.features.find((f) => f.label === "2. Two");
+  // Item 7 (M6): the new level-3 subgroup, under FEAT-003 (f3).
+  const sub1 = f3?.subgroups.find((s) => s.label === "2a. Two Sub");
+  if (f2 && f3) {
+    // Move R-004 from the second "## 2. Two" section's own feature (FEAT-003) into the first's (FEAT-002).
+    f3.rows = f3.rows.filter((r) => r !== "R-004");
+    f2.rows = [...f2.rows, "R-004"];
+  }
+  writeFileSync(mapPath, `${JSON.stringify(map, null, 2)}\n`);
+  const dry = lift(["--root", dir, "--mapping", mapPath]);
+  const REPORT = /^line (\d+): (.*) -> ((?:CAP|FEAT|SUB)-\d+)(?: \(rows ([^)]*)\))?$/;
+  const recs = lines(dry.stdout).map((l) => REPORT.exec(l)).filter(Boolean).map((m) => ({ line: +m[1], heading: m[2], to: m[3], rows: m[4] ? m[4].split(/,\s*/) : [] }));
+  const headingAt = (line, to) => recs.find((r) => r.line === line && r.to === to && r.rows.length === 0);
+  const h5 = f1 && headingAt(5, f1.id);
+  const h11 = f2 && headingAt(11, f2.id);
+  const h19 = f3 && headingAt(19, f3.id);
+  const moved = f2 && recs.find((r) => r.line === 19 && r.to === f2.id && JSON.stringify(r.rows) === JSON.stringify(["R-004"]));
+  const sameHeadingApart = h11 && h19 && h11.heading === h19.heading && h11.line !== h19.line;
+  // Item 4: every printed line's own heading TEXT, not only that a record exists for its line
+  // and node — headingAt never checked the "heading" field's actual value before this, so a
+  // mutation that scrambled it (while keeping the line/to/rows shape intact) stayed green.
+  const headingTextOk = h5 && h5.heading === "## 1. One" && h11 && h11.heading === "## 2. Two" && h19 && h19.heading === "## 2. Two";
+  // Item 7 (M6): "every named heading" means the capability headings and the subgroup heading
+  // too, not just the feature headings above — a print that skipped either would leave this
+  // test green otherwise.
+  const capALine = lineOf(sameHeadingLedger, "# Part A. Alpha");
+  const capBLine = lineOf(sameHeadingLedger, "# Part B. Beta");
+  const subLine = lineOf(sameHeadingLedger, "### 2a. Two Sub");
+  const hCapA = capA && headingAt(capALine, capA.id);
+  const hCapB = capB && headingAt(capBLine, capB.id);
+  const hSub = sub1 && headingAt(subLine, sub1.id);
+  // Item 4: the capability and subgroup lines' own heading text too.
+  const capSubTextOk = hCapA && hCapA.heading === "# Part A. Alpha" && hCapB && hCapB.heading === "# Part B. Beta" && hSub && hSub.heading === "### 2a. Two Sub";
+  // req: R-1170
+  check("R-1170: on a flat ledger whose two sections share one heading text, a mapping's dry run prints each named heading's line, text and node, and each row move by old line with its row IDs",
+    emit.status === 0 && Boolean(f1) && Boolean(f2) && Boolean(f3) && Boolean(sub1) && dry.status === 0 && Boolean(h5) && Boolean(h11) && Boolean(h19) && Boolean(moved) && Boolean(sameHeadingApart) && Boolean(hCapA) && Boolean(hCapB) && Boolean(hSub) && headingTextOk && capSubTextOk,
+    `emit=${emit.status} dry=${dry.status} f1=${f1?.id} f2=${f2?.id} f3=${f3?.id} sub1=${sub1?.id} capA=${hCapA ? capA.id : "miss"} capB=${hCapB ? capB.id : "miss"} sub=${hSub ? sub1.id : "miss"} headingText=${headingTextOk} capSubText=${capSubTextOk} recs=${JSON.stringify(recs)} ` + own(dry.stderr).join(" | "));
+}
+
+// ==================================================================================================
+// R-1170 (item 4): a heading whose own tree ID equals the ID of the node naming it prints no line
+// ==================================================================================================
+
+{
+  // The identity mapping moves nothing: every heading's own tree ID (already in the text)
+  // equals the ID the mapping assigns it, so detectMoves must print no heading line for any
+  // of them (the exemption clause R-1170's own text carries: "whose own tree ID, if any,
+  // differs from the ID of the node naming it").
+  const base = sharesLedger();
+  const identMap = LIFT_MODULE.buildIdentityMapping(base);
+  const noMoveRecords = LIFT_MODULE.detectMoves(base, identMap);
+  const noMoveOk = noMoveRecords.length === 0;
+
+  // Folding FEAT-004 into FEAT-003 (a merge, no shares_added declared) changes ONE heading's
+  // own node: FEAT-004's old heading, at its own line, now names FEAT-003 — the only heading
+  // whose own tree ID differs from the id naming it, so it is the only one that prints.
+  const mergeMap = structuredClone(identMap);
+  const mergeCap = mergeMap.tree[0];
+  const f3 = mergeCap.features.find((f) => f.id === "FEAT-003");
+  const f4 = mergeCap.features.find((f) => f.id === "FEAT-004");
+  f3.from = [...f3.from, ...f4.from];
+  f3.rows = [...f3.rows, ...f4.rows];
+  mergeCap.features = mergeCap.features.filter((f) => f !== f4);
+  const mergeRecords = LIFT_MODULE.detectMoves(base, mergeMap);
+  const f4Line = lineOf(base, "## FEAT-004 · Fourth feature");
+  const onlyMovedOk = mergeRecords.length === 1 && mergeRecords[0].line === f4Line && mergeRecords[0].to === "FEAT-003" && mergeRecords[0].heading === "## FEAT-004 · Fourth feature";
+  // req: R-1170
+  check("R-1170: a heading whose own tree ID equals the ID of the node naming it prints no line, and only the one heading a merge actually renames does",
+    noMoveOk && onlyMovedOk,
+    `noMove=${noMoveRecords.length} merge=${JSON.stringify(mergeRecords)}`);
+}
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
