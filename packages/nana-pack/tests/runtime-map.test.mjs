@@ -207,26 +207,47 @@ function bothBlocksStale(out) {
 }
 const mm5Cases = [mm5Changed, mm5Added, mm5Removed].map((f) => runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: f }));
 
-// a fourth case (sol MUST 3, astra SHOULD 1): an unstaged deletion of a tracked file. git
+// A fourth case (sol MUST 3, astra SHOULD 1): an unstaged deletion of a tracked file. git
 // ls-files still names it (only `git rm` would drop it), so hashing it off disk must not throw —
-// a missing file counts as changed, same as any other content mismatch.
-const mm5DeletedPath = ".gitignore"; // small, tracked, read by nothing while this check runs
-const mm5DeletedAbs = path.join(REPO, mm5DeletedPath);
-const mm5DeletedBackup = fs.readFileSync(mm5DeletedAbs);
-const mm5Deleted = path.join(TD, "mm5-deleted.json");
-mkImpactData(mm5Deleted, currentHashes()); // hashes match the checkout as it stands, file included
-let mm5DeletedResult;
-try {
-	fs.unlinkSync(mm5DeletedAbs);
-	mm5DeletedResult = runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: mm5Deleted });
-} finally {
-	fs.writeFileSync(mm5DeletedAbs, mm5DeletedBackup);
-}
-mm5Cases.push(mm5DeletedResult);
+// a missing file counts as changed, same as any other content mismatch. This never touches THIS
+// checkout (build brief 4): a throwaway fixture repository under the test's own temp folder, the
+// same shape MM9 already builds, holds the one file that gets deleted.
+const mm5DeletedConfig = {
+	roots: ["probe"],
+	moduleExtensions: [".mjs"],
+	mapPath: "docs/code-map.md",
+	runner: "npm run",
+	packages: [{ id: "mm5-deleted", prefix: "" }],
+	layers: [{ id: "all", title: "All", blurb: "x", match: "^probe/" }],
+};
+const rootMM5Deleted = mkGitFixture("mm5-deleted", {
+	"code-map.config.json": JSON.stringify(mm5DeletedConfig),
+	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
+	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
+	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
+	"packages/nana-pack/lib/runtime-map.mjs": fs.readFileSync(RUNTIME_MAP_READER, "utf8"),
+	"probe/other.mjs": "export const O = 1;\n", // the path this case queries; stays on disk throughout
+	"probe/target.mjs": "export const T = 2;\n", // deleted below, unstaged
+});
+const mm5DeletedData = path.join(TD, "mm5-deleted-data.json");
+fs.writeFileSync(mm5DeletedData, JSON.stringify({
+	schema: 1,
+	hashes: {
+		"probe/other.mjs": hashFile(path.join(rootMM5Deleted, "probe", "other.mjs")),
+		"probe/target.mjs": hashFile(path.join(rootMM5Deleted, "probe", "target.mjs")),
+	},
+	tests: {},
+}));
+fs.unlinkSync(path.join(rootMM5Deleted, "probe", "target.mjs")); // unstaged: still in git ls-files
+const mm5DeletedResult = spawnSync(process.execPath, [path.join(rootMM5Deleted, "scripts", "code-map.mjs"), "--impact", "probe/other.mjs"], {
+	cwd: rootMM5Deleted, encoding: "utf8", env: { ...process.env, NANA_RUNTIME_MAP_FILE: mm5DeletedData },
+});
+const mm5DeletedOut = (mm5DeletedResult.stdout ?? "") + (mm5DeletedResult.stderr ?? "");
+const mm5DeletedOk = mm5DeletedResult.status === 0 && mm5DeletedOut.includes("measured tests for probe/other.mjs (0): — [stale]");
 
 // req: R-1274
 check("R-1274: impact marks the whole runtime section stale after a tracked file is changed, added or removed, a section with no measured test included",
-	mm5Cases.every((r) => r.code === 0 && bothBlocksStale(r.out)),
+	mm5Cases.every((r) => r.code === 0 && bothBlocksStale(r.out)) && mm5DeletedOk,
 );
 
 const garbageData = path.join(TD, "garbage-data.json");
