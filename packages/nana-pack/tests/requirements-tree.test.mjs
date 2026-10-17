@@ -51,7 +51,7 @@ check("R-291: every real heading's committed IDs survive expansion and leaf coun
     if (!children) leafTotal += heading.rows.length;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
   }
-  return leafTotal === 1202;
+  return leafTotal === 1204;
 })(), "committed IDs differ or leaf total is not 1,204");
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
