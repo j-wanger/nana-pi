@@ -1,0 +1,59 @@
+seat-mutate: lane mutate-runner, tip d5948947d3d96472e498980af379b60caa225dad, merge-base 61c574815cb4cc707f668da378ccfda5dd26a3e1, 43 pairs in 5 shards (9+9+9+8+8, round-robin, 4s apart) (DRY: anchors only), darwin, node v22.22.2, 2026-10-17T16:23:48.573Z
+DECLARED (a) pair ids are §5.3's row numbers 1-43, one pair per row, each row's edits applied together; pairs 34 and 35 came with seat revision 4 (slim) and 36 to 43 with seat revision 5, each appended at the end, so no earlier number moves (CHANGE.md §5.3).
+DECLARED (b) test set: every pair runs only packages/nana-pack/tests/mutation-runner.test.mjs; every edit touches packages/nana-pack/lib/mutation-runner.mjs or lib/mutation-runner-config.mjs, never an assertion (CHANGE.md §5.3).
+DECLARED (c) pair 11 (no taskkill on win32) reds M7 only on Windows: killPid already calls process.kill on POSIX, so dropping the win32 taskkill branch is a no-op on this seat's platform; the pair is kept, applied and syntax-checked here like every other pair, but judged on no title on this leg, per CHANGE.md §5.3's own note that pair 11 can red only on Windows, where no runner runs mutation pairs.
+DECLARED (d) label forms the code shape forces: pair 35's wording ("one shard runs in the parent's own process") does not fit this runner, where the parent never judges a pair itself, one shard included (R-1230's S16); the edit instead makes the shard append each line to its part file as it logs, rather than writing it once at the end — the closest reachable form of "appends the record line by line", reading M18 the same way. Pair 41's test-path containment check is read off the baseline loop's own guard, not the per-pair run loop's, matching §5.3's recount, which groups pair 41 under "baseline".
+[1/5] seat-mutate: lane mutate-runner, shard 1/5, tip d5948947d3d96472e498980af379b60caa225dad, merge-base 61c574815cb4cc707f668da378ccfda5dd26a3e1, 9 pairs (DRY: anchors only), darwin, node v22.22.2, 2026-10-17T16:23:48.663Z
+[1/5] RESULT (DRY): 9/9 pairs apply
+[2/5] seat-mutate: lane mutate-runner, shard 2/5, tip d5948947d3d96472e498980af379b60caa225dad, merge-base 61c574815cb4cc707f668da378ccfda5dd26a3e1, 9 pairs (DRY: anchors only), darwin, node v22.22.2, 2026-10-17T16:23:52.697Z
+[2/5] RESULT (DRY): 9/9 pairs apply
+[3/5] seat-mutate: lane mutate-runner, shard 3/5, tip d5948947d3d96472e498980af379b60caa225dad, merge-base 61c574815cb4cc707f668da378ccfda5dd26a3e1, 9 pairs (DRY: anchors only), darwin, node v22.22.2, 2026-10-17T16:23:56.699Z
+[3/5] RESULT (DRY): 9/9 pairs apply
+[4/5] seat-mutate: lane mutate-runner, shard 4/5, tip d5948947d3d96472e498980af379b60caa225dad, merge-base 61c574815cb4cc707f668da378ccfda5dd26a3e1, 8 pairs (DRY: anchors only), darwin, node v22.22.2, 2026-10-17T16:24:00.671Z
+[4/5] RESULT (DRY): 8/8 pairs apply
+[5/5] seat-mutate: lane mutate-runner, shard 5/5, tip d5948947d3d96472e498980af379b60caa225dad, merge-base 61c574815cb4cc707f668da378ccfda5dd26a3e1, 8 pairs (DRY: anchors only), darwin, node v22.22.2, 2026-10-17T16:24:04.698Z
+[5/5] RESULT (DRY): 8/8 pairs apply
+DRY ok 1 the scratch folder made beside the lane repository, not under the temp folder (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 2 no git clean between pairs (1 file changed, 2 deletions(-))
+DRY ok 3 git calls without the hooks-off setting (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 4 the own-root check removed before the reset (1 file changed, 3 deletions(-))
+DRY ok 5 cleanup skips git worktree remove (1 file changed, 1 deletion(-))
+DRY ok 6 a shard's signal handler kills no test tree (1 file changed, 1 deletion(-))
+DRY ok 7 the test file started without --experimental-strip-types (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 8 ambient NANA_ variables kept (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 9 an npm that cannot start skipped with no line (the landed form) (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 10 the time limit marks the file timed out but kills nothing (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 11 no taskkill on win32; the POSIX group kill throws there and is caught (the landed form) (1 file changed, 1 insertion(+), 2 deletions(-))
+DRY ok 12 no group kill after a normal exit (1 file changed, 1 deletion(-))
+DRY ok 13 the result waits for the output to close, with no drain (1 file changed, 1 deletion(-))
+DRY ok 14 an anchor counted with includes, not an exact count (1 file changed, 1 insertion(+), 2 deletions(-))
+DRY ok 15 a mutated .ts file checked with Node's own --experimental-strip-types --check (the landed form) (1 file changed, 1 insertion(+), 2 deletions(-))
+DRY ok 16 a mutated .mjs file not syntax-checked (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 17 no baseline retry (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 18 the baseline title check removed (1 file changed, 6 deletions(-))
+DRY ok 19 a pair with no failing title counted RED (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 20 a pattern title compared as a string (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 21 a declared also-red title listed as unnamed (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 22 a crashed file with no FAIL line counted GREEN (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 23 the parent waits for each shard before starting the next (1 file changed, 2 insertions(+), 1 deletion(-))
+DRY ok 24 the stagger ignored (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 25 the shard count not held to the selected pair count (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 26 the merged record in shard order, not table order (1 file changed, 4 insertions(+), 3 deletions(-))
+DRY ok 27 RESULT sums only the first shard's tally (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 28 a pair no shard printed dropped with no MISSING line (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 29 unknown pair ids filtered out without a word (the copies' silent filter) (1 file changed, 1 deletion(-))
+DRY ok 30 a repeated table id accepted (the landed form) (1 file changed, 1 deletion(-))
+DRY ok 31 a config value's provenance comment removed (1 file changed, 3 deletions(-))
+DRY ok 32 the dry option still runs test files (1 file changed, 1 deletion(-))
+DRY ok 33 SEAT_MUTATE_TIP ignored (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 42 a red baseline run's output not written to the log folder (1 file changed, 1 deletion(-))
+DRY ok 43 a config key outside the overridable tunables accepted (1 file changed, 2 deletions(-))
+DRY ok 36 no lock: a second run given the same record file runs beside the first (the landed form) (1 file changed, 1 insertion(+), 6 deletions(-))
+DRY ok 34 an edit file read with no guard, so a missing one throws and ends its shard (the landed form) (1 file changed, 1 insertion(+), 3 deletions(-))
+DRY ok 35 one shard runs in the parent's own process and appends the record line by line (the landed form, closest form; DECLARED d) (1 file changed, 1 insertion(+), 1 deletion(-))
+DRY ok 37 a shard skips the table-hash comparison (the landed form) (1 file changed, 1 deletion(-))
+DRY ok 38 a shard skips the tip-commit comparison (the landed form) (1 file changed, 1 deletion(-))
+DRY ok 39 the parent does no cleanup after a shard ends, so a dead shard's test tree and worktree stay (the landed form) (1 file changed, 1 deletion(-))
+DRY ok 40 an edit path joined to the worktree with no containment check (the landed form) (1 file changed, 2 insertions(+), 2 deletions(-))
+DRY ok 41 a test path joined to the worktree with no containment check (the landed form; baseline instance, DECLARED d) (1 file changed, 2 deletions(-))
+RESULT (DRY): 43/43 pairs apply, across 5 shards
