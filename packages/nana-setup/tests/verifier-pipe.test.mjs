@@ -39,16 +39,23 @@ if (isWin32) {
 	const installedSettings = JSON.parse(fs.readFileSync(path.join(installedHome, ".claude", "settings.json"), "utf8"));
 	const verifierEntry = (installedSettings.hooks?.PreToolUse ?? []).flatMap((g) => g.hooks ?? []).find((h) => Array.isArray(h.args) && h.args[0]?.endsWith("verifier-pipe.mjs"));
 	installedHook = verifierEntry?.args?.[0];
-	installedHookMatches = installedHook === hook;
+	// desiredHooks' win32 branch builds args[0] as `${repoRoot}/packages/...` with a literal
+	// forward slash (settings.mjs's own documented backslash-root/forward-slash-suffix shape),
+	// while `hook` here is built with path.join's native (all-backslash) separator — an exact
+	// string compare would fail even though both name the same file; realpathSync resolves
+	// either spelling to the same canonical path.
+	installedHookMatches = Boolean(installedHook) && fs.realpathSync(installedHook) === fs.realpathSync(hook);
 } else {
 	installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
 	installedHookMatches = fs.realpathSync(installedHook) === hook;
 }
 const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
 const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
+// win32 install writes no symlink (the title named one; retitled since exec form points
+// straight at the checkout there — no link exists to name).
 // req: R-985
 // req: R-984
-check("installed symlink asks on a verifier-pipe hit", install.status === 0 && installedHookMatches && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
+check("installed hook asks on a verifier-pipe hit", install.status === 0 && installedHookMatches && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
 const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
 // req: R-984
 check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");

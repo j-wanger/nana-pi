@@ -93,8 +93,25 @@ if (tickOk) {
 // req: R-217
 check("end to end: every pointer line splits into exactly 3 fields", lines(out).slice(1).every((l) => fieldsOf(l).length === 3));
 // ...a path is an address: the delimiter's dash inside it is escaped as \u2014, never substituted
-if (evilIndexed) check("the hostile filename renders as ONE escaped JSON literal", out.includes(esc(path.join(src, activeEvil)).replace(/\\u001b/, "\\u001B").replace(/\\n/, "\\u000A").replaceAll("—", "\\u2014")));
-else skip("the hostile filename renders as ONE escaped JSON literal", ntfsReason);
+if (evilIndexed) {
+	// Both evilName and legalName contain an em dash, which collides with FIELD_SEP (" — "):
+	// pointerPath always re-renders through its DASH-forcing branch for either, so BOTH end up
+	// quoted and escaped (never raw) on every platform -- that part of esc()'s JSON.stringify
+	// form always applies. The ESC/newline SPELLING fixups below exist only to turn JSON.stringify's
+	// shorthand for evilName's own two real control chars (a raw newline, ESC literally in its
+	// name) into the renderer's \uXXXX form; legalName carries neither, so applying them to IT
+	// would find a false match instead — win32's temp dir for this file is literally
+	// nk-render-<id>, and the path separator right before it is a backslash immediately
+	// followed by "n", which the newline-spelling regex reads as the very shorthand it exists to
+	// fix (sol's find). Gate both fixups on nameOk (evilName only); the em-dash fixup always runs.
+	const fullEvilPath = path.join(src, activeEvil);
+	let expectedEvilRender = esc(fullEvilPath);
+	if (nameOk) expectedEvilRender = expectedEvilRender.replace(/\\u001b/, "\\u001B").replace(/\\n/, "\\u000A");
+	expectedEvilRender = expectedEvilRender.replaceAll("—", "\\u2014");
+	check("the hostile filename renders as ONE escaped JSON literal", out.includes(expectedEvilRender));
+} else {
+	skip("the hostile filename renders as ONE escaped JSON literal", ntfsReason);
+}
 
 // ---------------------------------------------------------------- 2. malformed rows via search()
 const fakeDb = (rows) => ({ prepare: () => ({ all: () => rows }) });
