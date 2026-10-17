@@ -10,9 +10,11 @@
  * @errors failed assertions exit nonzero
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { rosterNotice } from "../lib/roster-notice.mjs";
 import {
 	NOTICE_PREFIX,
@@ -29,6 +31,9 @@ import {
 import { ROSTER_DEFAULTS } from "../bin/worker-config.mjs";
 import { resolveRoster } from "../bin/nana-roster.mjs";
 import { tildeify } from "../../nana-setup/lib/paths.mjs";
+
+const hookPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "nana-setup", "claude", "hooks", "nana-roster-notice.mjs");
+const extensionDefault = (await import(new URL("../extensions/nana-roster-notice.ts", import.meta.url).href)).default;
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -258,6 +263,125 @@ check("roster notice: the roster file shows the home folder as ~ wherever it app
 		}
 		return { pass: results.every(([, p]) => p), results };
 	})().pass, "see above");
+
+/* --- the pi extension: drives the REAL registered handler with a fake pi/ctx ------------ */
+function makeExtensionHandlers() {
+	const handlers = {};
+	extensionDefault({ on: (name, fn) => { handlers[name] = fn; }, registerCommand: () => {} });
+	return handlers;
+}
+function fakeCtx({ hasUI = true } = {}) {
+	const widgetCalls = [];
+	const notifyCalls = [];
+	const ctx = { hasUI, ui: { setWidget: (key, lines, opts) => widgetCalls.push({ key, lines, opts }), notify: (message, kind) => notifyCalls.push({ message, kind }) } };
+	return { ctx, widgetCalls, notifyCalls };
+}
+/** Run `fn` with PI_CODING_AGENT_DIR set to `agentDir` for the duration, then restore it. */
+async function withAgentDir(agentDir, fn) {
+	const prev = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	try { return await fn(); }
+	finally { if (prev === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = prev; }
+}
+
+{
+	const l13 = await (async () => {
+		const results = [];
+		for (const reason of ["startup", "new", "resume", "fork"]) {
+			for (const rosterKind of ["ok", "refused"]) {
+				const dir = freshAgentDir(`l13-${reason}-${rosterKind}`);
+				writeRoster(dir, rosterKind === "ok" ? sampleRoster() : { ...sampleRoster(), builder: null });
+				const handlers = makeExtensionHandlers();
+				const { ctx, widgetCalls, notifyCalls } = fakeCtx({ hasUI: true });
+				await withAgentDir(dir, () => handlers.session_start({ reason }, ctx));
+				const expected = rosterNotice(resolveRoster(dir), fileAt(dir), false);
+				results.push([`${reason}-${rosterKind}`, widgetCalls.length === 1 && widgetCalls[0].key === WIDGET_KEY && JSON.stringify(widgetCalls[0].lines) === JSON.stringify([expected]) && notifyCalls.length === 0]);
+			}
+		}
+		return { pass: results.every(([, p]) => p), results };
+	})();
+	// req: R-1210
+	check("extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify", l13.pass, JSON.stringify(l13.results.filter(([, p]) => !p)));
+}
+
+{
+	const l14 = await (async () => {
+		const results = [];
+		{
+			const dir = freshAgentDir("l14-no-ui");
+			writeRoster(dir, sampleRoster());
+			const handlers = makeExtensionHandlers();
+			const { ctx, widgetCalls, notifyCalls } = fakeCtx({ hasUI: false });
+			await withAgentDir(dir, () => handlers.session_start({ reason: "startup" }, ctx));
+			results.push(["no UI", widgetCalls.length === 0 && notifyCalls.length === 0]);
+		}
+		{
+			const dir = freshAgentDir("l14-reload");
+			writeRoster(dir, sampleRoster());
+			const handlers = makeExtensionHandlers();
+			const { ctx, widgetCalls, notifyCalls } = fakeCtx({ hasUI: true });
+			await withAgentDir(dir, () => handlers.session_start({ reason: "reload" }, ctx));
+			results.push(["reload reason", widgetCalls.length === 0 && notifyCalls.length === 0]);
+		}
+		return { pass: results.every(([, p]) => p), results };
+	})();
+	// req: R-1210
+	check("extension: no UI, and the reload reason, each set no widget and raise nothing", l14.pass, JSON.stringify(l14.results));
+}
+
+/* --- parity: the hook (spawned) and the extension (in-process) compose the same line ----- */
+function runHookOnce(agentDir) {
+	const r = spawnSync(process.execPath, [hookPath], { encoding: "utf8", input: JSON.stringify({ source: "startup" }), cwd: agentDir, env: { PATH: process.env.PATH, HOME: os.homedir(), PI_CODING_AGENT_DIR: agentDir } });
+	const parsed = JSON.parse(r.stdout.trim());
+	return parsed.hookSpecificOutput.additionalContext;
+}
+async function runExtensionOnce(agentDir, { cwd } = {}) {
+	const handlers = makeExtensionHandlers();
+	const { ctx, widgetCalls } = fakeCtx({ hasUI: true });
+	const prevCwd = cwd !== undefined ? process.cwd() : null;
+	if (cwd !== undefined) process.chdir(cwd);
+	try { await withAgentDir(agentDir, () => handlers.session_start({ reason: "startup" }, ctx)); }
+	finally { if (cwd !== undefined) process.chdir(prevCwd); }
+	return widgetCalls[0]?.lines?.[0];
+}
+
+{
+	const l15 = await (async () => {
+		const results = [];
+		const dirDefault = freshAgentDir("l15-default");
+		results.push(["default", runHookOnce(dirDefault) === await runExtensionOnce(dirDefault)]);
+		const dirFile = freshAgentDir("l15-file");
+		writeRoster(dirFile, sampleRoster());
+		results.push(["file", runHookOnce(dirFile) === await runExtensionOnce(dirFile)]);
+		const dirRefused = freshAgentDir("l15-refused");
+		writeRoster(dirRefused, { ...sampleRoster(), builder: null });
+		results.push(["refused", runHookOnce(dirRefused) === await runExtensionOnce(dirRefused)]);
+		return { pass: results.every(([, p]) => p), results };
+	})();
+	// req: R-1211
+	check("parity: the hook and the extension show the same notice for a default, a file and a refused roster", l15.pass, JSON.stringify(l15.results));
+}
+
+{
+	const l16 = await (async () => {
+		const results = [];
+		for (const [label, arrange] of [["file", (dir) => writeRoster(dir, sampleRoster())], ["refused", (dir) => writeRoster(dir, { ...sampleRoster(), builder: null })]]) {
+			const startFolder = freshAgentDir(`l16-start-${label}`);
+			const relDir = path.join(startFolder, "rel");
+			fs.mkdirSync(relDir, { recursive: true });
+			arrange(relDir);
+			const hookRun = spawnSync(process.execPath, [hookPath], { encoding: "utf8", input: JSON.stringify({ source: "startup" }), cwd: startFolder, env: { PATH: process.env.PATH, HOME: os.homedir(), PI_CODING_AGENT_DIR: "rel" } });
+			const hookLine = JSON.parse(hookRun.stdout.trim()).hookSpecificOutput.additionalContext;
+			const extensionLine = await runExtensionOnce("rel", { cwd: startFolder });
+			const isUnknown = (line) => typeof line === "string" && line.startsWith(`${NOTICE_PREFIX} ${RELATIVE_DIR_TEXT}`) && line.endsWith(`${CHANGE_POINTER} ${path.join(startFolder, "rel", "nana-pack.json")}`) && !line.includes("zz-");
+			results.push([`${label} hook`, isUnknown(hookLine)]);
+			results.push([`${label} extension`, isUnknown(extensionLine)]);
+		}
+		return { pass: results.every(([, p]) => p), results };
+	})();
+	// req: R-1215
+	check("relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster", l16.pass, JSON.stringify(l16.results));
+}
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
