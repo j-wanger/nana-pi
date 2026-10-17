@@ -396,9 +396,8 @@ Pairs deal round-robin across `SEAT_MUTATE_SHARDS` shards (five by default), eac
 staggered `SEAT_MUTATE_STAGGER_SECS` after the one before it, and the record is the landed line
 words: `seat-mutate: lane …`, `DECLARED`, `[k/N]` notes, `BASELINE ok`/`FAIL`/`RETRY`/`MISSING`,
 `RED`, `GREEN … SURVIVED`, `ANCHOR-MISS`, `SYNTAX`, `DRY ok`, `MISSING`, `RESULT`,
-`RESULT (DRY)`, and `seat-mutate: KEEP`. It exits 0 when every pair reds as named (or, with
-`SEAT_MUTATE_DRY=1`, every pair's edits apply and syntax-check), 2 when a pair is missing, a
-shard fails, the run is interrupted, or an input is refused, and 3 when any pair is ANCHOR-MISS
+`RESULT (DRY)`, and `seat-mutate: KEEP`. Exit 0 means the run completed; its RESULT line counts the survivors. It exits 2 when a pair is missing,
+a shard fails, the run is interrupted, or an input is refused, and 3 when any pair is ANCHOR-MISS
 (a bad anchor, a missing or escaping edit file) or SYNTAX (a mutated `.mjs`, `.js` or `.ts` file
 that fails to parse).
 
