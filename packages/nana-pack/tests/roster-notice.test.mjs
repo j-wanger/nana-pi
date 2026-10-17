@@ -38,6 +38,13 @@ const extensionDefault = (await import(new URL("../extensions/nana-roster-notice
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
 
+// A dedicated throwaway HOME, set before any os.homedir()-reading code below runs (this file's
+// own tests and the hook/extension it drives both read it) — never the real developer home, so
+// this file is safe to run directly, outside scripts/test.mjs's own per-file HOME isolation.
+const testHome = tmpDir(path.join(os.tmpdir(), "roster-notice-testhome-"));
+process.env.HOME = testHome;
+process.env.USERPROFILE = testHome;
+
 const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "roster-notice-")));
 let agentCount = 0;
 const freshAgentDir = (label) => { const d = path.join(temp, `agent-${++agentCount}-${label}`); fs.mkdirSync(d, { recursive: true }); return d; };

@@ -224,7 +224,7 @@ A roster replaces every slot, whole — there is no merge and no fallback to the
 
 A seat passes the roster's reviewer and land models to `pi-review` itself, as `pi-review … -- --provider <provider> --model <model> [--thinking <thinking>]`; `pi-review` reads no roster and prints no builder line. `pi-worker`'s lane mode reads `--lane-size <small|larger>` to pick `builder` or `largerBuilder` — see Lane builder above.
 
-To change one slot without hand-editing the whole file, pull first — an older checkout refuses a file holding `largerBuilder`, naming it, so pull before you add it — then run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" --json`, which prints this machine's resolved roster as `{"roster": …}`. Set the file's `roster` member to that printed `roster` value, adding the member if the file has none or replacing the one already there, keep every other key (the installer's file already holds `objective`), then change the one slot you meant to change — pasting the whole command output beside the file's existing object makes invalid JSON.
+To change one slot without hand-editing the whole file: pull before you add `largerBuilder` — an older checkout refuses a file holding it, naming it — then run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" --json`, which prints this machine's resolved roster as `{"roster": …}`. Set the file's `roster` member to that printed `roster` value, adding the member if the file has none or replacing the one already there, keep every other key (the installer's file already holds `objective`), then change the one slot you meant to change — pasting the whole command output beside the file's existing object makes invalid JSON.
 
 #### Windows
 

@@ -9,7 +9,7 @@ Sibling repo to `~/nana-agent-loop`.
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
 - `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, writing, roster-notice), plus scaffold +
+  post-edit, lifecycle, notify, handoff, objective, writing, roster notice), plus scaffold +
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships the extensions of `nana-pack` and
   `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
