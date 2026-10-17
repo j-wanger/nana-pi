@@ -103,5 +103,14 @@ export function tildeify(p) {
 	// not block the rewrite: os.homedir() returns the env var verbatim, so a doubled separator
 	// (h + path.sep) would never match p's single one (R-1204).
 	const h = os.homedir().replace(/[\\/]+$/, "");
-	return p === h || p.startsWith(h + path.sep) ? "~" + p.slice(h.length) : p;
+	// Both file systems this helper's callers run on are case-insensitive by default — macOS
+	// (darwin) and Windows (win32) always — so an agent folder spelled in a different letter
+	// case still lies under the home folder there. Compare without regard to case on those two
+	// platforms only; elsewhere (linux) the comparison stays case-sensitive. Either way the
+	// rewrite keeps the PATH'S OWN spelling after the "~" — only the comparison ignores case,
+	// never the slice (R-1204).
+	const ci = platform() === "darwin" || platform() === "win32";
+	const pCmp = ci ? p.toLowerCase() : p;
+	const hCmp = ci ? h.toLowerCase() : h;
+	return pCmp === hCmp || pCmp.startsWith(hCmp + path.sep) ? "~" + p.slice(h.length) : p;
 }

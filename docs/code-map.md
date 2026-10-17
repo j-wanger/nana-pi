@@ -2476,8 +2476,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/paths.test.mjs`
 
-- **purpose** — Pins resolveLayout's isRealHome guard: false whenever ANY explicit override (--home, --claude-home, --pi-home) is in force, even when --home resolves to the same path as the real home directory
-- **inputs** — lib/paths.mjs resolveLayout, and os.homedir() (under the suite runner this is already a fresh per-file temp HOME, never the developer's real one — scripts/test.mjs scrubs it; resolveLayout itself touches no disk either way)
+- **purpose** — Pins resolveLayout's isRealHome guard (false whenever ANY explicit override — --home, --claude-home, --pi-home — is in force, even when --home resolves to the same path as the real home directory) and tildeify's case rule on a case-variant home path (R-1204)
+- **inputs** — lib/paths.mjs resolveLayout and tildeify, NANA_SETUP_PLATFORM (the forced-platform seam), and os.homedir() (under the suite runner this is already a fresh per-file temp HOME, never the developer's real one — scripts/test.mjs scrubs it; resolveLayout itself touches no disk either way)
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — none (pure path arithmetic; nothing on disk is read or written)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

@@ -282,6 +282,28 @@ check("roster notice: the roster file shows the home folder as ~ wherever it app
 			const n = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, outside, false);
 			results.push(["outside home stays absolute", n.endsWith(`${CHANGE_POINTER} ${outside}`)]);
 		}
+		// an agent folder spelled in a different letter case still lies under the home folder on
+		// a case-insensitive file system — macOS (darwin) and Windows (win32) always; linux keeps
+		// comparing by exact case, so the absolute path survives there instead (R-1204).
+		{
+			const prevHome = process.env.HOME;
+			const prevProfile = process.env.USERPROFILE;
+			try {
+				const home = path.join(os.tmpdir(), "Nana-Case-Fixture-Home");
+				const variantHome = path.join(os.tmpdir(), "nana-case-fixture-home"); // same path, different case
+				process.env.HOME = home;
+				process.env.USERPROFILE = home;
+				const file = path.join(variantHome, "Sub", "nana-pack.json");
+				const n = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, file, false);
+				const caseInsensitive = process.platform !== "linux";
+				const expectedPointer = caseInsensitive ? "~" + file.slice(home.length) : file;
+				results.push(["case-variant home path", n.endsWith(`${CHANGE_POINTER} ${expectedPointer}`) &&
+					(caseInsensitive ? !n.includes(file) : n.includes(file))]);
+			} finally {
+				if (prevHome === undefined) delete process.env.HOME; else process.env.HOME = prevHome;
+				if (prevProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = prevProfile;
+			}
+		}
 		// HOME ending in a separator (a trailing "/", or "\" on win32) must not block the ~
 		// rewrite, in the pointer and in a path-bearing refusal (R-1204).
 		{
