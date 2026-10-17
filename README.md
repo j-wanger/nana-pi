@@ -59,7 +59,11 @@ disagree, `npm run map:impact -- <file...>` prints a change's blast radius, and
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and
-all three run inside `npm test` as well. Nana-pi's own `npm run req:rows -- <file...>` tool in
+all three run inside `npm test` as well. `npm run map:measure` (`scripts/runtime-measure.mjs`)
+runs the suite once under per-file coverage and saves, in a file inside the clone's shared git
+folder and outside the repository, which code each test file ran and how long it took; `npm run
+map:impact` then lists those test files under each named file. Copies run from a temporary
+folder and children stopped by a signal are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
 nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems or a `0 problems` line. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`. `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
