@@ -2526,7 +2526,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/seat-rule.test.mjs`
 
-- **purpose** — Pins that the seat guide opens with exactly one scope sentence and carries each of its eight rules exactly once, with no other bullet.
+- **purpose** — Pins that the seat guide opens with exactly one scope sentence and carries each of its ten rules exactly once, with no other bullet, numbered or not.
 - **inputs** — packages/nana-setup/claude/rules/nana-seat.md
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (reads the guide file)
