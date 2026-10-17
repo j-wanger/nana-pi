@@ -411,11 +411,16 @@ function checkInstructionContracts() {
 		largerLanesBullets.length === 1 &&
 		largerLanesBullets[0].includes("pi-worker --lane-size larger") &&
 		largerLanesBullets[0].includes("a Claude Code entry as a Claude Code subagent in the lane worktree") &&
-		largerLanesBullets[0].includes("pi-worker --lane-size small"),
+		largerLanesBullets[0].includes("pi-worker --lane-size small") &&
+		// the routing itself, not just the three substrings in any order or attribution — an
+		// inverted bullet (swapped entry kinds, or swapped lane sizes) must fail this.
+		/a pi entry through `pi-worker --lane-size larger`,\s*a Claude Code entry as a Claude Code subagent in the lane worktree;\s*a small lane goes through `pi-worker --lane-size small`/.test(largerLanesBullets[0]),
 		JSON.stringify(largerLanesBullets));
 	// req: R-1213
 	check("shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user",
-		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("stops and asks the user rather than starting another"),
+		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("stops and asks the user rather than starting another") &&
+		// the trigger, not only the consequence: it must be a seat that CANNOT START the builder.
+		/A seat that cannot start that builder stops and asks the user rather than starting another\./.test(largerLanesBullets[0]),
 		JSON.stringify(largerLanesBullets));
 	// req: R-1214
 	check("shared working pattern says the builder builds every lane when the roster sets no larger-lane builder",

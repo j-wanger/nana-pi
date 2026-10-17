@@ -648,6 +648,23 @@ check("knowledge: a win32 ~\\notes\\docs\\install-check.md pointer matches by fi
   try { const result = await fixture.run; assert.ok(result.lines.some(line => line === "PASS hook knowledge pull")); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
+// req: R-1209
+check("roster notice: plain text, not JSON, fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => ({ stdout: "nana active · roster (default): plain text, not JSON" })), "hook roster notice"));
+// req: R-1209
+check("roster notice: the unavailable notice fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => {
+  const u = "nana active · roster notice unavailable (ERR_MODULE_NOT_FOUND)";
+  return { stdout: `${JSON.stringify({ systemMessage: u, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: u } })}\n` };
+}), "hook roster notice"));
+// req: R-1209
+check("roster notice: a missing hookEventName fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => {
+  const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
+  return { stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { additionalContext: notice } })}\n` };
+}), "hook roster notice"));
+// req: R-1209
+check("roster notice: a wrong prefix fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => {
+  const notice = "not the roster notice prefix at all";
+  return { stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
+}), "hook roster notice"));
 // req: R-1072
 check("checklist: the check writes only the objective lines and one MEMORY.md line, and puts the bin folder first on PATH except on win32", async () => {
   for (const platformName of ["linux", "win32"]) {

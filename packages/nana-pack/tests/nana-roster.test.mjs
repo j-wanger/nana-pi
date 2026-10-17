@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "bin", "nana-roster.mjs");
 const { resolveRoster, validateRosterShape, formatRosterLines, orderedRoster } = await import(new URL("../bin/nana-roster.mjs", import.meta.url).href);
-const { ROSTER_DEFAULTS, LANE_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
+const { ROSTER_DEFAULTS, LANE_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -251,12 +251,14 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		["largerBuilder runtime claude (unknown runtime)", shaped((r) => { r.largerBuilder = { runtime: "claude", model: "sonnet" }; }), "runtime"],
 		["largerBuilder runtime claude-code with thinking", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet", thinking: "high" }; }), "largerBuilder"],
 		["largerBuilder runtime claude-code without model", shaped((r) => { r.largerBuilder = { runtime: "claude-code" }; }), "model"],
-		["largerBuilder runtime claude-code full model name", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "claude-sonnet-5" }; }), "model"],
+		["largerBuilder runtime claude-code full model name", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "claude-sonnet-5" }; }), "roster.largerBuilder.model"],
 		["largerBuilder runtime claude-code bracketed variant", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet[1m]" }; }), "model"],
 		["largerBuilder runtime claude-code model with a space", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet five" }; }), "model"],
 		["largerBuilder pi entry missing thinking", shaped((r) => { r.largerBuilder = { provider: "example-gateway", model: "x" }; }), "thinking"],
 		["builder runtime field", shaped((r) => { r.builder.runtime = "claude-code"; }), "runtime"],
 		["reviewer runtime field", shaped((r) => { r.reviewer.runtime = "claude-code"; }), "runtime"],
+		["scout runtime field", shaped((r) => { r.scout.runtime = "claude-code"; }), "runtime"],
+		["land runtime field", shaped((r) => { r.land = { provider: "example-gateway", model: "x", thinking: null, runtime: "claude-code" }; }), "runtime"],
 		["largerBuilder null is accepted", shaped((r) => { r.largerBuilder = null; }), null],
 		["largerBuilder pi entry accepted", shaped((r) => { r.largerBuilder = entry("example-gateway", "x", "low"); }), null],
 		...CLAUDE_CODE_SUBAGENT_MODELS.map((m) => [`largerBuilder claude-code ${m} accepted`, shaped((r) => { r.largerBuilder = claudeEntry(m); }), null]),
@@ -307,15 +309,20 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	const defaultDir = freshAgentDir("json-default-source");
 	const defaultTrip = roundTrip(defaultDir);
 	const fileDir = freshAgentDir("json-file-source");
-	writeRoster(fileDir, sampleRoster());
+	// every slot set, including a non-null largerBuilder, so the round trip exercises the whole
+	// shape, not just the builder.
+	const fileRoster = { ...sampleRoster(), largerBuilder: entry("example-gateway", "larger-model", "high") };
+	writeRoster(fileDir, fileRoster);
 	const fileTrip = roundTrip(fileDir);
 	// req: R-1192
 	check("roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster",
 		defaultTrip.jsonRun.status === 0 && defaultTrip.parsed !== null && Object.keys(defaultTrip.parsed).length === 1 && "roster" in defaultTrip.parsed &&
+		Object.keys(defaultTrip.parsed.roster).join(",") === SLOT_PRINT_ORDER.join(",") &&
 		JSON.stringify(defaultTrip.parsed.roster) === JSON.stringify(orderedRoster(ROSTER_DEFAULTS)) &&
 		defaultTrip.resolved.ok && JSON.stringify(defaultTrip.resolved.roster) === JSON.stringify(ROSTER_DEFAULTS) && defaultTrip.seed.objective?.projectFile === "OBJECTIVE.md" &&
 		fileTrip.jsonRun.status === 0 && fileTrip.parsed !== null && Object.keys(fileTrip.parsed).length === 1 && "roster" in fileTrip.parsed &&
-		fileTrip.resolved.ok && JSON.stringify(fileTrip.resolved.roster.builder) === JSON.stringify(sampleRoster().builder) && fileTrip.seed.objective?.projectFile === "OBJECTIVE.md",
+		Object.keys(fileTrip.parsed.roster).join(",") === SLOT_PRINT_ORDER.join(",") &&
+		fileTrip.resolved.ok && JSON.stringify(fileTrip.resolved.roster) === JSON.stringify(orderedRoster(fileRoster)) && fileTrip.seed.objective?.projectFile === "OBJECTIVE.md",
 		JSON.stringify({ defaultTrip, fileTrip }));
 }
 

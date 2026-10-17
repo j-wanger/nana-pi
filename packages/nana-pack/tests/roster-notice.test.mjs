@@ -65,13 +65,16 @@ const fileAt = (dir) => path.join(dir, "nana-pack.json");
 check("roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking",
 	(() => {
 		const dir = freshAgentDir("l1");
-		const roster = sampleRoster();
+		// reviewer and land each carry a thinking level too, not just the builder — a one-line
+		// notice must show all three, and no line break anywhere in it.
+		const roster = { ...sampleRoster(), reviewer: entry("zz-reviewer-model", "high"), land: entry("zz-land-model", "low") };
 		const file = writeRoster(dir, roster);
 		const n = rosterNotice({ ok: true, roster, source: file }, file, false);
 		return n.startsWith(NOTICE_PREFIX) &&
+			!n.includes("\n") &&
 			n.includes("zz-builder-model medium") &&
-			n.includes("zz-reviewer-model") &&
-			n.includes("zz-land-model");
+			n.includes("zz-reviewer-model high") &&
+			n.includes("zz-land-model low");
 	})());
 
 // req: R-1195
@@ -173,7 +176,8 @@ check("roster notice: only the default roster is marked default, and a file rost
 		const file = fileAt(freshAgentDir("l9"));
 		const asDefault = rosterNotice({ ok: true, roster: ROSTER_DEFAULTS, source: "default" }, file, false);
 		const asFile = rosterNotice({ ok: true, roster: ROSTER_DEFAULTS, source: file }, file, false);
-		return asDefault.includes(DEFAULT_MARK) && !asFile.includes(DEFAULT_MARK);
+		// (default) sits right after "roster" — not elsewhere on the line.
+		return asDefault.startsWith(`${NOTICE_PREFIX} ${DEFAULT_MARK}:`) && asDefault.includes(DEFAULT_MARK) && !asFile.includes(DEFAULT_MARK);
 	})());
 
 // req: R-1202
@@ -210,6 +214,16 @@ check("roster notice: every refusal kind shows the problem cut before its first 
 			const r = resolveRoster(dir);
 			const n = rosterNotice(r, file, false);
 			results.push(["paren path", !r.ok && n.includes(`${file} is a directory, not a regular file`)]);
+		}
+		// a validator refusal whose problem carries an echoed value after ' (' — a builder
+		// provider holding a space — must show no echoed value in the notice (pair 13).
+		{
+			const dir = freshAgentDir("l10-echoed-value");
+			const file = writeRoster(dir, { ...sampleRoster(), builder: { provider: "acme corp", model: "zz-l10-echo-model", thinking: null } });
+			const r = resolveRoster(dir);
+			const n = rosterNotice(r, file, false);
+			results.push(["echoed provider value", !r.ok && !n.includes("acme corp") &&
+				n === `${NOTICE_PREFIX} ${REFUSED_HEAD} roster.builder.provider must be a non-empty string with no whitespace or control character · ${CHANGE_POINTER} ${tildeify(file)}`]);
 		}
 		return { pass: results.every(([, p]) => p), results };
 	})().pass, "see above");
@@ -326,7 +340,12 @@ async function withAgentDir(agentDir, fn) {
 				const { ctx, widgetCalls, notifyCalls } = fakeCtx({ hasUI: true });
 				await withAgentDir(dir, () => handlers.session_start({ reason }, ctx));
 				const expected = rosterNotice(resolveRoster(dir), fileAt(dir), false);
-				results.push([`${reason}-${rosterKind}`, widgetCalls.length === 1 && widgetCalls[0].key === WIDGET_KEY && JSON.stringify(widgetCalls[0].lines) === JSON.stringify([expected]) && notifyCalls.length === 0]);
+				// pi's setWidget defaults to "aboveEditor" when no placement is given; an
+				// explicit "belowEditor" is the only other value the type allows, so ruling
+				// that out while allowing "unset" pins the placement without inventing a new
+				// contract value (R-1210).
+				const placement = widgetCalls[0]?.opts?.placement;
+				results.push([`${reason}-${rosterKind}`, widgetCalls.length === 1 && widgetCalls[0].key === WIDGET_KEY && JSON.stringify(widgetCalls[0].lines) === JSON.stringify([expected]) && notifyCalls.length === 0 && (placement === undefined || placement === "aboveEditor")]);
 			}
 		}
 		return { pass: results.every(([, p]) => p), results };

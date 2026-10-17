@@ -64,17 +64,24 @@ const parseOne = (stdout) => {
 	for (const source of ["startup", "resume", "clear", "fork"]) {
 		const r = run(freshAgentDir(), JSON.stringify({ source }));
 		const parsed = parseOne(r.stdout);
-		results.push([source, r.status === 0 && typeof parsed?.systemMessage === "string" && parsed.systemMessage.startsWith(NOTICE_PREFIX)]);
+		results.push([source, r.status === 0 && typeof parsed?.systemMessage === "string" && parsed.systemMessage.startsWith(NOTICE_PREFIX) && parsed.systemMessage.includes(CHANGE_POINTER)]);
 	}
 	{
 		const r = run(freshAgentDir(), "");
 		const parsed = parseOne(r.stdout);
-		results.push(["missing source", r.status === 0 && typeof parsed?.systemMessage === "string"]);
+		results.push(["missing source", r.status === 0 && typeof parsed?.systemMessage === "string" && parsed.systemMessage.includes(CHANGE_POINTER)]);
 	}
 	{
 		const r = run(freshAgentDir(), "not json at all {{{");
 		const parsed = parseOne(r.stdout);
-		results.push(["unreadable source", r.status === 0 && typeof parsed?.systemMessage === "string"]);
+		results.push(["unreadable source", r.status === 0 && typeof parsed?.systemMessage === "string" && parsed.systemMessage.includes(CHANGE_POINTER)]);
+	}
+	{
+		// R-1206: a well-formed JSON object holding no `source` field at all counts as no
+		// source too, distinct from an empty or an unparseable input.
+		const r = run(freshAgentDir(), JSON.stringify({ other: "x" }));
+		const parsed = parseOne(r.stdout);
+		results.push(["JSON input with no source field", r.status === 0 && typeof parsed?.systemMessage === "string" && parsed.systemMessage.startsWith(NOTICE_PREFIX) && parsed.systemMessage.includes(CHANGE_POINTER)]);
 	}
 	{
 		const r = run(freshAgentDir(), JSON.stringify({ source: "compact" }));
@@ -115,6 +122,29 @@ const parseOne = (stdout) => {
 		parsed.hookSpecificOutput?.hookEventName === "SessionStart" &&
 		!parsed.systemMessage.includes("/") && !parsed.systemMessage.includes("\\"),
 		JSON.stringify({ status: r.status, stdout: r.stdout, stderr: r.stderr }));
+}
+
+/* --- R-1207: a throw AFTER the modules have loaded (not only a load failure) also fails
+   open with the unavailable notice — forced through the write sink, the only seam that runs
+   after the modules, the input read and the composed payload are all already past. ---------- */
+{
+	let calls = 0;
+	let written = "";
+	const throwingWrite = (text) => {
+		calls++;
+		if (calls === 1) throw Object.assign(new Error("boom"), { code: "ERR_BOOM_AFTER_LOAD" });
+		written += text;
+	};
+	await runRosterNoticeHook({ input: Readable.from([]), write: throwingWrite });
+	const parsed = parseOne(written);
+	// req: R-1207
+	check("roster notice hook: a throw after its modules have loaded also fails open with the unavailable notice",
+		calls === 2 && parsed !== null &&
+		typeof parsed.systemMessage === "string" && parsed.systemMessage.startsWith("nana active · roster notice unavailable (") &&
+		parsed.systemMessage === parsed.hookSpecificOutput?.additionalContext &&
+		parsed.hookSpecificOutput?.hookEventName === "SessionStart" &&
+		!parsed.systemMessage.includes("/") && !parsed.systemMessage.includes("\\"),
+		JSON.stringify({ calls, written }));
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
