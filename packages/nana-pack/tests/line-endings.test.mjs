@@ -37,11 +37,7 @@ const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, 
 	const attrs = readFileSync(path.join(dest, ".gitattributes"), "utf8");
 	const keepsFixturesLine = attrs.includes("packages/nana-setup/tests/fixtures/retired/** -whitespace");
 	// req: R-1320
-	check(
-		"R-1320: a clone made with core.autocrlf=true checks out AGENTS.md, the CI workflow and the requirements tree with LF line endings",
-		withCr.length === 0 && keepsFixturesLine,
-		JSON.stringify({ withCr, keepsFixturesLine, attrs }),
-	);
+	check("R-1320: a clone made with core.autocrlf=true checks out AGENTS.md, the CI workflow and the requirements tree with LF line endings", withCr.length === 0 && keepsFixturesLine, JSON.stringify({ withCr, keepsFixturesLine, attrs }));
 }
 
 process.exitCode = fails ? 1 : 0;
