@@ -1,14 +1,14 @@
 # Change declaration — seat-rule: the seat starts independent work at the same time, and the lane limit becomes two building plus one in planning
 
 *Lane `seat-rule` · `feat/seat-rule` · `~/nana-pi-wt/seat-rule`, from current `main` once `feat/regroup` lands (the owner's 2026-10-16 order: this lane first, then the shared split
-mutation runner, then the runtime map) · cites at `2dbc817` · 2026-10-16 · seat draft 2 (seat revision 2, log at the end), before plan review. Feature: FEAT-006 (R-1140 reworded; no row added). Class SMALL:
+mutation runner, then the runtime map) · cites at `2dbc817` · 2026-10-16 · seat draft 3 (seat revisions 2 and 3, log at the end), after plan review r1. Feature: FEAT-006 (R-1140 reworded; no row added). Class SMALL:
 one plan-review round (`AGENTS.md:95`). Builder: the small-lane builder from the roster, through `pi-worker --lane seat-rule --brief … --out …` (plus `--lane-size small` if `roster-notice` has
 landed and the roster then sets `largerBuilder`); every test is named by exact title. It touches `packages/nana-setup/`, so the install check runs on macOS before `nana-land`
 (`AGENTS.md:147`). Stakes: low and reversible — one rule file that every Claude Code seat loads at session start (a symlink on macOS and Linux, a copy on Windows) and one test
 file; a wrong rule changes how much the seat runs at once, and a revert undoes it. Evidence beside this file: `nana-seat.proposed.md` (the byte source for the guide),
-`probe/seat-rule.test.mjs` (the proposed test), `probe/sim-pairs.mjs` (the pair simulation), `probe/r1140.txt` (the row draft); `../parallel-seat/research.md`,
+`proposed-seat-rule.test.mjs` (the proposed test), `sim-pairs.mjs` (the pair simulation), `r1140.txt` (the row draft); `../parallel-seat/research.md`,
 `../parallel-seat/design-critique.md`, `../parallel-seat/factcheck.md`. "Ran" = run on the seat machine (macOS, Node 22) in a scratch extract of `2dbc817`
-(`git archive 2dbc817`); "Read" = read at `2dbc817`, not run; INFERRED = neither. The owner is "the owner" throughout, with no name and no word-for-word quote, so this file can
+(`git archive 2dbc817`; revision 3: of `c514964`, main's tip); "Read" = read at `2dbc817`, not run; INFERRED = neither. The owner is "the owner" throughout, with no name and no word-for-word quote, so this file can
 enter a public review corpus unchanged.*
 
 ## 1. Why
@@ -34,9 +34,9 @@ lands; this plan does (S6). None of the three answers names a hand split.
   (draft 1's D1 of `../parallel-seat/CHANGE.md`, which its revision 2 removed once answered; §3.2 quotes (b)).
 
 **Threat model.** In scope, honest variation in our tools' output and in a builder's edit: a guide bullet dropped, duplicated, split in two, folded into another, indented
-as a sub-bullet, or joined by an extra bullet; a limit number or clause changed; the old bullet 7 sentence left in; CRLF line ends; a stale Windows copy of the guide; a pi seat
+as a sub-bullet, or joined by an extra bullet, dashed or numbered; a limit number or clause changed; the old bullet 7 sentence left in; CRLF line ends; a stale Windows copy of the guide; a pi seat
 that never opens the guide; a seat that splits a mutation run with a mistyped or missing pair id; a seat that splits the full suite into filtered runs beside another lane's
-locked run; tests with wall-clock bounds that go red under the added load, the seat's or the builder's. Out:
+locked run; a seat that splits a long run while a full suite runs on the same machine; tests with wall-clock bounds that go red under the added load, the seat's or the builder's. Out:
 deliberate forgery, and a seat that ignores the rule — no test can show that a seat obeys a rule line. A finding outside the model is a residual.
 
 ## 2. Requirement delta
@@ -48,19 +48,20 @@ The reworded row stays `implemented` and changes, with its evidence cell, in the
 
 | ID | Change | Text |
 |---|---|---|
-| R-1140 | reworded (FEAT-006) | The seat guide `packages/nana-setup/claude/rules/nana-seat.md` shall state each of nine rules exactly once, each as its own bullet, and hold no other bullet: launch in the background and end the turn, one foreground command in pi; no reading or judging of partial work and no re-run of checks while a builder or reviewer runs; act on its completion notification or a monitor's failure or stall signal, in that turn; verify once at the end; re-run the mutation runner after the seat's own change; findings back in the next brief; at each step, name the work that waits on nothing else and start it at once, keep each lane's own steps in order, and run the full suite whole, never in parts; at most two lanes building and one more in planning, a lane counting as building from its first build until it lands or closes; the builder preamble and review standard named, not restated. |
+| R-1140 | reworded (FEAT-006) | The seat guide `packages/nana-setup/claude/rules/nana-seat.md` shall state each of ten rules exactly once, each as its own bullet, and hold no other bullet, numbered or not: launch in the background and end the turn, one foreground command in pi; no reading or judging of partial work and no re-run of checks while a builder or reviewer runs; act on its completion notification or a monitor's failure or stall signal, in that turn; verify once at the end; re-run the mutation runner after the seat's own change; findings back in the next brief; before the turn ends, name and start the work that waits on nothing else, each lane's own steps staying in order; the full suite run whole, never in parts, no long run split while a full suite runs on the same machine, and a check that fails on a time limit re-run alone before it counts as a failure; at most two lanes building and one more in planning, a lane in planning having no build yet and no builder working in it, and a lane counting as building from its first build until it lands or closes; the builder preamble and review standard named, not restated. |
 
-Evidence cell: the ten R-1140 titles of §5.1, in place of today's nine (two renamed, one new). Ran on `probe/r1140.txt` (revision 2, in a fresh extract `r3/tip`): one `shall`
-with code spans masked, no pipe, opens with `The`; with the row and the proposed test in the scratch extract, `node scripts/requirements-trace.mjs` exits 0 and prints
+Evidence cell: the eleven R-1140 titles of §5.1, in place of today's nine (two renamed, two new). Ran on `r1140.txt` (revision 3, in a scratch extract of `c514964`): one
+`shall` with code spans masked, no pipe, opens with `The`; with the row and the proposed test in the extract, `node scripts/requirements-trace.mjs` exits 0 and prints
 `ears: 0 rows off form`.
 R-1141 (the scope sentence) and R-1142 (the shared pointer) keep their text and evidence. The leaf total does not move: no row is added (Ran: `requirements-tree.mjs --check`
-exits 0 and `docs/requirements-tree.md` is byte-equal to `2dbc817`).
+exits 0 and `docs/requirements-tree.md` is byte-equal to `2dbc817`; revision 3, the same at `c514964`).
 
 ## 3. Design
 
-**3.1 The guide, exact text** (13 lines, 1,584 bytes, nine bullets, Ran `wc -lc` and `grep -c '^- '`; `nana-seat.proposed.md` is the byte source). Bullets 1 to 6 and the last bullet are unchanged. The new
-parallel bullet sits before the limit bullet; the limit bullet replaces today's bullet 7. Ran `node packages/nana-pack/bin/nana-writing.mjs nana-seat.proposed.md`:
-`over=0 passive=0 banned=0 identifiers=0` (today's guide prints the same).
+**3.1 The guide, exact text** (14 lines, 1,757 bytes, ten bullets, Ran `wc -lc` and `grep -c '^- '`; `nana-seat.proposed.md` is the byte source; revision 2 was 13 lines and
+1,584 bytes). Bullets 1 to 6 and the last bullet are unchanged. The new parallel bullet and the new load bullet sit, in that order, before the limit bullet; the limit bullet
+replaces today's bullet 7. Ran `node packages/nana-pack/bin/nana-writing.mjs nana-seat.proposed.md`: `over=0 passive=0 banned=0 identifiers=0` (today's guide prints the same);
+with `--report` it adds only the verdict line, which today's guide also shows, since a guide carries no verdict word.
 
 ```
 # Nana — Running builders and reviewers
@@ -73,39 +74,55 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - Verify once, when the build ends. Re-run the seat checks your brief names, read the builder's report, and look at every page or command output the change produces.
 - After any change of your own to code or tests, re-run the lane's mutation runner before the review.
 - Send findings on a build back in the next brief instead of fixing the builder's work yourself.
-- At each step, name what waits on nothing else and start it now: another lane's build, a long mutation run in parts, separate research agents. Keep each lane's own steps in order: plan, seat checks, build, verify, review, land. Run the full suite whole, never in parts.
-- Keep at most two lanes building and one more in planning, a nana default. A lane counts as building from its first build until it lands or closes.
+- Before you end your turn, name and start what waits on nothing else: another lane's build, a long mutation run in parts, separate research agents. Each lane's own steps stay in order.
+- Run the full suite whole, never in parts. Never split a long run while a full suite runs on the same machine. If a check fails on a time limit, re-run it alone before you call it a failure.
+- Keep at most two lanes building and one more in planning, a nana default. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.
 - The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.
 ```
 
 **3.2 Why each sentence.**
-- *Name and start.* The owner asked for parallel work as the default. "Name" makes the choice visible in the seat's turn, so the owner can see what the seat ran at once. The
-  three examples are the request's three kinds: a second lane's build, a long mutation run split into parts, independent research agents.
+- *Name and start, before the turn ends.* The owner asked for parallel work as the default. "Before you end your turn" ties the rule to bullet 1, which ends the turn after a
+  launch: without it a seat can follow bullet 1 alone and run its lanes one after another (plan review r1 SHOULD 1). "Name" makes the choice visible in the seat's turn, so
+  the owner can see what the seat ran at once. The three examples are the request's three kinds: a second lane's build, a long mutation run split into parts, independent
+  research agents.
 - *A mutation run, not any long check.* Draft 1's example read "a long check in parts". That also covers the full suite, 580 to 880 s serial at the last measure
   (`../parallel-seat/research.md` §1.5), which must not be split yet. A suite split by hand is a set of filtered runs, and filtered runs skip the machine-wide lock
   (`scripts/test-locked.mjs:4` and `:168` at `2dbc817`; R-626 covers full runs only, `REQUIREMENTS.md:1505`). The suite's own preconditions are unfixed: the desk origin test
   binds port 4391 unless `DESK_TEST_PORT` is set (`apps/desk/test/origin-rule.test.mjs:17`, `:23` at `2dbc817`), and only bench fixtures and the desk `.e2e.mjs` files, which
   the suite never runs (`scripts/test.mjs:20-21`), read that variable (Ran: `git grep -n DESK_TEST_PORT 2dbc817 -- scripts apps packages package.json`); five wall-clock
   bounds remain (`research.md` §1.5). Suite parallelism is its own gate lane in the queue (`HANDOFF.md:85` at `2dbc817`).
-- *Full suite whole.* "Run the full suite whole, never in parts." closes what the narrower example only stops inviting: the bullet tells the seat to start what waits on
-  nothing else, and suite parts look like that. The wording is the seat's (S8). The round-2 critique offered "under its lock"; the guide loads in every project's seat, and
+- *Full suite whole.* "Run the full suite whole, never in parts." closes what the narrower example only stops inviting: the parallel bullet tells the seat to start what
+  waits on nothing else, and suite parts look like that. It opens the load bullet. The wording is the seat's (S8). The round-2 critique offered "under its lock"; the guide loads in every project's seat, and
   only nana-pi has a suite lock (Ran: `git grep -n 'test:locked\|test-locked' 2dbc817 -- templates`, 0 hits). nana-pi's lock rule stays at `AGENTS.md:143`, so a whole run
   there is `npm run test:locked`. Ran the writing checker on both wordings: `over=0 passive=0`.
+- *No split beside a full suite; a time-limit failure re-run alone.* The split stays: it cut a 97-minute run to about 25 (§1). Its cost is load. Five parts already filled
+  the seat machine (load 9 to 11, `research.md` §1.3), and four test files carry five wall-clock bounds (§1.5). A split run beside a full suite, the seat's or a builder's, can
+  turn a bound red; a seat could then send back a false failure or widen a valid bound (plan review r1 MUST). Revision 2 put the re-run only in residual 2, which a seat in
+  another project never reads, so the guide now says both. "Never split a long run while a full suite runs on the same machine." prevents the overlap the seat can see.
+  "If a check fails on a time limit, re-run it alone before you call it a failure." catches the overlap it cannot see: a builder can start its full suite after the split
+  began, and the seat does not read a builder's partial work (bullet 2). "Alone" means the failing check by itself, with no split run beside it. The bullet names no lock,
+  port, part count or bound, because the guide loads in every project's seat. It is its own bullet: folded into the parallel bullet it makes a five-sentence bullet (S1).
 - *No hand-split sentence.* The roster-notice runner already splits, refuses an unknown id and reports a missing pair (§1), and the seat copies that form until the shared
   runner lands (S6). A guide sentence that tells the seat to check parts by hand would restate what the copied runner checks in code, and the sibling runner plan makes no
   guide edit (its S13). So this lane carries no split clause, and the runner lane has nothing in the guide to reword.
-- *Steps in order.* Parallel work must not start a lane's review while its own verification runs: bullet 5 already puts the mutation run before the review. The six steps
-  are the request's list; plan review sits inside "plan" and the seat land review inside "land".
-- *Limit.* "In planning", not "being planned": Ran, the writing checker flags "being planned" as passive (`passive=1`). Option (b), as put to the owner, reads "two lanes
+- *Steps in order.* "Each lane's own steps stay in order." Parallel work must not start a lane's review while its own verification runs: bullet 5 already puts the mutation
+  run before the review. Revision 2 listed six steps (plan, seat checks, build, verify, review, land). The working pattern puts the seat land review and the HANDOFF and
+  session notes in the change before the final review round, so "review, land" read literally can leave a commit after the last review and a refused land (plan review r1
+  SHOULD 3). The sentence names no step; each lane's order stays where the working pattern and bullet 5 put it.
+- *Limit.* "In planning", not "being planned": Ran, the writing checker flags "being planned" as passive (`passive=1`). "A lane in planning has no build yet and no builder
+  working in it." puts the slot's edge in the guide, where revision 2 left it to this file (plan review r1 SHOULD 2). Option (b), as put to the owner, reads "two lanes
   building plus one in planning — research, drafts and plan review, with no worktree and no build" (draft 1's D1 of the sibling plan, which its revision 2 removed once
   answered; quoted the same way in `factcheck-r2.md` MUST-2 and `design-critique-r2.md` S-1, and Read again in the seat's own record of draft 1). "A lane counts as building
   from its first build until it lands or closes" keeps a lane in review, or parked on an owner choice, in a build slot: the owner chose (b), not (c), which would free a parked
-  lane's slot. The guide does not restate (b)'s "no worktree"; the seat follows it. "A nana default" stays: a project may set its own limit in its own section.
-- *Dropped:* today's "While one runs, work the other or end your turn." The parallel bullet covers working the other lane, and bullet 1 already ends the turn after a launch.
+  lane's slot. The guide does not restate (b)'s "no worktree" (S4). "A nana default" stays: a project may set its own limit in its own section.
+- *Dropped:* today's "While one runs, work the other or end your turn." The parallel bullet covers working the other lane and says to start it before the turn ends, and
+  bullet 1 already ends the turn after a launch.
 
-**3.3 The test** (`packages/nana-setup/tests/seat-rule.test.mjs`; the full draft is `probe/seat-rule.test.mjs`). The `@purpose` says "nine rules" (`:3`); the comment at `:25`
-says nine and names this file; `RULE_7` (`:32`) takes the new limit text; a new `RULE_9` holds the parallel bullet and joins `RULES` (`:34`), with a comment that it sits between
-`RULE_6` and `RULE_7` in the file; the count check (`:48`) and the limit check (`:63`) take new titles; one new check pins `RULE_9`. Constants keep their names, so the diff stays
+**3.3 The test** (`packages/nana-setup/tests/seat-rule.test.mjs`; the full draft is `proposed-seat-rule.test.mjs` in this folder). The `@purpose` says "ten rules" and
+"numbered or not" (`:3`); the comment at `:25` says ten and names this file, and a new line under it names the owner's 2026-10-16 answer as the limit's source; `RULE_7` (`:32`)
+takes the new limit text; a new `RULE_9` holds the parallel bullet and a new `RULE_10` the load bullet, and both join `RULES` (`:34`), with the comment saying they sit in that
+order between `RULE_6` and `RULE_7` in the file; the bullet filter (`:46`) also counts a numbered item, `1.` or `1)`, so "no other bullet" covers numbered bullets (plan review
+r1 SHOULD 5); the count check (`:48`) and the limit check (`:63`) take new titles; two new checks pin `RULE_9` and `RULE_10`. Constants keep their names, so the diff stays
 small. The test pins each bullet's exact text and the bullet count, not their order (today's design). Each value in a bullet — "two", "one more in planning" — is pinned by
 its exact-line check under `// req: R-1140`, the row that states it; provenance: the owner's 2026-10-16 answer, recorded here and in the test's comment.
 
@@ -125,16 +142,20 @@ lane. Nothing the lane writes adds a provider, host name, absolute home path or 
 
 | Part | Earns it because | Cut or kept smaller |
 |---|---|---|
-| Parallel bullet | the owner's ask; the guide has no such rule (§1) | one bullet, three sentences, no numbers |
+| Parallel bullet | the owner's ask; the guide has no such rule (§1) | one bullet, two sentences, no numbers |
+| "Before you end your turn" | bullet 1 ends the turn after a launch; without this a seat can run its lanes one after another | replaces "At each step"; no new sentence |
 | "Name" in it | makes the seat's choice visible in its turn, the only place the owner can see it | one word |
 | "A long mutation run in parts" | a split cut a 97-minute run to about 25 (§1); naming the mutation run keeps the full suite out of the example | replaces draft 1's "a long check"; no new sentence |
-| Step-order sentence | without it parallel work can start a review while the lane's own verify runs | one sentence; the six steps, no detail |
-| Full-suite sentence | the bullet otherwise invites a split suite, whose filtered runs skip the lock and share port 4391 (§3.2) | one sentence; no lock, port or count named |
+| Step-order sentence | without it parallel work can start a review while the lane's own verify runs | one sentence; no step list, which clashed with the working pattern's final-review order (§3.2) |
+| Full-suite sentence | the parallel bullet otherwise invites a split suite, whose filtered runs skip the lock and share port 4391 (§3.2) | one sentence; no lock, port or count named |
+| No-split and re-run sentences | a split run beside a full suite can turn a time bound red, and the seat may act on that false failure (§3.2) | two sentences in the load bullet; no bound or part count named |
 | Hand-split and every-pair-once sentences | — | cut: the roster-notice runner form splits, refuses an unknown id with exit 2 and prints MISSING (§1); the seat copies it (S6) |
 | New limit | the owner's ruling | replaces bullet 7 in place |
+| Planning edge | without it the guide gives the planning slot no edge; revision 2 kept it in this file only | one sentence |
 | Building definition | without it a lane in review or parked can read as freeing a slot | one sentence |
 | R-1140 reword | the row must state what its checks pin | no new row; R-1141 and R-1142 untouched |
-| Ninth bullet, not a fold into bullet 7 | one rule per bullet keeps one check per rule; a fold makes a five-sentence bullet (pair 16 shows the fold is caught) | one more line |
+| Ninth and tenth bullets, not folds | one rule per bullet keeps one check per rule; folding the parallel bullet into bullet 7, or the load bullet into the parallel bullet, makes a five-sentence bullet (pairs 16 and 24 show both folds are caught) | two more lines |
+| Numbered-item count | without it "no other bullet" misses an appended `1. …` line (pair 18) | one alternative in the bullet filter |
 | Pointer and README edits | — | cut (§3.4) |
 | Order check | — | cut: bullet order carries no meaning the checks need |
 
@@ -155,27 +176,29 @@ if `roster-notice` lands first; it regenerates the map after each rebase and cit
 ## 5. Verification
 
 Exact titles under `// req:` lines, red before the guide changes, frozen in `seat-titles.mjs` (DONE = `0 missing`). Two commits: the test first (Ran, base guide with the new
-test: exactly the three changed checks FAIL, and the trace rail names the two retired titles R-1140 still cites), then the guide, the row and the map (Ran: all eleven checks
+test: exactly the four changed checks FAIL, and the trace rail names the two retired titles R-1140 still cites), then the guide, the row and the map (Ran: all twelve checks
 PASS, the trace rail exits 0, `map:check` reports 0 problems).
 
-**5.1 Checks** (`packages/nana-setup/tests/seat-rule.test.mjs`; 11 titles, 3 changed).
-- Renamed: `// req: R-1140` `seat guide holds no bullet beyond its nine rules` (was "…eight rules").
-- Renamed: `// req: R-1140` `seat guide carries: at most two lanes building and one in planning` (was "…at most two lanes in flight").
-- New: `// req: R-1140` `seat guide carries: start what waits on nothing else, keep lane steps in order, run the full suite whole`.
+**5.1 Checks** (`packages/nana-setup/tests/seat-rule.test.mjs`; 12 titles, 4 changed).
+- Renamed: `// req: R-1140` `seat guide holds no bullet beyond its ten rules` (was "…eight rules").
+- Renamed: `// req: R-1140` `seat guide carries: at most two lanes building and one in planning, each slot defined` (was "…at most two lanes in flight").
+- New: `// req: R-1140` `seat guide carries: name and start independent work before the turn ends, lane steps in order`.
+- New: `// req: R-1140` `seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone`.
 - Unchanged: `// req: R-1141` `seat guide scopes itself to the seat in one sentence before its first bullet`, and the six R-1140 carries checks for bullets 1 to 6 and the
   preamble check, each with today's title.
 
-Which clause each pins: every R-1140 check compares one whole line, so the new check pins all three sentences of the parallel bullet and the limit check both sentences of the
-limit bullet; the count check pins "hold no other bullet" and "nine". Pairs 1 to 17 show each changed clause is caught.
+Which clause each pins: every R-1140 check compares one whole line, so the parallel check pins both sentences of the parallel bullet, the load check all three sentences of the
+load bullet, and the limit check all three sentences of the limit bullet; the count check pins "ten" and "hold no other bullet, numbered or not". Pairs 1 to 24 show each
+changed clause is caught.
 
 **5.2 Census of existing checks** (lines at `2dbc817`).
 
 | Check | Row | Change |
 |---|---|---|
-| `seat-rule.test.mjs:48` seat guide holds no bullet beyond its eight rules | R-1140 | red; renamed "nine", `RULES` gains `RULE_9` |
+| `seat-rule.test.mjs:48` seat guide holds no bullet beyond its eight rules | R-1140 | red; renamed "ten", `RULES` gains `RULE_9` and `RULE_10`, the filter at `:46` counts numbered items |
 | `seat-rule.test.mjs:63` seat guide carries: at most two lanes in flight | R-1140 | red; renamed, `RULE_7` takes the new text |
 | `requirements-trace.test.mjs:61` REQUIREMENTS.md and the markers the suite carries agree | — | red between the two commits (Ran: the rail names both retired titles); green once R-1140's cell cites §5.1's titles |
-| `code-map.test.mjs:39` the repo's code map is current…; `npm run map:check` | G-004, G-009, G-010 | red until `npm run map` (Ran: `docs/code-map.md is stale`; after `--write` the diff is one line, `:2509`, and the check reports 0 problems) |
+| `code-map.test.mjs:39` the repo's code map is current…; `npm run map:check` | G-004, G-009, G-010 | red until `npm run map` (Ran: `docs/code-map.md is stale`; after `--write` the diff is one line, `:2509` at `2dbc817` and `:2529` at `c514964`, and the check reports 0 problems) |
 
 Green with no edit: the R-1141 check and the seven unchanged carries checks (Ran); `win32-degrade.test.mjs:86` (R-350: it compares the installed copy with the repo file read at
 test time, Read `:82-86`); `install.test.mjs:112` (R-301; the link target is unchanged); `templates-render.test.mjs:397-405` (R-1142) and `:274` (R-859), because the pointer and
@@ -184,10 +207,11 @@ and not R-1140, Ran: read from `docs/product-report/assessments.json`; the HANDO
 shared file, not rule files, `packages/nana-pack/tests/skill-claims.mjs:13-25`). `readme:check` in the scratch extract fails only on `.git`, which an archive lacks
 (Ran: `packages/nana-knowledge/README.md:56: '.git' does not exist`); the lane changes no README.
 
-**5.3 Wrong code first.** Each pair edits the guide, or the shared file and nana-pi's `AGENTS.md` region alike, never an assertion. Ran `node probe/sim-pairs.mjs`: every pair
-gives exactly the declared result against the proposed test (`RESULT 19/19 as declared`, re-run at revision 2). Pairs 11 and 12 hold revision 2's two new pairs in the
-numbers the cut hand-split pairs left, so 13 to 17 keep their meaning. S2 was run against a copy of the R-1142 predicate
-(`templates-render.test.mjs:395-400`), not the whole file, which needs `uvx copier`; the seat's runner runs the whole file. 19 pairs.
+**5.3 Wrong code first.** Each pair edits the guide, or the shared file and nana-pi's `AGENTS.md` region alike, never an assertion. Ran
+`node docs/reviews/seat-rule-2026-10-16/sim-pairs.mjs` in the lane's worktree (revision 3): it reads the proposed guide and test beside it and the shared file at the repo root,
+runs the test from a temp copy outside the checkout, and prints `RESULT 26/26 as declared`, exit 0. Pairs 1 to 17 keep their revision-2 numbers. Pair 10 changes meaning,
+because the six-step list is gone; pair 12 keeps its wrong code but now reds the load check, because its sentence moved. Pairs 18 to 24 are revision 3's. S2 was run against
+a copy of the R-1142 predicate (`templates-render.test.mjs:395-400` at `2dbc817`), not the whole file, which needs `uvx copier`; the seat's runner runs the whole file. 26 pairs.
 
 | # | Wrong code | Reds |
 |---|---|---|
@@ -199,34 +223,43 @@ numbers the cut hand-split pairs left, so 13 to 17 keep their meaning. S2 was ru
 | 6 | the guide has no parallel bullet | parallel check, count |
 | 7 | the parallel bullet drops naming the work | parallel, count |
 | 8 | the parallel bullet drops "another lane's build" | parallel, count |
-| 9 | the parallel bullet drops the step-order sentence | parallel, count |
-| 10 | the step order puts review before verify | parallel, count |
+| 9 | the parallel bullet drops "Each lane's own steps stay in order." | parallel, count |
+| 10 | the parallel bullet goes back to "At each step" and drops "Before you end your turn" | parallel, count |
 | 11 | the example goes back to draft 1's "a long check in parts" | parallel, count |
-| 12 | the parallel bullet drops "Run the full suite whole, never in parts." | parallel, count |
+| 12 | the load bullet drops "Run the full suite whole, never in parts." | load check, count |
 | 13 | the parallel bullet appears twice | parallel, count |
 | 14 | the step-order sentence becomes its own bullet | parallel, count |
 | 15 | the parallel bullet is indented under bullet 6 | parallel, count |
 | 16 | the parallel text is folded into bullet 7 | limit, parallel, count |
-| 17 | a tenth bullet is added | count |
+| 17 | an eleventh bullet, `- Run every check in parts.`, is added | count |
+| 18 | a numbered bullet, `1. Run three lanes.`, is appended | count |
+| 19 | bullet 7 drops "A lane in planning has no build yet and no builder working in it." | limit, count |
+| 20 | the guide has no load bullet | load, count |
+| 21 | the load bullet drops "Never split a long run while a full suite runs on the same machine." | load, count |
+| 22 | the load bullet drops "If a check fails on a time limit, re-run it alone before you call it a failure." | load, count |
+| 23 | the re-run drops "alone" | load, count |
+| 24 | the load text is folded into the parallel bullet | parallel, load, count |
 | S1 | the guide is saved with CRLF line ends | none: every check stays green (expected) |
 | S2 | the shared pointer, and nana-pi's region alike, gain "it starts independent work at the same time" | `templates-render.test.mjs::shared working pattern carries one seat-guide bullet` (R-1142) |
 
-Recount: limit bullet 1 to 5 (5), parallel bullet 6 to 15 (10), the fold 16 (1), the extra bullet 17 (1), the stay-green S1 (1) and the pointer guard S2 (1);
-5 + 10 + 1 + 1 + 1 + 1 = 19, numbered 1 to 17 with no gap, then S1 and S2. Every changed check has a red pair: the count check 1 to 17, the limit check 1 to 5 and 16, the
-new parallel check 6 to 16. The seat's runner runs all 19 in one part: 18 run the seat-rule file in well under a second each (Ran), and S2 runs `templates-render.test.mjs`
-once (19 to 26 s in earlier baselines, `research.md` §1.3), so this lane's own run needs no split.
+Recount: limit bullet 1 to 5 and 19 (6), parallel bullet 6 to 11 and 13 to 15 (9), load bullet 12 and 20 to 23 (5), the folds 16 and 24 (2), the extra bullets 17 and 18
+(2), the stay-green S1 (1) and the pointer guard S2 (1); 6 + 9 + 5 + 2 + 2 + 1 + 1 = 26, numbered 1 to 24 with no gap, then S1 and S2. Every changed check has a red pair:
+the count check 1 to 24, the limit check 1 to 5, 16 and 19, the parallel check 6 to 11, 13 to 16 and 24, the load check 12 and 20 to 24. A negative control shows the
+simulation is not empty: with the old bullet filter (dashes only) in a scratch copy of the test, pair 18 reads MISS, all green, and the run prints `RESULT 25/26 as declared`
+(Ran). The seat's runner runs all 26 in one part: 25 run the seat-rule file in well under a second each (Ran), and S2 runs `templates-render.test.mjs` once (19 to 26 s in
+earlier baselines, `research.md` §1.3), so this lane's own run needs no split.
 
-**Seat acceptance** (written before the build, seen failing at the base). (a) `seat-titles.mjs` prints `0 missing` for the eleven titles. (b) The guide equals
-`nana-seat.proposed.md` with `\r` stripped, holds nine bullets, and `nana-writing.mjs` (no `--report`) prints `over=0 passive=0 banned=0 identifiers=0`. (c) R-1140's text equals
-`probe/r1140.txt`, holds one `shall`, reads `implemented` and cites the ten R-1140 titles of §5.1; R-1141 and R-1142 are byte-equal to `2dbc817`; R-1220 to R-1229 appear nowhere.
+**Seat acceptance** (written before the build, seen failing at the base). (a) `seat-titles.mjs` prints `0 missing` for the twelve titles. (b) The guide equals
+`nana-seat.proposed.md` with `\r` stripped, holds ten bullets and no numbered item, and `nana-writing.mjs` (no `--report`) prints `over=0 passive=0 banned=0 identifiers=0`. (c) R-1140's text equals
+`r1140.txt` in this folder, holds one `shall`, reads `implemented` and cites the eleven R-1140 titles of §5.1; R-1141 and R-1142 are byte-equal to `2dbc817`; R-1220 to R-1229 appear nowhere.
 (d) The shared file, `AGENTS.md` and `packages/nana-setup/README.md` are byte-equal to the base. (e) `git diff --name-only base..tip` lies inside §4 In. Then the seat's mutation
-runner (pairs 1 to 17, S1, S2; a copy of the roster-notice form, S6), `npm run test:locked` (whole, never in parts), `npm run map:check`, `npm run readme:check`, `node scripts/requirements-tree.mjs --check`, the trace rail, and
+runner (pairs 1 to 24, S1, S2; a copy of the roster-notice form, S6), `npm run test:locked` (whole, never in parts), `npm run map:check`, `npm run readme:check`, `node scripts/requirements-tree.mjs --check`, the trace rail, and
 `node packages/nana-setup/bin/install-check.mjs` on macOS before `nana-land`.
 
 **The claim most likely wrong:** that the line changes what the seat does. A rule line cannot prove a seat obeys it; only the seat's next lanes show whether it names and starts
-parallel work. Next most likely: that the extra load adds no false reds. Five parts already filled the 10-core seat machine (load 9 to 11, `research.md` §1.3), and four test files
-carry five wall-clock bounds (`research.md` §1.5); a split run beside a builder's locked suite run can turn one red, in the seat's pair or in the builder's suite
-(INFERRED; residual 2).
+parallel work. Next most likely: that the load bullet stops false reds. Five parts already filled the 10-core seat machine (load 9 to 11, `research.md` §1.3), and four test
+files carry five wall-clock bounds (`research.md` §1.5). The seat cannot always see when another lane's full suite starts, because it does not read a builder's partial work;
+the re-run sentence catches that case only when the seat applies it before acting on the red (INFERRED; residual 2).
 
 ## 6. Decisions and residuals (each becomes one HANDOFF line)
 
@@ -234,26 +267,34 @@ carry five wall-clock bounds (`research.md` §1.5); a split run beside a builder
 "The seat guide on Windows" (since 2026-10-14) gains one clause: re-run the install after this land too, because Windows holds a copy and doctor reads ✗ until then.
 
 **Seat decisions (declared, not asked).**
-- S1 Nine bullets: the parallel rule is its own bullet, not folded into the limit bullet (§3.6).
+- S1 Ten bullets: the parallel rule and the load rule are each their own bullet, folded neither into each other nor into the limit bullet (§3.6).
 - S2 R-1140 is reworded; no new row, and R-1220 to R-1229 stay unused.
 - S3 "In planning" for the owner's "being planned", because the writing checker flags the passive (Ran).
 - S4 A lane counts as building from its first build until it lands or closes, so a lane in review or parked on an owner choice keeps its slot: option (b), not (c). A lane in
-  planning holds no worktree and no build, as (b) was worded; the guide does not restate it (§3.2).
+  planning has no build yet and no builder working in it, and the guide now says so (§3.2). (b) as worded also gave the planning slot no worktree; the guide does not
+  restate that part.
 - S5 The shared pointer and the setup README stay as they are (§3.4).
 - S6 No hand-split sentence in the guide. Until the shared runner lands, a seat that splits a mutation run copies the roster-notice runner form, which splits into five parts by
-  default, refuses an unknown pair id with exit 2 and prints MISSING for a pair no part reported (§1). This lane's own `seat-mutate.mjs` is that form; it runs its 19 pairs in
+  default, refuses an unknown pair id with exit 2 and prints MISSING for a pair no part reported (§1). This lane's own `seat-mutate.mjs` is that form; it runs its 26 pairs in
   one part (§5.3). This matches the sibling runner plan's S12 and S13.
 - S7 Class SMALL, one plan round; the small-lane builder; the test diff keeps constant names.
-- S8 The parallel bullet names "a long mutation run in parts", not "a long check", and adds "Run the full suite whole, never in parts." The owner's answers do not say this; the
-  seat adds it because the suite's split preconditions are unfixed (§3.2). Wording "never in parts", not "under its lock", because only nana-pi has a suite lock.
+- S8 The parallel bullet names "a long mutation run in parts", not "a long check", and the load bullet opens with "Run the full suite whole, never in parts." The owner's
+  answers do not say this; the seat adds it because the suite's split preconditions are unfixed (§3.2). Wording "never in parts", not "under its lock", because only nana-pi
+  has a suite lock.
+- S9 The split stays, and the guide carries its guard (plan review r1 MUST). The load bullet says never to split a long run while a full suite runs on the same machine, and to
+  re-run a check that fails on a time limit alone before calling it a failure (§3.2). The review's other option, no split until the shared runner and the runtime map land,
+  would give up the measured speed-up (§1) until then.
+- S10 "Each lane's own steps stay in order", with no step list (plan review r1 SHOULD 3; §3.2).
 
 **Residuals and carries.**
 1. No carry to the runner lane. The guide holds no split clause, so the shared runner's lane edits neither the guide nor R-1140 (sibling S13). Until it lands, the seat
    copies the roster-notice runner form (S6). If a later lane names a split option in the guide, its pairs red this lane's parallel check.
-2. Added load, both ways. A split mutation run beside a builder's locked suite run puts the five wall-clock bounds under load (`research.md` §1.5). A pair whose named title is
-   such a bound can go red from load and hide a survivor; re-run it alone. The reverse also holds: the seat's split run loads the machine under the other lane's builder,
-   whose locked suite can then go red on a bound. That is a false red someone may act on, by a send-back or by widening the bound; re-run that file alone before acting on
-   it. The guide names no part count; the next lane brings a default. The bounds are fixed in a later small lane.
+2. Added load, both ways, now guarded in the guide's load bullet (S9). A split mutation run beside a builder's locked suite run puts the five wall-clock bounds under load
+   (`research.md` §1.5). A pair whose named title is such a bound can go red from load and hide a survivor. The reverse also holds: the seat's split run loads the machine
+   under the other lane's builder, whose locked suite can then go red on a bound, a false red someone may act on by a send-back or by widening the bound. The no-split
+   sentence prevents the overlap the seat can see. What stays: a builder can start its full suite after the seat's split began, and the seat does not read a builder's
+   partial work, so only the re-run sentence catches that case, and only when the seat applies it. The guide names no part count; the next lane brings a default. The
+   bounds are fixed in a later small lane.
 3. A pi seat sees only the pointer, which names the guide but not the parallel rule, and it waits on its one foreground build, so a second lane there needs a second pi session
    (existing, `HANDOFF.md:63`).
 4. Windows: the Claude Code seat there keeps the old guide until install runs again (the reworded optional ask).
@@ -269,8 +310,8 @@ carry five wall-clock bounds (`research.md` §1.5); a split run beside a builder
 **Later, on demand.** The parallel rule in the shared pointer for pi seats (residual 3); an order check, if bullet order ever carries meaning.
 
 **INFERRED.** That a rule line changes seat behaviour; that the added load can turn a bounded test red; that S2's whole-file run reds only the R-1142 check when both copies are
-edited alike (Read: `templates-render.test.mjs:270-274` compares the region with the shared file byte for byte); the step-order reading of plan review and the land review;
-that a seat would read "a long check" as the full suite; that a split suite's desk origin test can pass against the other worktree's server on port 4391.
+edited alike (Read: `templates-render.test.mjs:270-274` compares the region with the shared file byte for byte); that a seat reads "re-run it alone" as the failing check by
+itself, with no split run beside it; that a seat would read "a long check" as the full suite; that a split suite's desk origin test can pass against the other worktree's server on port 4391.
 
 ## Seat revision 2 (2026-10-16)
 
@@ -307,3 +348,41 @@ Recount. Rows: 1 reworded (R-1140), 0 added, 0 retired; R-1220 to R-1229 stay un
 less pairs 11 and 12 (17), plus the old-wording pair (18), plus the dropped-suite-sentence pair (19). That is 17 numbered pairs with no gap, then S1 and S2:
 limit 1 to 5 (5) + parallel 6 to 15 (10) + fold 16 (1) + extra bullet 17 (1) + S1 (1) + S2 (1) = 19. Owner calls: 0 blocking, 0 parked, no new optional ask. Seat decisions: S1
 to S8.
+
+## Seat revision 3 (2026-10-16): sol plan r1
+
+The plan review's round 1 sent the plan back with one MUST and five SHOULD findings. The seat accepted all six and chose each fix; this revision applies them. Revision 3's
+runs used scratch extracts of `c514964`, main's tip (`base`, `mid` with the new test only, `tip` with the new test, guide and row), with HOME set to a scratch folder.
+1. MUST (load-induced false failures). The split stays, and the guide carries its guard. A new load bullet, between the parallel bullet and the limit bullet, reads "Run the
+   full suite whole, never in parts. Never split a long run while a full suite runs on the same machine. If a check fails on a time limit, re-run it alone before you call
+   it a failure." The full-suite sentence moves there from the parallel bullet. Changes: §3.1; §3.2's new load reason; the §3.6 rows; S1 (ten bullets) and new S9; residual 2;
+   the claim most likely wrong; R-1140's load clause; the test's `RULE_10` and its new title; pair 12 now reds the load check; new pairs 20 to 24.
+2. SHOULD 1 (end-turn conflict). The parallel bullet opens "Before you end your turn, name and start what waits on nothing else", in place of "At each step, name what waits
+   on nothing else and start it now". Changes: §3.1; §3.2 (*Name and start, before the turn ends*, and *Dropped*); the §3.6 row; R-1140's clause; the parallel title; pair 10
+   now tests this opening.
+3. SHOULD 2 (planning edge). The limit bullet gains "A lane in planning has no build yet and no builder working in it." Changes: §3.1; §3.2 *Limit*; the §3.6 row; S4;
+   R-1140's limit clause; the limit title gains "each slot defined"; new pair 19. §3.2 no longer says the seat follows (b)'s "no worktree": this lane's own plan sits on its
+   branch in its worktree (Ran: `git show --stat 9115489` adds this folder on `feat/seat-rule`). S4 now states only what the guide says and that the guide does not restate
+   that part of (b).
+4. SHOULD 3 (step list). The parallel bullet's second sentence reads "Each lane's own steps stay in order." with no list. Changes: §3.1; §3.2 *Steps in order*; the §3.6
+   row; new S10; R-1140's clause; pairs 9 and 14 take the new sentence; pair 10's old wrong code ("review before verify") is gone with the list; the INFERRED item on the
+   step-order reading goes.
+5. SHOULD 4 (simulator paths). `sim-pairs.mjs` now reads `nana-seat.proposed.md` and `proposed-seat-rule.test.mjs` beside itself and the shared file at the repo root. It
+   runs the test from a temp copy outside the checkout, removes the copy, and exits 1 if the proposed guide itself fails a check. Ran
+   `node docs/reviews/seat-rule-2026-10-16/sim-pairs.mjs` in the lane's worktree: `RESULT 26/26 as declared`, exit 0, and `git status` lists only this folder's edited
+   files. The header, §2, §3.3 and acceptance (c) now name the files as they sit here, not the old `probe/` names.
+6. SHOULD 5 (numbered bullets). The test's bullet filter also counts a numbered item (`1.` or `1)`), and its `@purpose` says "numbered or not". Changes: §3.3; the §3.6 row;
+   acceptance (b); R-1140's "numbered or not"; new pair 18, an appended `1. Run three lanes.`. Ran a negative control: with the old filter, pair 18 reads MISS and the run
+   prints `RESULT 25/26 as declared`.
+Also fixed on the way: the test comment now names the owner's 2026-10-16 answer as the limit's source, which §3.3 already claimed (fact-check r2 SHOULD 2); the threat model
+names a numbered extra bullet and a split beside a full suite.
+
+Re-run at revision 3 (Ran in the extracts above). The proposed guide is 14 lines, 1,757 bytes, ten bullets. The writing checker prints
+`over=0 passive=0 banned=0 identifiers=0` for it and for today's guide; with `--report` it adds only the verdict line both guides show. `r1140.txt` holds one `shall` with
+code spans masked and no pipe. `mid`: exactly the four changed checks FAIL, 8 PASS; the trace rail exits 1 naming the two retired titles. `tip`: 12 PASS, exit 0; the trace
+rail exits 0 with `ears: 0 rows off form`; `requirements-tree.mjs --check` exits 0, and the tree file is byte-equal to the base; `code-map.mjs --check` reports only
+`docs/code-map.md is stale`, `--write` changes one line (`:2529`), and the check then reports 0 problems. R-1141 and R-1142 at `tip` are byte-equal to `2dbc817`.
+
+Recount. Rows: 1 reworded (R-1140), 0 added, 0 retired; R-1220 to R-1229 stay unused. R-1140 cites 11 titles; the file holds 12 checks, 4 changed (2 renamed, 2 new).
+Pairs: revision 2's 19, with pair 10 given a new wrong code and pair 12 a new red check in place, plus 18 to 24 (7), is 26: limit 6 + parallel 9 + load 5 + folds 2 + extra
+bullets 2 + S1 + S2. Owner calls: 0 blocking, 0 parked, no new optional ask. Seat decisions: S1 to S10.
