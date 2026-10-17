@@ -23,6 +23,7 @@ const sharedRaw = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.m
 // would also double up to \r\r\n.)
 const shared = sharedRaw.replace(/\r\n/g, "\n");
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
+const skip = (name, why) => console.log(`SKIP ${name} (${why})`);
 let fails = 0;
 const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).length}`); fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, "AGENTS.md"), body); return dir; };
 
@@ -109,13 +110,29 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
 	const target = path.join(dir, "AGENTS.md");
 	const replacementByOwner = "owner replaced this file while staging\n";
+	// The hook simulates an owner's in-place replace (unlink + rewrite) while the refresh still
+	// holds its own handle on the old file. On POSIX that is reliable; on win32 the unlink or the
+	// rewrite can itself hit a delete-pending file or a scanner hold, so the SIMULATION — not the
+	// product's identity check — is unreliable there (Windows run 2, 2026-10-17). Record and
+	// rethrow unchanged, so the product sees the same failed staging write either way.
+	let hookError = null;
 	const result = refreshWorkingRegion(dir, { writeTemp: (fd, content) => {
 		fs.writeFileSync(fd, content, "utf8");
-		fs.unlinkSync(target);
-		fs.writeFileSync(target, replacementByOwner);
+		try {
+			fs.unlinkSync(target);
+			fs.writeFileSync(target, replacementByOwner);
+		} catch (error) {
+			hookError = error;
+			throw error;
+		}
 	} });
-	// req: R-986
-	check("target identity change during staging is refused", result.status === "skipped" && fs.readFileSync(target, "utf8") === replacementByOwner && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")));
+	const targetText = (() => { try { return fs.readFileSync(target, "utf8"); } catch (error) { return `<unreadable: ${error.code}>`; } })();
+	if (process.platform === "win32" && hookError) {
+		skip("target identity change during staging is refused", `the simulated owner-replace itself failed on Windows: ${hookError.code ?? hookError.message} — a delete-pending file or a scanner hold, not this check`);
+	} else {
+		// req: R-986
+		check("target identity change during staging is refused", result.status === "skipped" && targetText === replacementByOwner && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")), `status=${result.status} detail=${JSON.stringify(result.detail)} target=${JSON.stringify(targetText)}`);
+	}
 }
 
 {

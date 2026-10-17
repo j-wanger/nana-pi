@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnNpmRoot } from "../lib/npm-root.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -216,7 +216,7 @@ function walk(dir) {
 	// req: R-674
 	check("--check warns when project config has no affirmative trust decision", /! project trust.*nana-setup trust/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	const npmRoot = spawnNpmRoot().stdout.trim();
-	const { ProjectTrustStore } = await import(path.join(npmRoot, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
+	const { ProjectTrustStore } = await import(pathToFileURL(path.join(npmRoot, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 	new ProjectTrustStore(path.join(home, ".pi", "agent")).set(dir, true);
 	const trustCheck = spawnSync(process.execPath, [cli, "project", dir, "--check", "--home", home], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: path.join(home, "different-agent") } });
 	// req: R-674
