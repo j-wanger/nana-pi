@@ -93,7 +93,7 @@ check("lane preamble forbids the named package-manager operations at a worktree 
 const preambleText = fs.readFileSync(path.join(temp, "prompt-1"), "utf8");
 const RULE_LINE = {
 	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
-	fixTheClass: "Fix the class, not the named example: cover every alias, option form and input shape the rule names.",
+	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
 	awaitEveryAsyncCase: "A test harness awaits every async case under a per-case limit.",
 	crlfAndWhitespace: "A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.",
 	idsFromBriefRange: "New requirement rows take IDs only from the range your brief names.",
@@ -109,7 +109,7 @@ const preambleOnce = (line) => preambleText.includes(line) && preambleText.split
 // req: R-1110
 check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
 // req: R-1110
-check("lane preamble carries: fix the class", preambleOnce(RULE_LINE.fixTheClass), RULE_LINE.fixTheClass);
+check("lane preamble carries: must-meet tests and no other new test, with the seal-test exception", preambleOnce(RULE_LINE.mustMeetTests), RULE_LINE.mustMeetTests);
 // req: R-1110
 check("lane preamble carries: await every async case", preambleOnce(RULE_LINE.awaitEveryAsyncCase), RULE_LINE.awaitEveryAsyncCase);
 // req: R-1110
@@ -130,6 +130,10 @@ check("lane preamble carries: long output to a committed file", preambleOnce(RUL
 check("lane preamble carries: read CI once", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
 // req: R-1110
 check("lane preamble carries: the suite check count in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
+// req: R-1110
+check("R-1110: the builder preamble has the must-meet line with its seal-test exception and no fix-the-class line",
+	preambleOnce(RULE_LINE.mustMeetTests) && !preambleText.includes("Fix the class, not the named example"),
+	preambleText);
 const defaultPairs = [["--provider", "openai-codex"], ["--model", "gpt-6-luna"], ["--thinking", "high"], ["-t", "read,grep,find,bash,edit,write"]];
 const receivedArgs = result.split("\n");
 // req: R-961
