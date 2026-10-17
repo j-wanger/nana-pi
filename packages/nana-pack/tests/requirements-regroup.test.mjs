@@ -1755,6 +1755,163 @@ if (process.platform !== "win32") {
     `honest=${reuseHonestOk} problems=${reuseHonestProblems.slice(0, 2).join(" | ")}; refused=${reuseRefused.slice(0, 2).join(" | ")}`);
 }
 
+// ================================================================== Build 7 item 1 (T70, R-1187: a feature that continues
+// its own old heading still needs a verdict for a share it declares in shares_added)
+{
+  // CAP-01 holds FEAT-001 (Alpha, R-001) and FEAT-002 (Bravo, R-002), whose OLD heading
+  // already applied R-001 ("Also applies: R-001"). The new proposal's FEAT-002 continues that
+  // SAME old heading (no ID reuse at all) and re-declares R-001 in shares_added. Seat amendment
+  // 2's own exemption clause (alreadyShared && continuesOldFeature) would wave this through
+  // with no share verdict of its own (mutation survivor B6/1, the declared-row clause
+  // dropped) -- shares_added must always demand its own verdict, continuing feature or not.
+  const OTH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const OWN = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha", f2: "## FEAT-002 · Bravo" };
+  const OWN_FX = [
+    OWN.cap, "", "Purpose: capability purpose for the own-heading fixture.", "Outcome: a visible outcome for the own-heading fixture.", "",
+    OWN.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...OTH,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+    OWN.f2, "", "Purpose: bravo feature purpose.", "Status: active", "Also applies: R-001", "", ...OTH,
+    "| R-002 | WHEN bravo runs, it shall do bravo things. | implemented | `tests/bravo.test.mjs::R-002: bravo` |", "",
+  ].join("\n");
+  const ownDir = join(scratchRoot, "t70b-own-heading-fx");
+  mkdirSync(join(ownDir, "tests"), { recursive: true });
+  for (const n of ["alpha", "bravo"]) writeFileSync(join(ownDir, "tests", `${n}.test.mjs`), "// fixture test file\n");
+  const of1 = (h) => ({ line: lineOf(OWN_FX, h), heading: h });
+  function ownFxProposal(verdicts) {
+    return {
+      tree: [{ id: "CAP-01", label: "Cap", purpose: "Capability purpose for the own-heading fixture.", outcome: "A visible outcome for the own-heading fixture.", from: [of1(OWN.cap)], features: [
+        { id: "FEAT-001", label: "Alpha", purpose: "Alpha feature purpose.", status: "active", from: [of1(OWN.f1)], rows: ["R-001"], subgroups: [] },
+        { id: "FEAT-002", label: "Bravo", purpose: "Bravo feature purpose.", status: "active", also_applies: ["R-001"], shares_added: ["R-001"], from: [of1(OWN.f2)], rows: ["R-002"], subgroups: [] },
+      ] }],
+      regroup: {
+        reasons: [], placed: {}, evidence: {},
+        review: {
+          drafter: "anthropic", reviewer: "openai", verdicts,
+          claims: [
+            { node: "CAP-01", field: "purpose", text: "Capability purpose for the own-heading fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+            { node: "CAP-01", field: "outcome", text: "A visible outcome for the own-heading fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+            { node: "FEAT-001", field: "purpose", text: "Alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+            { node: "FEAT-002", field: "purpose", text: "Bravo feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+          ],
+        },
+        refuted: [], questions: [],
+      },
+    };
+  }
+  const ownHonest = ownFxProposal([
+    { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-002", reason: "FEAT-002 (Bravo) re-declares R-001, now reviewed (own-heading honest)" }] },
+    { id: "R-002", at: "FEAT-002", verdict: "keep", reason: "R-002 stays with Bravo (keep)" },
+  ]);
+  const ownNoVerdict = ownFxProposal([
+    { id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" },
+    { id: "R-002", at: "FEAT-002", verdict: "keep", reason: "R-002 stays with Bravo (keep)" },
+  ]);
+  const ownHonestProblems = regroupProblems(ownHonest, OWN_FX, ownDir).problems;
+  const ownHonestOk = ownHonestProblems.length === 0;
+  const ownRefused = regroupProblems(ownNoVerdict, OWN_FX, ownDir).problems;
+  const ownRefusedOk = ownRefused.some((p) => p.includes("FEAT-002") && p.includes("R-001"));
+  // req: R-1187
+  check("R-1187: a feature that continues its own old heading and lists in shares_added a row that heading already shared, with no share verdict, is refused naming the row and the feature",
+    ownHonestOk && ownRefusedOk,
+    `honest=${ownHonestOk} problems=${ownHonestProblems.slice(0, 2).join(" | ")}; refused=${ownRefused.slice(0, 2).join(" | ")}`);
+}
+
+// ================================================================== Build 7 item 2 (T70, R-1187: a reused ID's carried
+// share still needs its own verdict with no shares_added entry to fall back on)
+{
+  // The same reused-ID shape as T70 (CAP-01: Alpha/Bravo/Charlie, FEAT-002 and FEAT-003 swap
+  // which old heading they continue), with ONE difference: FEAT-002 (now continuing Charlie's
+  // old heading) carries R-001 -- the share the OLD FEAT-002 (Bravo) held -- in also_applies
+  // alone, with NO shares_added entry at all. Seat amendment 4's own `from`-continuation clause
+  // is the only thing standing between this row and the exemption (mutation survivor B6/2, the
+  // clause dropped); with no shares_added to fall back on, a share verdict is still required.
+  const R2TH = ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|"];
+  const R2T = { cap: "# CAP-01 · Cap", f1: "## FEAT-001 · Alpha", f2: "## FEAT-002 · Bravo", f3: "## FEAT-003 · Charlie" };
+  const REUSE2_FX = [
+    R2T.cap, "", "Purpose: capability purpose for the no-declare reused-ID fixture.", "Outcome: a visible outcome for the no-declare reused-ID fixture.", "",
+    R2T.f1, "", "Purpose: alpha feature purpose.", "Status: active", "", ...R2TH,
+    "| R-001 | WHEN alpha runs, it shall do alpha things. | implemented | `tests/alpha.test.mjs::R-001: alpha` |", "",
+    R2T.f2, "", "Purpose: bravo feature purpose.", "Status: active", "Also applies: R-001", "", ...R2TH,
+    "| R-002 | WHEN bravo runs, it shall do bravo things. | implemented | `tests/bravo.test.mjs::R-002: bravo` |", "",
+    R2T.f3, "", "Purpose: charlie feature purpose.", "Status: active", "", ...R2TH,
+    "| R-003 | WHEN charlie runs, it shall do charlie things. | implemented | `tests/charlie.test.mjs::R-003: charlie` |", "",
+  ].join("\n");
+  const reuse2Dir = join(scratchRoot, "t70c-reuse-no-declare-fx");
+  mkdirSync(join(reuse2Dir, "tests"), { recursive: true });
+  for (const n of ["alpha", "bravo", "charlie"]) writeFileSync(join(reuse2Dir, "tests", `${n}.test.mjs`), "// fixture test file\n");
+  const rf2 = (h) => ({ line: lineOf(REUSE2_FX, h), heading: h });
+  const bravoLine2 = lineOf(REUSE2_FX, R2T.f2), charlieLine2 = lineOf(REUSE2_FX, R2T.f3);
+  function reuse2FxProposal(verdicts) {
+    return {
+      tree: [{ id: "CAP-01", label: "Cap", purpose: "Capability purpose for the no-declare reused-ID fixture.", outcome: "A visible outcome for the no-declare reused-ID fixture.", from: [rf2(R2T.cap)], features: [
+        { id: "FEAT-001", label: "Alpha", purpose: "Alpha feature purpose.", status: "active", from: [rf2(R2T.f1)], rows: ["R-001"], subgroups: [] },
+        { id: "FEAT-002", label: "Charlie, reusing FEAT-002", purpose: "Charlie feature purpose, now under the reused id FEAT-002.", status: "active", also_applies: ["R-001"], from: [rf2(R2T.f3)], rows: ["R-003"], subgroups: [] },
+        { id: "FEAT-003", label: "Bravo, reusing FEAT-003", purpose: "Bravo feature purpose, now under the reused id FEAT-003.", status: "active", from: [rf2(R2T.f2)], rows: ["R-002"], subgroups: [] },
+      ] }],
+      regroup: {
+        reasons: [
+          { line: bravoLine2, to: "FEAT-003", why: "Bravo's heading continues under the reused id FEAT-003 (reuse reason)" },
+          { line: charlieLine2, to: "FEAT-002", why: "Charlie's heading continues under the reused id FEAT-002 (reuse reason)" },
+        ],
+        placed: {}, evidence: {},
+        review: {
+          drafter: "anthropic", reviewer: "openai", verdicts,
+          claims: [
+            { node: "CAP-01", field: "purpose", text: "Capability purpose for the no-declare reused-ID fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+            { node: "CAP-01", field: "outcome", text: "A visible outcome for the no-declare reused-ID fixture.", verdict: "accept", reason: "the claim matches the fixture's capability" },
+            { node: "FEAT-001", field: "purpose", text: "Alpha feature purpose.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+            { node: "FEAT-002", field: "purpose", text: "Charlie feature purpose, now under the reused id FEAT-002.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+            { node: "FEAT-003", field: "purpose", text: "Bravo feature purpose, now under the reused id FEAT-003.", verdict: "accept", reason: "the claim matches the fixture's feature" },
+            { line: bravoLine2, to: "FEAT-003", text: "Bravo's heading continues under the reused id FEAT-003 (reuse reason)", verdict: "accept", reason: "the claim matches the fixture's reason" },
+            { line: charlieLine2, to: "FEAT-002", text: "Charlie's heading continues under the reused id FEAT-002 (reuse reason)", verdict: "accept", reason: "the claim matches the fixture's reason" },
+          ],
+        },
+        refuted: [], questions: [],
+      },
+    };
+  }
+  const reuse2Honest = reuse2FxProposal([
+    { id: "R-001", at: "FEAT-001", verdict: "share", targets: [{ to: "FEAT-002", reason: "FEAT-002 (now Charlie) carries R-001, the share the old FEAT-002 (Bravo) already held, now reviewed" }] },
+    { id: "R-002", at: "FEAT-003", verdict: "keep", reason: "R-002 stays with Bravo's content, now under the reused id FEAT-003 (keep)" },
+    { id: "R-003", at: "FEAT-002", verdict: "keep", reason: "R-003 stays with Charlie's content, now under the reused id FEAT-002 (keep)" },
+  ]);
+  const reuse2NoVerdict = reuse2FxProposal([
+    { id: "R-001", at: "FEAT-001", verdict: "keep", reason: "R-001 stays at Alpha (keep)" },
+    { id: "R-002", at: "FEAT-003", verdict: "keep", reason: "R-002 stays with Bravo's content, now under the reused id FEAT-003 (keep)" },
+    { id: "R-003", at: "FEAT-002", verdict: "keep", reason: "R-003 stays with Charlie's content, now under the reused id FEAT-002 (keep)" },
+  ]);
+  const reuse2HonestProblems = regroupProblems(reuse2Honest, REUSE2_FX, reuse2Dir).problems;
+  const reuse2HonestOk = reuse2HonestProblems.length === 0;
+  const reuse2Refused = regroupProblems(reuse2NoVerdict, REUSE2_FX, reuse2Dir).problems;
+  const reuse2RefusedOk = reuse2Refused.some((p) => p.includes("FEAT-002") && p.includes("R-001"));
+  // req: R-1187
+  check("R-1187: a feature that reuses an old feature's ID while its from names a different heading, carrying a row of the old feature in also_applies with no shares_added entry and no share verdict, is refused naming the row and the feature",
+    reuse2HonestOk && reuse2RefusedOk,
+    `honest=${reuse2HonestOk} problems=${reuse2HonestProblems.slice(0, 2).join(" | ")}; refused=${reuse2Refused.slice(0, 2).join(" | ")}`);
+}
+
+// ================================================================== Build 7 item 3 (T68, R-1179: a move or share
+// target's own argument is escaped on the page, not only a reported line's reason)
+{
+  // B6/7 (the escape dropped from the targets renderer's "proposed because" line) survives
+  // every existing case: T68 puts a bare "<placeholder>" in a REPORTED LINE's own reason (the
+  // "Reported lines" section), a different renderer from the "Move and share targets" section
+  // this targets. Put a bare "<provider>" in a MOVE TARGET's own argument (R-003's target
+  // reason) instead, so only that renderer's own escape call can pin it.
+  const targetVariant = variant((q) => {
+    const v3t = q.regroup.review.verdicts.find((v) => v.id === "R-003").targets[0];
+    v3t.reason = "the import log is read when the <provider> binding renders the pages (target alpha, escaped)";
+  });
+  const run = runFx("escape-target-argument", targetVariant);
+  const page = run.text ?? "";
+  const escapedOk = /R-003 \(home FEAT-001\) -> FEAT-004 \[move\]: proposed because .*&lt;provider&gt;/.test(page);
+  const noBareOk = !page.includes("<provider>");
+  // req: R-1179
+  check("R-1179: a move or share target whose own argument holds <provider> shows it escaped on the page",
+    run.r.status === 0 && !crashed(run.r) && escapedOk && noBareOk,
+    `status=${run.r.status} escaped=${escapedOk} noBare=${noBareOk} ` + own(run.r.stderr).slice(0, 2).join(" | "));
+}
+
 // ================================================================== Item 9: smaller refusals, each with a case
 {
   // (b) A refuted entry, or a question "about" entry with an id, naming no move or share
