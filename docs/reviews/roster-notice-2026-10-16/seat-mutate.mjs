@@ -59,6 +59,7 @@ const SHARDS_DEFAULT = "5";
 const STAGGER_SECS_DEFAULT = "4";
 
 const DECLARED = [
+	"(h) build brief 3 (seat, 2026-10-17): pair 71 covers the case-insensitive home comparison; paths.test.mjs pins it too but is not in this lane's judged titles",
 	"(g) build brief 2 (seat, 2026-10-16): pairs 69 and 70 cover the home-path fix and the small lane with largerBuilder set; every other build-2 change strengthens the tests behind pairs 1-68",
 	"(a) pair ids are §5.4's row numbers 1-68, one pair per row, each row's edits applied together; pairs 57, 60, 63, 64 and 67 edit templates/_shared/working-under-nana-pi.md and nana-pi's regenerated AGENTS.md region alike (CLAUDE.md is a link to AGENTS.md), as §5.4 says, so templates-render's byte-identical check stays green",
 	"(b) test sets: each pair runs only the files its named titles live in — roster-notice.test.mjs (1-23, 62, 66, 68, and 27 for L15), roster-notice-hook.test.mjs (24-31, 65), settings-merge (32, 33), win32-degrade (33, 35; forced platform, so it runs on macOS), uninstall (34), state-manifest (34, 35), install.test (35), install-check (36-39), nana-roster (40-49), worker-lane (50-56, 61), templates-render (57, 59, 60, 63, 64, 67), readme-check (58)",
@@ -263,6 +264,8 @@ const PAIRS = [
 	// Build brief 2 (seat, 2026-10-16): two behaviours build 2 added.
 	{ n: "69", name: "a home folder ending in a separator stops the ~ rewrite again (R-1204)", edits: [one(PATHS, 'const h = os.homedir().replace(/[\\\\/]+$/, "");', "const h = os.homedir();")], tests: [RN], expectRed: [L12] },
 	{ n: "70", name: "--lane-size small with largerBuilder set starts the larger-lane builder", edits: [one(WORKER, "const laneSize = laneSizePresent ? laneSizeRaw : 'small';", "const laneSize = laneSizePresent ? (roster.largerBuilder ? 'larger' : laneSizeRaw) : 'small';")], tests: [WL], expectRed: [W7] },
+	// Build brief 3 (seat, 2026-10-17): the case-insensitive home comparison on darwin and win32.
+	{ n: "71", name: "the ~ rewrite compares letter case on macOS and Windows again (R-1204)", edits: [one(PATHS, 'const ci = platform() === "darwin" || platform() === "win32";', "const ci = false;")], tests: [RN], expectRed: [L12] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────
