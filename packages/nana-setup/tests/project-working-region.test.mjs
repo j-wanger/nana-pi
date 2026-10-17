@@ -13,10 +13,15 @@ import * as path from "node:path";
 import { agentsStub, checkProject, refreshWorkingRegion, WORKING_BEGIN, WORKING_END, SHARED_DIR } from "../lib/project.mjs";
 
 const root = tmpDir(path.join(os.tmpdir(), "nana-region-"));
-// Normalized to LF regardless of the checkout's own line endings (an autocrlf=true clone
-// checks this file out as CRLF): :26 below builds its OWN CRLF expectation from `shared`, and
-// a CRLF `shared` would double up to \r\r\n there.
-const shared = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8").replace(/\r\n/g, "\n");
+// Raw, checkout-native bytes: on an autocrlf=true clone this is CRLF, matching what
+// `agentsStub()` itself reads (it calls the same `readShared` with no normalization).
+const sharedRaw = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8");
+// Normalized to LF regardless of the checkout's own line endings, for every fixture below built
+// from a pure-LF AGENTS.md body: the product detects LF from THAT body and writes the canonical
+// section back as LF too, so the expectation must be LF-normalized independent of how this repo's
+// OWN files were checked out. (A CRLF `sharedRaw` fed straight into :26's `.replace(/\n/g, "\r\n")`
+// would also double up to \r\r\n.)
+const shared = sharedRaw.replace(/\r\n/g, "\n");
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
 let fails = 0;
 const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).length}`); fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, "AGENTS.md"), body); return dir; };
@@ -195,7 +200,7 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 {
 	const stub = agentsStub("fixture");
 	// req: R-988
-	check("new stub has exact delimiters", stub.includes(`${WORKING_BEGIN}\n${shared}${WORKING_END}\n`));
+	check("new stub has exact delimiters", stub.includes(`${WORKING_BEGIN}\n${sharedRaw}${WORKING_END}\n`));
 	const dir = make(`${WORKING_BEGIN}\nold\n${WORKING_END}\n`);
 	const mismatch = (await checkProject(dir)).find((c) => c.label === "AGENTS.md working region");
 	// req: R-989
