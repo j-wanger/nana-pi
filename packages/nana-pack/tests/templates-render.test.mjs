@@ -83,36 +83,31 @@ function rewriteToCrlf(dir) {
 	visit(dir);
 }
 
-// R-604 gives this test FILE a fresh temp HOME/USERPROFILE (so it cannot read or write the
-// real machine's dotfiles); `uv`'s own package cache lives under the real one, so `uv --offline`
-// run from inside this file needs it back. `os.userInfo().homedir` reads the OS user database
-// directly, never the (overridden) HOME/USERPROFILE environment variable.
-const realHome = (() => { try { return os.userInfo().homedir; } catch { return process.env.HOME ?? process.env.USERPROFILE; } })();
-const uvEnv = { ...process.env, HOME: realHome, USERPROFILE: realHome };
-const runUv = (args, cwd) => spawnSync("uv", args, { cwd, encoding: "utf-8", timeout: 240_000, env: uvEnv });
-
-/** `uv`, offline, with a cached pytest it can add without a network fetch — the one dependency
- *  Python's trace rail needs that its dependency-free siblings (code-map, readme-check) do not,
- *  since `tests/conftest.py` imports pytest at module load. `--no-project` never touches the
- *  rendered project's own lock. */
-function pytestOffline() {
-	const probe = runUv(["run", "--offline", "--no-project", "--with", "pytest", "python3", "-c", "import pytest"], REPO);
+/** `uv`, if this machine has it and can add pytest — the one dependency Python's trace rail
+ *  needs that its dependency-free siblings (code-map, readme-check) do not, since
+ *  `tests/conftest.py` imports pytest at module load. `--no-project` never touches the rendered
+ *  project's own lock; same network allowance as `copierAvailable()`'s `uvx` and the ruff/biome
+ *  probes below, so a cold machine fetches it once same as they do. */
+function pytestAvailable() {
+	const probe = run("uv", ["run", "--no-project", "--with", "pytest", "python3", "-c", "import pytest"], REPO);
 	return probe.status === 0;
 }
 
 /** Call the rendered project's own trace-rail `check()` directly, with no test framework
  *  installed: TypeScript's `tests/requirements-trace.ts` has no dependency of its own (dynamic
  *  `import()` under this runner's `--experimental-strip-types`); Python's `tests/conftest.py`
- *  needs pytest only to import, so it runs through `pytestOffline()`'s ephemeral interpreter.
- *  Returns the problems list, or `{ error }` when the language's trace rail could not run. */
+ *  needs pytest only to import, so it runs through `pytestAvailable()`'s ephemeral interpreter.
+ *  Returns `{ problems }`, `{ unavailable }` when uv/pytest could not be resolved on this
+ *  machine (an environment gap, not a CRLF regression — the caller SKIPs rather than fails
+ *  on this one), or `{ error }` for every other failure. */
 async function traceProblems(language, dest) {
 	if (language === "typescript") {
 		const { check: traceCheck } = await import(pathToFileURL(path.join(dest, "tests/requirements-trace.ts")).href);
 		return { problems: traceCheck(dest).problems };
 	}
-	if (!pytestOffline()) return { error: "uv has no offline-cached pytest to import tests/conftest.py's check() with" };
+	if (!pytestAvailable()) return { unavailable: "uv could not resolve pytest to import tests/conftest.py's check() with" };
 	const script = ["import sys", "sys.path.insert(0, 'tests')", "from pathlib import Path", "import conftest", "result = conftest.check(Path('.'))", "print('TRACE_PROBLEMS', len(result[2]))", "print('\\n'.join(result[2]))"].join("\n");
-	const r = runUv(["run", "--offline", "--no-project", "--with", "pytest", "python3", "-c", script], dest);
+	const r = run("uv", ["run", "--no-project", "--with", "pytest", "python3", "-c", script], dest);
 	if (r.status !== 0 || !/TRACE_PROBLEMS 0/.test(out(r))) return { error: out(r).slice(-800) };
 	return { problems: [] };
 }
@@ -961,11 +956,11 @@ if (!version) {
 				const trace = await traceProblems(language, crlf.dest);
 				const mapOk = mapRun.status === 0 && /0 problem\(s\)/.test(out(mapRun));
 				const readmeOk = readmeRun.status === 0 && /0 problem\(s\)/.test(out(readmeRun));
-				const traceOk = !trace.error && trace.problems.length === 0;
 				if (!mapOk) crlfWhy.push(`${language} code-map (CRLF): ${out(mapRun).slice(-400)}`);
 				if (!readmeOk) crlfWhy.push(`${language} readme-check (CRLF): ${out(readmeRun).slice(-400)}`);
-				if (!traceOk) crlfWhy.push(`${language} trace (CRLF): ${trace.error ?? JSON.stringify(trace.problems)}`);
-				if (!(mapOk && readmeOk && traceOk)) crlfOk = false;
+				if (trace.unavailable) skip(`${language}: the trace script also passes on the CRLF rewrite`, trace.unavailable);
+				else if (trace.error || trace.problems.length) crlfWhy.push(`${language} trace (CRLF): ${trace.error ?? JSON.stringify(trace.problems)}`);
+				if (!mapOk || !readmeOk || (!trace.unavailable && (trace.error || trace.problems.length))) crlfOk = false;
 			}
 		} finally {
 			fs.rmSync(crlf.dest, { recursive: true, force: true });
