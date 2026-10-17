@@ -1127,6 +1127,8 @@ const SCOPE = [
 	// §4 In, new
 	LIB_REL, CONFIG_REL, EXT_REL, "packages/nana-pack/tests/roster-notice.test.mjs", HOOK_REL, "packages/nana-setup/tests/roster-notice-hook.test.mjs",
 	// §4 In, changed code and text
+	// Seat amendment 1 (2026-10-16): the home-path fix (R-1204) changes the shared tilde helper.
+	"packages/nana-setup/lib/paths.mjs", "packages/nana-setup/tests/paths.test.mjs",
 	"packages/nana-pack/bin/worker-config.mjs", "packages/nana-pack/bin/nana-roster.mjs", "packages/nana-pack/bin/pi-worker.mjs",
 	"packages/nana-setup/lib/settings.mjs", "packages/nana-setup/lib/steps.mjs", "packages/nana-setup/lib/state-manifest.mjs", "packages/nana-setup/lib/install-check-config.mjs", "packages/nana-setup/lib/install-check.mjs",
 	"packages/nana-setup/lib/doctor.mjs", "packages/nana-pack/extensions/nana-writing.ts", "packages/nana-setup/lib/shared-memory-input.mjs",

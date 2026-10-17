@@ -695,3 +695,10 @@ The owner took the plan's three recommendations. D1: the code default for `large
 the owner's yes, the seat writes a `largerBuilder` into the owner's two machines' files (carry 6). D2: `nana-roster set`
 is the next small lane, not this one. D4: one larger-lane builder per machine. The plan needs no other change.
 
+## Seat amendment 1 (2026-10-16): the tilde helper is in scope
+
+The lane's independent check found that a home folder ending in `/` (or `\` on Windows) makes both seats print the
+absolute home path, against R-1204. The fix belongs in the shared tilde helper the plan already reuses
+(`packages/nana-setup/lib/paths.mjs`, §3.4), so that file and its test join §4 In. The helper's other callers gain the
+same fix: a trailing separator on the home folder no longer stops the `~` rewrite. No row changes.
+
