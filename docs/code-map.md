@@ -2261,7 +2261,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the child-process result from npm root -g.
 - **effects** — process (starts npm with fixed arguments).
 - **errors** — spawn failures are returned by the child-process implementation.
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/trust.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/trust.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/paths.mjs`
@@ -2612,7 +2612,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway project dirs, seeds, symlinks, a throwaway home), process (spawns the setup CLI and git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/relative-agent-dir.test.mjs`
 
