@@ -24,3 +24,4 @@ RESULT: 4/4 red (2 exactly their named titles, 4 with a named title green, 0 wit
   and saw it red. The seat found the new deletion case wrote the checkout's own `.gitignore`; build 4 (53971f7) moved it into a fixture repository.
 - The runner edit (`scripts/test.mjs`) did not change after a3e39c6, so the four runner pairs stand.
 - The merge of main e9d7d3d (the rule lane) conflicted only in the notes, the tree test's leaf total (1,195 + 9 = 1,204) and the regenerated tree.
+- On the merged tip 02bfed7: full suite `149 files: 147 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7442 pass, 0 fail, 14 skip · 744.0s`, exit 0; the runner pairs again (`SEAT_MUTATE_TIP=02bfed7`): `RESULT: 4/4 red (2 exactly their named titles, 4 with a named title green, 0 with an unnamed red), 0 survived, across 4 shards` (`seat-mutate-output-02bfed7.txt`).
