@@ -446,11 +446,16 @@ const NPM_ENV_KEYS = { npm_config_prefix: undefined, npm_config_global_prefix: u
 
 {
 	const reasons = [];
-	const fakeNpm = outFile({ td: tmpDir(path.join(os.tmpdir(), "mutrun-fakenpm-")) }, "fake-npm.mjs");
-	fs.writeFileSync(fakeNpm, ["#!/usr/bin/env node", 'if (process.argv[2] === "config" && process.argv[3] === "get" && process.argv[4] === "prefix") { console.log("/fake/prefix"); process.exit(0); }', "process.exit(1);", ""].join("\n"));
-	fs.chmodSync(fakeNpm, 0o755);
+	// The fake-npm stub is an extensionless `#!/usr/bin/env node` script started with no shell
+	// (lib/mutation-runner.mjs spawns NPM_COMMAND directly): Windows cannot launch it, and the
+	// pack README already declares npm's config values unread there (packages/nana-pack/README.md:
+	// "npm's config values are not read there"), so this half is POSIX-only; the missing-npm half
+	// below names the same gap through a command that cannot start on any platform, and still runs.
+	if (posix) {
+		const fakeNpm = outFile({ td: tmpDir(path.join(os.tmpdir(), "mutrun-fakenpm-")) }, "fake-npm.mjs");
+		fs.writeFileSync(fakeNpm, ["#!/usr/bin/env node", 'if (process.argv[2] === "config" && process.argv[3] === "get" && process.argv[4] === "prefix") { console.log("/fake/prefix"); process.exit(0); }', "process.exit(1);", ""].join("\n"));
+		fs.chmodSync(fakeNpm, 0o755);
 
-	{
 		const fx = newFixture("m6-fake");
 		const dumpFile = outFile(fx, "dump.json");
 		const r = await run(fx, "t.mjs", table(fx, [{ n: "1", name: "dump", edits: [...probeKeyEdit("n1"), probeModeEdit("envdump")], tests: [T2], expectRed: [] }], { config: { NPM_COMMAND: fakeNpm } }), { ...NPM_ENV_KEYS, NANA_TEST_ENV_DUMP: dumpFile, [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1" });
@@ -460,6 +465,8 @@ const NPM_ENV_KEYS = { npm_config_prefix: undefined, npm_config_global_prefix: u
 		if (dump.npmGlobalPrefix !== "/fake/prefix") reasons.push(`fake npm: global_prefix ${dump.npmGlobalPrefix}`);
 		if (dump.npmGlobalConfig !== null) reasons.push(`fake npm: globalconfig ${dump.npmGlobalConfig}`);
 		if (!/npm could not give[^\n]*globalconfig/.test(r.text) || !/npm could not give[^\n]*userconfig/.test(r.text)) reasons.push(`fake npm: no "npm could not give" line in ${r.text}`);
+	} else {
+		skip("mutation runner: fake npm emulates a readable prefix", "Windows cannot launch an extensionless shebang script with no shell, and npm's config values are not read there (packages/nana-pack/README.md)");
 	}
 	{
 		const fx = newFixture("m6-missing");
@@ -547,6 +554,22 @@ if (!posix) {
 		&& !/^SYNTAX 3 /m.test(r.text);
 	// req: R-1235
 	check("mutation runner: an edit that breaks a .mjs module, or a .ts module a test reaches only through a spawned child, is SYNTAX before any test file runs, a valid .ts edit is not, and the run exits 3", ok, JSON.stringify({ exitCode: r.result, text: r.text }));
+}
+
+// ── R-1322: scratch worktrees hold the committed bytes under core.autocrlf=true ────────────────
+{
+	const fx = newFixture("m-crlf");
+	// Git for Windows' installer default, reproducible on any platform: the fixture repo's OWN
+	// config, not the caller's environment, is what lib/mutation-runner.mjs's worktree add and
+	// reset must now override.
+	sh("git", ["-C", fx.root, "config", "core.autocrlf", "true"]);
+	const pairs = [
+		{ n: "1", name: "a line-break anchor applies under core.autocrlf=true", edits: [one("pkg/lib/c.ts", 'return "C-ORIGINAL";\n}', ['return "C-ORIGINAL";', "}", "export function valueC(): string {", '  return "C-RECHECKED";', "}"].join("\n"))], tests: [T1], expectRed: [] },
+	];
+	const r = await run(fx, "t.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1" });
+	const ok = r.result === 0 && /^GREEN 1 /m.test(r.text) && !/ANCHOR-MISS/.test(r.text);
+	// req: R-1322
+	check("R-1322: a scratch worktree from a repository with core.autocrlf=true holds the committed LF bytes, and a pair whose anchor spans a line break applies", ok, JSON.stringify({ exitCode: r.result, text: r.text }));
 }
 
 // ── R-1236: baseline ─────────────────────────────────────────────────────────────────────────────
