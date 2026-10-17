@@ -18,6 +18,8 @@ plans, so a cited line may have moved since. "Ran" = run on this Mac in a scratc
 "Read" = read at `2dbc817` (revision 4: at `61c5748`), not run; INFERRED = neither. The owner is "the owner" throughout, with no name and no word-for-word quote, so this
 file can enter a public review corpus unchanged.*
 
+> **Seat revision 5 (2026-10-17), feature-first cut:** `must-meet.md` replaces §2 (rows), §5 (verification) and §7 (residuals) under the owner's feature-first ruling; §3 stays the design reference for the parts its nine tests need.
+
 ## 1. Why
 
 On 2026-10-16 the owner asked for code runtime evaluation built into the code map, and for parallel work as the seat's default. The owner then settled what the map holds
