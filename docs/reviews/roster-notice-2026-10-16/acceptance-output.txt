@@ -279,7 +279,7 @@ MISS (f) HANDOFF.md carries the D1 carry (a largerBuilder for this machine after
 ok   (f) every new module opens with the six-tag header (nana-standards; map:check)
 ok   (f) roster-notice.mjs's header gives §3.4's @purpose and @effects none
 ok   (guard) no file the lane changes outside this review folder gains an owner name, the absolute home path, the host name or this machine's roster provider (§3.9)
-MISS (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4) → [" M AGENTS.md"," M README.md"," M package.json"," M packages/nana-pack/README.md"," M packages/nana-pack/package.json"," M packages/nana-pack/tests/readme-check.test.mjs"," M packages/nana-pack/tests/roster-notice.test.mjs"," M templates/_shared/working-under-nana-pi.md"] (want [])
+ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
 ok   (g) packages/nana-pack/tests/roster-notice.test.mjs exits 0
 ok   (g) packages/nana-setup/tests/roster-notice-hook.test.mjs exits 0
 ok   (guard) packages/nana-pack/tests/nana-roster.test.mjs exits 0
@@ -299,5 +299,5 @@ WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/test
 WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — "roster notice: one JSON object whose user message starts with the roster notice prefix"
 WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — doctor: "settings SessionStart roster notice" is ✓; and CI's Windows install check passes the roster notice row (DOCTOR_NOTES included)
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 295/298 (build cases red: 2/236; guard and harness red: 1/62)
-roster-notice acceptance: 3 mismatch(es)
+cases: 296/298 (build cases red: 2/236; guard and harness red: 0/62)
+roster-notice acceptance: 2 mismatch(es)
