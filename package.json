@@ -11,6 +11,7 @@
 		"map": "node scripts/code-map.mjs --write",
 		"map:check": "node scripts/code-map.mjs --check",
 		"map:impact": "node scripts/code-map.mjs --impact",
+		"map:measure": "node scripts/runtime-measure.mjs",
 		"req:rows": "node scripts/requirement-rows.mjs",
 		"req:tree": "node scripts/requirements-tree.mjs --write",
 		"readme:check": "node scripts/readme-check.mjs",
