@@ -103,7 +103,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-03 · Rows: 21 · IDs: R-174–R-188, R-819–R-824
 - **CAP-04 · Bring nana to each project and maintain it**
   Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
-  Parent: — · Rows: 301 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300
+  Parent: — · Rows: 305 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300, R-1310–R-1313
   - **FEAT-013 · Install and connect harness runtimes**
     Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
     Status: active
@@ -128,13 +128,13 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
     Status: active
     Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740, R-1000, R-1001
-    Parent: CAP-04 · Rows: 78 · IDs: R-143–R-158, R-327–R-340, R-385, R-395, R-581, R-582, R-590–R-592, R-640, R-645–R-647, R-676, R-683, R-737, R-738, R-741, R-809–R-813, R-849, R-858, R-859, R-928–R-931, R-986–R-989, R-1100–R-1104, R-1126, R-1127, R-1142, R-1150–R-1153, R-1193, R-1213, R-1214, R-1300
+    Parent: CAP-04 · Rows: 81 · IDs: R-143–R-158, R-327–R-340, R-385, R-395, R-581, R-582, R-590–R-592, R-640, R-645–R-647, R-676, R-683, R-737, R-738, R-741, R-809–R-813, R-849, R-858, R-859, R-928–R-931, R-986–R-989, R-1100–R-1104, R-1126, R-1127, R-1142, R-1150–R-1153, R-1193, R-1213, R-1214, R-1300, R-1310–R-1312
     - **SUB-016 · Recognize projects that need adoption**
       Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
       Parent: FEAT-014 · Rows: 24 · IDs: R-143–R-157, R-640, R-645–R-647, R-809–R-813
     - **SUB-017 · Seed a minimal project workspace**
       Purpose: Create the basic objective, handoff, session log, instructions and starter configuration while respecting the enclosing repository and bounded refresh behavior.
-      Parent: FEAT-014 · Rows: 9 · IDs: R-327–R-332, R-335, R-928, R-931
+      Parent: FEAT-014 · Rows: 12 · IDs: R-327–R-332, R-335, R-928, R-931, R-1310–R-1312
     - **SUB-018 · Adopt or update shared working structure**
       Purpose: Apply the reusable structure and marker-owned instructions from their canonical sources using the documented preservation boundaries.
       Parent: FEAT-014 · Rows: 9 · IDs: R-339, R-591, R-592, R-741, R-849, R-929, R-986–R-988
@@ -171,7 +171,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Verify template combinations, identify delivered versions and publish accurate release and support information.
     Status: active
     Also applies: —
-    Parent: CAP-04 · Rows: 19 · IDs: R-584, R-585, R-587, R-593–R-597, R-684, R-686, R-740, R-848, R-996, R-1031, R-1032, R-1078, R-1090–R-1092
+    Parent: CAP-04 · Rows: 20 · IDs: R-584, R-585, R-587, R-593–R-597, R-684, R-686, R-740, R-848, R-996, R-1031, R-1032, R-1078, R-1090–R-1092, R-1313
 - **CAP-05 · Follow and steer development**
   Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
   Parent: — · Rows: 103 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942, R-1194–R-1204, R-1210, R-1211, R-1215

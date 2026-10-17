@@ -13,7 +13,10 @@ import * as path from "node:path";
 import { agentsStub, checkProject, refreshWorkingRegion, WORKING_BEGIN, WORKING_END, SHARED_DIR } from "../lib/project.mjs";
 
 const root = tmpDir(path.join(os.tmpdir(), "nana-region-"));
-const shared = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8");
+// Normalized to LF regardless of the checkout's own line endings (an autocrlf=true clone
+// checks this file out as CRLF): :26 below builds its OWN CRLF expectation from `shared`, and
+// a CRLF `shared` would double up to \r\r\n there.
+const shared = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8").replace(/\r\n/g, "\n");
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
 let fails = 0;
 const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).length}`); fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, "AGENTS.md"), body); return dir; };
@@ -179,8 +182,14 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const victim = `${WORKING_BEGIN}\nstale race section\n${WORKING_END}\n`;
 	fs.writeFileSync(external, victim);
 	const result = refreshWorkingRegion(dir, { beforeOpen: () => { fs.unlinkSync(target); fs.symlinkSync(external, target); } });
+	// `O_NOFOLLOW` is undefined on win32 (no symlink-refusing open flag there), so the open
+	// FOLLOWS the swapped-in link there instead of refusing it with ELOOP — the identity
+	// re-check then catches the swap and refuses with the generic "changed before it could be
+	// opened" detail. Either refusal detail is correct; which one depends on the platform, not
+	// on this fix.
+	const refused = result.status === "skipped" && (result.detail.includes("symlinked AGENTS.md left alone") || result.detail.includes("AGENTS.md changed before it could be opened"));
 	// req: R-987
-	check("symlink swap after lstat is refused without changing its target", result.status === "skipped" && result.detail.includes("symlinked AGENTS.md left alone") && fs.readFileSync(external, "utf8") === victim);
+	check("symlink swap after lstat is refused without changing its target", refused && fs.readFileSync(external, "utf8") === victim, result.detail);
 }
 
 {
