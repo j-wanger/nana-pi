@@ -785,3 +785,23 @@ Plan review round 1 (SEND-BACK: four MUST, five SHOULD, one NOTE; the review fil
    M16 and M17 new; C5, M7, M11, M14, I3, I4, I5, I6 and V1 retitled); M17 alone has no pair of its own (§5.4). 69 pairs, numbered 1 to 69 with no gap. The tree total is
    the base plus 30. Residuals 1 to 17. Owner calls: D3 optional, D2 and D5 parked, none blocking.
 8. Preload dropped on the probe's evidence; R-1297 is now a measured guarantee pinned by a check; sol's round-1 MUST is answered by that check.
+
+## Seat amendment 1 (2026-10-17): sol plan r2 — never kill the caller's group
+
+sol's round 2 (`sol-plan-r2.md`) closed round 1's four MUSTs and found one more: on POSIX the measure command recorded
+every process group in the suite's tree and sent `SIGKILL` to each, but `test-locked`, the measure command, npm and the
+invoking shell normally share one foreground group, so a cancelled measurement could kill its caller. The plan had two
+rounds, its last; the fix is exact, so the seat records it here and the final review checks it.
+
+| ID | Change | Text |
+|---|---|---|
+| R-1298 | reworded | WHEN the measure command receives SIGINT, SIGTERM or SIGHUP while the suite runs, it shall leave no process of the suite's process tree, as it stood at the signal, running when it exits, and shall signal no process group that holds a process outside that tree. |
+
+Design: the measure command starts `test-locked` in its own process group (`detached: true` on POSIX; Windows unchanged,
+`taskkill /T /F` on the child's pid). On a stop it lists the tree under that child, kills each group whose members all
+lie in the tree, and kills by pid any tree process whose group also holds an outside process; it never signals its own
+group or its parent's. M16 keeps its title's three-level fake tree and adds the real caller shape: the fake caller, the
+measure command and the first tree level share one group, and after the stop the caller is still alive while no tree
+process remains. Two wrong-code pairs join the table at the end: pair 70, `test-locked` started without its own group
+(M16 reds: the caller dies); pair 71, every recorded group killed including mixed ones (M16 reds). Pairs: 71.
+
