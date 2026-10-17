@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkTree, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 // The project templates render in BOTH modes, and the requirements-first rail they ship is
 // wired in both:
@@ -60,6 +60,56 @@ function render(language, answers) {
 	args.push(REPO, dest);
 	const r = run("uvx", args, REPO);
 	return { dest, ok: r.status === 0, out: out(r) };
+}
+
+/** Rewrite every file under `dir` to CRLF line endings, in place — a Windows editor's save,
+ *  reproducible on any platform (R-1321). Binary files (none expected in a fresh render) are
+ *  left alone. */
+function rewriteToCrlf(dir) {
+	const visit = (d) => {
+		for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+			const full = path.join(d, entry.name);
+			if (entry.isDirectory()) {
+				if (entry.name !== "node_modules" && entry.name !== ".git") visit(full);
+				continue;
+			}
+			const buf = fs.readFileSync(full);
+			if (buf.includes(0)) continue; // binary; skip defensively
+			const text = buf.toString("utf8");
+			const crlf = text.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n");
+			if (crlf !== text) fs.writeFileSync(full, crlf);
+		}
+	};
+	visit(dir);
+}
+
+/** `uv`, if this machine has it and can add pytest — the one dependency Python's trace rail
+ *  needs that its dependency-free siblings (code-map, readme-check) do not, since
+ *  `tests/conftest.py` imports pytest at module load. `--no-project` never touches the rendered
+ *  project's own lock; same network allowance as `copierAvailable()`'s `uvx` and the ruff/biome
+ *  probes below, so a cold machine fetches it once same as they do. */
+function pytestAvailable() {
+	const probe = run("uv", ["run", "--no-project", "--with", "pytest", "python3", "-c", "import pytest"], REPO);
+	return probe.status === 0;
+}
+
+/** Call the rendered project's own trace-rail `check()` directly, with no test framework
+ *  installed: TypeScript's `tests/requirements-trace.ts` has no dependency of its own (dynamic
+ *  `import()` under this runner's `--experimental-strip-types`); Python's `tests/conftest.py`
+ *  needs pytest only to import, so it runs through `pytestAvailable()`'s ephemeral interpreter.
+ *  Returns `{ problems }`, `{ unavailable }` when uv/pytest could not be resolved on this
+ *  machine (an environment gap, not a CRLF regression — the caller SKIPs rather than fails
+ *  on this one), or `{ error }` for every other failure. */
+async function traceProblems(language, dest) {
+	if (language === "typescript") {
+		const { check: traceCheck } = await import(pathToFileURL(path.join(dest, "tests/requirements-trace.ts")).href);
+		return { problems: traceCheck(dest).problems };
+	}
+	if (!pytestAvailable()) return { unavailable: "uv could not resolve pytest to import tests/conftest.py's check() with" };
+	const script = ["import sys", "sys.path.insert(0, 'tests')", "from pathlib import Path", "import conftest", "result = conftest.check(Path('.'))", "print('TRACE_PROBLEMS', len(result[2]))", "print('\\n'.join(result[2]))"].join("\n");
+	const r = run("uv", ["run", "--no-project", "--with", "pytest", "python3", "-c", script], dest);
+	if (r.status !== 0 || !/TRACE_PROBLEMS 0/.test(out(r))) return { error: out(r).slice(-800) };
+	return { problems: [] };
 }
 
 /** Strip the module's leading contract header: a JSDoc block, or a Python docstring. */
@@ -586,6 +636,8 @@ if (!version) {
 		else skip(title, "uvx copier is not available on this machine");
 	}
 } else {
+	let crlfOk = true;
+	const crlfWhy = [];
 	for (const [language, spec] of Object.entries(LANGS)) {
 		// ---------------------------------------------------------------- scaffold
 		const { dest, ok, out: log } = render(language, { ...spec.answers, adopt: "false" });
@@ -888,7 +940,34 @@ if (!version) {
 		} finally {
 			fs.rmSync(adopt.dest, { recursive: true, force: true });
 		}
+
+		// --------------------------------------------------------- R-1321: CRLF rewrite
+		const crlf = render(language, { ...spec.answers, adopt: "false" });
+		try {
+			if (!crlf.ok) {
+				crlfOk = false;
+				crlfWhy.push(`${language}: copier would not render (CRLF fixture): ${crlf.out.slice(-400)}`);
+			} else {
+				rewriteToCrlf(crlf.dest);
+				const [cmd, args] = spec.checkCmd;
+				const mapRun = run(cmd, args, crlf.dest);
+				const [rcmd, rargs] = spec.readmeCmd;
+				const readmeRun = run(rcmd, rargs, crlf.dest);
+				const trace = await traceProblems(language, crlf.dest);
+				const mapOk = mapRun.status === 0 && /0 problem\(s\)/.test(out(mapRun));
+				const readmeOk = readmeRun.status === 0 && /0 problem\(s\)/.test(out(readmeRun));
+				if (!mapOk) crlfWhy.push(`${language} code-map (CRLF): ${out(mapRun).slice(-400)}`);
+				if (!readmeOk) crlfWhy.push(`${language} readme-check (CRLF): ${out(readmeRun).slice(-400)}`);
+				if (trace.unavailable) skip(`${language}: the trace script also passes on the CRLF rewrite`, trace.unavailable);
+				else if (trace.error || trace.problems.length) crlfWhy.push(`${language} trace (CRLF): ${trace.error ?? JSON.stringify(trace.problems)}`);
+				if (!mapOk || !readmeOk || (!trace.unavailable && (trace.error || trace.problems.length))) crlfOk = false;
+			}
+		} finally {
+			fs.rmSync(crlf.dest, { recursive: true, force: true });
+		}
 	}
+	// req: R-1321
+	check("R-1321: each template's code-map, readme-check and trace scripts pass on a rendered project rewritten to CRLF", crlfOk, crlfWhy.join(" | "));
 }
 
 const updateGuide = fs.readFileSync(path.join(REPO, "README.md"), "utf8").match(/- \*\*Generated project\*\*([\s\S]*?)(?=\n- \*\*)/)?.[1] ?? "";

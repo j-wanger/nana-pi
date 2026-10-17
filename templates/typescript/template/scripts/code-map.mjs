@@ -371,7 +371,7 @@ function tagProblem(order, fields) {
  * @returns {{ok: true, fields: Record<string, string>} | {ok: false, problem: string}}
  */
 export function parseContractHeader(source) {
-	const lines = source.split("\n");
+	const lines = source.split(/\r?\n/);
 	const opened = headerStart(lines);
 	if (opened.problem !== undefined)
 		return { ok: false, problem: opened.problem };
@@ -797,7 +797,10 @@ export function checkRepo(root) {
 			`${config.mapPath} does not exist; run '${config.runner} map'`,
 		);
 	} else {
-		const onDisk = readFileSync(mapFile, "utf8");
+		// normalized once here (R-1321): a CRLF-saved map file still matches the LF render this
+		// generator always produces, and every line-end match below reads a line that never
+		// carries a trailing \r.
+		const onDisk = readFileSync(mapFile, "utf8").replace(/\r\n/g, "\n");
 		const listed = new Set(mapEntries(onDisk));
 		for (const path of graph.order) {
 			if (!listed.has(path))
