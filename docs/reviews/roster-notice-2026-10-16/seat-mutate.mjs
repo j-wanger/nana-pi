@@ -59,6 +59,7 @@ const SHARDS_DEFAULT = "5";
 const STAGGER_SECS_DEFAULT = "4";
 
 const DECLARED = [
+	"(g) build brief 2 (seat, 2026-10-16): pairs 69 and 70 cover the home-path fix and the small lane with largerBuilder set; every other build-2 change strengthens the tests behind pairs 1-68",
 	"(a) pair ids are §5.4's row numbers 1-68, one pair per row, each row's edits applied together; pairs 57, 60, 63, 64 and 67 edit templates/_shared/working-under-nana-pi.md and nana-pi's regenerated AGENTS.md region alike (CLAUDE.md is a link to AGENTS.md), as §5.4 says, so templates-render's byte-identical check stays green",
 	"(b) test sets: each pair runs only the files its named titles live in — roster-notice.test.mjs (1-23, 62, 66, 68, and 27 for L15), roster-notice-hook.test.mjs (24-31, 65), settings-merge (32, 33), win32-degrade (33, 35; forced platform, so it runs on macOS), uninstall (34), state-manifest (34, 35), install.test (35), install-check (36-39), nana-roster (40-49), worker-lane (50-56, 61), templates-render (57, 59, 60, 63, 64, 67), readme-check (58)",
 	"(c) outside the runner (Windows leg only, §5.4): X1 and X2 (hooks-win32-exec.test.mjs; no pair names them) and pair 33's hooks-win32-exec.test.mjs instance `doctor: \"settings SessionStart roster notice\" is ✓`; pair 33 runs here and is judged on its macOS titles only",
@@ -112,6 +113,9 @@ const L8 = "roster notice: a lone builder carries no size label";
 const L9 = "roster notice: only the default roster is marked default, and a file roster equal to the default is not";
 const L10 = "roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole";
 const L11 = "roster notice: every notice, refused ones included, ends with the change pointer and the roster file";
+const PATHS = "packages/nana-setup/lib/paths.mjs";
+const PATHS_T = "packages/nana-setup/tests/paths.test.mjs";
+const W7 = "lane size small starts pi with the builder even when largerBuilder is set";
 const L12 = "roster notice: the roster file shows the home folder as ~ wherever it appears";
 const L13 = "extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify";
 const L14 = "extension: no UI, and the reload reason, each set no widget and raise nothing";
@@ -256,6 +260,9 @@ const PAIRS = [
 	{ n: "66", name: "the notice removes each provider string from the line, so model acme-large under provider acme prints as -large", edits: [one(NOTICE, PI_ENTRY, "\tconst __model = entry.provider ? String(entry.model).split(entry.provider).join('') : entry.model;\n\treturn entry.thinking ? `${__model} ${entry.thinking}` : __model;")], tests: [RN], expectRed: [L2] },
 	{ n: "67", name: "the larger-lanes bullet leaves out the small-lane route through pi-worker --lane-size small", edits: both("; a small lane goes through `pi-worker --lane-size small`.", "."), tests: [TR], expectRed: [T1] },
 	{ n: "68", name: "the notice ignores its relative argument, so a relative PI_CODING_AGENT_DIR shows the lineup or the refusal", edits: [one(NOTICE, "\tconst head = relative\n", "\tconst head = false && relative\n")], tests: [RN], expectRed: [L16] },
+	// Build brief 2 (seat, 2026-10-16): two behaviours build 2 added.
+	{ n: "69", name: "a home folder ending in a separator stops the ~ rewrite again (R-1204)", edits: [one(PATHS, 'const h = os.homedir().replace(/[\\\\/]+$/, "");', "const h = os.homedir();")], tests: [RN], expectRed: [L12] },
+	{ n: "70", name: "--lane-size small with largerBuilder set starts the larger-lane builder", edits: [one(WORKER, "const laneSize = laneSizePresent ? laneSizeRaw : 'small';", "const laneSize = laneSizePresent ? (roster.largerBuilder ? 'larger' : laneSizeRaw) : 'small';")], tests: [WL], expectRed: [W7] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────
