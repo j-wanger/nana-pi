@@ -5,8 +5,8 @@
 // For each pair: apply the wrong code or shipped text (never a test assertion) in a detached scratch worktree of the
 // lane tip, refuse when an anchor does not occur the stated number of times (ANCHOR-MISS = runner bug), syntax-check
 // every mutated module (a .ts one with type stripping), run the named test files with node exactly as scripts/test.mjs
-// does (package-dir cwd, fresh HOME/USERPROFILE/TMPDIR/TEMP/TMP, NANA_* but NANA_TEST_* and PI_CODING_AGENT_DIR
-// scrubbed, gc.auto=0 through GIT_CONFIG_*, --experimental-strip-types, and the npm_config_prefix/globalconfig/userconfig
+// does (package-dir cwd, fresh HOME/USERPROFILE/TMPDIR/TEMP/TMP, NANA_* but NANA_TEST_* and
+// PI_CODING_AGENT_DIR scrubbed, gc.auto=0 through GIT_CONFIG_*, --experimental-strip-types, and the npm_config_prefix/globalconfig/userconfig
 // that `npm test` exports when the runner itself was not started through npm), and print RED / GREEN (SURVIVED). A RED
 // line also lists every named title that stayed GREEN and every UNNAMED red, so "reds exactly the titles named" is
 // judged, not assumed.
