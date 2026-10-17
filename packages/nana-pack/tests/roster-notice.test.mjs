@@ -268,6 +268,30 @@ check("roster notice: the roster file shows the home folder as ~ wherever it app
 			const n = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, outside, false);
 			results.push(["outside home stays absolute", n.endsWith(`${CHANGE_POINTER} ${outside}`)]);
 		}
+		// HOME ending in a separator (a trailing "/", or "\" on win32) must not block the ~
+		// rewrite, in the pointer and in a path-bearing refusal (R-1204).
+		{
+			const prevHome = process.env.HOME;
+			const prevProfile = process.env.USERPROFILE;
+			process.env.HOME = os.homedir() + path.sep;
+			process.env.USERPROFILE = process.env.HOME;
+			try {
+				const dir = homeDir("l12-trailing-slash");
+				const file = fileAt(dir);
+				const n = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, file, false);
+				results.push(["HOME with a trailing separator: pointer", n.endsWith(`${CHANGE_POINTER} ${tildeify(file)}`) && tildeify(file).startsWith("~") && !n.includes(file)]);
+				const refusalParent = homeDir("l12-trailing-slash-refusal");
+				const refusalFile = path.join(refusalParent, "nana-pack.json");
+				fs.mkdirSync(refusalFile);
+				const r = resolveRoster(refusalParent);
+				const rn = rosterNotice(r, refusalFile, false);
+				const tilde = tildeify(refusalFile);
+				results.push(["HOME with a trailing separator: refusal", !r.ok && tilde.startsWith("~") && rn.includes(`${tilde} is a directory, not a regular file`) && !rn.includes(refusalFile)]);
+			} finally {
+				process.env.HOME = prevHome;
+				process.env.USERPROFILE = prevProfile;
+			}
+		}
 		return { pass: results.every(([, p]) => p), results };
 	})().pass, "see above");
 

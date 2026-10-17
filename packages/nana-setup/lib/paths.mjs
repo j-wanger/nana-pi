@@ -99,6 +99,9 @@ export function platform() {
 }
 
 export function tildeify(p) {
-	const h = os.homedir();
+	// HOME (or USERPROFILE) ending in a separator — a trailing "/" on POSIX, "\" on win32 — must
+	// not block the rewrite: os.homedir() returns the env var verbatim, so a doubled separator
+	// (h + path.sep) would never match p's single one (R-1204).
+	const h = os.homedir().replace(/[\\/]+$/, "");
 	return p === h || p.startsWith(h + path.sep) ? "~" + p.slice(h.length) : p;
 }
