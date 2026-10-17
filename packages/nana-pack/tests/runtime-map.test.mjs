@@ -16,7 +16,7 @@
 // this clone's real runtime data.
 import { tmpDir } from "./tmp-dir.mjs";
 import { measure } from "../../../scripts/runtime-measure.mjs";
-import { dataPath, hashFile, loadRuntime } from "../lib/runtime-map.mjs";
+import { hashFile } from "../lib/runtime-map.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -32,6 +32,7 @@ const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const RUNTIME_MAP_READER = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map.mjs");
 const CODE_MAP = path.join(REPO, "scripts", "code-map.mjs");
+const GENERATOR = path.join(REPO, "templates", "typescript", "template", "scripts", "code-map.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-map-test-")));
 const posix = process.platform !== "win32";
 
@@ -58,15 +59,18 @@ function mkGitFixture(name, files) {
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // MM2 (R-1271): a measurement credits each test file with the files it (and its node child) ran.
 // ════════════════════════════════════════════════════════════════════════════════════════════
+const MM2_SLEEP_MS = 300; // chosen: a lower bound the recorded seconds must clear; no upper bound asserted
 const rootMM2 = mkGitFixture("mm2", {
 	"scripts/test.mjs": fs.readFileSync(RUNNER, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
 	"packages/probe/moduleA.mjs": "export const A = 1;\n",
 	"packages/probe/moduleB.mjs": "export const B = 2;\n",
+	"packages/probe/moduleC.mjs": "export const C = 4;\n",
 	"packages/probe/run-child.mjs": 'import { B } from "./moduleB.mjs";\nconsole.log("child saw", B);\n',
 	"packages/probe/tests/a.test.mjs": [
 		'import { A } from "../moduleA.mjs";',
 		'import { U } from "../untracked.mjs";',
+		`await new Promise((resolve) => setTimeout(resolve, ${MM2_SLEEP_MS}));`,
 		'console.log("PASS a ran", A, U);',
 		"",
 	].join("\n"),
@@ -77,6 +81,15 @@ const rootMM2 = mkGitFixture("mm2", {
 		'const here = path.dirname(fileURLToPath(import.meta.url));',
 		'const r = spawnSync(process.execPath, [path.join(here, "..", "run-child.mjs")], { env: { PATH: process.env.PATH }, encoding: "utf8" });',
 		'console.log("PASS b ran", r.status, r.stdout);',
+		"",
+	].join("\n"),
+	// a genuinely failing file (sol MUST 1): with every record forced to PASS/0 this fixture
+	// alone would still make every MM2 assertion pass, unless the label and the lower-bound
+	// seconds below are checked against it specifically.
+	"packages/probe/tests/c.test.mjs": [
+		'import { C } from "../moduleC.mjs";',
+		'console.log("FAIL c is meant to fail", C);',
+		"process.exit(1);",
 		"",
 	].join("\n"),
 });
@@ -97,13 +110,15 @@ process.exitCode = undefined;
 const dataMM2Result = JSON.parse(fs.readFileSync(dataMM2, "utf8"));
 const aEntry = dataMM2Result.tests?.["packages/probe/tests/a.test.mjs"];
 const bEntry = dataMM2Result.tests?.["packages/probe/tests/b.test.mjs"];
+const cEntry = dataMM2Result.tests?.["packages/probe/tests/c.test.mjs"];
 const noUntrackedMM2 = !Object.values(dataMM2Result.tests ?? {}).some((t) => (t.ran ?? []).includes("packages/probe/untracked.mjs"));
 // req: R-1271
 check("R-1271: a fixture measurement credits each test file with the tracked files it ran, a node child's files included when the child's environment lacks the coverage variable, with the file's label and seconds, and credits no untracked file",
-	exitMM2 === 0
-		&& aEntry?.label === "PASS" && typeof aEntry?.seconds === "number" && (aEntry?.ran ?? []).includes("packages/probe/moduleA.mjs")
+	exitMM2 === 1 // c.test.mjs fails, and the suite's own exit code is the measure command's too
+		&& aEntry?.label === "PASS" && aEntry?.seconds >= MM2_SLEEP_MS / 1000 && (aEntry?.ran ?? []).includes("packages/probe/moduleA.mjs")
 		&& bEntry?.label === "PASS" && typeof bEntry?.seconds === "number"
 		&& (bEntry?.ran ?? []).includes("packages/probe/run-child.mjs") && (bEntry?.ran ?? []).includes("packages/probe/moduleB.mjs")
+		&& cEntry?.label === "FAIL" && typeof cEntry?.seconds === "number" && (cEntry?.ran ?? []).includes("packages/probe/moduleC.mjs")
 		&& noUntrackedMM2,
 );
 
@@ -129,9 +144,11 @@ function mkImpactData(file, hashes) {
 		JSON.stringify({
 			schema: 1,
 			hashes,
+			// inserted shortest-first (astra SHOULD 2): a missing sort would print b before a,
+			// in insertion order, instead of the expected longest-first a before b.
 			tests: {
-				"fixture/a.test.mjs": { label: "PASS", seconds: 2.5, ran: [NAMED_A] },
 				"fixture/b.test.mjs": { label: "FAIL", seconds: 1.1, ran: [NAMED_A] },
+				"fixture/a.test.mjs": { label: "PASS", seconds: 2.5, ran: [NAMED_A] },
 			},
 		}),
 	);
@@ -189,9 +206,27 @@ function bothBlocksStale(out) {
 		&& out.includes(`measured tests for ${NAMED_ZERO} (0): — [stale]`);
 }
 const mm5Cases = [mm5Changed, mm5Added, mm5Removed].map((f) => runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: f }));
+
+// a fourth case (sol MUST 3, astra SHOULD 1): an unstaged deletion of a tracked file. git
+// ls-files still names it (only `git rm` would drop it), so hashing it off disk must not throw —
+// a missing file counts as changed, same as any other content mismatch.
+const mm5DeletedPath = ".gitignore"; // small, tracked, read by nothing while this check runs
+const mm5DeletedAbs = path.join(REPO, mm5DeletedPath);
+const mm5DeletedBackup = fs.readFileSync(mm5DeletedAbs);
+const mm5Deleted = path.join(TD, "mm5-deleted.json");
+mkImpactData(mm5Deleted, currentHashes()); // hashes match the checkout as it stands, file included
+let mm5DeletedResult;
+try {
+	fs.unlinkSync(mm5DeletedAbs);
+	mm5DeletedResult = runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: mm5Deleted });
+} finally {
+	fs.writeFileSync(mm5DeletedAbs, mm5DeletedBackup);
+}
+mm5Cases.push(mm5DeletedResult);
+
 // req: R-1274
 check("R-1274: impact marks the whole runtime section stale after a tracked file is changed, added or removed, a section with no measured test included",
-	mm5Cases.every((r) => bothBlocksStale(r.out)),
+	mm5Cases.every((r) => r.code === 0 && bothBlocksStale(r.out)),
 );
 
 const garbageData = path.join(TD, "garbage-data.json");
@@ -357,13 +392,29 @@ if (posix) {
 // nana/runtime-map.json under the git common directory, and the impact reader resolves the same
 // file from the main checkout.
 // ════════════════════════════════════════════════════════════════════════════════════════════
+const mm9Config = {
+	roots: ["scripts", "packages/probe"],
+	moduleExtensions: [".mjs"],
+	mapPath: "docs/code-map.md",
+	runner: "npm run",
+	packages: [{ id: "mm9", prefix: "" }],
+	layers: [{ id: "all", title: "All", blurb: "x", match: "^(scripts/|packages/)" }],
+};
 const mainMM9 = mkGitFixture("mm9-main", {
+	"code-map.config.json": JSON.stringify(mm9Config),
 	"scripts/test.mjs": fs.readFileSync(RUNNER, "utf8"),
 	"scripts/test-locked.mjs": fs.readFileSync(TEST_LOCKED, "utf8"),
 	"scripts/runtime-measure.mjs": fs.readFileSync(RUNTIME_MEASURE, "utf8"),
+	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
+	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
 	"packages/nana-pack/lib/runtime-map.mjs": fs.readFileSync(RUNTIME_MAP_READER, "utf8"),
-	"packages/probe/tests/a.test.mjs": 'console.log("PASS mm9 ran");\n',
+	"packages/probe/moduleMM9.mjs": "export const M = 1;\n",
+	"packages/probe/tests/a.test.mjs": [
+		'import { M } from "../moduleMM9.mjs";',
+		'console.log("PASS mm9 ran", M);',
+		"",
+	].join("\n"),
 });
 const worktreeMM9 = path.join(TD, "mm9-worktree");
 spawnSync("git", ["worktree", "add", "-b", "mm9-wt", worktreeMM9, "HEAD"], { cwd: mainMM9 });
@@ -388,12 +439,22 @@ const mm9Run = spawnSync(process.execPath, [path.join(worktreeMM9, "scripts", "r
 const dataFileMM9 = path.join(nanaDirMM9, "runtime-map.json");
 const createdNanaMM9 = !existedBeforeMM9 && fs.existsSync(nanaDirMM9);
 const exactlyOneFileMM9 = fs.existsSync(dataFileMM9) && fs.readdirSync(nanaDirMM9).length === 1;
-const fromMainMM9 = dataPath(mainMM9, { env: {} });
-const readFromMainMM9 = loadRuntime(fromMainMM9);
+
+// the real impact command (sol MUST 2): run from the fixture's MAIN checkout, no override, so it
+// has to resolve the same shared data file dataPath would, on its own, to show anything at all.
+const impactEnvMM9 = { ...process.env };
+delete impactEnvMM9.NANA_RUNTIME_MAP_FILE;
+const mm9Impact = spawnSync(process.execPath, [path.join(mainMM9, "scripts", "code-map.mjs"), "--impact", "packages/probe/moduleMM9.mjs"], {
+	cwd: mainMM9, env: impactEnvMM9, encoding: "utf8",
+});
+const mm9ImpactOut = (mm9Impact.stdout ?? "") + (mm9Impact.stderr ?? "");
 
 // req: R-1278
 check("R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it",
-	mm9Run.status === 0 && createdNanaMM9 && exactlyOneFileMM9 && fromMainMM9 === dataFileMM9 && readFromMainMM9.ok === true,
+	mm9Run.status === 0 && createdNanaMM9 && exactlyOneFileMM9
+		&& mm9Impact.status === 0
+		&& mm9ImpactOut.includes("measured tests for packages/probe/moduleMM9.mjs (1):")
+		&& mm9ImpactOut.includes("packages/probe/tests/a.test.mjs"),
 );
 
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");

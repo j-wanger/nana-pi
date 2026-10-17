@@ -40,9 +40,19 @@ export function dataPath(dir, { env = process.env, git } = {}) {
 	return path.join(commonDir, DATA_SUBPATH);
 }
 
-/** sha256 of a file's raw bytes. */
+/**
+ * sha256 of a file's raw bytes, or null when it cannot be read (R-1274: an unstaged deletion of
+ * a tracked file leaves it in `git ls-files` with nothing on disk; null never equals a recorded
+ * hash, so that file reads as changed rather than crashing the caller).
+ */
 export function hashFile(absPath, { readBytes = (f) => readFileSync(f) } = {}) {
-	return createHash("sha256").update(readBytes(absPath)).digest("hex");
+	let bytes;
+	try {
+		bytes = readBytes(absPath);
+	} catch {
+		return null;
+	}
+	return createHash("sha256").update(bytes).digest("hex");
 }
 
 /**
