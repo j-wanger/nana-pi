@@ -312,7 +312,7 @@ function walk(dir) {
 	fs.writeFileSync(foreign, "# someone else's project\n");
 	for (const [shape, target] of [
 		["dangling", "AGENTS.md.gone"],
-		["a link into a missing folder", "missing/AGENTS.md"],
+		["a link into a missing folder", path.join("missing", "AGENTS.md")], // native separator: fs.readlinkSync echoes it back on win32 (backslash), not the POSIX literal
 		["a link to another project's AGENTS.md", foreign],
 	]) {
 		fs.unlinkSync(claude);
