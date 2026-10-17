@@ -1,19 +1,23 @@
 /**
  * @module packages/nana-pack/tests/runtime-map.test.mjs
- * @purpose Pin the runtime-map feature's measure-command rows (R-1271, R-1275, R-1277, R-1278) from OUTSIDE the measure command.
- * @inputs the real scripts/runtime-measure.mjs and packages/nana-pack/lib/runtime-map.mjs, and fixture git repositories this file builds
+ * @purpose Pin the runtime-map feature's nine must-meet rows (R-1271..R-1278) from OUTSIDE the measure command and the impact reader.
+ * @inputs the real scripts/runtime-measure.mjs, packages/nana-pack/lib/runtime-map.mjs and scripts/code-map.mjs, fixture git repositories this file builds, and the real checkout's own tracked files and hashes for the --impact fixtures
  * @outputs one PASS / FAIL line per check and a non-zero exit when any check failed
- * @effects process (spawns git, the copied test runner, the real runtime-measure CLI, and fake multi-level process trees for the signal case), disk (temp git repositories and data files under one mkdtemp tree, removed at exit)
+ * @effects process (spawns git, the copied test runner, the real code-map and runtime-measure CLIs, and fake multi-level process trees for the signal case), disk (temp git repositories and data files under one mkdtemp tree, removed at exit)
  * @errors a FAIL line naming the broken behaviour; a non-zero exit code
  */
-// must-meet.md (docs/reviews/runtime-map-2026-10-17/): MM2, MM6, MM8, MM9. MM1 (R-1270, the
-// runner's own knob-unset contract) lives in test-runner.test.mjs instead, beside the runner it
-// pins; MM3, MM4, MM5 and MM7 (the impact command's rows) land with scripts/code-map.mjs's own
-// runtime block.
+// must-meet.md (docs/reviews/runtime-map-2026-10-17/): MM2 to MM9. MM1 (R-1270, the runner's own
+// knob-unset contract) lives in test-runner.test.mjs instead, beside the runner it pins.
+//
+// MM3, MM4, MM5 and MM7 spawn the REAL scripts/code-map.mjs CLI against THIS checkout (never a
+// fixture clone) with NANA_RUNTIME_MAP_FILE pointed at fixture data this file builds from the
+// checkout's OWN current tracked list and hashes (computed with the real hashFile at check time),
+// so the "matches" case matches on any checkout, dirty or not, and nothing here reads or writes
+// this clone's real runtime data.
 import { tmpDir } from "./tmp-dir.mjs";
 import { measure } from "../../../scripts/runtime-measure.mjs";
-import { dataPath, loadRuntime } from "../lib/runtime-map.mjs";
-import { COMPLETION_FILE, COVERAGE_ENV, RECORD_FILE } from "../lib/runtime-map-config.mjs";
+import { dataPath, hashFile, loadRuntime } from "../lib/runtime-map.mjs";
+import { COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
@@ -27,6 +31,7 @@ const TEST_LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const RUNTIME_MAP_READER = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map.mjs");
+const CODE_MAP = path.join(REPO, "scripts", "code-map.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-map-test-")));
 const posix = process.platform !== "win32";
 
@@ -100,6 +105,105 @@ check("R-1271: a fixture measurement credits each test file with the tracked fil
 		&& bEntry?.label === "PASS" && typeof bEntry?.seconds === "number"
 		&& (bEntry?.ran ?? []).includes("packages/probe/run-child.mjs") && (bEntry?.ran ?? []).includes("packages/probe/moduleB.mjs")
 		&& noUntrackedMM2,
+);
+
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// MM3, MM4, MM5, MM7: the real scripts/code-map.mjs CLI against THIS checkout, fed fixture data
+// built from the checkout's own current tracked list and hashes.
+// ════════════════════════════════════════════════════════════════════════════════════════════
+function runCodeMap(args, env = {}) {
+	const r = spawnSync(process.execPath, [CODE_MAP, ...args], { cwd: REPO, encoding: "utf8", env: { ...process.env, ...env } });
+	return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? "") };
+}
+const realTracked = spawnSync("git", ["ls-files"], { cwd: REPO, encoding: "utf8" }).stdout.split("\n").filter(Boolean);
+function currentHashes() {
+	const h = {};
+	for (const f of realTracked) h[f] = hashFile(path.join(REPO, f));
+	return h;
+}
+const NAMED_A = "scripts/test.mjs"; // always tracked in this repo
+const NAMED_ZERO = "README.md"; // always tracked, never referenced by the fixture's tests
+function mkImpactData(file, hashes) {
+	fs.writeFileSync(
+		file,
+		JSON.stringify({
+			schema: 1,
+			hashes,
+			tests: {
+				"fixture/a.test.mjs": { label: "PASS", seconds: 2.5, ran: [NAMED_A] },
+				"fixture/b.test.mjs": { label: "FAIL", seconds: 1.1, ran: [NAMED_A] },
+			},
+		}),
+	);
+}
+const mm3Data = path.join(TD, "mm3-data.json");
+mkImpactData(mm3Data, currentHashes());
+const missingData = path.join(TD, "missing-data.json");
+
+const noData = runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: missingData });
+const noDataSuffix = `\n${NOTE_PREFIX} no runtime data; run npm run map:measure\n`;
+const staticOk = noData.out.endsWith(noDataSuffix);
+const staticPart = staticOk ? noData.out.slice(0, noData.out.length - noDataSuffix.length) : null;
+
+const withData = runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: mm3Data });
+// req: R-1272
+check("R-1272: with runtime data, impact prints the generator's output byte for byte, then the measured test files that ran each named file longest first with seconds and a FAIL label, a zero line for a file no test ran, and the not-counted closing line",
+	staticOk
+		&& withData.out.startsWith(`${staticPart}\n`)
+		&& withData.out.includes(`measured tests for ${NAMED_A} (2):`)
+		&& withData.out.includes("2.5s  fixture/a.test.mjs")
+		&& withData.out.includes("1.1s  fixture/b.test.mjs [FAIL]")
+		&& withData.out.indexOf("2.5s") < withData.out.indexOf("1.1s")
+		&& withData.out.includes(`measured tests for ${NAMED_ZERO} (0): —`)
+		&& withData.out.includes(NOTE_PREFIX)
+		&& withData.out.includes("copies run from a temporary folder and children stopped by a signal are not counted"),
+);
+
+// req: R-1273
+check("R-1273: with no runtime data, impact prints one note naming npm run map:measure after the generator's output and exits with the generator's code",
+	staticOk && noData.out.includes("npm run map:measure") && noData.code === 0,
+);
+
+function withOverride(file, overrides) {
+	const data = JSON.parse(fs.readFileSync(mm3Data, "utf8"));
+	overrides(data);
+	fs.writeFileSync(file, JSON.stringify(data));
+}
+const mm5Changed = path.join(TD, "mm5-changed.json");
+withOverride(mm5Changed, (data) => {
+	data.hashes = currentHashes();
+	data.hashes[NAMED_ZERO] = "0".repeat(64); // a tracked file's content differs from its recorded hash
+});
+const mm5Added = path.join(TD, "mm5-added.json");
+withOverride(mm5Added, (data) => {
+	data.hashes = currentHashes();
+	delete data.hashes[NAMED_ZERO]; // git tracks it now; the data does not hold it
+});
+const mm5Removed = path.join(TD, "mm5-removed.json");
+withOverride(mm5Removed, (data) => {
+	data.hashes = currentHashes();
+	data.hashes["no/such/file.txt"] = "f".repeat(64); // the data holds a file git no longer tracks
+});
+function bothBlocksStale(out) {
+	return out.includes(`measured tests for ${NAMED_A} (2): [stale]`)
+		&& out.includes(`measured tests for ${NAMED_ZERO} (0): — [stale]`);
+}
+const mm5Cases = [mm5Changed, mm5Added, mm5Removed].map((f) => runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: f }));
+// req: R-1274
+check("R-1274: impact marks the whole runtime section stale after a tracked file is changed, added or removed, a section with no measured test included",
+	mm5Cases.every((r) => bothBlocksStale(r.out)),
+);
+
+const garbageData = path.join(TD, "garbage-data.json");
+fs.writeFileSync(garbageData, "not json {{{");
+const checkNoOverride = runCodeMap(["--check"]);
+const checkMissing = runCodeMap(["--check"], { NANA_RUNTIME_MAP_FILE: missingData });
+const checkValid = runCodeMap(["--check"], { NANA_RUNTIME_MAP_FILE: mm3Data });
+const checkGarbage = runCodeMap(["--check"], { NANA_RUNTIME_MAP_FILE: garbageData });
+// req: R-1276
+check("R-1276: the map check's output and exit code are the same with no runtime data, valid data and garbage data",
+	checkNoOverride.out === checkMissing.out && checkMissing.out === checkValid.out && checkValid.out === checkGarbage.out
+		&& checkNoOverride.code === checkMissing.code && checkMissing.code === checkValid.code && checkValid.code === checkGarbage.code,
 );
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
