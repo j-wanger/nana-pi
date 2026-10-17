@@ -69,6 +69,22 @@ function lstat(p) {
 	}
 }
 
+/**
+ * For an identity comparison only: an NTFS file reference is a 64-bit value (a 48-bit MFT
+ * record index plus a 16-bit reuse-sequence number in the high bits — confirmed against NTFS's
+ * on-disk file-reference structure, 2026-10-17); as a plain JS number `ino` can lose precision
+ * past Number.MAX_SAFE_INTEGER, which Node's own `bigint` stat option exists to avoid (fs docs,
+ * the bigint option on stat/fstat/lstat). Lossy `dev`/`ino` can then read two different files as
+ * the same one. `{ bigint: true }` keeps both exact.
+ */
+function lstatIdentity(p) {
+	try {
+		return fs.lstatSync(p, { bigint: true });
+	} catch {
+		return null;
+	}
+}
+
 function readDescriptorBytes(fd) {
 	const size = fs.fstatSync(fd).size;
 	const bytes = Buffer.alloc(size);
@@ -191,7 +207,7 @@ function renameWithRetry(src, dest) {
 
 export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8") } = {}) {
 	const target = path.join(dir, "AGENTS.md");
-	const st = lstat(target);
+	const st = lstatIdentity(target);
 	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
 	beforeOpen();
 	const noFollow = fs.constants.O_NOFOLLOW ?? 0;
@@ -206,7 +222,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
 	}
 	try {
-		const opened = fs.fstatSync(fd);
+		const opened = fs.fstatSync(fd, { bigint: true });
 		if (!opened.isFile() || opened.dev !== st.dev || opened.ino !== st.ino)
 			return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
 		const originalBytes = fs.readFileSync(fd);
@@ -252,8 +268,8 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 			} finally {
 				fs.closeSync(tempFd);
 			}
-			fs.chmodSync(temp, opened.mode & 0o7777);
-			const current = lstat(target);
+			fs.chmodSync(temp, Number(opened.mode) & 0o7777);
+			const current = lstatIdentity(target);
 			if (!current?.isFile() || current.isSymbolicLink() || current.dev !== opened.dev || current.ino !== opened.ino)
 				throw new Error("AGENTS.md changed before replacement");
 			if (!readDescriptorBytes(fd).equals(originalBytes)) throw new Error("AGENTS.md contents changed before replacement");
