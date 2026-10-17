@@ -1,0 +1,10 @@
+VERDICT: DONE
+Commit `e1b13d2` pushed to `origin/feat/seat-rule`.
+Files: `REQUIREMENTS.md` (R-1140), `docs/code-map.md`, seat guide, seat-rule test.
+Mutation pairs: `26/26` as declared.
+Before guide update, the four required checks failed: bullet count; lane limit and slot definitions; start independent work and preserve lane order; full-suite and time-limit rules.
+Seat-rule test: 12 checks passed, 0 failed (exit 0); pre-guide run: 8 passed, 4 failed (exit 1).
+Acceptance: 7/8 checks passed; only HANDOFF/session entry presence missed (exit 1).
+Requirements trace (0 EARS issues), tree check, code-map check, README check: all passed (exit 0).
+Suite summary: 12 checks, 12 passed, 0 failed.
+Not done: full suite, as the brief forbids it; HANDOFF and session archive edits were out of scope.
