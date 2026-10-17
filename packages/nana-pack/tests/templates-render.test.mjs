@@ -305,6 +305,8 @@ const RUNTIME_INVENTORY_TEXT = {
 	"nana-post-edit": "`nana-post-edit`",
 	"nana-handoff": "`nana-handoff`",
 	"nana-knowledge": "`nana-knowledge`",
+	"nana-roster-notice.mjs": "nana-roster-notice.mjs",
+	"nana-roster-notice": "`nana-roster-notice`",
 };
 
 function runtimeInventory() {
@@ -344,9 +346,9 @@ function checkInstructionContracts() {
 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge pull", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
-			"| Claude Code seat | SessionStart `nana-objective.mjs` and `nana-adoption.mjs` hooks | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `nana-knowledge.ts hook` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |",
-			"| pi TUI or desk session | `nana-objective` extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension | No shared auto-memory | Neither rule | `nana-writing` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension |",
+			"| Claude Code seat | SessionStart `nana-objective.mjs` and `nana-adoption.mjs` hooks | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `nana-knowledge.ts hook` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
+			"| pi TUI or desk session | `nana-objective` extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension | No shared auto-memory | Neither rule | `nana-writing` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
 		].every((v) => shared.includes(v)));
 
@@ -403,11 +405,27 @@ function checkInstructionContracts() {
 	check("seat-guide bullet names a guide file present in this checkout",
 		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
 		seatGuideNamedPath ?? "no bullet found");
+	const largerLanesBullets = [...shared.matchAll(/^- Larger lanes:.*$/gm)].map((m) => m[0]);
+	// req: R-1193
+	check("shared working pattern sends a larger or riskier lane to the roster's larger-lane builder, a pi entry through lane size larger and a Claude Code entry as a subagent in the lane worktree",
+		largerLanesBullets.length === 1 &&
+		largerLanesBullets[0].includes("pi-worker --lane-size larger") &&
+		largerLanesBullets[0].includes("a Claude Code entry as a Claude Code subagent in the lane worktree") &&
+		largerLanesBullets[0].includes("pi-worker --lane-size small"),
+		JSON.stringify(largerLanesBullets));
+	// req: R-1213
+	check("shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user",
+		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("stops and asks the user rather than starting another"),
+		JSON.stringify(largerLanesBullets));
+	// req: R-1214
+	check("shared working pattern says the builder builds every lane when the roster sets no larger-lane builder",
+		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("With no `largerBuilder`, the builder builds every lane."),
+		JSON.stringify(largerLanesBullets));
 	// req: R-685
 	check("desk matrix states nana resources for every spawn class and the terminal trust step",
-		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&
-		desk.includes("Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. Each nana surface (objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify) is available only if its extension is in the checked set.") &&
-		desk.includes("Current basketball and edge children list their app extension, nana-stage, and builtin MCP, not nana-pack: they receive no objective, writing, knowledge, gate, post-edit, handoff, lifecycle, or notify unless a manifest explicitly lists the relevant extension.") &&
+		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify, and roster notice are present only when their extensions are installed and loaded.") &&
+		desk.includes("Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. Each nana surface (objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify, roster notice) is available only if its extension is in the checked set.") &&
+		desk.includes("Current basketball and edge children list their app extension, nana-stage, and builtin MCP, not nana-pack: they receive no objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify, or roster notice unless a manifest explicitly lists the relevant extension.") &&
 		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",
