@@ -41,7 +41,7 @@ import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"];
+export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"];
 const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
@@ -519,7 +519,7 @@ export function stepSettings(layout, o, state) {
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
 		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
-		// Repo-anchored entries (the knowledge pull on every platform, all five on win32) are
+		// Repo-anchored entries (the knowledge pull on every platform, all six on win32) are
 		// repaired in place when stale or (on win32) not yet in exec form (R-1056, R-1059);
 		// everything else goes through the ordinary append-if-missing merge.
 		const repo = mergeRepoHooks(settings, { repoRoot, wanted, platform: platformValue });

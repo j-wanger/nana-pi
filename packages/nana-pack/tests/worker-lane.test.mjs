@@ -217,6 +217,117 @@ check("lane prints the resolved builder and roster source on stderr before start
 	builderLineFileRun.status === 0 && builderLinesFile.length === 1 && builderLinesFile[0] === `pi-worker: builder: example-gateway roster-model default; source: ${builderLineFile}`,
 	`${builderLineRun.stderr}\n---\n${builderLineFileRun.stderr}`);
 
+fs.rmSync(piSpawnMarker, { force: true });
+const w1Dir = freshAgentDir("lane-size-larger-pi");
+writeRoster(w1Dir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", "medium") });
+const w1Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w1Dir });
+const w1Args = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+// req: R-1190 R-961
+check("lane size larger starts pi with the larger-lane builder's provider, model and thinking, each flag once",
+	w1Run.status === 0 && [["--provider", "example-gateway"], ["--model", "larger-model"], ["--thinking", "medium"]].every(([flag, flagValue]) =>
+		w1Args.indexOf(flag) >= 0 && w1Args[w1Args.indexOf(flag) + 1] === flagValue && w1Args.filter((seen) => seen === flag).length === 1),
+	w1Run.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const w2Dir = freshAgentDir("lane-size-larger-null");
+writeRoster(w2Dir, sampleRoster());
+const w2Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w2Dir });
+const w2Args = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+const w2Lines = w2Run.stderr.split(/\r?\n/).filter((l) => l.startsWith("pi-worker: builder"));
+// req: R-1190
+check("lane size larger with no larger-lane builder starts pi with the builder",
+	w2Run.status === 0 && w2Args.indexOf("--provider") >= 0 && w2Args[w2Args.indexOf("--provider") + 1] === "example-gateway" &&
+	w2Args.indexOf("--model") >= 0 && w2Args[w2Args.indexOf("--model") + 1] === "roster-model" &&
+	// the null-slot fallback prints the plain "builder:" line, never "builder (larger lanes):"
+	w2Lines.length === 1 && w2Lines[0].startsWith("pi-worker: builder:") && !w2Lines[0].includes("(larger lanes)"),
+	w2Run.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const wSmallDir = freshAgentDir("lane-size-small-with-larger-set");
+writeRoster(wSmallDir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", "medium") });
+const wSmallRun = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "small"], { PI_CODING_AGENT_DIR: wSmallDir });
+const wSmallArgs = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+const wSmallLines = wSmallRun.stderr.split(/\r?\n/).filter((l) => l.startsWith("pi-worker: builder"));
+// req: R-1190
+check("lane size small starts pi with the builder even when largerBuilder is set",
+	wSmallRun.status === 0 &&
+	wSmallArgs.indexOf("--provider") >= 0 && wSmallArgs[wSmallArgs.indexOf("--provider") + 1] === "example-gateway" &&
+	wSmallArgs.indexOf("--model") >= 0 && wSmallArgs[wSmallArgs.indexOf("--model") + 1] === "roster-model" &&
+	!wSmallArgs.includes("larger-model") &&
+	wSmallLines.length === 1 && wSmallLines[0].startsWith("pi-worker: builder:") && !wSmallLines[0].includes("(larger lanes)"),
+	wSmallRun.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const w3 = (() => {
+	const results = [];
+	const refusalOk = (stderr) => stderr.includes("roster.largerBuilder") && /starts pi entries only/.test(stderr) &&
+		/subagent from a Claude Code seat/.test(stderr) && /put a pi entry in largerBuilder/.test(stderr);
+	const w3Dir = freshAgentDir("lane-size-larger-claude");
+	writeRoster(w3Dir, { ...sampleRoster(), largerBuilder: { runtime: "claude-code", model: "sonnet" } });
+	const w3Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w3Dir });
+	results.push(["no pre-existing lock", w3Run.status === 1 && refusalOk(w3Run.stderr) && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath)]);
+	// A lock already held by another run must be left untouched: the refusal fires before any
+	// lock attempt, so a mutation that moves it after the lock would instead surface the
+	// lock-exists refusal (and release the pre-existing lock as its own cleanup) — pair 53.
+	fs.rmSync(piSpawnMarker, { force: true });
+	fs.writeFileSync(laneLockPath, "424242\n");
+	const w3PreLockDir = freshAgentDir("lane-size-larger-claude-prelock");
+	writeRoster(w3PreLockDir, { ...sampleRoster(), largerBuilder: { runtime: "claude-code", model: "sonnet" } });
+	const w3PreLockRun = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w3PreLockDir });
+	const preLockUntouched = fs.existsSync(laneLockPath) && fs.readFileSync(laneLockPath, "utf8") === "424242\n";
+	results.push(["pre-existing lock left untouched, same refusal", w3PreLockRun.status === 1 && refusalOk(w3PreLockRun.stderr) && !/worktree lock/.test(w3PreLockRun.stderr) && preLockUntouched && !fs.existsSync(piSpawnMarker)]);
+	fs.rmSync(laneLockPath, { force: true });
+	return { pass: results.every(([, p]) => p), results };
+})();
+// req: R-1191
+check("lane size larger refuses a Claude Code larger-lane builder before lock or spawn, naming roster.largerBuilder and both ways out as the user's choice", w3.pass, JSON.stringify(w3.results));
+
+// req: R-960
+check("lane size with a missing or unknown value refuses before pi spawn", (() => {
+	const cases = [
+		["lane-size option missing", ["--lane", "alpha", "--brief", brief, "--lane-size"]],
+		["lane-size unknown value", ["--lane", "alpha", "--brief", brief, "--lane-size", "medium"]],
+	];
+	return cases.every(([, args]) => {
+		fs.rmSync(piSpawnMarker, { force: true });
+		const result = run(lane, args);
+		return result.status === 1 && /lane refused/.test(result.stderr) && !fs.existsSync(piSpawnMarker);
+	});
+})());
+
+fs.rmSync(piSpawnMarker, { force: true });
+const w5Dir = freshAgentDir("lane-size-larger-line");
+const w5File = writeRoster(w5Dir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", null) });
+const w5Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w5Dir });
+const w5Lines = w5Run.stderr.split(/\r?\n/).filter((l) => l.startsWith("pi-worker: builder"));
+// req: R-1124
+check("lane size larger prints the larger-lane builder line before starting pi",
+	w5Run.status === 0 && w5Lines.length === 1 && w5Lines[0] === `pi-worker: builder (larger lanes): example-gateway larger-model default; source: ${w5File}`,
+	w5Run.stderr);
+
+// req: R-1212
+check("with a larger-lane builder set, a launch with no lane size, the --lane-size=larger form included, is refused before lock or spawn, naming largerBuilder and both sizes", (() => {
+	const dir = freshAgentDir("lane-size-required");
+	writeRoster(dir, { ...sampleRoster(), largerBuilder: rosterEntry("example-gateway", "larger-model", null) });
+	const refusalOk = (stderr) => stderr.includes("largerBuilder") && /--lane-size larger/.test(stderr) && /--lane-size small/.test(stderr);
+	const cases = [["no --lane-size", []], ["--lane-size=larger form", ["--lane-size=larger"]]];
+	const plainOk = cases.every(([, extra]) => {
+		fs.rmSync(piSpawnMarker, { force: true });
+		const result = run(lane, ["--lane", "alpha", "--brief", brief, ...extra], { PI_CODING_AGENT_DIR: dir });
+		return result.status === 1 && refusalOk(result.stderr) && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath);
+	});
+	// A lock already held by another run must be left untouched: the refusal fires before any
+	// lock attempt, so a mutation that moves it after the lock would surface the lock-exists
+	// refusal instead and touch this file.
+	fs.rmSync(piSpawnMarker, { force: true });
+	fs.writeFileSync(laneLockPath, "424242\n");
+	const preLockResult = run(lane, ["--lane", "alpha", "--brief", brief], { PI_CODING_AGENT_DIR: dir });
+	const preLockOk = preLockResult.status === 1 && refusalOk(preLockResult.stderr) && !/worktree lock/.test(preLockResult.stderr) &&
+		fs.existsSync(laneLockPath) && fs.readFileSync(laneLockPath, "utf8") === "424242\n" && !fs.existsSync(piSpawnMarker);
+	fs.rmSync(laneLockPath, { force: true });
+	return plainOk && preLockOk;
+})());
+
 const laneSpawnCount = path.join(temp, "lane-spawns");
 fs.writeFileSync(pi, `#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`); fs.chmodSync(pi, 0o755);
 const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });

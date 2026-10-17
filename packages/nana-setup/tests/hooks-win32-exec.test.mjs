@@ -171,6 +171,15 @@ try {
 		check("verifier: a non-matching command gives empty stdout", noMatch.status === 0 && (noMatch.stdout || "") === "", JSON.stringify(noMatch.stdout));
 	}
 	{
+		const r = spawnEntry(entries["nana-roster-notice.mjs"].hook, session);
+		// req: R-1058
+		check("roster notice: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
+		let parsedNotice = null;
+		try { parsedNotice = JSON.parse((r.stdout || "").trim()); } catch {}
+		// req: R-1063
+		check("roster notice: one JSON object whose user message starts with the roster notice prefix", typeof parsedNotice?.systemMessage === "string" && parsedNotice.systemMessage.startsWith("nana active · roster"), r.stdout + r.stderr);
+	}
+	{
 		const r = spawnEntry(entries["nana-knowledge.ts"].hook, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
 		// req: R-1058
 		check("knowledge: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
@@ -179,7 +188,7 @@ try {
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
 	// req: R-1055
 	check("doctor: exit 0", doctorResult.status === 0, doctorResult.stdout);
-	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings PreToolUse verifier pipe", "settings UserPromptSubmit knowledge pull", "node for the objective hook"]) {
+	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings PreToolUse verifier pipe", "settings UserPromptSubmit knowledge pull", "node for the objective hook"]) {
 		const line = doctorResult.stdout.split("\n").find((l) => l.includes(label)) ?? "";
 		// req: R-1055
 		check(`doctor: "${label}" is ✓`, line.trim().startsWith("✓"), line);

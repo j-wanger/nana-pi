@@ -14,7 +14,7 @@ import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH } from "../lib/install-check-config.mjs";
-import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck } from "../lib/install-check.mjs";
+import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
 import { projectKey } from "../lib/project-key.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
@@ -43,10 +43,22 @@ async function runChecks() {
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 5);
+  assert.equal(HOOKS.length, 6);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook objective", "hook adoption", "hook shared memory", "hook verifier pipe", "hook knowledge pull"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe", "hook knowledge pull"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
+});
+
+// req: R-1209
+check("roster notice: plain text, two objects, a missing user message, a missing SessionStart context or the unavailable notice each fail", () => {
+  const good = { systemMessage: "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra", hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra" } };
+  assert.ok(rosterNoticeOutputOk(`${JSON.stringify(good)}\n`));
+  assert.ok(!rosterNoticeOutputOk("nana active · roster (default): plain text, not JSON"));
+  assert.ok(!rosterNoticeOutputOk(`${JSON.stringify(good)}\n${JSON.stringify(good)}\n`));
+  assert.ok(!rosterNoticeOutputOk(JSON.stringify({ hookSpecificOutput: good.hookSpecificOutput })));
+  assert.ok(!rosterNoticeOutputOk(JSON.stringify({ systemMessage: good.systemMessage })));
+  const unavailable = "nana active · roster notice unavailable (ERR_MODULE_NOT_FOUND)";
+  assert.ok(!rosterNoticeOutputOk(JSON.stringify({ systemMessage: unavailable, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: unavailable } })));
 });
 
 // req: R-1074, R-1082
@@ -210,6 +222,10 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       const memory = fs.readFileSync(path.join(home, ".claude/nana-memory/shared/MEMORY.md"), "utf8");
       return { status: 0, stdout: `[nana:shared-memory] ${memory.split("\n").find((line) => line.startsWith("- [")) ?? ""}` };
     }
+    if (joined.includes("nana-roster-notice.mjs")) {
+      const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
+      return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
+    }
     if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: "[nana:knowledge] install-check.md" };
     if (joined.includes("verifier-pipe.mjs")) {
       const input = JSON.parse(options.input);
@@ -248,7 +264,7 @@ check("environment: every child gets the base environment plus only its own step
     base.PATH = `${path.join(fixture.home, ".local", "bin")}${path.delimiter}${base.PATH}`;
     for (const call of fixture.calls) {
       const expected = { ...base };
-      const isHook = /nana-(objective|adoption|shared-memory|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`);
+      const isHook = /nana-(objective|adoption|shared-memory|roster-notice|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`);
       const isSession = call.args.includes("--mode") && call.args.includes("rpc");
       if (isHook) expected.CLAUDE_PROJECT_DIR = path.join(fixture.home, "project");
       if (isSession) expected.NANA_TEST_TEMP_ROOTS = "";
@@ -294,7 +310,7 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
       const joined = fixture.calls.map(({ command, args }) => `${command} ${args.join(" ")}`).join("\\n");
       assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
       if (platformName === "linux") {
-        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs", "nana-knowledge.ts"]) assert.ok(joined.includes(name), name);
+        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", "nana-knowledge.ts"]) assert.ok(joined.includes(name), name);
         assert.ok(fixture.calls.some((call) => call.args[0] === "install" && call.args.some((arg) => arg.includes("pi-subagents"))));
         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
         assert.ok(fixture.calls.filter((call) => call.options.input?.includes("PreToolUse")).length >= 2);
@@ -325,8 +341,8 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
     assert.equal(result.exitCode, 0, result.lines.join("\\n"));
     assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
     assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
-    const hooks = fixture.calls.filter((call) => /nana-(objective|adoption|shared-memory|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`));
-    assert.ok(hooks.length >= 5);
+    const hooks = fixture.calls.filter((call) => /nana-(objective|adoption|shared-memory|roster-notice|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`));
+    assert.ok(hooks.length >= 7);
     assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
@@ -476,6 +492,7 @@ check("pin R-1074 R-1082: the hook table with its form columns and the allowed e
     ["hook objective", "SessionStart", "startup", null, "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook roster notice", "SessionStart", "startup", null, "nana-roster-notice.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook knowledge pull", "UserPromptSubmit", null, null, "nana-knowledge.ts", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
   ]);
@@ -516,23 +533,24 @@ check("dispatch: on win32 Git Bash discovery reads the path variable under any l
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
   const fixture = recordingRun();
-  try { await fixture.run; const hooks = fixture.calls.filter(c => /nana-(objective|adoption|shared-memory|knowledge)|verifier-pipe/.test(c.args.join(" "))); assert.ok(hooks.length >= 5); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+  try { await fixture.run; const hooks = fixture.calls.filter(c => /nana-(objective|adoption|shared-memory|roster-notice|knowledge)|verifier-pipe/.test(c.args.join(" "))); assert.ok(hooks.length >= 7); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075
-check("dispatch: the three SessionStart entries start before any of them finishes", async () => {
+check("dispatch: every SessionStart entry starts before any of them finishes", async () => {
+  const sessionStartScripts = HOOKS.filter((h) => h.event === "SessionStart").map((h) => h.script);
   let starts = 0; let finishes = 0; let release;
   const gate = new Promise(resolve => { release = resolve; });
   const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
     const name = `${command} ${args.join(" ")}`;
-    if (!/nana-(objective|adoption|shared-memory)/.test(name)) return spawn(command, args, options);
+    if (!sessionStartScripts.some((script) => name.includes(script))) return spawn(command, args, options);
     starts++;
-    if (starts === 3) release();
+    if (starts === sessionStartScripts.length) release();
     await gate;
     if (finishes > 0) throw new Error("SessionStart started after a finish");
     const result = await spawn(command, args, options); finishes++; return result;
   }});
-  try { await fixture.run; assert.equal(starts, 3); assert.equal(finishes, 3); }
+  try { await fixture.run; assert.equal(starts, sessionStartScripts.length); assert.equal(finishes, sessionStartScripts.length); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075
@@ -630,6 +648,23 @@ check("knowledge: a win32 ~\\notes\\docs\\install-check.md pointer matches by fi
   try { const result = await fixture.run; assert.ok(result.lines.some(line => line === "PASS hook knowledge pull")); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
+// req: R-1209
+check("roster notice: plain text, not JSON, fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => ({ stdout: "nana active · roster (default): plain text, not JSON" })), "hook roster notice"));
+// req: R-1209
+check("roster notice: the unavailable notice fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => {
+  const u = "nana active · roster notice unavailable (ERR_MODULE_NOT_FOUND)";
+  return { stdout: `${JSON.stringify({ systemMessage: u, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: u } })}\n` };
+}), "hook roster notice"));
+// req: R-1209
+check("roster notice: a missing hookEventName fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => {
+  const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
+  return { stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { additionalContext: notice } })}\n` };
+}), "hook roster notice"));
+// req: R-1209
+check("roster notice: a wrong prefix fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => {
+  const notice = "not the roster notice prefix at all";
+  return { stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
+}), "hook roster notice"));
 // req: R-1072
 check("checklist: the check writes only the objective lines and one MEMORY.md line, and puts the bin folder first on PATH except on win32", async () => {
   for (const platformName of ["linux", "win32"]) {
@@ -759,7 +794,7 @@ check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
   });
 });
 // req: R-1073

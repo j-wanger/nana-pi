@@ -168,7 +168,7 @@ export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
 export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
 
 /**
- * The five active hook entries the nana experience needs, in the order they are added.
+ * The six active hook entries the nana experience needs, in the order they are added.
  *
  * When `platform` is absent or not "win32", the output is byte-identical to `main`: every hook
  * runs in shell form from `hooksDir` (the live symlinks under `~/.claude/hooks`), paths are
@@ -178,7 +178,7 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
  * On win32 every entry is written in EXEC form instead — `command: "node"` plus an `args` array,
  * which Claude Code spawns directly with no shell (hooks#exec-form-and-shell-form). There is
  * never a usable symlink into `~/.claude/hooks` on this platform (stepHooks skips it), so every
- * win32 script path names the CHECKOUT's own copy directly: the four hooks under
+ * win32 script path names the CHECKOUT's own copy directly: the five hooks under
  * `<repoRoot>/packages/nana-setup/claude/hooks/`, the knowledge pull under
  * `<repoRoot>/packages/nana-knowledge/bin/`. No path is quoted or escaped — exec form passes each
  * `args` element exactly as written — and the knowledge entry's `args` carries its `hook`
@@ -201,6 +201,7 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const objective = nodeHook("nana-objective.mjs", "nana: objective + current priority");
 	const adoption = nodeHook("nana-adoption.mjs", "nana: unadopted repositories");
 	const shared = nodeHook("nana-shared-memory.mjs", "nana: shared memory index");
+	const rosterNotice = nodeHook("nana-roster-notice.mjs", "nana: roster notice");
 	const verifierPipeTarget = hookTarget("verifier-pipe.mjs");
 	const verifierPipeSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
 	const verifierPipeEntry = win32
@@ -215,6 +216,7 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: objective.spec, entry: objective.entry },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: adoption.spec, entry: adoption.entry },
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: shared.spec, entry: shared.entry },
+		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: rosterNotice.spec, entry: rosterNotice.entry },
 		{
 			event: "PreToolUse",
 			matcher: win32 ? WIN_VERIFIER_MATCHER : "Bash",
@@ -413,7 +415,7 @@ export function installerTarget(hook, wanted, platform) {
 /**
  * Replace every stale or (on win32) wrongly-shaped repo-anchored entry in place, returning
  * { [label]: { found, replaced } } for each one R-1056 names: the knowledge pull on every
- * platform, and all five entries on win32.
+ * platform, and all six entries on win32.
  *
  * It scans entries under that entry's event; where the entry has a matcher, it scans only groups
  * with that matcher, otherwise every group (as the knowledge scan always has). The timeout gate

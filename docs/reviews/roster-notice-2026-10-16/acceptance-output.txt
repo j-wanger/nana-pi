@@ -1,0 +1,303 @@
+ok   (harness) git merge-base main HEAD resolves
+ok   (harness) the scratch folder is outside the checkout
+ok   (harness) CHANGE.md gives §3.4's three examples at 144, 169 and 166 characters, the larger-lane builders fragment, §3.2's two refusal texts and §3.8's bullet
+ok   (harness) R-1120's base text gives the default roster's builder, reviewer and land
+ok   (harness) the placeholder providers appear nowhere in the checkout outside this review folder
+ok   (harness) pi is on PATH for the RPC runs
+ok   (harness) the composer reproduces §3.4's default, refused and relative examples and its larger-lane builders fragment
+ok   (a) seat-titles 1 prints `seat-titles 1: 0 missing` and exits 0 (§5: every §5.1 title under its req: marker, the four loop instances, the renamed titles, the old names gone)
+ok   (harness) the relative example's composed notice equals §3.4's text
+ok   (harness) the roster command gives a refusal problem for every refused scenario
+ok   (guard) this script's R-1202 transform of the resolver's problems: invalid JSON, a trailing comma, a value echo, a control-character key, a directory and a dangling symlink under My (old), a dangling symlink, a non-object
+ok   (harness) the raw problems hold what the cut must remove: the leaked and echoed provider strings, two ' (' in the trailing-comma problem, the line feed, ESC, TAB, U+009B and U+202E, and ' (' inside the My (old) dangling path
+ok   (harness) the value-echo scenario's composed notice equals §3.4's refused example
+ok   (harness) the default scenario's composed notice equals §3.4's default example
+ok   (n) default, no file: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) default, the installer's seed (objective only): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: set scout, null land, no largerBuilder: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: explicit null largerBuilder: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: pi largerBuilder and a set land: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: a reviewer with a thinking level (low): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: pi largerBuilder with a null thinking: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: Claude Code largerBuilder sonnet (§3.4's builders fragment): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: Claude Code largerBuilder opus, null scout: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: Claude Code largerBuilder haiku, null scout: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: Claude Code largerBuilder fable, null scout: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster equal to the default (not marked default): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) file roster: a model id that holds its provider: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) agent dir outside the home folder (absolute pointer): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) PI_CODING_AGENT_DIR=~/agents/tilde: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) PI_CODING_AGENT_DIR as a file:// URL: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) relative agent dir with a valid roster (unknown line): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) relative agent dir with a refused roster (unknown line): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) relative agent dir: §3.4's example (PI_CODING_AGENT_DIR=pi-agent read from ~/nana-pi): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: builder.provider "" at ~/.pi/agent (§3.4's refused example): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: invalid JSON beside a provider string: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a provider string echoed as a bad thinking value: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a trailing comma (a problem holding two ' ('): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: an unexpected key holding a line feed, ESC, TAB, U+009B and U+202E: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a directory under an agent dir named My (old): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a dangling symlink under an agent dir named My (old): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a dangling symlink in the home folder: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a dangling symlink outside the home folder (absolute): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a top level that is not an object: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: over the bounded-read cap: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: unreadable (mode 000): the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) refused: a Claude Code model outside the four: the hook's context, the extension's widget and pi's RPC widget each read the composed notice (R-1211)
+ok   (n) every scenario's hook printed a notice that starts with the prefix (R-1194)
+ok   (n) every notice is one line that ends with the change pointer and the roster file, ~ for the home folder (R-1194, R-1203, R-1204)
+ok   (n) no notice holds a fixture provider string, the model id that holds its provider excepted as a whole token (R-1195)
+ok   (n) the model id that holds its provider prints whole (R-1195)
+ok   (n) no notice for a roster file under a home folder holds that absolute home path (R-1204)
+ok   (n) no notice names the scout: no scout word and no scout model (R-1199)
+ok   (n) no refused notice holds an echoed value or a ' (' outside its path (R-1202)
+ok   (n) only the default scenarios carry (default) after roster (R-1201)
+ok   (harness) the lineup predicate is true for a lineup notice and false for §3.4's relative example
+ok   (n) no relative-agent-dir notice names a lineup (R-1215)
+ok   (n) extension, file roster: set scout, null land, no largerBuilder: startup, new, resume and fork with a UI each set one nana-roster widget holding only the notice; reload and no UI set nothing; nothing notifies or throws (R-1210)
+ok   (n) extension, refused: builder.provider "" at ~/.pi/agent (§3.4's refused example): startup, new, resume and fork with a UI each set one nana-roster widget holding only the notice; reload and no UI set nothing; nothing notifies or throws (R-1210)
+ok   (n) extension, relative agent dir with a valid roster (unknown line): startup, new, resume and fork with a UI each set one nana-roster widget holding only the notice; reload and no UI set nothing; nothing notifies or throws (R-1210)
+ok   (n) pi in RPC mode sends exactly one setWidget request and no notify for every scenario (R-1210, §5 Seat acceptance)
+ok   (n) the extension registers only session_start: no before_agent_start prompt section or other handler (§3.6, §3.9)
+ok   (n) with a UI that has notify and setStatus but no setWidget, the extension's startup throws nothing and calls nothing (§3.6; config-handlers-malformed.test.mjs's fake UI)
+ok   (n) config-handlers-malformed.test.mjs's extension list names nana-roster-notice (§5.2)
+ok   (n) one registration, one process: startup shows the file's lineup, and after the roster file is rewritten a new session start shows the new lineup (R-1210, R-1211; composed per start, not once at load)
+ok   (n) NANA_ROLE=worker: the hook's user message and context, the extension's widget and pi's RPC widget each still read the notice (§3.6, §3.9)
+ok   (n) NANA_ROLE=reviewer: the hook's user message and context, the extension's widget and pi's RPC widget each still read the notice (§3.6, §3.9)
+ok   (n) roster-notice-config.mjs holds §3.3's values by name
+ok   (n) roster-notice.mjs has one export, rosterNotice (§3.4)
+ok   (h) hook, startup: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, resume: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, fork: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, clear: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, compact: exit 0 and exactly one JSON object, the notice as SessionStart context and no user message (R-1205, R-1206)
+ok   (h) hook, an empty input: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, a non-JSON input: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, an input with no source: exit 0 and exactly one JSON object, the notice as SessionStart context and as the user message (R-1205, R-1206)
+ok   (h) hook, a refused roster on compact: context only, exit 0 (R-1205, R-1206)
+ok   (h) hook, a relative agent dir on resume: the unknown line in both fields (R-1205, R-1215)
+ok   (harness) a child whose stdin is a write-only descriptor fails readHookInput with EBADF
+ok   (h) hook, an input that fails on read (stdin a write-only descriptor): exit 0 and one JSON object, the notice as SessionStart context and as the user message, not the unavailable notice (R-1205, R-1206; pair 65)
+ok   (h) the hook exports its runner, which, fed an input stream that fails on read, prints the notice as SessionStart context and as the user message (§3.5, R-1206; pair 65)
+ok   (h) a copy of the hook that cannot load its modules exits 0 and prints one JSON object whose systemMessage and SessionStart context both read the unavailable notice with an error code and no path (R-1207)
+ok   (h) the hook's static imports are node built-ins only (§3.5: the fail-open path cannot rely on an import)
+ok   (h) the hook, the extension and the notice modules start no child process and make no git call (§3.5, §3.6, §3.9)
+ok   (r) no file: the roster command prints the default roster with largerBuilder: none after the builder, source default (R-1123, D1 null)
+ok   (r) no file: --json prints one object holding only roster, every slot in print order, largerBuilder null (R-1192)
+ok   (r) the installer's seed (objective only): the default roster, source default (R-1120, R-1123)
+ok   (r) no largerBuilder (four slots): accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) no largerBuilder (four slots): --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) largerBuilder null: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) largerBuilder null: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) a pi largerBuilder: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) a pi largerBuilder: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) a pi largerBuilder with null thinking: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) a pi largerBuilder with null thinking: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) a Claude Code largerBuilder sonnet: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) a Claude Code largerBuilder sonnet: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) a Claude Code largerBuilder opus: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) a Claude Code largerBuilder opus: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) a Claude Code largerBuilder haiku: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) a Claude Code largerBuilder haiku: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) a Claude Code largerBuilder fable: accepted; the roster command prints every slot as written, largerBuilder after the builder, source the file (R-1121, R-1122, R-1123)
+ok   (r) a Claude Code largerBuilder fable: --json prints the resolved roster, an absent largerBuilder as null (R-1121, R-1192)
+ok   (r) resolveRoster on a four-slot file returns a roster that holds largerBuilder as null beside the four slots (R-1121, §3.1; pair 40)
+ok   (r) refused, largerBuilder a string: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (r) refused, largerBuilder an array: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (r) refused, largerBuilder an empty string: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (r) refused, largerBuilder false: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (r) refused, largerBuilder 0: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (r) refused, runtime claude: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (r) refused, a Claude Code entry with thinking: exit 1, empty stdout, stderr names the file and roster.largerBuilder and thinking (R-1122)
+ok   (r) refused, a Claude Code entry without model: exit 1, empty stdout, stderr names the file and roster.largerBuilder and model (R-1122)
+ok   (r) refused, a Claude Code entry with an effort field: exit 1, empty stdout, stderr names the file and roster.largerBuilder and effort (R-1122)
+ok   (r) refused, a full model name: exit 1, empty stdout, stderr names the file and roster.largerBuilder.model (R-1122)
+ok   (r) refused, a bracketed variant sonnet[1m]: exit 1, empty stdout, stderr names the file and roster.largerBuilder.model (R-1122)
+ok   (r) refused, a model with a space: exit 1, empty stdout, stderr names the file and roster.largerBuilder.model (R-1122)
+ok   (r) refused, a model differing in case (Sonnet): exit 1, empty stdout, stderr names the file and roster.largerBuilder.model (R-1122)
+ok   (r) refused, a pi largerBuilder missing thinking: exit 1, empty stdout, stderr names the file and roster.largerBuilder and thinking (R-1122)
+ok   (r) refused, a pi largerBuilder with an empty model: exit 1, empty stdout, stderr names the file and roster.largerBuilder.model (R-1122)
+ok   (r) refused, a pi largerBuilder with a runtime field: exit 1, empty stdout, stderr names the file and roster.largerBuilder (R-1122)
+ok   (guard) refused, a Claude Code entry in builder: exit 1, empty stdout, stderr names the file and roster.builder (R-1122)
+ok   (guard) refused, a Claude Code entry in reviewer: exit 1, empty stdout, stderr names the file and roster.reviewer (R-1122)
+ok   (guard) refused, a Claude Code entry in scout: exit 1, empty stdout, stderr names the file and roster.scout (R-1122)
+ok   (guard) refused, a Claude Code entry in land: exit 1, empty stdout, stderr names the file and roster.land (R-1122)
+ok   (guard) --json with a refused roster: exit 1, empty stdout, the refusal on stderr naming the file (R-1192; the base ignores --json and already does this)
+ok   (harness) the installer's seed parses, holds objective and no roster
+ok   (r) --json read-back, the default roster: its roster value, set as the roster member of a file holding the installer's seed, resolves to the same roster from that file, objective kept (R-1192, N4)
+ok   (r) --json read-back, a file roster with a pi largerBuilder: its roster value, set as the roster member of a file holding the installer's seed, resolves to the same roster from that file, objective kept (R-1192, N4)
+ok   (r) after the read-back, changing one value (largerBuilder to Claude Code opus) resolves (R-1121, §3.8)
+ok   (r) worker-config.mjs holds §3.3's names and values, ROSTER_DEFAULTS.largerBuilder null (D1's recommended default)
+ok   (harness) the scratch lane worktree is on its feat/ branch and its lock path resolved
+ok   (guard) no roster, no --lane-size: the builder starts as today (R-1124, R-961)
+ok   (guard) no roster, --lane-size small: the builder (the base ignores the option; the build reads it)
+ok   (guard) no roster, --lane-size larger: a null larger-lane builder falls back to the builder, builder: line (R-1190)
+ok   (guard) a four-slot roster, --lane-size=larger (not an own option): the builder (§3.2)
+ok   (w) largerBuilder null, --lane-size larger: the builder, builder: line naming the file (R-1190, R-1124)
+ok   (w) a pi largerBuilder, --lane-size larger: pi starts with its provider, model and thinking, each flag once; one larger-lane builder line before attempt 1/1; lock released (R-1190, R-961, R-1124)
+ok   (w) a pi largerBuilder with null thinking, --lane-size larger: no --thinking, the line says default (R-1190, R-1124)
+ok   (w) a pi largerBuilder, --lane-size small: the builder, builder: line (R-1190, R-1124)
+ok   (w) a Claude Code largerBuilder, --lane-size small: the builder (R-1190)
+ok   (w) a Claude Code largerBuilder, --lane-size larger: exit 1, no pi, no lock left, §3.2's text with both ways out as the user's choice (R-1191)
+ok   (w) the same with a worktree lock already held: refused by R-1191's text, not the lock, and the lock untouched (before the lock, R-1191)
+ok   (w) a pi largerBuilder, no --lane-size: exit 1, no pi, no lock left, §3.2's no-size text naming largerBuilder and both sizes (R-1212)
+ok   (w) a Claude Code largerBuilder, no --lane-size: exit 1, no pi, no lock left, §3.2's no-size text naming largerBuilder and both sizes (R-1212)
+ok   (w) a pi largerBuilder, --lane-size=larger: exit 1, no pi, no lock left, §3.2's no-size text naming largerBuilder and both sizes (R-1212)
+ok   (w) a pi largerBuilder, no --lane-size, with a worktree lock already held: R-1212's text, not the lock, and the lock untouched (before the lock)
+ok   (w) --lane-size bogus: exit 1 before pi, a lane refusal naming --lane-size (R-960)
+ok   (w) --lane-size bogus with a worktree lock already held: refused for the value, not the lock (§3.2: before the lock)
+ok   (w) --lane-size with no value (last argument): exit 1 before pi, naming --lane-size (R-960)
+ok   (w) --lane-size followed by --brief (no value): exit 1 before pi, naming --lane-size (R-960)
+ok   (guard) a non-lane pi-worker launch with a pi largerBuilder set reads no roster: exit 0, pi gets only the caller's arguments and the watchdog's --name, no builder line (R-1212 is lane mode only; pack README)
+ok   (harness) the base's install-check table gives the sealed SessionStart timeout, and the base's desiredHooks gives five entries on each platform
+ok   (guard) desiredHooks: every base entry, POSIX and win32, is the base's exactly (event, matcher, label, marker, spec and entry, timeout included; §3.9)
+ok   (i) desiredHooks (POSIX): six entries, four SessionStart, one roster notice entry with no matcher, shell form like its siblings, the base's sealed SessionStart timeout (R-1208)
+ok   (guard) desiredHooks with no platform equals the POSIX output (R-1061)
+ok   (i) desiredHooks (win32, checkout path with a space, $, % and '): exec form naming the checkout's own hook, no matcher, the base's sealed SessionStart timeout (R-1208, R-1051)
+ok   (i) steps HOOKS lists the hook (five hooks, R-301)
+ok   (i) the state manifest has a rebuildable link row for the hook at the hooks dir (R-954; uninstall reads it)
+ok   (i) the install-check hook table: six rows, a SessionStart roster notice row labelled hook roster notice with the base's sealed SessionStart timeout and shell/shell/exec forms (R-1074, R-1209)
+ok   (i) DOCTOR_NOTES: win32 gains hook nana-roster-notice.mjs; darwin and linux unchanged from the base (R-1081)
+ok   (i) install-check.mjs exports rosterNoticeOutputOk, which passes only one JSON object with the notice as user message and SessionStart context (R-1209)
+ok   (i) runInstallCheck's hook roster notice row, its hook printing nothing, plain text, the unavailable notice in both fields, then the notice in both fields: FAIL, FAIL, FAIL, PASS (R-1209, §3.5's branch)
+ok   (guard) nana-setup install --home <scratch> exits 0
+ok   (i) after install: one SessionStart entry runs the linked hook, in a group with no matcher, with the objective entry's timeout; the link points into this checkout (R-1208, R-301)
+ok   (i) the installed command, run through /bin/sh with startup input, prints the default notice (the seeded file holds no roster) in both fields (R-1205, R-1209's fixture)
+ok   (i) the install output reports the hook link and the settings SessionStart roster notice entry
+ok   (i) uninstall --yes removes the hook link and its settings entry, which install had made (state manifest, §3.5)
+ok   (i) forced-win32 install: one exec-form SessionStart entry naming the checkout's hook, no matcher, the objective entry's timeout; the line reports created (R-1208, R-1051, R-1056)
+ok   (i) forced-win32 install over a stale roster notice entry: replaced in place by the checkout's exec form, the foreign entry after it kept, no twin (R-1056, R-1051)
+ok   (t) the shared file carries §3.8's Larger lanes bullet once, byte for byte, right after the seat land review bullet (R-1193, R-1213, R-1214)
+ok   (guard) apart from the bullet and the three runtime rows, the shared file is the base's line for line (§3.8)
+ok   (t) the runtime table keeps its columns; only the Notify cell of the three nana rows changes, naming the hook (Claude Code) or the roster notice extension (pi) (§3.8, R-680)
+ok   (guard) the default-pattern and seat land review bullets are the base's, byte for byte (R-1126 to R-1128, §3.9)
+ok   (guard) AGENTS.md's marker region is byte-identical to the shared file (R-859; regenerated by nana-setup project)
+ok   (t) AGENTS.md carries the Larger lanes bullet once (the regenerated region)
+ok   (guard) nana-soul.md is the base's (§3.9)
+ok   (t) pack README: Eight extensions, the Machine roster section names largerBuilder, the --json command and "pull before you add `largerBuilder`"; the Lane builder paragraph names --lane-size (§3.8)
+ok   (t) pack README Machine roster section: larger or riskier, a Claude Code entry with its four model names, --lane-size, the --json edit (set the file's roster member, keep every other key) and a JSON syntax error stopping pi's gate (§3.8)
+ok   (t) pack README Lane builder paragraph: --lane-size, and the refusal-list item "a launch with no --lane-size once the roster sets largerBuilder" (§3.8, R-1212)
+ok   (t) pack README extension table: a nana-roster-notice row (§3.8)
+ok   (t) pack README What you will see: a widget item (the roster notice above the editor, builders, reviewer and land by model and thinking, never a provider or the scout, roster unknown while PI_CODING_AGENT_DIR is relative), and the compaction toast still shown beside it (§3.8)
+ok   (t) root README: no "seven extensions" left and "eight extensions" at least twice (the packages bullet and the pack-only install comment, §3.8)
+ok   (t) nana-setup README: the What it installs hooks row names claude/hooks/nana-roster-notice.mjs, and the win32-degrade row says six win32 settings entries, not five (§3.8)
+ok   (t) shared-memory-input.mjs's @purpose names both SessionStart hooks, shared memory and the roster notice (§3.5, §4)
+ok   (t) both package descriptions and the root README's packages bullet name the roster notice; the descriptions say eight (R-658)
+ok   (t) the desk README's runtime matrix names the roster notice in each of its three surface lists: default spawn, narrowed spawn, app children (R-685, §3.8)
+ok   (t) skill-claims.mjs EXEMPTIONS gains the hook's name (§3.8)
+ok   (harness) CHANGE §2 gives one-shall text for each of R-1190 to R-1215, and the lane adds 26 rows
+ok   (harness) R-1190 to R-1215 are unused at the base
+ok   (e) R-1190 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1191 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1192 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1193 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1194 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1195 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1196 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1197 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1198 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1199 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1200 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1201 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1202 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1203 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1204 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1205 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1206 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1207 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1208 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1209 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1210 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1211 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1212 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1213 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1214 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (e) R-1215 is one row carrying CHANGE §2's text, one "shall", status implemented
+ok   (harness) each feature §2 names for a new row is a heading in REQUIREMENTS.md
+ok   (e) each new row sits under the feature or subgroup §2 names (placed by ID, §2)
+ok   (e) R-1121 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1122 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1123 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-961 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1124 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-301 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1051 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1055 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1056 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-658 reworded: §2's change on the base text, one "shall", still implemented
+ok   (e) R-1120 reworded: the base text with "no larger-lane builder," after the builder (or D1's other insert), one "shall", its evidence cell unchanged
+ok   (e) R-1063 reworded: the roster notice clause added after the shared-memory clause, the rest the base's, one "shall"
+ok   (guard) R-1075's requirement text and status are the base's (evidence only, §2)
+ok   (harness) every new row has at least one §5 title in seat-titles.mjs
+ok   (e) R-1190's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1191's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1192's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1193's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1194's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1195's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1196's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1197's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1198's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1199's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1200's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1201's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1202's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1203's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1204's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1205's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1206's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1207's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1208's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1209's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1210's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1211's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1212's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1213's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1214's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1215's evidence cites its §5 title(s) as the rail reads them
+ok   (e) R-1121's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-1122's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-1123's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-961's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-1124's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-1051's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-1063's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-658's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) R-1075's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
+ok   (e) no row cites a renamed title's old name (R-1051, R-1075, R-658; §2, §5.2)
+ok   (guard) no base row outside §2's twelve reworded rows changes its requirement text or status
+ok   (e) the row set is the base's plus R-1190 to R-1215, each once (1152 → 1178)
+ok   (harness) R-291's base leaf total equals the base's row count (seat-titles reads it)
+ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0
+ok   (guard) node scripts/requirements-tree.mjs --check exits 0
+ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0
+ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0
+ok   (guard) git diff --name-only c514964..HEAD lists only §4 In paths and this review folder
+ok   (guard) the merge-base diff touches nothing §3.9 names: the other hooks, lifecycle, pi-review, the watchdog, the builder preamble, nana-soul, the objective, desk code
+ok   (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In; the seat writes them before the final round)
+ok   (f) HANDOFF.md carries the D1 carry (a largerBuilder for this machine after the land, residual 6)
+ok   (f) every new module opens with the six-tag header (nana-standards; map:check)
+ok   (f) roster-notice.mjs's header gives §3.4's @purpose and @effects none
+ok   (guard) no file the lane changes outside this review folder gains an owner name, the absolute home path, the host name or this machine's roster provider (§3.9)
+ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
+ok   (g) packages/nana-pack/tests/roster-notice.test.mjs exits 0
+ok   (g) packages/nana-setup/tests/roster-notice-hook.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/nana-roster.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/worker-lane.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0
+ok   (guard) packages/nana-setup/tests/install-check.test.mjs exits 0
+ok   (guard) packages/nana-setup/tests/settings-merge.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/readme-check.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0
+ok   (guard) packages/nana-setup/tests/install.test.mjs exits 0
+ok   (guard) packages/nana-setup/tests/win32-degrade.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/config-handlers-malformed.test.mjs exits 0
+ok   (g) every macOS §5 title prints PASS exactly once and never FAIL or SKIP
+ok   (harness) each win32-degrade loop template is in the base's win32-degrade.test.mjs
+ok   (g) every macOS loop instance prints PASS exactly once and never FAIL: install's hook link, win32-degrade's skipped and created lines, and the existing win32 loops' roster notice instances, the stale-entry repair in place included (§5.1, R-1056, R-1055)
+WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — "roster notice: exit 0 within its own timeout, no module-resolution error"
+WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — "roster notice: one JSON object whose user message starts with the roster notice prefix"
+WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — doctor: "settings SessionStart roster notice" is ✓; and CI's Windows install check passes the roster notice row (DOCTOR_NOTES included)
+ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
+cases: 298/298 (build cases red: 0/236; guard and harness red: 0/62)
+roster-notice acceptance: 0 mismatch(es)

@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/lib/shared-memory-input.mjs
- * @purpose Read the bounded JSON payload supplied to the shared-memory SessionStart hook.
+ * @purpose Read the bounded JSON payload supplied to a SessionStart hook (shared memory, roster notice).
  * @inputs an injectable readable stream with an isTTY flag.
  * @outputs null for a TTY, otherwise at most STDIN_CAP UTF-8 input bytes.
  * @effects none (consumes only the supplied stream).

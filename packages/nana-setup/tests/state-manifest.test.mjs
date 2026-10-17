@@ -53,12 +53,12 @@ const installTargets = [
   ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
   path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
   ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"),
-  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
   ...["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md"].map((name) => path.join(ownerLayout.rulesDir, name)),
   ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
   ...["pi-review", "pi-worker", "nana-land", "nana-setup"].map((name) => path.join(ownerLayout.binDir, name)),
 ];
-const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", ...Array(17).fill("link")];
+const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", ...Array(18).fill("link")];
 const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
 const missingInstallTargets = installTargets.filter((target) => { try { fs.lstatSync(target); return false; } catch { return true; } });
 // req: R-954
