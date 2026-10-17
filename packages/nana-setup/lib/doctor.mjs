@@ -378,9 +378,9 @@ export function diagnose(layout, opts = {}) {
 	} catch (err) {
 		parseError = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
 	}
-	// R-1055: on win32 every one of the five settings rows is now a real ✓/✗, read the same way —
+	// R-1055: on win32 every one of the six settings rows is now a real ✓/✗, read the same way —
 	// the entry sits under the expected event and matcher (hasHook), and every entry that invokes
-	// its script resolves inside the checkout (hookTargets). On POSIX the four hook rows keep
+	// its script resolves inside the checkout (hookTargets). On POSIX the five hook rows keep
 	// hasHook alone and the knowledge row keeps knowledgeHookHealthy, both exactly as on `main`
 	// (R-1061).
 	const platformValue = win ? "win32" : undefined;

@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
@@ -162,6 +162,21 @@ function comparablePath(value, platformName) {
   try { return fs.realpathSync.native(value); } catch { return path.resolve(value); }
 }
 
+/** R-1209: the roster notice hook's stdout is exactly one JSON object whose systemMessage
+ *  starts the notice prefix and is not the unavailable notice, and whose hookSpecificOutput
+ *  holds hookEventName SessionStart and an additionalContext that starts the notice prefix. */
+export function rosterNoticeOutputOk(stdout) {
+  const lines = String(stdout ?? "").trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length !== 1) return false;
+  let parsed;
+  try { parsed = JSON.parse(lines[0]); } catch { return false; }
+  const message = parsed?.systemMessage;
+  const context = parsed?.hookSpecificOutput?.additionalContext;
+  return typeof message === "string" && message.startsWith(ROSTER_NOTICE_PREFIX) && !message.startsWith(ROSTER_NOTICE_UNAVAILABLE_PREFIX) &&
+    parsed?.hookSpecificOutput?.hookEventName === "SessionStart" &&
+    typeof context === "string" && context.startsWith(ROSTER_NOTICE_PREFIX);
+}
+
 export function journalHasUnadopted(text, project, platformName = process.platform) {
   const expected = comparablePath(project, platformName);
   return String(text).split(/\r?\n/).some((line) => {
@@ -278,6 +293,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
       let memoryTarget = null; try { memoryTarget = fs.realpathSync(path.join(home, ".claude/nana-memory/shared")); } catch {}
       passed &&= stdout.includes("[nana:shared-memory]") && stdout.includes(`- [${token}]`) && target === memoryTarget;
     }
+    if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
     if (expected.shortLabel === "knowledge pull") passed &&= stdout.includes("[nana:knowledge]") && stdout.includes("install-check.md");
     let miss = null;
     if (expected.shortLabel === "verifier pipe") {

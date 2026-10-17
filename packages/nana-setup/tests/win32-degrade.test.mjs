@@ -58,15 +58,15 @@ check("win32 install exits 0", r.status === 0, r.stderr);
 
 const lines = r.stdout.split("\n");
 const line = (label) => lines.find((l) => l.includes(label)) ?? "";
-for (const label of ["hook nana-objective.mjs", "hook nana-shared-memory.mjs"]) {
+for (const label of ["hook nana-objective.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs"]) {
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
 // req: R-995
 check("win32 install skips every POSIX PATH command and leaves bin absent or empty", posix.status === 0 && pathLabels.length > 0 && pathLabels.every((label) => /skipped\s+skipped \(win32\)/.test(line(label))) && (!fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0), pathLabels.find((label) => !/skipped\s+skipped \(win32\)/.test(line(label))) ?? "bin directory is not empty");
 // req: R-589
 check("win32: PATH nana-setup reports skipped (win32)", /skipped\s+skipped \(win32\)/.test(line("PATH nana-setup")), line("PATH nana-setup"));
-// R-1051: the four Node hook settings entries are wired on win32 now, in exec form — not skipped.
-for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory"]) {
+// R-1051: the five Node hook settings entries are wired on win32 now, in exec form — not skipped.
+for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice"]) {
 	check(`win32: ${label} is created, not skipped`, line(label).includes("created"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
@@ -120,7 +120,7 @@ check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 // req: R-937
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
 // final review r2 (sol MUST 2, astra MUST 1): pin every expected win32-skipped doctor row BY
-// LABEL, individually — the four hook-file rows and the four PATH rows — not "at least four",
+// LABEL, individually — the five hook-file rows and the four PATH rows — not "at least four",
 // which a changed OTHER row's detail (still counting toward 4) would satisfy without proving any
 // particular row is marked.
 for (const label of [...HOOKS.map((h) => `hook ${h}`), "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup"]) {
@@ -226,7 +226,7 @@ for (const w of win32Wanted) {
 	// req: R-1056
 	check(`win32: stale ${w.label} install exits 0`, r.status === 0, r.stdout + r.stderr);
 	const after = JSON.parse(fs.readFileSync(path.join(h2, ".claude", "settings.json"), "utf8"));
-	// a minimal single-entry seed also triggers install to add the other four missing entries,
+	// a minimal single-entry seed also triggers install to add the other five missing entries,
 	// so the "no twin" proof is that exactly ONE entry under this event still names this script.
 	const matching = after.hooks[w.event].flatMap((g) => g.hooks).filter((h) => JSON.stringify(h).includes(w.spec.script));
 	const repaired = matching[0];

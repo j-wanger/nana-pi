@@ -32,7 +32,7 @@ const check = (n, ok, extra) => {
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 const spec = (label) => wanted.find((w) => w.label === label).spec;
-check("five active hook entries are wanted", wanted.length === 5);
+check("six active hook entries are wanted", wanted.length === 6);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
@@ -114,7 +114,7 @@ check("five active hook entries are wanted", wanted.length === 5);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all five active entries added", r.added.length === 5);
+	check("empty settings: all six active entries added", r.added.length === 6);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
@@ -135,11 +135,11 @@ check("five active hook entries are wanted", wanted.length === 5);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("the other five are added", r.added.length === 5);
+	check("the other six are added", r.added.length === 6);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
 	// req: R-316
-	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 4 && s.hooks.SessionStart.length === 1);
+	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 5 && s.hooks.SessionStart.length === 1);
 	// req: R-316
 	check("a matcher-scoped group is left alone", s.hooks.UserPromptSubmit[0].matcher === "Bash" && s.hooks.UserPromptSubmit[0].hooks.length === 1);
 	check("the knowledge hook appends without replacing the foreign prompt entry", s.hooks.UserPromptSubmit[1].hooks.length === 2 && s.hooks.UserPromptSubmit[1].hooks[0].command.endsWith("owner-prompt.sh"));
@@ -275,7 +275,7 @@ check("five active hook entries are wanted", wanted.length === 5);
 	// req: R-1050
 	check("win32 desiredHooks: every entry is exec form with no shell key", w32.every((w) => w.entry.command === "node" && Array.isArray(w.entry.args) && !("shell" in w.entry)));
 	// req: R-1051
-	check("win32 desiredHooks: the four hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
+	check("win32 desiredHooks: the five hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
 	// req: R-1050
 	check("win32 desiredHooks: only the knowledge entry adds `hook`", w32.filter((w) => w.entry.args.length > 1).length === 1 && w32.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.args[1] === "hook");
 	// req: R-1050
@@ -295,10 +295,12 @@ check("five active hook entries are wanted", wanted.length === 5);
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: { interpreters: ["node"], script: "nana-objective.mjs" }, entry: { type: "command", command: "node '/h/nana-objective.mjs'", timeout: 5, statusMessage: "nana: objective + current priority" } },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: { interpreters: ["node"], script: "nana-adoption.mjs" }, entry: { type: "command", command: "node '/h/nana-adoption.mjs'", timeout: 5, statusMessage: "nana: unadopted repositories" } },
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: { interpreters: ["node"], script: "nana-shared-memory.mjs" }, entry: { type: "command", command: "node '/h/nana-shared-memory.mjs'", timeout: 5, statusMessage: "nana: shared memory index" } },
+		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: { interpreters: ["node"], script: "nana-roster-notice.mjs" }, entry: { type: "command", command: "node '/h/nana-roster-notice.mjs'", timeout: 5, statusMessage: "nana: roster notice" } },
 		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
 		{ event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook", spec: { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] }, entry: { type: "command", command: "NODE_NO_WARNINGS=1 node '/r/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" } },
 	];
 	// req: R-1061
+	// req: R-1208
 	check("POSIX desiredHooks deep-equals today's fixture", eq(desiredHooks({ hooksDir: "/h", repoRoot: "/r", platform: "darwin" }), fixture));
 	// req: R-1061
 	check("desiredHooks with no platform deep-equals the same fixture", eq(desiredHooks({ hooksDir: "/h", repoRoot: "/r" }), fixture));
@@ -389,7 +391,7 @@ check("five active hook entries are wanted", wanted.length === 5);
 	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
 	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
 	// req: R-1050
-	check("forced-win32 removeInstallerHooks removes exactly the five entries", removed.length === 5, JSON.stringify(removed));
+	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 6, JSON.stringify(removed));
 	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
 	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
 	// settings.hooks itself), and this case must still report FAIL rather than throw and abort
@@ -796,7 +798,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const migrated = JSON.parse(fs.readFileSync(file, "utf8")).hooks.SessionStart[0].hooks;
 	const expected = ["nana-objective.mjs", "nana-shared-memory.mjs", "nana-adoption.mjs"];
 	// req: R-908
-	check("install migrates the three exact legacy commands in place without disturbing foreign objects", result.status === 0 && migrated.length === 5 && migrated[0].command === before.command && migrated[4].command === after.command && JSON.stringify(migrated[0]) === JSON.stringify(before) && JSON.stringify(migrated[4]) === JSON.stringify(after) && migrated.slice(1, 4).every((entry, index) => entry.command === `node ${shq(path.join(layout.hooksDir, expected[index]))}`));
+	check("install migrates the three exact legacy commands in place without disturbing foreign objects", result.status === 0 && migrated.length === 6 && migrated[0].command === before.command && migrated[4].command === after.command && JSON.stringify(migrated[0]) === JSON.stringify(before) && JSON.stringify(migrated[4]) === JSON.stringify(after) && migrated.slice(1, 4).every((entry, index) => entry.command === `node ${shq(path.join(layout.hooksDir, expected[index]))}`));
 	const again = run(["install"], home);
 	// req: R-908
 	check("second install after migration reports nothing to do", again.status === 0 && /nothing to do/.test(again.stdout));
