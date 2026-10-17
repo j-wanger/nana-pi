@@ -266,16 +266,16 @@ ok   (e) R-658's evidence cites the new check that pins its clause (§2: "each r
 ok   (e) R-1075's evidence cites the new check that pins its clause (§2: "each reworded row's evidence cell gains the new check")
 ok   (e) no row cites a renamed title's old name (R-1051, R-1075, R-658; §2, §5.2)
 ok   (guard) no base row outside §2's twelve reworded rows changes its requirement text or status
-ok   (e) the row set is the base's plus R-1190 to R-1215, each once (1139 → 1165)
+ok   (e) the row set is the base's plus R-1190 to R-1215, each once (1152 → 1178)
 ok   (harness) R-291's base leaf total equals the base's row count (seat-titles reads it)
 ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0
 ok   (guard) node scripts/requirements-tree.mjs --check exits 0
 ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0
 ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0
-ok   (guard) git diff --name-only 2dbc817..HEAD lists only §4 In paths and this review folder
+ok   (guard) git diff --name-only c514964..HEAD lists only §4 In paths and this review folder
 ok   (guard) the merge-base diff touches nothing §3.9 names: the other hooks, lifecycle, pi-review, the watchdog, the builder preamble, nana-soul, the objective, desk code
-MISS (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In; the seat writes them before the final round) → ["HANDOFF.md","docs/sessions/2026-10.md"] (want [])
-MISS (f) HANDOFF.md carries the D1 carry (a largerBuilder for this machine after the land, residual 6) → false (want true)
+ok   (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In; the seat writes them before the final round)
+ok   (f) HANDOFF.md carries the D1 carry (a largerBuilder for this machine after the land, residual 6)
 ok   (f) every new module opens with the six-tag header (nana-standards; map:check)
 ok   (f) roster-notice.mjs's header gives §3.4's @purpose and @effects none
 ok   (guard) no file the lane changes outside this review folder gains an owner name, the absolute home path, the host name or this machine's roster provider (§3.9)
@@ -299,5 +299,5 @@ WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/test
 WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — "roster notice: one JSON object whose user message starts with the roster notice prefix"
 WIN  (g) read from the PR's Windows leg, PASS required: packages/nana-setup/tests/hooks-win32-exec.test.mjs — doctor: "settings SessionStart roster notice" is ✓; and CI's Windows install check passes the roster notice row (DOCTOR_NOTES included)
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 296/298 (build cases red: 2/236; guard and harness red: 0/62)
-roster-notice acceptance: 2 mismatch(es)
+cases: 298/298 (build cases red: 0/236; guard and harness red: 0/62)
+roster-notice acceptance: 0 mismatch(es)
