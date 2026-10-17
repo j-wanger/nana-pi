@@ -15,6 +15,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnNpmRoot } from "../lib/npm-root.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -214,7 +215,7 @@ function walk(dir) {
 	check("--check warns when effective post-edit commands are empty", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	// req: R-674
 	check("--check warns when project config has no affirmative trust decision", /! project trust.*nana-setup trust/.test(run(["project", dir, "--check", "--home", home]).stdout));
-	const npmRoot = spawnSync("npm", ["root", "-g"], { encoding: "utf8" }).stdout.trim();
+	const npmRoot = spawnNpmRoot().stdout.trim();
 	const { ProjectTrustStore } = await import(path.join(npmRoot, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
 	new ProjectTrustStore(path.join(home, ".pi", "agent")).set(dir, true);
 	const trustCheck = spawnSync(process.execPath, [cli, "project", dir, "--check", "--home", home], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: path.join(home, "different-agent") } });
