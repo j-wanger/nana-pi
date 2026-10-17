@@ -23,9 +23,10 @@ Evidence in a sibling repo is cited with the repo as a prefix and that repo's ow
 
 New behaviour is a **requirement diff first**. In order, every time:
 
-1. **Diff the rows.** Add a row, split a row that now carries two clauses, retire a row the
-   change removes. Never renumber. Write the row before you decide the design — if you cannot
-   state it as one falsifiable `shall` sentence, you do not yet know what you are building.
+1. **Diff the rows.** Add one row per must-meet test, written no wider than the test; retire a
+   row the change removes. Never renumber. Write the row before you decide the design — if you
+   cannot state it as one falsifiable `shall` sentence, you do not yet know what you are
+   building.
 2. **Write the tests, carrying the markers.** A `# req: R-001` (Python) or `// req: R-001`
    (JS/TS) comment directly above the test's call declares the rows that test evidences.
    Stacked markers merge into one declaration. A new row lands `planned` or `untested` with
@@ -39,19 +40,16 @@ traces, a marker naming an unknown ID, a duplicate ID, an unknown status, a `|` 
 
 ## 2. Status honesty — the rule that keeps the ledger worth reading
 
-Before you flip a row to `implemented`, **name the clause each cited test pins.** Say it out
-loud, clause by clause. Then:
+Before you flip a row to `implemented`, its test passes and the row says no more than the test
+checks. Write the row from the test, not wider; a row wider than its test is an overclaim, and
+the fix is to narrow the row.
 
-- **A row's status is the weakest of its clauses.** A three-clause row with two pinned clauses
-  is not `implemented`.
-- **Split rather than overclaim.** If one clause is pinned and one is not, split the row (new
-  ID for the new half, the original keeps its ID) instead of calling the pair implemented.
 - **`violated` carries the residual in its own cell** — what the code actually does, and what
   is left. A `violated` row with an empty Evidence cell is a dead row; nobody can close it.
 - A test that asserts *near* a clause does not pin it. Value-relative assertions
   (`threshold ± 1`, "some rows came back") pin nothing a retune could break.
-- Mutation is the cheap proof: break the clause, watch the cited test go red. If it stays
-  green the citation is wrong.
+- In an install, hook or gate lane the seat also breaks the code and watches the cited test go
+  red.
 
 Workers write honest code and an optimistic ledger. That asymmetry is why §6 exists.
 
@@ -176,9 +174,9 @@ requirement set itself) already holds the G rows; the audit does not add them ag
 
 ## 6. The review rule
 
-**Any pass that flips rows to `implemented` gets an independent reviewer** who reads the diff
-and asks, for every flipped row: *which clause does this cited test pin?* The reviewer did not
-write the code. Expect to lose rows — on aml-desk six of them, the first time.
+**Every land gets an independent reviewer** who reads the diff and asks: does the feature work
+for its user, and does the change cause a harm the review standard lists? Rows written no wider
+than their tests keep the ledger honest without a clause-by-clause audit.
 
 Also check what the reviewer is placed to catch and the author is not: a refactor that converts
 a real resource to a fake can delete that resource's only execution and stay green (coverage of

@@ -70,6 +70,32 @@ try {
 		check("the skill description carries every trigger phrase", missing.length === 0, missing.join(" | "));
 	}
 	check("the standards rule is one screen, imperative, and not nana-soul.md", fs.readFileSync(RULE_SRC, "utf8").split("\n").length < 80 && /^# Nana — Coding standards$/m.test(fs.readFileSync(RULE_SRC, "utf8")));
+	{
+		const RULE_TEXT = fs.readFileSync(RULE_SRC, "utf8");
+		const SKILL_TEXT = fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"), "utf8");
+		// Markdown line-wraps at ~80-100 chars, so a multi-word sentence can carry an internal
+		// newline; normalize runs of whitespace to one space before substring matching.
+		const norm = (s) => s.replace(/\s+/g, " ");
+		const RULE_NORM = norm(RULE_TEXT);
+		const SKILL_NORM = norm(SKILL_TEXT);
+		const GONE = ["name the clause each cited test pins", "A row is the weakest of its clauses", "A row's status is the weakest of its clauses"];
+		// req: R-1301
+		check("R-1301: the coding standards and the requirements skill write one row per must-meet test no wider than the test, and drop clause-by-clause pinning",
+			RULE_NORM.includes("New behaviour starts as a feature and its must-meet tests, about three to eight") &&
+			RULE_NORM.includes("Each must-meet test gets one requirement row, written no wider") &&
+			RULE_NORM.includes("Then the tests: the must-meet tests your brief or plan names and no other new test, except") &&
+			RULE_NORM.includes("the one test that pins each new sealed tunable") &&
+			RULE_NORM.includes("A row flips to `implemented` when its test passes. A `violated` row carries its residual.") &&
+			RULE_NORM.includes("Every land gets an independent reviewer whose question is: does the feature work for its") &&
+			RULE_NORM.includes("does the change cause a harm the review standard lists") &&
+			SKILL_NORM.includes("Add one row per must-meet test, written no wider than the test") &&
+			SKILL_NORM.includes("Before you flip a row to `implemented`, its test passes and the row says no more than the test") &&
+			SKILL_NORM.includes("a row wider than its test is an overclaim, and the fix is to narrow the row") &&
+			SKILL_NORM.includes("Every land gets an independent reviewer** who reads the diff and asks: does the feature work") &&
+			SKILL_NORM.includes("In an install, hook or gate lane the seat also breaks the code and watches the cited test go") &&
+			GONE.every((phrase) => !RULE_NORM.includes(phrase) && !SKILL_NORM.includes(phrase)),
+			`RULE:${RULE_TEXT}\n---\nSKILL:${SKILL_TEXT}`);
+	}
 
 	/* --- 1. a fresh machine: both land as symlinks into the repo ------------------------ */
 	const home = freshHome();
