@@ -193,19 +193,27 @@ function markerLines(text) {
 export const RENAME_RETRY_ATTEMPTS = 3;
 export const RENAME_RETRY_DELAY_MS = 20;
 
-function renameWithRetry(src, dest) {
+/**
+ * `rename` is the injectable seam (default the real `fs.renameSync`, the way `writeTemp` is).
+ * `recheck` runs before every RETRY — not the first attempt, which follows the caller's own
+ * fresh check — and must throw if the destination no longer matches what the refresh read: a
+ * save made by the file's owner in the window between attempts must stop the next retry from
+ * clobbering it (sol r1 MUST, 2026-10-17), not just the window before the first attempt.
+ */
+function renameWithRetry(src, dest, { rename = (from, to) => fs.renameSync(from, to), recheck = () => {} } = {}) {
 	for (let attempt = 1; ; attempt++) {
 		try {
-			fs.renameSync(src, dest);
+			rename(src, dest);
 			return;
 		} catch (error) {
 			if (attempt >= RENAME_RETRY_ATTEMPTS || (error?.code !== "EPERM" && error?.code !== "EBUSY")) throw error;
+			recheck();
 			Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS);
 		}
 	}
 }
 
-export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8") } = {}) {
+export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8"), rename = (src, dest) => fs.renameSync(src, dest) } = {}) {
 	const target = path.join(dir, "AGENTS.md");
 	const st = lstatIdentity(target);
 	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
@@ -278,7 +286,19 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 			// `fd` (the identity and byte re-check just above) is already done by this point.
 			fs.closeSync(fd);
 			fdClosed = true;
-			renameWithRetry(temp, target);
+			renameWithRetry(temp, target, {
+				rename,
+				// Before every RETRY (fd is already closed by now, so this reads by path, the
+				// only way left to see what is actually there): the same 64-bit identity and the
+				// same bytes the refresh read. Either changing stops the retry from clobbering a
+				// save made by AGENTS.md's owner in the window between attempts.
+				recheck: () => {
+					const stillCurrent = lstatIdentity(target);
+					if (!stillCurrent?.isFile() || stillCurrent.isSymbolicLink() || stillCurrent.dev !== opened.dev || stillCurrent.ino !== opened.ino)
+						throw new Error("AGENTS.md changed before replacement");
+					if (!fs.readFileSync(target).equals(originalBytes)) throw new Error("AGENTS.md contents changed before replacement");
+				},
+			});
 			return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
 		} catch {
 			if (tempCreated) {
