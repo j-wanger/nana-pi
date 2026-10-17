@@ -351,12 +351,15 @@ realWrite(JSON.stringify(out) + "\\n");`;
 const uiSummary = (calls) => (calls ?? []).map((c) => (c.m === "setWidget" ? { m: "setWidget", key: c.args?.[0], lines: c.args?.[1], placement: c.args?.[2]?.placement ?? "aboveEditor" } : { m: c.m }));
 const extStartup = (probe) => { if (probe.loadError) return `extension did not load: ${probe.loadError}`; const c = probe.cases.find((x) => x.reason === "startup" && x.hasUI); const s = uiSummary(c?.calls); return s.length === 1 && s[0].m === "setWidget" && Array.isArray(s[0].lines) ? s[0].lines[0] : { calls: s, threw: c?.threw ?? null }; };
 const widgetWant = (L) => [{ m: "setWidget", key: WIDGET_KEY, lines: [L], placement: "aboveEditor" }];
-const piVersion = spawnSync("pi", ["--version"], { encoding: "utf8", env: cleanEnv(), timeout: 30_000 });
+// R-898: a real pi child gets its own knowledge home, never the machine's index.
+const knowledgeHome = fs.mkdtempSync(path.join(os.tmpdir(), "roster-accept-knowledge-"));
+process.on("exit", () => { try { fs.rmSync(knowledgeHome, { recursive: true, force: true }); } catch { /* best effort */ } });
+const piVersion = spawnSync("pi", ["--version"], { encoding: "utf8", env: { ...cleanEnv(), NANA_KNOWLEDGE_HOME: knowledgeHome }, timeout: 30_000 });
 const piOk = piVersion.status === 0;
 /** The extension inside the installed pi, RPC mode, nothing else loaded (§5 Seat acceptance: one setWidget request, no notify). */
 function rpcProbe(env, cwd) {
 	if (!piOk) return { error: "no pi on PATH", requests: [] };
-	const r = spawnSync("pi", ["--mode", "rpc", "--no-session", "--offline", "-ne", "-nc", "-ns", "-np", "--no-themes", "-e", EXT], { cwd, env: { ...env, PI_OFFLINE: "1" }, input: '{"type":"get_commands"}\n', encoding: "utf8", timeout: 60_000 });
+	const r = spawnSync("pi", ["--mode", "rpc", "--no-session", "--offline", "-ne", "-nc", "-ns", "-np", "--no-themes", "-e", EXT], { cwd, env: { ...env, PI_OFFLINE: "1", NANA_KNOWLEDGE_HOME: knowledgeHome }, input: '{"type":"get_commands"}\n', encoding: "utf8", timeout: 60_000 });
 	const msgs = lines(r.stdout).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 	return { requests: msgs.filter((m) => m.type === "extension_ui_request").map((m) => (m.method === "setWidget" ? { m: "setWidget", key: m.widgetKey, lines: m.widgetLines, placement: m.widgetPlacement ?? "aboveEditor" } : { m: m.method })), stderr: own(r.stderr).slice(-2).join(" | ") };
 }
@@ -1160,7 +1163,9 @@ out("(f) HANDOFF.md carries the D1 carry (a largerBuilder for this machine after
 	secretish.push(os.homedir());
 	if (os.hostname().replace(/\.local$/, "").length >= 6) secretish.push(os.hostname().replace(/\.local$/, ""));
 	try {
-		const real = JSON.parse(fs.readFileSync(path.join(process.env.PI_CODING_AGENT_DIR || path.join(os.homedir(), ".pi", "agent"), "nana-pack.json"), "utf8").replace(/^\uFEFF/, ""));
+		// The machine's own agent dir through the repo's one resolver (R-190: no second resolver anywhere, seat scripts included).
+		const { piAgentDir } = await import(pathToFileURL(path.join(root, "packages", "nana-pack", "lib", "agent-dir.mjs")).href);
+		const real = JSON.parse(fs.readFileSync(path.join(piAgentDir(), "nana-pack.json"), "utf8").replace(/^\uFEFF/, ""));
 		for (const v of Object.values(real?.roster ?? {})) if (v && typeof v.provider === "string" && v.provider.length >= 3) secretish.push(v.provider);
 	} catch { /* no machine roster: nothing more to count */ }
 	const grew = changed.filter((p) => !p.startsWith(REVIEW)).filter((p) => { const now = text(p) ?? "", was = atBase(p) ?? ""; return secretish.some((s) => occurrences(now, s) > occurrences(was, s)); });
