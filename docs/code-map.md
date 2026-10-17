@@ -998,7 +998,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Run a pi worker under a liveness watchdog, with an optional fail-closed linked-worktree lane mode.
 - **inputs** — argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane mode this machine's roster (the user-scope nana-pack.json in pi's active agent dir)
-- **outputs** — worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane mode one `pi-worker: builder: …; source: …` line (`builder (larger lanes):` for a `--lane-size larger` launch) on stderr before pi starts
+- **outputs** — worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane mode one `pi-worker: builder: …; source: …` line (`builder (larger lanes):` for a `--lane-size larger` launch whose largerBuilder slot is set, plain `builder:` when that slot is null and it falls back to the builder) on stderr before pi starts
 - **effects** — disk (writes output), process (spawns and may kill the pi child process group)
 - **errors** — exit 1 on bad args, invalid lane, an invalid or disallowed --lane-size, a refused roster, failed worker, or exceeded lane ceiling
 - **callers** — —

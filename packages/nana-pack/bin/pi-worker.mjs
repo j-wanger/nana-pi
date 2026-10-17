@@ -6,7 +6,8 @@
  *  mode this machine's roster (the user-scope nana-pack.json in pi's active agent dir)
  * @outputs worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane
  *  mode one `pi-worker: builder: …; source: …` line (`builder (larger lanes):` for a
- *  `--lane-size larger` launch) on stderr before pi starts
+ *  `--lane-size larger` launch whose largerBuilder slot is set, plain `builder:` when that slot
+ *  is null and it falls back to the builder) on stderr before pi starts
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
  * @errors exit 1 on bad args, invalid lane, an invalid or disallowed --lane-size, a refused
  *  roster, failed worker, or exceeded lane ceiling
