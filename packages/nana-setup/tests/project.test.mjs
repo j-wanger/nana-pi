@@ -14,13 +14,14 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnNpmRoot } from "../lib/npm-root.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const shared = path.join(repo, "templates", "_shared");
-const { PACK_STARTER } = await import(new URL("../lib/project.mjs", import.meta.url).href);
+const { PACK_STARTER, CLAUDE_IMPORT } = await import(new URL("../lib/project.mjs", import.meta.url).href);
 
 let fails = 0;
 let passes = 0;
@@ -76,7 +77,7 @@ function walk(dir) {
 	}
 	check("git initialized", fs.existsSync(path.join(dir, ".git")));
 	// req: R-329
-	check("CLAUDE.md is a RELATIVE symlink to AGENTS.md", fs.readlinkSync(path.join(dir, "CLAUDE.md")) === "AGENTS.md");
+	check("CLAUDE.md is a regular file holding the one-line import @AGENTS.md", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile() && !fs.lstatSync(path.join(dir, "CLAUDE.md")).isSymbolicLink() && read(path.join(dir, "CLAUDE.md")) === CLAUDE_IMPORT);
 	// req: R-329
 	check("AGENTS.md carries the canonical section verbatim", read(path.join(dir, "AGENTS.md")).includes(read(path.join(shared, "working-under-nana-pi.md"))));
 	// req: R-988
@@ -214,8 +215,8 @@ function walk(dir) {
 	check("--check warns when effective post-edit commands are empty", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	// req: R-674
 	check("--check warns when project config has no affirmative trust decision", /! project trust.*nana-setup trust/.test(run(["project", dir, "--check", "--home", home]).stdout));
-	const npmRoot = spawnSync("npm", ["root", "-g"], { encoding: "utf8" }).stdout.trim();
-	const { ProjectTrustStore } = await import(path.join(npmRoot, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
+	const npmRoot = spawnNpmRoot().stdout.trim();
+	const { ProjectTrustStore } = await import(pathToFileURL(path.join(npmRoot, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 	new ProjectTrustStore(path.join(home, ".pi", "agent")).set(dir, true);
 	const trustCheck = spawnSync(process.execPath, [cli, "project", dir, "--check", "--home", home], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: path.join(home, "different-agent") } });
 	// req: R-674
@@ -303,7 +304,7 @@ function walk(dir) {
 	const c2 = run(["project", dir, "--check", "--home", home2]);
 	// req: R-336
 	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+omitted on purpose/.test(c2.stdout), c2.stdout);
-	check("--check: the CLAUDE.md alias reads ✓ as a symlink to AGENTS.md", /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(c2.stdout), c2.stdout);
+	check("--check: the CLAUDE.md import reads ✓", /✓ CLAUDE\.md\s+the one-line import @AGENTS\.md/.test(c2.stdout), c2.stdout);
 
 	// ...and ONLY when it resolves to THIS project's AGENTS.md (sol r3). Three bad shapes:
 	const claude = path.join(dir, "CLAUDE.md");
@@ -311,7 +312,7 @@ function walk(dir) {
 	fs.writeFileSync(foreign, "# someone else's project\n");
 	for (const [shape, target] of [
 		["dangling", "AGENTS.md.gone"],
-		["a link into a missing folder", "missing/AGENTS.md"],
+		["a link into a missing folder", path.join("missing", "AGENTS.md")], // native separator: fs.readlinkSync echoes it back on win32 (backslash), not the POSIX literal
 		["a link to another project's AGENTS.md", foreign],
 	]) {
 		fs.unlinkSync(claude);
@@ -382,16 +383,57 @@ function walk(dir) {
 	check("deadline: the rest of the project still got seeded", fs.existsSync(path.join(dir, "OBJECTIVE.md")));
 }
 
-/* --- 11. win32: CLAUDE.md is a copy, because there is no usable symlink ---------------- */
+/* --- 11. CLAUDE.md is the one-line import, on every platform ------------------------- */
 {
 	const { dir, home } = freshProject();
-	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
-	check("win32: project exits 0", r.status === 0, r.stderr);
-	check("win32: CLAUDE.md is a regular file, not a link", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile());
+	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], { encoding: "utf8" });
+	check("host platform: project exits 0", r.status === 0, r.stderr);
+	check("host platform: CLAUDE.md is a regular file, not a link", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile() && !fs.lstatSync(path.join(dir, "CLAUDE.md")).isSymbolicLink());
 	// req: R-329
-	check("win32: CLAUDE.md is byte-identical to AGENTS.md", read(path.join(dir, "CLAUDE.md")) === read(path.join(dir, "AGENTS.md")));
+	check("host platform: CLAUDE.md is the one-line import @AGENTS.md", read(path.join(dir, "CLAUDE.md")) === CLAUDE_IMPORT);
 	// req: R-329
-	check("win32: the reason is reported", /win32: no usable symlink/.test(r.stdout), r.stdout);
+	check("host platform: the reason is reported", /the one-line import @AGENTS\.md/.test(r.stdout), r.stdout);
+
+	const { dir: winDir, home: winHome } = freshProject();
+	const winR = spawnSync(process.execPath, [cli, "project", winDir, "--home", winHome], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
+	check("win32 (forced): project exits 0", winR.status === 0, winR.stderr);
+	check("win32 (forced): CLAUDE.md is a regular file, not a link", fs.lstatSync(path.join(winDir, "CLAUDE.md")).isFile() && !fs.lstatSync(path.join(winDir, "CLAUDE.md")).isSymbolicLink());
+	// req: R-1311
+	check("R-1311: project writes a new project's CLAUDE.md as the one-line import @AGENTS.md, on the host platform and with win32 forced", read(path.join(winDir, "CLAUDE.md")) === CLAUDE_IMPORT && read(path.join(winDir, "CLAUDE.md")) === read(path.join(dir, "CLAUDE.md")), `win32=${JSON.stringify(read(path.join(winDir, "CLAUDE.md")))} host=${JSON.stringify(read(path.join(dir, "CLAUDE.md")))}`);
+}
+
+/* --- 11b. nana-pi's own committed CLAUDE.md is a regular file holding the import -------- */
+{
+	const mode = spawnSync("git", ["ls-files", "-s", "CLAUDE.md"], { cwd: repo, encoding: "utf8" }).stdout.trim();
+	check("nana-pi's own CLAUDE.md is tracked as a regular file (git mode 100644)", mode.startsWith("100644 "), mode);
+	const ownContent = read(path.join(repo, "CLAUDE.md")).replace(/\r\n/g, "\n");
+	// req: R-1310
+	check("R-1310: nana-pi's committed CLAUDE.md is a regular file holding the one-line import @AGENTS.md", mode.startsWith("100644 ") && ownContent === CLAUDE_IMPORT, ownContent);
+}
+
+/* --- 11c. --check fails the AGENTS.md placeholder; a refresh replaces it, never a link -- */
+{
+	const { dir, home } = freshProject();
+	run(["project", dir, "--home", home]); // AGENTS.md + the healthy CLAUDE.md import
+	const claude = path.join(dir, "CLAUDE.md");
+	const placeholder = "AGENTS.md\n"; // the 9-byte placeholder text, plus the optional trailing newline, that a Windows checkout of a committed symlink produces
+	fs.writeFileSync(claude, placeholder);
+	const placeholderCheck = run(["project", dir, "--check", "--home", home]);
+	check("--check: the AGENTS.md placeholder reads ✗", placeholderCheck.status === 1 && /✗ CLAUDE\.md\s+holds the AGENTS\.md placeholder text/.test(placeholderCheck.stdout), placeholderCheck.stdout);
+
+	const refresh = run(["project", dir, "--home", home]);
+	// req: R-1312
+	check("R-1312: project --check fails a CLAUDE.md holding the AGENTS.md placeholder text and passes the import file and a link, and a refresh replaces the placeholder and leaves a link untouched", read(claude) === CLAUDE_IMPORT, `after refresh: ${JSON.stringify(read(claude))} — ${refresh.stdout}`);
+	const healedCheck = run(["project", dir, "--check", "--home", home]);
+	check("--check: the import file reads ✓ after the refresh", /✓ CLAUDE\.md\s+the one-line import @AGENTS\.md/.test(healedCheck.stdout), healedCheck.stdout);
+
+	// a link is accepted by --check, and a refresh never writes through it
+	fs.unlinkSync(claude);
+	fs.symlinkSync("AGENTS.md", claude);
+	const linkCheck = run(["project", dir, "--check", "--home", home]);
+	check("--check: an existing link to AGENTS.md still reads ✓", /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(linkCheck.stdout), linkCheck.stdout);
+	run(["project", dir, "--home", home]); // a refresh run must leave a healthy link alone
+	check("a refresh never writes through a link", fs.lstatSync(claude).isSymbolicLink() && fs.readlinkSync(claude) === "AGENTS.md");
 }
 
 /* --- 12. the copier templates emit the same three seeds ------------------------------ */

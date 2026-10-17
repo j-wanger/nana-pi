@@ -13,8 +13,17 @@ import * as path from "node:path";
 import { agentsStub, checkProject, refreshWorkingRegion, WORKING_BEGIN, WORKING_END, SHARED_DIR } from "../lib/project.mjs";
 
 const root = tmpDir(path.join(os.tmpdir(), "nana-region-"));
-const shared = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8");
+// Raw, checkout-native bytes: on an autocrlf=true clone this is CRLF, matching what
+// `agentsStub()` itself reads (it calls the same `readShared` with no normalization).
+const sharedRaw = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8");
+// Normalized to LF regardless of the checkout's own line endings, for every fixture below built
+// from a pure-LF AGENTS.md body: the product detects LF from THAT body and writes the canonical
+// section back as LF too, so the expectation must be LF-normalized independent of how this repo's
+// OWN files were checked out. (A CRLF `sharedRaw` fed straight into :26's `.replace(/\n/g, "\r\n")`
+// would also double up to \r\r\n.)
+const shared = sharedRaw.replace(/\r\n/g, "\n");
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
+const skip = (name, why) => console.log(`SKIP ${name} (${why})`);
 let fails = 0;
 const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).length}`); fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, "AGENTS.md"), body); return dir; };
 
@@ -101,13 +110,29 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
 	const target = path.join(dir, "AGENTS.md");
 	const replacementByOwner = "owner replaced this file while staging\n";
+	// The hook simulates an owner's in-place replace (unlink + rewrite) while the refresh still
+	// holds its own handle on the old file. On POSIX that is reliable; on win32 the unlink or the
+	// rewrite can itself hit a delete-pending file or a scanner hold, so the SIMULATION — not the
+	// product's identity check — is unreliable there (Windows run 2, 2026-10-17). Record and
+	// rethrow unchanged, so the product sees the same failed staging write either way.
+	let hookError = null;
 	const result = refreshWorkingRegion(dir, { writeTemp: (fd, content) => {
 		fs.writeFileSync(fd, content, "utf8");
-		fs.unlinkSync(target);
-		fs.writeFileSync(target, replacementByOwner);
+		try {
+			fs.unlinkSync(target);
+			fs.writeFileSync(target, replacementByOwner);
+		} catch (error) {
+			hookError = error;
+			throw error;
+		}
 	} });
-	// req: R-986
-	check("target identity change during staging is refused", result.status === "skipped" && fs.readFileSync(target, "utf8") === replacementByOwner && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")));
+	const targetText = (() => { try { return fs.readFileSync(target, "utf8"); } catch (error) { return `<unreadable: ${error.code}>`; } })();
+	if (process.platform === "win32" && hookError) {
+		skip("target identity change during staging is refused", `the simulated owner-replace itself failed on Windows: ${hookError.code ?? hookError.message} — a delete-pending file or a scanner hold, not this check`);
+	} else {
+		// req: R-986
+		check("target identity change during staging is refused", result.status === "skipped" && targetText === replacementByOwner && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")), `status=${result.status} detail=${JSON.stringify(result.detail)} target=${JSON.stringify(targetText)}`);
+	}
 }
 
 {
@@ -179,14 +204,20 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const victim = `${WORKING_BEGIN}\nstale race section\n${WORKING_END}\n`;
 	fs.writeFileSync(external, victim);
 	const result = refreshWorkingRegion(dir, { beforeOpen: () => { fs.unlinkSync(target); fs.symlinkSync(external, target); } });
+	// `O_NOFOLLOW` is undefined on win32 (no symlink-refusing open flag there), so the open
+	// FOLLOWS the swapped-in link there instead of refusing it with ELOOP — the identity
+	// re-check then catches the swap and refuses with the generic "changed before it could be
+	// opened" detail. Either refusal detail is correct; which one depends on the platform, not
+	// on this fix.
+	const refused = result.status === "skipped" && (result.detail.includes("symlinked AGENTS.md left alone") || result.detail.includes("AGENTS.md changed before it could be opened"));
 	// req: R-987
-	check("symlink swap after lstat is refused without changing its target", result.status === "skipped" && result.detail.includes("symlinked AGENTS.md left alone") && fs.readFileSync(external, "utf8") === victim);
+	check("symlink swap after lstat is refused without changing its target", refused && fs.readFileSync(external, "utf8") === victim, result.detail);
 }
 
 {
 	const stub = agentsStub("fixture");
 	// req: R-988
-	check("new stub has exact delimiters", stub.includes(`${WORKING_BEGIN}\n${shared}${WORKING_END}\n`));
+	check("new stub has exact delimiters", stub.includes(`${WORKING_BEGIN}\n${sharedRaw}${WORKING_END}\n`));
 	const dir = make(`${WORKING_BEGIN}\nold\n${WORKING_END}\n`);
 	const mismatch = (await checkProject(dir)).find((c) => c.label === "AGENTS.md working region");
 	// req: R-989
