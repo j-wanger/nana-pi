@@ -689,3 +689,9 @@ Each seat decision on `sol-plan-r1.md`, each repo fact re-verified at `2dbc817`,
 4. Recount: 26 rows added (R-1190 to R-1215), 12 reworded, 1 evidence-only (R-1075); 36 new titles plus 4 loop instances; 68 pairs, numbered 1 to 68 with no gap
    (pair 68 appended); the tree total is the base plus 26; residuals 1 to 23.
 
+## The owner's answers (2026-10-16)
+
+The owner took the plan's three recommendations. D1: the code default for `largerBuilder` is null; after the land, with
+the owner's yes, the seat writes a `largerBuilder` into the owner's two machines' files (carry 6). D2: `nana-roster set`
+is the next small lane, not this one. D4: one larger-lane builder per machine. The plan needs no other change.
+
