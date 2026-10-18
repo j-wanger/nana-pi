@@ -30,11 +30,14 @@ const { platform } = await import(new URL("../lib/paths.mjs", import.meta.url).h
  * discovery code against this seed and confirmed these exact frontmatter values).
  */
 function parseFrontmatterIndependently(content) {
-	if (!content.startsWith("---\n")) return null;
-	const end = content.indexOf("\n---", 4);
+	// CRLF-tolerant: a Windows checkout of the seed starts "---\r\n", not "---\n" (R-1061's own
+	// readers already normalise the same way; this independent parser must not read that as absent).
+	const normalized = content.replace(/\r\n/g, "\n");
+	if (!normalized.startsWith("---\n")) return null;
+	const end = normalized.indexOf("\n---", 4);
 	if (end === -1) return null;
 	const fm = {};
-	for (const line of content.slice(4, end).split("\n")) {
+	for (const line of normalized.slice(4, end).split("\n")) {
 		const m = line.match(/^([\w-]+):\s*(.*)$/);
 		if (m) fm[m[1]] = m[2].trim();
 	}
@@ -96,29 +99,71 @@ const link = (p) => {
 		return null;
 	}
 };
-for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
-	// req: R-301 R-985
-	check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
+// win32 has no usable symlink (R-1050/declared shape): hooks are never written at all
+// (stepHooks skips every entry — the exec-form settings entries are checked separately, below,
+// through entryInvokes), rules and the `requirements` skill mirror as byte-equal copies, and the
+// four pi-only skills are skipped exactly like the hooks.
+const winFileCopy = (target, source) => {
+	try {
+		return fs.lstatSync(target).isFile() && !fs.lstatSync(target).isSymbolicLink() && fs.readFileSync(target).equals(fs.readFileSync(source));
+	} catch {
+		return false;
+	}
+};
+if (process.platform !== "win32") {
+	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+		// req: R-301 R-985
+		check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
+	}
+	// req: R-357
+	check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
+} else {
+	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, pinned below by command/args shape)");
+	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+		// req: R-301 R-985
+		check(`hook ${h} is not installed as a file on win32`, !fs.existsSync(path.join(home, ".claude", "hooks", h)));
+	}
 }
-// req: R-357
-check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
-// req: R-301
-check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-soul.md")) === path.join(pkg, "claude", "rules", "nana-soul.md"));
-// req: R-301
-check("rule nana-standards.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-standards.md")) === path.join(pkg, "claude", "rules", "nana-standards.md"));
-// req: R-301
-check("rule nana-writing.md is a symlink into the repo (sourced from the pack, not nana-setup's own claude/rules)", link(path.join(home, ".claude", "rules", "nana-writing.md")) === ruleSource("nana-writing.md"));
-// req: R-301
-check("rule nana-seat.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-seat.md")) === path.join(pkg, "claude", "rules", "nana-seat.md"));
+if (process.platform !== "win32") {
+	// req: R-301
+	check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-soul.md")) === path.join(pkg, "claude", "rules", "nana-soul.md"));
+	// req: R-301
+	check("rule nana-standards.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-standards.md")) === path.join(pkg, "claude", "rules", "nana-standards.md"));
+	// req: R-301
+	check("rule nana-writing.md is a symlink into the repo (sourced from the pack, not nana-setup's own claude/rules)", link(path.join(home, ".claude", "rules", "nana-writing.md")) === ruleSource("nana-writing.md"));
+	// req: R-301
+	check("rule nana-seat.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-seat.md")) === path.join(pkg, "claude", "rules", "nana-seat.md"));
+} else {
+	console.log("SKIP rule symlink checks (win32: Windows needs a privilege for symlinks — stepRules writes byte-equal copies instead)");
+	// req: R-301
+	check("rule nana-soul.md is a byte-equal copy on win32", winFileCopy(path.join(home, ".claude", "rules", "nana-soul.md"), path.join(pkg, "claude", "rules", "nana-soul.md")));
+	// req: R-301
+	check("rule nana-standards.md is a byte-equal copy on win32", winFileCopy(path.join(home, ".claude", "rules", "nana-standards.md"), path.join(pkg, "claude", "rules", "nana-standards.md")));
+	// req: R-301
+	check("rule nana-writing.md is a byte-equal copy on win32 (sourced from the pack)", winFileCopy(path.join(home, ".claude", "rules", "nana-writing.md"), ruleSource("nana-writing.md")));
+	// req: R-301
+	check("rule nana-seat.md is a byte-equal copy on win32", winFileCopy(path.join(home, ".claude", "rules", "nana-seat.md"), path.join(pkg, "claude", "rules", "nana-seat.md")));
+}
 // Amendment 1 acceptance #10: delivery to pi moved to a pack extension — install never
 // creates an agent-dir AGENTS.md (the agent-dir link step was removed).
 check("no AGENTS.md was created in the pi agent dir", !fs.existsSync(path.join(home, ".pi", "agent", "AGENTS.md")));
 // Claude Code reads the pack's own skill — one source for both runtimes (skills-and-standards.test.mjs owns the detail)
-// req: R-302
-check("skill requirements is a symlink to the pack skill", link(path.join(home, ".claude", "skills", "requirements")) === path.join(repo, "packages", "nana-pack", "skills", "requirements"));
+if (process.platform !== "win32") {
+	// req: R-302
+	check("skill requirements is a symlink to the pack skill", link(path.join(home, ".claude", "skills", "requirements")) === path.join(repo, "packages", "nana-pack", "skills", "requirements"));
+} else {
+	console.log("SKIP requirements skill symlink check (win32: linkSkill mirrors the source as byte-equal file copies, no symlink)");
+	// req: R-302 R-937
+	check("skill requirements is a byte-equal mirror on win32", winFileCopy(path.join(home, ".claude", "skills", "requirements", "SKILL.md"), path.join(repo, "packages", "nana-pack", "skills", "requirements", "SKILL.md")));
+}
 for (const name of ["spec", "py-lint", "py-review", "py-test"]) {
-	// req: R-665
-	check(`skill ${name} is a symlink to the pack skill`, link(path.join(home, ".claude", "skills", name)) === path.join(repo, "packages", "nana-pack", "skills", name));
+	if (process.platform !== "win32") {
+		// req: R-665
+		check(`skill ${name} is a symlink to the pack skill`, link(path.join(home, ".claude", "skills", name)) === path.join(repo, "packages", "nana-pack", "skills", name));
+	} else {
+		// req: R-665
+		check(`skill ${name} is not installed on win32 (pi-only)`, !fs.existsSync(path.join(home, ".claude", "skills", name)));
+	}
 }
 // req: R-301
 check("retired context hook is not installed", !fs.existsSync(path.join(home, ".claude", "hooks", "context-size-check.sh")));
@@ -134,13 +179,26 @@ const commands = allHooks.map((h) => h.command);
 check("retired context hook is absent from settings", !JSON.stringify(settings).includes("context-size-check.sh"));
 // Read through entryInvokes (not .command alone), so this still passes on win32, where the real
 // install (platform() === "win32" there, not forced) writes exec-form entries (R-1050).
+// entryInvokes ALSO accepts a shell-form `command` string on win32 (settings.mjs:152-157) — a
+// POSIX-shaped entry anchored in the checkout would keep this check green there too, so IS1's
+// "asserts exec-form hook entries" claim needs its own pin: command is exactly "node" and args
+// is an array, checked on the matched entry object, not just the boolean entryInvokes result.
 for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo })) {
-	check(`settings.json wires ${w.marker}`, allHooks.some((h) => entryInvokes(h, w.spec, platform())));
+	const matched = allHooks.find((h) => entryInvokes(h, w.spec, platform()));
+	check(`settings.json wires ${w.marker}`, Boolean(matched));
+	if (process.platform === "win32") {
+		// req: R-1050
+		check(`settings.json wires ${w.marker} in exec form on win32`, matched?.command === "node" && Array.isArray(matched?.args));
+	}
 }
 // req: R-321
 check("settings.json ends with a newline", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8").endsWith("}\n"));
 const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] };
-check("knowledge hook points at this install root", hookTargets(settings, "UserPromptSubmit", knowledgeSpec, platform()).some((t) => t.includes(path.join(repo, "packages", "nana-knowledge"))));
+// On win32 desiredHooks() builds this path with a template literal (`${repoRoot}/...`), always
+// forward-slash after repoRoot, never path.join's backslash — normalise both sides before the
+// substring compare (R-1050).
+const forwardSlash = (p) => p.replace(/\\/g, "/");
+check("knowledge hook points at this install root", hookTargets(settings, "UserPromptSubmit", knowledgeSpec, platform()).some((t) => forwardSlash(t).includes(forwardSlash(path.join(repo, "packages", "nana-knowledge")))));
 
 // req: R-308
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));
@@ -169,57 +227,74 @@ const isValidReviewerAgent =
 check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, name/description/tools incl. bash)", isValidReviewerAgent, JSON.stringify(installedReviewerFrontmatter));
 // req: R-310
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
-// req: R-311
-check("pi-review on PATH", link(path.join(home, ".local", "bin", "pi-review")) === path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"));
-const landDoctorEvidence = (() => {
-	try {
-		const bin = path.join(home, ".local", "bin", "nana-land");
-		assert.equal(link(bin), path.join(repo, "packages", "nana-pack", "bin", "nana-land.mjs"));
-		assert.match(spawnSync(bin, [], { encoding: "utf8" }).stdout, /usage: nana-land/);
-		const healthy = run(["doctor", "--home", home]); assert.equal(healthy.status, 0, healthy.stdout); assert.match(healthy.stdout, /✓ PATH nana-land/);
-		const brokenHome = freshHome(); assert.equal(run(["install", "--home", brokenHome]).status, 0);
-		fs.unlinkSync(path.join(brokenHome, ".local", "bin", "nana-land"));
-		const missing = run(["doctor", "--home", brokenHome]); assert.notEqual(missing.status, 0, missing.stdout); assert.match(missing.stdout, /✗ PATH nana-land/);
-		return { ok: true };
-	} catch (error) { return { ok: false, detail: error.message }; }
-})();
-// req: R-980
-check("land bin is linked, executable, and doctor reports accurate state", landDoctorEvidence.ok, landDoctorEvidence.detail);
-// req: R-964
-check("pi-worker installed as PATH symlink", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+// win32 has no PATH links at all (stepPath SKIPs all four — R-311/R-964/R-589/R-980's symlink
+// and doctor-repair scenarios cannot occur there); the setupLink PATH is still needed, unlinked,
+// by section 2 below on every platform, so it stays declared outside the branch.
 const setupLink = path.join(home, ".local", "bin", "nana-setup");
-// req: R-589
-check("nana-setup installed as PATH symlink", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
-// req: R-589
-check("nana-setup symlink dispatches usage", spawnSync(setupLink, ["--help"], { cwd: NEUTRAL_CWD, encoding: "utf8" }).stdout.includes("nana-setup install [options]"));
-const setupDoctor = run(["doctor", "--home", home]);
-// req: R-589
-check("doctor reports healthy nana-setup link", setupDoctor.status === 0 && /✓ PATH nana-setup/.test(setupDoctor.stdout));
-const setupBrokenHome = freshHome();
-run(["install", "--home", setupBrokenHome]);
-fs.unlinkSync(path.join(setupBrokenHome, ".local", "bin", "nana-setup"));
-const setupMissingDoctor = run(["doctor", "--home", setupBrokenHome]);
-// req: R-589
-check("doctor rejects missing nana-setup link", setupMissingDoctor.status !== 0 && /✗ PATH nana-setup/.test(setupMissingDoctor.stdout));
-fs.unlinkSync(setupLink);
-fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), setupLink);
-const setupWrongDoctor = run(["doctor", "--home", home]);
-// req: R-589
-check("doctor rejects wrong nana-setup target", setupWrongDoctor.status === 1 && /✗\s+PATH nana-setup/.test(setupWrongDoctor.stdout));
-run(["install", "--home", home]);
-const workerDoctor = run(["doctor", "--home", home]);
-// req: R-964
-check("doctor reports the installed pi-worker link", workerDoctor.status === 0 && /PATH pi-worker/.test(workerDoctor.stdout));
-const workerLink = path.join(home, ".local", "bin", "pi-worker");
-fs.unlinkSync(workerLink);
-fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), workerLink);
-const wrongWorkerDoctor = run(["doctor", "--home", home]);
-// req: R-964
-check("doctor reports an incorrect pi-worker link", wrongWorkerDoctor.status === 1 && /✗\s+PATH pi-worker/.test(wrongWorkerDoctor.stdout));
-fs.unlinkSync(workerLink);
-fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"), workerLink);
-// req: R-311
-check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
+if (process.platform !== "win32") {
+	// req: R-311
+	check("pi-review on PATH", link(path.join(home, ".local", "bin", "pi-review")) === path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"));
+	const landDoctorEvidence = (() => {
+		try {
+			const bin = path.join(home, ".local", "bin", "nana-land");
+			assert.equal(link(bin), path.join(repo, "packages", "nana-pack", "bin", "nana-land.mjs"));
+			assert.match(spawnSync(bin, [], { encoding: "utf8" }).stdout, /usage: nana-land/);
+			const healthy = run(["doctor", "--home", home]); assert.equal(healthy.status, 0, healthy.stdout); assert.match(healthy.stdout, /✓ PATH nana-land/);
+			const brokenHome = freshHome(); assert.equal(run(["install", "--home", brokenHome]).status, 0);
+			fs.unlinkSync(path.join(brokenHome, ".local", "bin", "nana-land"));
+			const missing = run(["doctor", "--home", brokenHome]); assert.notEqual(missing.status, 0, missing.stdout); assert.match(missing.stdout, /✗ PATH nana-land/);
+			return { ok: true };
+		} catch (error) { return { ok: false, detail: error.message }; }
+	})();
+	// req: R-980
+	check("land bin is linked, executable, and doctor reports accurate state", landDoctorEvidence.ok, landDoctorEvidence.detail);
+	// req: R-964
+	check("pi-worker installed as PATH symlink", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+	// req: R-589
+	check("nana-setup installed as PATH symlink", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
+	// req: R-589
+	check("nana-setup symlink dispatches usage", spawnSync(setupLink, ["--help"], { cwd: NEUTRAL_CWD, encoding: "utf8" }).stdout.includes("nana-setup install [options]"));
+	const setupDoctor = run(["doctor", "--home", home]);
+	// req: R-589
+	check("doctor reports healthy nana-setup link", setupDoctor.status === 0 && /✓ PATH nana-setup/.test(setupDoctor.stdout));
+	const setupBrokenHome = freshHome();
+	run(["install", "--home", setupBrokenHome]);
+	fs.unlinkSync(path.join(setupBrokenHome, ".local", "bin", "nana-setup"));
+	const setupMissingDoctor = run(["doctor", "--home", setupBrokenHome]);
+	// req: R-589
+	check("doctor rejects missing nana-setup link", setupMissingDoctor.status !== 0 && /✗ PATH nana-setup/.test(setupMissingDoctor.stdout));
+	fs.unlinkSync(setupLink);
+	fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), setupLink);
+	const setupWrongDoctor = run(["doctor", "--home", home]);
+	// req: R-589
+	check("doctor rejects wrong nana-setup target", setupWrongDoctor.status === 1 && /✗\s+PATH nana-setup/.test(setupWrongDoctor.stdout));
+	run(["install", "--home", home]);
+	const workerDoctor = run(["doctor", "--home", home]);
+	// req: R-964
+	check("doctor reports the installed pi-worker link", workerDoctor.status === 0 && /PATH pi-worker/.test(workerDoctor.stdout));
+	const workerLink = path.join(home, ".local", "bin", "pi-worker");
+	fs.unlinkSync(workerLink);
+	fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), workerLink);
+	const wrongWorkerDoctor = run(["doctor", "--home", home]);
+	// req: R-964
+	check("doctor reports an incorrect pi-worker link", wrongWorkerDoctor.status === 1 && /✗\s+PATH pi-worker/.test(wrongWorkerDoctor.stdout));
+	fs.unlinkSync(workerLink);
+	fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"), workerLink);
+	// req: R-311
+	check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
+} else {
+	console.log("SKIP PATH symlink and doctor-repair probes (win32: stepPath SKIPs pi-review, pi-worker, nana-land and nana-setup — install never writes .local/bin links there)");
+	for (const name of ["pi-review", "pi-worker", "nana-land", "nana-setup"]) {
+		// req: R-311 R-964 R-980 R-589
+		check(`PATH ${name} is not installed on win32`, !fs.existsSync(path.join(home, ".local", "bin", name)));
+	}
+	const winPathDoctor = run(["doctor", "--home", home]);
+	// req: R-311 R-964 R-980 R-589
+	check("doctor reads every PATH entry skipped on win32", winPathDoctor.status === 0 && ["pi-review", "pi-worker", "nana-land", "nana-setup"].every((name) => new RegExp(`PATH ${name}\\s+skipped \\(win32\\)`).test(winPathDoctor.stdout)), winPathDoctor.stdout);
+	// the shebang still ships; NTFS has no POSIX execute bit to assert
+	// req: R-311
+	check("pi-review ships a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node"));
+}
 // req: R-311
 check("nana-pack package.json declares the pi-review bin", JSON.parse(fs.readFileSync(path.join(repo, "packages", "nana-pack", "package.json"), "utf8")).bin?.["pi-review"] === "bin/pi-review.mjs");
 check("no desk plist without --desk", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
@@ -234,24 +309,38 @@ check("second install reports nothing to do", second.stdout.includes("nothing to
 check("second install reports no created/updated line", !/^\s+\+ /m.test(second.stdout), second.stdout);
 // req: R-300
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
-// req: R-964
-check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
-// req: R-589
-check("second install keeps the identical nana-setup link", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
+if (process.platform !== "win32") {
+	// req: R-964
+	check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+	// req: R-589
+	check("second install keeps the identical nana-setup link", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
+} else {
+	// req: R-964 R-589
+	check("second install still has no PATH links on win32", !fs.existsSync(path.join(home, ".local", "bin", "pi-worker")) && !fs.existsSync(setupLink));
+}
 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */
 const collide = freshHome();
 fs.mkdirSync(path.join(collide, ".claude", "hooks"), { recursive: true });
 fs.writeFileSync(path.join(collide, ".claude", "hooks", "nana-objective.mjs"), "# hand-written\n");
 const bak = run(["install", "--home", collide]);
-const baks = fs.readdirSync(path.join(collide, ".claude", "hooks")).filter((f) => f.includes(".bak-"));
-// req: R-312
-check("collision: exactly one backup written", baks.length === 1, baks.join(","));
-// req: R-312
-check("collision: backup keeps the old content", fs.readFileSync(path.join(collide, ".claude", "hooks", baks[0]), "utf8") === "# hand-written\n");
-check("collision: target is now the repo symlink", link(path.join(collide, ".claude", "hooks", "nana-objective.mjs")) === path.join(pkg, "claude", "hooks", "nana-objective.mjs"));
-// req: R-312
-check("collision: the backup is reported", bak.stdout.includes("backed up"));
+if (process.platform !== "win32") {
+	const baks = fs.readdirSync(path.join(collide, ".claude", "hooks")).filter((f) => f.includes(".bak-"));
+	// req: R-312
+	check("collision: exactly one backup written", baks.length === 1, baks.join(","));
+	// req: R-312
+	check("collision: backup keeps the old content", baks.length === 1 && fs.readFileSync(path.join(collide, ".claude", "hooks", baks[0]), "utf8") === "# hand-written\n");
+	check("collision: target is now the repo symlink", link(path.join(collide, ".claude", "hooks", "nana-objective.mjs")) === path.join(pkg, "claude", "hooks", "nana-objective.mjs"));
+	// req: R-312
+	check("collision: the backup is reported", bak.stdout.includes("backed up"));
+} else {
+	// win32: stepHooks SKIPs every hook unconditionally (no symlink target exists there at all),
+	// so a hand-written file sitting at the hook's POSIX path is never even looked at — no
+	// backup, no replacement. R-312's collision handling is POSIX-only by construction.
+	console.log("SKIP hook-collision backup checks (win32: stepHooks never touches ~/.claude/hooks — nothing to collide with)");
+	// req: R-312
+	check("collision: win32 install leaves the hand-written file untouched", bak.status === 0 && fs.readFileSync(path.join(collide, ".claude", "hooks", "nana-objective.mjs"), "utf8") === "# hand-written\n" && !fs.readdirSync(path.join(collide, ".claude", "hooks")).some((f) => f.includes(".bak-")));
+}
 
 /* --- 4. what the installer must never overwrite --------------------------------------- */
 const keep = freshHome();
@@ -290,12 +379,18 @@ check("doctor prints no ✗ after install", !ok.stdout.includes("✗"));
 // req: R-343
 check("doctor calls the seeded projectFile the default, not a rename",
 	/objective\.projectFile\s+per-repo OBJECTIVE\.md \(the default name\)/.test(ok.stdout) && !ok.stdout.includes("renamed"), ok.stdout);
-fs.unlinkSync(path.join(home, ".claude", "hooks", "nana-shared-memory.mjs"));
+// win32 never writes a hook file at all (stepHooks SKIPs every entry), so there is nothing there
+// to break; break the rule copy instead — doctor's missing-piece detection is the same contract
+// on both platforms, just over a different installed piece.
+const brokenPiece = process.platform === "win32"
+	? { path: path.join(home, ".claude", "rules", "nana-standards.md"), label: "rule nana-standards\\.md" }
+	: { path: path.join(home, ".claude", "hooks", "nana-shared-memory.mjs"), label: "hook nana-shared-memory\\.mjs" };
+fs.unlinkSync(brokenPiece.path);
 const bad = run(["doctor", "--home", home]);
 // req: R-341
 check("doctor exits 1 on a missing piece", bad.status === 1);
 // req: R-341
-check("doctor marks the missing piece with ✗", /✗ hook nana-shared-memory\.mjs/.test(bad.stdout));
+check("doctor marks the missing piece with ✗", new RegExp(`✗ ${brokenPiece.label}`).test(bad.stdout), bad.stdout);
 run(["install", "--home", home]);
 // req: R-341
 check("doctor exits 0 again after a repair install", run(["doctor", "--home", home]).status === 0);
@@ -339,6 +434,8 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 		});
 		// req: R-319
 		check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);
+	} else {
+		console.log("SKIP space-in-home shell-quoting proofs (win32: no path enters a command string at all, exec form R-1050; hooks-win32-exec.test.mjs covers a spaced, shell-special-character path there)");
 	}
 	check("space in home: doctor exits 0", run(["doctor", "--home", spaced]).status === 0);
 }

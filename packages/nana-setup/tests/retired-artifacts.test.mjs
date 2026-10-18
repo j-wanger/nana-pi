@@ -146,8 +146,15 @@ try {
 		// req: R-664
 		check("dry-run leaves flags and Agent Skills source in place", fs.existsSync(emptyFlag) && fs.existsSync(path.join(codex, "SKILL.md")), dry.stdout);
 		const result = install(h);
-		// req: R-663 R-665
-		check("recognized Claude skill and empty flag move under dated backups", result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.existsSync(backup(h, ".claude", "enforce")), result.stdout);
+		// win32 SKIPs retiring the four pi-only skills unconditionally (steps.mjs
+		// stepRetiredArtifacts), so `spec` is never backed up there; the flag still is.
+		if (process.platform !== "win32") {
+			// req: R-663 R-665
+			check("recognized Claude skill and empty flag move under dated backups", result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.existsSync(backup(h, ".claude", "enforce")), result.stdout);
+		} else {
+			// req: R-663 R-665
+			check("win32: empty flag moves under a dated backup; the pi-only spec skill is left alone", result.status === 0 && fs.existsSync(backup(h, ".claude", "enforce")) && fs.readFileSync(path.join(oldSkill, "SKILL.md"), "utf8") === fs.readFileSync(path.join(fixture, "spec", "SKILL.md"), "utf8") && !fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), result.stdout);
+		}
 		// req: R-663
 		check("recognized Codex import moves under the agent backup root", fs.existsSync(backup(h, ".agents", "skills/dev-check/SKILL.md")), result.stdout);
 		// req: R-663
@@ -162,14 +169,41 @@ try {
 		check("repository-managed context hook symlink is removed", !fs.existsSync(hookLink) && !fs.lstatSync(hookLink, { throwIfNoEntry: false }), result.stdout);
 		const settings = JSON.parse(fs.readFileSync(path.join(h, ".claude", "settings.json"), "utf8"));
 		const completeContextEntries = settings.hooks.UserPromptSubmit[0].hooks;
-		const expectedInstalledHooks = [...ownerHooks, {
-			type: "command",
-			command: `NODE_NO_WARNINGS=1 node '${path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")}' hook`,
-			timeout: 5,
-			statusMessage: "nana: knowledge pull",
-		}];
-		// req: R-660
-		check("install removes released quoted context hook and preserves the expected variants", !completeContextEntries.some((hook) => hook.command === `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'`) && JSON.stringify(completeContextEntries) === JSON.stringify(expectedInstalledHooks), JSON.stringify(completeContextEntries));
+		// On win32 the knowledge entry is exec form (R-1050): `command: "node"` plus an `args`
+		// array built with a forward-slash template, never the POSIX quoted string.
+		const expectedInstalledHooks = process.platform !== "win32"
+			? [...ownerHooks, {
+				type: "command",
+				command: `NODE_NO_WARNINGS=1 node '${path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")}' hook`,
+				timeout: 5,
+				statusMessage: "nana: knowledge pull",
+			}]
+			: [...ownerHooks, {
+				type: "command",
+				command: "node",
+				args: [`${repo}/packages/nana-knowledge/bin/nana-knowledge.ts`, "hook"],
+				timeout: 5,
+				statusMessage: "nana: knowledge pull",
+			}];
+		// No released Windows install ever wrote this retired hook, in any form: bash hooks were
+		// unconditionally "skipped (win32: bash hook)" from the first win32 commit (b39518f,
+		// 2026-09-18) onward, and this hook was retired from the install flow entirely on
+		// 2026-10-07 (b965bd0) — five days BEFORE win32 hooks shipped in any form at all
+		// (7b46022, 2026-10-12, exec form directly, no quoted-string era). The quoted-backslash
+		// entry this fixture injects (built with path.join, all native separators) is therefore
+		// fictional on win32: removeRetiredContextHook's own matcher (settings.mjs) compares
+		// against a template with a forward slash before the filename, which a real win32
+		// path.join string never produces, so the entry is simply unrecognised and left in
+		// place, like any other foreign entry.
+		const quotedBackslashEntry = { type: "command", command: `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'` };
+		if (process.platform !== "win32") {
+			// req: R-660
+			check("install removes released quoted context hook and preserves the expected variants", !completeContextEntries.some((hook) => hook.command === quotedBackslashEntry.command) && JSON.stringify(completeContextEntries) === JSON.stringify(expectedInstalledHooks), JSON.stringify(completeContextEntries));
+		} else {
+			console.log("SKIP win32 quoted-context-hook removal (no released Windows install ever wrote this retired hook, in any form — see settings.mjs/steps.mjs history: b39518f, b965bd0, 7b46022)");
+			// req: R-660
+			check("win32: the unrecognised quoted-backslash entry is left in place, and every other entry matches", JSON.stringify(completeContextEntries) === JSON.stringify([quotedBackslashEntry, ...expectedInstalledHooks]), JSON.stringify(completeContextEntries));
+		}
 		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "Jake" || hook.type === "prompt");
 		// req: R-660
 		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));
@@ -177,13 +211,29 @@ try {
 		check("install prints a manual marker cleanup reminder", result.stdout.includes("delete .claude/.context-warned files manually"), result.stdout);
 		// req: R-668
 		check("synced Agent Skills content stays in place", fs.readFileSync(path.join(synced, "SKILL.md"), "utf8") === "keep synced skill\n");
-		// req: R-665
-		check("managed pack skill replaces the backed-up legacy spec", fs.realpathSync(path.join(h, ".claude", "skills", "spec")) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")));
-		// req: R-666
-		check("doctor reads a canonical pack skill link as healthy", run(["doctor", "--home", h]).stdout.includes("✓ skill spec"));
+		// win32 never installs the pi-only spec skill at all (declared shape)
+		if (process.platform !== "win32") {
+			// req: R-665
+			check("managed pack skill replaces the backed-up legacy spec", fs.realpathSync(path.join(h, ".claude", "skills", "spec")) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")));
+		} else {
+			// req: R-665
+			check("win32: the legacy spec directory is left exactly as it was (pi-only, never replaced)", fs.readFileSync(path.join(oldSkill, "SKILL.md"), "utf8") === fs.readFileSync(path.join(fixture, "spec", "SKILL.md"), "utf8"));
+		}
+		if (process.platform !== "win32") {
+			// req: R-666
+			check("doctor reads a canonical pack skill link as healthy", run(["doctor", "--home", h]).stdout.includes("✓ skill spec"));
+		} else {
+			// req: R-666
+			check("doctor reads the pi-only spec skip on win32", /skill spec\s+skipped \(win32; pi-only\)/.test(run(["doctor", "--home", h]).stdout));
+		}
 		const rerun = install(h);
-		// req: R-669
-		check("rerun after completed moves succeeds and keeps the dated backup", rerun.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
+		if (process.platform !== "win32") {
+			// req: R-669
+			check("rerun after completed moves succeeds and keeps the dated backup", rerun.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
+		} else {
+			// req: R-669
+			check("win32: rerun succeeds; the pi-only spec skill is still never backed up", rerun.status === 0 && !fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
+		}
 		const interrupted = home();
 		const pending = path.join(interrupted, ".claude", "skills", "nana");
 		copyTree(path.join(fixture, "nana"), pending);
@@ -238,9 +288,24 @@ try {
 		const selectedSkill = path.join(alternateClaude, "skills", "spec");
 		copyTree(path.join(fixture, "spec"), defaultSkill);
 		copyTree(path.join(fixture, "spec"), selectedSkill);
+		// `spec` alone proves nothing on win32 (steps.mjs:263 drops it before `artifactHome` is
+		// even chosen, so the scoping question never arises): an empty `enforce` flag in BOTH
+		// homes is a retired artifact win32 DOES retire, and the seat's own probe against the
+		// real CLI confirmed it moves only the selected home's copy.
+		const defaultFlag = path.join(h, ".claude", "enforce");
+		const selectedFlag = path.join(alternateClaude, "enforce");
+		fs.mkdirSync(path.dirname(defaultFlag), { recursive: true });
+		fs.writeFileSync(defaultFlag, "");
+		fs.mkdirSync(path.dirname(selectedFlag), { recursive: true });
+		fs.writeFileSync(selectedFlag, "");
 		const result = run(["install", "--home", h, "--claude-home", alternateClaude]);
-		// req: R-663
-		check("alternate Claude home scopes retirement away from the default home", result.status === 0 && fs.existsSync(path.join(defaultSkill, "SKILL.md")) && fs.realpathSync(selectedSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "skills", "spec", "SKILL.md")), result.stdout);
+		if (process.platform !== "win32") {
+			// req: R-663
+			check("alternate Claude home scopes retirement away from the default home", result.status === 0 && fs.existsSync(path.join(defaultSkill, "SKILL.md")) && fs.realpathSync(selectedSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "skills", "spec", "SKILL.md")), result.stdout);
+		} else {
+			// req: R-663
+			check("win32: alternate Claude home scopes the enforce-flag retirement away from the default home", result.status === 0 && fs.existsSync(defaultFlag) && !fs.existsSync(selectedFlag) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "enforce")) && !fs.existsSync(path.join(h, ".claude", "backups", `${date}-retired`, "enforce")), result.stdout);
+		}
 	}
 	{
 		const h = home();
@@ -263,11 +328,23 @@ try {
 		// req: R-667
 		check("doctor warns while active enforcement flags and legacy scaffolders remain", before.stdout.includes("! legacy enforcement flags") && before.stdout.includes("! legacy scaffolders"), before.stdout);
 		const result = install(h);
-		// req: R-663 R-669
-		check("provenance mismatch remains untouched and is reported", result.status === 1 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n" && result.stdout.includes("unrecognized kind or provenance"), result.stdout);
+		// win32 never examines the pi-only spec name at all (unconditional skip, before any
+		// provenance check), so there is no mismatch to report there.
+		if (process.platform !== "win32") {
+			// req: R-663 R-669
+			check("provenance mismatch remains untouched and is reported", result.status === 1 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n" && result.stdout.includes("unrecognized kind or provenance"), result.stdout);
+		} else {
+			// req: R-663 R-669
+			check("win32: the owner-authored spec directory is left untouched (pi-only, never examined)", result.status === 0 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n", result.stdout);
+		}
 		const doc = run(["doctor", "--home", h]);
-		// req: R-666
-		check("doctor reports a same-name regular skill directory as unhealthy", doc.stdout.includes("✗ skill spec") && doc.status === 1, doc.stdout);
+		if (process.platform !== "win32") {
+			// req: R-666
+			check("doctor reports a same-name regular skill directory as unhealthy", doc.stdout.includes("✗ skill spec") && doc.status === 1, doc.stdout);
+		} else {
+			// req: R-666
+			check("win32: doctor reports the pi-only spec skip, not a health verdict, over the owner's directory", /skill spec\s+skipped \(win32; pi-only\)/.test(doc.stdout), doc.stdout);
+		}
 		// req: R-667
 		check("doctor reports absent legacy wiring as healthy", doc.stdout.includes("✓ legacy enforcement flags") && doc.stdout.includes("✓ legacy scaffolders"), doc.stdout);
 	}
@@ -280,8 +357,18 @@ try {
 		copyTree(path.join(fixture, "dev-check"), added);
 		fs.writeFileSync(path.join(added, "owner-notes.md"), "owner file\n");
 		const result = install(h);
-		// req: R-669
-		check("edited and extended real legacy artifacts stay active and unbacked", result.status === 1 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
+		// On POSIX the status-1 PROBLEM actually comes from stepSkills' own occupied-directory
+		// refusal at `.claude/skills/spec` (linkSkill's non-win32 branch), not from the
+		// retirement mismatch (that is only ever SKIPPED, never PROBLEM). win32 skips BOTH the
+		// retirement step and stepSkills for the pi-only spec name unconditionally, so neither
+		// artifact is ever examined there and install succeeds.
+		if (process.platform !== "win32") {
+			// req: R-669
+			check("edited and extended real legacy artifacts stay active and unbacked", result.status === 1 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
+		} else {
+			// req: R-669
+			check("win32: both the edited spec directory and the extended dev-check import stay active and unbacked", result.status === 0 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
+		}
 	}
 	{
 		const h = home();
@@ -293,8 +380,16 @@ try {
 		const target = path.join(skills, "spec");
 		fs.symlinkSync(external, target);
 		const result = install(h);
-		// req: R-665 R-669
-		check("foreign newly managed skill link survives end-to-end install", result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n" && result.stdout.includes("foreign link"), result.stdout);
+		// win32 SKIPs both retiring and installing the pi-only spec name unconditionally,
+		// before any symlink is ever looked at, so the foreign link is left completely alone
+		// without a "foreign link" refusal (there is nothing to refuse).
+		if (process.platform !== "win32") {
+			// req: R-665 R-669
+			check("foreign newly managed skill link survives end-to-end install", result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n" && result.stdout.includes("foreign link"), result.stdout);
+		} else {
+			// req: R-665 R-669
+			check("win32: the pi-only foreign skill link at spec is left completely untouched", result.status === 0 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n", result.stdout);
+		}
 	}
 	{
 		const h = home();

@@ -26,6 +26,9 @@ const check = (title, ok, detail = "") => {
 };
 const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
 
+// The no-confirmation-mode refusal (R-900) is checked BEFORE uninstall's own win32 gate even
+// runs (bin/nana-setup.mjs validates flags first), so it passes on every platform and stays
+// outside the gate below, unconditional.
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-confirm-"));
   const settings = path.join(home, ".claude", "settings.json");
@@ -36,6 +39,13 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   // req: R-900
   check("uninstall requires exactly one confirmation mode and changes nothing", result.status === 2 && fs.readFileSync(settings).equals(before), result.stderr);
 }
+
+// Uninstall is declared unsupported on Windows (the owner, 2026-10-17): lib/uninstall.mjs:41
+// throws "uninstall is POSIX-only" as the very first line of `uninstall()`, before any of the
+// round-trip scenarios below can run — every one of them would otherwise crash uncaught on
+// win32. The forced-win32 and relative-ambient-home refusal checks further down (a block of
+// their own, kept unconditional) already pin that exact contract on every platform.
+if (process.platform !== "win32") {
 
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-anchor-"));
@@ -397,6 +407,10 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   check("each near-match hook variant gets one left row naming its command", result.status === 0 && (result.stdout.match(/left —/g) ?? []).length === 4 && ["~/.claude/hooks/nana-objective.sh", "EXTRA=1", "nana-shared-memory.sh", "stale/packages/nana-knowledge"].every((part) => result.stdout.includes(part)), result.stdout);
 }
 
+} else {
+  console.log("SKIP POSIX uninstall round-trips (win32: uninstall is POSIX-only; declared unsupported, 2026-10-17)");
+}
+
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-modes-"));
   const layout = resolveLayout({ home });
@@ -409,6 +423,11 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   // req: R-900
   check("both modes win32 and relative ambient pi home refuse without home changes", both.status === 2 && win.status === 2 && /uninstall is POSIX-only/.test(win.stderr) && relative.status === 2 && fs.readFileSync(layout.claudeSettings).equals(initial), `${both.status} ${win.status} ${relative.status}`);
 }
+
+// The rest of the file is POSIX-only (see the gate at the top): `--dry-run --yes` together is
+// refused on real win32 too, but by the platform guard rather than the confirmation-mode check,
+// which the assertion above does not distinguish — so this one block stays unconditional.
+if (process.platform !== "win32") {
 
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-mixed-links-"));
@@ -512,6 +531,10 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const result = run(["uninstall", "--yes", "--home", home]);
   // req: R-905
   check("no-op uninstall does not create the settings parent or lock", result.status === 0 && !fs.existsSync(layout.claudeHome) && /nothing to remove/.test(result.stdout));
+}
+
+} else {
+  console.log("SKIP POSIX uninstall round-trips, part 2 (win32: uninstall is POSIX-only; declared unsupported, 2026-10-17)");
 }
 
 process.exitCode = failures ? 1 : 0;

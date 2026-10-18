@@ -97,15 +97,28 @@ try {
 			`RULE:${RULE_TEXT}\n---\nSKILL:${SKILL_TEXT}`);
 	}
 
-	/* --- 1. a fresh machine: both land as symlinks into the repo ------------------------ */
+	/* --- 1. a fresh machine: both land as symlinks into the repo (copies on win32) ------- */
 	const home = freshHome();
 	const first = run(["install", "--home", home]);
 	check("install exits 0", first.status === 0, first.stderr);
 	check("install reports the skill", /\+ skill requirements\s+created/.test(first.stdout), first.stdout);
 	check("install reports the standards rule", /\+ rule nana-standards\.md\s+created/.test(first.stdout), first.stdout);
-	// req: R-302
-	check("~/.claude/skills/requirements is a symlink to the PACK skill", linkTarget(path.join(home, ".claude", "skills", "requirements")) === SKILL_SRC, String(linkTarget(path.join(home, ".claude", "skills", "requirements"))));
-	check("~/.claude/rules/nana-standards.md is a symlink into the repo", linkTarget(path.join(home, ".claude", "rules", "nana-standards.md")) === RULE_SRC);
+	const skillTarget = path.join(home, ".claude", "skills", "requirements");
+	const ruleTarget = path.join(home, ".claude", "rules", "nana-standards.md");
+	// win32 has no usable symlink (R-1050): the skill mirrors as a byte-equal directory of
+	// copies, and the rule installs as a byte-equal file copy — same pattern section 7 already
+	// uses to exercise the win32 branch.
+	const winSkillCopy = () => fs.lstatSync(skillTarget).isDirectory() && !fs.lstatSync(skillTarget).isSymbolicLink() && fs.readFileSync(path.join(skillTarget, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md")));
+	const winRuleCopy = () => fs.lstatSync(ruleTarget).isFile() && !fs.lstatSync(ruleTarget).isSymbolicLink() && fs.readFileSync(ruleTarget).equals(fs.readFileSync(RULE_SRC));
+	if (process.platform !== "win32") {
+		// req: R-302
+		check("~/.claude/skills/requirements is a symlink to the PACK skill", linkTarget(skillTarget) === SKILL_SRC, String(linkTarget(skillTarget)));
+		check("~/.claude/rules/nana-standards.md is a symlink into the repo", linkTarget(ruleTarget) === RULE_SRC);
+	} else {
+		// req: R-302
+		check("~/.claude/skills/requirements is a byte-equal copy on win32 (no symlink on this platform)", winSkillCopy());
+		check("~/.claude/rules/nana-standards.md is a byte-equal copy on win32", winRuleCopy());
+	}
 	check("the skill is readable through the link", fs.readFileSync(path.join(home, ".claude", "skills", "requirements", "SKILL.md"), "utf8").includes("name: requirements"));
 	// the whole point of the symlink: ONE source for both runtimes
 	// req: R-302
@@ -115,44 +128,81 @@ try {
 	const second = run(["install", "--home", home]);
 	check("second install exits 0", second.status === 0, second.stderr);
 	check("second install reports nothing to do", second.stdout.includes("nothing to do"), second.stdout);
-	check("second install still has the skill symlink", linkTarget(path.join(home, ".claude", "skills", "requirements")) === SKILL_SRC);
+	if (process.platform !== "win32") {
+		check("second install still has the skill symlink", linkTarget(skillTarget) === SKILL_SRC);
+	} else {
+		check("second install still has the skill copy on win32", winSkillCopy());
+	}
 
 	/* --- 3. doctor is the instrument ------------------------------------------------------ */
 	const ok = run(["doctor", "--home", home]);
 	check("doctor exits 0 after install", ok.status === 0, ok.stdout);
-	check("doctor reads ✓ skill requirements", new RegExp(`✓ skill requirements\\s+-> ${SKILL_SRC.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(ok.stdout), ok.stdout);
+	if (process.platform !== "win32") {
+		check("doctor reads ✓ skill requirements", new RegExp(`✓ skill requirements\\s+-> ${SKILL_SRC.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(ok.stdout), ok.stdout);
+	} else {
+		check("doctor reads ✓ skill requirements copied from the pack (no symlink on this platform)", new RegExp(`✓ skill requirements\\s+copied from ${SKILL_SRC.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(no symlink on this platform\\)`).test(ok.stdout), ok.stdout);
+	}
 	check("doctor reads ✓ rule nana-standards.md", /✓ rule nana-standards\.md/.test(ok.stdout), ok.stdout);
-	fs.unlinkSync(path.join(home, ".claude", "skills", "requirements"));
-	fs.unlinkSync(path.join(home, ".claude", "rules", "nana-standards.md"));
+	// The win32 skill mirror is a DIRECTORY of copies, not a single file — unlinkSync on a
+	// non-empty directory throws EPERM; rmSync recursive removes the whole mirror either way.
+	fs.rmSync(skillTarget, { recursive: true, force: true });
+	fs.unlinkSync(ruleTarget);
 	const bad = run(["doctor", "--home", home]);
 	check("doctor exits 1 when the skill is gone", bad.status === 1, String(bad.status));
 	check("doctor marks the missing skill ✗ and names the fix", /✗ skill requirements\s+missing — run `nana-setup install`/.test(bad.stdout), bad.stdout);
 	check("doctor marks the missing standards rule ✗", /✗ rule nana-standards\.md/.test(bad.stdout), bad.stdout);
 	check("a repair install brings both back", run(["install", "--home", home]).status === 0 && run(["doctor", "--home", home]).status === 0);
 
-	/* --- 4. a REGULAR DIRECTORY already there is reported, never clobbered ---------------- */
+	/* --- 4. a REGULAR DIRECTORY already there is reported, never clobbered (POSIX) --------- */
 	{
 		const occupied = freshHome();
 		const target = path.join(occupied, ".claude", "skills", "requirements");
 		fs.mkdirSync(target, { recursive: true });
 		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
 		const r = run(["install", "--home", occupied]);
-		check("occupied skill dir: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
-		check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);
-		check("occupied skill dir: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
-		check("occupied skill dir: the owner's file is untouched", fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n");
-		check("occupied skill dir: no backup directory was created inside the active skills root", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
-		check("occupied skill dir: --dry-run exits 1 too", run(["install", "--home", occupied, "--dry-run"]).status === 1);
-		const d = run(["doctor", "--home", occupied]);
-		check("occupied skill dir: doctor reads ✗ naming the directory", /✗ skill requirements\s+a directory is there instead of a symlink to/.test(d.stdout), d.stdout);
-		check("occupied skill dir: doctor exits 1", d.status === 1, String(d.status));
-		// and once the owner moves it out of the way, both go green
-		fs.rmSync(target, { recursive: true, force: true });
-		check("occupied skill dir: green once it is moved away", run(["install", "--home", occupied]).status === 0 && run(["doctor", "--home", occupied]).status === 0);
+		if (process.platform !== "win32") {
+			check("occupied skill dir: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
+			check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);
+			check("occupied skill dir: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
+			check("occupied skill dir: the owner's file is untouched", fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n");
+			check("occupied skill dir: no backup directory was created inside the active skills root", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
+			check("occupied skill dir: --dry-run exits 1 too", run(["install", "--home", occupied, "--dry-run"]).status === 1);
+			const d = run(["doctor", "--home", occupied]);
+			check("occupied skill dir: doctor reads ✗ naming the directory", /✗ skill requirements\s+a directory is there instead of a symlink to/.test(d.stdout), d.stdout);
+			check("occupied skill dir: doctor exits 1", d.status === 1, String(d.status));
+			// and once the owner moves it out of the way, both go green
+			fs.rmSync(target, { recursive: true, force: true });
+			check("occupied skill dir: green once it is moved away", run(["install", "--home", occupied]).status === 0 && run(["doctor", "--home", occupied]).status === 0);
+		} else {
+			// win32 KNOWN BUG (the seat's ruling, 2026-10-18 — declared, not fixed by this lane):
+			// mirrorDirsProblem refuses only a symlink or junction at the skill path; a plain
+			// pre-existing directory is not a protected shape there, so linkFile's copy branch
+			// backs the owner's file up and overwrites it with the pack's copy, and install
+			// exits 0. This asserts that declared Windows shape, confirmed against the real CLI.
+			const baks = () => fs.readdirSync(target).filter((f) => f.includes(".bak-"));
+			check("win32 occupied skill dir: install EXITS 0 (known bug — the directory guard does not cover a plain occupied directory)", r.status === 0, String(r.status));
+			check("win32 occupied skill dir: the owner's exact bytes survive in one .bak- file inside the skill folder", baks().length === 1 && fs.readFileSync(path.join(target, baks()[0]), "utf8") === "---\nname: requirements\n---\n# MINE\n", baks().join(","));
+			check("win32 occupied skill dir: no .bak- folder at the skills root — no second skill claims the name", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
+			check("win32 occupied skill dir: the installed SKILL.md equals the pack's source", fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
+			const dryOccupied = freshHome();
+			const dryTarget = path.join(dryOccupied, ".claude", "skills", "requirements");
+			fs.mkdirSync(dryTarget, { recursive: true });
+			fs.writeFileSync(path.join(dryTarget, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
+			const dryRun = run(["install", "--home", dryOccupied, "--dry-run"]);
+			check("win32 occupied skill dir: --dry-run reports the change and writes nothing", dryRun.status === 0 && /skill requirements\s+updated/.test(dryRun.stdout) && fs.readFileSync(path.join(dryTarget, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n" && !fs.readdirSync(dryTarget).some((f) => f.includes(".bak-")), dryRun.stdout);
+			const d = run(["doctor", "--home", occupied]);
+			check("win32 occupied skill dir: doctor reads the mirror as healthy", d.status === 0 && /✓ skill requirements\s+copied from .* \(no symlink on this platform\)/.test(d.stdout), d.stdout);
+		}
 	}
 
 	/* --- 5. a symlink pointing somewhere ELSE is relinked --------------------------------- */
-	{
+	// win32 has no symlink here to begin with (the install above mirrored a directory of
+	// copies) — there is nothing stale to relink; section 6 below covers win32's own
+	// stale-copy-repair case.
+	if (process.platform === "win32") {
+		console.log("SKIP stale-symlink relink (win32: the installed skill is a directory of copies, never a symlink)");
+		skips++;
+	} else {
 		const stale = freshHome();
 		run(["install", "--home", stale]);
 		const target = path.join(stale, ".claude", "skills", "requirements");
@@ -170,12 +220,13 @@ try {
 	}
 
 	/* --- 6. win32 degrade: a COPY of every file the skill ships, rules copied too --------- */
-	if (process.platform === "win32") {
-		console.log("SKIP win32 degrade (forcing the branch is only meaningful off win32)");
-		skips++;
-	} else {
+	// Forcing NANA_SETUP_PLATFORM is a no-op on a REAL win32 host (platform() already reads
+	// "win32" there) — not a reason to skip: doctor's stale-copy ✗ and install's "N files
+	// copied" line have no other Windows run anywhere in this suite. On every other host,
+	// forcing is still the only way to exercise this branch at all.
+	{
 		const w = freshHome();
-		const env = { NANA_SETUP_PLATFORM: "win32" };
+		const env = process.platform === "win32" ? {} : { NANA_SETUP_PLATFORM: "win32" };
 		const r = run(["install", "--home", w], env);
 		check("win32: install exits 0", r.status === 0, r.stderr);
 		const target = path.join(w, ".claude", "skills", "requirements");
@@ -226,29 +277,41 @@ try {
 		};
 
 		// 7a. win32 — the reproduced defect: install must EXIT 1 and leave the victim byte-identical
-		if (process.platform === "win32") {
-			console.log("SKIP win32 directory-link mirror (forcing the branch is only meaningful off win32)");
-			skips++;
-		} else {
-			const env = { NANA_SETUP_PLATFORM: "win32" };
+		// Forcing NANA_SETUP_PLATFORM is a no-op on a REAL win32 host — run natively there instead
+		// of skipping: the no-write-through guard (mirrorDirsProblem, R-352) only ever executes
+		// under win(), and no other file in this suite exercises it on real Windows. A junction
+		// needs no elevated privilege there, unlike a plain symlink.
+		{
+			const env = process.platform === "win32" ? {} : { NANA_SETUP_PLATFORM: "win32" };
 			const h = freshHome();
 			const victim = plantVictim(h);
 			const before = snap(victim);
 			const target = path.join(h, ".claude", "skills", "requirements");
 			fs.mkdirSync(path.dirname(target), { recursive: true });
-			fs.symlinkSync(victim, target); // the directory symlink / junction
-			const r = run(["install", "--home", h], env);
-			check("win32 dir link: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
-			// req: R-352
-			check("win32 dir link: ✗ naming the link and refusing to write through it", /✗ skill requirements\s+problem\s+a symlink or junction is already at .* — left untouched and NOT written through/.test(r.stdout), r.stdout);
-			// req: R-352
-			check("win32 dir link: the VICTIM tree is byte-identical", snap(victim) === before, `${before}\n  ->\n  ${snap(victim)}`);
-			// req: R-352
-			check("win32 dir link: no .bak was written into the victim", !fs.readdirSync(victim).some((f) => f.includes(".bak-")), fs.readdirSync(victim).join(","));
-			check("win32 dir link: the link itself is left exactly as it was", fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === victim);
-			check("win32 dir link: --dry-run exits 1 too, and writes nothing", run(["install", "--home", h, "--dry-run"], env).status === 1 && snap(victim) === before);
-			check("win32 dir link: doctor reads ✗ and exits 1", run(["doctor", "--home", h], env).status === 1 && /✗ skill requirements/.test(run(["doctor", "--home", h], env).stdout));
-			// a regular FILE at the skill path is the same class: refused, not opened
+			let linked = true;
+			try {
+				fs.symlinkSync(victim, target, process.platform === "win32" ? "junction" : undefined); // the directory symlink / junction
+			} catch (error) {
+				linked = false;
+				console.log(`SKIP win32 directory-link mirror (could not create a junction here: ${error.message})`);
+				skips++;
+			}
+			if (linked) {
+				const r = run(["install", "--home", h], env);
+				check("win32 dir link: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
+				// req: R-352
+				check("win32 dir link: ✗ naming the link and refusing to write through it", /✗ skill requirements\s+problem\s+a symlink or junction is already at .* — left untouched and NOT written through/.test(r.stdout), r.stdout);
+				// req: R-352
+				check("win32 dir link: the VICTIM tree is byte-identical", snap(victim) === before, `${before}\n  ->\n  ${snap(victim)}`);
+				// req: R-352
+				check("win32 dir link: no .bak was written into the victim", !fs.readdirSync(victim).some((f) => f.includes(".bak-")), fs.readdirSync(victim).join(","));
+				check("win32 dir link: the link itself is left exactly as it was", fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === victim);
+				check("win32 dir link: --dry-run exits 1 too, and writes nothing", run(["install", "--home", h, "--dry-run"], env).status === 1 && snap(victim) === before);
+				check("win32 dir link: doctor reads ✗ and exits 1", run(["doctor", "--home", h], env).status === 1 && /✗ skill requirements/.test(run(["doctor", "--home", h], env).stdout));
+			}
+			// a regular FILE at the skill path is the same class: refused, not opened — this case
+			// needs no link at all, so it runs unconditionally even if the junction above could not
+			// be created.
 			const h2 = freshHome();
 			fs.mkdirSync(path.join(h2, ".claude", "skills"), { recursive: true });
 			fs.writeFileSync(path.join(h2, ".claude", "skills", "requirements"), "not a dir\n");
@@ -260,7 +323,13 @@ try {
 
 		// 7b. posix — the symlink branch REPLACES the link instead of following it, so install
 		// legitimately succeeds here; the invariant under test is that the victim is untouched.
-		{
+		// win32 has no analog: ANY symlink/junction at the target is refused there (7a already
+		// covers that — mirrorDirsProblem does not distinguish "points at a victim" from "points
+		// at the pack", it refuses every symlink/junction alike).
+		if (process.platform === "win32") {
+			console.log("SKIP posix dir-link relink (win32 refuses every skill-path symlink or junction outright — see 7a)");
+			skips++;
+		} else {
 			const h = freshHome();
 			const victim = plantVictim(h);
 			const before = snap(victim);
@@ -276,7 +345,10 @@ try {
 
 		// 7c. the same traversal class on the RULE links: a file symlink whose target is outside
 		// the repo must be replaced, never rewritten through. Both platforms, both rules.
-		for (const spec of process.platform === "win32" ? [{ env: {}, tag: "posix" }] : [{ env: {}, tag: "posix" }, { env: { NANA_SETUP_PLATFORM: "win32" }, tag: "win32" }]) {
+		// On real win32 the ambient platform already IS win32 — env: {} naturally produces the
+		// win32 shape there, so the single iteration is tagged "win32", not "posix" (it used to
+		// read the POSIX symlink assertion against a real win32 run and fail there).
+		for (const spec of process.platform === "win32" ? [{ env: {}, tag: "win32" }] : [{ env: {}, tag: "posix" }, { env: { NANA_SETUP_PLATFORM: "win32" }, tag: "win32" }]) {
 			const h = freshHome();
 			fs.mkdirSync(path.join(h, ".claude", "rules"), { recursive: true });
 			const decoys = {};
@@ -317,6 +389,9 @@ try {
 			check("posix hook link: the decoy outside the repo is untouched", fs.readFileSync(decoy, "utf8") === "#!/bin/sh\necho DECOY\n");
 			// req: R-353
 			check("posix hook link: the hook now points into the repo", linkTarget(path.join(h, ".claude", "hooks", "nana-objective.mjs")) === path.join(pkg, "claude", "hooks", "nana-objective.mjs"));
+		} else {
+			console.log("SKIP posix hook link (win32: stepHooks skips hooks entirely — there is no hooks-dir symlink to traverse)");
+			skips++;
 		}
 	}
 } finally {
