@@ -284,7 +284,7 @@ const newRoot = (name) => { fs.mkdirSync(path.join(HOME, name), { recursive: tru
 	const cp = await c.prompt();
 	check("handoff custom: written and picked up", fs.existsSync(custom) && cp.includes("CUSTOM-STATE"));
 	const csrc = cp.split("\n").find((l) => l.startsWith("Source: ")) ?? "";
-	const expectLoc = `"${custom.replace("\n", "\\u000A").replace("\u2028", "\\u2028").replace("\u202E", "\\u202E").replace("\u001b", "\\u001B")}"`;
+	const expectLoc = `"${custom.replaceAll("\\", "\\\\").replace("\n", "\\u000A").replace("\u2028", "\\u2028").replace("\u202E", "\\u202E").replace("\u001b", "\\u001B")}"`;
 	check("handoff custom prompt: the path is an exact escaped locator on the Source line", csrc.startsWith(`Source: ${expectLoc} ${mod.UNADDRESSABLE_MARK} · `) && JSON.parse(expectLoc) === custom, csrc);
 	check("handoff custom prompt: no forged heading, no raw control outside the summary", !cp.split("\n").some((l) => l.startsWith("## FORGED")) && !RAW_CONTROL.test(cp.replace("CUSTOM-STATE", "")), cp);
 	// req: R-187
