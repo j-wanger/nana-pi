@@ -211,3 +211,37 @@ Files:
 - <worktree>/scripts/test.mjs
 - <worktree>/docs/code-map.md
 - <worktree>/REQUIREMENTS.md
+## Check of build 2 (8c5d512)
+
+MUST: 0
+
+**Evidence by question**
+
+1. **Every copier path is now long form.** The temp root goes through `realpathSync.native` at `templates-update.test.mjs:21-22`, before any copier or git call.
+   - Everything in the update legs is built from that root: `dest` (:224), `adoptRoot` (:276), the `cwd: root` for copy (:225, :283), the `cwd: dest` / `cwd: adoptRoot` for update (:230, :286) and `HOME: root` (:96).
+   - The template source is `sourcePath`, which resolves the checkout (`D:\a\...` on CI) and has no 8.3 part.
+   - The Windows run 1 traceback shows the failing call is copier's `_apply_update`, `self.subproject.local_abspath.relative_to(subproject_top)` (copier `_main.py:1406`). `local_abspath` is `dst_path.absolute()`, which is the child's cwd. That cwd was the short root and is now long.
+   - Only `TEMP`/`TMP` still reach copier in short form, for copier's own `TemporaryDirectory` folders (old_copy, new_copy, clone). I read copier 9.19.1 locally (`~/.cache/uv/archive-v0/nop55zT3dOgHkAkwu8NKK/copier/_main.py`). Its line 1406 matches the CI traceback, so it is likely the same version (INFERRED). In that code, the temp folders are only compared with themselves: `old_copy / subproject_subdir` with subdir `.`, and `_render_template` resolves both sides (:806, :835-838). `_load_external_data` (:345-349) mixes the two forms, but `--trust` bypasses it and `copier.yml` uses no external data.
+2. **The `\\?\` strip is correct but never fires.** The JS literal `"\\\\?\\"` is the four characters `\\?\`, and `slice(4)` removes them. libuv's `fs__realpath_handle` already strips that prefix and turns `\\?\UNC\` into `\\`. The line would turn a raw `\\?\UNC\…` into `UNC\…`, but libuv never returns that form.
+3. **The strict probe behaves as briefed.** I tested it in a tagless clone in my scratchpad (`git clone --no-tags`), since deleted.
+   - With `NANA_TEST_REQUIRE_COPIER=1`, both legs FAIL with the probe's stderr ("FAIL v0.6.0 tag is required when NANA_TEST_REQUIRE_COPIER=1 fatal: Needed a single revision", plus the adopt-leg twin), and the run ends "2 FAILED".
+   - With the variable unset, both legs SKIP ("v0.6.0 tag unavailable") and the run exits 0 with 28 pass.
+   - CI cannot trip strict mode. The variable is set only by the `suite` job (`ci.yml:55`; checked with git grep). That job checks out with `fetch-depth: 0` on all three OS legs, which fetches tags. The Windows log line 118 shows `[new tag] v0.6.0`, and `git ls-remote origin` has the tag at 0ff62ae.
+4. **Scope is clean.**
+   - On macOS, `npm test -- packages/nana-pack/tests/templates-update.test.mjs` gives `34 pass, 0 fail, 0 skip` (variable unset). With the variable set and the tag present, the code takes the same path.
+   - `6d97ba5..HEAD` touches only `templates-update.test.mjs`, and `main...HEAD` changes nothing outside `docs/` and `*/tests/`. There is no product file and no `scripts/test.mjs` change.
+   - HEAD equals the remote branch at 8c5d512.
+   - The change adds no write outside the OS temp folder. The macOS root becomes `/private/var/...`, and cleanup still works: no `nana-partg-rail-*` folders were left after my runs.
+
+**Prediction (INFERRED):** `PASS packages/nana-pack/tests/templates-update.test.mjs 34 pass`. Run 1 had 30 pass and 3 fail. The three update legs should clear the subpath error. A 34th check, "Python earlier-tag update prints Part G drift", becomes reachable once `REQUIREMENTS-general.md` exists after the update. Windows failing files would go from 26 to 25. Confidence is moderate, because the steps after the update have never run on Windows. These are the most likely to fail:
+- The drift check, which runs full pytest on the updated rendered Python project. No other test runs that project's pytest on Windows.
+- The two "earlier-tag … unchanged and its rail clean" checks. The v0.6.0 tag has no `.gitattributes`. If the runner's system git sets `core.autocrlf=true` (assumed, not checked), copier's v0.6.0 clone renders with CRLF while HEAD renders LF. That could produce `.rej` files or diff noise. The CRLF handling in both rails, and `templates-render` passing on Windows, make this less likely.
+
+The run 1 `conflict REQUIREMENTS.md` line in the adopt leg is followed by `skip REQUIREMENTS.md`. That is the expected `_skip_if_exists` handling of the existing file, not a fault.
+
+**NOTE**
+- The two new strict-mode `check(...)` calls (:220, :273) carry no `req:` marker, the same as the existing copier guard at :194.
+- With strict mode on and the tag present, a missing pytest still SKIPs the update legs silently. This was already so, and the brief did not ask to change it.
+- `oldTagProbe.stderr ?? ""` prints nothing if git fails to start, because spawnSync then returns a null stderr and the error object is not printed. This cannot happen on CI.
+- `UV_CACHE_DIR` points at the real uv cache outside temp (:96). This was already so and the lane did not touch it.
+- The unused `const available` (:215) was already there.

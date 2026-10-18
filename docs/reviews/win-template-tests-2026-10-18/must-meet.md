@@ -22,3 +22,13 @@ Windows because of product code (a template's own tests under `templates/python/
 
 The updated project's pytest under `templates-update` runs on Windows for the first time; nobody knows yet whether it
 passes. A copied v0.6.0 project may check out with CRLF line endings (inferred harmless).
+
+## Amendment (the seat, 2026-10-18, after Windows run 2)
+
+The update legs ran on Windows for the first time in run 2 and found a product bug in the Python template: a Python
+project rendered on Windows fails its own pytest. `tests/test_requirements_trace.py` runs pytest in a subprocess
+through pytester, which reads the child's output as UTF-8; the child writes the template conftest's summary separator
+`·` in Windows' cp1252, so decoding fails (`UnicodeDecodeError ... byte 0xb7`). The brief's stop condition applies: the
+fix is in `templates/python/template/`, a product change. So TT1 holds for every check except one, "Python earlier-tag
+update prints Part G drift", which fails on Windows on that template bug and is fixed by the next lane,
+win-python-template. Every other check in the four files passes on Windows with no skip.
