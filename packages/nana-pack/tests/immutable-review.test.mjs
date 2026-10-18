@@ -28,7 +28,7 @@ fs.mkdirSync(fakeBin);
 // the shared helper, with a Node port of the same body. POSIX keeps this sh script unchanged.
 if (process.platform === "win32") {
   writeFakePi(fakeBin, `const fs = require("node:fs");
-fs.writeFileSync(process.env.OBSERVE_PID, String(process.pid) + "\\n");
+if (process.env.OBSERVE_PID) fs.writeFileSync(process.env.OBSERVE_PID, String(process.pid) + "\\n");
 fs.writeFileSync(process.env.OBSERVE, process.cwd() + "\\n" + process.env.NANA_REVIEW_ROOT + "\\n" + process.env.NANA_ROLE + "\\n");
 fs.appendFileSync(process.env.OBSERVE, process.argv.slice(2).join(" "));
 const waitFor = process.env.WAIT_FOR;
@@ -61,8 +61,8 @@ const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PA
 // runner keeps the 8.3 short form (RUNNER~1) — kept deliberately (the hard rule below) so lane
 // W7c's product fix has a failing check to turn green. win32: native real path, which is the
 // product's own fsReal/R-1125 choice, falling back to a resolve+case-fold when the path is
-// already gone (a reclaimed or removed checkout). POSIX: unchanged — already-absolute, already
-// clean strings, so path.resolve is a no-op here.
+// already gone (a reclaimed or removed checkout). POSIX: plain (non-native) realpath, falling
+// back to path.resolve for the same already-gone case (detail below).
 function canonPath(p) {
   if (process.platform === "win32") {
     try { return fs.realpathSync.native(p).replace(/^\\\\\?\\/, ""); }
@@ -260,6 +260,15 @@ const afterRecovery = git(repo, "worktree", "list", "--porcelain");
 check("next launch reclaims a SIGKILLed dead-owner checkout but leaves live-owner worktrees alone", recovery.status === 0 &&
   includesWorktree(staleBeforeRecovery, killedCheckoutCanon) && !fs.existsSync(killedCheckout) && !includesWorktree(afterRecovery, killedCheckoutCanon),
   `${JSON.stringify({ status: recovery.status, stderr: recovery.stderr, killedCheckout, staleBeforeRecovery, afterRecovery })} compared: ${pathForms(killedCheckout)}`);
+// Until W7c's product fix, reclaim leaves this SIGKILLed checkout registered on Windows (the
+// short-vs-long mismatch that check 11 above already pins). Clear it here so the later refusal
+// checks (unreproducible snapshot, nested repository) observe their own worktree list, not a
+// leftover "nana-review-" entry caused only by check 11's known failure. No-op on POSIX, where
+// check 11 already reclaims it.
+if (fs.existsSync(killedCheckout)) {
+  git(repo, "worktree", "remove", "--force", killedCheckout);
+  git(repo, "worktree", "prune");
+}
 
 const liveCheckout = path.join(os.tmpdir(), `nana-review-${process.pid}-live`);
 git(repo, "worktree", "add", "--detach", liveCheckout, "HEAD");

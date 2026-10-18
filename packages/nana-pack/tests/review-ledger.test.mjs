@@ -40,7 +40,7 @@ if (process.env.INVOKED) fs.appendFileSync(process.env.INVOKED, "invoked\\n");
 switch (process.env.STUB) {
   case "fail": console.log("503 upstream"); process.exit(1); break;
   case "stall": setTimeout(() => {}, 30000); break;
-  case "plain": fs.appendFileSync(process.env.COUNT, "run\\n"); console.log("Implemented the change; edited src/a.ts."); break;
+  case "plain": if (process.env.COUNT) fs.appendFileSync(process.env.COUNT, "run\\n"); console.log("Implemented the change; edited src/a.ts."); break;
   case "plain-review": process.stdout.write(process.env.STUB_TEXT ?? ""); break;
   default: console.log("VERDICT: LAND");
 }
@@ -168,11 +168,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const rec = roundsOf("four")[0];
 	check("tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}",
 		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
-		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", JSON.stringify(rec));
+		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", `${JSON.stringify(rec)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	const viaLedger = reviewAt("four", 4, ["--role", "opus"]);
 	// req: R-971
 	// req: R-729 R-841
-	check("switching launcher (review-ledger run) does not reset the count", viaLedger.status === 1 && /over the cap/.test(viaLedger.stderr), viaLedger.stderr);
+	check("switching launcher (review-ledger run) does not reset the count", viaLedger.status === 1 && /over the cap/.test(viaLedger.stderr), `${viaLedger.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 }
 
 // 2. a round is a REVISION: any number of reviews, any roles, on one revision = one round
@@ -384,7 +384,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	A.at(3, W);
 	const w4 = ledgerRun(["--item", "wt"], { cwd: W });
 	// req: R-705
-	check("worktree W2 at a 4th revision: refused (the item is shared)", w4.status === 1 && /over the cap/.test(w4.stderr), w4.stderr);
+	check("worktree W2 at a 4th revision: refused (the item is shared)", w4.status === 1 && /over the cap/.test(w4.stderr), `${w4.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	// req: R-624
 	check("outside git refuses admission unless --tree names a reviewed repository",
 		ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).status === 1 &&
@@ -401,7 +401,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		fs.readFileSync(viaTreeOut, "utf8").trim() === `VERDICT: ${A.d}`, viaTree.stderr);
 	const piTree = piReview(["--item", "pi-tree-scope", "--tree", A.d, "--out", out()], { cwd: scratch });
 	// req: R-621
-	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}`, piTree.stderr);
+	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}`, `${piTree.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	const nestedLauncher = path.join(A.d, "nested-launcher"), nestedTree = path.join(A.d, "nested-tree");
 	fs.mkdirSync(nestedLauncher); fs.mkdirSync(nestedTree);
 	const marker = path.join(tmp, "child-cwd-marker");
@@ -510,7 +510,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		const won = codes.filter((x) => x.c === 0).length;
 		const lost = codes.filter((x) => x.c === 1 && /in flight|over the cap/.test(x.e)).length;
 		// req: R-714
-		check(`${item}: exactly one of two concurrent launchers wins the last round`, won === 1 && lost === 1 && roundsOf(item).length === 3, JSON.stringify(codes));
+		check(`${item}: exactly one of two concurrent launchers wins the last round`, won === 1 && lost === 1 && roundsOf(item).length === 3, `${JSON.stringify(codes)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	}
 }
 
@@ -695,7 +695,7 @@ if (process.platform !== "win32") {
 	const ov = jsonl(auditFile).filter((l) => l.kind === "override" && l.item === "over");
 	check("--over-cap 'instrumented X' runs", ok.status === 0, ok.stderr);
 	check("the override is recorded with reason, round and timestamp",
-		ov.length === 1 && ov[0].reason === "instrumented X" && ov[0].round === 4 && !Number.isNaN(Date.parse(ov[0].ts)), JSON.stringify(ov));
+		ov.length === 1 && ov[0].reason === "instrumented X" && ov[0].round === 4 && !Number.isNaN(Date.parse(ov[0].ts)), `${JSON.stringify(ov)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	check("the over-cap round carries the override in the tally", roundsOf("over").at(-1)?.override === "instrumented X" && roundsOf("over").length === 4,
 		`rounds=${JSON.stringify(roundsOf("over"))} compared: ${pathForms(path.join(A.d, ".git"))}`);
 }
@@ -879,7 +879,7 @@ if (process.platform !== "win32") {
 	gitIn(K.d, "checkout", "-q", "--", "f");
 	const inTreeOut = path.join(K.d, "sol-r1.md");
 	const ok = ledgerRun(["--item", "stable"], { cwd: K.d, outFile: inTreeOut });
-	check("a review whose --out lands inside the reviewed tree is stable (its own output is excluded)", ok.status === 0 && roundsOf("stable")[0]?.revision === K.shas[0] && !roundsOf("stable")[0]?.unverified, ok.stderr);
+	check("a review whose --out lands inside the reviewed tree is stable (its own output is excluded)", ok.status === 0 && roundsOf("stable")[0]?.revision === K.shas[0] && !roundsOf("stable")[0]?.unverified, `${ok.stderr} compared: ${pathForms(path.join(K.d, ".git"))}`);
 	fs.rmSync(inTreeOut);
 }
 
@@ -899,7 +899,7 @@ if (process.platform !== "win32") {
 	gitIn(H.d, "worktree", "add", "-q", "--detach", HW, H.shas[1]);
 	const other = mod.admit(["--item", "hb"], { launcher: "test", home, cwd: HW }); // admission PRUNES stale reservations
 	// req: R-714
-	check("while a renewing review runs past its stale window, another admission sees it in flight", other.ok && /1 review\(s\) in flight/.test(other.note), other.note ?? other.message);
+	check("while a renewing review runs past its stale window, another admission sees it in flight", other.ok && /1 review\(s\) in flight/.test(other.note), `${other.note ?? other.message} compared: ${pathForms(path.join(H.d, ".git"))}`);
 	const code = await done;
 	// req: R-729
 	check("…and the renewing review completes and is recorded (exit 0, round 1)", code === 0 && roundsOf("hb").some((x) => x.revision === H.shas[0]), kerr);
@@ -961,17 +961,17 @@ if (process.platform !== "win32") {
 	// req: R-724
 	check("a TRACKED --out is refused before the review runs (file untouched, nothing reserved)",
 		tracked.status === 1 && /TRACKED file/.test(tracked.stderr) && fs.readFileSync(path.join(O.d, "f"), "utf8") === "O0" &&
-		roundsOf("outt").length === 0 && noStack(tracked), tracked.stderr);
+		roundsOf("outt").length === 0 && noStack(tracked), `${tracked.stderr} compared: ${pathForms(path.join(O.d, "f"))}`);
 	const viaSub = pathRel => ledgerRun(["--item", "outt"], { cwd: path.join(O.d), outFile: pathRel });
 	const trackedRel = viaSub("./sub/../f");
-	check("…also when spelled through ../ (resolved)", trackedRel.status === 1 && /TRACKED file/.test(trackedRel.stderr), trackedRel.stderr);
+	check("…also when spelled through ../ (resolved)", trackedRel.status === 1 && /TRACKED file/.test(trackedRel.stderr), `${trackedRel.stderr} compared: ${pathForms(path.join(O.d, "f"))}`);
 	gitIn(O.d, "rm", "-q", "--cached", "f");
 	const headOnly = mod.admit(["--item", "outt", "--out", path.join(O.d, "f")], { launcher: "test", home, cwd: O.d });
-	check("…and a path tracked in HEAD but removed from the index", headOnly.ok === false && /TRACKED/.test(headOnly.message), headOnly.message);
+	check("…and a path tracked in HEAD but removed from the index", headOnly.ok === false && /TRACKED/.test(headOnly.message), `${JSON.stringify(headOnly)} compared: ${pathForms(path.join(O.d, "f"))}`);
 	gitIn(O.d, "reset", "-q");
 	const untracked = ledgerRun(["--item", "outu"], { cwd: O.d, outFile: path.join(O.d, "new-out.md") });
 	check("an untracked in-tree --out WARNS and the review still runs",
-		untracked.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(untracked.stderr) && roundsOf("outu").length === 1, untracked.stderr);
+		untracked.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(untracked.stderr) && roundsOf("outu").length === 1, `${untracked.stderr} compared: ${pathForms(path.join(O.d, "new-out.md"))}`);
 	fs.rmSync(path.join(O.d, "new-out.md"));
 	const ignored = ledgerRun(["--item", "outi"], { cwd: O.d, outFile: path.join(O.d, "r.log") });
 	check("an ignored in-tree --out is silent", ignored.status === 0 && !/WARNING/.test(ignored.stderr), ignored.stderr);
@@ -979,7 +979,7 @@ if (process.platform !== "win32") {
 	check("an --out outside the tree is silent", outside.status === 0 && !/WARNING/.test(outside.stderr), outside.stderr);
 	const chk = ledgerCheck(["--item", "outt", "--out", path.join(O.d, "f")], O.d);
 	// req: R-724
-	check("review-ledger check refuses a tracked --out too", chk.status === 1 && /TRACKED/.test(chk.stderr), chk.stderr);
+	check("review-ledger check refuses a tracked --out too", chk.status === 1 && /TRACKED/.test(chk.stderr), `${chk.stderr} compared: ${pathForms(path.join(O.d, "f"))}`);
 	// T2b r5 (astra MUST): an --out that is ITSELF a symlink resolves through its leaf. Before the fix
 	// the parent alone was resolved, the link (outside the tree) passed, and the review overwrote f.
 	const fBytes = fs.readFileSync(path.join(O.d, "f"));
@@ -990,7 +990,7 @@ if (process.platform !== "win32") {
 		const s = ledgerRun(["--item", "outs"], { cwd: O.d, outFile: o });
 		check(`${label} is refused BEFORE the review (target byte-identical, nothing reserved or counted)`,
 			s.status === 1 && /TRACKED file/.test(s.stderr) && !/admitted/.test(s.stderr) &&
-			fs.readFileSync(path.join(O.d, "f")).equals(fBytes) && roundsOf("outs").length === 0 && fs.readdirSync(resDir).length === 0 && noStack(s), s.stderr);
+			fs.readFileSync(path.join(O.d, "f")).equals(fBytes) && roundsOf("outs").length === 0 && fs.readdirSync(resDir).length === 0 && noStack(s), `${s.stderr} compared: ${pathForms(o)}`);
 	}
 	const dangling = path.join(outs, "dangling.md");
 	fs.symlinkSync(path.join(O.d, "made-by-link.md"), dangling);
@@ -1002,10 +1002,10 @@ if (process.platform !== "win32") {
 	const dd = ledgerRun(["--item", "outd"], { cwd: O.d, outFile: path.join(O.d, "..notes.md") });
 	// req: R-724
 	check("a TRACKED file named ..notes.md is in-tree and refused (file untouched)",
-		dd.status === 1 && /TRACKED file/.test(dd.stderr) && fs.readFileSync(path.join(O.d, "..notes.md"), "utf8") === "NOTES\n" && roundsOf("outd").length === 0, dd.stderr);
+		dd.status === 1 && /TRACKED file/.test(dd.stderr) && fs.readFileSync(path.join(O.d, "..notes.md"), "utf8") === "NOTES\n" && roundsOf("outd").length === 0, `${dd.stderr} compared: ${pathForms(path.join(O.d, "..notes.md"))}`);
 	const du = ledgerRun(["--item", "outdu"], { cwd: O.d, outFile: path.join(O.d, "..draft.md") });
 	check("an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)",
-		du.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(du.stderr) && roundsOf("outdu").length === 1 && !roundsOf("outdu")[0].unverified, du.stderr);
+		du.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(du.stderr) && roundsOf("outdu").length === 1 && !roundsOf("outdu")[0].unverified, `${du.stderr} compared: ${pathForms(path.join(O.d, "..draft.md"))}`);
 	fs.rmSync(path.join(O.d, "..draft.md"));
 	check("relUnder: by segment", typeof mod.relUnder === "function" && mod.relUnder("/r", "/r/..notes.md") === "..notes.md" && mod.relUnder("/r", "/r/../x") === null &&
 		mod.relUnder("/r", "/r") === null && mod.relUnder("/r", "/r/a/..b") === "a/..b");
