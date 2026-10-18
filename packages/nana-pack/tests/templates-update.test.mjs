@@ -7,14 +7,19 @@
  * @errors Failed checks exit non-zero; unavailable optional Copier tooling is reported as SKIP
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const { check: railCheck, printReport } = await import(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url).href);
-const root = tmpDir(join(tmpdir(), "nana-partg-rail-"));
+// Resolve to the long form before any copier or git call: a hosted runner's short-form
+// temp path (e.g. RUNNER~1) and git/copier's long-form realpath (e.g. runneradmin) name
+// the same directory but compare unequal, which copier's subpath check raises as a
+// ValueError on Windows.
+const toLongPath = (path) => { const real = realpathSync.native(path); return real.startsWith("\\\\?\\") ? real.slice(4) : real; };
+const root = toLongPath(tmpDir(join(tmpdir(), "nana-partg-rail-")));
 mkdirSync(join(root, "tests"), { recursive: true });
 let failures = 0;
 const check = (title, ok, detail = "") => {
@@ -208,9 +213,12 @@ if (!haveCopier) {
 }
 const repo = sourcePath;
 const available = copyProbe;
-const hasOldTag = probe("git", ["-C", repo, "rev-parse", "--verify", "v0.6.0"]).status === 0;
+const oldTagProbe = probe("git", ["-C", repo, "rev-parse", "--verify", "v0.6.0"]);
+const hasOldTag = oldTagProbe.status === 0;
+const requireCopier = process.env.NANA_TEST_REQUIRE_COPIER === "1";
 if (!haveCopier || !hasOldTag || !havePytest) {
- console.log(`SKIP copier update legs: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
+ if (!hasOldTag && requireCopier) check("v0.6.0 tag is required when NANA_TEST_REQUIRE_COPIER=1", false, oldTagProbe.stderr ?? "");
+ else console.log(`SKIP copier update legs: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
 } else {
  for (const language of ["python", "typescript"]) {
   const dest = join(root, `update-${language}`);
@@ -262,7 +270,8 @@ if (!haveCopier || !hasOldTag || !havePytest) {
  }
 }
 if (!haveCopier || !hasOldTag || !havePytest) {
- console.log(`SKIP Python adopt update leg: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
+ if (!hasOldTag && requireCopier) check("v0.6.0 tag is required when NANA_TEST_REQUIRE_COPIER=1 (adopt leg)", false, oldTagProbe.stderr ?? "");
+ else console.log(`SKIP Python adopt update leg: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
 } else {
 const adoptRoot = join(root, "adopt-python");
 mkdirSync(adoptRoot, { recursive: true });
