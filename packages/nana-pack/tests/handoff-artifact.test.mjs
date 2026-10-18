@@ -57,7 +57,9 @@ check("prompt says update in place", handoffSection.includes(`update ${store} in
 // the owner's (custom paths are honored from user scope; L3 invariant b)
 const handlers2 = {};
 ext({ on: (name, fn) => { handlers2[name] = fn; } });
-const td2 = tmpDir(path.join(os.tmpdir(), "handoff-custom-"));
+// realpath: a Windows runner's temp root can be an 8.3 short form (contains "~"), which
+// the product's own "~" guard (nana-handoff.ts) would then treat as a home-relative path.
+const td2 = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-custom-")));
 const custom = path.join(td2, "STATE", "HANDOFF.md");
 fs.mkdirSync(path.join(td2, ".pi"));
 fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff: { path: custom } }));

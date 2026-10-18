@@ -41,7 +41,7 @@ const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "
     const file = path.join(dir, `${name}.md`);
     fs.writeFileSync(file, text);
     const actual = spawnSync(process.execPath, [CLI, "--today", "2026-10-11", file], { encoding: "utf8" });
-    const stdout = actual.stdout.replaceAll(dir, "<fixture>");
+    const stdout = actual.stdout.replaceAll(dir + path.sep, "<fixture>/");
     // golden captured from the unmodified frontier CLI before the shared splitter change
     check(`frontier golden: ${name} output is byte-identical`, actual.status === golden[name].status && stdout === golden[name].stdout && actual.stderr === golden[name].stderr, stdout);
   }
