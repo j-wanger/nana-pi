@@ -7,14 +7,18 @@
  * @errors failed assertions exit nonzero
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { writeFakePi } from "./fake-pi.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+// R-1125: win32 canonicalizes with the native real path, which keeps an 8.3 or differently cased
+// form the way git itself sees it (mirrors pi-worker's own fsReal); POSIX keeps the JS form.
+const real = (p) => (process.platform === "win32" ? fs.realpathSync.native(p) : fs.realpathSync(p));
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const worker = path.join(root, "bin", "pi-worker.mjs");
-const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "worker-lane-")));
+const temp = real(tmpDir(path.join(os.tmpdir(), "worker-lane-")));
 const repo = path.join(temp, "repo"), lane = path.join(temp, "lane"), stubDir = path.join(temp, "stub");
 fs.mkdirSync(repo); fs.mkdirSync(stubDir);
 const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", ...args], { cwd, encoding: "utf8" });
@@ -23,12 +27,31 @@ if (initialized.status !== 0) throw new Error(initialized.stderr);
 fs.writeFileSync(path.join(repo, "seed"), "seed\n");
 git(repo, "add", "seed"); git(repo, "commit", "-qm", "seed");
 git(repo, "worktree", "add", "-qb", "feat/alpha", lane);
-const laneGitDir = fs.realpathSync(path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim()));
+const laneGitDir = real(path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim()));
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
 const brief = path.join(temp, "brief.md"); fs.writeFileSync(brief, "lane brief content");
 const pi = path.join(stubDir, "pi");
 const piSpawnMarker = path.join(temp, "pi-spawn-marker");
-fs.writeFileSync(pi, `#!/bin/sh\necho spawned >> "${piSpawnMarker}"\nprintf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`); fs.chmodSync(pi, 0o755);
+// writeStub lays out the fake `pi` for this platform: a POSIX #!/bin/sh script, unchanged from
+// before this lane, or (win32 only, R-1125/CHANGE.md §1) a Node body through fake-pi.mjs, placed
+// the way piLaunch finds an npm-installed pi rather than the sh stub it cannot launch on win32.
+function writeStub(posixScript, nodeBody) {
+	if (process.platform === "win32") writeFakePi(stubDir, nodeBody);
+	else { fs.writeFileSync(pi, posixScript); fs.chmodSync(pi, 0o755); }
+}
+const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`;
+const mainNodeBody = (withMarker) => `const fs = require("node:fs");
+${withMarker ? `fs.appendFileSync(${JSON.stringify(piSpawnMarker)}, "spawned\\n");\n` : ""}process.stdout.write(process.env.NANA_ROLE + ":" + process.env.NANA_WORKTREE_ROOT + "\\n");
+const args = process.argv.slice(2);
+let prev = false, n = 0;
+const promptPrefix = ${JSON.stringify(path.join(temp, "prompt-"))};
+for (const arg of args) {
+  process.stdout.write(arg + "\\n");
+  if (prev) { n++; fs.copyFileSync(arg, promptPrefix + n); prev = false; }
+  else if (arg === "--append-system-prompt") prev = true;
+}
+`;
+writeStub(mainPosixScript(true), mainNodeBody(true));
 // An empty, fixed agent dir keeps an ambient PI_CODING_AGENT_DIR (e.g. a standalone run started
 // from inside a pi session) from leaking into the roster resolver; scripts/test.mjs already
 // scrubs the variable under `npm test`, so this is belt-and-suspenders. It is the same directory
@@ -82,15 +105,19 @@ check("lane mode refuses a switched lane branch before starting pi", (() => { gi
 const good = run(lane, ["--lane", "alpha", "--brief", path.relative(lane, brief)]);
 const result = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 const promptPaths = result.split("\n").reduce((all, arg, i, args) => arg === "--append-system-prompt" ? [...all, args[i + 1]] : all, []);
+const prompt1Path = path.join(temp, "prompt-1");
+// A missing prompt-1 (the win32 stub's copy failed) fails this check by name rather than
+// throwing ENOENT and crashing the rest of the file.
+const prompt1Text = fs.existsSync(prompt1Path) ? fs.readFileSync(prompt1Path, "utf8") : "";
 // req: R-961
-check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === fs.realpathSync(brief) && fs.readFileSync(path.join(temp, "prompt-1"), "utf8").includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === "lane brief content", `${good.stderr}${result} paths=${promptPaths.join(",")}`);
+check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === real(brief) && prompt1Text.includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === "lane brief content", `${good.stderr}${result} paths=${promptPaths.join(",")}`);
 const plainWorker = run(lane, [], { NANA_ROLE: "inherited" }, ["-p", "plain"]);
 const plainResult = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 // req: R-286
 check("every pi-worker child receives NANA_ROLE=worker", result.startsWith("worker:") && plainWorker.status === 0 && plainResult.startsWith("worker:"), `${result}\n${plainResult}`);
 // req: R-628
-check("lane preamble forbids the named package-manager operations at a worktree root", fs.readFileSync(path.join(temp, "prompt-1"), "utf8").includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root"));
-const preambleText = fs.readFileSync(path.join(temp, "prompt-1"), "utf8");
+check("lane preamble forbids the named package-manager operations at a worktree root", prompt1Text.includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root"));
+const preambleText = prompt1Text;
 const RULE_LINE = {
 	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
 	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
@@ -333,26 +360,34 @@ check("with a larger-lane builder set, a launch with no lane size, the --lane-si
 })());
 
 const laneSpawnCount = path.join(temp, "lane-spawns");
-fs.writeFileSync(pi, `#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`); fs.chmodSync(pi, 0o755);
+writeStub(`#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`,
+	`const fs = require("node:fs");\nfs.appendFileSync(${JSON.stringify(laneSpawnCount)}, "spawned\\n");\nconsole.log("output");\nsetTimeout(() => {}, 3000);\n`);
 const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
 const lockChildren = [launchTogether(), launchTogether()];
 await Promise.all(lockChildren.map((child) => new Promise((resolve) => child.once("close", resolve))));
 // req: R-960
 check("synchronized concurrent lane launchers spawn exactly one pi", fs.readFileSync(laneSpawnCount, "utf8").trim().split("\n").length === 1);
-const gitCalls = path.join(temp, "git-branch-calls");
-const gitWrapper = path.join(stubDir, "git");
-fs.writeFileSync(gitWrapper, `#!/bin/sh\nif [ "$1" = "branch" ] && [ "$2" = "--show-current" ]; then n=$(cat "${gitCalls}" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "${gitCalls}"; if [ "$n" -ge 2 ]; then echo feat/other; exit 0; fi; fi\nexec /usr/bin/git "$@"\n`); fs.chmodSync(gitWrapper, 0o755);
-fs.rmSync(piSpawnMarker, { force: true });
-const changedBranch = run(lane, ["--lane", "alpha", "--brief", brief], { PATH: `${stubDir}${path.delimiter}${process.env.PATH}` });
-git(lane, "checkout", "-q", "feat/alpha");
-fs.unlinkSync(gitWrapper);
-fs.writeFileSync(pi, `#!/bin/sh\nprintf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`); fs.chmodSync(pi, 0o755);
-// req: R-960
-check("production lane revalidation refuses changed branch before pi spawn", changedBranch.status === 1 && changedBranch.stderr.includes("expected feat/alpha") && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath));
+// On win32 the wrapper below is never found: Node's PATH search for an extensionless name tries
+// only .com/.exe (R-1033/win-command.mjs), so the real git.exe runs and the branch never appears
+// changed. No .cmd/.bat stands in, because that lookup tries no other extension either.
+if (process.platform !== "win32") {
+	const gitCalls = path.join(temp, "git-branch-calls");
+	const gitWrapper = path.join(stubDir, "git");
+	fs.writeFileSync(gitWrapper, `#!/bin/sh\nif [ "$1" = "branch" ] && [ "$2" = "--show-current" ]; then n=$(cat "${gitCalls}" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "${gitCalls}"; if [ "$n" -ge 2 ]; then echo feat/other; exit 0; fi; fi\nexec /usr/bin/git "$@"\n`); fs.chmodSync(gitWrapper, 0o755);
+	fs.rmSync(piSpawnMarker, { force: true });
+	const changedBranch = run(lane, ["--lane", "alpha", "--brief", brief], { PATH: `${stubDir}${path.delimiter}${process.env.PATH}` });
+	git(lane, "checkout", "-q", "feat/alpha");
+	fs.unlinkSync(gitWrapper);
+	// req: R-960
+	check("production lane revalidation refuses changed branch before pi spawn", changedBranch.status === 1 && changedBranch.stderr.includes("expected feat/alpha") && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath));
+} else {
+	console.log("SKIP production lane revalidation refuses changed branch before pi spawn — Node's Windows PATH search tries only .com/.exe, so the extensionless git wrapper cannot run");
+}
+writeStub(mainPosixScript(false), mainNodeBody(false));
 // req: R-965
 check("missing trust prints notice before worker attempt", good.stderr.indexOf("trust: none for") >= 0 && good.stderr.indexOf("trust: none for") < good.stderr.indexOf("attempt 1"));
 const trustDir = path.join(temp, ".pi", "agent"); fs.mkdirSync(trustDir, { recursive: true });
-fs.writeFileSync(path.join(trustDir, "trust.json"), JSON.stringify({ [fs.realpathSync(lane)]: true }));
+fs.writeFileSync(path.join(trustDir, "trust.json"), JSON.stringify({ [real(lane)]: true }));
 const trusted = run(lane, ["--lane", "alpha", "--brief", brief]);
 // req: R-965
 check("affirmative trust record suppresses notice", trusted.status === 0 && !trusted.stderr.includes("trust: none for"));
@@ -372,7 +407,8 @@ const config = await import("../bin/worker-config.mjs");
 // req: R-963
 check("sealed lane ceiling is 28,800 seconds", config.LANE_MAX_SECS === 28_800);
 const descendantPid = path.join(temp, "descendant.pid");
-fs.writeFileSync(pi, `#!/bin/sh\nsleep 30 &\necho $! > "${descendantPid}"\nwait\n`); fs.chmodSync(pi, 0o755);
+writeStub(`#!/bin/sh\nsleep 30 &\necho $! > "${descendantPid}"\nwait\n`,
+	`const { spawn } = require("node:child_process");\nconst fs = require("node:fs");\nconst child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore" });\nfs.writeFileSync(${JSON.stringify(descendantPid)}, String(child.pid) + "\\n");\nchild.on("exit", () => process.exit(0));\n`);
 const capped = run(lane, ["--lane", "alpha", "--brief", brief, "--max-secs", "1", "--stall-secs", "10"]);
 // req: R-963
 check("max-secs override kills and names the lane wall-clock ceiling", capped.status === 1 && /wall-clock ceiling 1s reached/.test(capped.stderr));

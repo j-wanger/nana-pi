@@ -11,27 +11,45 @@
 // repositories and worktrees, under a temp HOME. Each sol r1 bypass is pinned as a refusal here.
 // Run: node packages/nana-pack/tests/review-ledger.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
+import { writeFakePi } from "./fake-pi.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { VERDICT_LOOKALIKE_FOLD } from "../lib/verdict-config.mjs";
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const PI_REVIEW = path.join(bin, "pi-review.mjs");
 const PI_WORKER = path.join(bin, "pi-worker.mjs");
 const LEDGER_CLI = path.join(bin, "review-ledger.mjs");
-const mod = await import(path.join(bin, "review-round.mjs"));
+const mod = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
 const tmp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-ledger-test-")));
 const stubs = path.join(tmp, "stubs");
 const outs = path.join(tmp, "outs");
 for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });
 // the stub `pi`: STUB=verdict prints a verdict; fail = infra failure; stall = 0-CPU hang;
-// plain = an ordinary worker reply with NO review token, counting its invocations in $COUNT
-fs.writeFileSync(path.join(stubs, "pi"),
-	'#!/bin/sh\n[ -z "$INVOKED" ] || echo invoked >> "$INVOKED"\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; sleeper) echo $$ > "$CHILD_PID"; exec sleep 30;; ignorer) trap "" INT TERM HUP; sleep 30 & echo $! > "$CHILD_PID"; wait;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; plain-review) printf "%s" "$STUB_TEXT";; *) echo "VERDICT: LAND";; esac\n');
-fs.chmodSync(path.join(stubs, "pi"), 0o755);
+// plain = an ordinary worker reply with NO review token, counting its invocations in $COUNT.
+// win32 has no sh and no findPi match for an extensionless script (R-1125): lay out the npm
+// shape piLaunch expects instead, through the shared helper, with a Node port of the same
+// modes. `sleeper` and `ignorer` (section 7, process-group signals) stay POSIX-only — that
+// section is already gated off on win32 below — so the port carries every other mode.
+if (process.platform === "win32") {
+	writeFakePi(stubs, `const fs = require("node:fs");
+if (process.env.INVOKED) fs.appendFileSync(process.env.INVOKED, "invoked\\n");
+switch (process.env.STUB) {
+  case "fail": console.log("503 upstream"); process.exit(1); break;
+  case "stall": setTimeout(() => {}, 30000); break;
+  case "plain": fs.appendFileSync(process.env.COUNT, "run\\n"); console.log("Implemented the change; edited src/a.ts."); break;
+  case "plain-review": process.stdout.write(process.env.STUB_TEXT ?? ""); break;
+  default: console.log("VERDICT: LAND");
+}
+`);
+} else {
+	fs.writeFileSync(path.join(stubs, "pi"),
+		'#!/bin/sh\n[ -z "$INVOKED" ] || echo invoked >> "$INVOKED"\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; sleeper) echo $$ > "$CHILD_PID"; exec sleep 30;; ignorer) trap "" INT TERM HUP; sleep 30 & echo $! > "$CHILD_PID"; wait;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; plain-review) printf "%s" "$STUB_TEXT";; *) echo "VERDICT: LAND";; esac\n');
+	fs.chmodSync(path.join(stubs, "pi"), 0o755);
+}
 
 let home, agent, tallyFile, auditFile, resDir;
 const freshHome = (name) => {
@@ -42,7 +60,17 @@ const freshHome = (name) => {
 	resDir = path.join(agent, "review-ledger.reservations");
 	fs.mkdirSync(home, { recursive: true });
 };
-const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${stubs}:${process.env.PATH}`, ...extra });
+const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${stubs}${path.delimiter}${process.env.PATH}`, ...extra });
+// Printed in the detail of a check the plan names as blocked, until W7c's product fix, by the
+// repo-key/--out short-vs-long split (R-705/R-724): the same path through JS realpathSync (which
+// on a Windows CI runner keeps the short RUNNER~1 TEMP, kept on purpose here) against its native
+// real path (the long form git itself reports) — WR1's "short and long paths it compared".
+const pathForms = (p) => {
+	let short = p, long = p;
+	try { short = fs.realpathSync(p); } catch { /* keep the raw path */ }
+	try { long = fs.realpathSync.native(p).replace(/^\\\\\?\\/, ""); } catch { /* keep the raw path */ }
+	return `short=${short} long=${long}`;
+};
 const jsonl = (f) => (fs.existsSync(f) ? fs.readFileSync(f, "utf8").trim().split("\n").filter(Boolean).map(JSON.parse) : []);
 const roundsOf = (item) => [...new Map(jsonl(tallyFile).filter((r) => r.item === item).map((r) => [r.revision, r])).values()];
 const verdictsOf = (item) => jsonl(auditFile).filter((r) => r.kind === "verdict" && r.item === item);
@@ -331,7 +359,9 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("'caseitem' after 3 rounds of 'CaseItem' refused (one item)", reviewAt("caseitem", 3).status === 1);
 	for (let i = 0; i < 3; i++) reviewAt("scope one", i);
 	check("'scope  one' after 3 rounds of 'scope one' refused", reviewAt(" Scope  ONE ", 3).status === 1);
-	for (const bad of ["../item", "a/b", "..", "x".repeat(50000)]) {
+	// chosen 20000: over SLUG_MAX (128, so still refused) and under Windows' 32,767-character
+	// command-line limit (CreateProcess), so the refusal is observed rather than a spawn error.
+	for (const bad of ["../item", "a/b", "..", "x".repeat(20000)]) {
 		const r = ledgerRun(["--item", bad]);
 		check(`--item ${JSON.stringify(bad.slice(0, 10))}${bad.length > 10 ? "…" : ""} refused, no stack`, r.status === 1 && /item/.test(r.stderr) && noStack(r), r.stderr);
 	}
@@ -347,7 +377,8 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	A.at(2);
 	ledgerRun(["--item", "wt"]);
 	// req: R-705
-	check("two worktrees: one repo identity in the tally", new Set(roundsOf("wt").map((r) => r.repo)).size === 1 && roundsOf("wt").length === 3);
+	check("two worktrees: one repo identity in the tally", new Set(roundsOf("wt").map((r) => r.repo)).size === 1 && roundsOf("wt").length === 3,
+		`repos=${JSON.stringify(roundsOf("wt").map((r) => r.repo))} compared: ${pathForms(path.join(A.d, ".git"))} vs ${pathForms(path.join(W, ".git"))}`);
 	A.at(2, W);
 	check("worktree W2 at A's already-counted revision: admitted, no new round", ledgerRun(["--item", "wt"], { cwd: W }).status === 0 && roundsOf("wt").length === 3);
 	A.at(3, W);
@@ -496,7 +527,10 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	A.at(3);
 	// req: R-714
 	check("the in-flight review holds the last round (check says no)", ledgerCheck(["--item", "crash"]).status === 1);
-	process.kill(-k.pid, "SIGKILL");
+	// win32: a negative pid is not a process-group signal there (libuv's uv_kill → OpenProcess(-pid)
+	// fails, ESRCH); taskkill /T reaches the same tree (k plus its hung grandchild) instead.
+	if (process.platform === "win32") spawnSync("taskkill", ["/T", "/F", "/PID", String(k.pid)]);
+	else process.kill(-k.pid, "SIGKILL");
 	await new Promise((r) => k.exitCode !== null || k.signalCode !== null ? r() : k.on("exit", r));
 	const deadPid = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
 	fs.writeFileSync(path.join(agent, "review-ledger.lock"), deadPid);
@@ -529,6 +563,8 @@ if (process.platform !== "win32") {
 	}
 	// req: R-623
 	check("watchdog signals reap children, release review reservations and preserve signal exit codes", signalsCleaned);
+} else {
+	console.log("SKIP watchdog signals reap children, release review reservations and preserve signal exit codes — Windows has no POSIX signal to a process group");
 }
 
 // 8. reservation ownership (sol r1 #6): an expired-then-replaced reservation is not completable
@@ -600,12 +636,16 @@ if (process.platform !== "win32") {
 		check(`${name} as a symlink: refused BEFORE the review, target untouched, no stack`,
 			r.status === 1 && /symlink/.test(r.stderr) && fs.readFileSync(target, "utf8") === "" && !/admitted/.test(r.stderr) && noStack(r), r.stderr);
 	}
-	freshHome("10-ro");
-	fs.mkdirSync(agent, { recursive: true });
-	fs.chmodSync(agent, 0o555);
-	const ro = reviewAt("ro", 0);
-	fs.chmodSync(agent, 0o755);
-	check("read-only ledger directory: refused with a clear message, no stack", ro.status === 1 && /must be writable/.test(ro.stderr) && noStack(ro), ro.stderr);
+	if (process.platform !== "win32") {
+		freshHome("10-ro");
+		fs.mkdirSync(agent, { recursive: true });
+		fs.chmodSync(agent, 0o555);
+		const ro = reviewAt("ro", 0);
+		fs.chmodSync(agent, 0o755);
+		check("read-only ledger directory: refused with a clear message, no stack", ro.status === 1 && /must be writable/.test(ro.stderr) && noStack(ro), ro.stderr);
+	} else {
+		console.log("SKIP read-only ledger directory: refused with a clear message, no stack — NTFS has no directory write bit; chmod only toggles the read-only attribute");
+	}
 	freshHome("10-lockdir");
 	fs.mkdirSync(path.join(agent, "review-ledger.lock"), { recursive: true });
 	const t0 = Date.now();
@@ -656,7 +696,8 @@ if (process.platform !== "win32") {
 	check("--over-cap 'instrumented X' runs", ok.status === 0, ok.stderr);
 	check("the override is recorded with reason, round and timestamp",
 		ov.length === 1 && ov[0].reason === "instrumented X" && ov[0].round === 4 && !Number.isNaN(Date.parse(ov[0].ts)), JSON.stringify(ov));
-	check("the over-cap round carries the override in the tally", roundsOf("over").at(-1)?.override === "instrumented X" && roundsOf("over").length === 4);
+	check("the over-cap round carries the override in the tally", roundsOf("over").at(-1)?.override === "instrumented X" && roundsOf("over").length === 4,
+		`rounds=${JSON.stringify(roundsOf("over"))} compared: ${pathForms(path.join(A.d, ".git"))}`);
 }
 
 // 13. a DIRTY tree is its own state of the work: HEAD + the full sha256 of a content snapshot (fix r3)
@@ -758,8 +799,12 @@ if (process.platform !== "win32") {
 	const M = repo("M", 1);
 	gitIn(M.d, "config", "core.fileMode", "false");
 	fs.chmodSync(path.join(M.d, "f"), 0o755);
-	// req: R-709
-	check("collapse: chmod +x under core.fileMode=false (git diff empty) → distinct", revOf(M.d) !== M.shas[0] && rendered(M.d) === "");
+	if (process.platform !== "win32") {
+		// req: R-709
+		check("collapse: chmod +x under core.fileMode=false (git diff empty) → distinct", revOf(M.d) !== M.shas[0] && rendered(M.d) === "");
+	} else {
+		console.log("SKIP collapse: chmod +x under core.fileMode=false (git diff empty) → distinct — NTFS stores no exec bit");
+	}
 	fs.chmodSync(path.join(M.d, "f"), 0o644);
 	check("…chmod back → the clean sha", revOf(M.d) === M.shas[0]);
 
@@ -812,7 +857,8 @@ if (process.platform !== "win32") {
 	const outInTree = path.join(U.d, "review-out.md");
 	fs.writeFileSync(outInTree, "VERDICT: LAND");
 	check("the review's own --out file inside the tree is excluded from its snapshot",
-		mod.resolveRevision(undefined, mod.treeScope(U.d, { exclude: [outInTree] }), U.d) === U.shas[0]);
+		mod.resolveRevision(undefined, mod.treeScope(U.d, { exclude: [outInTree] }), U.d) === U.shas[0],
+		`compared: ${pathForms(outInTree)}`);
 }
 
 // 17. completion re-derives the revision (sol r2 #12): a tree edited mid-review is not credited
@@ -883,7 +929,7 @@ if (process.platform !== "win32") {
 	check("toctou: admitted at the clean HEAD", res.ok && res.res.revision === L.shas[0], res.message);
 	const lockFile = path.join(agent, "review-ledger.lock");
 	fs.writeFileSync(lockFile, String(process.pid)); // a LIVE holder: the child must wait, never take it over
-	const script = `const m = await import(${JSON.stringify(path.join(bin, "review-round.mjs"))});` +
+	const script = `const m = await import(${JSON.stringify(pathToFileURL(path.join(bin, "review-round.mjs")).href)});` +
 		`const c = m.complete(${JSON.stringify(res.res)}, "toctou.md", { home: ${JSON.stringify(home)} });` +
 		`process.stdout.write(JSON.stringify(c));`;
 	let cout = "";
