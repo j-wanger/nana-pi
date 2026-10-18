@@ -194,6 +194,11 @@ for (const [name, value] of FORMS) {
 	check("PI_CODING_AGENT_DIR is resolved only by agent-dir.mjs", files.every((f) => allowed.has(f)), hits.join("\n"));
 }
 
-fs.rmSync(HOME, { recursive: true, force: true });
+// chosen: Node's own linear-backoff retry for a transient EBUSY/ENOTEMPTY rmdir — this test's spawnSync
+// children (install/doctor --home) ran with cwd: HOME, and win32 can lag releasing that handle past the
+// child's own exit (observed: Windows CI run 1, EBUSY rmdir on this exact nana-u2p- folder).
+const HOME_CLEANUP_MAX_RETRIES = 5;
+const HOME_CLEANUP_RETRY_DELAY_MS = 100;
+fs.rmSync(HOME, { recursive: true, force: true, maxRetries: HOME_CLEANUP_MAX_RETRIES, retryDelay: HOME_CLEANUP_RETRY_DELAY_MS });
 console.log(fails ? `${fails} FAIL` : "all PASS");
 process.exit(fails ? 1 : 0);
