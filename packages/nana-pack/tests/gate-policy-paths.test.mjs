@@ -16,6 +16,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
@@ -192,14 +193,14 @@ delete process.env.PI_CODING_AGENT_DIR;
 	try {
 		let source = null;
 		try {
-			source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
+			source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: fileURLToPath(new URL("../../../", import.meta.url)), encoding: "utf8" });
 		} catch (error) {
 			check("historical gate baseline a3afab28ce136e394bbf6fb89384a169f0a5ee67 is available (suite checkout requires full history)", false, error.stderr?.trim() || error.message);
 		}
 		if (source) {
 		fs.writeFileSync(historicalPath, source);
 		fs.copyFileSync(new URL("../lib/agent-dir.mjs", import.meta.url), path.join(historicalDir, "agent-dir.mjs"));
-		const mainPaths = await import(`${new URL(`file://${historicalPath}`).href}?probe=${process.pid}`);
+		const mainPaths = await import(`${pathToFileURL(historicalPath).href}?probe=${process.pid}`);
 		const policy = path.join(relocated, "nana-pack.json");
 		const probes = [
 			`printf x > ${policy}`, `printf x > '${policy}'`, `printf x > "${policy}"`,

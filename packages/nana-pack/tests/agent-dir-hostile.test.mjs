@@ -117,7 +117,9 @@ if (canLink) {
 }
 
 // ── C: deleted cwd with a relative PI_CODING_AGENT_DIR (child process: it deletes its own cwd) ──
-{
+if (process.platform === "win32") {
+	console.log("SKIP section C: deleted-cwd probes (Windows locks a live cwd and will not delete it)");
+} else {
 	const script = path.join(HOME, "gone-child.mjs");
 	fs.writeFileSync(script, `
 import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path";

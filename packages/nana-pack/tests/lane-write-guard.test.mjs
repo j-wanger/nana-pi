@@ -14,7 +14,7 @@ const worktree = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "lane-root-")));
 const homeFixture = fs.realpathSync(tmpDir(path.join(os.homedir(), "lane-guard-home-")));
 const outside = path.join(homeFixture, "outside"); fs.mkdirSync(outside);
 const contained = (parent, child) => { const rel = path.relative(parent, child); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".."); };
-const tempRoot = fs.realpathSync(os.tmpdir()), tmpAlias = fs.realpathSync("/tmp");
+const tempRoot = fs.realpathSync(os.tmpdir()), tmpAlias = process.platform === "win32" ? tempRoot : fs.realpathSync("/tmp");
 const outsideIsIndependent = ![tempRoot, tmpAlias, worktree].some((parent) => contained(parent, fs.realpathSync(outside)));
 const link = path.join(worktree, "escape"); fs.symlinkSync(outside, link, "dir");
 const dangling = path.join(worktree, "dangling-outside"); fs.symlinkSync(path.join(outside, "missing-file"), dangling);
