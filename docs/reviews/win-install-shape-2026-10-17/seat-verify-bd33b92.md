@@ -13,3 +13,11 @@
 - Quoted context hook: no released Windows install ever wrote it (bash hooks skipped on win32 from the first win32 commit;
   the hook retired on 2026-10-07, before Windows hooks shipped on 2026-10-12), so the case skips on Windows with that reason.
 - No wrong-code pairs and no independent check: an ordinary lane (tests only; no install, uninstall or doctor code changed).
+- After the seat's skip audit (`seat-skip-audit.md`, seven findings) and build 3, on tip 2836edf (main ddc45b4 merged):
+  full suite on the Mac `150 files: 148 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7457 pass, 0 fail, 14 skip · 779.7s`, exit 0;
+  install check exit 0, 13 PASS lines and no FAIL. Windows run 3 (`ci-windows-run-3.log`, 2836edf): every target file
+  passes — install 91 + 6 skips, retired-artifacts 47 + 1 skip, skills-and-standards 55 + 3 skips (sections 6 and 7a
+  now run natively, the folder-link guard included), state-manifest 20, uninstall 2 + 2 skips. Each skip prints its
+  reason. Windows failing 33 of 150 files.
+- HANDOFF carries the occupied-folder known bug, the quoted-hook gap and the audit's smaller items. It also carries the
+  handoff lane's reviewer note on its symlink probe.
