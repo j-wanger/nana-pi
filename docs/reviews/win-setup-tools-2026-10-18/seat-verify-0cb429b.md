@@ -13,3 +13,7 @@
 - The seat's checks of builds 1 and 2 (`seat-skip-audit.md`) found no MUST; build 2 took the one SHOULD (the trust check's
   working folder now sits in temp).
 - No wrong-code pairs and no independent check: an ordinary lane (tests only; no doctor, install or restore code changed).
+- After merging main 12fe4c1 (the install-shape lane) and adding HANDOFF and the session entry, on tip 372b3f3: full suite
+  on the Mac `150 files: 148 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7457 pass, 0 fail, 14 skip · 783.1s`, exit 0; install
+  check exit 0, 13 PASS lines. Windows run 3 (`ci-windows-run-3.log`, 372b3f3): the four target files pass as in run 2,
+  every nana-setup test file passes on Windows, and Windows failing is 29 of 150 files (33 on main 12fe4c1).
