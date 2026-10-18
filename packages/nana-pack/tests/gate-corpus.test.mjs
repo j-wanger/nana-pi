@@ -246,6 +246,7 @@ for (const [key, list, needle] of [
 ]) {
 	const home = tmpDir(path.join(os.tmpdir(), "gate-corpus-stop-"));
 	process.env.HOME = home;
+	process.env.USERPROFILE = home;
 	const cfgFile = path.join(home, ".pi", "agent", "nana-pack.json");
 	fs.mkdirSync(path.dirname(cfgFile), { recursive: true });
 	fs.writeFileSync(cfgFile, JSON.stringify({ journal: { enabled: false }, gate: { [key]: list } }));
@@ -258,6 +259,7 @@ for (const [key, list, needle] of [
 	check(`deny drop STOPs (${key}, ${list.length} entries): benign ls BLOCKed naming file + entry`,
 		r?.block === true && r.reason.includes("gate block is malformed") && r.reason.includes(cfgFile) && r.reason.includes(needle), r?.reason);
 	process.env.HOME = HOME;
+	process.env.USERPROFILE = HOME;
 	fs.rmSync(home, { recursive: true, force: true });
 }
 

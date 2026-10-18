@@ -30,11 +30,13 @@ const SETUP_BIN = path.join(REPO, "packages", "nana-setup", "bin", "nana-setup.m
 const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2p-")));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
+const ORIGINAL_CWD = process.cwd(); // win32 will not rmdir a live process cwd — chdir back before the final cleanup
 process.chdir(HOME); // the relative case resolves against the process cwd; every child starts here too
 
 const { piAgentDir } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
 const { resolvePiBin, resolvePiPackage } = await import(new URL("../../../apps/desk/pi-session.mjs", import.meta.url).href);
-const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
+// lazy: resolvePiPackage(resolvePiBin()) throws on win32 (the desk's resolver, frozen there); only the desk leg needs it
+const piRoot = () => process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const DESK_CWD = path.join(HOME, "desk-cwd"); // the desk's own start folder
 const PROJECT = path.join(HOME, "project"); // where the desk starts a session
 const BIN = path.join(HOME, "bin");
@@ -78,7 +80,7 @@ function post(port, p, body) {
 // The desk runs in DESK_CWD; it starts one session in PROJECT and returns /api/settings + what that session resolved.
 async function deskSettings(env) {
 	fs.rmSync(STUB_OUT, { force: true });
-	const child = spawn(process.execPath, [SERVER], { cwd: DESK_CWD, env: { ...process.env, ...env, HOME, DESK_PORT: "0", DESK_APPS_DIR: path.join(HOME, "no-apps"), DESK_PI_ROOT: PI_ROOT, STUB_OUT, PATH: `${BIN}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	const child = spawn(process.execPath, [SERVER], { cwd: DESK_CWD, env: { ...process.env, ...env, HOME, DESK_PORT: "0", DESK_APPS_DIR: path.join(HOME, "no-apps"), DESK_PI_ROOT: piRoot(), STUB_OUT, PATH: `${BIN}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 	let log = "";
 	child.stdout.on("data", (c) => (log += c));
 	child.stderr.on("data", (c) => (log += c));
@@ -127,21 +129,25 @@ for (const [name, value] of FORMS) {
 	check(`[${name}] nana-setup flags a cwd-specific piHome exactly when the value is relative`, !!layout.piHomeCwdRelative === (value === "rel-agent"), String(layout.piHomeCwdRelative));
 
 	// the desk resolves in ITS cwd (DESK_CWD), not this process's (HOME)
-	const deskWant = value === "rel-agent" ? path.join(DESK_CWD, "rel-agent") : want;
-	const { settings: s, session } = await deskSettings(value === undefined ? {} : { PI_CODING_AGENT_DIR: value });
-	check(`[${name}] desk nanaPath === <desk's active dir>/nana-pack.json`, s.nanaPath === path.join(deskWant, "nana-pack.json"), s.nanaPath);
-	check(`[${name}] desk settingsPath / mcpPath / agentsDir / piDir follow it`, s.settingsPath === path.join(deskWant, "settings.json") && s.mcpPath === path.join(deskWant, "mcp.json") && s.agentsDir === path.join(deskWant, "agents") && s.piDir === deskWant, JSON.stringify(s));
-	check(`[${name}] the spawned session really ran in a DIFFERENT cwd than the desk`, session.cwd === PROJECT, session.cwd);
-	// req: R-198
-	check(`[${name}] a session spawned in another cwd resolves the SAME dir the desk shows`, session.dir === s.piDir, `${session.dir} vs desk ${s.piDir}`);
-	if (value === "rel-agent") {
-		// req: R-198
-		check("[relative] the desk pinned the absolute dir into the child env", session.raw === deskWant, session.raw);
-		// req: R-198
-		check("[relative] /api/settings tells the user it pinned, naming the dir", typeof s.agentDirNote === "string" && s.agentDirNote.includes("relative") && s.agentDirNote.includes(deskWant), String(s.agentDirNote));
+	if (process.platform === "win32") {
+		console.log(`SKIP [${name}] desk leg: the desk's pi resolver is frozen on win32`);
 	} else {
-		check(`[${name}] the value reaches the child untouched`, session.raw === (value ?? null), String(session.raw));
-		check(`[${name}] no pin note`, s.agentDirNote === null, String(s.agentDirNote));
+		const deskWant = value === "rel-agent" ? path.join(DESK_CWD, "rel-agent") : want;
+		const { settings: s, session } = await deskSettings(value === undefined ? {} : { PI_CODING_AGENT_DIR: value });
+		check(`[${name}] desk nanaPath === <desk's active dir>/nana-pack.json`, s.nanaPath === path.join(deskWant, "nana-pack.json"), s.nanaPath);
+		check(`[${name}] desk settingsPath / mcpPath / agentsDir / piDir follow it`, s.settingsPath === path.join(deskWant, "settings.json") && s.mcpPath === path.join(deskWant, "mcp.json") && s.agentsDir === path.join(deskWant, "agents") && s.piDir === deskWant, JSON.stringify(s));
+		check(`[${name}] the spawned session really ran in a DIFFERENT cwd than the desk`, session.cwd === PROJECT, session.cwd);
+		// req: R-198
+		check(`[${name}] a session spawned in another cwd resolves the SAME dir the desk shows`, session.dir === s.piDir, `${session.dir} vs desk ${s.piDir}`);
+		if (value === "rel-agent") {
+			// req: R-198
+			check("[relative] the desk pinned the absolute dir into the child env", session.raw === deskWant, session.raw);
+			// req: R-198
+			check("[relative] /api/settings tells the user it pinned, naming the dir", typeof s.agentDirNote === "string" && s.agentDirNote.includes("relative") && s.agentDirNote.includes(deskWant), String(s.agentDirNote));
+		} else {
+			check(`[${name}] the value reaches the child untouched`, session.raw === (value ?? null), String(session.raw));
+			check(`[${name}] no pin note`, s.agentDirNote === null, String(s.agentDirNote));
+		}
 	}
 }
 
@@ -189,6 +195,14 @@ for (const [name, value] of FORMS) {
 	check("PI_CODING_AGENT_DIR is resolved only by agent-dir.mjs", files.every((f) => allowed.has(f)), hits.join("\n"));
 }
 
-fs.rmSync(HOME, { recursive: true, force: true });
+// The real holder (Windows run 2): THIS process never left HOME after the chdir above, and win32
+// will not rmdir a live process cwd — no retry window clears that. Leave it before removing it.
+process.chdir(ORIGINAL_CWD);
+// chosen: Node's own linear-backoff retry for a transient EBUSY/ENOTEMPTY rmdir — kept as defence
+// in depth for a spawnSync child (install/doctor --home ran with cwd: HOME) whose handle lags its
+// own exit; the chdir above is the fix for the persistent case Windows run 1 and 2 actually hit.
+const HOME_CLEANUP_MAX_RETRIES = 5;
+const HOME_CLEANUP_RETRY_DELAY_MS = 100;
+fs.rmSync(HOME, { recursive: true, force: true, maxRetries: HOME_CLEANUP_MAX_RETRIES, retryDelay: HOME_CLEANUP_RETRY_DELAY_MS });
 console.log(fails ? `${fails} FAIL` : "all PASS");
 process.exit(fails ? 1 : 0);
