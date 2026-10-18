@@ -134,6 +134,8 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
 	check("b: unlockable file does not silently run the checker", readOrder() === before);
 // req: R-785
 	check("b: refusal is fed back to the model", text.includes("did not run") && text.includes("could not lock"));
+} else if (process.platform === "win32") {
+	console.log("SKIP (b) unlockable file: POSIX chmod-based lock-out semantics (win32)");
 }
 
 fs.rmSync(td, { recursive: true, force: true });

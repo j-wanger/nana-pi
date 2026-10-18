@@ -23,7 +23,10 @@ const { root: piRoot, how: piHow } = findPiRoot();
 console.log(`pi root: ${piRoot} (${piHow})`);
 const pathUtils = path.join(piRoot, "dist", "core", "tools", "path-utils.js");
 const PI = { how: `real pi ${pathUtils}`, resolveToCwd: (await import(pathToFileURL(pathUtils).href)).resolveToCwd };
-const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
+// realpath + strip \\?\: a Windows runner's os.tmpdir() can be an 8.3 short form (RUNNER~1),
+// which the product's own "~" guard (nana-handoff.ts) treats as unsafe to shorten, and
+// fs.realpathSync.native can itself hand back the \\?\-prefixed extended-length form.
+const NANA_HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-home-"))).replace(/^\\\\\?\\/, "");
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
@@ -135,7 +138,9 @@ const resolvesTo = (shown, cwd, file) => {
 
 // the pointer must survive its 300-char cap with the path intact: a ≈290-char HOME (store path
 // shown as ~/.pi/agent/handoffs/<hash>.md) and a long custom handoff.path (tail kept, basename intact)
-{
+if (process.platform === "win32") {
+	console.log("SKIP long HOME: Windows' os.homedir() (uv_os_homedir) throws ENOBUFS for a ~290-char USERPROFILE");
+} else {
 	const expand = (p) => (p.startsWith(`~${path.sep}`) ? path.join(os.homedir(), p.slice(2)) : p);
 	let longHome = tmpDir(path.join(os.tmpdir(), "h-"));
 	while (longHome.length < 290) longHome = path.join(longHome, "h".repeat(Math.min(100, 290 - longHome.length - 1) || 1));
