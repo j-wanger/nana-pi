@@ -74,8 +74,8 @@ check("environment removes overrides and redirects home, temp and npm cache", ()
   const env = buildEnvironment({ HOME: "/outside", USERPROFILE: "C:\\outside", NANA_ROLE: "worker", PI_CODING_AGENT_DIR: "/bad", npm_config_userconfig: "/bad", PATH: "/bin" }, "/sandbox/home", "linux");
   assert.equal(env.HOME, "/sandbox/home");
   assert.equal(env.USERPROFILE, "/sandbox/home");
-  for (const key of ["TMPDIR", "TEMP", "TMP"]) assert.equal(env[key], "/sandbox/home/tmp");
-  assert.equal(env.npm_config_cache, "/sandbox/home/.npm");
+  for (const key of ["TMPDIR", "TEMP", "TMP"]) assert.equal(env[key], path.join("/sandbox/home", "tmp"));
+  assert.equal(env.npm_config_cache, path.join("/sandbox/home", ".npm"));
   for (const key of OVERRIDE_ENV) assert.equal(Object.keys(env).some((x) => x.toLowerCase() === key.toLowerCase()), false);
   assert.equal(Object.keys(env).some((x) => x.toLowerCase() === "npm_config_userconfig"), false);
 });

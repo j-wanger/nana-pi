@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -22,7 +22,7 @@ const home = path.join(root, "home");
 const dir = path.join(root, "project");
 fs.mkdirSync(dir, { recursive: true });
 const nodeModules = spawnNpmRoot().stdout.trim();
-const { ProjectTrustStore } = await import(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
+const { ProjectTrustStore } = await import(pathToFileURL(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 const agentDir = path.join(home, ".pi", "agent");
 const store = new ProjectTrustStore(agentDir);
 const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: agentDir, ...env } });
@@ -79,7 +79,10 @@ fs.symlinkSync(externalStore, path.join(fileLinkAgent, "trust.json"));
 const fileLinkUnsafe = run(["trust", dir, "--yes", "--home", home, "--pi-home", fileLinkAgent]);
 // req: R-670
 check("--home refuses external trust-store symlink before pi writes or creates a lock", fileLinkUnsafe.status !== 0 && /trust storage path resolves outside --home/.test(fileLinkUnsafe.stderr) && fs.readFileSync(externalStore, "utf8") === externalBytes && !fs.existsSync(externalStore + ".lock") && !fs.existsSync(path.join(fileLinkAgent, "trust.json.lock")), `${fileLinkUnsafe.status} ${fileLinkUnsafe.stderr}`);
-const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.relative(process.cwd(), agentDir) });
+// A literal relative string, not path.relative(process.cwd(), agentDir): on Windows CI the
+// checkout and the temp root can sit on different drives, where path.relative returns an
+// ABSOLUTE path instead — this only needs any value path.isAbsolute rejects.
+const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.join("relative", "agent") });
 // req: R-672
 check("relative ambient agent dir is refused", rel.status !== 0 && /relative path/.test(rel.stderr), `${rel.status} ${rel.stderr}`);
 fs.rmSync(root, { recursive: true, force: true });
