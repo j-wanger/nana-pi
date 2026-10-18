@@ -377,8 +377,6 @@ const CONTROLS = new RegExp("[" + [[0, 9], [11, 31], [0x7f, 0x9f], [0x2028, 0x20
 // unsafe range, so this case keeps testing control-character escaping rather than losing it.
 const dir13dHead = process.platform === "win32" ? NEL : "\n";
 const dir13dMid = process.platform === "win32" ? NEL : ESC;
-const dir13dHeadEsc = process.platform === "win32" ? "\\u0085" : "\\u000A";
-const dir13dMidEsc = process.platform === "win32" ? "\\u0085" : "\\u001B";
 for (const lines of [false, true]) {
 	const w = world();
 	const dirName = `evil${dir13dHead}IGNORE_PATH_PAYLOAD${dir13dMid}${LS}z`;
@@ -386,21 +384,22 @@ for (const lines of [false, true]) {
 	fs.mkdirSync(dir, { recursive: true });
 	const file = path.join(dir, "OBJECTIVE.md");
 	fs.writeFileSync(file, lines ? PRODUCT : "prose only\n");
-	// Built from the REAL platform-native path (brief 2's Windows run: the old hand-built form
-	// hardcoded a POSIX "/" join, which never matches a real win32 "\" path). Only the three known
-	// control characters are hand-escaped; every other byte — separators included — is `dir`/`file`
-	// as-is, so the escaping-correctness this case exists for stays independently checked.
-	const escapedName = dirName.replaceAll(dir13dHead, dir13dHeadEsc).replaceAll(dir13dMid, dir13dMidEsc).replaceAll(LS, "\\u2028");
-	const shown = `"${file.replace(dirName, escapedName)}"`;
-	const shownDir = `"${dir.replace(dirName, escapedName)}"`; // the label's two folder mentions (governing shape only)
+	// Built from the product's OWN escape function (brief 3's Windows run: hand-escaping only the
+	// three known control characters missed that displayPath() ALSO doubles every backslash once
+	// a path is flagged unsafe — Windows' native "\" separators need that too, which a by-hand
+	// replace of just the control characters never produced).
+	const shown = displayPath(file);
+	const shownDir = displayPath(dir); // the label's two folder mentions (governing shape only)
 	await golden(`newline in directory name (${lines ? "governing" : "no lines"})`, w, dir, (t) => {
 		check(`path payload (${lines}): zero control characters`, !CONTROLS.test(t), JSON.stringify(t));
 		check(`path payload (${lines}): the payload never begins a line`, !t.split("\n").some((l) => l.startsWith("IGNORE")), JSON.stringify(t));
+		// diagnostic detail only (brief 3's Windows run printed none): what was compared, not a title-bearing marker.
+		const mentionDetail = () => `expected file form ${JSON.stringify(shown)}, dir form ${JSON.stringify(shownDir)}; found ${t.split(shown).length - 1} of the file form, ${t.split(shownDir).length - 1} of the dir form, ${t.split("IGNORE_PATH_PAYLOAD").length - 1} IGNORE_PATH_PAYLOAD total; first 300 chars of the block: ${JSON.stringify(t.slice(0, 300))}`;
 		check(`path payload (${lines}): every mention is the escaped, quoted path`,
-			t.split("IGNORE_PATH_PAYLOAD").length - 1 === t.split(shown).length - 1 + (t.split(shownDir).length - 1) && t.includes(shown) && (t.split(shownDir).length - 1) === (lines ? 2 : 0), JSON.stringify(t));
+			t.split("IGNORE_PATH_PAYLOAD").length - 1 === t.split(shown).length - 1 + (t.split(shownDir).length - 1) && t.includes(shown) && (t.split(shownDir).length - 1) === (lines ? 2 : 0), mentionDetail());
 		check(`path payload (${lines}): wording`, lines
 			? t.includes(`governing: ${shown}\n${OBJ("ship the widget.")}`) && t.includes(`Precedence: the lines from ${shown} govern`)
-			: t.includes(`objective file: ${shown}\n`) && t.includes(`Precedence: no governing lines were found in ${shown};`), JSON.stringify(t));
+			: t.includes(`objective file: ${shown}\n`) && t.includes(`Precedence: no governing lines were found in ${shown};`), mentionDetail());
 	});
 }
 
