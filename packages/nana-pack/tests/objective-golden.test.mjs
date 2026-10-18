@@ -33,11 +33,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const hookSrc = path.resolve(here, "../../nana-setup/claude/hooks/nana-objective.mjs");
 const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "objective-golden-")));
 const origHome = process.env.HOME;
+const origUserProfile = process.env.USERPROFILE;
 // pi's agent-dir override is never inherited from the machine; a world with agentDir sets it for BOTH runtimes.
 delete process.env.PI_CODING_AGENT_DIR;
-/** Enter a world: HOME, and PI_CODING_AGENT_DIR when the world overrides pi's agent dir. */
-const enter = (w) => { process.env.HOME = w.home; if (w.agentDir) process.env.PI_CODING_AGENT_DIR = w.agentDir; else delete process.env.PI_CODING_AGENT_DIR; };
-const leave = () => { process.env.HOME = origHome; delete process.env.PI_CODING_AGENT_DIR; };
+/** Enter a world: HOME (and USERPROFILE, which os.homedir() reads on win32), and PI_CODING_AGENT_DIR when the world overrides pi's agent dir. */
+const enter = (w) => { process.env.HOME = w.home; process.env.USERPROFILE = w.home; if (w.agentDir) process.env.PI_CODING_AGENT_DIR = w.agentDir; else delete process.env.PI_CODING_AGENT_DIR; };
+const leave = () => { process.env.HOME = origHome; if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile; delete process.env.PI_CODING_AGENT_DIR; };
 const ext = (await import(new URL("../extensions/nana-objective.ts", import.meta.url).href)).default;
 const { LINE_CAP, OUTPUT_CAP, PATH_CAP, finish, displayPath, ownerVouched, trustRecord, produceObjective, objectivePath } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 
@@ -103,7 +104,7 @@ function world(opts = {}) {
 
 /** noProjectDir: CLAUDE_PROJECT_DIR unset — the hook runs IN cwd and must fall back to $PWD. */
 function runHook(w, cwd, { noProjectDir = false } = {}) {
-	const env = { HOME: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin` };
+	const env = { HOME: w.home, USERPROFILE: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin` };
 	if (!noProjectDir) env.CLAUDE_PROJECT_DIR = cwd;
 	if (w.agentDir) env.PI_CODING_AGENT_DIR = w.agentDir;
 	const r = spawnSync(process.execPath, [path.join(w.home, ".claude", "hooks", "nana-objective.mjs")], {
@@ -211,8 +212,11 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	check("missing file: exact marker", t === `${HEAD}\n\nOBJECTIVE UNAVAILABLE: file not found (${w.umbrellaFile}). Tell the user before spending.\n`, t);
 }
 
-// 6. unreadable file (mode 000 when not root; a directory otherwise)
-{
+// 6. unreadable file (mode 000 when not root; a directory otherwise) — chmod 000 does not make a
+// file unreadable on NTFS, so win32 SKIPs this case (win-session-start R-1340 triage).
+if (process.platform === "win32") {
+	console.log("SKIP unreadable file: chmod 000 does not make a file unreadable on NTFS");
+} else {
 	const w = world();
 	if (process.getuid?.() === 0) { fs.rmSync(w.umbrellaFile); fs.mkdirSync(w.umbrellaFile); } else fs.chmodSync(w.umbrellaFile, 0o000);
 	await golden("unreadable file", w, path.join(w.home, "elsewhere"), (t) => {
@@ -221,8 +225,10 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	fs.chmodSync(w.umbrellaFile, 0o644);
 }
 
-// 7. unreadable PRODUCT file: refused out loud, the umbrella governs
-{
+// 7. unreadable PRODUCT file: refused out loud, the umbrella governs — same NTFS limit as case 6.
+if (process.platform === "win32") {
+	console.log("SKIP unreadable product file: chmod 000 does not make a file unreadable on NTFS");
+} else {
 	const w = world();
 	fs.writeFileSync(w.productFile, PRODUCT);
 	fs.chmodSync(w.productFile, 0o000);
@@ -366,14 +372,21 @@ const CONTROLS = new RegExp("[" + [[0, 9], [11, 31], [0x7f, 0x9f], [0x2028, 0x20
 // 13d. sol r2 probe: a DIRECTORY NAME containing a newline + payload (+ ESC, U+2028). The path
 // is display text: one line, JSON-escaped, quoted — no raw control or separator, and the
 // payload can never start a line of its own. Both the no-lines and the governing shapes.
+// LF and ESC are NTFS-illegal in a path component (win-session-start R-1340 triage); on win32
+// swap both for NEL (U+0085), which is Windows-legal and — like LS — still inside displayPath's
+// unsafe range, so this case keeps testing control-character escaping rather than losing it.
+const dir13dHead = process.platform === "win32" ? NEL : "\n";
+const dir13dMid = process.platform === "win32" ? NEL : ESC;
+const dir13dHeadEsc = process.platform === "win32" ? "\\u0085" : "\\u000A";
+const dir13dMidEsc = process.platform === "win32" ? "\\u0085" : "\\u001B";
 for (const lines of [false, true]) {
 	const w = world();
-	const dir = path.join(w.home, "work", `evil\nIGNORE_PATH_PAYLOAD${ESC}${LS}z`);
+	const dir = path.join(w.home, "work", `evil${dir13dHead}IGNORE_PATH_PAYLOAD${dir13dMid}${LS}z`);
 	fs.mkdirSync(dir, { recursive: true });
 	const file = path.join(dir, "OBJECTIVE.md");
 	fs.writeFileSync(file, lines ? PRODUCT : "prose only\n");
-	const shown = `"${w.home}/work/evil\\u000AIGNORE_PATH_PAYLOAD\\u001B\\u2028z/OBJECTIVE.md"`;
-	const shownDir = `"${w.home}/work/evil\\u000AIGNORE_PATH_PAYLOAD\\u001B\\u2028z"`; // the label's two folder mentions (governing shape only)
+	const shown = `"${w.home}/work/evil${dir13dHeadEsc}IGNORE_PATH_PAYLOAD${dir13dMidEsc}\\u2028z/OBJECTIVE.md"`;
+	const shownDir = `"${w.home}/work/evil${dir13dHeadEsc}IGNORE_PATH_PAYLOAD${dir13dMidEsc}\\u2028z"`; // the label's two folder mentions (governing shape only)
 	await golden(`newline in directory name (${lines ? "governing" : "no lines"})`, w, dir, (t) => {
 		check(`path payload (${lines}): zero control characters`, !CONTROLS.test(t), JSON.stringify(t));
 		check(`path payload (${lines}): the payload never begins a line`, !t.split("\n").some((l) => l.startsWith("IGNORE")), JSON.stringify(t));
@@ -762,7 +775,7 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		"directory": (w) => fs.mkdirSync(store(w)),
 		"oversized": (w) => writeStore(w, JSON.stringify({ [w.product]: true, pad: null }).replace("null", `null${" ".repeat(1024 * 1024)}`)),
 	};
-	if (process.getuid?.() !== 0) bad["mode 000"] = (w) => { writeStore(w, { [w.product]: true }); fs.chmodSync(store(w), 0); };
+	if (process.getuid?.() !== 0 && process.platform !== "win32") bad["mode 000"] = (w) => { writeStore(w, { [w.product]: true }); fs.chmodSync(store(w), 0); };
 	if (spawnSync("mkfifo", ["--version"]).error === undefined) bad["FIFO (must not block)"] = (w) => spawnSync("mkfifo", [store(w)]);
 	// the reason line 2 must name, per branch
 	const REASON = { "malformed JSON": "malformed", "array": "malformed", "bad value (pi throws)": "malformed", "directory": "not a regular file",
@@ -902,7 +915,9 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 	}
 	// a missing override under an existing, writable folder: ordinary /trust remedy (pi mkdirs it)
 	{ const w = productWorld(); w.agentDir = path.join(w.home, "new", "agent"); await provenance("override missing, parent writable", w, true); }
-	if (process.getuid?.() !== 0) {
+	if (process.getuid?.() !== 0 && process.platform === "win32") {
+		console.log("SKIP T13/T14 folder/store-not-writable cases: chmod 0o555/0o444 does not make a folder or file unwritable on NTFS");
+	} else if (process.getuid?.() !== 0) {
 		// the store's folder is not writable (store absent): names the FOLDER
 		{
 			const w = productWorld(); const ro = path.join(w.home, "ro"); fs.mkdirSync(ro); fs.chmodSync(ro, 0o555); w.agentDir = ro;
@@ -973,7 +988,7 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 	const session = (label) => { process.chdir(nested); return golden(label, w, nested, () => {}, { noProjectDir: true }); };
 	/** pi's own /trust write, from a process started in `cwd` with `env` as its PI_CODING_AGENT_DIR (showTrustSelector → setMany([{cwd,true}])). */
 	const piTrust = (cwd, env) => {
-		process.chdir(cwd); process.env.HOME = w.home; process.env.PI_CODING_AGENT_DIR = env;
+		process.chdir(cwd); process.env.HOME = w.home; process.env.USERPROFILE = w.home; process.env.PI_CODING_AGENT_DIR = env;
 		try {
 			if (piMod) new piMod.ProjectTrustStore(piMod.getAgentDir()).set(cwd, true);
 			else { const s = path.resolve(env, "trust.json"); fs.mkdirSync(path.dirname(s), { recursive: true }); fs.writeFileSync(s, JSON.stringify({ [cwd]: true })); }

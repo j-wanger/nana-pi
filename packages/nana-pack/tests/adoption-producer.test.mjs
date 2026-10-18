@@ -299,24 +299,39 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	check("journal: …and the reader lists it", listed(reader(base).stdout, r), reader(base).stdout);
 	// relative user-scope path: producer (pi cwd = r2) and reader (another cwd) both use the default
 	const r2 = repo("relative-user");
-	// A RELATIVE path is the point of this case, but `appendJournal` resolves it against the test
-	// process cwd — so point it at the temp home, or ordinary handoff events litter the repository
-	// (sol r2 found a committed rel-journal.jsonl). Still relative as written.
-	const relJ = path.relative(process.cwd(), path.join(NANA_HOME, "rel-journal.jsonl"));
-	cfg({ journal: { enabled: true, path: relJ } });
-	await prompt(r2);
+	// A RELATIVE path is the point of this case: adoptionSettings() falls back to the default
+	// agent-dir journal for any journal.path that is not absolute (R-148), while OTHER events this
+	// same session_start fires (e.g. handoff_missing) follow the general mechanism, which resolves
+	// a relative journal.path against the real process cwd — so chdir into NANA_HOME for this
+	// block. Without that, path.relative(process.cwd(), …) returns an ABSOLUTE path when the
+	// checkout and the temp home sit on different drives (win-session-start R-1340 triage), which
+	// flips path.isAbsolute(relJ) true and defeats the case; and even a bare relative name, left at
+	// the unchanged test-runner cwd, lands outside NANA_HOME and litters the repository (sol r2
+	// found a committed rel-journal.jsonl — reproduced live while building this fix).
+	const relJ = "rel-journal.jsonl";
+	const relJAbs = path.join(NANA_HOME, relJ);
+	const wasCwd = process.cwd();
+	process.chdir(NANA_HOME);
+	try {
+		cfg({ journal: { enabled: true, path: relJ } });
+		await prompt(r2);
+	} finally {
+		process.chdir(wasCwd);
+	}
 	const out = reader(NANA_HOME).stdout;
 	cfg();
 	const inDefault = fs.existsSync(DEFAULT_J) && fs.readFileSync(DEFAULT_J, "utf8").split("\n").some((l) => l.includes('"directory_unadopted"') && l.includes(JSON.stringify(r2)));
 	// req: R-148
 	check("journal: relative user journal.path → the event goes to <agent dir>/nana-journal.jsonl", inDefault);
 	// req: R-810
-	check("journal: …not to a cwd-relative file", !fs.existsSync(path.resolve(relJ)) || !fs.readFileSync(path.resolve(relJ), "utf8").includes('"directory_unadopted"'));
+	check("journal: …not to a cwd-relative file", !fs.existsSync(relJAbs) || !fs.readFileSync(relJAbs, "utf8").includes('"directory_unadopted"'));
 	check("journal: …and the reader, from another cwd, lists it", listed(out, r2), out);
 }
-// a root the reader would refuse (a newline in its name) is never journaled — not once, not daily
+// a root the reader would refuse (a newline in its name) is never journaled — not once, not daily.
+// LF is NTFS-illegal in a path component; on win32 use a backtick instead — still refused by
+// printable()/codeSpanSafe, so the case keeps proving the same thing (win-session-start R-1340 triage).
 {
-	const r = repo("nl\n## FORGED");
+	const r = repo(`nl${process.platform === "win32" ? "`" : "\n"}## FORGED`);
 	await prompt(r);
 	await prompt(r);
 	// req: R-149
