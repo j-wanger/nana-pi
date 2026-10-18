@@ -25,7 +25,7 @@ const nodeModules = spawnNpmRoot().stdout.trim();
 const { ProjectTrustStore } = await import(pathToFileURL(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 const agentDir = path.join(home, ".pi", "agent");
 const store = new ProjectTrustStore(agentDir);
-const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: agentDir, ...env } });
+const run = (args, env = {}, cwd = process.cwd()) => spawnSync(process.execPath, [cli, ...args], { cwd, encoding: "utf8", env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: agentDir, ...env } });
 let fails = 0;
 const check = (name, ok, detail = "") => {
  console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
@@ -82,7 +82,10 @@ check("--home refuses external trust-store symlink before pi writes or creates a
 // A literal relative string, not path.relative(process.cwd(), agentDir): on Windows CI the
 // checkout and the temp root can sit on different drives, where path.relative returns an
 // ABSOLUTE path instead — this only needs any value path.isAbsolute rejects.
-const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.join("relative", "agent") });
+// cwd is pinned to the temp root: if the product ever regressed and accepted this relative
+// value, pi's store would resolve against cwd — the npm-test process cwd is the checkout, so
+// an unpinned cwd here could write into it instead of staying inside this test's temp root.
+const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.join("relative", "agent") }, root);
 // req: R-672
 check("relative ambient agent dir is refused", rel.status !== 0 && /relative path/.test(rel.stderr), `${rel.status} ${rel.stderr}`);
 fs.rmSync(root, { recursive: true, force: true });

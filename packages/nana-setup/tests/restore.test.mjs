@@ -144,7 +144,12 @@ check("archive excludes every independently derived non-durable fixture", listed
 const clean = run(["state", "--home", destination]);
 // req: R-958
 check("clean destination reports every durable store absent", clean.status === 0 && stateRows(resolveLayout({ home: destination })).filter((row) => row.class === "durable").every((row) => clean.stdout.split("\n").some((line) => line.startsWith(`${row.store}\t`) && line.endsWith("\tabsent"))), `${clean.status} ${clean.stderr}`);
-const extracted = spawnSync("tar", ["-xzkf", archiveName, "-C", destination], { cwd: root, encoding: "utf8" });
+// The CI log (ci-windows-run-1.log:6041) shows this absolute destination path misread: every
+// other separator doubled in tar's diagnostic quoting, but the one before "nana-test-…" stayed
+// single, matching a C-style "\n" escape rather than a literal backslash. Passing a bare relative
+// name (no separators at all) through the already-set cwd sidesteps that path-argument misread.
+fs.mkdirSync(destination, { recursive: true });
+const extracted = spawnSync("tar", ["-xzkf", archiveName, "-C", path.relative(root, destination)], { cwd: root, encoding: "utf8" });
 const extractedEntries = [];
 const collectExtractedEntries = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); extractedEntries.push(file); const stat = fs.lstatSync(file); if (stat.isDirectory()) collectExtractedEntries(file); } };
 collectExtractedEntries(destination);
