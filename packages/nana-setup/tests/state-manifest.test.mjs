@@ -10,6 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { STATE_CLASSES, stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
@@ -47,7 +48,7 @@ const installHome = tmpDir(path.join(os.tmpdir(), "state-owner-install-"));
 const ownerLayout = resolveLayout({ home: installHome });
 fs.mkdirSync(ownerLayout.knowledgeHome, { recursive: true });
 fs.writeFileSync(path.join(ownerLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [] }));
-const install = spawnSync(process.execPath, [path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname), "install", "--home", installHome], { encoding: "utf8", env: { ...process.env, HOME: installHome, PI_CODING_AGENT_DIR: path.join(installHome, ".pi", "agent") } });
+const install = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url)), "install", "--home", installHome], { encoding: "utf8", env: { ...process.env, HOME: installHome, PI_CODING_AGENT_DIR: path.join(installHome, ".pi", "agent") } });
 const installedRows = stateRows(ownerLayout);
 const installTargets = [
   ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
@@ -60,11 +61,24 @@ const installTargets = [
 ];
 const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", ...Array(18).fill("link")];
 const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
-const missingInstallTargets = installTargets.filter((target) => { try { fs.lstatSync(target); return false; } catch { return true; } });
+// The manifest row for every "link" target exists on every platform (state-manifest.mjs lists
+// all 18 unconditionally) — the coverage check above holds either way. Actual on-disk EXISTENCE
+// does not: win32 never writes a hooks-dir file, the four pi-only skills, or the PATH bins
+// (declared shape, steps.mjs). Only the rules (byte-equal copies) and the `requirements` mirror
+// land there, so this list of what install must leave missing is platform-aware too.
+const posixOnlyInstallTargets = new Set([
+  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+  ...["spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
+  ...["pi-review", "pi-worker", "nana-land", "nana-setup"].map((name) => path.join(ownerLayout.binDir, name)),
+].map((p) => path.resolve(p)));
+const missingInstallTargets = installTargets.filter((target) => {
+  if (process.platform === "win32" && posixOnlyInstallTargets.has(path.resolve(target))) return false;
+  try { fs.lstatSync(target); return false; } catch { return true; }
+});
 // req: R-954
 check("every path created by install maps to a nana-setup-owned manifest row", install.status === 0 && uncoveredInstallTargets.length === 0 && missingInstallTargets.length === 0, `${install.status} ${install.stderr} unmapped=${uncoveredInstallTargets.join(", ")} absent=${missingInstallTargets.join(", ")}`);
 const home = tmpDir(path.join(os.tmpdir(), "state-readonly-"));
-const cli = path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname);
+const cli = fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url));
 const agent = path.join(home, ".pi", "agent");
 fs.mkdirSync(agent, { recursive: true });
 for (const name of ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", "trust.json"]) fs.writeFileSync(path.join(agent, name), "secret-marker");
@@ -130,12 +144,16 @@ const symlinkPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--ho
 // req: R-957
 check("wildcard parent symlink outside home is silently skipped", symlinkPaths.status === 0 && !symlinkPaths.stdout.includes("foreign.md") && !symlinkPaths.stderr.includes("linked"), `${symlinkPaths.stdout}\n${symlinkPaths.stderr}`);
 for (const name of ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json"]) fs.chmodSync(path.join(agent, name), 0o600);
-const control = path.join(home, ".claude", "nana-memory", "shared", "bad\nname.md");
-fs.mkdirSync(path.dirname(control), { recursive: true }); fs.writeFileSync(control, "bad");
-const controlPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
-// req: R-957
-check("control-character durable names exit 2 and name the store", controlPaths.status === 2 && /control character in durable store shared memory/.test(controlPaths.stderr), controlPaths.stderr);
-fs.unlinkSync(control);
+if (process.platform === "win32") {
+  console.log("SKIP control-character durable names (win32: NTFS refuses a filename containing LF)");
+} else {
+  const control = path.join(home, ".claude", "nana-memory", "shared", "bad\nname.md");
+  fs.mkdirSync(path.dirname(control), { recursive: true }); fs.writeFileSync(control, "bad");
+  const controlPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
+  // req: R-957
+  check("control-character durable names exit 2 and name the store", controlPaths.status === 2 && /control character in durable store shared memory/.test(controlPaths.stderr), controlPaths.stderr);
+  fs.unlinkSync(control);
+}
 const durableFile = path.join(home, ".claude", "rules", "nana-personal.md");
 fs.mkdirSync(path.dirname(durableFile), { recursive: true }); fs.writeFileSync(durableFile, "durable fixture");
 fs.writeFileSync(path.join(agent, "desk.log"), "disposable fixture"); fs.writeFileSync(path.join(agent, "auth.json"), "secret fixture"); fs.writeFileSync(path.join(agent, "trust.json"), "ratified fixture");
