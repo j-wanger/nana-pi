@@ -30,6 +30,7 @@ const SETUP_BIN = path.join(REPO, "packages", "nana-setup", "bin", "nana-setup.m
 const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2p-")));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
+const ORIGINAL_CWD = process.cwd(); // win32 will not rmdir a live process cwd — chdir back before the final cleanup
 process.chdir(HOME); // the relative case resolves against the process cwd; every child starts here too
 
 const { piAgentDir } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
@@ -194,9 +195,12 @@ for (const [name, value] of FORMS) {
 	check("PI_CODING_AGENT_DIR is resolved only by agent-dir.mjs", files.every((f) => allowed.has(f)), hits.join("\n"));
 }
 
-// chosen: Node's own linear-backoff retry for a transient EBUSY/ENOTEMPTY rmdir — this test's spawnSync
-// children (install/doctor --home) ran with cwd: HOME, and win32 can lag releasing that handle past the
-// child's own exit (observed: Windows CI run 1, EBUSY rmdir on this exact nana-u2p- folder).
+// The real holder (Windows run 2): THIS process never left HOME after the chdir above, and win32
+// will not rmdir a live process cwd — no retry window clears that. Leave it before removing it.
+process.chdir(ORIGINAL_CWD);
+// chosen: Node's own linear-backoff retry for a transient EBUSY/ENOTEMPTY rmdir — kept as defence
+// in depth for a spawnSync child (install/doctor --home ran with cwd: HOME) whose handle lags its
+// own exit; the chdir above is the fix for the persistent case Windows run 1 and 2 actually hit.
 const HOME_CLEANUP_MAX_RETRIES = 5;
 const HOME_CLEANUP_RETRY_DELAY_MS = 100;
 fs.rmSync(HOME, { recursive: true, force: true, maxRetries: HOME_CLEANUP_MAX_RETRIES, retryDelay: HOME_CLEANUP_RETRY_DELAY_MS });
