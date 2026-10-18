@@ -185,8 +185,25 @@ try {
 				timeout: 5,
 				statusMessage: "nana: knowledge pull",
 			}];
-		// req: R-660
-		check("install removes released quoted context hook and preserves the expected variants", !completeContextEntries.some((hook) => hook.command === `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'`) && JSON.stringify(completeContextEntries) === JSON.stringify(expectedInstalledHooks), JSON.stringify(completeContextEntries));
+		// No released Windows install ever wrote this retired hook, in any form: bash hooks were
+		// unconditionally "skipped (win32: bash hook)" from the first win32 commit (b39518f,
+		// 2026-09-18) onward, and this hook was retired from the install flow entirely on
+		// 2026-10-07 (b965bd0) — five days BEFORE win32 hooks shipped in any form at all
+		// (7b46022, 2026-10-12, exec form directly, no quoted-string era). The quoted-backslash
+		// entry this fixture injects (built with path.join, all native separators) is therefore
+		// fictional on win32: removeRetiredContextHook's own matcher (settings.mjs) compares
+		// against a template with a forward slash before the filename, which a real win32
+		// path.join string never produces, so the entry is simply unrecognised and left in
+		// place, like any other foreign entry.
+		const quotedBackslashEntry = { type: "command", command: `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'` };
+		if (process.platform !== "win32") {
+			// req: R-660
+			check("install removes released quoted context hook and preserves the expected variants", !completeContextEntries.some((hook) => hook.command === quotedBackslashEntry.command) && JSON.stringify(completeContextEntries) === JSON.stringify(expectedInstalledHooks), JSON.stringify(completeContextEntries));
+		} else {
+			console.log("SKIP win32 quoted-context-hook removal (no released Windows install ever wrote this retired hook, in any form — see settings.mjs/steps.mjs history: b39518f, b965bd0, 7b46022)");
+			// req: R-660
+			check("win32: the unrecognised quoted-backslash entry is left in place, and every other entry matches", JSON.stringify(completeContextEntries) === JSON.stringify([quotedBackslashEntry, ...expectedInstalledHooks]), JSON.stringify(completeContextEntries));
+		}
 		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "Jake" || hook.type === "prompt");
 		// req: R-660
 		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));

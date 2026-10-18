@@ -153,25 +153,46 @@ try {
 	check("doctor marks the missing standards rule ✗", /✗ rule nana-standards\.md/.test(bad.stdout), bad.stdout);
 	check("a repair install brings both back", run(["install", "--home", home]).status === 0 && run(["doctor", "--home", home]).status === 0);
 
-	/* --- 4. a REGULAR DIRECTORY already there is reported, never clobbered ---------------- */
+	/* --- 4. a REGULAR DIRECTORY already there is reported, never clobbered (POSIX) --------- */
 	{
 		const occupied = freshHome();
 		const target = path.join(occupied, ".claude", "skills", "requirements");
 		fs.mkdirSync(target, { recursive: true });
 		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
 		const r = run(["install", "--home", occupied]);
-		check("occupied skill dir: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
-		check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);
-		check("occupied skill dir: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
-		check("occupied skill dir: the owner's file is untouched", fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n");
-		check("occupied skill dir: no backup directory was created inside the active skills root", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
-		check("occupied skill dir: --dry-run exits 1 too", run(["install", "--home", occupied, "--dry-run"]).status === 1);
-		const d = run(["doctor", "--home", occupied]);
-		check("occupied skill dir: doctor reads ✗ naming the directory", /✗ skill requirements\s+a directory is there instead of a symlink to/.test(d.stdout), d.stdout);
-		check("occupied skill dir: doctor exits 1", d.status === 1, String(d.status));
-		// and once the owner moves it out of the way, both go green
-		fs.rmSync(target, { recursive: true, force: true });
-		check("occupied skill dir: green once it is moved away", run(["install", "--home", occupied]).status === 0 && run(["doctor", "--home", occupied]).status === 0);
+		if (process.platform !== "win32") {
+			check("occupied skill dir: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
+			check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);
+			check("occupied skill dir: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
+			check("occupied skill dir: the owner's file is untouched", fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n");
+			check("occupied skill dir: no backup directory was created inside the active skills root", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
+			check("occupied skill dir: --dry-run exits 1 too", run(["install", "--home", occupied, "--dry-run"]).status === 1);
+			const d = run(["doctor", "--home", occupied]);
+			check("occupied skill dir: doctor reads ✗ naming the directory", /✗ skill requirements\s+a directory is there instead of a symlink to/.test(d.stdout), d.stdout);
+			check("occupied skill dir: doctor exits 1", d.status === 1, String(d.status));
+			// and once the owner moves it out of the way, both go green
+			fs.rmSync(target, { recursive: true, force: true });
+			check("occupied skill dir: green once it is moved away", run(["install", "--home", occupied]).status === 0 && run(["doctor", "--home", occupied]).status === 0);
+		} else {
+			// win32 KNOWN BUG (the seat's ruling, 2026-10-18 — declared, not fixed by this lane):
+			// mirrorDirsProblem refuses only a symlink or junction at the skill path; a plain
+			// pre-existing directory is not a protected shape there, so linkFile's copy branch
+			// backs the owner's file up and overwrites it with the pack's copy, and install
+			// exits 0. This asserts that declared Windows shape, confirmed against the real CLI.
+			const baks = () => fs.readdirSync(target).filter((f) => f.includes(".bak-"));
+			check("win32 occupied skill dir: install EXITS 0 (known bug — the directory guard does not cover a plain occupied directory)", r.status === 0, String(r.status));
+			check("win32 occupied skill dir: the owner's exact bytes survive in one .bak- file inside the skill folder", baks().length === 1 && fs.readFileSync(path.join(target, baks()[0]), "utf8") === "---\nname: requirements\n---\n# MINE\n", baks().join(","));
+			check("win32 occupied skill dir: no .bak- folder at the skills root — no second skill claims the name", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
+			check("win32 occupied skill dir: the installed SKILL.md equals the pack's source", fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
+			const dryOccupied = freshHome();
+			const dryTarget = path.join(dryOccupied, ".claude", "skills", "requirements");
+			fs.mkdirSync(dryTarget, { recursive: true });
+			fs.writeFileSync(path.join(dryTarget, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
+			const dryRun = run(["install", "--home", dryOccupied, "--dry-run"]);
+			check("win32 occupied skill dir: --dry-run reports the change and writes nothing", dryRun.status === 0 && /skill requirements\s+updated/.test(dryRun.stdout) && fs.readFileSync(path.join(dryTarget, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n" && !fs.readdirSync(dryTarget).some((f) => f.includes(".bak-")), dryRun.stdout);
+			const d = run(["doctor", "--home", occupied]);
+			check("win32 occupied skill dir: doctor reads the mirror as healthy", d.status === 0 && /✓ skill requirements\s+copied from .* \(no symlink on this platform\)/.test(d.stdout), d.stdout);
+		}
 	}
 
 	/* --- 5. a symlink pointing somewhere ELSE is relinked --------------------------------- */
