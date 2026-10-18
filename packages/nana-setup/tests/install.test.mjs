@@ -118,7 +118,7 @@ if (process.platform !== "win32") {
 	// req: R-357
 	check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
 } else {
-	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, checked below through entryInvokes)");
+	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, pinned below by command/args shape)");
 	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
 		// req: R-301 R-985
 		check(`hook ${h} is not installed as a file on win32`, !fs.existsSync(path.join(home, ".claude", "hooks", h)));
@@ -179,8 +179,17 @@ const commands = allHooks.map((h) => h.command);
 check("retired context hook is absent from settings", !JSON.stringify(settings).includes("context-size-check.sh"));
 // Read through entryInvokes (not .command alone), so this still passes on win32, where the real
 // install (platform() === "win32" there, not forced) writes exec-form entries (R-1050).
+// entryInvokes ALSO accepts a shell-form `command` string on win32 (settings.mjs:152-157) — a
+// POSIX-shaped entry anchored in the checkout would keep this check green there too, so IS1's
+// "asserts exec-form hook entries" claim needs its own pin: command is exactly "node" and args
+// is an array, checked on the matched entry object, not just the boolean entryInvokes result.
 for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo })) {
-	check(`settings.json wires ${w.marker}`, allHooks.some((h) => entryInvokes(h, w.spec, platform())));
+	const matched = allHooks.find((h) => entryInvokes(h, w.spec, platform()));
+	check(`settings.json wires ${w.marker}`, Boolean(matched));
+	if (process.platform === "win32") {
+		// req: R-1050
+		check(`settings.json wires ${w.marker} in exec form on win32`, matched?.command === "node" && Array.isArray(matched?.args));
+	}
 }
 // req: R-321
 check("settings.json ends with a newline", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8").endsWith("}\n"));
@@ -425,6 +434,8 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 		});
 		// req: R-319
 		check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);
+	} else {
+		console.log("SKIP space-in-home shell-quoting proofs (win32: no path enters a command string at all, exec form R-1050; hooks-win32-exec.test.mjs covers a spaced, shell-special-character path there)");
 	}
 	check("space in home: doctor exits 0", run(["doctor", "--home", spaced]).status === 0);
 }

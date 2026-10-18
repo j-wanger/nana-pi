@@ -144,10 +144,11 @@ const symlinkPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--ho
 // req: R-957
 check("wildcard parent symlink outside home is silently skipped", symlinkPaths.status === 0 && !symlinkPaths.stdout.includes("foreign.md") && !symlinkPaths.stderr.includes("linked"), `${symlinkPaths.stdout}\n${symlinkPaths.stderr}`);
 for (const name of ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json"]) fs.chmodSync(path.join(agent, name), 0o600);
-if (process.platform === "win32") {
-  console.log("SKIP control-character durable names (win32: NTFS refuses a filename containing LF)");
-} else {
-  const control = path.join(home, ".claude", "nana-memory", "shared", "bad\nname.md");
+{
+  // The product's guard, `/[\u0000-\u001f\u007f]/`, has no platform branch. NTFS forbids LF
+  // (and every other code point 1-31) in a name, but allows DEL (U+007F) — Windows only
+  // forbids 1-31 and `<>:"/\|?*` — so the stand-in name still exercises the same regex there.
+  const control = path.join(home, ".claude", "nana-memory", "shared", process.platform === "win32" ? "bad\u007fname.md" : "bad\nname.md");
   fs.mkdirSync(path.dirname(control), { recursive: true }); fs.writeFileSync(control, "bad");
   const controlPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
   // req: R-957

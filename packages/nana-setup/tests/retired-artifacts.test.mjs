@@ -288,15 +288,23 @@ try {
 		const selectedSkill = path.join(alternateClaude, "skills", "spec");
 		copyTree(path.join(fixture, "spec"), defaultSkill);
 		copyTree(path.join(fixture, "spec"), selectedSkill);
+		// `spec` alone proves nothing on win32 (steps.mjs:263 drops it before `artifactHome` is
+		// even chosen, so the scoping question never arises): an empty `enforce` flag in BOTH
+		// homes is a retired artifact win32 DOES retire, and the seat's own probe against the
+		// real CLI confirmed it moves only the selected home's copy.
+		const defaultFlag = path.join(h, ".claude", "enforce");
+		const selectedFlag = path.join(alternateClaude, "enforce");
+		fs.mkdirSync(path.dirname(defaultFlag), { recursive: true });
+		fs.writeFileSync(defaultFlag, "");
+		fs.mkdirSync(path.dirname(selectedFlag), { recursive: true });
+		fs.writeFileSync(selectedFlag, "");
 		const result = run(["install", "--home", h, "--claude-home", alternateClaude]);
-		// win32 SKIPs retiring the pi-only spec skill regardless of which Claude home it lives
-		// under, so the selected home's copy stays exactly as the fixture left it.
 		if (process.platform !== "win32") {
 			// req: R-663
 			check("alternate Claude home scopes retirement away from the default home", result.status === 0 && fs.existsSync(path.join(defaultSkill, "SKILL.md")) && fs.realpathSync(selectedSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "skills", "spec", "SKILL.md")), result.stdout);
 		} else {
 			// req: R-663
-			check("win32: alternate Claude home leaves the pi-only spec skill untouched there too", result.status === 0 && fs.existsSync(path.join(defaultSkill, "SKILL.md")) && fs.readFileSync(path.join(selectedSkill, "SKILL.md"), "utf8") === fs.readFileSync(path.join(fixture, "spec", "SKILL.md"), "utf8") && !fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "skills", "spec", "SKILL.md")), result.stdout);
+			check("win32: alternate Claude home scopes the enforce-flag retirement away from the default home", result.status === 0 && fs.existsSync(defaultFlag) && !fs.existsSync(selectedFlag) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "enforce")) && !fs.existsSync(path.join(h, ".claude", "backups", `${date}-retired`, "enforce")), result.stdout);
 		}
 	}
 	{

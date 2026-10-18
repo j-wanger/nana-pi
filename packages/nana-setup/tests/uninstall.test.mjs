@@ -26,13 +26,9 @@ const check = (title, ok, detail = "") => {
 };
 const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
 
-// Uninstall is declared unsupported on Windows (the owner, 2026-10-17): lib/uninstall.mjs:41
-// throws "uninstall is POSIX-only" as the very first line of `uninstall()`, before any of the
-// round-trip scenarios below can run — every one of them would otherwise crash uncaught on
-// win32. The forced-win32 and relative-ambient-home refusal checks further down (a block of
-// their own, kept unconditional) already pin that exact contract on every platform.
-if (process.platform !== "win32") {
-
+// The no-confirmation-mode refusal (R-900) is checked BEFORE uninstall's own win32 gate even
+// runs (bin/nana-setup.mjs validates flags first), so it passes on every platform and stays
+// outside the gate below, unconditional.
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-confirm-"));
   const settings = path.join(home, ".claude", "settings.json");
@@ -43,6 +39,13 @@ if (process.platform !== "win32") {
   // req: R-900
   check("uninstall requires exactly one confirmation mode and changes nothing", result.status === 2 && fs.readFileSync(settings).equals(before), result.stderr);
 }
+
+// Uninstall is declared unsupported on Windows (the owner, 2026-10-17): lib/uninstall.mjs:41
+// throws "uninstall is POSIX-only" as the very first line of `uninstall()`, before any of the
+// round-trip scenarios below can run — every one of them would otherwise crash uncaught on
+// win32. The forced-win32 and relative-ambient-home refusal checks further down (a block of
+// their own, kept unconditional) already pin that exact contract on every platform.
+if (process.platform !== "win32") {
 
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-anchor-"));
