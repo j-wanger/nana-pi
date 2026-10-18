@@ -96,8 +96,9 @@ counted in a user-scope ledger — never from the output file name, and the same
 - **Item** = `{repository, slug}`. `--item <slug>` is **required**; a call without it is refused
   loudly. The slug is canonicalized — NFKC, trimmed, lowercased (JavaScript `toLowerCase`, not Unicode case folding), internal whitespace collapsed
   (`" Scope  ONE "` ≡ `"scope one"`) — and refused if it contains `/`, `\`, `..` or a control
-  character, or exceeds **128 characters**. The repository is the realpath of the git **common
-  dir** of the reviewed tree, so every worktree of one repository shares an item, while the same slug in an unrelated
+  character, or exceeds **128 characters**. The repository is the native real path (the folder's spelling on disk —
+  case, long names, a resolved link) of the git **common dir** of the reviewed tree, so two spellings of one folder
+  share the item, every worktree of one repository shares an item, while the same slug in an unrelated
   repository is a different item. (Chosen over the remote URL: it exists for every repository,
   needs no URL normalization, and cannot be changed by `git remote set-url`. Cost: a fresh clone
   at a new path is a new scope.) `--tree <path>` selects the reviewed tree and defaults to the launcher cwd; outside git admission is refused. A scratch launcher must pass `--tree <path inside the reviewed repository>`.

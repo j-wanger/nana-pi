@@ -63,6 +63,7 @@ import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'nod
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
+import { realPath, gitPathKey } from '../lib/real-path.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
 export const REVIEW_ROUND_CAP = 3;
@@ -147,20 +148,34 @@ function gitOut(cwd, args, { okStatus = [0] } = {}) {
   return r;
 }
 
-/** Repository identity + the reviewed tree's revision parts. repo = realpath of the git common dir
- *  (shared by all worktrees of one repository). Non-Git admission throws; legacy `path:` keys are
- *  readable only in existing tallies. `exclude` = absolute paths left out of the snapshot. */
+/** `git:` + the canonical common-dir path shared by every worktree of one repository (W7c). Tries
+ *  the absolute form first — correct across a symlinked or firmlinked tree spelling, and across a
+ *  main checkout, where the plain flag gives only a relative `.git` (SHOULD 1); falls back to the
+ *  relative form (older git) resolved against `tree` (prior art: nana-setup/lib/steps.mjs:841). This
+ *  is the ONE repo-key builder: the ledger key here, nana-land's key and common-dir check, and
+ *  review-ledger report `--repo` all call it, so they cannot drift apart (R2/N1/N2/L1). */
+export function repoKeyOf(tree) {
+  for (const args of [['--path-format=absolute', '--git-common-dir'], ['--git-common-dir']]) {
+    const r = spawnSync('git', ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', 'rev-parse', ...args], { cwd: tree, encoding: 'utf8' });
+    if (r.status === 0 && r.stdout.trim()) return `git:${realPath(resolve(tree, r.stdout.trim()), { mustExist: true })}`;
+  }
+  throw new Error(`git rev-parse --git-common-dir failed in ${tree} — admission refused`);
+}
+
+/** Repository identity + the reviewed tree's revision parts. repo = repoKeyOf(tree) (shared by all
+ *  worktrees of one repository). Non-Git admission throws; legacy `path:` keys are readable only in
+ *  existing tallies. `exclude` = absolute paths left out of the snapshot. */
 export function treeScope(cwd = process.cwd(), { exclude = [] } = {}) {
   const tree = resolve(cwd);
-  const r = gitOut(tree, ['rev-parse', '--git-common-dir', '--show-toplevel'], { okStatus: [0, 128] });
+  const r = gitOut(tree, ['rev-parse', '--show-toplevel'], { okStatus: [0, 128] });
   if (r.status !== 0) {
     if (/not a git repository/i.test(r.stderr)) throw new Error('run from the reviewed tree or pass --tree <path inside it>');
     throw new Error(`git rev-parse failed in ${tree}: ${r.stderr.trim().split('\n')[0]} — admission refused`);
   }
-  const [common, top] = r.stdout.trim().split('\n');
-  const root = realpathSync(top);
+  const top = r.stdout.trim();
+  const root = realPath(top, { mustExist: true });
   const { head, snapshot } = workingState(root, exclude);
-  return { repo: `git:${realpathSync(resolve(tree, common))}`, inGit: true, root, head, snapshot };
+  return { repo: repoKeyOf(tree), inGit: true, root, head, snapshot };
 }
 
 function headOf(root) {
@@ -205,11 +220,11 @@ export function workingState(root, exclude = []) {
   }
   for (const p of nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)) paths.add(p.replace(/\/$/, ''));
   for (const p of inHead.keys()) if (inHead.get(p).startsWith('160000 ')) gitlink.set(p, gitlink.get(p) ?? inHead.get(p).split(' ')[1]);
-  const skip = new Set(exclude.map((x) => relUnder(root, x)).filter(Boolean));
+  const skip = new Set(exclude.map((x) => relUnder(root, realOut(x))).filter(Boolean).map(gitPathKey));
 
   const records = [], ids = [];
   for (const p of [...paths].sort(byteOrder)) {
-    if (skip.has(p)) continue;
+    if (skip.has(gitPathKey(p))) continue;
     if (p.includes('�')) throw new Error(`path ${JSON.stringify(p)} is not valid UTF-8 — the snapshot cannot read it; admission refused`);
     const full = join(root, p);
     let st;
@@ -249,7 +264,7 @@ export function relUnder(root, abs) {
  *  its parent; a dangling symlink leaf is followed to where the write would create its target. */
 export function realOut(p, hops = 0) {
   if (hops > 40) throw new Error(`--out ${p}: too many levels of symbolic links — refused`);
-  try { return realpathSync(p); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  try { return realPath(p, { mustExist: true }); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   let st = null;
   try { st = lstatSync(p); } catch (e) { if (e.code !== 'ENOENT' && e.code !== 'ENOTDIR') throw e; }
   if (st?.isSymbolicLink()) return realOut(resolve(dirname(p), readlinkSync(p)), hops + 1);

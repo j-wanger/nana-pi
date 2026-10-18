@@ -24,12 +24,13 @@
 // Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
 // retries stalled, bad args, or the verdict could not be recorded.
 
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree } from './review-round.mjs';
+import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree, realOut } from './review-round.mjs';
+import { realPath, gitPathKey } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
@@ -69,10 +70,10 @@ const sourceTree = resolve(process.cwd(), optionValue('--tree', '.'));
 const outPath = resolve(process.cwd(), w.outPath);
 const sourceScope = treeScope(sourceTree, { exclude: [outPath] });
 const sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
-const sourceRoot = realpathSync(sourceScope.root);
+const sourceRoot = realPath(sourceScope.root, { mustExist: true });
 let sourceOutWarning = null;
 const sourceRedirect = inTreeRedirect(sourceRoot);
-let tempRoot = null, admittedId = null, setupSignal = null;
+let tempRoot = null, tempRootReal = null, admittedId = null, setupSignal = null;
 const setupSignalHandlers = new Map(['SIGINT', 'SIGTERM', 'SIGHUP'].map((signal) => [signal, () => { setupSignal = signal; }]));
 for (const [signal, handler] of setupSignalHandlers) process.on(signal, handler);
 const git = (cwd, args) => {
@@ -87,8 +88,8 @@ const reclaimDeadReviewWorktrees = () => {
   let reclaimed = false;
   for (const path of paths) {
     let canonicalPath;
-    try { canonicalPath = realpathSync(path); } catch { canonicalPath = resolve(path); }
-    const tempRelative = relative(realpathSync(tmpdir()), canonicalPath);
+    try { canonicalPath = realPath(path); } catch { canonicalPath = resolve(path); }
+    const tempRelative = relative(realPath(tmpdir()), canonicalPath);
     if (tempRelative === '..' || tempRelative.startsWith(`..${sep}`) || tempRelative === '') continue;
     const match = /^nana-review-(\d+)-/.exec(path.split(/[\\/]/).at(-1));
     if (!match) continue;
@@ -115,13 +116,19 @@ const removeWorktree = () => {
   const registrations = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: sourceRoot, encoding: 'utf8' });
   if (registrations.error) throw registrations.error;
   if (registrations.status !== 0) throw new Error('cannot verify worktree cleanup');
-  if (registrations.stdout.split(/\r?\n/).includes(`worktree ${tempRoot}`)) throw new Error(`worktree registration remains: ${tempRoot}`);
+  const tempTarget = tempRootReal ?? (() => { try { return realPath(tempRoot); } catch { return resolve(tempRoot); } })();
+  const remaining = registrations.stdout.split(/\r?\n/).some((l) => {
+    if (!l.startsWith('worktree ')) return false;
+    let p; try { p = realPath(l.slice(9)); } catch { p = resolve(l.slice(9)); }
+    return p === tempTarget;
+  });
+  if (remaining) throw new Error(`worktree registration remains: ${tempRoot}`);
 };
 const copySnapshot = (root, target, excludedPath = null) => {
   const files = [...new Set([...list(root, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']), ...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
   for (const p of files) {
     const from = join(root, p), to = join(target, p);
-    if (excludedPath && resolve(from) === excludedPath) continue;
+    if (excludedPath && gitPathKey(resolve(from)) === gitPathKey(excludedPath)) continue;
     let st;
     try { st = lstatSync(from); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') { rmSync(to, { recursive: true, force: true }); continue; } throw e; }
     mkdirSync(dirname(to), { recursive: true });
@@ -157,10 +164,12 @@ try {
   rmSync(tempRoot, { recursive: true, force: true });
   const add = spawnSync('git', ['worktree', 'add', '--detach', tempRoot, sourceScope.head], { cwd: sourceRoot, encoding: 'utf8' });
   if (add.status !== 0) throw new Error(`cannot create detached review worktree: ${(add.stderr || '').trim()}`);
+  tempRootReal = realPath(tempRoot, { mustExist: true });
   if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
-  const outputRelative = relative(sourceRoot, outPath);
-  const checkoutOutPath = outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? outPath : resolve(tempRoot, outputRelative);
-  copySnapshot(sourceRoot, tempRoot, outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? null : outPath);
+  const outReal = realOut(outPath);
+  const outputRelative = relative(sourceRoot, outReal);
+  const checkoutOutPath = outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? outReal : resolve(tempRoot, outputRelative);
+  copySnapshot(sourceRoot, tempRoot, outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? null : outReal);
   const checkoutScope = treeScope(tempRoot, { exclude: [checkoutOutPath] });
   const checkoutRevision = resolveRevision(sourceScope.head, checkoutScope, checkoutScope.root);
   if (checkoutRevision !== sourceRevision) throw new Error(`dirty snapshot could not be reproduced exactly (source ${sourceRevision}, checkout ${checkoutRevision}); review refused without consuming a round`);
