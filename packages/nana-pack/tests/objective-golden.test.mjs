@@ -381,12 +381,18 @@ const dir13dHeadEsc = process.platform === "win32" ? "\\u0085" : "\\u000A";
 const dir13dMidEsc = process.platform === "win32" ? "\\u0085" : "\\u001B";
 for (const lines of [false, true]) {
 	const w = world();
-	const dir = path.join(w.home, "work", `evil${dir13dHead}IGNORE_PATH_PAYLOAD${dir13dMid}${LS}z`);
+	const dirName = `evil${dir13dHead}IGNORE_PATH_PAYLOAD${dir13dMid}${LS}z`;
+	const dir = path.join(w.home, "work", dirName);
 	fs.mkdirSync(dir, { recursive: true });
 	const file = path.join(dir, "OBJECTIVE.md");
 	fs.writeFileSync(file, lines ? PRODUCT : "prose only\n");
-	const shown = `"${w.home}/work/evil${dir13dHeadEsc}IGNORE_PATH_PAYLOAD${dir13dMidEsc}\\u2028z/OBJECTIVE.md"`;
-	const shownDir = `"${w.home}/work/evil${dir13dHeadEsc}IGNORE_PATH_PAYLOAD${dir13dMidEsc}\\u2028z"`; // the label's two folder mentions (governing shape only)
+	// Built from the REAL platform-native path (brief 2's Windows run: the old hand-built form
+	// hardcoded a POSIX "/" join, which never matches a real win32 "\" path). Only the three known
+	// control characters are hand-escaped; every other byte — separators included — is `dir`/`file`
+	// as-is, so the escaping-correctness this case exists for stays independently checked.
+	const escapedName = dirName.replaceAll(dir13dHead, dir13dHeadEsc).replaceAll(dir13dMid, dir13dMidEsc).replaceAll(LS, "\\u2028");
+	const shown = `"${file.replace(dirName, escapedName)}"`;
+	const shownDir = `"${dir.replace(dirName, escapedName)}"`; // the label's two folder mentions (governing shape only)
 	await golden(`newline in directory name (${lines ? "governing" : "no lines"})`, w, dir, (t) => {
 		check(`path payload (${lines}): zero control characters`, !CONTROLS.test(t), JSON.stringify(t));
 		check(`path payload (${lines}): the payload never begins a line`, !t.split("\n").some((l) => l.startsWith("IGNORE")), JSON.stringify(t));
@@ -405,8 +411,13 @@ for (const lines of [false, true]) {
 	const cfg = path.join(w.home, ".pi", "agent", "nana-pack.json");
 	const bad = path.join(w.loop, `obj${String.fromCharCode(0xd800)}.md`);
 	fs.writeFileSync(cfg, JSON.stringify({ journal: { enabled: false }, objective: { path: bad } }));
+	// `bad` already carries the real platform-native separator (built with path.join); only the
+	// lone surrogate itself is substituted, so this never assumes a POSIX "/" join (brief 2's
+	// Windows run) — `bad` is a configured STRING, never written to disk, so no real NTFS name
+	// restriction applies to it either.
+	const wantSurrogate = bad.replace(String.fromCharCode(0xd800), String.fromCharCode(0xfffd));
 	await golden("lone surrogate in configured path", w, path.join(w.home, "elsewhere"), (t) => {
-		check("lone surrogate: well-formed, shown as U+FFFD", t.isWellFormed() && t.includes(`${w.loop}/obj${String.fromCharCode(0xfffd)}.md`), JSON.stringify(t));
+		check("lone surrogate: well-formed, shown as U+FFFD", t.isWellFormed() && t.includes(wantSurrogate), JSON.stringify(t));
 	});
 }
 
@@ -776,7 +787,11 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		"oversized": (w) => writeStore(w, JSON.stringify({ [w.product]: true, pad: null }).replace("null", `null${" ".repeat(1024 * 1024)}`)),
 	};
 	if (process.getuid?.() !== 0 && process.platform !== "win32") bad["mode 000"] = (w) => { writeStore(w, { [w.product]: true }); fs.chmodSync(store(w), 0); };
-	if (spawnSync("mkfifo", ["--version"]).error === undefined) bad["FIFO (must not block)"] = (w) => spawnSync("mkfifo", [store(w)]);
+	// Windows has no FIFOs, and some win32 CI runners put Git Bash's mkfifo.exe on PATH anyway
+	// (it does not make a real FIFO there), so the platform check comes first, not just the
+	// command probe (win-session-start brief 2's Windows run).
+	if (process.platform !== "win32" && spawnSync("mkfifo", ["--version"]).error === undefined) bad["FIFO (must not block)"] = (w) => spawnSync("mkfifo", [store(w)]);
+	else if (process.platform === "win32") console.log("SKIP T8 FIFO (must not block): Windows has no FIFOs");
 	// the reason line 2 must name, per branch
 	const REASON = { "malformed JSON": "malformed", "array": "malformed", "bad value (pi throws)": "malformed", "directory": "not a regular file",
 		"oversized": "too large", "mode 000": "unreadable", "FIFO (must not block)": "not a regular file" };
@@ -814,13 +829,20 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		process.getuid = () => realUid.call(process) + 1;
 		// req: R-028
 		check("T2c store owned by another user: fail closed (not vouched)", ownerVouched(w.product) === false);
-		// req: R-026
-		check("T2c store owned by another user: reason named", trustRecord(w.product).problem === "owned by another user");
-		// the rendered block (the producer both runtimes share) names the store and the repair, never /trust alone
-		const t = produceObjective(w.product, { projectFile: "OBJECTIVE.md", path: w.umbrellaFile }).text;
-		// req: R-026
-		check("T2c store owned by another user: label names the store and the repair, never /trust alone",
-			labelledOnce(t) && repairRemedy(t, w, "owned by another user") && t.includes(`${HEAD}\n\n${LABEL(w.productFile, { store: store(w), problem: "owned by another user" })}\n\ngoverning: `), t);
+		// Windows run 1 (win-session-start brief 2): the two checks above pass there too (ownerVouched's
+		// plain boolean), but trustRecord's "owned by another user" PROBLEM TEXT does not — POSIX
+		// ownership only.
+		if (process.platform === "win32") {
+			console.log('SKIP T2c store owned by another user: reason named / label names the store and the repair — POSIX ownership (trustRecord\'s "owned by another user" problem) only');
+		} else {
+			// req: R-026
+			check("T2c store owned by another user: reason named", trustRecord(w.product).problem === "owned by another user");
+			// the rendered block (the producer both runtimes share) names the store and the repair, never /trust alone
+			const t = produceObjective(w.product, { projectFile: "OBJECTIVE.md", path: w.umbrellaFile }).text;
+			// req: R-026
+			check("T2c store owned by another user: label names the store and the repair, never /trust alone",
+				labelledOnce(t) && repairRemedy(t, w, "owned by another user") && t.includes(`${HEAD}\n\n${LABEL(w.productFile, { store: store(w), problem: "owned by another user" })}\n\ngoverning: `), t);
+		}
 	} finally {
 		process.getuid = realUid;
 		leave();
