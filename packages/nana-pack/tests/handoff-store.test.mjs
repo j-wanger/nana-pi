@@ -234,7 +234,17 @@ else {
 // L5 seam (astra D): a BROKEN store is not an absent one. A dangling store-entry symlink and a
 // dangling `handoffs/` directory symlink both raise ENOENT on read; each must journal
 // handoff_pickup_failed with a reason and NEVER handoff_missing (L5 reads missing as "unadopted").
-if (process.platform === "win32") console.log("SKIP dangling links: POSIX symlinks (win32)");
+// Windows has symlinks too (a directory link wants "junction", no extra privilege needed); skip
+// only when this machine cannot create one at all (e.g. no Developer Mode on win32).
+let canSymlink = true;
+try {
+	const probe = path.join(base, "symlink-probe");
+	fs.symlinkSync(base, probe, process.platform === "win32" ? "junction" : "dir");
+	fs.rmSync(probe, { recursive: true, force: true });
+} catch {
+	canSymlink = false;
+}
+if (!canSymlink) console.log("SKIP dangling links: cannot create a symlink here (no Developer Mode / privilege on win32)");
 else {
 	{
 		const proj = mk(path.join(base, "dangling-entry"));
@@ -255,7 +265,7 @@ else {
 		const proj = mk(path.join(base, "dangling-dir"));
 		const aside = `${STORE}.aside`;
 		fs.renameSync(STORE, aside);
-		fs.symlinkSync(path.join(base, "no-such-store-dir"), STORE);
+		fs.symlinkSync(path.join(base, "no-such-store-dir"), STORE, process.platform === "win32" ? "junction" : "dir");
 		fs.rmSync(JOURNAL, { force: true });
 		try {
 			check("dangling handoffs/: nothing injected", (await session(proj).prompt()) === "BASE");
@@ -276,7 +286,7 @@ else {
 		const real = mk(path.join(base, "real-store"));
 		const aside = `${STORE}.aside`;
 		fs.renameSync(STORE, aside);
-		fs.symlinkSync(real, STORE);
+		fs.symlinkSync(real, STORE, process.platform === "win32" ? "junction" : "dir");
 		fs.rmSync(JOURNAL, { force: true });
 		try {
 			// req: R-117
