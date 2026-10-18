@@ -1,0 +1,218 @@
+[
+ {
+  "file": "packages/nana-pack/tests/worker-lane.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/worker-lane.test.mjs                   7 pass, 3 fail  4.8s  \u2014 exit 1",
+  "macosCount": 52,
+  "causes": [
+   {
+    "lines": "29-31 (stub), 44-46 (check: non-lane repeated worker options keep the legacy first-occurrence behaviour)",
+    "cause": "The pi stub is an extensionless '#!/bin/sh' file named 'pi'. On win32, piLaunch (packages/nana-pack/bin/pi-watchdog.mjs:54-57) calls findPi (packages/nana-pack/lib/win-command.mjs:45), which only accepts .com/.exe/.bat/.cmd (packages/nana-pack/lib/win-command-config.mjs:13, PI_EXTENSIONS). It skips the stub in stubDir and finds the runner's real npm pi at C:\\npm\\prefix\\pi.cmd. piLaunch then starts the real pi entry with node. Real pi has no auth, exits non-zero, and pi-worker prints 'attempt 1 did not succeed' / 'FAILED after 1 attempt(s)', so legacyRepeat.status is 1. The non-lane run at :87 takes the same path, and the :90 detail shows real pi's 'No API key found for the selected model.' (The PowerShell 'Get-Process : Cannot find a process' text in this check's detail is noise from cpuSeconds; it does not cause the failure.)",
+    "kind": "test-only",
+    "fix": "Write the stub once as a Node body (CommonJS) and lay it out per platform. win32: write stubDir\\pi.cmd (piLaunch only checks that it exists, it never runs it), stubDir\\node_modules\\@earendil-works\\pi-coding-agent\\package.json = {name: PI_PACKAGE, bin: {[PI_BIN_NAME]: 'cli.js'}}, and cli.js = the stub body (import PI_PACKAGE and PI_BIN_NAME from ../bin/worker-config.mjs, as win32-launch.test.mjs does). POSIX: write stubDir/pi = '#!/bin/sh\\nexec \"<process.execPath>\" \"<stub.cjs>\" \"$@\"' and chmod it. Port the body: append to the marker, print NANA_ROLE:NANA_WORKTREE_ROOT, print each arg, copyFileSync the file after each --append-system-prompt to temp/prompt-N. Use one writeStub(body) helper for all four rewrites (:31, :336, :349, :375).",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "82-86 (check: verified lane passes preamble and validated brief as ordered file paths)",
+    "cause": "Same stub cause. The lane run started real pi through C:\\npm\\prefix, which printed 'No API key found for openai-codex.'. good.status was 1, the out file held pi's error text, and 'paths=' was empty. The check short-circuits on good.status, so its own prompt-1 read did not throw.",
+    "kind": "test-only",
+    "fix": "The Node-stub fix above. The 8.3 path fix (separate entry) is also needed, or :86 still fails on promptPaths[1] === fs.realpathSync(brief).",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "87-90 (check: every pi-worker child receives NANA_ROLE=worker)",
+    "cause": "Same stub cause. Both outputs are real pi's no-API-key text and neither starts with 'worker:'. The log's detail shows both messages: 'No API key found for openai-codex.' and 'No API key found for the selected model.'.",
+    "kind": "test-only",
+    "fix": "The Node-stub fix above.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "92 (crash; also 93 reads the same file)",
+    "cause": "The test reads path.join(temp,'prompt-1') unconditionally. The real pi never copied a prompt there, so readFileSync throws ENOENT. That uncaught throw ends the file after 10 checks. Log stack: 'ENOENT ... open C:\\Users\\RUNNER~1\\...\\worker-lane-8IEDYV\\prompt-1' at file:///D:/a/nana-pi/nana-pi/packages/nana-pack/tests/worker-lane.test.mjs:92:91.",
+    "kind": "test-only",
+    "fix": "The Node-stub fix makes prompt-1 exist. Optional hardening: read prompt-1 once through an existsSync guard (empty string when missing) at :92-93. A missing prompt would then fail the 14 preamble checks by name instead of crashing and hiding 42 checks.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "17, 26, 86 (brief compare), 355-358 (trust record), 365 and 369 (lock path in stderr)",
+    "cause": "MASKED next layer. The test canonicalises temp and the lane git dir with JS fs.realpathSync, which keeps the 8.3 short form. The log confirms this: the ENOENT path is C:\\Users\\RUNNER~1\\.... pi-worker's fsReal (packages/nana-pack/bin/pi-worker.mjs:154) uses realpathSync.native on win32, which gives the long form. The log confirms this too: 'trust: none for C:\\Users\\runneradmin\\...\\lane'. Because the forms differ: (a) at :86, promptPaths[1] (long) !== fs.realpathSync(brief) (short). (b) At :355, trust.json is keyed by the short lane path, while trustRecord's canonical() (packages/nana-pack/lib/objective.ts:230, JS realpath) walks the long cwd pi-worker passes. No key matches, so the notice still prints and :358 fails. (c) :365 and :369 check stderr.includes(lockDir). They fail if the test's laneLockPath stays short while pi-worker prints the native long form. Whether git's rev-parse --git-dir output is already long form is unverified.",
+    "kind": "test-only",
+    "fix": "Define const real = process.platform === 'win32' ? fs.realpathSync.native : fs.realpathSync, mirroring pi-worker's fsReal. Use it at :17 (temp), :26 (laneGitDir), :86 (brief) and :355 (trust key). Every derived path then matches the product's form. POSIX behaviour is unchanged.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "342-351 (check: production lane revalidation refuses changed branch before pi spawn)",
+    "cause": "MASKED. The git wrapper is an extensionless '#!/bin/sh' file named 'git' in stubDir that runs 'exec /usr/bin/git'. pi-worker calls git with execFileSync('git') (pi-worker.mjs:57). On win32, Node/libuv's PATH lookup for a name without an extension tries only .com and .exe, so the wrapper is never used and real git.exe answers. The branch never appears changed, so the run (still on the sleep-3 stub from :336) exits 0 and the check fails. No test-written .cmd/.bat file can stand in, because libuv does not try those extensions.",
+    "kind": "declared-skip",
+    "fix": "On win32, print 'SKIP production lane revalidation refuses changed branch before pi spawn \u2014 the git wrapper is a POSIX sh script; Node's win32 PATH lookup tries only .com/.exe' and leave the wrapper and check as they are on POSIX. A product seam for injecting git is not worth its complexity here.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "335-341 (concurrent launchers), 374-382 (wall-clock ceiling and process-group kill)",
+    "cause": "MASKED. Both use '#!/bin/sh' stubs ('sleep 3'; 'sleep 30 & echo $! > pid; wait'), which win32 cannot launch (same findPi cause). With Node bodies, the lock race uses openSync 'wx', which works on NTFS. The ceiling kill goes through killGroup's 'taskkill /T /F' (pi-watchdog.mjs:155-157), which should reach a non-detached Node grandchild. process.kill(pid, 0) works on win32. Expected to pass after the stub fix, but this has not been run.",
+    "kind": "test-only",
+    "fix": "Part of the Node-stub fix. The :336 body appends to lane-spawns, prints 'output' and waits 3 s with setTimeout. The :375 body spawns a non-detached child (process.execPath -e 'setTimeout(()=>{},30000)'), writes its pid to descendant.pid and waits for it.",
+    "confidence": "inferred"
+   }
+  ],
+  "productFilesTouched": [],
+  "maskedLayers": "The crash at :92 ends the file after 10 of its 52 checks, so 42 checks (lines 92-382) never ran on Windows. Fixing only the stub will expose these layers: (1) the 8.3 short-versus-long path mismatch (test uses JS realpath, which keeps RUNNER~1; pi-worker uses realpathSync.native) fails :86 and :358 and may fail :365 and :369. (2) The POSIX git wrapper at :344 cannot stand in for git on win32, so :351 fails unless it is declared skipped. (3) The sleep-3 and process-group stubs at :336 and :375 need Node bodies, and :341 and :382 are then expected to pass through openSync 'wx' and taskkill /T. Exact-string roster checks (:190, :221, :309) and the 13 preamble-line checks should pass, because the roster paths are not realpathed (inferred). A non-failing product nit was also seen in the log: cpuSeconds (pi-watchdog.mjs:128-133) runs PowerShell through execSync without a stdio option, so 'Get-Process : Cannot find a process' leaks into pi-worker's stderr when pi exits between polls. It breaks no check in this file, and no fix here needs a product file, so the lane stays test-only. The older rows.json triage matches the stub cause; this run's log confirms the :92 crash from the stack, where the older triage had only inferred it."
+ },
+ {
+  "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/review-ledger.test.mjs                 0 pass  0.1s  \u2014 exit 1   (wph-win-5.log line 4174; just above it: \"Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'd:'\", Node.js v22.23.3)",
+  "macosCount": 155,
+  "causes": [
+   {
+    "lines": "25",
+    "cause": "`await import(path.join(bin, \"review-round.mjs\"))` passes a raw D:\\ path to the ESM loader, which reads 'd:' as a URL scheme. The file dies at module load, before any of its 155 checks run. The static import of ../lib/verdict-config.mjs is relative and resolves fine.",
+    "kind": "test-only",
+    "fix": "Import with pathToFileURL(path.join(bin, \"review-round.mjs\")).href, and add pathToFileURL to the existing node:url import on line 18.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "31-34, 45 (stub and PATH); FAILs at 110, 123, 136, 137, 139; crash at 141-142; a second latent crash at 707",
+    "cause": "The stub `pi` is an extensionless #!/bin/sh file, and env() joins PATH with ':'. On win32, piLaunch (bin/pi-watchdog.mjs:54) calls findPi (lib/win-command.mjs:45), which splits PATH on ';' and accepts only .com/.exe/.bat/.cmd (lib/win-command-config.mjs:13). It skips the stub and starts CI's real npm pi, which exits 1 with no auth. So every pi-review and pi-worker run that should succeed fails. In section 1, roundsOf(\"four\")[0] is then undefined, and `rec.v` at line 142 throws a TypeError, which crashes the file. If that line were guarded, the unconditional fs.readFileSync(count) at 707 would crash the same way. The same mechanism shows in this log for worker-lane.test (\"No API key found for openai-codex.\").",
+    "kind": "test-only",
+    "fix": "On win32, build npm's global layout in `stubs`: a pi.cmd placeholder, plus node_modules/@earendil-works/pi-coding-agent/package.json with name PI_PACKAGE and bin {pi: 'stub.mjs'}, plus stub.mjs as a Node port of the sh stub. The port needs the modes verdict, fail (print '503 upstream', exit 1), stall (idle setTimeout 30s), plain (append 'run' to $COUNT) and plain-review, plus the INVOKED marker. Build PATH with path.delimiter. sleeper and ignorer stay POSIX-only, because section 7 is already skipped on win32. Copy the layout from win32-launch.test.mjs:165-193, which passes 13 checks in this log. This also stops the suite from starting a real pi on Windows.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "499 (crash); masks 505-1046",
+    "cause": "`process.kill(-k.pid, \"SIGKILL\")` sends a negative pid. On win32, libuv's uv_kill calls OpenProcess(-pid), which fails, and Node throws ESRCH. That error is uncaught at top-level await and kills the file in section 6. It masks sections 8-23, the trust-model check and section 21, about 75 checks.",
+    "kind": "test-only",
+    "fix": "On win32, run spawnSync('taskkill', ['/T','/F','/PID', String(k.pid)]) instead. Keep process.kill(-pid) on POSIX. The /T flag also ends the hung `node -e setTimeout(60000)` grandchild, whose cwd is A.d. Otherwise the fs.rmSync(tmp) at 1049 can hit EBUSY, because Windows cannot delete a process's working folder.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "26 (tmp via JS fs.realpathSync keeps RUNNER~1); FAILs at 142 (repo), 147, 350, 356, 373, 482 x3, 657, 659, 814, 836, 856, 916, 921, 924, 927, 936, 945 x2, 958, 961",
+    "cause": "review-round.mjs:161-163 keys the repo as `git:${realpathSync(resolve(tree, common))}`. In a main worktree, git prints a relative `.git`, so the key keeps the cwd's 8.3 spelling (C:\\Users\\RUNNER~1\\...). In a linked worktree, git prints its long final path. pi-review's immutable checkout is always a linked worktree, so its key is always long. One item therefore splits into two scopes, which violates R-705: the round cap resets when you switch launcher or worktree. The tree root is realpathSync of git's long --show-toplevel, while --out keeps the short spelling, so relUnder() returns null. The tracked --out refusal (R-724) and the snapshot exclusion both stop working: a review overwrites tracked file f, and an in-tree --out reads as 'changed during the review'. This log shows the same construct failing: land.test prints 'refused: --tree and --main must share one git repository' 36 times, from nana-land.mjs:71. The failure is masked behind layers 1-3.",
+    "kind": "product-bug",
+    "fix": "Product fix: on win32, use realpathSync.native (like fsReal at pi-worker.mjs:154) for the repo key, for root in treeScope, and for realOut in review-round.mjs. Also use it for the report --repo key at review-ledger.mjs:51. Keep the test's short tmp as the regression evidence. Test-only alternative: fs.realpathSync.native at line 26 should make the file pass. That leaves a Windows residual against R-705 and R-724 for any cwd or --out spelled differently from git's final path, such as 8.3 names or a lowercase drive letter (the key is a case-sensitive string compare).",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "334-336",
+    "cause": "`\"x\".repeat(50000)` goes on the command line as --item. Windows CreateProcess caps a command line at 32,767 characters, so spawnSync returns an error with status null. The check '--item \"xxxxxxxxxx\u2026\" refused, no stack' then fails.",
+    "kind": "test-only",
+    "fix": "Use a length well over SLUG_MAX (128) that fits the Windows limit, such as \"x\".repeat(20000), on every platform or only on win32.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "604-608",
+    "cause": "fs.chmodSync(agent, 0o555) cannot make a Windows directory read-only. libuv only toggles FILE_ATTRIBUTE_READONLY, which NTFS ignores for creating files inside a directory. The ledger write succeeds and the review is admitted, so 'read-only ledger directory: refused with a clear message' fails.",
+    "kind": "declared-skip",
+    "fix": "On win32, print a SKIP line for this check ('no POSIX directory mode on NTFS'). The symlink cases at 594-601 should still run, because CI can create symlinks.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "758-763",
+    "cause": "Node on Windows never reports exec bits in stat().mode (0o666 or 0o444), and chmod 0o755 changes nothing. workingState (review-round.mjs:223) therefore always records 100644. The snapshot equals the clean sha, so 'collapse: chmod +x under core.fileMode=false \u2192 distinct' (762) fails. 'chmod back' (764) passes vacuously.",
+    "kind": "declared-skip",
+    "fix": "On win32, print a SKIP line for 762 (no exec bit on NTFS). Adjacent product issue for a later lane, not needed for this file: a repo with a committed 100755 file never reads as clean on Windows. nana-pi has 10 such files. Every review there gets a +snap: revision, which contradicts R-708, and nana-land's match by sha may fail on Windows.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "886 (child script); FAILs at 901, 903",
+    "cause": "The TOCTOU child runs `await import(<raw D:\\ path>)` inside `--input-type=module -e`. It hits the same ERR_UNSUPPORTED_ESM_URL_SCHEME, dies at once, and prints nothing. 'blocked' is false and c is {}, so both TOCTOU checks fail without a crash, because JSON.parse falls back to \"{}\".",
+    "kind": "test-only",
+    "fix": "Embed JSON.stringify(pathToFileURL(path.join(bin, \"review-round.mjs\")).href) in the script.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "123, 774, 783",
+    "cause": "These are open risks, not known failures. At 123, the stall run polls CPU through powershell with TEMP set to captureRoot, and PowerShell may leave __PSScriptPolicyTest_* files there. At 774, the clean filter runs `sed` through Git for Windows' sh. At 783, `git submodule add` gets a C:\\ path as its URL. I expect all three to pass, but none has been seen on Windows.",
+    "kind": "unknown",
+    "fix": "None now. Read these lines in the first Windows run after layers 1-3 are fixed.",
+    "confidence": "inferred"
+   }
+  ],
+  "productFilesTouched": [
+   "<repo>/packages/nana-pack/bin/review-round.mjs (only on the product-fix route for the repo-key and --out path cause; makes this an install, hook or gate lane, since review-round is one of the review tools)",
+   "<repo>/packages/nana-pack/bin/review-ledger.mjs (same route; report --repo key at line 51)"
+  ],
+  "maskedLayers": "Confirmed layer 1: the ESM import crash at line 25 hides all 155 macOS checks; Windows ran 0. The rest is inferred, in run order. Layer 2: the stub is never found, so the real npm pi runs. Expected FAILs at 110 and 123 in section 0, then 136/137/139, then a TypeError crash at 142 (rec undefined) that hides everything after section 1. Layer 3: with the stub fixed, sections 1-6 run and the file crashes at 499 (process.kill with a negative pid gives ESRCH), which hides about 75 checks in sections 8-23 and 21. Layer 4: with the crashes fixed, the FAIL-only causes appear. These are the repo-key and --out 8.3 split (about 22 checks, a product bug), the 50,000-character argv (336), the chmod 0o555 (608) and chmod +x (762) declared skips, and the TOCTOU child import (901, 903). Section 7 (line 512, 1 check, R-623 signals) is already gated to non-win32 but prints no SKIP line, so the Windows count will be one short with no trace. Target after all fixes: 154 checks on Windows, about 152 pass and 2 SKIP (inferred). The roughly 3-minute macOS runtime will rise on Windows, because each watchdog poll there starts powershell. One correction to the older triage in rows.json: it put the child import at :886, which is still right, but it missed the 50,000-character argv, the two chmod cases, the line-142 crash and the repo-key split. The test-only route touches no product file. The product route for the repo-key split touches review-round.mjs, a review tool, so the lane becomes an install, hook or gate lane."
+ },
+ {
+  "file": "packages/nana-pack/tests/immutable-review.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/immutable-review.test.mjs              0 pass  0.1s  \u2014 exit 1   (wph-win-5.log line 2266, 2026-10-18T06:13:45.65Z; preceded by Error [ERR_UNSUPPORTED_ESM_URL_SCHEME] ... Received protocol 'd:', Node.js v22.23.3)",
+  "macosCount": 17,
+  "causes": [
+   {
+    "lines": "16-18",
+    "cause": "`await import(path.join(bin, \"review-round.mjs\"))` hands a raw D:\\... path to the ESM loader, which throws ERR_UNSUPPORTED_ESM_URL_SCHEME at module load, before any check runs.",
+    "kind": "test-only",
+    "fix": "`await import(pathToFileURL(path.join(bin, \"review-round.mjs\")).href)` (add pathToFileURL to the node:url import at :14).",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "55, 100",
+    "cause": "Next crash after the import fix: `fs.writeFileSync(path.join(repo, \"name\\nwith-newline.txt\"), ...)` at :55. NTFS refuses control characters in names, so this throws before check 1. The snapshot assertion at :100 also reads that file outside any try block, so it would crash the same way.",
+    "kind": "test-only",
+    "fix": "Create the newline-named file at :55 and assert it at :100 only when process.platform !== 'win32'. Exact reproduction of newline names stays a POSIX-only claim.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "22-35, 203",
+    "cause": "The fake pi is an extensionless '#!/bin/sh' file named `pi`. On win32, pi-watchdog's piLaunch -> findPi only looks for PATHEXT .cmd/.exe and then needs an npm package beside the shim, so it never finds this fake. Also, `${fakeBin}:${PATH}` at :35 (and `${gitShimDir}:${fakeBin}:...` at :203) merges fakeBin into the first PATH entry, which breaks that entry. The Windows suite leg has the REAL pi installed globally (ci.yml:67 `npm i -g @earendil-works/pi-coding-agent`), so pi-review starts the real pi with an empty HOME. Every check that needs a review fails: 2, 3, 4, 6, 9, 11, 12, 13 (9 needs STALL; real pi exits instead).",
+    "kind": "test-only",
+    "fix": "On win32, build an npm-global-shaped fake in fakeBin with no npm needed. piLaunch only reads package.json and checks that the entry is a file. Create fakeBin\\pi.cmd (stub), plus fakeBin\\node_modules\\@earendil-works\\pi-coding-agent\\package.json {name: PI_PACKAGE, bin: {[PI_BIN_NAME]: 'cli.js'}}, importing both names from bin/worker-config.mjs. Add a cli.js that ports the sh script: write process.pid+'\\n' to OBSERVE_PID; write process.cwd(), NANA_REVIEW_ROOT and NANA_ROLE as three lines, then process.argv.slice(2).join(' '), to OBSERVE; poll for WAIT_FOR; MODE=fail exits 1, MODE=stall idles about 30s, otherwise print 'VERDICT: LAND'. Join PATH with path.delimiter at :35 and :203. The fake must come before the real global pi on PATH.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "19, 64-72, 73-80 (cascades into 95-132)",
+    "cause": "On Windows CI the test's TEMP is the 8.3 short form C:\\Users\\RUNNER~1\\... (log line 2266 area: EPERM path 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-7120-...'). The JS fs.realpathSync at :19 keeps that short form. But `git rev-parse --show-toplevel` returns the long form C:/Users/runneradmin/... (log, changes-endpoint.test: 'root is the work tree C:/Users/runneradmin/... vs C:\\Users\\RUNNER~1\\...'). review-round.mjs outInTree compares git's long root against realOut(--out), which is JS realpath and stays short, so relUnder returns null. A TRACKED --out is therefore NOT refused. pi-review.mjs:159-161 also counts the in-tree out as outside the tree. Result: check 1 fails, and the review overwrites repo/tracked.txt with 'VERDICT: LAND'. Check 2 fails because no WARNING is printed. The overwritten tracked.txt then makes the line-58 `revision` stale, so checks 3, 4 and 6 fail too (immutable sentence, tracked.txt content, row.revision).",
+    "kind": "product-bug",
+    "fix": "Product fix: canonicalize on win32 with fs.realpathSync.native, stripping the \\\\?\\ prefix, as pi-worker.mjs:152-154 already does (fsReal, R-1125). Apply it in review-round.mjs realOut/outInTree, in the exclude path pi-review.mjs:70 passes to treeScope, and in outputRelative/copySnapshot's excluded path at pi-review.mjs:159-161. Test-only alternative that hides the bug: root = fs.realpathSync.native(tmpDir(...)).replace(/^\\\\\\\\\\?\\\\/, '') at :19, so the test's paths match git's long form. A Windows user whose cwd is an 8.3 or subst path keeps the bypass of the guard on a tracked --out.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "170, 176, 182-183",
+    "cause": "The killed-owner check compares killedCheckout with the raw `git worktree list --porcelain` text. killedCheckout is the fake's cwd: backslashes and the 8.3 short form. On Windows git prints forward slashes and the long form, so `staleBeforeRecovery.includes(killedCheckout)` is false and the check FAILS. `!afterRecovery.includes(...)` passes vacuously.",
+    "kind": "test-only",
+    "fix": "Parse the porcelain 'worktree ' lines and canonicalize each one, and killedCheckout too, with realpathSync.native (or path.resolve plus case-fold on win32) before comparing. Use a helper shared with :134, :143-:161 and :192.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "182-183 (product: pi-review.mjs:86-92)",
+    "cause": "reclaimDeadReviewWorktrees computes relative(realpathSync(tmpdir()), realpathSync(gitPath)). With an 8.3 TEMP, the first path is the JS realpath short form (RUNNER~1). The second, from git, is the long form (runneradmin). The result starts with ..\\, so every dead-owner review checkout is skipped. On Windows the SIGKILLed checkout is never reclaimed, so `!fs.existsSync(killedCheckout)` fails even after the test-only comparison fix.",
+    "kind": "product-bug",
+    "fix": "In pi-review.mjs use realpathSync.native on win32 for tmpdir() and for the listed path, stripping \\\\?\\, as pi-worker's fsReal does. Test-only alternative that hides it: pass TEMP/TMP in env() pointing at a native-realpath'd dir, so the child's tmpdir() is already the long form.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "185-192",
+    "cause": "liveCheckout is built from os.tmpdir(), which gives backslashes and the 8.3 form. `liveOwnerListed.includes(liveCheckout)` compares it with git's forward-slash long-form porcelain, so it is false and the check FAILS. The 'never removes a live checkout' half also passes vacuously while the reclaim bug above stands.",
+    "kind": "test-only",
+    "fix": "Use the same canonicalized porcelain comparison as for the killed-owner check.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "150-161",
+    "cause": "On Windows `signaled.kill(\"SIGTERM\")` is TerminateProcess. pi-review's SIGTERM handler never runs, so 'close' gives code null (not 143) and the worktree registration remains. The detached fake pi, which waits on never-release forever, is orphaned with the checkout as its cwd. Today the reclaim bug hides the knock-on effect. Once reclaim is fixed, the next launch's `git worktree remove --force` fails on that busy folder and throws 'cannot reclaim stale review worktree'. Every later pi-review would then refuse, failing checks 11-17.",
+    "kind": "declared-skip",
+    "fix": "On win32, print a SKIP with the reason 'no POSIX SIGTERM delivery on Windows; TerminateProcess skips cleanup' and do not spawn the run. Residual: on Windows the signal-cleanup path is exercised only by a real console Ctrl+C.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "196-208",
+    "cause": "The git shim is an extensionless '#!/bin/sh' file named `git`. Node spawn without a shell appends only .com/.exe to an extensionless name, so the shim can never shadow git.exe on win32. `which` at :199 is POSIX: if it is missing, spawnSync stdout is null and .trim() throws TypeError. It is likely present under the CI's Git Bash. The ':'-joined PATH at :203 also drops fakeBin, so the real pi runs and the check FAILS. With only the delimiter fixed, the check passes vacuously because the fallback never runs.",
+    "kind": "declared-skip",
+    "fix": "On win32, print a SKIP with the reason 'a git shim needs a .exe on Windows' for the whole block. Residual: the rmSync fallback in removeWorktree is not exercised on Windows.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "134 (product: pi-review.mjs:117)",
+    "cause": "No failing check. removeWorktree verifies cleanup with `stdout.split(/\\r?\\n/).includes(`worktree ${tempRoot}`)`. tempRoot uses backslashes and the 8.3 form while git prints forward slashes and the long form, so the 'registration remains' guard can never fire on Windows. Test :134 `!worktreesAfterSuccess.includes(checkout)` is also vacuous; only its existsSync half is real.",
+    "kind": "product-bug",
+    "fix": "Optional, in the same product change: compare canonicalized porcelain paths in pi-review.mjs:117. Otherwise record it as a residual.",
+    "confidence": "inferred"
+   }
+  ],
+  "productFilesTouched": [
+   "packages/nana-pack/bin/pi-review.mjs (only if the product route is taken: reclaim realpath at :86-92, out-path canonicalization at :70 and :159-161, optional :117 verification)",
+   "packages/nana-pack/bin/review-round.mjs (only if the product route is taken: realOut/outInTree native realpath on win32)",
+   "NOTE: pi-review and review-round are named review tools in AGENTS.md's review ladder, so touching either makes this an install, hook or gate lane. The test-only route (native realpath for root and a native TEMP in env()) touches only the test file but hides two real 8.3-path bugs."
+  ],
+  "maskedLayers": "The failures are layered, and each one hides the next. L1, confirmed: the import crash at :18 means 0 checks run. L2, inferred: the newline-filename write at :55 crashes before check 1. L3: the fake pi cannot launch on win32 (sh script, ':' PATH), so the CI's real global pi runs instead. L4: the 8.3-versus-long path-form mismatch between JS realpathSync (RUNNER~1) and git (runneradmin, forward slashes). L4a: the product outInTree bypass on a tracked --out overwrites tracked.txt; that fails checks 1-2 and makes the line-58 revision stale, which fails 3, 4 and 6. L4b: porcelain includes() comparisons fail checks 11 and 12. L4c: product reclaim never fires, which fails 11 again. L5: the signal check, 10, cannot work on Windows. Its orphaned fake pi is harmless only while L4c stands; fix reclaim without skipping it and checks 11-17 cascade into 'cannot reclaim' refusals. L6: the cleanup-fallback check, 13, is POSIX-only (shim plus which). Expected to pass once L1-L4 are fixed, all inferred: 5 (R-970), 7, 8 (fail), 9 (stall, via powershell CPU polls and taskkill), 14 (mismatch; Git for Windows runs the '#!/bin/sh' post-checkout hook through its own sh), 15-17 (submodule and nested refusals happen before pi starts). Timing risk, unknown: the 5 s observe waits at :87-88, :155 and :169 (literal 200) cover a slower Windows launch of about 25 git spawns plus a node start. A miss fails check 3, and in the killed run it could orphan a fake pi. Expected Windows result after the full fix: 15 pass, 2 skip (checks 10 and 13). The older triage in rows.json (line 173) found L1-L3 but missed L4-L6."
+ }
+]
