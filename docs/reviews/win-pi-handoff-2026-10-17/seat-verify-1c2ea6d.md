@@ -9,3 +9,7 @@
 - Brief 2's cause for the `\\?\` prefix was wrong (the temp home); run 2 disproved it, and build 3 found the real source:
   `fs.mkdirSync(..., { recursive: true })` returns the first folder it made, and on Windows that comes back as `\\?\C:\...`.
 - No wrong-code pairs and no independent check: an ordinary lane (tests only; no extension or library code changed).
+- After final round 1 (SEND-BACK, `sol-r1.md`: the dangling-link skip's reason was false), build 5 runs those cases on Windows
+  and skips only when the test cannot create a symlink. Run 5 (`ci-windows-run-5.log`, 0101eea): handoff-store 46 + 2 skips
+  (was 36 + 3), with all ten dangling-link checks passing on Windows; the other six target files unchanged; Windows failing
+  38 of 150 files.
