@@ -287,13 +287,17 @@ if (process.platform === "win32") {
 		const s = pathIn(p);
 		console.log(`  default store: pointer ${p.length} chars: ${s}`);
 		// req: R-125
-		check("default store: ~/… form, pi resolves it to the store file and it reads back", s.startsWith("~/") && resolvesTo(s, repo, file));
+		check("default store: ~/… form, pi resolves it to the store file and it reads back", s.startsWith(`~${path.sep}`) && resolvesTo(s, repo, file));
 	}
 	// PINNED (sol r3): a path with a char pi's resolver folds (Unicode spaces) or a one-line
 	// pointer cannot carry (tab/CR/LF) is never emitted in a form that resolves to the
 	// ASCII-space DECOY sibling — it is JSON-escaped, marked, and not claimed readable
 	const JSTR = /: ("(?:[^"\\]|\\.)*") /;
 	for (const [label, ch] of [["NBSP", " "], ["narrow NBSP", " "], ["tab", "\t"], ["CR", "\r"], ["LF", "\n"]]) {
+		if (process.platform === "win32" && ["tab", "CR", "LF"].includes(label)) {
+			console.log(`SKIP ${label}: NTFS refuses a control character in a filename (win32)`);
+			continue;
+		}
 		const dir = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "uc-")));
 		const f = path.join(dir, `hand${ch}off.md`);
 		const decoy = path.join(dir, "hand off.md");
