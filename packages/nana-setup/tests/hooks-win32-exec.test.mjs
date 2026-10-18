@@ -107,9 +107,9 @@ try {
 	// 1000, no added slack — R-1058 says each hook "shall exit 0 within its timeout", and the old
 	// +5000ms margin let a hook that took up to 9s still read as meeting a 5s contract. The
 	// duration is returned so every check below can record it.
-	const spawnEntry = (hook, stdin) => {
+	const spawnEntry = (hook, stdin, extraEnv = {}) => {
 		const startedAt = Date.now();
-		const r = spawnSync(hook.command, hook.args, { shell: false, input: JSON.stringify(stdin), env, encoding: "utf8", timeout: hook.timeout * 1000 });
+		const r = spawnSync(hook.command, hook.args, { shell: false, input: JSON.stringify(stdin), env: { ...env, ...extraEnv }, encoding: "utf8", timeout: hook.timeout * 1000 });
 		return { ...r, ms: Date.now() - startedAt };
 	};
 	const session = { hook_event_name: "SessionStart", source: "startup", cwd: project, session_id: "win32-exec" };
@@ -211,6 +211,33 @@ try {
 		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt, cwd: project, session_id: "win32-exec" });
 		// req: R-1330
 		check("R-1330: on Windows the installed knowledge hook command prints a pull block naming the fixture file for a matching prompt", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md"), `build status ${built.status} ${built.stdout}${built.stderr}\n${detail(r)}`);
+	}
+
+	// SS1 (R-1340): the earlier objective/adoption checks above (R-1058, R-1063) prove only exit 0
+	// and the absence of the UNAVAILABLE marker — neither proves the session-start blocks carry
+	// REAL content on Windows. Give the fixture project a concrete priority, seed one unadopted
+	// sibling repo in the user-scope journal (NANA_TEST_TEMP_ROOTS off, since this whole worktree
+	// sits under the OS temp dir and would otherwise be filtered as a temp root), then run both
+	// installed commands exactly as settings.json holds them and read their real content.
+	const ss1Priority = "the aurora rollout";
+	fs.writeFileSync(path.join(project, "OBJECTIVE.md"), `# Objective and current priority — win32 fixture\n\n**Objective (since 2026-10-17):** prove Windows session start.\n\n**Current priority (since 2026-10-17):** ${ss1Priority}.\n\n## Rules\n\n- fixture rule\n`);
+	// Outside the weird-characters worktree/home path (as KH1's fixtureSrc is) — a backtick in
+	// `weird` would make this claim fail adoption's printable() backtick refusal, which is a
+	// DIFFERENT thing from the Windows exec-form probe this file otherwise runs.
+	fs.mkdirSync(path.join(os.tmpdir(), `nana-ss1-unadopted-${process.pid}`, ".git"), { recursive: true });
+	// realpath'd (as every other temp root in this suite is) — macOS's /var -> /private/var symlink
+	// would otherwise make the printed, canonicalised root differ from this literal join.
+	const ss1Repo = fs.realpathSync.native(path.join(os.tmpdir(), `nana-ss1-unadopted-${process.pid}`));
+	fs.appendFileSync(path.join(home, ".pi", "agent", "nana-journal.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), event: "directory_unadopted", cwd: ss1Repo, has: { handoff: false, objective: false, agents: false, sessions: false } })}\n`);
+	{
+		const ss1Env = { NANA_TEST_TEMP_ROOTS: "" };
+		const objR = spawnEntry(entries["nana-objective.mjs"].hook, session, ss1Env);
+		const adoptR = spawnEntry(entries["nana-adoption.mjs"].hook, session, ss1Env);
+		// req: R-1340
+		check("R-1340: on Windows the installed objective and adoption hook commands print the objective block naming the fixture's priority and the adoption line",
+			(objR.stdout || "").includes(ss1Priority) && (adoptR.stdout || "").includes(`\`${ss1Repo}\``),
+			`objective: ${objR.stdout}${objR.stderr}\nadoption: ${adoptR.stdout}${adoptR.stderr}`,
+		);
 	}
 
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
