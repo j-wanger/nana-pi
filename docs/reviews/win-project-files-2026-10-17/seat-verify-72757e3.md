@@ -18,3 +18,13 @@
   with a rename seam; its new case failed before the fix with the owner's save overwritten.
 - Full suite on the Mac on build 6: `150 files: 148 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7457 pass, 0 fail, 14 skip · 763.6s`; install check exit 0.
 - Windows run 6 (`ci-windows-run-6.log`): project-working-region 28/28, project 121/121, ci-workflow 12/12 on Windows.
+
+## After confirmation round 2 (build 7, then the merge of main 15e06bb)
+
+- sol r2 sent back one MUST: the re-check ran before the 20 ms delay. Build 7 (6719096) moved the delay first, with a delay seam; the case
+  failed on the old order with the owner's save overwritten.
+- The lane merged main 15e06bb (the hooks lane): notes from both lanes kept, leaf total 1,212, tree and map regenerated.
+- Full suite on the Mac on the merged tip: `150 files: 148 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7457 pass, 0 fail, 14 skip · 766.5s`;
+  install check exit 0.
+- Windows run 7 (39079605039, `ci-windows-run-7.log`): project-working-region 28/28, project 121/121, ci-workflow 12/12; the Windows leg's
+  failing count is 54 of 150 files.
