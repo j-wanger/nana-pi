@@ -10,7 +10,8 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const { check: railCheck, printReport } = await import(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url).href);
 const root = tmpDir(join(tmpdir(), "nana-partg-rail-"));
@@ -77,6 +78,7 @@ try { railCheck(root, { testRoots: ["tests"] }); } catch (error) { malformedTs =
 check("TypeScript rejects malformed template status before merging project-owned fields", malformedTs);
 
 const sourceRoot = new URL("../../../", import.meta.url);
+const sourcePath = resolve(fileURLToPath(sourceRoot));
 const probe = (command, args, options = {}) => {
  try { return spawnSync(command, args, { encoding: "utf8", ...options }); }
  catch (error) { return { status: null, error }; }
@@ -125,7 +127,7 @@ const haveCopier = copyProbe.status === 0;
 const havePytest = pythonProbe.status === 0;
 if (!havePytest) console.log(`SKIP Python rail fixtures: ${unavailableReason("pytest through uvx")}${pythonProbe.error ? ` (${pythonProbe.error.message})` : ""}`);
 if (havePytest) {
- const pythonRail = (fixture, code) => probe("uvx", ["--with", "pytest", "python", "-c", code, fixture, new URL("../../../templates/python/template/tests/conftest.py", import.meta.url).pathname], { cwd: fixture });
+ const pythonRail = (fixture, code) => probe("uvx", ["--with", "pytest", "python", "-c", code, fixture, fileURLToPath(new URL("../../../templates/python/template/tests/conftest.py", import.meta.url))], { cwd: fixture });
  const pythonFixture = (name, project, general) => {
   const dir = join(root, name); mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "REQUIREMENTS.md"), table(project));
@@ -192,7 +194,7 @@ if (!haveCopier) {
    const dest = join(root, `render-${language}-${adopt ? "adopt" : "scaffold"}`);
    const copyArgs = ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "HEAD", "-d", `language=${language}`, "-d", `project_name=partg-${language}`];
    if (adopt) copyArgs.push("-d", "adopt=true");
-   copyArgs.push(sourceRoot.pathname, dest);
+   copyArgs.push(sourcePath, dest);
    const rendered = spawnSync("uvx", copyArgs, { encoding: "utf8", env, cwd: root });
    const generalPath = join(dest, "REQUIREMENTS-general.md");
    const generalText = existsSync(generalPath) ? readFileSync(generalPath, "utf8") : "";
@@ -204,15 +206,15 @@ if (!haveCopier) {
   }
  }
 }
-const repo = sourceRoot;
+const repo = sourcePath;
 const available = copyProbe;
-const hasOldTag = probe("git", ["-C", repo.pathname, "rev-parse", "--verify", "v0.6.0"]).status === 0;
+const hasOldTag = probe("git", ["-C", repo, "rev-parse", "--verify", "v0.6.0"]).status === 0;
 if (!haveCopier || !hasOldTag || !havePytest) {
  console.log(`SKIP copier update legs: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
 } else {
  for (const language of ["python", "typescript"]) {
   const dest = join(root, `update-${language}`);
-  const copy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", `language=${language}`, "-d", `project_name=partg-${language}`, repo.pathname, dest], { encoding: "utf8", env, cwd: root });
+  const copy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", `language=${language}`, "-d", `project_name=partg-${language}`, repo, dest], { encoding: "utf8", env, cwd: root });
   const copiedRequirements = existsSync(join(dest, "REQUIREMENTS.md")) ? readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") : "";
   const init = spawnSync("git", ["init", dest], { encoding: "utf8", env });
   spawnSync("git", ["-C", dest, "add", "."], { encoding: "utf8", env });
@@ -269,7 +271,7 @@ writeFileSync(join(adoptRoot, "REQUIREMENTS.md"), initialRequirements);
 const initAdopt = spawnSync("git", ["init", adoptRoot], { encoding: "utf8", env });
 spawnSync("git", ["-C", adoptRoot, "add", "REQUIREMENTS.md"], { encoding: "utf8", env });
 const commitAdopt = spawnSync("git", ["-C", adoptRoot, "commit", "-m", "existing project"], { encoding: "utf8", env });
-const adoptCopy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", "language=python", "-d", "project_name=partg-adopt", "-d", "adopt=true", repo.pathname, adoptRoot], { encoding: "utf8", env, cwd: root });
+const adoptCopy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", "language=python", "-d", "project_name=partg-adopt", "-d", "adopt=true", repo, adoptRoot], { encoding: "utf8", env, cwd: root });
 spawnSync("git", ["-C", adoptRoot, "add", "."], { encoding: "utf8", env });
 const adoptCommit = spawnSync("git", ["-C", adoptRoot, "commit", "-m", "adopt scaffold"], { encoding: "utf8", env });
 const adoptUpdate = spawnSync("uvx", ["copier", "update", "--trust", "--defaults", "--vcs-ref", "HEAD", "--conflict", "rej"], { encoding: "utf8", env, cwd: adoptRoot });

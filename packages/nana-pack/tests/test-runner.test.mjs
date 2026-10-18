@@ -43,7 +43,6 @@ const posix = process.platform !== "win32";
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
-const skip = (n, why) => console.log("SKIP", n, "—", why);
 
 // ── fixture roots ────────────────────────────────────────────────────────────────────────────
 /** A throwaway repo root: the real runner at scripts/test.mjs plus the given files. */
@@ -107,6 +106,15 @@ const TRAP = (what) => `console.log("FAIL ${what}");\nprocess.exit(1);\n`;
 // ("needs `pgrep` on POSIX") fires: that is the only SKIPS entry, and it keys off `pgrep` on PATH.
 const noPath = tmpDir(path.join(TD, "nopath-"));
 const gitBin = process.env.PATH.split(path.delimiter).map((dir) => path.join(dir, process.platform === "win32" ? "git.exe" : "git")).find((candidate) => fs.existsSync(candidate));
+// post-edit-hardening's declared skip is `posix && !onPath("pgrep")` (scripts/test.mjs), which is
+// never true on win32 — the file always runs there, so its fixture must pass rather than trap,
+// and the totals below carry that one file from SKIP into PASS on win32.
+const POST_EDIT_HARDENING_FIXTURE = posix
+	? TRAP("the declared platform skip did not skip")
+	: 'console.log("PASS runs on win32, where its declared skip never applies");\n';
+const EXPECTED_TALLY = posix
+	? { files: 14, pass: 8, fail: 4, skip: 2, checks: { pass: 9, fail: 22, skip: 2 } }
+	: { files: 14, pass: 9, fail: 4, skip: 1, checks: { pass: 10, fail: 22, skip: 2 } };
 const rootA = mkRoot("A", {
 	"packages/probe/ts-probe.ts": "export const bump = (n: number): number => n + 1;\n",
 	"packages/probe/tests/a-cwd.test.mjs": [
@@ -177,8 +185,8 @@ const rootA = mkRoot("A", {
 	"packages/probe/tests/deep/deep.test.mjs": TRAP("a nested tests/deep file was collected"),
 	"packages/probe/tests/helper.mjs": TRAP("a non-.test.mjs sibling was collected"),
 	"packages/fixtures/tests/trap.test.mjs": TRAP("a fixtures-segment package was collected"),
-	// the one declared platform skip; it must never actually run here
-	"packages/nana-pack/tests/post-edit-hardening.test.mjs": TRAP("the declared platform skip did not skip"),
+	// the one declared platform skip; on POSIX it must never actually run, on win32 it always does
+	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
 	"apps/bench/test/study-tasks.test.mjs": TRAP("the declared study-tasks prerequisite skip did not skip"),
 });
 
@@ -221,7 +229,11 @@ check("every child disables git auto gc without replacing caller git config entr
 check("a failing file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(A.out_dir, "failed-tmpdir.txt"), "utf8")));
 // req: R-910
 check("a file that exits non-zero is FAIL and the run exits 1", labelFor(A.out, "d-red.test.mjs") === "FAIL" && lineFor(A.out, "d-red.test.mjs").includes("exit 1") && A.code === 1);
-check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /exit SIG/.test(lineFor(A.out, "g-signal.test.mjs")));
+if (posix) {
+	check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /exit SIG/.test(lineFor(A.out, "g-signal.test.mjs")));
+} else {
+	check("a file killed by a signal is FAIL, naming its exit code (win32 has no signal to report)", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /— exit 1$/.test(lineFor(A.out, "g-signal.test.mjs")));
+}
 // req: R-606 R-910 R-911
 check("a FAIL line from an exit-0 file is a WARN and does not flip the verdict", labelFor(A.out, "e-warn.test.mjs") === "PASS" && A.out.includes("WARN packages/probe/tests/e-warn.test.mjs: FAIL line with exit 0") && tA?.warn === 1);
 // req: R-608
@@ -232,7 +244,7 @@ check("without --verbose a passing file's output is hidden and a failing file's 
 // req: R-916
 check("in non-verbose mode a failing file prints its first 20 failing check lines", A.out.includes("| not ok - diagnostic assertion") && A.out.includes("| FAIL diagnostic check 19") && !A.out.includes("| FAIL diagnostic check 20") && !A.out.includes("| FAIL diagnostic check 21") && (A.out.match(/^      \| (?:FAIL|not ok)\b/gm) ?? []).length === 20);
 // req: R-616
-check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 14 && tA.pass === 8 && tA.fail === 4 && tA.skip === 2 && tA.checks.pass === 9 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
+check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === EXPECTED_TALLY.files && tA.pass === EXPECTED_TALLY.pass && tA.fail === EXPECTED_TALLY.fail && tA.skip === EXPECTED_TALLY.skip && tA.checks.pass === EXPECTED_TALLY.checks.pass && tA.checks.fail === EXPECTED_TALLY.checks.fail && tA.checks.skip === EXPECTED_TALLY.checks.skip && A.code === 1);
 // req: R-917
 check("each test gets a unique TMPDIR and the runner removes leaked temp contents", !!fileTmpJson?.tmp && fileTmpJson.tmp !== envJson?.tmpdir && path.basename(fileTmpJson.tmp).startsWith("nana-test-") && fileTmpJson.leaked.startsWith(fileTmpJson.tmp) && !fs.existsSync(fileTmpJson.tmp));
 // req: R-618
@@ -244,7 +256,8 @@ if (posix) {
 	// req: R-607
 	check("a file declared unrunnable on this platform SKIPs with its reason printed", labelFor(A.out, "post-edit-hardening.test.mjs") === "SKIP" && lineFor(A.out, "post-edit-hardening.test.mjs").includes("needs `pgrep` on POSIX"));
 } else {
-	skip("a file declared unrunnable on this platform SKIPs with its reason printed", "the only declared skip is POSIX-only");
+	// req: R-607
+	check("a file whose declared skip condition does not hold runs instead of skipping", labelFor(A.out, "post-edit-hardening.test.mjs") === "PASS");
 }
 // req: R-607
 check("study tasks SKIP only when their declared extension prerequisite is absent", labelFor(A.out, "study-tasks.test.mjs") === "SKIP" && lineFor(A.out, "study-tasks.test.mjs").includes("apps/bench/.ext/pi-web-access"));

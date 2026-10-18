@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 283 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 284 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1624,6 +1624,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
+### `packages/nana-pack/tests/git-only-path.mjs`
+
+- **purpose** — Build a child PATH folder that resolves to git and nothing else, for CLI fixtures pinning a missing-tool outcome.
+- **inputs** — A temporary directory to hold the POSIX symlink.
+- **outputs** — The PATH folder a child process should use.
+- **effects** — disk (POSIX: creates one symlink under the given directory); process (runs `which`/`where` to locate git)
+- **errors** — Throws when git cannot be located, or when the resolved win32 git folder also holds uvx
+- **callers** — `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`
+- **callees** — —
+
 ### `packages/nana-pack/tests/handoff-artifact.test.mjs`
 
 - **purpose** — Pins the continuity path — compaction writes the handoff artifact to the user-scope store and the next fresh session picks it up, told to update it in place
@@ -2012,7 +2022,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixture trees).
 - **errors** — Failed checks exit nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-acceptance.mjs`
+- **callees** — `packages/nana-pack/tests/git-only-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-acceptance.mjs`
 
 ### `packages/nana-pack/tests/template-release.test.mjs`
 
@@ -2022,7 +2032,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary Git repositories).
 - **errors** — Failed checks exit nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-release.mjs`
+- **callees** — `packages/nana-pack/tests/git-only-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-release.mjs`
 
 ### `packages/nana-pack/tests/templates-render.test.mjs`
 

@@ -8,10 +8,11 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { gitOnlyPath } from "./git-only-path.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { runRelease } from "../../../scripts/template-release.mjs";
 
@@ -32,7 +33,6 @@ function change(repo) { writeFileSync(path.join(repo, "templates/base"), "change
 
 // req: R-596
 check("release CLI runs its in-process gate from spaced and percent-looking checkout paths", () => {
-  const gitBinary = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
   for (const name of ["release path with spaces", "release a%20b checkout"]) {
     const repo = path.join(root, name); mkdirSync(path.join(repo, "scripts"), { recursive: true });
     mkdirSync(path.join(repo, "packages/nana-pack/lib"), { recursive: true });
@@ -43,7 +43,7 @@ check("release CLI runs its in-process gate from spaced and percent-looking chec
     git(repo, "add", "."); git(repo, "commit", "-m", "base"); git(repo, "tag", "-a", "v0.6.3", "-m", "v0.6.3");
     writeFileSync(path.join(repo, "templates/base"), "changed\n"); git(repo, "add", "templates/base"); git(repo, "commit", "-m", "template change");
     const bare = path.join(root, `${name}.git`); git(root, "init", "--bare", bare); git(repo, "remote", "add", "origin", bare); git(repo, "push", "-u", "origin", "main", "--tags");
-    const toolBin = path.join(root, `${name}-bin`); mkdirSync(toolBin); symlinkSync(gitBinary, path.join(toolBin, "git"));
+    const toolBin = gitOnlyPath(path.join(root, `${name}-bin`));
     const cli = spawnSync(process.execPath, [path.join(repo, "scripts/template-release.mjs")], { cwd: repo, encoding: "utf8", env: { ...process.env, PATH: toolBin } });
     assert.notEqual(cli.status, 0, `${name}: red default acceptance must fail release`);
     assert.match(`${cli.stdout}\n${cli.stderr}`, /uvx/);
