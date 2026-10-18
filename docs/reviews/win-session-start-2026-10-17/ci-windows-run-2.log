@@ -1,0 +1,952 @@
+﻿2026-10-18T00:53:09.0907173Z Current runner version: '2.337.0'
+2026-10-18T00:53:09.0929793Z ##[group]Runner Image Provisioner
+2026-10-18T00:53:09.0930463Z Hosted Compute Agent
+2026-10-18T00:53:09.0930939Z Version: 20261002.596
+2026-10-18T00:53:09.0931404Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-18T00:53:09.0932313Z Build Date: 2026-10-02T22:28:27Z
+2026-10-18T00:53:09.0932910Z Worker ID: {e538868d-5698-478a-b70f-b59cf07a2a78}
+2026-10-18T00:53:09.0933463Z Region: westus3
+2026-10-18T00:53:09.0933871Z Cloud: Azure
+2026-10-18T00:53:09.0934265Z ##[endgroup]
+2026-10-18T00:53:09.0935390Z ##[group]Operating System
+2026-10-18T00:53:09.0935927Z Microsoft Windows Server 2025
+2026-10-18T00:53:09.0936460Z 10.0.26100
+2026-10-18T00:53:09.0936863Z Datacenter
+2026-10-18T00:53:09.0937263Z ##[endgroup]
+2026-10-18T00:53:09.0937676Z ##[group]Runner Image
+2026-10-18T00:53:09.0938160Z Image: windows-2025-vs2026
+2026-10-18T00:53:09.0938656Z Version: 20261007.264.1
+2026-10-18T00:53:09.0939859Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261007.264/images/windows/Windows2025-VS2026-Readme.md
+2026-10-18T00:53:09.0941243Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261007.264
+2026-10-18T00:53:09.0942089Z ##[endgroup]
+2026-10-18T00:53:09.0942957Z ##[group]GITHUB_TOKEN Permissions
+2026-10-18T00:53:09.0944455Z Contents: read
+2026-10-18T00:53:09.0944933Z Metadata: read
+2026-10-18T00:53:09.0945399Z ##[endgroup]
+2026-10-18T00:53:09.0947069Z Secret source: Actions
+2026-10-18T00:53:09.0947780Z Cache mode: write
+2026-10-18T00:53:09.0948365Z Prepare workflow directory
+2026-10-18T00:53:09.1268932Z Prepare all required actions
+2026-10-18T00:53:09.1310293Z Getting action download info
+2026-10-18T00:53:09.4341283Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-18T00:53:09.5403097Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-18T00:53:09.7176469Z Download action repository 'astral-sh/setup-uv@v5' (SHA:d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86)
+2026-10-18T00:53:10.3566418Z Download action repository 'pnpm/action-setup@v4' (SHA:b906affcce14559ad1aafd4ab0e942779e9f58b1)
+2026-10-18T00:53:11.2425432Z Complete job name: suite (windows-latest)
+2026-10-18T00:53:11.3696909Z ##[group]Run actions/checkout@v4
+2026-10-18T00:53:11.3698189Z with:
+2026-10-18T00:53:11.3698806Z   fetch-depth: 0
+2026-10-18T00:53:11.3699491Z   repository: j-wanger/nana-pi
+2026-10-18T00:53:11.3705709Z   token: ***
+2026-10-18T00:53:11.3706350Z   ssh-strict: true
+2026-10-18T00:53:11.3707002Z   ssh-user: git
+2026-10-18T00:53:11.3707700Z   persist-credentials: true
+2026-10-18T00:53:11.3708406Z   clean: true
+2026-10-18T00:53:11.3709085Z   sparse-checkout-cone-mode: true
+2026-10-18T00:53:11.3709883Z   fetch-tags: false
+2026-10-18T00:53:11.3710541Z   show-progress: true
+2026-10-18T00:53:11.3711216Z   lfs: false
+2026-10-18T00:53:11.3711966Z   submodules: false
+2026-10-18T00:53:11.3712656Z   set-safe-directory: true
+2026-10-18T00:53:11.3713405Z   allow-unsafe-pr-checkout: false
+2026-10-18T00:53:11.3714389Z env:
+2026-10-18T00:53:11.3714970Z   PI_VERSION: 1.0.2
+2026-10-18T00:53:11.3715634Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:53:11.3716448Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:53:11.3717157Z ##[endgroup]
+2026-10-18T00:53:11.4972444Z Syncing repository: j-wanger/nana-pi
+2026-10-18T00:53:11.4974439Z ##[group]Getting Git version info
+2026-10-18T00:53:11.4975661Z Working directory is 'D:\a\nana-pi\nana-pi'
+2026-10-18T00:53:11.5575891Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-18T00:53:11.9428864Z git version 2.56.0.windows.2
+2026-10-18T00:53:11.9474173Z ##[endgroup]
+2026-10-18T00:53:11.9491725Z Temporarily overriding HOME='D:\a\_temp\14f1a575-b2f4-4106-a2b6-6291e2a87e4f' before making global git config changes
+2026-10-18T00:53:11.9493509Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-18T00:53:11.9500897Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+2026-10-18T00:53:12.0164326Z Deleting the contents of 'D:\a\nana-pi\nana-pi'
+2026-10-18T00:53:12.0171223Z ##[group]Initializing the repository
+2026-10-18T00:53:12.0179463Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\nana-pi\nana-pi
+2026-10-18T00:53:12.1258982Z Initialized empty Git repository in D:/a/nana-pi/nana-pi/.git/
+2026-10-18T00:53:12.1308136Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/j-wanger/nana-pi
+2026-10-18T00:53:12.1962353Z ##[endgroup]
+2026-10-18T00:53:12.1963585Z ##[group]Disabling automatic garbage collection
+2026-10-18T00:53:12.1964839Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-18T00:53:12.2285869Z ##[endgroup]
+2026-10-18T00:53:12.2286960Z ##[group]Setting up auth
+2026-10-18T00:53:12.2296269Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-18T00:53:12.2627853Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-18T00:53:13.7324558Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-18T00:53:13.7648588Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-18T00:53:14.2253401Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-18T00:53:14.2565120Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-18T00:53:14.7227292Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-18T00:53:14.7580489Z ##[endgroup]
+2026-10-18T00:53:14.7580982Z ##[group]Fetching the repository
+2026-10-18T00:53:14.7593972Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +358ee8cc4d7d4ced5dc53fe8801c4018ef4ed5f8:refs/remotes/pull/18/merge
+2026-10-18T00:53:17.3431971Z From https://github.com/j-wanger/nana-pi
+2026-10-18T00:53:17.3432737Z  * [new branch]      feat/cc-hooks-windows                    -> origin/feat/cc-hooks-windows
+2026-10-18T00:53:17.3433544Z  * [new branch]      feat/ci-pi-pin                           -> origin/feat/ci-pi-pin
+2026-10-18T00:53:17.3434095Z  * [new branch]      feat/feature-first                       -> origin/feat/feature-first
+2026-10-18T00:53:17.3434691Z  * [new branch]      feat/fresh-install                       -> origin/feat/fresh-install
+2026-10-18T00:53:17.3435491Z  * [new branch]      feat/install-check                       -> origin/feat/install-check
+2026-10-18T00:53:17.3436061Z  * [new branch]      feat/lift                                -> origin/feat/lift
+2026-10-18T00:53:17.3436663Z  * [new branch]      feat/mutate-runner                       -> origin/feat/mutate-runner
+2026-10-18T00:53:17.3437197Z  * [new branch]      feat/pi-cmd-launch                       -> origin/feat/pi-cmd-launch
+2026-10-18T00:53:17.3437750Z  * [new branch]      feat/process                             -> origin/feat/process
+2026-10-18T00:53:17.3438254Z  * [new branch]      feat/regroup                             -> origin/feat/regroup
+2026-10-18T00:53:17.3438831Z  * [new branch]      feat/regroup-shares                      -> origin/feat/regroup-shares
+2026-10-18T00:53:17.3439367Z  * [new branch]      feat/roster                              -> origin/feat/roster
+2026-10-18T00:53:17.3439977Z  * [new branch]      feat/roster-notice                       -> origin/feat/roster-notice
+2026-10-18T00:53:17.3442100Z  * [new branch]      feat/runtime-map                         -> origin/feat/runtime-map
+2026-10-18T00:53:17.3442592Z  * [new branch]      feat/seat-guide                          -> origin/feat/seat-guide
+2026-10-18T00:53:17.3443135Z  * [new branch]      feat/seat-rule                           -> origin/feat/seat-rule
+2026-10-18T00:53:17.3443970Z  * [new branch]      feat/tree                                -> origin/feat/tree
+2026-10-18T00:53:17.3444404Z  * [new branch]      feat/win-claude-hooks                    -> origin/feat/win-claude-hooks
+2026-10-18T00:53:17.3444842Z  * [new branch]      feat/win-line-endings                    -> origin/feat/win-line-endings
+2026-10-18T00:53:17.3445560Z  * [new branch]      feat/win-project-files                   -> origin/feat/win-project-files
+2026-10-18T00:53:17.3446015Z  * [new branch]      feat/win-session-start                   -> origin/feat/win-session-start
+2026-10-18T00:53:17.3446458Z  * [new branch]      main                                     -> origin/main
+2026-10-18T00:53:17.3446753Z  * [new tag]         v0.3.0                                   -> v0.3.0
+2026-10-18T00:53:17.3447029Z  * [new tag]         v0.4.0                                   -> v0.4.0
+2026-10-18T00:53:17.3447296Z  * [new tag]         v0.5.0                                   -> v0.5.0
+2026-10-18T00:53:17.3447554Z  * [new tag]         v0.6.0                                   -> v0.6.0
+2026-10-18T00:53:17.3447808Z  * [new tag]         v0.6.1                                   -> v0.6.1
+2026-10-18T00:53:17.3448074Z  * [new tag]         v0.6.10                                  -> v0.6.10
+2026-10-18T00:53:17.3448334Z  * [new tag]         v0.6.11                                  -> v0.6.11
+2026-10-18T00:53:17.3448592Z  * [new tag]         v0.6.12                                  -> v0.6.12
+2026-10-18T00:53:17.3448843Z  * [new tag]         v0.6.13                                  -> v0.6.13
+2026-10-18T00:53:17.3449098Z  * [new tag]         v0.6.14                                  -> v0.6.14
+2026-10-18T00:53:17.3449372Z  * [new tag]         v0.6.15                                  -> v0.6.15
+2026-10-18T00:53:17.3450349Z  * [new tag]         v0.6.16                                  -> v0.6.16
+2026-10-18T00:53:17.3450638Z  * [new tag]         v0.6.17                                  -> v0.6.17
+2026-10-18T00:53:17.3450892Z  * [new tag]         v0.6.18                                  -> v0.6.18
+2026-10-18T00:53:17.3451151Z  * [new tag]         v0.6.2                                   -> v0.6.2
+2026-10-18T00:53:17.3451425Z  * [new tag]         v0.6.3                                   -> v0.6.3
+2026-10-18T00:53:17.3451680Z  * [new tag]         v0.6.4                                   -> v0.6.4
+2026-10-18T00:53:17.3451928Z  * [new tag]         v0.6.5                                   -> v0.6.5
+2026-10-18T00:53:17.3452181Z  * [new tag]         v0.6.6                                   -> v0.6.6
+2026-10-18T00:53:17.3452443Z  * [new tag]         v0.6.7                                   -> v0.6.7
+2026-10-18T00:53:17.3452692Z  * [new tag]         v0.6.8                                   -> v0.6.8
+2026-10-18T00:53:17.3452945Z  * [new tag]         v0.6.9                                   -> v0.6.9
+2026-10-18T00:53:17.3453247Z  * [new ref]         358ee8cc4d7d4ced5dc53fe8801c4018ef4ed5f8 -> pull/18/merge
+2026-10-18T00:53:17.3499353Z ##[endgroup]
+2026-10-18T00:53:17.3499775Z ##[group]Determining the checkout info
+2026-10-18T00:53:17.3500216Z ##[endgroup]
+2026-10-18T00:53:17.3500555Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-18T00:53:17.3959517Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-18T00:53:17.4269333Z ##[group]Checking out the ref
+2026-10-18T00:53:17.4277489Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/18/merge
+2026-10-18T00:53:18.2084498Z Note: switching to 'refs/remotes/pull/18/merge'.
+2026-10-18T00:53:18.2084769Z 
+2026-10-18T00:53:18.2084927Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-18T00:53:18.2085297Z changes and commit them, and you can discard any commits you make in this
+2026-10-18T00:53:18.2085789Z state without impacting any branches by switching back to a branch.
+2026-10-18T00:53:18.2085994Z 
+2026-10-18T00:53:18.2086139Z If you want to create a new branch to retain commits you create, you may
+2026-10-18T00:53:18.2086622Z do so (now or later) by using -c with the switch command. Example:
+2026-10-18T00:53:18.2086814Z 
+2026-10-18T00:53:18.2086915Z   git switch -c <new-branch-name>
+2026-10-18T00:53:18.2087051Z 
+2026-10-18T00:53:18.2087127Z Or undo this operation with:
+2026-10-18T00:53:18.2087248Z 
+2026-10-18T00:53:18.2087307Z   git switch -
+2026-10-18T00:53:18.2087405Z 
+2026-10-18T00:53:18.2087567Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-18T00:53:18.2087814Z 
+2026-10-18T00:53:18.2270049Z HEAD is now at 358ee8c Merge 3e9df389fdc330da9e38d9c903181af4eb8b6de6 into 15e06bb5587e3613f0e2c749a45ef0612f2eb436
+2026-10-18T00:53:18.2389862Z ##[endgroup]
+2026-10-18T00:53:18.4687122Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-18T00:53:18.4975900Z 358ee8cc4d7d4ced5dc53fe8801c4018ef4ed5f8
+2026-10-18T00:53:18.5414781Z ##[group]Run actions/setup-node@v4
+2026-10-18T00:53:18.5415062Z with:
+2026-10-18T00:53:18.5415216Z   node-version: 22
+2026-10-18T00:53:18.5415388Z   always-auth: false
+2026-10-18T00:53:18.5415796Z   check-latest: false
+2026-10-18T00:53:18.5417896Z   token: ***
+2026-10-18T00:53:18.5418041Z env:
+2026-10-18T00:53:18.5418176Z   PI_VERSION: 1.0.2
+2026-10-18T00:53:18.5418338Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:53:18.5418528Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:53:18.5418708Z ##[endgroup]
+2026-10-18T00:53:18.6936443Z Found in cache @ C:\hostedtoolcache\windows\node\22.23.3\x64
+2026-10-18T00:53:18.6943971Z (node:7440) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-18T00:53:18.6944711Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-18T00:53:18.6947359Z ##[group]Environment details
+2026-10-18T00:53:26.9104005Z node: v22.23.3
+2026-10-18T00:53:26.9104301Z npm: 10.9.9
+2026-10-18T00:53:26.9104443Z yarn: 1.22.22
+2026-10-18T00:53:26.9105185Z ##[endgroup]
+2026-10-18T00:53:26.9381935Z ##[group]Run astral-sh/setup-uv@v5
+2026-10-18T00:53:26.9382197Z with:
+2026-10-18T00:53:26.9384223Z   github-token: ***
+2026-10-18T00:53:26.9384396Z   enable-cache: auto
+2026-10-18T00:53:26.9384609Z   cache-dependency-glob: **/uv.lock
+**/requirements*.txt
+
+2026-10-18T00:53:26.9384852Z   prune-cache: true
+2026-10-18T00:53:26.9385017Z   ignore-nothing-to-cache: false
+2026-10-18T00:53:26.9385209Z   ignore-empty-workdir: false
+2026-10-18T00:53:26.9385383Z env:
+2026-10-18T00:53:26.9385513Z   PI_VERSION: 1.0.2
+2026-10-18T00:53:26.9385691Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:53:26.9385891Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:53:26.9386064Z ##[endgroup]
+2026-10-18T00:53:27.1073730Z (node:8004) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-18T00:53:27.1074662Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-18T00:53:27.4871555Z Downloading uv from "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-pc-windows-msvc.zip" ...
+2026-10-18T00:53:27.9369947Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command "$ErrorActionPreference = 'Stop' ; try { Add-Type -AssemblyName System.IO.Compression.ZipFile } catch { } ; try { [System.IO.Compression.ZipFile]::ExtractToDirectory('D:\a\_temp\57473263-fd7f-4345-8583-46c990fad1dd.zip', 'D:\a\_temp\589c791b-99d5-423b-82bc-f83ea744ddff', $true) } catch { if (($_.Exception.GetType().FullName -eq 'System.Management.Automation.MethodException') -or ($_.Exception.GetType().FullName -eq 'System.Management.Automation.RuntimeException') ){ Expand-Archive -LiteralPath 'D:\a\_temp\57473263-fd7f-4345-8583-46c990fad1dd.zip' -DestinationPath 'D:\a\_temp\589c791b-99d5-423b-82bc-f83ea744ddff' -Force } else { throw $_ } } ;"
+2026-10-18T00:53:28.3940680Z Set UV_TOOL_BIN_DIR to D:\a\_temp\uv-tool-bin-dir
+2026-10-18T00:53:28.3943345Z Added D:\a\_temp\uv-tool-bin-dir to the path
+2026-10-18T00:53:28.3950129Z Added C:\hostedtoolcache\windows\uv\0.13.1\x86_64 to the path
+2026-10-18T00:53:28.3952818Z Set UV_TOOL_DIR to D:\a\_temp\uv-tool-dir
+2026-10-18T00:53:28.3958488Z Set UV_CACHE_DIR to D:\a\_temp\setup-uv-cache
+2026-10-18T00:53:28.3959128Z Successfully installed uv version 0.13.1
+2026-10-18T00:53:28.3960088Z Searching files using cache dependency glob: **/uv.lock,**/requirements*.txt
+2026-10-18T00:53:28.6566832Z No matches found for glob
+2026-10-18T00:53:28.6584456Z ##[warning]No file matched to [**/uv.lock,**/requirements*.txt]. The cache will never get invalidated. Make sure you have checked out the target repository and configured the cache-dependency-glob input correctly.
+2026-10-18T00:53:29.9921948Z Trying to restore uv cache from GitHub Actions cache with key: setup-uv-1-x86_64-pc-windows-msvc-3.12.10-no-dependency-glob
+2026-10-18T00:53:30.2695891Z No GitHub Actions cache found for key: setup-uv-1-x86_64-pc-windows-msvc-3.12.10-no-dependency-glob
+2026-10-18T00:53:30.3009805Z ##[group]Run pnpm/action-setup@v4
+2026-10-18T00:53:30.3010199Z with:
+2026-10-18T00:53:30.3010432Z   version: 11
+2026-10-18T00:53:30.3010630Z   dest: ~/setup-pnpm
+2026-10-18T00:53:30.3010862Z   run_install: null
+2026-10-18T00:53:30.3011047Z   cache: false
+2026-10-18T00:53:30.3011207Z   cache_dependency_path: pnpm-lock.yaml
+2026-10-18T00:53:30.3011433Z   package_json_file: package.json
+2026-10-18T00:53:30.3011624Z   standalone: false
+2026-10-18T00:53:30.3011774Z env:
+2026-10-18T00:53:30.3011931Z   PI_VERSION: 1.0.2
+2026-10-18T00:53:30.3012083Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:53:30.3012271Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:53:30.3012469Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+2026-10-18T00:53:30.3012686Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+2026-10-18T00:53:30.3012887Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+2026-10-18T00:53:30.3013076Z ##[endgroup]
+2026-10-18T00:53:30.4523990Z ##[group]Running self-installer...
+2026-10-18T00:53:30.8139163Z (node:4240) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-18T00:53:30.8140007Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-18T00:53:30.9870721Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-10-18T00:53:30.9947505Z Packages: +1
+2026-10-18T00:53:30.9947802Z +
+2026-10-18T00:53:34.0274566Z Progress: resolved 1, reused 0, downloaded 1, added 0
+2026-10-18T00:53:34.2573756Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+2026-10-18T00:53:34.4481228Z 
+2026-10-18T00:53:34.4481736Z dependencies:
+2026-10-18T00:53:34.4482040Z + pnpm 11.28.6 (12.14.0 is available)
+2026-10-18T00:53:34.4482192Z 
+2026-10-18T00:53:34.6194768Z Done in 3.9s
+2026-10-18T00:53:34.6378873Z ##[endgroup]
+2026-10-18T00:53:34.6379630Z Installation Completed!
+2026-10-18T00:53:34.6650715Z ##[group]Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+2026-10-18T00:53:34.6651288Z [36;1mnpm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+2026-10-18T00:53:34.6666939Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-18T00:53:34.6667243Z env:
+2026-10-18T00:53:34.6667386Z   PI_VERSION: 1.0.2
+2026-10-18T00:53:34.6667550Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:53:34.6667740Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:53:34.6668719Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+2026-10-18T00:53:34.6668948Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+2026-10-18T00:53:34.6669153Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+2026-10-18T00:53:34.6669414Z   PNPM_HOME: C:\Users\runneradmin\setup-pnpm\node_modules\.bin
+2026-10-18T00:53:34.6669670Z ##[endgroup]
+2026-10-18T00:54:17.9333026Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-18T00:56:20.5560603Z 
+2026-10-18T00:56:20.5561226Z added 121 packages in 3m
+2026-10-18T00:56:20.5561552Z 
+2026-10-18T00:56:20.5562002Z 9 packages are looking for funding
+2026-10-18T00:56:20.5562416Z   run `npm fund` for details
+2026-10-18T00:56:22.4754487Z ##[group]Run test "$(pi --version)" = "${PI_VERSION}"
+2026-10-18T00:56:22.4754925Z [36;1mtest "$(pi --version)" = "${PI_VERSION}"[0m
+2026-10-18T00:56:22.4767337Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-18T00:56:22.4767709Z env:
+2026-10-18T00:56:22.4768022Z   PI_VERSION: 1.0.2
+2026-10-18T00:56:22.4768245Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:56:22.4768494Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:56:22.4768755Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+2026-10-18T00:56:22.4769035Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+2026-10-18T00:56:22.4769458Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+2026-10-18T00:56:22.4769782Z   PNPM_HOME: C:\Users\runneradmin\setup-pnpm\node_modules\.bin
+2026-10-18T00:56:22.4770132Z ##[endgroup]
+2026-10-18T00:56:23.1202680Z ##[group]Run npm test
+2026-10-18T00:56:23.1203062Z [36;1mnpm test[0m
+2026-10-18T00:56:23.1215569Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-18T00:56:23.1215928Z env:
+2026-10-18T00:56:23.1216134Z   PI_VERSION: 1.0.2
+2026-10-18T00:56:23.1216366Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-18T00:56:23.1216622Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-18T00:56:23.1216883Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+2026-10-18T00:56:23.1217183Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+2026-10-18T00:56:23.1217442Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+2026-10-18T00:56:23.1217761Z   PNPM_HOME: C:\Users\runneradmin\setup-pnpm\node_modules\.bin
+2026-10-18T00:56:23.1218106Z ##[endgroup]
+2026-10-18T00:56:23.5980318Z 
+2026-10-18T00:56:23.5980937Z > nana-pi@0.5.0 test
+2026-10-18T00:56:23.5983807Z > node scripts/test.mjs
+2026-10-18T00:56:23.5984251Z 
+2026-10-18T00:56:25.0348170Z PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.8s
+2026-10-18T00:56:26.7352953Z PASS  packages/nana-knowledge/tests/extension.test.mjs                35 pass  1.7s
+2026-10-18T00:56:31.8521884Z PASS  packages/nana-knowledge/tests/hook.test.mjs                     94 pass  5.1s
+2026-10-18T00:56:32.4434562Z PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        27 pass  0.6s
+2026-10-18T00:56:32.5417982Z PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+2026-10-18T00:56:32.8439335Z PASS  packages/nana-knowledge/tests/render.test.mjs                   67 pass, 2 skip  0.3s
+2026-10-18T00:56:32.9389631Z PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+2026-10-18T00:56:33.5658181Z PASS  packages/nana-pack/tests/adoption-producer.test.mjs             60 pass  0.6s
+2026-10-18T00:56:35.0174703Z PASS  packages/nana-pack/tests/adoption-reader.test.mjs               41 pass, 1 skip  1.4s
+2026-10-18T00:56:35.8816576Z PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              98 pass  0.9s
+2026-10-18T00:57:06.7189127Z FAIL  packages/nana-pack/tests/agent-dir-hostile.test.mjs             18 pass  30.8s  — exit 1
+2026-10-18T00:57:06.7189908Z       | PASS A: the linked policy is the one enforced (LINK_DENY blocked) 
+2026-10-18T00:57:06.7190607Z       | PASS A: edit actual-policy.json (symlink target) BLOCKED 
+2026-10-18T00:57:06.7191229Z       | PASS A: write actual-policy.json (symlink target) BLOCKED 
+2026-10-18T00:57:06.7192147Z       | PASS A: printf x > actual-policy.json BLOCKED 
+2026-10-18T00:57:06.7192565Z       | PASS A: tee actual-policy.json BLOCKED 
+2026-10-18T00:57:06.7193037Z       | PASS A: edit dotfiles-trust.json (symlink target) BLOCKED 
+2026-10-18T00:57:06.7193656Z       | PASS A: write dotfiles-trust.json (symlink target) BLOCKED 
+2026-10-18T00:57:06.7194250Z       | PASS A: printf x > dotfiles-trust.json BLOCKED 
+2026-10-18T00:57:06.7194727Z       | PASS A: tee dotfiles-trust.json BLOCKED 
+2026-10-18T00:57:06.7195190Z       | PASS A: the link itself stays BLOCKED 
+2026-10-18T00:57:06.7195648Z       | PASS A: an unrelated sibling file stays ALLOWED 
+2026-10-18T00:57:06.7196648Z       | PASS A-default: the linked default policy is enforced 
+2026-10-18T00:57:06.7197151Z       | PASS A-default: edit the target BLOCKED 
+2026-10-18T00:57:06.7197641Z       | PASS A-default: shell write to the target BLOCKED 
+2026-10-18T00:57:06.7198251Z       | PASS B: dangling user nana-pack.json → stop naming it 
+2026-10-18T00:57:06.7198823Z       | PASS B: directory user nana-pack.json → stop naming it 
+2026-10-18T00:57:06.7199330Z       | PASS B: absent (control) → no stop, defaults 
+2026-10-18T00:57:06.7199919Z       | PASS B: link goes dangling mid-process → last valid deny kept, no stop 
+2026-10-18T00:57:06.7200717Z       | node:internal/child_process:1120
+2026-10-18T00:57:06.7201358Z       |     result.error = new ErrnoException(result.error, 'spawnSync ' + options.file);
+2026-10-18T00:57:45.0704184Z FAIL  packages/nana-pack/tests/agent-dir-parity.test.mjs              0 pass  0.1s  — exit 1
+2026-10-18T00:57:45.0705165Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T00:57:45.0705680Z       | 		throw new Error(
+2026-10-18T00:57:45.0706035Z       | 		      ^
+2026-10-18T00:57:45.0706339Z       | 
+2026-10-18T00:57:45.0706990Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T00:57:45.0707716Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T00:57:45.0708603Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T00:57:45.0709513Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T00:57:45.0710239Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T00:57:45.0710980Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T00:57:45.0711746Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T00:57:45.0712635Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T00:57:45.0713507Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T00:57:45.0714684Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-X9gl44\nana-u2p-gMUqDR\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T00:57:45.0715706Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T00:57:45.0716763Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-X9gl44\nana-u2p-gMUqDR\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T00:57:45.0717791Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T00:57:45.0718851Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-X9gl44\nana-u2p-gMUqDR\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T00:57:45.0720130Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T00:57:45.0721168Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-X9gl44\nana-u2p-gMUqDR\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T00:57:45.5470140Z PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.5s
+2026-10-18T00:57:45.6068108Z PASS  packages/nana-pack/tests/bounded-read.test.mjs                  2 pass  0.1s
+2026-10-18T00:57:45.6648954Z PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   11 pass  0.1s
+2026-10-18T00:57:47.4993279Z PASS  packages/nana-pack/tests/code-map.test.mjs                      47 pass  1.8s
+2026-10-18T00:57:47.8488195Z PASS  packages/nana-pack/tests/config-display-text.test.mjs           36 pass, 2 skip  0.3s
+2026-10-18T00:57:49.4490417Z PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          38 pass  1.6s
+2026-10-18T00:57:52.1356008Z PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     98 pass  2.7s
+2026-10-18T00:57:56.3755999Z PASS  packages/nana-pack/tests/config-normalize.test.mjs              23 pass  4.2s
+2026-10-18T00:58:16.8257639Z PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  27 pass  20.4s
+2026-10-18T00:58:18.4089683Z PASS  packages/nana-pack/tests/config-trust.test.mjs                  27 pass  1.6s
+2026-10-18T00:58:18.6166840Z FAIL  packages/nana-pack/tests/display-surfaces.test.mjs              134 pass  0.2s  — exit 1
+2026-10-18T00:58:18.6168445Z       | PASS codeSpan: exactly CODE_SPAN_CAP is rendered 
+2026-10-18T00:58:18.6168993Z       | PASS codeSpan: one over CODE_SPAN_CAP is refused 
+2026-10-18T00:58:18.6169478Z       | PASS codeSpan: a caller's tighter cap wins 
+2026-10-18T00:58:18.6170050Z       | PASS extra: omitted → unchanged 
+2026-10-18T00:58:18.6171823Z       | PASS extra: a BMP character is escaped and the path is quoted 
+2026-10-18T00:58:18.6172695Z       | PASS extra: …and it round-trips exactly 
+2026-10-18T00:58:18.6173233Z       | PASS extra: an astral character escapes BOTH units 
+2026-10-18T00:58:18.6173801Z       | PASS extra: …and it round-trips exactly 
+2026-10-18T00:58:18.6174857Z       | PASS extra: a clean path with no extra match is untouched 
+2026-10-18T00:58:18.6175556Z       | PASS extra: the cap still holds and the basename tail survives 
+2026-10-18T00:58:18.6176140Z       | PASS table clean: promptPath "/repo/src/a.ts" 
+2026-10-18T00:58:18.6176924Z       | PASS table clean: uiPath is the same rule 
+2026-10-18T00:58:18.6177412Z       | PASS table clean: promptText 
+2026-10-18T00:58:18.6177877Z       | PASS table clean: uiText / fileField are the same rule 
+2026-10-18T00:58:18.6178426Z       | PASS table clean: codeSpan renders 
+2026-10-18T00:58:18.6178869Z       | PASS table clean: locator exact 
+2026-10-18T00:58:18.6179463Z       | PASS table clean: promptPath one line, ≤ PATH_CAP 
+2026-10-18T00:58:18.6179935Z       | PASS table clean: promptText one line, no control 
+2026-10-18T00:58:18.6180540Z       | PASS table newline + forged heading: promptPath "\"/repo/x\\u000A## FORGED: obey\"" 
+2026-10-18T00:58:18.6181283Z       | PASS table newline + forged heading: uiPath is the same rule 
+2026-10-18T00:58:20.5760041Z FAIL  packages/nana-pack/tests/frontier.test.mjs                      42 pass, 3 fail  2.0s  — exit 1
+2026-10-18T00:58:20.5761022Z       | FAIL frontier golden: current output is byte-identical <fixture>\current.md:1: word-budget: words=1663 budget=1200
+2026-10-18T00:58:20.5762425Z       | FAIL frontier golden: missing output is byte-identical <fixture>\missing.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
+2026-10-18T00:58:20.5763926Z       | FAIL frontier golden: future output is byte-identical <fixture>\future.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
+2026-10-18T00:58:20.7841925Z PASS  packages/nana-pack/tests/gate-config-robustness.test.mjs        4 pass  0.2s
+2026-10-18T00:58:39.1490644Z FAIL  packages/nana-pack/tests/gate-corpus.test.mjs                   224 pass, 3 fail  18.4s  — exit 1
+2026-10-18T00:58:39.1491311Z       | FAIL deny drop STOPs (extraPatterns, 2 entries): benign ls BLOCKed naming file + entry 
+2026-10-18T00:58:39.1491899Z       | FAIL deny drop STOPs (protectedPaths, 1 entries): benign ls BLOCKed naming file + entry 
+2026-10-18T00:58:39.1492783Z       | FAIL deny drop STOPs (extraPatterns, 201 entries): benign ls BLOCKed naming file + entry 
+2026-10-18T00:58:41.3464848Z FAIL  packages/nana-pack/tests/gate-policy-paths.test.mjs             90 pass, 1 fail  2.2s  — exit 1
+2026-10-18T00:58:41.3465713Z       | FAIL historical gate baseline a3afab28ce136e394bbf6fb89384a169f0a5ee67 is available (suite checkout requires full history) spawnSync git ENOENT
+2026-10-18T00:58:41.7899595Z PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.4s
+2026-10-18T00:58:42.1411612Z PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.3s
+2026-10-18T00:58:43.0500409Z PASS  packages/nana-pack/tests/gate-survives-mutation.test.mjs        38 pass  0.9s
+2026-10-18T00:58:43.2271504Z FAIL  packages/nana-pack/tests/handoff-artifact.test.mjs              6 pass, 1 fail  0.2s  — exit 1
+2026-10-18T00:58:43.2272111Z       | FAIL custom path: prompt names the configured file
+2026-10-18T00:58:43.2848325Z PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.1s
+2026-10-18T00:58:44.4402193Z FAIL  packages/nana-pack/tests/handoff-staleness.test.mjs             15 pass, 3 fail  1.2s  — exit 1
+2026-10-18T00:58:44.4402898Z       | FAIL 15d: pointer names the store as ~/.pi/agent/handoffs/<hash>.md (expands to the file)
+2026-10-18T00:58:44.4403369Z       | FAIL 15d: pointer authority names HANDOFF.md, not DOCTRINE
+2026-10-18T00:58:44.4404226Z       | FAIL 15d: an oversized Writer header still yields a ≤300-char pointer with the path
+2026-10-18T00:58:45.0090978Z FAIL  packages/nana-pack/tests/handoff-store.test.mjs                 35 pass, 1 fail, 3 skip  0.6s  — exit 1
+2026-10-18T00:58:45.0091574Z       | FAIL missing: handoff_missing journaled with the store path
+2026-10-18T00:58:45.1755810Z PASS  packages/nana-pack/tests/handoff-symlink.test.mjs               14 pass  0.2s
+2026-10-18T00:58:45.3967642Z FAIL  packages/nana-pack/tests/handoff-trust.test.mjs                 45 pass, 6 fail  0.2s  — exit 6
+2026-10-18T00:58:45.5544833Z       | FAIL custom legacy (user): journal names the pickup refusal (handoff_legacy_ignored, configured)
+2026-10-18T00:58:45.5545477Z       | FAIL custom legacy (user): handoff_legacy_write_refused journaled with the path
+2026-10-18T00:58:45.5546056Z       | FAIL custom legacy (user-elsewhere): journal names the pickup refusal (handoff_legacy_ignored, configured)
+2026-10-18T00:58:45.5546684Z       | FAIL custom legacy (user-elsewhere): handoff_legacy_write_refused journaled with the path
+2026-10-18T00:58:45.5547252Z       | FAIL custom legacy (project): journal names the pickup refusal (handoff_legacy_ignored, configured)
+2026-10-18T00:58:45.5547822Z       | FAIL custom legacy (project): handoff_legacy_write_refused journaled with the path
+2026-10-18T00:58:45.5548395Z PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           6 pass, 1 skip  0.2s
+2026-10-18T00:58:45.6130885Z FAIL  packages/nana-pack/tests/immutable-review.test.mjs              0 pass  0.1s  — exit 1
+2026-10-18T00:58:45.6131485Z       | node:internal/modules/esm/load:203
+2026-10-18T00:58:45.6131858Z       |     throw new ERR_UNSUPPORTED_ESM_URL_SCHEME(parsed, schemes);
+2026-10-18T00:58:45.6132197Z       |           ^
+2026-10-18T00:58:45.6132416Z       | 
+2026-10-18T00:58:45.6133257Z       | Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'd:'
+2026-10-18T00:58:45.6134069Z       |     at throwIfUnsupportedURLScheme (node:internal/modules/esm/load:203:11)
+2026-10-18T00:58:45.6134666Z       |     at defaultLoadSync (node:internal/modules/esm/load:150:3)
+2026-10-18T00:58:45.6135104Z       |     at ModuleLoader.load (node:internal/modules/esm/loader:831:12)
+2026-10-18T00:58:45.6135566Z       |     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:609:31)
+2026-10-18T00:58:45.6136949Z       |     at #createModuleJob (node:internal/modules/esm/loader:640:36)
+2026-10-18T00:58:45.6137384Z       |     at #getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
+2026-10-18T00:58:45.6138090Z       |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
+2026-10-18T00:58:45.6138628Z       |     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:25) {
+2026-10-18T00:58:45.6139062Z       |   code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME'
+2026-10-18T00:58:45.6139354Z       | }
+2026-10-18T00:58:45.6139728Z       | 
+2026-10-18T00:58:45.6139998Z       | Node.js v22.23.3
+2026-10-18T00:59:42.7700084Z FAIL  packages/nana-pack/tests/land.test.mjs                          9 pass, 42 fail  57.2s  — exit 1
+2026-10-18T00:59:42.7701307Z       | FAIL tracked main changes refuse before running the suite The input did not match the regular expression /main checkout has tracked changes/i. Input:
+2026-10-18T00:59:42.7702384Z       | FAIL tracked source changes refuse before running the suite The input did not match the regular expression /tracked changes/i. Input:
+2026-10-18T00:59:42.7703165Z       | FAIL suite-time main branch switch refuses before merge The input did not match the regular expression /branch main/i. Input:
+2026-10-18T00:59:42.7703939Z       | FAIL suite-time main tracked changes refuse before merge The input did not match the regular expression /main checkout has tracked changes/i. Input:
+2026-10-18T00:59:42.7705014Z       | FAIL suite-time source tracked changes refuse before merge The input did not match the regular expression /source tree has tracked changes/i. Input:
+2026-10-18T00:59:42.7705902Z       | FAIL final review reading, rechecks and ff-only merge run inside one ledger lock refused: --tree and --main must share one git repository
+2026-10-18T00:59:42.7706695Z       | FAIL a verified SEND-BACK written by the suite refuses before merge The input did not match the regular expression /non-LAND verdict/. Input:
+2026-10-18T00:59:42.7707476Z       | FAIL suite-time source revision change refuses before merge The input did not match the regular expression /source tip changed/i. Input:
+2026-10-18T00:59:42.7708275Z       | FAIL suite-time main divergence refuses before merge The input did not match the regular expression /HEAD.*captured|main checkout/i. Input:
+2026-10-18T00:59:42.7709035Z       | FAIL non-fast-forward source tip refuses before running the suite The input did not match the regular expression /ancestor/i. Input:
+2026-10-18T00:59:42.7709811Z       | FAIL a reviewed SHA must be ancestor of the source tip and match a LAND record The input did not match the regular expression /LAND/i. Input:
+2026-10-18T00:59:42.7710656Z       | FAIL a matching-item LAND round for a different revision cannot authorize a merge The input did not match the regular expression /no verified .*LAND review/i. Input:
+2026-10-18T00:59:42.7711823Z       | FAIL drifted LAND round cannot authorize a merge The input did not match the regular expression /no verified .*LAND review/i. Input:
+2026-10-18T00:59:42.7712569Z       | FAIL uncovered integration commits are refused and named The input did not match the regular expression /uncovered commits/. Input:
+2026-10-18T00:59:42.7713331Z       | FAIL main commits outside the reviewed ancestry are not reported as unreviewed refused: --tree and --main must share one git repository
+2026-10-18T00:59:42.7714145Z       | FAIL a LAND round for another item does not authorize this item The input did not match the regular expression /no verified .*LAND review/i. Input:
+2026-10-18T00:59:42.7714910Z       | FAIL a LAND commit outside the source tip ancestry is refused The input did not match the regular expression /not an ancestor/i. Input:
+2026-10-18T00:59:42.7715693Z       | FAIL annotated tag object IDs are not accepted as reviewed commits (R-976) The input did not match the regular expression /plain commit/i. Input:
+2026-10-18T00:59:42.7716506Z       | FAIL snapshot review revisions are never accepted as plain reviewed commits The input did not match the regular expression /plain commit/i. Input:
+2026-10-18T00:59:42.7717435Z       | FAIL runLand requires verified reviews The input did not match the regular expression /reviewed|LAND/i. Input:
+2026-10-18T00:59:42.8354682Z FAIL  packages/nana-pack/tests/lane-write-guard.test.mjs              0 pass  0.1s  — exit 1
+2026-10-18T00:59:42.8355461Z       | node:fs:2791
+2026-10-18T00:59:42.8382030Z       |       const stats = binding.lstat(base, true, undefined, true /* throwIfNoEntry */);
+2026-10-18T00:59:42.8382688Z       |                             ^
+2026-10-18T00:59:42.8383082Z       | 
+2026-10-18T00:59:42.8383678Z       | Error: ENOENT: no such file or directory, lstat 'D:\tmp'
+2026-10-18T00:59:42.8384213Z       |     at Module.realpathSync (node:fs:2791:29)
+2026-10-18T00:59:42.8384893Z       |     at file:///D:/a/nana-pi/nana-pi/packages/nana-pack/tests/lane-write-guard.test.mjs:17:62
+2026-10-18T00:59:42.8385638Z       |     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+2026-10-18T00:59:42.8386439Z       |     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+2026-10-18T00:59:42.8387228Z       |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+2026-10-18T00:59:42.8387817Z       |   errno: -4058,
+2026-10-18T00:59:42.8388151Z       |   code: 'ENOENT',
+2026-10-18T00:59:42.8388471Z       |   syscall: 'lstat',
+2026-10-18T00:59:42.8388843Z       |   path: 'D:\\tmp'
+2026-10-18T00:59:42.8391671Z       | }
+2026-10-18T00:59:42.8391984Z       | 
+2026-10-18T00:59:42.8392275Z       | Node.js v22.23.3
+2026-10-18T00:59:43.0055254Z PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.2s
+2026-10-18T00:59:48.2400941Z PASS  packages/nana-pack/tests/line-endings.test.mjs                  1 pass  5.2s
+2026-10-18T01:00:51.0450467Z PASS  packages/nana-pack/tests/mutation-runner.test.mjs               25 pass, 3 skip  62.8s
+2026-10-18T01:00:51.6601566Z PASS  packages/nana-pack/tests/nana-roster.test.mjs                   17 pass, 2 skip  0.6s
+2026-10-18T01:00:52.2356812Z PASS  packages/nana-pack/tests/notify-fallback.test.mjs               19 pass, 1 skip  0.6s
+2026-10-18T01:01:23.9858732Z FAIL  packages/nana-pack/tests/objective-golden.test.mjs              978 pass, 4 fail, 6 skip  31.7s  — exit 4
+2026-10-18T01:01:23.9862106Z       | FAIL path payload (false): every mention is the escaped, quoted path
+2026-10-18T01:01:23.9862814Z       | FAIL path payload (false): wording
+2026-10-18T01:01:23.9863217Z       | FAIL path payload (true): every mention is the escaped, quoted path
+2026-10-18T01:01:23.9863612Z       | FAIL path payload (true): wording
+2026-10-18T01:01:24.5676578Z PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.6s
+2026-10-18T01:01:24.6303487Z PASS  packages/nana-pack/tests/pi-install.test.mjs                    3 pass, 1 skip  0.1s
+2026-10-18T01:01:25.1048283Z PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    84 pass  0.5s
+2026-10-18T01:01:28.5519763Z FAIL  packages/nana-pack/tests/post-edit-file-queue.test.mjs          2 pass, 1 fail  3.4s  — exit 1
+2026-10-18T01:01:28.5520351Z       | FAIL checker ran strictly after the queue was released
+2026-10-18T01:01:30.2116369Z PASS  packages/nana-pack/tests/post-edit-hardening.test.mjs           15 pass  1.6s
+2026-10-18T01:01:32.1051970Z PASS  packages/nana-pack/tests/post-edit-status.test.mjs              31 pass, 1 skip  1.9s
+2026-10-18T01:02:35.3307634Z PASS  packages/nana-pack/tests/product-report.test.mjs                57 pass  63.2s
+2026-10-18T01:02:35.7981402Z PASS  packages/nana-pack/tests/readme-check.test.mjs                  11 pass  0.5s
+2026-10-18T01:02:41.7274559Z PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  5.9s
+2026-10-18T01:02:42.4150815Z PASS  packages/nana-pack/tests/requirement-rows.test.mjs              5 pass  0.7s
+2026-10-18T01:03:59.8929541Z PASS  packages/nana-pack/tests/requirements-lift.test.mjs             63 pass  77.5s
+2026-10-18T01:04:45.3336289Z PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          59 pass  45.4s
+2026-10-18T01:04:54.1199531Z PASS  packages/nana-pack/tests/requirements-trace.test.mjs            61 pass  8.8s
+2026-10-18T01:04:55.5267383Z PASS  packages/nana-pack/tests/requirements-tree.test.mjs             89 pass  1.4s
+2026-10-18T01:04:55.5899649Z FAIL  packages/nana-pack/tests/review-ledger.test.mjs                 0 pass  0.1s  — exit 1
+2026-10-18T01:04:55.5900470Z       | node:internal/modules/esm/load:203
+2026-10-18T01:04:55.5900967Z       |     throw new ERR_UNSUPPORTED_ESM_URL_SCHEME(parsed, schemes);
+2026-10-18T01:04:55.5901600Z       |           ^
+2026-10-18T01:04:55.5901947Z       | 
+2026-10-18T01:04:55.5902861Z       | Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'd:'
+2026-10-18T01:04:55.5903996Z       |     at throwIfUnsupportedURLScheme (node:internal/modules/esm/load:203:11)
+2026-10-18T01:04:55.5904566Z       |     at defaultLoadSync (node:internal/modules/esm/load:150:3)
+2026-10-18T01:04:55.5905153Z       |     at ModuleLoader.load (node:internal/modules/esm/loader:831:12)
+2026-10-18T01:04:55.5905754Z       |     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:609:31)
+2026-10-18T01:04:55.5906680Z       |     at #createModuleJob (node:internal/modules/esm/loader:640:36)
+2026-10-18T01:04:55.5907364Z       |     at #getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
+2026-10-18T01:04:55.5908119Z       |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
+2026-10-18T01:04:55.5908924Z       |     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:25) {
+2026-10-18T01:04:55.5909515Z       |   code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME'
+2026-10-18T01:04:55.5909879Z       | }
+2026-10-18T01:04:55.5910154Z       | 
+2026-10-18T01:04:55.5910439Z       | Node.js v22.23.3
+2026-10-18T01:04:55.6552785Z PASS  packages/nana-pack/tests/review-round.test.mjs                  33 pass  0.1s
+2026-10-18T01:04:55.7169063Z PASS  packages/nana-pack/tests/review-standard.test.mjs               3 pass, 3 skip  0.1s
+2026-10-18T01:04:56.6842973Z PASS  packages/nana-pack/tests/roster-notice.test.mjs                 16 pass, 1 skip  1.0s
+2026-10-18T01:05:10.2190811Z FAIL  packages/nana-pack/tests/runtime-map.test.mjs                   4 pass, 3 fail, 1 skip  13.5s  — exit 1
+2026-10-18T01:05:10.2192909Z       | FAIL R-1272: with runtime data, impact prints the generator's output byte for byte, then the measured test files that ran each named file longest first with seconds and a FAIL label, a zero line for a file no test ran, and the not-counted closing line
+2026-10-18T01:05:10.2195034Z       | FAIL R-1274: impact marks the whole runtime section stale after a tracked file is changed, added or removed, a section with no measured test included
+2026-10-18T01:05:10.2196821Z       | FAIL R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it
+2026-10-18T01:05:10.4127533Z PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.2s
+2026-10-18T01:05:23.1938758Z FAIL  packages/nana-pack/tests/template-acceptance.test.mjs           9 pass, 3 fail  12.8s  — exit 1
+2026-10-18T01:05:23.1939627Z       | FAIL CLI executes from paths with spaces and encoded-looking names and reports missing uvx The input did not match the regular expression /uvx/. Input:
+2026-10-18T01:05:23.1940693Z       | FAIL a dirty template edit is excluded from a SHA render Command failed: git clone --local --no-hardlinks D:\D:\a\nana-pi\nana-pi C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-zs1Bpn\accept-test-KYT8se\dirty-copier-repo
+2026-10-18T01:05:23.1941921Z       | FAIL declared commands mirror each template CI check job with the install substitution ENOENT: no such file or directory, open 'D:\D:\a\nana-pi\nana-pi\templates\python\template\.github\workflows\ci.yml'
+2026-10-18T01:05:31.6081772Z FAIL  packages/nana-pack/tests/template-release.test.mjs              4 pass, 1 fail  8.4s  — exit 1
+2026-10-18T01:05:31.6084349Z       | FAIL release CLI runs its in-process gate from spaced and percent-looking checkout paths The input did not match the regular expression /uvx/. Input:
+2026-10-18T01:06:25.4857443Z PASS  packages/nana-pack/tests/templates-render.test.mjs              161 pass, 2 skip  53.9s
+2026-10-18T01:06:30.3822037Z FAIL  packages/nana-pack/tests/templates-update.test.mjs              19 pass, 9 fail, 2 skip  4.9s  — exit 1
+2026-10-18T01:06:30.3822898Z       | FAIL Python rail uses the file Requirement while preserving project-owned fields Traceback (most recent call last):
+2026-10-18T01:06:30.3823660Z       | FAIL Python rail flags the two-shall file Requirement when the project has one shall Traceback (most recent call last):
+2026-10-18T01:06:30.3824468Z       | FAIL Python rail reads Part G from REQUIREMENTS.md when the template file is absent Traceback (most recent call last):
+2026-10-18T01:06:30.3825108Z       | FAIL Python rail reports drift without failing its check Traceback (most recent call last):
+2026-10-18T01:06:30.3825761Z       | FAIL Python rejects malformed template status before merging project-owned fields Traceback (most recent call last):
+2026-10-18T01:06:30.3826701Z       | FAIL render has the shared Part G map, mode status, and no Jinja python/false:  Traceback (most recent call last):
+2026-10-18T01:06:30.3827421Z       | FAIL render has the shared Part G map, mode status, and no Jinja python/true:  Traceback (most recent call last):
+2026-10-18T01:06:30.3828108Z       | FAIL render has the shared Part G map, mode status, and no Jinja typescript/false:  Traceback (most recent call last):
+2026-10-18T01:06:30.3828779Z       | FAIL render has the shared Part G map, mode status, and no Jinja typescript/true:  Traceback (most recent call last):
+2026-10-18T01:06:32.5481352Z PASS  packages/nana-pack/tests/test-locked.test.mjs                   12 pass, 1 skip  2.2s
+2026-10-18T01:06:47.5804041Z FAIL  packages/nana-pack/tests/test-runner.test.mjs                   35 pass, 3 fail, 1 skip  15.0s  — exit 1
+2026-10-18T01:06:47.5804647Z       | FAIL a file killed by a signal is FAIL, naming the signal
+2026-10-18T01:06:47.5805201Z       | FAIL in non-verbose mode a failing file prints its first 20 failing check lines
+2026-10-18T01:06:47.5805743Z       | FAIL one line per file, then a totals line with both tallies, exiting 1 on a failure
+2026-10-18T01:06:49.9231571Z PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  2.3s
+2026-10-18T01:06:52.4801305Z PASS  packages/nana-pack/tests/win-command.test.mjs                   93 pass  2.6s
+2026-10-18T01:07:14.6670836Z PASS  packages/nana-pack/tests/win32-launch.test.mjs                  13 pass  22.2s
+2026-10-18T01:07:19.0539489Z FAIL  packages/nana-pack/tests/worker-lane.test.mjs                   7 pass, 3 fail  4.2s  — exit 1
+2026-10-18T01:07:19.0540201Z       | FAIL non-lane repeated worker options keep the legacy first-occurrence behaviour [pi-worker] attempt 1/1
+2026-10-18T01:07:19.0540950Z       | FAIL verified lane passes preamble and validated brief as ordered file paths pi-worker: builder: openai-codex gpt-6-luna high; source: default
+2026-10-18T01:07:19.0541679Z       | FAIL every pi-worker child receives NANA_ROLE=worker No API key found for openai-codex.
+2026-10-18T01:07:19.7477025Z PASS  packages/nana-pack/tests/writing-check.test.mjs                 46 pass  0.7s
+2026-10-18T01:07:21.4055240Z PASS  packages/nana-pack/tests/writing-injection.test.mjs             26 pass, 1 skip  1.7s
+2026-10-18T01:07:21.5815163Z PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs       12 pass  0.2s
+2026-10-18T01:07:21.9750345Z PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          5 pass, 1 skip  0.4s
+2026-10-18T01:07:22.0540727Z PASS  packages/nana-setup/tests/desk-service.test.mjs                 6 pass, 1 skip  0.1s
+2026-10-18T01:07:22.4551898Z FAIL  packages/nana-setup/tests/doctor-detail.test.mjs                3 pass  0.4s  — exit 1
+2026-10-18T01:07:22.4552524Z       | PASS doctor rejects missing and out-of-repo absolute knowledge-hook targets 
+2026-10-18T01:07:22.4552936Z       | PASS desk Node floor is pinned at 22.19 
+2026-10-18T01:07:22.4553375Z       | PASS doctor parses ProgramArguments[0] as the service executable 
+2026-10-18T01:07:22.4553843Z       | file:///D:/a/nana-pi/nana-pi/packages/nana-setup/lib/doctor.mjs:650
+2026-10-18T01:07:22.4554490Z       | 		const print = layout.isRealHome ? spawnSync("launchctl", ["print", `gui/${process.getuid()}/${DESK_LABEL}`], { encoding: "utf8" }) : null;
+2026-10-18T01:07:22.4555075Z       | 		                                                                                  ^
+2026-10-18T01:07:22.4555397Z       | 
+2026-10-18T01:07:22.4555701Z       | TypeError: process.getuid is not a function
+2026-10-18T01:07:22.4556150Z       |     at diagnose (file:///D:/a/nana-pi/nana-pi/packages/nana-setup/lib/doctor.mjs:650:85)
+2026-10-18T01:07:22.4556692Z       |     at file:///D:/a/nana-pi/nana-pi/packages/nana-setup/tests/doctor-detail.test.mjs:20:54
+2026-10-18T01:07:22.4557217Z       |     at withPiStub (file:///D:/a/nana-pi/nana-pi/packages/nana-setup/tests/stub-pi.mjs:25:10)
+2026-10-18T01:07:22.4558029Z       |     at diagnoseWithPi (file:///D:/a/nana-pi/nana-pi/packages/nana-setup/tests/doctor-detail.test.mjs:20:37)
+2026-10-18T01:07:22.4558677Z       |     at diagnoseDesk (file:///D:/a/nana-pi/nana-pi/packages/nana-setup/tests/doctor-detail.test.mjs:97:10)
+2026-10-18T01:07:22.4559244Z       |     at file:///D:/a/nana-pi/nana-pi/packages/nana-setup/tests/doctor-detail.test.mjs:100:19
+2026-10-18T01:07:22.4559614Z       | 
+2026-10-18T01:07:22.4559818Z       | Node.js v22.23.3
+2026-10-18T01:07:22.8598430Z PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             3 pass  0.4s
+2026-10-18T01:07:25.7771984Z PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  2.9s
+2026-10-18T01:07:26.2290646Z PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        8 pass  0.5s
+2026-10-18T01:07:28.2213831Z PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  2.0s
+2026-10-18T01:07:29.1982326Z PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               9 pass, 2 skip  1.0s
+2026-10-18T01:07:29.4400779Z PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.2s
+2026-10-18T01:07:29.6656781Z PASS  packages/nana-setup/tests/entry-guidance.test.mjs               13 pass  0.2s
+2026-10-18T01:07:29.7417670Z PASS  packages/nana-setup/tests/fresh-machine.test.mjs                4 pass  0.1s
+2026-10-18T01:07:29.8073503Z PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.1s
+2026-10-18T01:07:29.9959627Z PASS  packages/nana-setup/tests/hook-producers.test.mjs               10 pass  0.2s
+2026-10-18T01:07:37.2827560Z PASS  packages/nana-setup/tests/hooks-win32-exec.test.mjs             30 pass  7.3s
+2026-10-18T01:07:39.4943650Z FAIL  packages/nana-setup/tests/install-check.test.mjs                104 pass, 1 fail  2.2s  — exit 1
+2026-10-18T01:07:39.4944360Z       | FAIL environment removes overrides and redirects home, temp and npm cache Expected values to be strictly equal:
+2026-10-18T01:07:39.9785412Z FAIL  packages/nana-setup/tests/install.test.mjs                      22 pass, 20 fail  0.5s  — exit 1
+2026-10-18T01:07:39.9786542Z       | FAIL hook nana-objective.mjs is a symlink into the repo 
+2026-10-18T01:07:39.9787049Z       | FAIL hook nana-adoption.mjs is a symlink into the repo 
+2026-10-18T01:07:39.9787568Z       | FAIL hook nana-shared-memory.mjs is a symlink into the repo 
+2026-10-18T01:07:39.9788032Z       | FAIL hook nana-roster-notice.mjs is a symlink into the repo 
+2026-10-18T01:07:39.9788709Z       | FAIL hook verifier-pipe.mjs is a symlink into the repo 
+2026-10-18T01:07:39.9789078Z       | FAIL adoption Node hook is installed as a repo symlink 
+2026-10-18T01:07:39.9789430Z       | FAIL rule nana-soul.md is a symlink into the repo 
+2026-10-18T01:07:39.9789780Z       | FAIL rule nana-standards.md is a symlink into the repo 
+2026-10-18T01:07:39.9790293Z       | FAIL rule nana-writing.md is a symlink into the repo (sourced from the pack, not nana-setup's own claude/rules) 
+2026-10-18T01:07:39.9790826Z       | FAIL rule nana-seat.md is a symlink into the repo 
+2026-10-18T01:07:39.9791198Z       | FAIL skill requirements is a symlink to the pack skill 
+2026-10-18T01:07:39.9791560Z       | FAIL skill spec is a symlink to the pack skill 
+2026-10-18T01:07:39.9791899Z       | FAIL skill py-lint is a symlink to the pack skill 
+2026-10-18T01:07:39.9792250Z       | FAIL skill py-review is a symlink to the pack skill 
+2026-10-18T01:07:39.9792620Z       | FAIL skill py-test is a symlink to the pack skill 
+2026-10-18T01:07:39.9792955Z       | FAIL knowledge hook points at this install root 
+2026-10-18T01:07:39.9793260Z       | FAIL pi-review on PATH 
+2026-10-18T01:07:39.9793712Z       | FAIL land bin is linked, executable, and doctor reports accurate state Expected values to be strictly equal:
+2026-10-18T01:07:39.9794182Z       | FAIL pi-worker installed as PATH symlink 
+2026-10-18T01:07:39.9794529Z       | FAIL nana-setup installed as PATH symlink 
+2026-10-18T01:07:40.0411318Z PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.1s
+2026-10-18T01:07:40.1284472Z PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               8 pass  0.1s
+2026-10-18T01:07:53.0729779Z PASS  packages/nana-setup/tests/pi-registration.test.mjs              64 pass, 3 skip  12.9s
+2026-10-18T01:07:53.9779441Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.7s
+2026-10-18T01:07:54.0404770Z PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.1s
+2026-10-18T01:07:54.4536564Z FAIL  packages/nana-setup/tests/project-working-region.test.mjs       20 pass, 7 fail  0.4s  — exit 1
+2026-10-18T01:07:54.4537243Z       | FAIL refresh changes only the marked bytes and retains CRLF surrounding bytes outside-before
+2026-10-18T01:07:54.4537687Z       | FAIL check accepts the refreshed region 
+2026-10-18T01:07:54.4538049Z       | FAIL outside edits do not change the region check 
+2026-10-18T01:07:54.4538490Z       | FAIL BOM and prose before markers remain byte-identical after refresh 
+2026-10-18T01:07:54.4539033Z       | FAIL atomic refresh preserves mode and keeps CLAUDE link resolving to refreshed content 
+2026-10-18T01:07:54.4539527Z       | FAIL symlink swap after lstat is refused without changing its target 
+2026-10-18T01:07:54.4539894Z       | FAIL summary: 6 failures
+2026-10-18T01:07:54.6957851Z FAIL  packages/nana-setup/tests/project.test.mjs                      8 pass  0.2s  — exit 1
+2026-10-18T01:07:54.6958558Z       | PASS project exits 0 
+2026-10-18T01:07:54.6959054Z       | PASS created OBJECTIVE.md 
+2026-10-18T01:07:54.6959445Z       | PASS created HANDOFF.md 
+2026-10-18T01:07:54.6959902Z       | PASS created docs/sessions/README.md 
+2026-10-18T01:07:54.6960372Z       | PASS created docs/sessions/2026-10.md 
+2026-10-18T01:07:54.6960815Z       | PASS created AGENTS.md 
+2026-10-18T01:07:54.6961212Z       | PASS created .pi/nana-pack.json 
+2026-10-18T01:07:54.6961580Z       | PASS git initialized 
+2026-10-18T01:07:54.6961928Z       | node:fs:1791
+2026-10-18T01:07:54.6962412Z       |   return binding.readlink(getValidatedPath(path), options.encoding);
+2026-10-18T01:07:54.6962947Z       |                  ^
+2026-10-18T01:07:54.6963258Z       | 
+2026-10-18T01:07:54.6964128Z       | Error: EINVAL: invalid argument, readlink 'C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-NxFMYT\nana-project-AGBsN2\widget-shop\CLAUDE.md'
+2026-10-18T01:07:54.6965032Z       |     at Module.readlinkSync (node:fs:1791:18)
+2026-10-18T01:07:54.6966005Z       |     at file:///D:/a/nana-pi/nana-pi/packages/nana-setup/tests/project.test.mjs:79:59 {
+2026-10-18T01:07:54.6966838Z       |   errno: -4071,
+2026-10-18T01:07:54.6967159Z       |   code: 'EINVAL',
+2026-10-18T01:07:54.6967539Z       |   syscall: 'readlink',
+2026-10-18T01:07:54.6968253Z       |   path: 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-4836-NxFMYT\\nana-project-AGBsN2\\widget-shop\\CLAUDE.md'
+2026-10-18T01:07:54.6968900Z       | }
+2026-10-18T01:07:56.0731161Z PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           29 pass  1.4s
+2026-10-18T01:07:57.0017155Z FAIL  packages/nana-setup/tests/restore.test.mjs                      0 pass  0.9s  — exit 1
+2026-10-18T01:07:57.0018111Z       | node:internal/modules/esm/load:203
+2026-10-18T01:07:57.0018555Z       |     throw new ERR_UNSUPPORTED_ESM_URL_SCHEME(parsed, schemes);
+2026-10-18T01:07:57.0018874Z       |           ^
+2026-10-18T01:07:57.0019109Z       | 
+2026-10-18T01:07:57.0019794Z       | Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'c:'
+2026-10-18T01:07:57.0020603Z       |     at throwIfUnsupportedURLScheme (node:internal/modules/esm/load:203:11)
+2026-10-18T01:07:57.0021028Z       |     at defaultLoadSync (node:internal/modules/esm/load:150:3)
+2026-10-18T01:07:57.0021694Z       |     at ModuleLoader.load (node:internal/modules/esm/loader:831:12)
+2026-10-18T01:07:57.0022149Z       |     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:609:31)
+2026-10-18T01:07:57.0022587Z       |     at #createModuleJob (node:internal/modules/esm/loader:640:36)
+2026-10-18T01:07:57.0023009Z       |     at #getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
+2026-10-18T01:07:57.0023595Z       |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
+2026-10-18T01:07:57.0024162Z       |     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:25) {
+2026-10-18T01:07:57.0024585Z       |   code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME'
+2026-10-18T01:07:57.0024853Z       | }
+2026-10-18T01:07:57.0025052Z       | 
+2026-10-18T01:07:57.0025257Z       | Node.js v22.23.3
+2026-10-18T01:08:03.7697263Z FAIL  packages/nana-setup/tests/retired-artifacts.test.mjs            37 pass, 10 fail  6.8s  — exit 1
+2026-10-18T01:08:03.7698332Z       | FAIL recognized Claude skill and empty flag move under dated backups nana-setup install
+2026-10-18T01:08:03.7702649Z       | FAIL install removes released quoted context hook and preserves the expected variants [{"type":"command","command":"bash 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-4836-AZfPWf\\nana-retired-9mUOej\\.claude\\hooks\\context-size-check.sh'"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh --owner-variant"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh","owner":"Jake","enabled":true},{"type":"prompt","command":"bash ~/.claude/hooks/context-size-check.sh","prompt":"owner text"},{"type":"command","command":"node","args":["D:\\a\\nana-pi\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]
+2026-10-18T01:08:03.7705781Z       | FAIL managed pack skill replaces the backed-up legacy spec 
+2026-10-18T01:08:03.7706201Z       | FAIL doctor reads a canonical pack skill link as healthy 
+2026-10-18T01:08:03.7706888Z       | FAIL rerun after completed moves succeeds and keeps the dated backup nana-setup install
+2026-10-18T01:08:03.7707528Z       | FAIL alternate Claude home scopes retirement away from the default home nana-setup install
+2026-10-18T01:08:03.7708051Z       | FAIL provenance mismatch remains untouched and is reported nana-setup install
+2026-10-18T01:08:03.7708823Z       | FAIL doctor reports a same-name regular skill directory as unhealthy nana-setup doctor — D:\a\nana-pi\nana-pi
+2026-10-18T01:08:03.7709764Z       | FAIL edited and extended real legacy artifacts stay active and unbacked nana-setup install
+2026-10-18T01:08:03.7710409Z       | FAIL foreign newly managed skill link survives end-to-end install nana-setup install
+2026-10-18T01:08:04.8241540Z PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  1.1s
+2026-10-18T01:08:04.8826832Z PASS  packages/nana-setup/tests/seat-rule.test.mjs                    13 pass  0.1s
+2026-10-18T01:08:15.0999385Z PASS  packages/nana-setup/tests/settings-merge.test.mjs               209 pass, 7 skip  10.2s
+2026-10-18T01:08:15.1785145Z PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.1s
+2026-10-18T01:08:16.2662949Z PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           42 pass, 1 skip  1.1s
+2026-10-18T01:08:16.3871827Z PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+2026-10-18T01:08:17.1255841Z FAIL  packages/nana-setup/tests/skills-and-standards.test.mjs         13 pass, 4 fail  0.7s  — exit 1
+2026-10-18T01:08:17.1256513Z       | FAIL ~/.claude/skills/requirements is a symlink to the PACK skill null
+2026-10-18T01:08:17.1256971Z       | FAIL ~/.claude/rules/nana-standards.md is a symlink into the repo 
+2026-10-18T01:08:17.1257363Z       | FAIL second install still has the skill symlink 
+2026-10-18T01:08:17.1257949Z       | FAIL doctor reads ✓ skill requirements nana-setup doctor — D:\a\nana-pi\nana-pi
+2026-10-18T01:08:17.7626971Z FAIL  packages/nana-setup/tests/state-manifest.test.mjs               7 pass, 9 fail  0.6s  — exit 1
+2026-10-18T01:08:17.7627756Z       | FAIL every path created by install maps to a nana-setup-owned manifest row 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7628420Z       | FAIL state prints exact row parity and preserves bytes, modes and mtimes 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7629119Z       | FAIL state --paths succeeds with mode-zero secrets and preserves bytes, modes and mtimes 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7629826Z       | FAIL default disjoint home roots still produce a paths listing 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7630441Z       | FAIL refuses reversed symlink alias between Claude and pi home roots 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7631032Z       | FAIL refuses pi home nested beneath durable nana share 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7631604Z       | FAIL refuses Claude home nested beneath pi home at two depths 1 node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7632277Z       | FAIL state refuses wildcard metacharacters in configured roots before output 1 "" node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:17.7632827Z       | FAIL wildcard parent symlink outside home is silently skipped 
+2026-10-18T01:08:18.4813652Z FAIL  packages/nana-setup/tests/trust.test.mjs                        0 pass  0.7s  — exit 1
+2026-10-18T01:08:18.4814185Z       | node:internal/modules/esm/load:203
+2026-10-18T01:08:18.4814598Z       |     throw new ERR_UNSUPPORTED_ESM_URL_SCHEME(parsed, schemes);
+2026-10-18T01:08:18.4814932Z       |           ^
+2026-10-18T01:08:18.4815145Z       | 
+2026-10-18T01:08:18.4815841Z       | Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'c:'
+2026-10-18T01:08:18.4816675Z       |     at throwIfUnsupportedURLScheme (node:internal/modules/esm/load:203:11)
+2026-10-18T01:08:18.4817109Z       |     at defaultLoadSync (node:internal/modules/esm/load:150:3)
+2026-10-18T01:08:18.4817509Z       |     at ModuleLoader.load (node:internal/modules/esm/loader:831:12)
+2026-10-18T01:08:18.4817959Z       |     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:609:31)
+2026-10-18T01:08:18.4818402Z       |     at #createModuleJob (node:internal/modules/esm/loader:640:36)
+2026-10-18T01:08:18.4819714Z       |     at #getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
+2026-10-18T01:08:18.4820208Z       |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
+2026-10-18T01:08:18.4820738Z       |     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:25) {
+2026-10-18T01:08:18.4821159Z       |   code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME'
+2026-10-18T01:08:18.4821452Z       | }
+2026-10-18T01:08:18.4821647Z       | 
+2026-10-18T01:08:18.4821857Z       | Node.js v22.23.3
+2026-10-18T01:08:18.7761558Z FAIL  packages/nana-setup/tests/uninstall.test.mjs                    1 pass, 1 fail  0.3s  — exit 1
+2026-10-18T01:08:18.7762190Z       | FAIL external inventory link aborts before changing its target or link 
+2026-10-18T01:08:20.9034197Z PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                29 pass  2.1s
+2026-10-18T01:08:29.9701391Z PASS  packages/nana-setup/tests/win32-degrade.test.mjs                97 pass  9.1s
+2026-10-18T01:08:30.0444453Z PASS  packages/nana-setup/tests/writing-rule.test.mjs                 3 pass  0.1s
+2026-10-18T01:08:30.1472737Z PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+2026-10-18T01:08:30.2207558Z FAIL  apps/desk/test/app-listener.test.mjs                            0 pass  0.1s  — exit 1
+2026-10-18T01:08:30.2208316Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:30.2208732Z       | 		throw new Error(
+2026-10-18T01:08:30.2209225Z       | 		      ^
+2026-10-18T01:08:30.2209460Z       | 
+2026-10-18T01:08:30.2209910Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:30.2210422Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:30.2210927Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:30.2211478Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:30.2211965Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:30.2212398Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.2212862Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.2213374Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.2213904Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.2214582Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vuJrhb\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.2215178Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.2215786Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vuJrhb\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.2216418Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.2217058Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vuJrhb\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.2217688Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.2218352Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vuJrhb\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.3133358Z FAIL  apps/desk/test/buffer-caps.test.mjs                             0 pass  0.1s  — exit 1
+2026-10-18T01:08:30.3133964Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:30.3134306Z       | 		throw new Error(
+2026-10-18T01:08:30.3134548Z       | 		      ^
+2026-10-18T01:08:30.3134758Z       | 
+2026-10-18T01:08:30.3135439Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:30.3135888Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:30.3136378Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:30.3136911Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:30.3137378Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:30.3137805Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.3138251Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.3138765Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.3139295Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.3140294Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-PBIwj6\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.3140906Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.3141500Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-PBIwj6\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.3142342Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.3142993Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-PBIwj6\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:30.3143648Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:30.3144315Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-PBIwj6\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:35.0827226Z FAIL  apps/desk/test/changes-endpoint.test.mjs                        70 pass, 2 fail  4.8s  — exit 1
+2026-10-18T01:08:35.0828255Z       | FAIL repo: root is the work tree C:/Users/runneradmin/AppData/Local/Temp/nana-test-4836-gSJVWM/desk-changes-8S47Zd/repo vs C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4836-gSJVWM\desk-changes-8S47Zd\repo
+2026-10-18T01:08:35.0829251Z       | FAIL the file endpoint refuses an untracked symlink inside the root {"status":400,"body":{"error":"path must not leave the repository root"}}
+2026-10-18T01:08:35.1718879Z FAIL  apps/desk/test/crash-paths.test.mjs                             0 pass  0.1s  — exit 1
+2026-10-18T01:08:35.1719796Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:35.1720173Z       | 		throw new Error(
+2026-10-18T01:08:35.1720503Z       | 		      ^
+2026-10-18T01:08:35.1720752Z       | 
+2026-10-18T01:08:35.1721146Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:35.1721661Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:35.1722289Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:35.1722825Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:35.1723254Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:35.1723683Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:35.1724256Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:35.1724789Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:35.1725301Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:35.1725981Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-alZRQu\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:35.1726858Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:35.1727521Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-alZRQu\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:35.1728256Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:35.1729197Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-alZRQu\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:35.1729864Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:35.1730612Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-alZRQu\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:45.6782745Z FAIL  apps/desk/test/host-rule.test.mjs                               0 pass  10.5s  — exit 1
+2026-10-18T01:08:45.6783551Z       | HARNESS ERROR desk server never came up: node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:45.6784097Z       |   throw err;
+2026-10-18T01:08:45.6784411Z       |   ^
+2026-10-18T01:08:45.6784712Z       | 
+2026-10-18T01:08:45.6785171Z       | Error: Cannot find module 'D:\D:\a\nana-pi\nana-pi\apps\desk\server.mjs'
+2026-10-18T01:08:45.6786203Z       |     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+2026-10-18T01:08:45.6786877Z       |     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+2026-10-18T01:08:45.6787473Z       |     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+2026-10-18T01:08:45.6788137Z       |     at Function._load (node:internal/modules/cjs/loader:1216:25)
+2026-10-18T01:08:45.6788731Z       |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+2026-10-18T01:08:45.6789477Z       |     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-10-18T01:08:45.6790168Z       |     at node:internal/main/run_main_module:36:49 {
+2026-10-18T01:08:45.6790626Z       |   code: 'MODULE_NOT_FOUND',
+2026-10-18T01:08:45.6791031Z       |   requireStack: []
+2026-10-18T01:08:45.6791366Z       | }
+2026-10-18T01:08:45.6791639Z       | 
+2026-10-18T01:08:45.6791934Z       | Node.js v22.23.3
+2026-10-18T01:08:45.6792251Z       |  
+2026-10-18T01:08:45.6792842Z       | --- server log ---
+2026-10-18T01:08:45.6793253Z       |  node:internal/modules/cjs/loader:1433
+2026-10-18T01:08:45.7647123Z FAIL  apps/desk/test/knowledge-home-isolation.test.mjs                0 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:08:45.7647684Z       | FAIL real-pi launchers isolate the knowledge home
+2026-10-18T01:08:45.8289331Z PASS  apps/desk/test/live-feel.test.mjs                               64 pass  0.1s
+2026-10-18T01:08:56.0829703Z FAIL  apps/desk/test/origin-rule.test.mjs                             0 pass  10.3s  — exit 1
+2026-10-18T01:08:56.0830267Z       | HARNESS ERROR Error: desk server never came up
+2026-10-18T01:08:56.0830691Z       |     at file:///D:/a/nana-pi/nana-pi/apps/desk/test/origin-rule.test.mjs:36:23
+2026-10-18T01:08:56.1558194Z FAIL  apps/desk/test/pi-087-entries.test.mjs                          0 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:08:56.1558926Z       | FAIL harness Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.2487956Z FAIL  apps/desk/test/pi-resolution.test.mjs                           4 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:08:56.2488644Z       | FAIL harness Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.3236100Z FAIL  apps/desk/test/pi-rpc-contract.test.mjs                         1 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:08:56.3237107Z       | FAIL installed pi RPC contract completes Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.3985731Z FAIL  apps/desk/test/pi-session-parity.test.mjs                       0 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:08:56.3986431Z       | FAIL harness Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.4792241Z FAIL  apps/desk/test/prompt-detach.test.mjs                           0 pass  0.1s  — exit 1
+2026-10-18T01:08:56.4792905Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:56.4793246Z       | 		throw new Error(
+2026-10-18T01:08:56.4793496Z       | 		      ^
+2026-10-18T01:08:56.4793737Z       | 
+2026-10-18T01:08:56.4794128Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.4794568Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:56.4795057Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:56.4795604Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:56.4796059Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:56.4796479Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.4796928Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.4797674Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.4798237Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.4798907Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vr0N1Q\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.4799520Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.4800139Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vr0N1Q\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.4800768Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.4801403Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vr0N1Q\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.4802034Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.4802688Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-vr0N1Q\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.5618680Z FAIL  apps/desk/test/spawn-and-persist.test.mjs                       0 pass  0.1s  — exit 1
+2026-10-18T01:08:56.5619277Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:56.5619681Z       | 		throw new Error(
+2026-10-18T01:08:56.5619919Z       | 		      ^
+2026-10-18T01:08:56.5620126Z       | 
+2026-10-18T01:08:56.5620519Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.5620952Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:56.5621440Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:56.5622029Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:56.5622479Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:56.5622935Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.5623399Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.5623942Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.5624719Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.5625393Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-EbChJr\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.5625995Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.5626637Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-EbChJr\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.5627238Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.5627872Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-EbChJr\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.5628496Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.5629187Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-EbChJr\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.6422945Z FAIL  apps/desk/test/stage-key-persistence.test.mjs                   0 pass  0.1s  — exit 1
+2026-10-18T01:08:56.6423657Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:56.6424005Z       | 		throw new Error(
+2026-10-18T01:08:56.6424268Z       | 		      ^
+2026-10-18T01:08:56.6424751Z       | 
+2026-10-18T01:08:56.6425144Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.6425578Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:56.6426149Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:56.6426772Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:56.6427228Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:56.6427656Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.6428150Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.6428698Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.6429350Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.6430205Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-hAbdBb\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.6430803Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.6431414Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-hAbdBb\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.6432056Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.6432692Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-hAbdBb\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.6433315Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.6434019Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-hAbdBb\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.7285730Z FAIL  apps/desk/test/teardown-invariants.test.mjs                     0 pass  0.1s  — exit 1
+2026-10-18T01:08:56.7286580Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:56.7287018Z       | 		throw new Error(
+2026-10-18T01:08:56.7287329Z       | 		      ^
+2026-10-18T01:08:56.7287641Z       | 
+2026-10-18T01:08:56.7288167Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.7289154Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:56.7289897Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:56.7290772Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:56.7328314Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:56.7329478Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.7330460Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.7331099Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.7331623Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.7332293Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-I0Vu6X\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.7332934Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.7333567Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-I0Vu6X\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.7334932Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.7335620Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-I0Vu6X\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.7336249Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.7336936Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-I0Vu6X\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.8137488Z FAIL  apps/desk/test/usage-line.test.mjs                              0 pass  0.1s  — exit 1
+2026-10-18T01:08:56.8138037Z       | file:///D:/a/nana-pi/nana-pi/apps/desk/pi-session.mjs:305
+2026-10-18T01:08:56.8138750Z       | 		throw new Error(
+2026-10-18T01:08:56.8138990Z       | 		      ^
+2026-10-18T01:08:56.8139201Z       | 
+2026-10-18T01:08:56.8139583Z       | Error: cannot tie a @earendil-works/pi-coding-agent installation to the pi the desk spawns.
+2026-10-18T01:08:56.8140102Z       |   executable: C:\npm\prefix\pi.cmd
+2026-10-18T01:08:56.8140584Z       |   it is not inside a @earendil-works/pi-coding-agent package (a manager shim?) and `--version` did not answer,
+2026-10-18T01:08:56.8141101Z       |   so none of the installations found can be shown to be the same one.
+2026-10-18T01:08:56.8141530Z       | No @earendil-works/pi-coding-agent installation was found. Looked in:
+2026-10-18T01:08:56.8141950Z       |   C:\npm\prefix\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.8142430Z       |       via npm_config_prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.8142943Z       |   C:\hostedtoolcache\windows\node\22.23.3\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.8143464Z       |       via node prefix (nvm/fnm), no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.8144135Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-rFv3f0\.bun\install\global\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.8144740Z       |       via bun, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.8145332Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-rFv3f0\.local\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.8145958Z       |       via ~/.local prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.8146588Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-rFv3f0\.npm-global\lib\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.8147474Z       |       via ~/.npm-global prefix, no package.json for @earendil-works/pi-coding-agent
+2026-10-18T01:08:56.8148128Z       |   C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-runner-4836-YlBsd2\home-rFv3f0\AppData\Roaming\npm\node_modules\@earendil-works\pi-coding-agent
+2026-10-18T01:08:56.9162598Z FAIL  apps/bench/test/agentdir.test.mjs                               25 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:08:56.9163074Z       | FAIL the dir is 0700 666
+2026-10-18T01:08:56.9937518Z PASS  apps/bench/test/aggregate.test.mjs                              62 pass  0.1s
+2026-10-18T01:08:57.0651396Z FAIL  apps/bench/test/argv.test.mjs                                   31 pass, 1 fail, 1 skip  0.1s  — exit 1
+2026-10-18T01:08:57.0652263Z       | FAIL relative -e path is made absolute against studyDir D:\tmp\nana-bench\.ext\pi-web-access\node_modules\pi-web-access\index.ts
+2026-10-18T01:08:57.9042256Z FAIL  apps/bench/test/catch-ledger.test.mjs                           65 pass, 4 fail  0.8s  — exit 1
+2026-10-18T01:08:57.9043159Z       | FAIL judge exit 1 → throws 
+2026-10-18T01:08:57.9043652Z       | FAIL judge non-JSON → throws 
+2026-10-18T01:08:57.9044136Z       | FAIL judge is_error → throws 
+2026-10-18T01:08:57.9044667Z       | FAIL judge silently on another model → throws 
+2026-10-18T01:09:03.2915647Z PASS  apps/bench/test/checkers.test.mjs                               92 pass  5.4s
+2026-10-18T01:09:06.5246354Z PASS  apps/bench/test/evaluator-hardening.test.mjs                    68 pass  3.2s
+2026-10-18T01:09:08.9804514Z PASS  apps/bench/test/integration.test.mjs                            48 pass  2.5s
+2026-10-18T01:09:09.0459856Z PASS  apps/bench/test/nested.test.mjs                                 59 pass  0.1s
+2026-10-18T01:09:09.3447959Z PASS  apps/bench/test/ops.test.mjs                                    48 pass  0.3s
+2026-10-18T01:09:17.3460577Z PASS  apps/bench/test/orchestration-paths.test.mjs                    85 pass  8.0s
+2026-10-18T01:09:17.4529242Z PASS  apps/bench/test/plan.test.mjs                                   57 pass  0.1s
+2026-10-18T01:09:17.4535282Z SKIP  apps/bench/test/study-tasks.test.mjs                            needs apps/bench/.ext/pi-web-access (not present)
+2026-10-18T01:09:18.4538117Z PASS  apps/bench/test/timeout.test.mjs                                12 pass  1.0s
+2026-10-18T01:09:18.5304907Z FAIL  apps/bench/test/usage.test.mjs                                  89 pass, 1 fail  0.1s  — exit 1
+2026-10-18T01:09:18.5305687Z       | FAIL a wrong BENCH_PI_ROOT fails and names the path tried the bench needs the installed @earendil-works/pi-coding-agent (>= 0.84.4) for to
+2026-10-18T01:09:18.7572639Z 
+2026-10-18T01:09:18.7574449Z 150 files: 96 PASS, 53 FAIL, 1 SKIP, 0 WARN · checks: 5684 pass, 153 fail, 53 skip · 774.6s
+2026-10-18T01:09:18.7584340Z failed: packages/nana-pack/tests/agent-dir-hostile.test.mjs, packages/nana-pack/tests/agent-dir-parity.test.mjs, packages/nana-pack/tests/display-surfaces.test.mjs, packages/nana-pack/tests/frontier.test.mjs, packages/nana-pack/tests/gate-corpus.test.mjs, packages/nana-pack/tests/gate-policy-paths.test.mjs, packages/nana-pack/tests/handoff-artifact.test.mjs, packages/nana-pack/tests/handoff-staleness.test.mjs, packages/nana-pack/tests/handoff-store.test.mjs, packages/nana-pack/tests/handoff-trust.test.mjs, packages/nana-pack/tests/immutable-review.test.mjs, packages/nana-pack/tests/land.test.mjs, packages/nana-pack/tests/lane-write-guard.test.mjs, packages/nana-pack/tests/objective-golden.test.mjs, packages/nana-pack/tests/post-edit-file-queue.test.mjs, packages/nana-pack/tests/review-ledger.test.mjs, packages/nana-pack/tests/runtime-map.test.mjs, packages/nana-pack/tests/template-acceptance.test.mjs, packages/nana-pack/tests/template-release.test.mjs, packages/nana-pack/tests/templates-update.test.mjs, packages/nana-pack/tests/test-runner.test.mjs, packages/nana-pack/tests/worker-lane.test.mjs, packages/nana-setup/tests/doctor-detail.test.mjs, packages/nana-setup/tests/install-check.test.mjs, packages/nana-setup/tests/install.test.mjs, packages/nana-setup/tests/project-working-region.test.mjs, packages/nana-setup/tests/project.test.mjs, packages/nana-setup/tests/restore.test.mjs, packages/nana-setup/tests/retired-artifacts.test.mjs, packages/nana-setup/tests/skills-and-standards.test.mjs, packages/nana-setup/tests/state-manifest.test.mjs, packages/nana-setup/tests/trust.test.mjs, packages/nana-setup/tests/uninstall.test.mjs, apps/desk/test/app-listener.test.mjs, apps/desk/test/buffer-caps.test.mjs, apps/desk/test/changes-endpoint.test.mjs, apps/desk/test/crash-paths.test.mjs, apps/desk/test/host-rule.test.mjs, apps/desk/test/knowledge-home-isolation.test.mjs, apps/desk/test/origin-rule.test.mjs, apps/desk/test/pi-087-entries.test.mjs, apps/desk/test/pi-resolution.test.mjs, apps/desk/test/pi-rpc-contract.test.mjs, apps/desk/test/pi-session-parity.test.mjs, apps/desk/test/prompt-detach.test.mjs, apps/desk/test/spawn-and-persist.test.mjs, apps/desk/test/stage-key-persistence.test.mjs, apps/desk/test/teardown-invariants.test.mjs, apps/desk/test/usage-line.test.mjs, apps/bench/test/agentdir.test.mjs, apps/bench/test/argv.test.mjs, apps/bench/test/catch-ledger.test.mjs, apps/bench/test/usage.test.mjs
+2026-10-18T01:09:18.8067300Z ##[error]Process completed with exit code 1.
+2026-10-18T01:09:18.8242053Z Post job cleanup.
+2026-10-18T01:09:18.9673827Z Pruning is unnecessary.
+2026-10-18T01:09:18.9929975Z Post job cleanup.
+2026-10-18T01:09:19.1337929Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-18T01:09:19.1627696Z git version 2.56.0.windows.2
+2026-10-18T01:09:19.1687719Z Temporarily overriding HOME='D:\a\_temp\0222e267-8a2b-46d7-85dd-e3439d792172' before making global git config changes
+2026-10-18T01:09:19.1688702Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-18T01:09:19.1697030Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+2026-10-18T01:09:19.2019885Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-18T01:09:19.2347963Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-18T01:09:19.8584646Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-18T01:09:19.8853255Z http.https://github.com/.extraheader
+2026-10-18T01:09:19.8887919Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-18T01:09:19.9179767Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-18T01:09:20.3979984Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-18T01:09:20.4280075Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-18T01:09:20.8990729Z Cleaning up orphan processes
+2026-10-18T01:09:20.9304262Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, astral-sh/setup-uv@v5, pnpm/action-setup@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
