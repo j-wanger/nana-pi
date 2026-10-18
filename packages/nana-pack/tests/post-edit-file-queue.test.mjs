@@ -63,8 +63,11 @@ const td = tmpDir(path.join(os.tmpdir(), "postedit-queue-"));
 const ws = path.join(td, "ws");
 fs.mkdirSync(path.join(ws, ".pi"), { recursive: true });
 const orderLog = path.join(ws, "order.log");
-// the checker only records WHEN it ran, so ordering against the release is provable
-const cmd = `node -e "require('fs').appendFileSync('${orderLog}','checker'+String.fromCharCode(10))"`;
+// the checker only records WHEN it ran, so ordering against the release is provable.
+// orderLog goes through an env var, not interpolated into the -e source: a Windows
+// path's backslashes would otherwise mangle (or, via \n, truncate) the string literal.
+process.env.ORDER_LOG = orderLog;
+const cmd = `node -e "require('fs').appendFileSync(process.env.ORDER_LOG,'checker'+String.fromCharCode(10))"`;
 fs.writeFileSync(USER_CFG, JSON.stringify({
 	journal: { enabled: false },
 	receipts: { enabled: true, dir: path.join(td, "receipts") },

@@ -29,6 +29,9 @@ const mod = await import(new URL("../extensions/nana-handoff.ts", import.meta.ur
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 const journal = () => (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "");
+// parsed entries, not a raw-text substring match: JSON.stringify escapes a Windows path's
+// backslashes, so a raw path never appears as a literal substring of the journal text.
+const journalEntries = () => journal().trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const STORE = path.join(NANA_HOME, ".pi", "agent", "handoffs");
 
 function session(cwd, extra = {}) {
@@ -190,7 +193,7 @@ for (const [label, getSessionFile] of [["throws", () => { throw new Error("no se
 	fs.rmSync(JOURNAL, { force: true });
 	check("missing: nothing injected", (await session(proj).prompt()) === "BASE");
 	// req: R-117
-	check("missing: handoff_missing journaled with the store path", journal().includes('"handoff_missing"') && journal().includes(mod.storePathFor(proj)));
+	check("missing: handoff_missing journaled with the store path", journalEntries().some((e) => e.event === "handoff_missing" && e.path === mod.storePathFor(proj)));
 	// req: R-117
 	check("missing: not journaled as a failed pickup", !journal().includes('"handoff_pickup_failed"'));
 }
