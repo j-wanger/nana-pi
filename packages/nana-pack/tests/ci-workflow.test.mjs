@@ -117,6 +117,12 @@ check("Windows suite failure does not block release", () => {
   assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
   assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n/m);
 });
+// req: R-1313
+check("R-1313: the Windows suite leg runs the suite verbose", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  assert.match(suite, /^      - run: npm test\n        if: matrix\.os != 'windows-latest'$/m);
+  assert.match(suite, /^      - run: npm test -- --verbose\n        if: matrix\.os == 'windows-latest'$/m);
+});
 // req: R-1078
 check("install check is a blocking macOS and Windows job", () => {
   const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";

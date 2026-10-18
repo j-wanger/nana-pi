@@ -147,7 +147,7 @@ Before the first session:
 2. Run `nana-setup trust <dir>`.
 
 It seeds `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/` (README + this month's file),
-`AGENTS.md` + a `CLAUDE.md` symlink and a `.pi/nana-pack.json` on-ramp, `git init`s when
+`AGENTS.md` + a one-line `CLAUDE.md` import and a `.pi/nana-pack.json` on-ramp, `git init`s when
 needed, and refreshes the knowledge index. Nothing existing is ever overwritten;
 `project --check` prints one ✓/✗ per file. Scaffolded and adopted projects get the same three
 seeds from the same `templates/_shared` source (copier template, `adopt-structure` skill).

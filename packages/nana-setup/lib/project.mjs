@@ -4,13 +4,12 @@
  * @inputs the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the
  *  templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader;
- *  NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS,
- *  NANA_SETUP_PLATFORM
+ *  NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS
  * @outputs setupProject() reports rows and checkProject() asynchronously reports rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
- *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a relative CLAUDE.md symlink (a copy on
- *  win32), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
- *  exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER,
- *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS
+ *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`,
+ *  every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
+ *  exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT,
+ *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS, RENAME_RETRY_ATTEMPTS, RENAME_RETRY_DELAY_MS
  * @effects disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a
  *  parent-side deadline — SIGTERM then SIGKILL after the grace)
  * @errors SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a
@@ -34,13 +33,11 @@ import * as fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
-import { platform, repoRoot } from "./paths.mjs";
+import { repoRoot } from "./paths.mjs";
 import { KNOWLEDGE_CLI, SetupError, readPiPackConfig } from "./steps.mjs";
 
 /** The single source of the three seeds — shared with the copier templates and the skill. */
 export const SHARED_DIR = path.join(repoRoot, "templates", "_shared");
-
-const win = () => platform() === "win32";
 
 export function today(d = new Date()) {
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -67,6 +64,22 @@ function readShared(rel) {
 function lstat(p) {
 	try {
 		return fs.lstatSync(p);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * For an identity comparison only: an NTFS file reference is a 64-bit value (a 48-bit MFT
+ * record index plus a 16-bit reuse-sequence number in the high bits — confirmed against NTFS's
+ * on-disk file-reference structure, 2026-10-17); as a plain JS number `ino` can lose precision
+ * past Number.MAX_SAFE_INTEGER, which Node's own `bigint` stat option exists to avoid (fs docs,
+ * the bigint option on stat/fstat/lstat). Lossy `dev`/`ino` can then read two different files as
+ * the same one. `{ bigint: true }` keeps both exact.
+ */
+function lstatIdentity(p) {
+	try {
+		return fs.lstatSync(p, { bigint: true });
 	} catch {
 		return null;
 	}
@@ -125,6 +138,18 @@ export function stepSeeds(dir, o, { name, date }) {
 export const WORKING_BEGIN = "<!-- nana:working-under-nana-pi begin -->";
 export const WORKING_END = "<!-- nana:working-under-nana-pi end -->";
 
+/**
+ * The one-line import, on every platform. Claude Code resolves a repo-relative `@path` import
+ * with no approval prompt (https://code.claude.com/docs/en/memory.md, imports; checked
+ * 2026-10-17) — unlike a symlink, it survives a Windows clone that checks it out without
+ * symlink support, where it would otherwise become the 9-byte placeholder (see PLACEHOLDER_RE).
+ */
+export const CLAUDE_IMPORT = "@AGENTS.md\n";
+
+/** Exactly what git for Windows checks a `CLAUDE.md -> AGENTS.md` symlink out as, with no symlink
+ * support: the link target's own text, nothing else, an optional trailing newline. */
+const PLACEHOLDER_RE = /^AGENTS\.md\r?\n?$/;
+
 export function agentsStub(name) {
 	return (
 		`# ${name}\n\n` +
@@ -157,13 +182,47 @@ function markerLines(text) {
 	return lines;
 }
 
-export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8") } = {}) {
+/**
+ * `renameSync` over a file whose own descriptor Windows still holds exclusively can refuse
+ * briefly right after the handle closes (EPERM), or while another reader or an AV scan holds it
+ * (EBUSY). CHOSEN: three attempts, 20ms apart (inferred cause, no measured hold time — Windows
+ * triage 2026-10-17, rows.json `project-working-region.test.mjs`) — long enough to clear a
+ * transient hold, short enough that a genuinely locked file still fails within a tenth of a
+ * second rather than hanging the command.
+ */
+export const RENAME_RETRY_ATTEMPTS = 3;
+export const RENAME_RETRY_DELAY_MS = 20;
+
+/**
+ * `rename` is the injectable seam (default the real `fs.renameSync`, the way `writeTemp` is);
+ * `delay` likewise stands in for the real wait. `recheck` runs AFTER the delay and before every
+ * RETRY — not the first attempt, which follows the caller's own fresh check — and must throw if
+ * the destination no longer matches what the refresh read: a save made by the file's owner
+ * anywhere in the window between attempts, INCLUDING during the delay itself, must stop the
+ * next retry from clobbering it (sol r1/r2 MUST, 2026-10-17). Checking before the delay would
+ * miss a save landing during it.
+ */
+function renameWithRetry(src, dest, { rename = (from, to) => fs.renameSync(from, to), recheck = () => {}, delay = () => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS) } = {}) {
+	for (let attempt = 1; ; attempt++) {
+		try {
+			rename(src, dest);
+			return;
+		} catch (error) {
+			if (attempt >= RENAME_RETRY_ATTEMPTS || (error?.code !== "EPERM" && error?.code !== "EBUSY")) throw error;
+			delay();
+			recheck();
+		}
+	}
+}
+
+export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8"), rename = (src, dest) => fs.renameSync(src, dest), delay } = {}) {
 	const target = path.join(dir, "AGENTS.md");
-	const st = lstat(target);
+	const st = lstatIdentity(target);
 	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
 	beforeOpen();
 	const noFollow = fs.constants.O_NOFOLLOW ?? 0;
 	let fd;
+	let fdClosed = false;
 	try {
 		const access = dryRun ? fs.constants.O_RDONLY : fs.constants.O_RDWR;
 		fd = fs.openSync(target, access | noFollow);
@@ -173,7 +232,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
 	}
 	try {
-		const opened = fs.fstatSync(fd);
+		const opened = fs.fstatSync(fd, { bigint: true });
 		if (!opened.isFile() || opened.dev !== st.dev || opened.ino !== st.ino)
 			return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
 		const originalBytes = fs.readFileSync(fd);
@@ -219,12 +278,30 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 			} finally {
 				fs.closeSync(tempFd);
 			}
-			fs.chmodSync(temp, opened.mode & 0o7777);
-			const current = lstat(target);
+			fs.chmodSync(temp, Number(opened.mode) & 0o7777);
+			const current = lstatIdentity(target);
 			if (!current?.isFile() || current.isSymbolicLink() || current.dev !== opened.dev || current.ino !== opened.ino)
 				throw new Error("AGENTS.md changed before replacement");
 			if (!readDescriptorBytes(fd).equals(originalBytes)) throw new Error("AGENTS.md contents changed before replacement");
-			fs.renameSync(temp, target);
+			// Close the handle BEFORE the rename, not in the outer finally below: Windows refuses
+			// to replace a file whose own descriptor is still open, unlike POSIX. Every read through
+			// `fd` (the identity and byte re-check just above) is already done by this point.
+			fs.closeSync(fd);
+			fdClosed = true;
+			renameWithRetry(temp, target, {
+				rename,
+				delay,
+				// Before every RETRY (fd is already closed by now, so this reads by path, the
+				// only way left to see what is actually there): the same 64-bit identity and the
+				// same bytes the refresh read. Either changing stops the retry from clobbering a
+				// save made by AGENTS.md's owner in the window between attempts.
+				recheck: () => {
+					const stillCurrent = lstatIdentity(target);
+					if (!stillCurrent?.isFile() || stillCurrent.isSymbolicLink() || stillCurrent.dev !== opened.dev || stillCurrent.ino !== opened.ino)
+						throw new Error("AGENTS.md changed before replacement");
+					if (!fs.readFileSync(target).equals(originalBytes)) throw new Error("AGENTS.md contents changed before replacement");
+				},
+			});
 			return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
 		} catch {
 			if (tempCreated) {
@@ -233,7 +310,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 			return { label: "AGENTS.md working region", status: SKIPPED, detail: "could not safely replace AGENTS.md — original left alone" };
 		}
 	} finally {
-		fs.closeSync(fd);
+		if (!fdClosed) fs.closeSync(fd);
 	}
 }
 
@@ -252,18 +329,39 @@ export function stepAgents(dir, o, { name }) {
 	const w = seedFile(agents, agentsStub(name), o);
 	const out = [{ label: "AGENTS.md", ...w, detail: w.detail ?? "stub + the canonical `Working under nana-pi` section" }];
 	if (o.dryRun) {
-		out.push({ label: "CLAUDE.md", status: CREATED, detail: "would link -> AGENTS.md" });
+		out.push({ label: "CLAUDE.md", status: CREATED, detail: "would write the one-line import @AGENTS.md" });
 		return out;
 	}
-	if (win()) {
-		fs.copyFileSync(agents, claude);
-		out.push({ label: "CLAUDE.md", status: CREATED, detail: "copied from AGENTS.md (win32: no usable symlink)" });
-	} else {
-		// RELATIVE on purpose: this link is committed, so it must resolve in anyone's clone.
-		fs.symlinkSync("AGENTS.md", claude);
-		out.push({ label: "CLAUDE.md", status: CREATED, detail: "-> AGENTS.md" });
-	}
+	// A regular one-line import, on EVERY platform (R-1311): Claude Code resolves a
+	// repo-relative `@path` import with no approval prompt, and — unlike a symlink — it
+	// survives a Windows checkout unchanged, so there is nothing to branch on here.
+	fs.writeFileSync(claude, CLAUDE_IMPORT);
+	out.push({ label: "CLAUDE.md", status: CREATED, detail: "the one-line import @AGENTS.md" });
 	return out;
+}
+
+/**
+ * Converges a `CLAUDE.md` left as the placeholder a Windows clone produces from a committed
+ * symlink checked out with no symlink support (R-1312) onto the one-line import. The ONLY
+ * content this ever rewrites is that exact placeholder text — a healthy symlink, the owner's
+ * own CLAUDE.md, or anything else is left alone, and this never writes through a link.
+ * `null` when there is nothing to do, so a healthy project gets no extra row.
+ */
+export function stepClaudeImportRefresh(dir, o) {
+	const claude = path.join(dir, "CLAUDE.md");
+	if (!lstat(path.join(dir, "AGENTS.md"))) return null; // nothing for CLAUDE.md to alias
+	const st = lstat(claude);
+	if (!st || !st.isFile() || st.isSymbolicLink()) return null; // absent, a link, or a directory: not this step's job
+	let bytes;
+	try {
+		bytes = fs.readFileSync(claude, "utf8");
+	} catch {
+		return null;
+	}
+	if (!PLACEHOLDER_RE.test(bytes)) return null; // already the import file, or not the placeholder — leave it
+	if (o.dryRun) return { label: "CLAUDE.md", status: CREATED, detail: "would replace the AGENTS.md placeholder with the one-line import" };
+	fs.writeFileSync(claude, CLAUDE_IMPORT);
+	return { label: "CLAUDE.md", status: CREATED, detail: "replaced the AGENTS.md placeholder with the one-line import" };
 }
 
 /* ------------------------------------------------------------------- .pi/nana-pack.json */
@@ -416,6 +514,8 @@ export async function setupProject(dir, layout, opts = {}) {
 	const results = [stepGit(dir, o)];
 	results.push(...stepSeeds(dir, o, { name, date }));
 	results.push(...stepAgents(dir, o, { name }));
+	const claudeRefresh = stepClaudeImportRefresh(dir, o);
+	if (claudeRefresh) results.push(claudeRefresh);
 	results.push(refreshWorkingRegion(dir, o));
 	results.push(stepPackConfig(dir, o, layout));
 	results.push(await stepKnowledgeRefresh(layout, o));
@@ -506,11 +606,12 @@ export async function checkProject(dir, layout = {}) {
 	else if (agents.found) checks.push({ label: "AGENTS.md", ok: false, detail: `${agents.found} is there — not a readable AGENTS.md` });
 	else checks.push({ label: "AGENTS.md", ok: claude.ok, detail: claude.ok ? "CLAUDE.md, the project's own — no AGENTS.md by design" : "AGENTS.md (or a CLAUDE.md the project already had)" });
 
-	// CLAUDE.md is the ONE path where a symlink is the healthy state: `project` writes it as a
-	// relative link to AGENTS.md (win32 has no usable symlink, so a copy is healthy there too).
+	// CLAUDE.md is the project's alias for AGENTS.md: `project` writes it as the one-line
+	// import `@AGENTS.md` (R-1311, every platform). An existing macOS project's own relative
+	// symlink to AGENTS.md still reads ✓ — this command never rewrites a healthy link.
 	// Judged only when there is an AGENTS.md for it to alias — otherwise it IS the nav file above.
 	//
-	// The link must RESOLVE to this project's own AGENTS.md, not merely be named after it
+	// A symlink must RESOLVE to this project's own AGENTS.md, not merely be named after it
 	// (sol r3): `-> missing/AGENTS.md` reads nothing at all, and `-> /elsewhere/AGENTS.md`
 	// points Claude Code at another project's instructions while pi reads this one's.
 	const claudePath = path.join(dir, "CLAUDE.md");
@@ -539,12 +640,26 @@ export async function checkProject(dir, layout = {}) {
 				ok: linked,
 				detail: linked ? "-> AGENTS.md" : `a symlink -> ${raw ?? "?"} — ${resolved ? "not this project's AGENTS.md" : "dangling"}`,
 			});
-		} else {
+		} else if (st.isFile()) {
+			const bytes = (() => {
+				try {
+					return fs.readFileSync(claudePath, "utf8");
+				} catch {
+					return null;
+				}
+			})();
+			const ok = bytes === CLAUDE_IMPORT;
 			checks.push({
 				label: "CLAUDE.md",
-				ok: st.isFile(),
-				detail: st.isFile() ? "a copy of AGENTS.md (win32 has no usable symlink)" : "a directory is there",
+				ok,
+				detail: ok
+					? "the one-line import @AGENTS.md"
+					: bytes !== null && PLACEHOLDER_RE.test(bytes)
+						? "holds the AGENTS.md placeholder text — a symlink checked out without symlink support; run nana-setup project to replace it"
+						: "not the one-line import @AGENTS.md — run nana-setup project to replace it",
 			});
+		} else {
+			checks.push({ label: "CLAUDE.md", ok: false, detail: "a directory is there" });
 		}
 	}
 
