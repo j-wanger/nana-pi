@@ -10,6 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { stateRows } from "../lib/state-manifest.mjs";
@@ -33,9 +34,9 @@ fs.mkdirSync(knowledgeRoot);
 fs.writeFileSync(objective, "shared objective bytes\n");
 fs.writeFileSync(path.join(knowledgeRoot, "one.md"), "knowledge fixture\n");
 fs.writeFileSync(path.join(project, ".pi", "nana-pack.json"), JSON.stringify({ objective: { path: objective } }));
-const cli = path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname);
+const cli = fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url));
 const nodeModules = spawnNpmRoot().stdout.trim();
-const { ProjectTrustStore } = await import(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
+const { ProjectTrustStore } = await import(pathToFileURL(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 const run = (args, cwd = root) => spawnSync(process.execPath, [cli, ...args], { cwd, encoding: "utf8", env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: path.join(home, ".pi", "agent") } });
 const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const backup = "node packages/nana-setup/bin/nana-setup.mjs state --paths > ~/nana-state.list && tar -czf ~/nana-state.tgz -C ~ -T ~/nana-state.list";
@@ -107,10 +108,13 @@ const trustSrc = run(["trust", project, "--yes", "--home", home], project);
 check("source project trust is recorded", trustSrc.status === 0 && new ProjectTrustStore(sourceLayout.piHome).get(project) === true, `${trustSrc.status} ${trustSrc.stderr}`);
 const listingFile = path.join(root, "state.list");
 const archive = path.join(root, "state.tgz");
+// The archive name is passed relative, with cwd set to its own directory: GNU tar (as bundled
+// with Git for Windows) can read a drive-letter archive path such as "C:\..." as a remote host.
+const archiveName = path.basename(archive);
 const listedPaths = run(["state", "--paths", "--home", home]);
 fs.writeFileSync(listingFile, listedPaths.stdout);
-const archived = spawnSync("tar", ["-czf", archive, "-C", home, "-T", listingFile], { encoding: "utf8" });
-const tarList = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
+const archived = spawnSync("tar", ["-czf", archiveName, "-C", home, "-T", listingFile], { cwd: root, encoding: "utf8" });
+const tarList = spawnSync("tar", ["-tzf", archiveName], { cwd: root, encoding: "utf8" });
 const listedNames = listedPaths.stdout.trim().split("\n").filter(Boolean).sort();
 const archiveNames = tarList.stdout.trim().split("\n").filter(Boolean).map((name) => name.replace(/\/$/, "")).sort();
 const allSourceEntries = [];
@@ -140,7 +144,12 @@ check("archive excludes every independently derived non-durable fixture", listed
 const clean = run(["state", "--home", destination]);
 // req: R-958
 check("clean destination reports every durable store absent", clean.status === 0 && stateRows(resolveLayout({ home: destination })).filter((row) => row.class === "durable").every((row) => clean.stdout.split("\n").some((line) => line.startsWith(`${row.store}\t`) && line.endsWith("\tabsent"))), `${clean.status} ${clean.stderr}`);
-const extracted = spawnSync("tar", ["-xzkf", archive, "-C", destination], { encoding: "utf8" });
+// The CI log (ci-windows-run-1.log:6041) shows this absolute destination path misread: every
+// other separator doubled in tar's diagnostic quoting, but the one before "nana-test-…" stayed
+// single, matching a C-style "\n" escape rather than a literal backslash. Passing a bare relative
+// name (no separators at all) through the already-set cwd sidesteps that path-argument misread.
+fs.mkdirSync(destination, { recursive: true });
+const extracted = spawnSync("tar", ["-xzkf", archiveName, "-C", path.relative(root, destination)], { cwd: root, encoding: "utf8" });
 const extractedEntries = [];
 const collectExtractedEntries = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); extractedEntries.push(file); const stat = fs.lstatSync(file); if (stat.isDirectory()) collectExtractedEntries(file); } };
 collectExtractedEntries(destination);

@@ -75,7 +75,9 @@ const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.ba
 	check("doctor parses ProgramArguments[0] as the service executable", parsed.programArguments[0] === "/node");
 }
 
-{
+if (process.platform === "win32") {
+	console.log("SKIP desk service diagnostics (the launchd desk service is macOS-only)");
+} else {
 	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-desk-running-"));
 	tmps.push(home);
 	const original = resolveLayout({ home });
