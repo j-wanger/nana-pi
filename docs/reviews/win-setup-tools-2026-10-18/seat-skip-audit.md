@@ -79,3 +79,44 @@ NOTE
   - `symlinkIntoSource` (:176) compares the long-form `realpath` with a home path that can be in short (8.3) form on the runner.
   - `sourcePathLeak` (:178) searches for the raw `home` bytes, but JSON escapes each `\`, so a leaked path in a JSON file is missed.
 - The comments the builder added at restore :111-112 and trust :82-84 are accurate.
+
+## Check of build 2 (0cb429b)
+
+MUST: 0
+
+No blocking finding. Both checks of the bar hold for the diff 60acd61..0cb429b.
+
+- **No product file changed.** The diff touches only `packages/nana-setup/tests/restore.test.mjs` and `packages/nana-setup/tests/trust.test.mjs`. The working tree was still clean after my test runs.
+- **No macOS check pins less.** On macOS, restore passes 14 and trust passes 11, the same counts as before.
+  - At `restore.test.mjs:152`, the relative `-C` value "destination-home" resolves to the same folder the absolute path named. The two checks after extraction assert the same things as before.
+  - In `trust.test.mjs`, line 28's default `cwd = process.cwd()` matches what spawnSync does when no cwd is given, so every other call behaves the same. Line 88 makes the same assertion as before. The refusal does not depend on cwd.
+- **Windows skips.** The diff adds no skip.
+- **Writes stay in temp.**
+  - `restore.test.mjs:152` extracts relative to cwd=root, and root is a `tmpDir` under `os.tmpdir()`. The runner sets TEMP and TMP to its own per-file folder, `scripts/test.mjs:384-389`.
+  - `trust.test.mjs:88`: if the product ever wrongly accepted the relative value, the store would land at `<root>/relative/agent`. That is inside temp and is removed at line 91.
+- **The tar arguments are safe for Git's GNU tar on Windows.** The argv is `-xzkf state.tgz -C destination-home` with cwd=root.
+  - No argument starts with `/` or holds a drive letter, so MSYS converts no path. That also means `-f` cannot be read as a `host:file` remote archive.
+  - Node passes no argument that needs quoting.
+  - MSYS takes its starting directory from the Windows cwd. Run 1 already showed that a relative archive name with cwd=root works for `-czf` and `-tzf` (`:116-117`).
+  - A relative `-C` opens against that starting directory: in `chdir_do`, a relative name first changes to the previous entry, which is the start.
+
+Root cause, now confirmed rather than inferred: GNU tar turns on `--unquote` by default. In extract and list mode, `name_gather()` calls `name_next_elt(false)`. There the `NELT_CHDIR` case falls through to `NELT_NAME` and runs `unquote_string()` on the `-C` operand (GNU tar `src/names.c`). That is why only `Temp\nana-test` became a newline at `ci-windows-run-1.log:6041`. `\U`, `\A`, `\L`, `\R`, `\s` and `\d` are not escapes, so they stayed.
+
+Create mode reaches `-C` through `name_next(true)`. That branch calls `chdir_do` directly without unquoting, which is why `-C home` at `:116` passed with the same `\nana-test` prefix. The `\n` appears on every run, because the runner always puts `\nana-test-<pid>` into TEMP.
+
+The bare name "destination-home" has no backslash, so unquoting leaves it unchanged. The builder's "C-style escape" reading is right in effect. The bug is tar's own unquoting, not MSYS changing the argument.
+
+PREDICTION (INFERRED): restore passes 14 of 14 on Windows, at about 80% confidence. Trust stays at 11 of 11.
+- Extraction should now succeed, at about 95%. The archive half is already proven, and the new argument holds nothing tar can misread.
+- The remaining risk is in checks that will see restored Windows state for the first time. The weakest is "restored doctor reports project trust only" (`:166`). It now runs doctor after install over restored files: `sources.json`, the knowledge index rebuilt over a Windows absolute root, a non-JSON `settings.json` fixture, and a project memory folder with no shared link. The doctor and install code I read handle these the same way on both platforms (no shared link is a NOTE; unparseable settings with an empty package list under `--home` is a NOTE). I did not run it on Windows.
+- Second in line is "byte-equal" (`:178`).
+- In run 1, the three leak checks (`:185`, `:187`, `:189`) passed with nothing to check, because the destination was empty. They will check real files for the first time.
+
+SHOULD: none.
+
+NOTE:
+1. The comment at `restore.test.mjs:147-150` calls the failure a "path-argument misread". The real cause is GNU tar's default `--unquote` on `-C` in extract mode (`names.c` `name_next_elt`). A future reader would trust a more exact comment, and it would warn that `\t`, `\r`, `\a`, `\b`, `\f`, `\v` and octal `\0-7` corrupt a `-C` path the same way. This is not blocking.
+2. Line 151's `fs.mkdirSync(destination, { recursive: true })` repeats line 29, and `state --home destination` only reads, so it does nothing. Brief 2 asked for it, and it is harmless.
+3. A residual from before this diff: line 183 compares raw bytes against `Buffer.from(home)` with single backslashes. A Windows source-home path stored JSON-escaped (`C:\\Users\\...`) in `nana-pack.json`, `sources.json` or `settings.json` would not match. On Windows that check cannot see such a leak. Worth a HANDOFF residual line.
+4. Outside this lane (no product edits allowed): the README restore command `tar -xzkf ~/nana-state.tgz -C ~` is safe in Git Bash, where `~` expands to `/c/Users/...`. Any Windows user who passes a backslash path to `-C` hits the same unquoting. A possible residual.
+5. The builder's claim matches the log: at line 6041 every separator prints doubled except `Temp\nana-test`.
