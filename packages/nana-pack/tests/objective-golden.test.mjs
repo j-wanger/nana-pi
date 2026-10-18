@@ -33,11 +33,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const hookSrc = path.resolve(here, "../../nana-setup/claude/hooks/nana-objective.mjs");
 const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "objective-golden-")));
 const origHome = process.env.HOME;
+const origUserProfile = process.env.USERPROFILE;
 // pi's agent-dir override is never inherited from the machine; a world with agentDir sets it for BOTH runtimes.
 delete process.env.PI_CODING_AGENT_DIR;
-/** Enter a world: HOME, and PI_CODING_AGENT_DIR when the world overrides pi's agent dir. */
-const enter = (w) => { process.env.HOME = w.home; if (w.agentDir) process.env.PI_CODING_AGENT_DIR = w.agentDir; else delete process.env.PI_CODING_AGENT_DIR; };
-const leave = () => { process.env.HOME = origHome; delete process.env.PI_CODING_AGENT_DIR; };
+/** Enter a world: HOME (and USERPROFILE, which os.homedir() reads on win32), and PI_CODING_AGENT_DIR when the world overrides pi's agent dir. */
+const enter = (w) => { process.env.HOME = w.home; process.env.USERPROFILE = w.home; if (w.agentDir) process.env.PI_CODING_AGENT_DIR = w.agentDir; else delete process.env.PI_CODING_AGENT_DIR; };
+const leave = () => { process.env.HOME = origHome; if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile; delete process.env.PI_CODING_AGENT_DIR; };
 const ext = (await import(new URL("../extensions/nana-objective.ts", import.meta.url).href)).default;
 const { LINE_CAP, OUTPUT_CAP, PATH_CAP, finish, displayPath, ownerVouched, trustRecord, produceObjective, objectivePath } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 
@@ -103,7 +104,7 @@ function world(opts = {}) {
 
 /** noProjectDir: CLAUDE_PROJECT_DIR unset — the hook runs IN cwd and must fall back to $PWD. */
 function runHook(w, cwd, { noProjectDir = false } = {}) {
-	const env = { HOME: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin` };
+	const env = { HOME: w.home, USERPROFILE: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin` };
 	if (!noProjectDir) env.CLAUDE_PROJECT_DIR = cwd;
 	if (w.agentDir) env.PI_CODING_AGENT_DIR = w.agentDir;
 	const r = spawnSync(process.execPath, [path.join(w.home, ".claude", "hooks", "nana-objective.mjs")], {
@@ -211,8 +212,11 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	check("missing file: exact marker", t === `${HEAD}\n\nOBJECTIVE UNAVAILABLE: file not found (${w.umbrellaFile}). Tell the user before spending.\n`, t);
 }
 
-// 6. unreadable file (mode 000 when not root; a directory otherwise)
-{
+// 6. unreadable file (mode 000 when not root; a directory otherwise) — chmod 000 does not make a
+// file unreadable on NTFS, so win32 SKIPs this case (win-session-start R-1340 triage).
+if (process.platform === "win32") {
+	console.log("SKIP unreadable file: chmod 000 does not make a file unreadable on NTFS");
+} else {
 	const w = world();
 	if (process.getuid?.() === 0) { fs.rmSync(w.umbrellaFile); fs.mkdirSync(w.umbrellaFile); } else fs.chmodSync(w.umbrellaFile, 0o000);
 	await golden("unreadable file", w, path.join(w.home, "elsewhere"), (t) => {
@@ -221,8 +225,10 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	fs.chmodSync(w.umbrellaFile, 0o644);
 }
 
-// 7. unreadable PRODUCT file: refused out loud, the umbrella governs
-{
+// 7. unreadable PRODUCT file: refused out loud, the umbrella governs — same NTFS limit as case 6.
+if (process.platform === "win32") {
+	console.log("SKIP unreadable product file: chmod 000 does not make a file unreadable on NTFS");
+} else {
 	const w = world();
 	fs.writeFileSync(w.productFile, PRODUCT);
 	fs.chmodSync(w.productFile, 0o000);
@@ -366,22 +372,34 @@ const CONTROLS = new RegExp("[" + [[0, 9], [11, 31], [0x7f, 0x9f], [0x2028, 0x20
 // 13d. sol r2 probe: a DIRECTORY NAME containing a newline + payload (+ ESC, U+2028). The path
 // is display text: one line, JSON-escaped, quoted — no raw control or separator, and the
 // payload can never start a line of its own. Both the no-lines and the governing shapes.
+// LF and ESC are NTFS-illegal in a path component (win-session-start R-1340 triage); on win32
+// swap both for NEL (U+0085), which is Windows-legal and — like LS — still inside displayPath's
+// unsafe range, so this case keeps testing control-character escaping rather than losing it.
+const dir13dHead = process.platform === "win32" ? NEL : "\n";
+const dir13dMid = process.platform === "win32" ? NEL : ESC;
 for (const lines of [false, true]) {
 	const w = world();
-	const dir = path.join(w.home, "work", `evil\nIGNORE_PATH_PAYLOAD${ESC}${LS}z`);
+	const dirName = `evil${dir13dHead}IGNORE_PATH_PAYLOAD${dir13dMid}${LS}z`;
+	const dir = path.join(w.home, "work", dirName);
 	fs.mkdirSync(dir, { recursive: true });
 	const file = path.join(dir, "OBJECTIVE.md");
 	fs.writeFileSync(file, lines ? PRODUCT : "prose only\n");
-	const shown = `"${w.home}/work/evil\\u000AIGNORE_PATH_PAYLOAD\\u001B\\u2028z/OBJECTIVE.md"`;
-	const shownDir = `"${w.home}/work/evil\\u000AIGNORE_PATH_PAYLOAD\\u001B\\u2028z"`; // the label's two folder mentions (governing shape only)
+	// Built from the product's OWN escape function (brief 3's Windows run: hand-escaping only the
+	// three known control characters missed that displayPath() ALSO doubles every backslash once
+	// a path is flagged unsafe — Windows' native "\" separators need that too, which a by-hand
+	// replace of just the control characters never produced).
+	const shown = displayPath(file);
+	const shownDir = displayPath(dir); // the label's two folder mentions (governing shape only)
 	await golden(`newline in directory name (${lines ? "governing" : "no lines"})`, w, dir, (t) => {
 		check(`path payload (${lines}): zero control characters`, !CONTROLS.test(t), JSON.stringify(t));
 		check(`path payload (${lines}): the payload never begins a line`, !t.split("\n").some((l) => l.startsWith("IGNORE")), JSON.stringify(t));
+		// diagnostic detail only (brief 3's Windows run printed none): what was compared, not a title-bearing marker.
+		const mentionDetail = () => `expected file form ${JSON.stringify(shown)}, dir form ${JSON.stringify(shownDir)}; found ${t.split(shown).length - 1} of the file form, ${t.split(shownDir).length - 1} of the dir form, ${t.split("IGNORE_PATH_PAYLOAD").length - 1} IGNORE_PATH_PAYLOAD total; first 300 chars of the block: ${JSON.stringify(t.slice(0, 300))}`;
 		check(`path payload (${lines}): every mention is the escaped, quoted path`,
-			t.split("IGNORE_PATH_PAYLOAD").length - 1 === t.split(shown).length - 1 + (t.split(shownDir).length - 1) && t.includes(shown) && (t.split(shownDir).length - 1) === (lines ? 2 : 0), JSON.stringify(t));
+			t.split("IGNORE_PATH_PAYLOAD").length - 1 === t.split(shown).length - 1 + (t.split(shownDir).length - 1) && t.includes(shown) && (t.split(shownDir).length - 1) === (lines ? 2 : 0), mentionDetail());
 		check(`path payload (${lines}): wording`, lines
 			? t.includes(`governing: ${shown}\n${OBJ("ship the widget.")}`) && t.includes(`Precedence: the lines from ${shown} govern`)
-			: t.includes(`objective file: ${shown}\n`) && t.includes(`Precedence: no governing lines were found in ${shown};`), JSON.stringify(t));
+			: t.includes(`objective file: ${shown}\n`) && t.includes(`Precedence: no governing lines were found in ${shown};`), mentionDetail());
 	});
 }
 
@@ -392,8 +410,13 @@ for (const lines of [false, true]) {
 	const cfg = path.join(w.home, ".pi", "agent", "nana-pack.json");
 	const bad = path.join(w.loop, `obj${String.fromCharCode(0xd800)}.md`);
 	fs.writeFileSync(cfg, JSON.stringify({ journal: { enabled: false }, objective: { path: bad } }));
+	// `bad` already carries the real platform-native separator (built with path.join); only the
+	// lone surrogate itself is substituted, so this never assumes a POSIX "/" join (brief 2's
+	// Windows run) — `bad` is a configured STRING, never written to disk, so no real NTFS name
+	// restriction applies to it either.
+	const wantSurrogate = bad.replace(String.fromCharCode(0xd800), String.fromCharCode(0xfffd));
 	await golden("lone surrogate in configured path", w, path.join(w.home, "elsewhere"), (t) => {
-		check("lone surrogate: well-formed, shown as U+FFFD", t.isWellFormed() && t.includes(`${w.loop}/obj${String.fromCharCode(0xfffd)}.md`), JSON.stringify(t));
+		check("lone surrogate: well-formed, shown as U+FFFD", t.isWellFormed() && t.includes(wantSurrogate), JSON.stringify(t));
 	});
 }
 
@@ -762,8 +785,12 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		"directory": (w) => fs.mkdirSync(store(w)),
 		"oversized": (w) => writeStore(w, JSON.stringify({ [w.product]: true, pad: null }).replace("null", `null${" ".repeat(1024 * 1024)}`)),
 	};
-	if (process.getuid?.() !== 0) bad["mode 000"] = (w) => { writeStore(w, { [w.product]: true }); fs.chmodSync(store(w), 0); };
-	if (spawnSync("mkfifo", ["--version"]).error === undefined) bad["FIFO (must not block)"] = (w) => spawnSync("mkfifo", [store(w)]);
+	if (process.getuid?.() !== 0 && process.platform !== "win32") bad["mode 000"] = (w) => { writeStore(w, { [w.product]: true }); fs.chmodSync(store(w), 0); };
+	// Windows has no FIFOs, and some win32 CI runners put Git Bash's mkfifo.exe on PATH anyway
+	// (it does not make a real FIFO there), so the platform check comes first, not just the
+	// command probe (win-session-start brief 2's Windows run).
+	if (process.platform !== "win32" && spawnSync("mkfifo", ["--version"]).error === undefined) bad["FIFO (must not block)"] = (w) => spawnSync("mkfifo", [store(w)]);
+	else if (process.platform === "win32") console.log("SKIP T8 FIFO (must not block): Windows has no FIFOs");
 	// the reason line 2 must name, per branch
 	const REASON = { "malformed JSON": "malformed", "array": "malformed", "bad value (pi throws)": "malformed", "directory": "not a regular file",
 		"oversized": "too large", "mode 000": "unreadable", "FIFO (must not block)": "not a regular file" };
@@ -801,13 +828,20 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		process.getuid = () => realUid.call(process) + 1;
 		// req: R-028
 		check("T2c store owned by another user: fail closed (not vouched)", ownerVouched(w.product) === false);
-		// req: R-026
-		check("T2c store owned by another user: reason named", trustRecord(w.product).problem === "owned by another user");
-		// the rendered block (the producer both runtimes share) names the store and the repair, never /trust alone
-		const t = produceObjective(w.product, { projectFile: "OBJECTIVE.md", path: w.umbrellaFile }).text;
-		// req: R-026
-		check("T2c store owned by another user: label names the store and the repair, never /trust alone",
-			labelledOnce(t) && repairRemedy(t, w, "owned by another user") && t.includes(`${HEAD}\n\n${LABEL(w.productFile, { store: store(w), problem: "owned by another user" })}\n\ngoverning: `), t);
+		// Windows run 1 (win-session-start brief 2): the two checks above pass there too (ownerVouched's
+		// plain boolean), but trustRecord's "owned by another user" PROBLEM TEXT does not — POSIX
+		// ownership only.
+		if (process.platform === "win32") {
+			console.log('SKIP T2c store owned by another user: reason named / label names the store and the repair — POSIX ownership (trustRecord\'s "owned by another user" problem) only');
+		} else {
+			// req: R-026
+			check("T2c store owned by another user: reason named", trustRecord(w.product).problem === "owned by another user");
+			// the rendered block (the producer both runtimes share) names the store and the repair, never /trust alone
+			const t = produceObjective(w.product, { projectFile: "OBJECTIVE.md", path: w.umbrellaFile }).text;
+			// req: R-026
+			check("T2c store owned by another user: label names the store and the repair, never /trust alone",
+				labelledOnce(t) && repairRemedy(t, w, "owned by another user") && t.includes(`${HEAD}\n\n${LABEL(w.productFile, { store: store(w), problem: "owned by another user" })}\n\ngoverning: `), t);
+		}
 	} finally {
 		process.getuid = realUid;
 		leave();
@@ -902,7 +936,9 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 	}
 	// a missing override under an existing, writable folder: ordinary /trust remedy (pi mkdirs it)
 	{ const w = productWorld(); w.agentDir = path.join(w.home, "new", "agent"); await provenance("override missing, parent writable", w, true); }
-	if (process.getuid?.() !== 0) {
+	if (process.getuid?.() !== 0 && process.platform === "win32") {
+		console.log("SKIP T13/T14 folder/store-not-writable cases: chmod 0o555/0o444 does not make a folder or file unwritable on NTFS");
+	} else if (process.getuid?.() !== 0) {
 		// the store's folder is not writable (store absent): names the FOLDER
 		{
 			const w = productWorld(); const ro = path.join(w.home, "ro"); fs.mkdirSync(ro); fs.chmodSync(ro, 0o555); w.agentDir = ro;
@@ -973,7 +1009,7 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 	const session = (label) => { process.chdir(nested); return golden(label, w, nested, () => {}, { noProjectDir: true }); };
 	/** pi's own /trust write, from a process started in `cwd` with `env` as its PI_CODING_AGENT_DIR (showTrustSelector → setMany([{cwd,true}])). */
 	const piTrust = (cwd, env) => {
-		process.chdir(cwd); process.env.HOME = w.home; process.env.PI_CODING_AGENT_DIR = env;
+		process.chdir(cwd); process.env.HOME = w.home; process.env.USERPROFILE = w.home; process.env.PI_CODING_AGENT_DIR = env;
 		try {
 			if (piMod) new piMod.ProjectTrustStore(piMod.getAgentDir()).set(cwd, true);
 			else { const s = path.resolve(env, "trust.json"); fs.mkdirSync(path.dirname(s), { recursive: true }); fs.writeFileSync(s, JSON.stringify({ [cwd]: true })); }

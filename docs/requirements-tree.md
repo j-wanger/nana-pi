@@ -103,12 +103,12 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-03 · Rows: 21 · IDs: R-174–R-188, R-819–R-824
 - **CAP-04 · Bring nana to each project and maintain it**
   Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
-  Parent: — · Rows: 308 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300, R-1310–R-1313, R-1320, R-1321, R-1330
+  Parent: — · Rows: 309 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300, R-1310–R-1313, R-1320, R-1321, R-1330, R-1340
   - **FEAT-013 · Install and connect harness runtimes**
     Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
     Status: active
     Also applies: R-004
-    Parent: CAP-04 · Rows: 102 · IDs: R-190, R-191, R-194, R-199, R-300–R-326, R-345, R-349–R-353, R-357–R-361, R-363, R-378, R-379, R-381–R-384, R-387, R-388, R-391, R-392, R-589, R-663, R-665, R-679, R-687, R-688, R-736, R-739, R-825, R-827, R-921–R-927, R-932, R-936, R-938, R-939, R-950, R-951, R-964, R-980, R-985, R-995, R-1033–R-1036, R-1039, R-1050, R-1051, R-1053, R-1054, R-1058, R-1061, R-1063, R-1064, R-1093, R-1094, R-1111, R-1128, R-1205–R-1208, R-1330
+    Parent: CAP-04 · Rows: 103 · IDs: R-190, R-191, R-194, R-199, R-300–R-326, R-345, R-349–R-353, R-357–R-361, R-363, R-378, R-379, R-381–R-384, R-387, R-388, R-391, R-392, R-589, R-663, R-665, R-679, R-687, R-688, R-736, R-739, R-825, R-827, R-921–R-927, R-932, R-936, R-938, R-939, R-950, R-951, R-964, R-980, R-985, R-995, R-1033–R-1036, R-1039, R-1050, R-1051, R-1053, R-1054, R-1058, R-1061, R-1063, R-1064, R-1093, R-1094, R-1111, R-1128, R-1205–R-1208, R-1330, R-1340
     - **SUB-011 · Select the active runtime and home**
       Purpose: Resolve the intended executable and agent locations and provide the matching fresh-machine setup instructions.
       Parent: FEAT-013 · Rows: 13 · IDs: R-190, R-191, R-194, R-199, R-345, R-825, R-827, R-932, R-950, R-951, R-1093, R-1094, R-1111
@@ -123,7 +123,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
       Parent: FEAT-013 · Rows: 23 · IDs: R-300, R-304, R-305, R-307, R-312–R-315, R-320–R-322, R-353, R-358, R-378, R-379, R-381–R-383, R-391, R-663, R-924–R-926
     - **SUB-015 · Apply the platform's supported installation**
       Purpose: Wire supported Windows integrations in their platform form, skip unsupported ones, and maintain supported copies and mirrors without overwriting owner content.
-      Parent: FEAT-013 · Rows: 17 · IDs: R-349–R-352, R-359, R-387, R-388, R-936, R-938, R-939, R-995, R-1050, R-1051, R-1053, R-1058, R-1063, R-1330
+      Parent: FEAT-013 · Rows: 18 · IDs: R-349–R-352, R-359, R-387, R-388, R-936, R-938, R-939, R-995, R-1050, R-1051, R-1053, R-1058, R-1063, R-1330, R-1340
   - **FEAT-014 · Create or adopt a project workspace**
     Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
     Status: active
