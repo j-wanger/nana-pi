@@ -59,6 +59,7 @@
 - 2026-10-19: pi-review and pi-worker end an attempt as soon as pi exits, not at the watchdog's next poll. At the default poll, a review now ends up to 15 seconds sooner. A pi killed by a signal from elsewhere now counts as a failed attempt, and the watchdog retries it. Before, such a kill made pi-review stop with exit code 13 and no retry. It also left pi-worker's lane lock behind, so pi-worker refused the next lane run. The six new checks pass on macOS, Linux and Windows. Each of the seat's eight wrong versions of the code fails at least one of them — `docs/sessions/2026-10.md`.
 - 2026-10-19: on Windows, install now refuses a requirements skill folder it did not make, as macOS does. Install and its dry run exit 1 and leave that folder untouched. Doctor marks it ✗ and says to move it. Before, install backed up the owner's file inside the folder and overwrote it. Copies nana-setup made keep refreshing, including older shipped versions in either line ending. CI's Windows leg passes the lane's seven checks; 20 of 152 files still fail there, all desk and bench — `docs/sessions/2026-10.md`.
 - 2026-10-19: the folder-spelling test's two letter-case checks now run only where one folder can have two spellings. On a case-sensitive volume, like CI's Linux runner, each skips with a printed reason. Before, both failed there on every run. The fix was in the test only. CI's Linux leg now passes the file: 9 checks pass and none fail. macOS and Windows still run both checks, and both pass — `docs/sessions/2026-10.md`.
+- 2026-10-19: in pi, a recursive or forced rm of plain relative names inside the working folder now runs without asking. A headless builder can now clear its build folder. The command must be exactly rm, its known flags and the names. Every other rm form keeps today's verdict. Plain rm without those flags still passes anywhere, as before. The gate still asks for a dot-named target, a link, a folder holding git, the pi agent folder or a home working folder. Each of the seat's 34 wrong versions of the code fails a check. All three CI legs pass the seven new checks. Windows and Linux read 0 failing files. macOS failed one desk timing check, which passed three later runs alone — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -136,6 +137,10 @@
 - Watchdog-exit lane: a pi-worker run with retries and no lane now re-runs a pi killed by a signal. So it repeats that attempt's changes, as it already did after a failed attempt.
 - Watchdog-exit lane: its six checks are timing-based, with half a poll interval of margin. A very slow runner could fail them.
 - Watchdog-exit lane, found on main too: a review test that kills its launcher leaves one empty capture folder in the temp folder.
+- rm inside the working folder (gate-rm-workdir): the gate still asks for an absolute target, a dot-named target and a compound command. It asks for every rm from the PowerShell tool. Both err toward asking.
+- rm inside the working folder (gate-rm-workdir): the exemption assumes the command runs as typed in the session's working folder. A command prefix in pi's settings that changes folder voids it. So do a shell startup file the environment names and an exported rm function.
+- rm inside the working folder (gate-rm-workdir): the git check looks only one level under a target. A target holding a git repository deeper down now runs unasked, where main asked. So does a target holding a policy file deeper down, a mount point or an inner link. Nobody has tested that Git Bash on Windows does not follow an inner junction.
+- rm inside the working folder (gate-rm-workdir): the gate does not recognise a bare repository. A bare repository as the target now runs unasked, where main asked. In a bare repository as the working folder, removing its object and ref folders runs unasked.
 
 ## Where things stand
 
@@ -156,10 +161,11 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - Small fixes ride along: the G-005 pi default-export carve-out and the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
+- **[optional, since 2026-10-19] Plain rm outside the working folder.** The gate-rm-workdir planner probed today's gate. Three plain rm and rm -f deletes outside the working folder all ran unasked. On 2026-10-10 you said no session should delete anything outside it without your confirmation. Making them ask would also block headless builders' temp-folder cleanup. The seat recommends a separate lane that plans around that cleanup. It is your call, because it changes what every session may delete unasked.
 - **[optional, since 2026-10-17] Re-check out your Windows clone once.** After you pull, git leaves the files it already checked out with Windows line endings. Commit or stash any work, then run `git rm -r --cached -q . && git reset --hard` once in that clone. It discards uncommitted changes, so stash first.
 - **[optional, since 2026-10-16] Your larger-lane builder.** With your yes, the seat adds `"largerBuilder": {"runtime": "claude-code", "model": "sonnet"}` to the roster in this Mac's and your Windows machine's pi settings file.
 - **[optional, since 2026-10-13] Report the upstream break.** pi-codemode 1.2.0 removed two exports in a minor release. That breaks pi 1.0.2 for every user who installs it fresh. Filing an upstream issue is public, so the call is yours.
