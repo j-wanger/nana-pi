@@ -921,7 +921,7 @@ check("timeout: a hook past its timeout reports the timeout code, not no-output"
 });
 
 // req: R-1790
-check("pi turn: one turn runs from the fixture project with the base environment, the sealed arguments, prompt, run token and timeout, through winCommand on win32, and prints one pi turn line", async () => {
+check("pi turn: one turn runs from the fixture project with the base environment, the sealed arguments, one prompt argument holding the prompt and run token, and timeout, through winCommand on win32, and prints one pi turn line", async () => {
   for (const platformName of ["linux", "win32"]) {
     const fixture = recordingRun({ platformName, env: { NANA_ROLE: "worker" }, piShim: platformName === "win32" ? "C:\\tools\\pi.cmd" : null });
     try {
@@ -933,12 +933,14 @@ check("pi turn: one turn runs from the fixture project with the base environment
       const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
       const token = call.args.join(" ").match(/installcheck_[a-z0-9]+/)?.[0];
       assert.ok(token);
-      const expectedArgs = [...turn.args.map((arg) => arg === turn.fixture ? path.join(root, arg) : arg), installConfig.SAMPLE_INPUTS.prompt, token];
+      const prompt = `${installConfig.SAMPLE_INPUTS.prompt} ${token}`;
+      const expectedArgs = [...turn.args.map((arg) => arg === turn.fixture ? path.join(root, arg) : arg), prompt];
       if (platformName === "linux") assert.deepEqual(call.args, expectedArgs);
       else {
         assert.equal(call.command, "C:\\Windows\\System32\\cmd.exe");
         assert.ok(call.args.at(-1).includes(`"${turn.provider}"`));
-        assert.ok(call.args.at(-1).includes(`"${installConfig.SAMPLE_INPUTS.prompt}" "${token}"`));
+        assert.ok(call.args.at(-1).includes(`"${prompt}"`));
+        assert.ok(!call.args.at(-1).includes(`"${installConfig.SAMPLE_INPUTS.prompt}" "${token}"`));
       }
       assert.equal(call.options.cwd, path.join(fixture.home, "project"));
       assert.equal(call.options.timeout, installConfig.SPAWN_TIMEOUT_MS.turn);
@@ -949,13 +951,17 @@ check("pi turn: one turn runs from the fixture project with the base environment
   }
 });
 
-// req: R-1791
+// req: R-1070, R-1791
 check("pi turn: a nonzero exit or a missing record, run token, rulings heading, writing section or knowledge message each fails the pi turn line, and a full record passes", () => {
   const token = "installcheck_judge";
   const good = passingTurnRecord(token);
-  const judge = (record = good, status = 0) => installCheck.judgePiTurn({ record, stderr: "", status, token });
+  const judge = (record = good, status = 0, stderr = "") => installCheck.judgePiTurn({ record, stderr, status, token });
   assert.equal(judge().passed, true);
-  assert.equal(judge(good, 7).passed, false);
+  const exited = judge(good, 7, `earlier detail\r\n${"x".repeat(240)} \t`);
+  assert.equal(exited.passed, false);
+  const exitLine = formatResultLine(installConfig.PI_TURN.item, { status: "FAIL", code: exited.code }, exited.detail);
+  assert.equal(exitLine, `FAIL pi turn — exit: exit status 7; last stderr: ${"x".repeat(172)}`);
+  assert.equal(exitLine.includes("\n"), false);
   assert.equal(judge(null).passed, false);
   for (const record of [
     { ...good, system: good.system.replace(token, "missing") },

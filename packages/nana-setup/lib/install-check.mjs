@@ -213,7 +213,10 @@ export function readPiSessionEvents(stdout) {
 }
 
 export function judgePiTurn({ record, stderr, status, token }) {
-  if (status !== 0) return { passed: false, code: "exit", detail: `exit status ${status ?? "unknown"}` };
+  if (status !== 0) {
+    const lastStderr = String(stderr ?? "").trim().split(/\r?\n/).at(-1);
+    return { passed: false, code: "exit", detail: `exit status ${status ?? "unknown"}${lastStderr ? `; last stderr: ${lastStderr}` : ""}` };
+  }
   if (!record || typeof record !== "object") return { passed: false, code: "missing-record", detail: `no readable ${PI_TURN.record} record` };
   const extensionError = linesOf(stderr).find((line) => line.startsWith(PI_TURN.extensionErrorPrefix));
   if (extensionError) return { passed: false, code: "extension-error", detail: extensionError };
@@ -306,7 +309,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   const sessionOkay = okay(session) && sessionOutput.includes("reload-runtime") && journalHasUnadopted(journal, project, platformName) && !sessionFinding;
   const sessionDetail = !okay(session) ? reason(session) : sessionFinding?.detail ?? (!sessionOutput.includes("reload-runtime") ? "reload-runtime not in get_commands output" : !journalHasUnadopted(journal, project, platformName) ? `journal has no directory_unadopted for ${project}` : "");
   report("pi session", session.error?.code === "ETIMEDOUT" ? "timeout" : sessionFinding?.code ?? "no-output", sessionOkay, sessionDetail);
-  const turnArgs = [...PI_TURN.args.map((arg) => arg === PI_TURN.fixture ? path.join(root, arg) : arg), SAMPLE_INPUTS.prompt, token];
+  const turnArgs = [...PI_TURN.args.map((arg) => arg === PI_TURN.fixture ? path.join(root, arg) : arg), `${SAMPLE_INPUTS.prompt} ${token}`];
   const turn = await piRun(turnArgs, SPAWN_TIMEOUT_MS.turn);
   let turnRecord = null;
   try { turnRecord = JSON.parse(fs.readFileSync(path.join(home, PI_TURN.record), "utf8")); } catch {}
