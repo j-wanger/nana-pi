@@ -71,9 +71,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `apps/bench/lib/catch-judge.mjs`
 
 - **purpose** — The only place the catch ledger uses a model: the label and match prompts, their JSON schemas, the judge invocation and the validation of what comes back.
-- **inputs** — {model, system, prompt, schema, budgetUsd} per call; env CATCH_JUDGE_BIN (default `claude`); row/report/fix-brief texts for prompt building
+- **inputs** — {model, system, prompt, schema, budgetUsd, spawn} per call (spawn optional, default node:child_process spawnSync); env CATCH_JUDGE_BIN (default `claude`); row/report/fix-brief texts for prompt building
 - **outputs** — exports MODELS and the label vocabularies (TOP/SUB/DISP/ORIGIN/RELATION/SURFACE/VALIDITY), GUIDE/MATCH_GUIDE, labelSchema/matchSchema, sha, callJudge, labelPrompt, validateLabels; callJudge returns {out, cost}
-- **effects** — process (spawnSync of the judge CLI with cwd /tmp, 15 min timeout), network (the model call that child makes)
+- **effects** — process (spawns the judge CLI with cwd the OS temp folder, 15 min timeout), network (the model call that child makes)
 - **errors** — throws Error on judge unavailable, non-zero exit, non-JSON output, missing structured output, or a model other than the one requested; validateLabels throws on a bad or incomplete label set
 - **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/test/catch-ledger.test.mjs`
 - **callees** — —
@@ -203,9 +203,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `apps/bench/test/catch-ledger.test.mjs`
 
 - **purpose** — Pins the catch ledger — structural extraction over the real review corpus, the kappa arithmetic, the matcher's stages, ledger uniqueness, and the judge's fail-closed contract with zero model calls
-- **inputs** — lib/catch-extract.mjs, lib/catch-judge.mjs, lib/catch-stats.mjs, the docs/reviews corpus, and stub judge executables
+- **inputs** — lib/catch-extract.mjs, lib/catch-judge.mjs, lib/catch-stats.mjs, the docs/reviews corpus, and stub judge scripts run through node
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp dirs, ledger files, reads the review corpus), process (spawns the stub judge executables)
+- **effects** — disk (temp dirs, ledger files, reads the review corpus), process (runs the stub judge scripts through node)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `apps/bench/lib/catch-extract.mjs`, `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`
