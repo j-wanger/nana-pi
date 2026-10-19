@@ -2636,7 +2636,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/entry-guidance.test.mjs`
 
-- **purpose** — Pins that each scaffold, adopt, copier and project completion path prompts objective ratification before trust.
+- **purpose** — Pins the completion guidance each scaffold, adopt, copier and project path gives: ratification before trust, and the adopt skills' closing project check.
 - **inputs** — copier.yml, four pack skill files, and nana-setup project CLI output.
 - **outputs** — PASS/FAIL lines and a nonzero process exit when any assertion fails.
 - **effects** — disk (temporary project and home), process (runs the CLI).
