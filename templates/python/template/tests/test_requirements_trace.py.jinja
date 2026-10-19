@@ -395,6 +395,13 @@ def test_summary_counts_statuses() -> None:
     assert summary(rows, {"R-001": ["t::a"]}) == "requirements: 3 total (1 implemented · 2 untested); 1 traced by tests"
 
 
+@pytest.fixture(autouse=True)
+def _utf8_child_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pytester reads a child pytest's output as UTF-8, but a child writes it in the
+    locale's encoding (cp1252 on Windows), so the summary's ' · ' would not decode."""
+    monkeypatch.setenv("PYTHONIOENCODING", "utf-8")
+
+
 def _project(pytester: pytest.Pytester, reqs: str, body: str, nested: dict[str, str] | None = None) -> None:
     pytester.makeini("[pytest]\ntestpaths = tests\n")
     pytester.makeconftest(CONFTEST_SRC.replace('pytest_plugins = ["pytester"]', ""))

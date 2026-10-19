@@ -21,6 +21,7 @@ including its exit code.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -101,6 +102,8 @@ def cli(root: Path, *args: str) -> tuple[int, str]:
         cwd=root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         check=False,
     )
     return run.returncode, run.stdout + run.stderr
