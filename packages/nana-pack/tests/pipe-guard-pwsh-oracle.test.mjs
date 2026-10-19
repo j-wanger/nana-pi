@@ -132,4 +132,39 @@ for (const [name, command] of [
 	await check(`token start after a close: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
 }
 
+const assignmentHereStringCases = [
+	["single-quoted assignment", "$msg=@'\nfix: don't drop rows\n'@\nnpm test 2>&1 | Select-Object -Last 20; git commit -m $msg"],
+	["single-quoted assignment with CRLF", "$msg=@'\r\nfix: don't drop rows\r\n'@\r\nnpm test 2>&1 | Select-Object -Last 20; git commit -m $msg"],
+	["pipeline before single-quoted assignment", "npm test | Select-Object -Last 1\n$msg=@'\nfix: don't drop rows\n'@\ngit commit -m $msg"],
+	["plus-equals assignment", "$m+=@'\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1; git commit -m $m"],
+	["expandable assignment with an odd body quote", '$msg=@"\nfix: 5" pipe\n"@\nnpm test | Select-Object -Last 1; git commit -m $msg'],
+	["assignment opener with a trailing tab", "$msg=@'\t\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1; git commit -m $msg"],
+	["spaced assignment mirror", "$msg = @'\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1; git commit -m $msg"],
+];
+for (const [name, command] of assignmentHereStringCases) {
+	// req: R-1737
+	await check(`assignment here-string: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
+}
+
+for (const [name, expression] of [
+	["numeric second index", "$a[0][1]"],
+	["string-key second index", "$a[0]['k']"],
+	["nested variable index", "$a[$b[0]]"],
+	["third index", "$a[0]['k'][1]"],
+]) {
+	const command = `${expression}#it's\nnpm test | Select-Object -Last 1; git commit -m x`;
+	// req: R-1738
+	await check(`comment after an index: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
+}
+
+for (const [name, expression] of [
+	["nonempty array subexpression", "@(1)"],
+	["empty array subexpression", "@()"],
+	["member call with arguments", "$a.b($c)"],
+]) {
+	const command = `${expression}#it's\nnpm test | Select-Object -Last 1; git commit -m x`;
+	// req: R-1739
+	await check(`comment after a parenthesized expression: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
+}
+
 if (failures) process.exitCode = 1;

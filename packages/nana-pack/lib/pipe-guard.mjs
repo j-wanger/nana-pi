@@ -97,6 +97,10 @@ function lineEndsAfter(source, index) {
 	return index >= source.length || source[index] === "\r" || source[index] === "\n";
 }
 
+function isGluedVariableAssignment(source, start, wordStart) {
+	return /^\$(?:[\w:]+|\{[^}\r\n]+\})\+?=$/u.test(source.slice(wordStart, start));
+}
+
 function scanPowerShell(source) {
 	const spans = [];
 	const result = scanPowerShellRange(source, 0, false, spans);
@@ -150,7 +154,8 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 		}
 
 		const kind = quoteKind(ch);
-		if (tokenStart && ch === "@" && quoteKind(source[i + 1]) && lineEndsAfter(source, i + 2)) {
+		const hereStringStart = tokenStart || isGluedVariableAssignment(source, i, wordStart);
+		if (hereStringStart && ch === "@" && quoteKind(source[i + 1]) && lineEndsAfter(source, i + 2)) {
 			const result = scanPowerShellHereString(source, i, quoteKind(source[i + 1]), spans);
 			live += result.live;
 			i = result.end;
@@ -186,15 +191,16 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 			continue;
 		}
 		if (ch === "(") {
-			const openerAtTokenStart = tokenStart;
 			const nested = scanPowerShellRange(source, i + 1, true, spans);
 			live += `(${nested.live}${nested.closed ? ")" : ""}`;
 			i = nested.end;
-			tokenStart = openerAtTokenStart && nested.closed;
+			tokenStart = nested.closed;
 			if (tokenStart) wordStart = i;
 			continue;
 		}
-		if (ch === "[" && /^\$(?:[\w:]+|\{[^}]+\})$/u.test(source.slice(wordStart, i))) variableIndexDepth++;
+		if (ch === "[" && (variableIndexDepth > 0
+			|| /^\$(?:[\w:]+|\{[^}]+\})$/u.test(source.slice(wordStart, i))
+			|| (tokenStart && source[i - 1] === "]"))) variableIndexDepth++;
 		if (ch === "]" && variableIndexDepth > 0) {
 			variableIndexDepth--;
 			live += ch;
