@@ -62,7 +62,6 @@ const nonVacuityControl = async (label) => {
 	return refused;
 };
 
-// req: R-1430
 {
 	const r1430Joined = path.join(path.resolve("/tmp"), `nana-lane-${pid}`, "x.txt");
 	const r1430Literal = `/tmp/nana-lane-${pid}/x.txt`;
@@ -97,24 +96,24 @@ const nonVacuityControl = async (label) => {
 			const results = [];
 			if (r1431CasePairOk) {
 				setTempVars(r1431SwapDir);
-				results.push(await call("write", path.join(r1431SwapAlt, "case-file-a.txt")));
+				results.push(!(await call("write", path.join(r1431SwapAlt, "case-file-a.txt"))));
 				setTempVars(r1431SwapAlt);
-				results.push(await call("write", path.join(r1431SwapDir, "case-file-b.txt")));
+				results.push(!(await call("write", path.join(r1431SwapDir, "case-file-b.txt"))));
 			} else {
 				console.log("SKIP a temp file named through another spelling of the temp folder is allowed (case pair): swapped path is not the same file on this volume");
 			}
 			if (r1431OsSpellingOk) {
 				setTempVars(r1431RawTemp);
-				results.push(await call("write", path.join(r1431NativeTemp, "os-spelling-file-a.txt")));
+				results.push(!(await call("write", path.join(r1431NativeTemp, "os-spelling-file-a.txt"))));
 				setTempVars(r1431NativeTemp);
-				results.push(await call("write", path.join(r1431RawTemp, "os-spelling-file-b.txt")));
+				results.push(!(await call("write", path.join(r1431RawTemp, "os-spelling-file-b.txt"))));
 			} else {
 				console.log("SKIP a temp file named through another spelling of the temp folder is allowed (OS spelling pair): as-given and native spellings are equal strings");
 			}
 			setTempVars(r1431LinkDir);
-			results.push(await call("write", path.join(r1431LinkAlias, "link-file-a.txt")));
+			results.push(!(await call("write", path.join(r1431LinkAlias, "link-file-a.txt"))));
 			setTempVars(r1431LinkAlias);
-			results.push(await call("write", path.join(r1431LinkDir, "link-file-b.txt")));
+			results.push(!(await call("write", path.join(r1431LinkDir, "link-file-b.txt"))));
 			// req: R-1431
 			check("a temp file named through another spelling of the temp folder is allowed", results.length > 0 && results.every(Boolean));
 		}
@@ -137,25 +136,25 @@ const nonVacuityControl = async (label) => {
 			const results = [];
 			if (r1432CasePairOk) {
 				process.env.NANA_WORKTREE_ROOT = worktree;
-				results.push(await call("write", path.join(r1432SwapRoot, "case-file-a.txt")));
+				results.push(!(await call("write", path.join(r1432SwapRoot, "case-file-a.txt"))));
 				process.env.NANA_WORKTREE_ROOT = r1432SwapRoot;
-				results.push(await call("write", path.join(worktree, "case-file-b.txt")));
+				results.push(!(await call("write", path.join(worktree, "case-file-b.txt"))));
 				process.env.NANA_WORKTREE_ROOT = r1432SwapRoot;
-				results.push(await callWithCwd("write", "relative-case-file-a.txt", worktree));
+				results.push(!(await callWithCwd("write", "relative-case-file-a.txt", worktree)));
 				process.env.NANA_WORKTREE_ROOT = worktree;
-				results.push(await callWithCwd("write", "relative-case-file-b.txt", r1432SwapRoot));
+				results.push(!(await callWithCwd("write", "relative-case-file-b.txt", r1432SwapRoot)));
 			} else {
 				console.log("SKIP a lane file named through another spelling of the lane folder is allowed (case and relative-target pairs): swapped path is not the same file on this volume");
 			}
 			process.env.NANA_WORKTREE_ROOT = worktree;
-			results.push(await call("write", path.join(r1432LinkAlias, "link-file-a.txt")));
+			results.push(!(await call("write", path.join(r1432LinkAlias, "link-file-a.txt"))));
 			process.env.NANA_WORKTREE_ROOT = r1432LinkAlias;
-			results.push(await call("write", path.join(worktree, "link-file-b.txt")));
+			results.push(!(await call("write", path.join(worktree, "link-file-b.txt"))));
 			if (r1432OsSpellingOk) {
 				process.env.NANA_WORKTREE_ROOT = worktree;
-				results.push(await call("write", path.join(r1432NativeRoot, "os-spelling-file-a.txt")));
+				results.push(!(await call("write", path.join(r1432NativeRoot, "os-spelling-file-a.txt"))));
 				process.env.NANA_WORKTREE_ROOT = r1432NativeRoot;
-				results.push(await call("write", path.join(worktree, "os-spelling-file-b.txt")));
+				results.push(!(await call("write", path.join(worktree, "os-spelling-file-b.txt"))));
 			} else {
 				console.log("SKIP a lane file named through another spelling of the lane folder is allowed (OS spelling pair): as-given and native spellings are equal strings");
 			}
