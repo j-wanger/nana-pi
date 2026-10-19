@@ -227,9 +227,8 @@ const isValidReviewerAgent =
 check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, name/description/tools incl. bash)", isValidReviewerAgent, JSON.stringify(installedReviewerFrontmatter));
 // req: R-310
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
-// win32 has no PATH links at all (stepPath SKIPs all four — R-311/R-964/R-589/R-980's symlink
-// and doctor-repair scenarios cannot occur there); the setupLink PATH is still needed, unlinked,
-// by section 2 below on every platform, so it stays declared outside the branch.
+// POSIX installs symlinks and exercises link-specific repairs here. Windows installs sh and
+// .cmd shims; win32-degrade.test.mjs and win-shims.test.mjs own that byte and dispatch contract.
 const setupLink = path.join(home, ".local", "bin", "nana-setup");
 if (process.platform !== "win32") {
 	// req: R-311
@@ -283,15 +282,7 @@ if (process.platform !== "win32") {
 	// req: R-311
 	check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
 } else {
-	console.log("SKIP PATH symlink and doctor-repair probes (win32: stepPath SKIPs pi-review, pi-worker, nana-land and nana-setup — install never writes .local/bin links there)");
-	for (const name of ["pi-review", "pi-worker", "nana-land", "nana-setup"]) {
-		// req: R-311 R-964 R-980 R-589
-		check(`PATH ${name} is not installed on win32`, !fs.existsSync(path.join(home, ".local", "bin", name)));
-	}
-	const winPathDoctor = run(["doctor", "--home", home]);
-	// req: R-311 R-964 R-980 R-589
-	check("doctor reads every PATH entry skipped on win32", winPathDoctor.status === 0 && ["pi-review", "pi-worker", "nana-land", "nana-setup"].every((name) => new RegExp(`PATH ${name}\\s+skipped \\(win32\\)`).test(winPathDoctor.stdout)), winPathDoctor.stdout);
-	// the shebang still ships; NTFS has no POSIX execute bit to assert
+	// The source shebang still ships; NTFS has no POSIX execute bit to assert.
 	// req: R-311
 	check("pi-review ships a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node"));
 }
@@ -318,9 +309,6 @@ if (process.platform !== "win32") {
 	check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
 	// req: R-589
 	check("second install keeps the identical nana-setup link", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
-} else {
-	// req: R-964 R-589
-	check("second install still has no PATH links on win32", !fs.existsSync(path.join(home, ".local", "bin", "pi-worker")) && !fs.existsSync(setupLink));
 }
 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */

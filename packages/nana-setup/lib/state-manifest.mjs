@@ -61,6 +61,7 @@ export function stateRows(layout) {
   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
   for (const name of ["requirements", "spec", "py-lint", "py-review", "py-test"]) rebuild(`skill link ${name}`, p(layout.skillsDir, name));
   for (const name of ["pi-review", "pi-worker", "nana-land", "nana-setup"]) rebuild(`bin link ${name}`, p(layout.binDir, name));
+  for (const name of ["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd"]) rebuild(`bin shim ${name}`, p(layout.binDir, name), "shim");
   rebuild("desk plist", layout.plistPath, "plist", "nana-setup");
   rebuild("pi-subagents package manifest", layout.piSubagentsPackage, "file", "pi", "run pi install npm:pi-subagents@0.75.0", modules.pi);
   rebuild("knowledge index", p(layout.knowledgeHome, "index.db"), "generated", "nana-setup", "run nana-knowledge build", modules.knowledge);
