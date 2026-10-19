@@ -6,12 +6,12 @@
  * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
  *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
  * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
- *  `check`, and the admission note, warnings and refusals on stderr
+ *  `check`, and the admission note, warnings, unread-verdict note and refusals on stderr
  * @effects process (spawns the review command with stdout piped, runs the reservation heartbeat, sets the
  *  exit code), disk (writes --out and the ledger's lock, reservation, tally and audit files)
  * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
- *  admission, an unwritable --out, or a non-zero / non-review-shaped result (the reservation is returned
- *  and no round consumed); exit 0 otherwise
+ *  admission, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result
+ *  (only the latter returns the reservation with no round consumed); exit 0 otherwise
  */
 // review-ledger.mjs — the review round cap for ANY launcher (T2b). Same ledger and rules as
 // pi-review (see review-round.mjs); this is the hook a hand-rolled launcher calls.
@@ -19,7 +19,7 @@
 //   review-ledger run   --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>
 //       reserve the round, run <cmd> (cwd = the reviewed tree) with stdout → <file>, record the
 //       verdict iff it exits 0 with a review-shaped output; otherwise return the reservation.
-//       Exit = 1 if refused / no verdict / not recorded, else 0.
+//       Exit = 1 if refused / no verdict / not recorded, or if the recorded verdict is empty; else 0.
 //   review-ledger check --item <slug> [--tree <path>] [--revision R]
 //       would a review of this tree's revision be admitted? exit 0 yes / 1 no. Takes the lock,
 //       writes nothing (no reservation, no pruning).
@@ -93,6 +93,7 @@ try { writeFileSync(out, text); } catch (e) { release(adm.id); die(`cannot write
 if (r.status === 0 && text.trim() && reviewShaped(text)) {
   const c = complete(adm.res, out, { attempts: 1 });
   if (!c.ok) die(`review written to ${out}, but ${c.message}`);
+  if (c.unread) die(c.unread);
   process.stderr.write(`review-ledger: verdict recorded for item ${adm.res.item} (round ${c.round}; ${out})\n`);
   process.exit(0);
 }

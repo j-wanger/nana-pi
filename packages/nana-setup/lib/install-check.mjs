@@ -9,10 +9,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
+import { runReadmeRehearsal } from "./readme-rehearsal.mjs";
 
 export function buildEnvironment(source, home, platformName = process.platform) {
   const env = {};
@@ -132,7 +133,7 @@ export function createSpawnAdapter(childSpawn, { now = () => performance.now() }
   return (command, args, options = {}) => new Promise((resolve) => {
     const started = now();
     let stdout = ""; let stderr = ""; let settled = false; let timedOut = false;
-    const cap = (current, chunk) => (current + chunk.toString()).slice(0, 10001);
+    const cap = (current, chunk) => (current + chunk.toString()).slice(0, options.maxOutput ?? 10001);
     let child; let timer;
     const finish = (result) => {
       if (settled) return;
@@ -324,6 +325,12 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     doctorDetail = `${kept.join("; ")}${kept.length ? "; " : ""}… and ${labels.length - kept.length} more`;
   }
   report("doctor", labels.length ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(doctor) && labels.length === 0, labels.length ? doctorDetail : okay(doctor) ? "" : reason(doctor));
+  if (README_REHEARSAL.platforms.includes(platformName)) {
+    const readmeHome = path.join(home, README_REHEARSAL.home);
+    const readmeEnv = buildEnvironment(env, readmeHome, platformName);
+    const rehearsal = await runReadmeRehearsal({ root, home: readmeHome, env: readmeEnv, spawn });
+    report(rehearsal.item, rehearsal.code, rehearsal.passed, rehearsal.detail);
+  }
   if (failed) {
     const settingsPath = path.join(home, ".claude", "settings.json");
     try {

@@ -3,14 +3,16 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS and
- *  NANA_COVERAGE_DIR (runtime-map's coverage knob), the test files directly under each package's tests/
- *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), and on win32 the
- *  declared Windows skip list (windows-skips-config.mjs)
+ * @inputs argv (--verbose, --self-test, --jobs=N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS
+ *  and NANA_COVERAGE_DIR (runtime-map's coverage knob), the test files directly under each package's tests/
+ *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
+ *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
- *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; while
- *  NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds
- *  record, plus one completion record naming the collected file count
+ *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; with
+ *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
+ *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
+ *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
+ *  collected file count
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
@@ -55,6 +57,9 @@
 //                                the run must exit non-zero
 //   NANA_TEST_SELFTEST=1 npm test   same as --self-test
 //   npm test -- <substring>...   only files whose path contains one of the substrings
+//   npm test -- --jobs=N         keep up to N collected files running at once (default 1); a file
+//                                on the declared run-alone list (test-runner-config.mjs) still runs
+//                                alone, after the pool of every other file drains
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -63,6 +68,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
+import { JOBS_FLAG, RUN_ALONE } from "../packages/nana-pack/lib/test-runner-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
@@ -74,6 +80,24 @@ const DRAIN_MS = 2000; // after `exit`, how long stdio may stay open before we s
 const KILL_GRACE_MS = 5000; // after a timeout kill, how long we wait for `exit` at all
 const posix = process.platform !== "win32";
 
+// ── --jobs=N (R-1470, R-1477): refused before anything is collected or spawned ──────────────────
+const JOBS_RE = new RegExp(`^${JOBS_FLAG}([0-9]+)$`);
+function parseJobs(args) {
+	let n = 1;
+	for (const a of args) {
+		if (!a.startsWith("--jobs")) continue;
+		const m = JOBS_RE.exec(a);
+		const value = m ? Number(m[1]) : NaN;
+		if (!m || !Number.isSafeInteger(value) || value < 1) {
+			console.log(`[runner] bad --jobs argument: ${a}`);
+			process.exit(1);
+		}
+		n = value;
+	}
+	return n;
+}
+const jobs = parseJobs(argv);
+
 const rel = (p) => path.relative(root, p).split(path.sep).join("/");
 const isDir = (p) => {
 	try {
@@ -83,10 +107,12 @@ const isDir = (p) => {
 	}
 };
 
-// ── cleanup: the active child's tree and the scratch dir, on EVERY exit path ────────────────
+// ── cleanup: every active child's tree and the scratch dir, on EVERY exit path ──────────────
+// Sets, not a single slot: at --jobs=N greater than 1 several files run at once, so more than
+// one child and one file temp root can be active together.
 let scratch = null;
-let active = null; // the running child, if any
-let activeFileTmp = null;
+const active = new Set(); // every currently-running child
+const activeFileTmp = new Set(); // every currently-running file's temp root
 
 /** Kill a child's whole tree. POSIX: it leads its own process group. win32: taskkill /T. */
 function killTree(child) {
@@ -106,12 +132,12 @@ function reapPipeHolder() {
 }
 
 function cleanup() {
-	killTree(active);
-	active = null;
-	if (activeFileTmp) {
-		try { fs.rmSync(activeFileTmp, { recursive: true, force: true }); } catch {}
-		activeFileTmp = null;
+	for (const child of active) killTree(child);
+	active.clear();
+	for (const dir of activeFileTmp) {
+		try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
 	}
+	activeFileTmp.clear();
 	if (!scratch) return;
 	reapPipeHolder();
 	try {
@@ -200,6 +226,9 @@ const FIXTURES = [
 		name: "runner-self-test-hang.test.mjs",
 		expect: "FAIL",
 		timeoutMs: 3000,
+		holdsPipe: true, // only this fixture writes pipe-holder.pid; reapPipeHolder() is gated on it
+		// so a sibling fixture ending first in a --jobs pool never reaps it before ITS OWN drain
+		// (must-meet.md item 3): that race lost the "stdio still open" note in 5 of 6 runs.
 		body: [
 			'import { spawn } from "node:child_process";',
 			'import * as fs from "node:fs";',
@@ -215,8 +244,10 @@ const FIXTURES = [
 ];
 
 // ── one file ─────────────────────────────────────────────────────────────────────────────────
-/** Run one file; resolve {code, signal, timedOut, pipesHeld, out}. Always bounded. */
-function runFile(file, cwd, env, timeoutMs) {
+/** Run one file; resolve {code, signal, timedOut, pipesHeld, out}. Always bounded. `liveVerbose`
+ *  streams the child's output to stdout as it arrives; otherwise `out` only ever holds it, so a
+ *  caller running several files at once can print one file's whole block as a single write. */
+function runFile(file, cwd, env, timeoutMs, liveVerbose) {
 	return new Promise((resolve) => {
 		const child = spawn(process.execPath, ["--experimental-strip-types", file], {
 			cwd,
@@ -225,12 +256,12 @@ function runFile(file, cwd, env, timeoutMs) {
 			detached: posix, // own process group, so one group kill takes the whole tree down
 			windowsHide: true,
 		});
-		active = child;
+		active.add(child);
 		let out = "";
 		const take = (chunk) => {
 			const s = chunk.toString();
 			out += s;
-			if (verbose) process.stdout.write(s);
+			if (liveVerbose) process.stdout.write(s);
 		};
 		child.stdout.on("data", take);
 		child.stderr.on("data", take);
@@ -247,7 +278,7 @@ function runFile(file, cwd, env, timeoutMs) {
 			clearTimeout(graceTimer);
 			child.stdout.destroy();
 			child.stderr.destroy();
-			if (active === child) active = null;
+			active.delete(child);
 			resolve({ code: exited?.code ?? null, signal: exited?.signal ?? null, timedOut, pipesHeld, out });
 		};
 		const timer = setTimeout(() => {
@@ -364,70 +395,171 @@ const started = Date.now();
 // ── the runtime-map coverage knob (R-1270): inert unless NANA_COVERAGE_DIR is set ──────────────
 const coverageDir = process.env[COVERAGE_ENV] || null;
 if (coverageDir) console.log(`${KNOB_LINE} ${coverageDir}`);
-let coveragePosition = 0;
+// Coverage position is the file's place in the collected order, fixed up front — so it stays the
+// collection index regardless of the order files actually run or finish in (R-1470..R-1475 design).
+const coveragePositionOf = new Map(files.map((f, i) => [f, i]));
 const writeRecord = (covFolder, record) => {
 	fs.mkdirSync(covFolder, { recursive: true });
 	fs.writeFileSync(path.join(covFolder, RECORD_FILE), JSON.stringify(record));
 };
 
-try {
-	for (const file of files) {
+/** The declared skip reason for a file, or null: a SKIPS entry, else the win32 Windows-skip fallback. */
+function skipReasonFor(file) {
+	return SKIPS[rel(file)]?.() ?? (process.platform === "win32" && Object.hasOwn(WINDOWS_SKIPS, rel(file)) ? WINDOWS_SKIPS[rel(file)] : null);
+}
+
+/** Build one finished (non-skip) file's tallies, result line and excerpt lines from its run. */
+function reportOf(name, r, timeoutMs, fx, secs) {
+	const p = count(r.out, "PASS");
+	const f = count(r.out, "FAIL");
+	const s = count(r.out, "SKIP");
+	const exitedOk = r.code === 0 && !r.timedOut;
+	const noPassingCheck = exitedOk && p === 0;
+	const ok = exitedOk && !noPassingCheck;
+	const why = r.timedOut ? `timed out after ${timeoutMs / 1000}s` : noPassingCheck ? "no check passed and no skip was declared" : !ok ? `exit ${r.code ?? r.signal}` : "";
+	const held = r.pipesHeld ? `  (stdio still open ${DRAIN_MS / 1000}s after exit — a descendant holds it; not waited for)` : "";
+	const stat = `${p} pass${f ? `, ${f} fail` : ""}${s ? `, ${s} skip` : ""}  ${secs}s`;
+	const label = ok ? "PASS" : "FAIL";
+	const resultLine = `${label}  ${name.padEnd(width)}  ${stat}${why ? `  — ${why}` : ""}${held}`;
+	const excerpt = [];
+	if (!ok) {
+		const tail = r.out.trimEnd().split(/\r?\n/);
+		const shown = noPassingCheck ? tail.filter((l) => /^\s*SKIP\b/.test(l)) : tail.filter((l) => /^\s*(?:FAIL|not ok)\b/.test(l));
+		for (const l of (shown.length ? shown : tail).slice(0, 20)) excerpt.push(`      | ${l}`);
+	}
+	const mismatch = fx && fx.expect !== (ok ? (f ? "PASS+WARN" : "PASS") : "FAIL");
+	return { p, f, s, ok, label, resultLine, excerpt, warn: ok && f, mismatch };
+}
+
+if (jobs === 1) {
+	// Today's loop: one file at a time, in collection order, output printed as it happens.
+	// RUN_ALONE is never consulted — it only applies where --jobs=N is given with N greater than 1.
+	try {
+		for (const file of files) {
+			const name = display(file);
+			const covFolder = coverageDir ? path.join(coverageDir, String(coveragePositionOf.get(file)).padStart(4, "0")) : null;
+			const skipReason = skipReasonFor(file);
+			if (skipReason) {
+				tally.SKIP++;
+				console.log(`SKIP  ${name.padEnd(width)}  ${skipReason}`);
+				if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
+				continue;
+			}
+			const fx = fixtureOf.get(file);
+			const fileTmp = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-${process.pid}-`));
+			activeFileTmp.add(fileTmp);
+			const home = fs.mkdtempSync(path.join(scratch, "home-"));
+			const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
+			if (covFolder) env.NODE_V8_COVERAGE = covFolder;
+			if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
+			// run from the package dir (the dir holding tests/ or test/), the way every file was written
+			const cwd = fx ? scratch : path.dirname(path.dirname(file));
+			const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
+			const t0 = Date.now();
+			const r = await runFile(file, cwd, env, timeoutMs, verbose);
+			const secs = ((Date.now() - t0) / 1000).toFixed(1);
+			const rep = reportOf(name, r, timeoutMs, fx, secs);
+			checks.pass += rep.p;
+			checks.fail += rep.f;
+			checks.skip += rep.s;
+			tally[rep.label]++;
+			console.log(rep.resultLine);
+			if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
+			if (rep.warn) warns.push(`WARN ${name}: FAIL line with exit 0`);
+			if (rep.mismatch) selfTestMismatch.push(name);
+			if (!rep.ok) {
+				failed.push(name);
+				if (!verbose) for (const l of rep.excerpt) console.log(l);
+			}
+			if (fx?.holdsPipe) reapPipeHolder();
+			fs.rmSync(home, { recursive: true, force: true });
+			fs.rmSync(fileTmp, { recursive: true, force: true });
+			activeFileTmp.delete(fileTmp);
+		}
+	} finally {
+		cleanup();
+	}
+} else {
+	// --jobs=N greater than 1: a pool of N workers over every file off the declared run-alone list,
+	// in collection order; a freed slot takes the next file at once, never in batches (R-1470). A
+	// declared run-alone file runs by itself, after the pool drains (R-1473). Each file's output is
+	// buffered and written as one block when the file ends, never streamed live (R-1472) — two files
+	// printing at the same time would otherwise interleave on the shared stdout. WARN lines and the
+	// failed list are collected per file and replayed in collection order once every file is done
+	// (R-1471), regardless of the order files actually finished in.
+	const aloneHere = (file) => Object.hasOwn(RUN_ALONE, rel(file));
+	const poolFiles = files.filter((file) => !aloneHere(file));
+	const aloneFiles = files.filter(aloneHere);
+	const perFile = new Array(files.length); // collection-order record of each real file's outcome
+
+	async function runOne(file) {
+		const index = coveragePositionOf.get(file);
 		const name = display(file);
-		const covFolder = coverageDir ? path.join(coverageDir, String(coveragePosition).padStart(4, "0")) : null;
-		coveragePosition += 1;
-		const skipReason = SKIPS[rel(file)]?.() ?? (process.platform === "win32" && Object.hasOwn(WINDOWS_SKIPS, rel(file)) ? WINDOWS_SKIPS[rel(file)] : null);
+		const covFolder = coverageDir ? path.join(coverageDir, String(index).padStart(4, "0")) : null;
+		const skipReason = skipReasonFor(file);
 		if (skipReason) {
 			tally.SKIP++;
-			console.log(`SKIP  ${name.padEnd(width)}  ${skipReason}`);
+			process.stdout.write(`SKIP  ${name.padEnd(width)}  ${skipReason}\n`);
 			if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
-			continue;
+			return;
 		}
 		const fx = fixtureOf.get(file);
 		const fileTmp = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-${process.pid}-`));
-		activeFileTmp = fileTmp;
+		activeFileTmp.add(fileTmp);
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
 		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
 		if (covFolder) env.NODE_V8_COVERAGE = covFolder;
 		if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
-		// run from the package dir (the dir holding tests/ or test/), the way every file was written
 		const cwd = fx ? scratch : path.dirname(path.dirname(file));
 		const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
 		const t0 = Date.now();
-		const r = await runFile(file, cwd, env, timeoutMs);
+		const r = await runFile(file, cwd, env, timeoutMs, false); // never live: this file may share the terminal with another
 		const secs = ((Date.now() - t0) / 1000).toFixed(1);
-		const p = count(r.out, "PASS");
-		const f = count(r.out, "FAIL");
-		const s = count(r.out, "SKIP");
-		checks.pass += p;
-		checks.fail += f;
-		checks.skip += s;
-		const exitedOk = r.code === 0 && !r.timedOut;
-		const noPassingCheck = exitedOk && p === 0;
-		const ok = exitedOk && !noPassingCheck;
-		const why = r.timedOut ? `timed out after ${timeoutMs / 1000}s` : noPassingCheck ? "no check passed and no skip was declared" : !ok ? `exit ${r.code ?? r.signal}` : "";
-		const held = r.pipesHeld ? `  (stdio still open ${DRAIN_MS / 1000}s after exit — a descendant holds it; not waited for)` : "";
-		const stat = `${p} pass${f ? `, ${f} fail` : ""}${s ? `, ${s} skip` : ""}  ${secs}s`;
-		const label = ok ? "PASS" : "FAIL";
-		tally[label]++;
-		console.log(`${label}  ${name.padEnd(width)}  ${stat}${why ? `  — ${why}` : ""}${held}`);
-		if (covFolder) writeRecord(covFolder, { path: rel(file), label, seconds: Number(secs) });
-		if (ok && f) warns.push(`WARN ${name}: FAIL line with exit 0`);
-		if (fx && fx.expect !== (ok ? (f ? "PASS+WARN" : "PASS") : "FAIL")) selfTestMismatch.push(name);
-		if (!ok) {
-			failed.push(name);
-			if (!verbose) {
-				const tail = r.out.trimEnd().split(/\r?\n/);
-				const shown = noPassingCheck ? tail.filter((l) => /^\s*SKIP\b/.test(l)) : tail.filter((l) => /^\s*(?:FAIL|not ok)\b/.test(l));
-				for (const l of (shown.length ? shown : tail).slice(0, 20)) console.log(`      | ${l}`);
-			}
-		}
-		if (fx) reapPipeHolder();
+		const rep = reportOf(name, r, timeoutMs, fx, secs);
+		checks.pass += rep.p;
+		checks.fail += rep.f;
+		checks.skip += rep.s;
+		tally[rep.label]++;
+		let block = verbose ? r.out : "";
+		block += rep.resultLine + "\n";
+		if (!verbose) for (const l of rep.excerpt) block += l + "\n";
+		process.stdout.write(block); // one write: the whole block stays together on a shared stdout
+		if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
+		perFile[index] = { warn: rep.warn ? `WARN ${name}: FAIL line with exit 0` : null, failed: !rep.ok ? name : null, mismatch: rep.mismatch ? name : null };
+		if (fx?.holdsPipe) reapPipeHolder();
 		fs.rmSync(home, { recursive: true, force: true });
 		fs.rmSync(fileTmp, { recursive: true, force: true });
-		activeFileTmp = null;
+		activeFileTmp.delete(fileTmp);
 	}
-} finally {
-	cleanup();
+
+	/** N workers pull the next queued file as soon as they are free — never started in batches. */
+	async function runPool(queue, size) {
+		let next = 0;
+		const workerCount = Math.max(1, Math.min(size, queue.length));
+		await Promise.all(
+			Array.from({ length: workerCount }, async () => {
+				for (;;) {
+					const i = next++;
+					if (i >= queue.length) return;
+					await runOne(queue[i]);
+				}
+			}),
+		);
+	}
+
+	try {
+		await runPool(poolFiles, jobs);
+		for (const file of aloneFiles) await runOne(file); // one at a time, after the pool drains
+	} finally {
+		cleanup();
+	}
+
+	for (const record of perFile) {
+		if (!record) continue; // a SKIP left no record
+		if (record.warn) warns.push(record.warn);
+		if (record.failed) failed.push(record.failed);
+		if (record.mismatch) selfTestMismatch.push(record.mismatch);
+	}
 }
 if (coverageDir) {
 	fs.mkdirSync(coverageDir, { recursive: true });
@@ -449,4 +581,10 @@ console.log(
 for (const w of warns) console.log(w);
 if (failed.length) console.log(`failed: ${failed.join(", ")}`);
 if (selfTest) console.log(selfTestMismatch.length ? `self-test MISMATCH: ${selfTestMismatch.join(", ")}` : "self-test: every fixture got its expected verdict");
-process.exit(tally.FAIL || selfTestMismatch.length ? 1 : 0);
+// Not process.exit(): on a pipe, a write queued just before an immediate process.exit() can be
+// dropped entirely rather than truncated (confirmed: a 2 MB console.log before process.exit() on
+// darwin delivered ZERO bytes to a reader that attached after the child had already exited).
+// Setting exitCode and letting the event loop drain on its own lets every queued write flush
+// before the process exits — registered SIGINT/SIGTERM/message handlers do not keep it alive once
+// there is nothing left to do (must-meet.md item 3, build-brief-2).
+process.exitCode = tally.FAIL || selfTestMismatch.length ? 1 : 0;

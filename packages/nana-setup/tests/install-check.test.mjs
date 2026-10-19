@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH } from "../lib/install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
 import { projectKey } from "../lib/project-key.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -186,6 +186,9 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
   const spawn = async (command, args, options) => {
     calls.push({ command, args, options: { ...options, env: { ...options.env } } });
+    // The README rehearsal (darwin only) runs the real root README's checklist through /bin/zsh;
+    // stub every such call so the existing darwin checks below stay green.
+    if (command === "/bin/zsh") return { status: 0, stdout: "\n  all good.\n" };
     const joined = `${command} ${args.join(" ")}`;
     if (joined.includes("nana-setup.mjs") && args.includes("install")) {
       if (failInstall) return { status: 1, stderr: "failed" };
@@ -237,6 +240,28 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
   const run = runInstallCheck({ root, home, platformName, env: { PATH: platformName === "win32" ? "C:\\tools" : "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => piShim ? candidate.toLowerCase().endsWith("\\pi.cmd") : candidate.toLowerCase().endsWith("\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
   return { home, calls, run };
 }
+
+// req: R-1540
+check("readme gate: darwin prints one readme checklist result line from /bin/zsh runs in a second home; linux and win32 run no /bin/zsh and print none", async () => {
+  for (const platformName of ["darwin", "linux", "win32"]) {
+    const fixture = recordingRun({ platformName });
+    try {
+      const result = await fixture.run;
+      const readmeLines = result.lines.filter((line) => line.includes(README_REHEARSAL.item));
+      const zshCalls = fixture.calls.filter((call) => call.command === README_REHEARSAL.shell);
+      if (platformName === "darwin") {
+        assert.equal(readmeLines.length, 1, result.lines.join("\n"));
+        assert.equal(readmeLines[0], `PASS ${README_REHEARSAL.item}`, result.lines.join("\n"));
+        assert.ok(zshCalls.length > 0);
+        const readmeHome = path.join(fixture.home, README_REHEARSAL.home);
+        assert.ok(zshCalls.every((call) => call.options.cwd === readmeHome && call.options.cwd !== fixture.home));
+      } else {
+        assert.equal(readmeLines.length, 0, result.lines.join("\n"));
+        assert.equal(zshCalls.length, 0);
+      }
+    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  }
+});
 
 // req: R-1071
 check("environment: every override variable and every caller npm_config_* variable is removed, without case on win32", () => {
