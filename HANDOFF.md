@@ -312,10 +312,9 @@
 - Unread verdict (unread-verdict-loud): the rounds-left count now runs after every completed review, readable or not. If it fails, a recorded LAND exits 1. Only tampering, such as a swapped audit file, makes it fail.
 - Unread verdict (unread-verdict-loud): after an unread round, a readable re-review of the same revision reports success and exits 0. nana-land still refuses that revision, as on main.
 - Unread verdict (unread-verdict-loud): the review timeline has its own verdict reader, which this lane leaves alone.
-- Post-edit timeout on Windows (post-edit-win-pin): the seat's planned wrong-code run on Windows did not happen. No run has shown the two new kill checks failing against a broken kill there. The plan's adversary inferred they would.
 - Post-edit timeout on Windows (post-edit-win-pin): no test covers a taskkill that starts and then fails, such as on access denied. Its fallback code runs only inside the missing-taskkill check.
-- Post-edit timeout on Windows (post-edit-win-pin): an aborted turn on Windows uses the same kill, but no test checks that its processes end there. Two older kill checks still look for survivors only on macOS and Linux.
-- Post-edit timeout on Windows (post-edit-win-pin): with taskkill missing, the pack kills only the shell. The check's own processes keep running, as on macOS and Linux when a kill fails.
+- Post-edit timeout on Windows (post-edit-win-pin): an aborted turn on Windows uses the same kill, but no test checks that its processes end there. Three older kill checks look for survivors with pgrep, so on Windows they pass without checking anything. Under broken kill code, the Windows file crashes in cleanup instead of failing a named check.
+- Post-edit timeout on Windows (post-edit-win-pin): with taskkill missing, the pack kills only the shell. The check's own processes keep running, as on macOS and Linux when a kill fails. The fallback check requires them to survive, so whoever makes the fallback end the whole tree must restate that check.
 - Post-edit timeout on Windows (post-edit-win-pin): a reused process number, or a dead process its parent has not reaped, reads as alive. Either gives a false failure, never a false pass.
 - Post-edit timeout on Windows (post-edit-win-pin): a process tree that needs over 2.5 seconds to start fails the new kill check. The Windows leg now blocks release, so a slow runner could stop one. The parallel runner does not run that file alone.
 - Post-edit timeout on Windows (post-edit-win-pin): the 30-second default time limit is still a literal in the extension, not a named setting.
@@ -339,8 +338,6 @@
 - Unclaimed tests (unclaimed-tests): each trace rail copies the loop that binds markers to tests, instead of sharing one.
 - Tree test (leaf-total-drop): one variant of a wrong-code try does not fail its check. That variant sets each tree count to one instead of adding. The brief said either variant fails it.
 - Stale copies at session start (win-stale-copies): neither child run in the adoption producer sets a time limit. A hung checker then lets Claude Code's five-second hook limit kill the whole adoption output.
-- Post-edit timeout on Windows (post-edit-win-pin): the Windows fallback check requires the check's child processes to survive. So it pins today's gap as required behaviour. Whoever makes the fallback end the whole tree must restate that check.
-- Post-edit timeout on Windows (post-edit-win-pin): the older timeout cases look processes up with pgrep. So on Windows their two checks for a gone checker and a leftover grandchild pass without checking anything. Under broken kill code, the Windows file crashes in cleanup instead of failing a named check.
 - Doctor warnings (doctor-quiet): the project command and its check still print the module type warning, naming the pack's config module. The fix is the same mute there, or declaring the pack's module type.
 - Doctor warnings (doctor-quiet): the pack still declares no module type. So test runs and CI logs keep printing the module type warning.
 - Doctor warnings (doctor-quiet): the SQLite warning test exists twice, in doctor's command and in the knowledge index. Sharing one copy would cross a package boundary.
