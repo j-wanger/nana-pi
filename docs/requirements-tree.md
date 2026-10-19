@@ -47,20 +47,20 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-01 · Rows: 16 · IDs: R-376, R-690, R-742–R-755
 - **CAP-02 · Deliver controlled changes**
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
-  Parent: — · Rows: 144 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1390–R-1395, R-1400–R-1407
+  Parent: — · Rows: 157 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
     Status: active
     Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846
-    Parent: CAP-02 · Rows: 35 · IDs: R-285, R-286, R-628, R-732–R-735, R-847, R-960–R-963, R-965, R-966, R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1400–R-1407
+    Parent: CAP-02 · Rows: 39 · IDs: R-285, R-286, R-628, R-732–R-735, R-847, R-960–R-963, R-965, R-966, R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1400–R-1407, R-1430–R-1433
   - **FEAT-007 · Review a specific revision independently**
     Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
     Status: active
     Also applies: R-137, R-732, R-1125
-    Parent: CAP-02 · Rows: 91 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1390–R-1395
+    Parent: CAP-02 · Rows: 100 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1370–R-1378, R-1390–R-1395
     - **SUB-006 · Identify and freeze the review target**
       Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
-      Parent: FEAT-007 · Rows: 18 · IDs: R-621, R-624, R-703–R-706, R-708–R-710, R-712, R-713, R-832, R-833, R-835, R-836, R-967, R-968, R-1352
+      Parent: FEAT-007 · Rows: 27 · IDs: R-621, R-624, R-703–R-706, R-708–R-710, R-712, R-713, R-832, R-833, R-835, R-836, R-967, R-968, R-1352, R-1370–R-1378
     - **SUB-007 · Admit rounds and enforce the budget**
       Purpose: Count revisions consistently, reserve available rounds, reclaim eligible reservations and record cap overrides.
       Parent: FEAT-007 · Rows: 18 · IDs: R-192, R-707, R-711, R-714–R-716, R-719, R-720, R-726, R-729, R-834, R-837, R-840–R-842, R-850, R-971, R-972
@@ -80,7 +80,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-02 · Rows: 18 · IDs: R-588, R-975–R-979, R-981, R-1002–R-1007, R-1009, R-1011, R-1109, R-1355, R-1356
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
-  Parent: — · Rows: 134 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062
+  Parent: — · Rows: 141 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496
   - **FEAT-009 · Decide which project content is trusted**
     Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
     Status: active
@@ -90,7 +90,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Inspect supported tool actions, preserve mandatory restrictions and provide actionable approval or refusal behavior.
     Status: active
     Also applies: R-033, R-079, R-081, R-183, R-184, R-190, R-774, R-962
-    Parent: CAP-03 · Rows: 46 · IDs: R-035–R-042, R-044–R-047, R-051–R-058, R-071–R-073, R-195, R-630–R-633, R-637–R-639, R-762–R-764, R-766–R-768, R-770, R-771, R-775–R-777, R-982–R-984, R-1062
+    Parent: CAP-03 · Rows: 53 · IDs: R-035–R-042, R-044–R-047, R-051–R-058, R-071–R-073, R-195, R-630–R-633, R-637–R-639, R-762–R-764, R-766–R-768, R-770, R-771, R-775–R-777, R-982–R-984, R-1062, R-1490–R-1496
   - **FEAT-011 · Keep policy changes safe and recoverable**
     Purpose: Load and refresh policy configuration with defined precedence, bounded reading and safe behavior when configuration breaks.
     Status: active
@@ -258,7 +258,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-07 · Rows: 31 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 88 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1520
+  Parent: — · Rows: 93 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
@@ -273,7 +273,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 16 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560
+    Parent: CAP-08 · Rows: 21 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560, R-1500–R-1504
   - **FEAT-037 · Grade behavior with trustworthy checks**
     Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
     Status: active

@@ -344,7 +344,7 @@ const newRoot = (name) => { fs.mkdirSync(path.join(HOME, name), { recursive: tru
 		// req: R-633
 		check(`gate decision ${kind}: headless block names a recovery action`, rh?.reason.includes(". Recovery:") && rh.reason.includes("then retry."), j(rh));
 	}
-	const long = `rm -rf ${"a".repeat(500)}`;
+	const long = `rm -rf ../${"a".repeat(500)}`;
 	const lg = await gate("Block");
 	await lg.call("bash", { command: long });
 	// req: R-183
