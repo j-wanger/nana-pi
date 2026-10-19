@@ -22,6 +22,7 @@ pure over text, so the claim readers are testable on fixture strings.
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import sys
@@ -507,6 +508,8 @@ def main(argv: list[str], root: Path = PROJECT_ROOT) -> int:
 
 
 if __name__ == "__main__":
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(errors="backslashreplace")
     try:
         sys.exit(main(sys.argv[1:]))
     except ConfigError as err:  # a bad config is a usage error, not a traceback
