@@ -68,6 +68,7 @@
 - 2026-10-19: a checkout that git calls clean now reviews as its plain commit, so nana-land can land it. Before, a lost execute bit or line endings git converts gave the review a snapshot, and nana-land refused. The review tools now ask git which tree it would record, using a throwaway index and object folder. Deriving it adds and removes nothing in the real git folder and runs no hook; git may refresh the timestamps of objects it re-hashes. All 19 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 152 files. On Windows all nine of the lane's checks pass, including the one the plan most doubted. Only main's 20 desk and bench files still fail there — `docs/sessions/2026-10.md`.
 - 2026-10-19: the lane write guard judges each edit and write at the path pi writes, in each folder's spelling on disk. Before, it allowed a home, at-sign or file URL path that pi wrote outside the lane, on every system. Now it refuses one. It now allows a temp or lane folder typed in another letter case or short name; links were already allowed. On Windows it no longer counts the drive's tmp folder as a temp folder. CI on the final build reads 0 failing files on macOS. Windows CI now runs the tmp check and passes it. Ubuntu CI now passes the lane write guard's test file. Every file that fails on Windows or Ubuntu also failed on main when the lane last merged it — `docs/sessions/2026-10.md`.
 - 2026-10-19: the product report's Decisions tab now lists every open question in the requirements ledger. Each shows its number and its full text, in file order. A ledger with none still gets its page, and the page says so. The ledger gained eleven open questions from the 2026-10-09 audit, and one stale question closed. The two new checks pass on macOS, Linux and Windows. CI reads 0 failing files on all three — `docs/sessions/2026-10.md`.
+- 2026-10-19: each session start now names any nana rule or skill copy that has fallen behind this checkout. The line gives this checkout's install command. It asks the agent to tell the user. In Claude Code the adoption hook prints it. In pi the rulings extension adds it when the rulings copy is stale. A current install gets no line. Neither does a home where nana was never installed. Before, a Windows copy fell behind silently after a pull. A rule or skill shipped after the last install stayed missing the same way. Only doctor showed either. CI reads 0 failing of 158 files on macOS, Linux and Windows. Of the seat's 18 wrong-code pairs, 17 turn a check red. The one survivor is a known test gap — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -162,8 +163,8 @@
 - Watchdog-exit lane: its six checks are timing-based, with half a poll interval of margin. A very slow runner could fail them.
 - Watchdog-exit lane, found on main too: a review test that kills its launcher leaves one empty capture folder in the temp folder.
 - Rulings file: no test proves that a live Claude Code or pi session loads the rulings. The tests stop at the installed file and the prompt section.
-- Rulings file: each machine gets the rulings only after one install run after the pull. Until then pi shows the notice, and Claude Code shows nothing.
-- Rulings file: a Windows copy stays stale until the next install. Doctor flags it meanwhile.
+- Rulings file: each machine gets the rulings only after one install run after the pull. Until then pi shows the notice, and Claude Code's session start names the missing copy and the install command.
+- Rulings file: a Windows copy stays stale until the next install. Doctor and each session start flag it meanwhile.
 - Rulings file: on Windows, each install that refreshes a changed file leaves a dated backup beside both copies, so backups pile up. Claude Code should not load them as rules; nobody has tested that.
 - Rulings file: every session, builder and reviewer now carries about 600 more tokens.
 - Rulings file: no test pins how a model reads the scope sentence. A builder or reviewer may still act on a seat-only ruling, such as pushing its branch.
@@ -200,6 +201,15 @@
 - Open questions in the report (audit-open-questions): only a dash bullet or a numbered line starts a question. A star bullet joins the question above it.
 - Open questions in the report (audit-open-questions): a new project's placeholder question lists as question 1, with its underscores shown.
 - Open questions in the report (audit-open-questions): the 2026-10-09 verification found issues beyond the audit, in two rows, one pack README line and misfiled rows. No open question records them.
+- Stale copies at session start (win-stale-copies): a folder nana-setup did not make can sit where a skill belongs. The line then names install as the fix, but install refuses that folder. So the line repeats every session. Doctor's own advice says to move the folder.
+- Stale copies at session start (win-stale-copies): the line reaches the agent as session context, not the screen. Nothing checks that the agent tells the user.
+- Stale copies at session start (win-stale-copies): the check covers rules, skills and the pi rulings copy only. A hook added after the last install stays unwired, and no line says so.
+- Stale copies at session start (win-stale-copies): the check reads the default Claude folder. A machine installed into another Claude folder gets no line, because the default folder holds no install record. The seat infers this from the code. The plan expected a false line every session.
+- Stale copies at session start (win-stale-copies): when pi loads the pack from a clone other than the setup checkout, pi shows the line every session. Install alone does not clear it. Doctor's package-source row names the fix.
+- Stale copies at session start (win-stale-copies): on macOS and Linux, a plain file holding the current text still counts as stale, as doctor counts it.
+- Stale copies at session start (win-stale-copies): pi builders and reviewers carry the stale line too.
+- Stale copies at session start (win-stale-copies): the install check does not read the new lines, so Windows CI is the only native Windows proof. No test pins the hook's time or a live session. The independent check measured about 100 ms more per session start.
+- Stale copies at session start (win-stale-copies): no test holds settings with another session-start hook and no nana install. So a check that counted any session-start hook as an install would still pass. Only nana's own hook runs the check, so the gap does no harm in use.
 
 ## Where things stand
 
