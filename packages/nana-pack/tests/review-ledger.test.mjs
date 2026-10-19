@@ -846,27 +846,64 @@ if (process.platform !== "win32") {
 	check("normalized dirty copies share one snapshot",
 		new Set(vSnaps).size === 1 && /\+snap:[0-9a-f]{64}$/.test(vSnaps[0]), JSON.stringify(vSnaps));
 
-	const Gm = repo("Gm", 1);
-	fs.writeFileSync(path.join(Gm.d, "f"), "metadata-dirty");
-	const gmGitDir = path.join(Gm.d, ".git");
-	const gmSnapshot = () => {
+	const gitFolderSnapshot = (gitDir) => {
 		const out = [];
 		const walk = (dir) => {
 			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 				const full = path.join(dir, entry.name);
 				const st = fs.lstatSync(full);
-				out.push(`${path.relative(gmGitDir, full)}\t${st.size}\t${st.mode}\t${st.mtimeMs}`);
+				out.push(`${path.relative(gitDir, full)}\t${st.size}\t${st.mode}\t${st.mtimeMs}`);
 				if (entry.isDirectory()) walk(full);
 			}
 		};
-		walk(gmGitDir);
+		walk(gitDir);
 		return out.sort().join("\n");
 	};
-	const gmBefore = gmSnapshot();
+	const Gm = repo("Gm", 1);
+	fs.writeFileSync(path.join(Gm.d, "f"), "metadata-dirty");
+	const gmGitDir = path.join(Gm.d, ".git");
+	const gmBefore = gitFolderSnapshot(gmGitDir);
 	revOf(Gm.d); // a dirty derivation (no clean/smudge filter configured here)
-	const gmAfter = gmSnapshot();
+	const gmAfter = gitFolderSnapshot(gmGitDir);
+
+	// F2 (clean-revision build 2): core.splitIndex=true must not leave a sharedindex.* file in the REAL .git.
+	const Sx = repo("Sx", 1);
+	gitIn(Sx.d, "config", "core.splitIndex", "true");
+	const sxGitDir = path.join(Sx.d, ".git");
+	const sxBefore = gitFolderSnapshot(sxGitDir);
+	fs.writeFileSync(path.join(Sx.d, "f"), "split-index-dirty");
+	revOf(Sx.d);
+	const sxAfter = gitFolderSnapshot(sxGitDir);
+
+	// F3 (clean-revision build 2): the repository's own post-index-change hook must not run during derivation.
+	const Hk = repo("Hk", 1);
+	const hookLog = path.join(tmp, "hook-outside-git.log");
+	const hkHooksDir = path.join(Hk.d, ".git", "hooks");
+	fs.writeFileSync(path.join(hkHooksDir, "post-index-change"), `#!/bin/sh\necho ran >> "${hookLog}"\n`);
+	fs.chmodSync(path.join(hkHooksDir, "post-index-change"), 0o755);
+	const hkGitDir = path.join(Hk.d, ".git");
+	const hkBefore = gitFolderSnapshot(hkGitDir);
+	fs.writeFileSync(path.join(Hk.d, "f"), "hook-dirty");
+	revOf(Hk.d);
+	const hkAfter = gitFolderSnapshot(hkGitDir);
+	const hookRan = fs.existsSync(hookLog);
+
 	// req: R-1375
-	check("snapshot derivation leaves git metadata unchanged", gmBefore === gmAfter, `changed: ${gmBefore !== gmAfter}`);
+	check("snapshot derivation leaves git metadata unchanged",
+		gmBefore === gmAfter && sxBefore === sxAfter && hkBefore === hkAfter && !hookRan,
+		`dirty-changed:${gmBefore !== gmAfter} splitIndex-changed:${sxBefore !== sxAfter} hook-changed:${hkBefore !== hkAfter} hookRan:${hookRan}`);
+
+	const Cs = repo("Cs", 0);
+	fs.writeFileSync(path.join(Cs.d, "t.txt"), "line1\nline2\n");
+	gitIn(Cs.d, "add", "."); gitIn(Cs.d, "commit", "-qm", "base");
+	const csHead = gitIn(Cs.d, "rev-parse", "HEAD");
+	gitIn(Cs.d, "config", "core.autocrlf", "true");
+	gitIn(Cs.d, "config", "core.safecrlf", "true");
+	const csStatus = spawnSync("git", ["status", "--porcelain"], { cwd: Cs.d, encoding: "utf8" }).stdout;
+	// req: R-1378
+	check("clean checkout under core.autocrlf and core.safecrlf retains plain HEAD",
+		csStatus === "" && revOf(Cs.d) === csHead,
+		`status=${JSON.stringify(csStatus)} rev=${revOf(Cs.d)} head=${csHead}`);
 
 	const specialBase = path.join(tmp, "special dir;日本語");
 	fs.mkdirSync(specialBase, { recursive: true });

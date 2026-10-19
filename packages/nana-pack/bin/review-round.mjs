@@ -254,23 +254,31 @@ export function workingState(root, exclude = []) {
     mkdirSync(join(scratchObjects, 'info'), { recursive: true });
     const objectsDir = resolve(root, gitOut(root, ['rev-parse', '--git-path', 'objects']).stdout.trim());
     writeAlternates(join(scratchObjects, 'info', 'alternates'), objectsDir);
+    const emptyHooks = join(scratch, 'hooks');
+    mkdirSync(emptyHooks);
     const env = { GIT_INDEX_FILE: join(scratch, 'index'), GIT_OBJECT_DIRECTORY: scratchObjects };
-    gitOut(root, ['read-tree', head], { env });
-    gitOut(root, ['add', '-A', '--', ':/', ...nested.map((p) => `:(top,literal,exclude)${p}`)], { env });
+    // R-1378 / F2 / F3 (build 2, 2026-10-19): pinned on every scratch command so a stat-less scratch
+    // index never trips core.safecrlf against a clean, git-normalized checkout; a split-index repo
+    // never leaves a sharedindex.* file in the REAL .git; and the repository's own hooks (notably
+    // post-index-change, which fires on every index write) never run.
+    const SCRATCH_CONFIG = ['-c', 'core.safecrlf=false', '-c', 'core.splitIndex=false', '-c', `core.hooksPath=${emptyHooks}`];
+    const scratchGit = (args) => gitOut(root, [...SCRATCH_CONFIG, ...args], { env });
+    scratchGit(['read-tree', head]);
+    scratchGit(['add', '-A', '--', ':/', ...nested.map((p) => `:(top,literal,exclude)${p}`)]);
     if (skipIds.length) {
       // A literal pathspec is case-SENSITIVE even under core.ignorecase (probed), so a re-cased ancestor
       // directory needs the file's own identity, not its spelling, to find what the add actually staged.
       const bases = new Set(skipIds.map((s) => s.base));
-      const candidates = nulList(gitOut(root, ['ls-files', '-z'], { env }).stdout).filter((p) => bases.has(basename(p)));
+      const candidates = nulList(scratchGit(['ls-files', '-z']).stdout).filter((p) => bases.has(basename(p)));
       const toReset = candidates.filter((p) => {
         const id = fileIdentity(join(root, p));
         return id && skipIds.some((s) => s.id.dev === id.dev && s.id.ino === id.ino);
       });
-      if (toReset.length) gitOut(root, ['reset', '-q', head, '--', ...toReset.map((p) => `:(top,literal)${p}`)], { env });
+      if (toReset.length) scratchGit(['reset', '-q', head, '--', ...toReset.map((p) => `:(top,literal)${p}`)]);
     }
-    const tree = gitOut(root, ['write-tree'], { env }).stdout.trim();
+    const tree = scratchGit(['write-tree']).stdout.trim();
     const recs = [];
-    for (const rec of nulList(gitOut(root, ['ls-files', '-z', '--stage'], { env }).stdout)) {
+    for (const rec of nulList(scratchGit(['ls-files', '-z', '--stage']).stdout)) {
       const m = /^160000 [0-9a-f]+ \d\t([\s\S]+)$/.exec(rec);
       if (!m) continue;
       const p = m[1];
