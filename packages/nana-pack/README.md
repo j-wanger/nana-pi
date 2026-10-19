@@ -109,10 +109,13 @@ counted in a user-scope ledger — never from the output file name, and the same
   not by this cap). A **dirty tree** is its own state (W7c amend, 2026-10-18): the revision is the
   tree `git add -A` would record on top of HEAD, plus any dirty or new nested repository; when that
   differs from HEAD, the revision is `<HEAD sha>+snap:<full sha256 of the working-state snapshot>`.
-  Derivation never writes the repository or its real index — a throwaway index is seeded from HEAD
-  (never a copy of the real one) and a throwaway object folder borrows the repo's objects through
-  its own *objects/info/alternates* file (one absolute path per line; a git-internal path, not one
-  of nana-pi's own files). Because the tree is what git itself would stage, git's own
+  Derivation adds and removes nothing in the repository, never writes its real index, and runs
+  none of its hooks — a throwaway index is seeded from HEAD (never a copy of the real one) and a
+  throwaway object folder borrows the repo's objects through its own *objects/info/alternates*
+  file (one absolute path per line; a git-internal path, not one of nana-pi's own files). Because
+  that lookup re-hashes every file against a stat-less index, git may refresh (touch the mtime of,
+  never resize) an object it would write that already exists in the real store; content, size and
+  mode never change. Because the tree is what git itself would stage, git's own
   `core.fileMode`, `core.autocrlf`, `core.symlinks`, `.gitattributes`, clean filters and ignores
   apply, so a checkout **git itself calls clean reads clean** here too — whatever raw bytes or
   filesystem mode happen to be on disk (an `rsync`'d Windows checkout, a lost execute bit under

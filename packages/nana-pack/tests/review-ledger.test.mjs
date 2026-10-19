@@ -846,52 +846,76 @@ if (process.platform !== "win32") {
 	check("normalized dirty copies share one snapshot",
 		new Set(vSnaps).size === 1 && /\+snap:[0-9a-f]{64}$/.test(vSnaps[0]), JSON.stringify(vSnaps));
 
+	// R-1375 (clean-revision build 3, round 1 review): the scratch add -A re-hashes every file
+	// against a stat-less index, so git FRESHENS (touches the mtime of, never adds, removes or
+	// resizes) an object it would write that already exists in the real store reached through the
+	// alternates file — a clean derivation touches every unchanged blob and tree, and a dirty one
+	// touches every OTHER, unedited file's blob too. No git setting turns freshening off, so mtime
+	// is never compared here; only the entry SET and each entry's size and mode are.
 	const gitFolderSnapshot = (gitDir) => {
 		const out = [];
 		const walk = (dir) => {
 			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 				const full = path.join(dir, entry.name);
 				const st = fs.lstatSync(full);
-				out.push(`${path.relative(gitDir, full)}\t${st.size}\t${st.mode}\t${st.mtimeMs}`);
+				out.push(`${path.relative(gitDir, full)}\t${st.size}\t${st.mode}`);
 				if (entry.isDirectory()) walk(full);
 			}
 		};
 		walk(gitDir);
 		return out.sort().join("\n");
 	};
+	// Each fixture commits a SECOND, never-edited file, then derives a CLEAN revision (every file,
+	// including the untouched one, already matches HEAD — the case that most exercises freshening)
+	// and then a DIRTY one (only "f" edited; "untouched.txt" stays untouched).
 	const Gm = repo("Gm", 1);
-	fs.writeFileSync(path.join(Gm.d, "f"), "metadata-dirty");
+	fs.writeFileSync(path.join(Gm.d, "untouched.txt"), "never edited\n");
+	gitIn(Gm.d, "add", "untouched.txt"); gitIn(Gm.d, "commit", "-qm", "untouched");
 	const gmGitDir = path.join(Gm.d, ".git");
-	const gmBefore = gitFolderSnapshot(gmGitDir);
-	revOf(Gm.d); // a dirty derivation (no clean/smudge filter configured here)
-	const gmAfter = gitFolderSnapshot(gmGitDir);
+	const gmBase = gitFolderSnapshot(gmGitDir);
+	revOf(Gm.d); // clean
+	const gmClean = gitFolderSnapshot(gmGitDir);
+	fs.writeFileSync(path.join(Gm.d, "f"), "metadata-dirty");
+	revOf(Gm.d); // dirty
+	const gmDirty = gitFolderSnapshot(gmGitDir);
 
 	// F2 (clean-revision build 2): core.splitIndex=true must not leave a sharedindex.* file in the REAL .git.
 	const Sx = repo("Sx", 1);
+	fs.writeFileSync(path.join(Sx.d, "untouched.txt"), "never edited\n");
+	gitIn(Sx.d, "add", "untouched.txt"); gitIn(Sx.d, "commit", "-qm", "untouched");
 	gitIn(Sx.d, "config", "core.splitIndex", "true");
 	const sxGitDir = path.join(Sx.d, ".git");
-	const sxBefore = gitFolderSnapshot(sxGitDir);
+	const sxBase = gitFolderSnapshot(sxGitDir);
+	revOf(Sx.d); // clean
+	const sxClean = gitFolderSnapshot(sxGitDir);
 	fs.writeFileSync(path.join(Sx.d, "f"), "split-index-dirty");
-	revOf(Sx.d);
-	const sxAfter = gitFolderSnapshot(sxGitDir);
+	revOf(Sx.d); // dirty
+	const sxDirty = gitFolderSnapshot(sxGitDir);
 
 	// F3 (clean-revision build 2): the repository's own post-index-change hook must not run during derivation.
 	const Hk = repo("Hk", 1);
+	fs.writeFileSync(path.join(Hk.d, "untouched.txt"), "never edited\n");
+	gitIn(Hk.d, "add", "untouched.txt"); gitIn(Hk.d, "commit", "-qm", "untouched");
 	const hookLog = path.join(tmp, "hook-outside-git.log");
 	const hkHooksDir = path.join(Hk.d, ".git", "hooks");
 	fs.writeFileSync(path.join(hkHooksDir, "post-index-change"), `#!/bin/sh\necho ran >> "${hookLog}"\n`);
 	fs.chmodSync(path.join(hkHooksDir, "post-index-change"), 0o755);
 	const hkGitDir = path.join(Hk.d, ".git");
-	const hkBefore = gitFolderSnapshot(hkGitDir);
+	const hkBase = gitFolderSnapshot(hkGitDir);
+	revOf(Hk.d); // clean
+	const hkClean = gitFolderSnapshot(hkGitDir);
 	fs.writeFileSync(path.join(Hk.d, "f"), "hook-dirty");
-	revOf(Hk.d);
-	const hkAfter = gitFolderSnapshot(hkGitDir);
+	revOf(Hk.d); // dirty
+	const hkDirty = gitFolderSnapshot(hkGitDir);
 	const hookRan = fs.existsSync(hookLog);
 
 	// req: R-1375
 	check("snapshot derivation leaves git metadata unchanged",
-		gmBefore === gmAfter && sxBefore === sxAfter && hkBefore === hkAfter && !hookRan,
-		`dirty-changed:${gmBefore !== gmAfter} splitIndex-changed:${sxBefore !== sxAfter} hook-changed:${hkBefore !== hkAfter} hookRan:${hookRan}`);
+		gmBase === gmClean && gmBase === gmDirty && sxBase === sxClean && sxBase === sxDirty &&
+			hkBase === hkClean && hkBase === hkDirty && !hookRan,
+		`clean-changed:${gmBase !== gmClean} dirty-changed:${gmBase !== gmDirty} ` +
+			`splitIndex-clean-changed:${sxBase !== sxClean} splitIndex-dirty-changed:${sxBase !== sxDirty} ` +
+			`hook-clean-changed:${hkBase !== hkClean} hook-dirty-changed:${hkBase !== hkDirty} hookRan:${hookRan}`);
 
 	const Cs = repo("Cs", 0);
 	fs.writeFileSync(path.join(Cs.d, "t.txt"), "line1\nline2\n");
