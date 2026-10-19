@@ -129,6 +129,20 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const wrapped = ledgerRun(["--item", "wrapped-formal"]);
 	// req: R-971
 	check("review-ledger run earns a counted round", wrapped.status === 0 && roundsOf("wrapped-formal").length === 1, wrapped.stderr);
+	freshHome("ledger-role");
+	const roleOut = out();
+	const roleRun = ledgerRun(["--item", "ledger-role"], {
+		outFile: roleOut,
+		extraEnv: { NANA_ROLE: "worker", NANA_HANDOFF: "on" },
+		cmd: [process.execPath, "-e", "console.log('role=' + process.env.NANA_ROLE + ' handoff=' + process.env.NANA_HANDOFF); console.log('VERDICT: LAND')"],
+	});
+	// req: R-1720
+	check("review-ledger run starts its command with NANA_ROLE=reviewer and NANA_HANDOFF=off over a caller's worker role",
+		roleRun.status === 0 && /^role=reviewer handoff=off\r?$/m.test(fs.readFileSync(roleOut, "utf8")), roleRun.stderr);
+	freshHome("ledger-pi");
+	const ledgerPi = ledgerRun(["--item", "ledger-pi"], { cmd: ["pi", "-p", "x"] });
+	// req: R-1721
+	check("review-ledger run -- pi starts pi and records its round", ledgerPi.status === 0 && roundsOf("ledger-pi").length === 1, ledgerPi.stderr);
 	freshHome("0");
 	const nr = piReview(["--item", "no-rev", "--out", out()], { cwd: plain });
 	// req: R-624

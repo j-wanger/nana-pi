@@ -166,7 +166,7 @@ Behaviour, in the order it is decided:
   timeout (`"timeout": 5` above). There is no 1500 ms guarantee — the guarantee is
   fail-open, not fail-fast. The per-stage checks only short-circuit work that is already
   pointless. Stdin is capped at 256 KB and only the first 8 KB of the prompt is tokenized.
-- **Launcher roles get nothing.** When `NANA_ROLE` is `reviewer` (every pi-review child) or `worker` (every pi-worker child), the hook prints nothing and writes nothing to the log; `nana-knowledge query` still answers.
+- **Launcher roles get nothing.** When `NANA_ROLE` is `reviewer` (every pi-review or review-ledger run child) or `worker` (every pi-worker child), the hook prints nothing and writes nothing to the log; `nana-knowledge query` still answers.
 - **Skips** prompts under 12 characters, prompts starting with `/` (slash commands),
   harness notifications (`<system-reminder>`, `[SYSTEM NOTIFICATION`, `<task-notification>`
   — these arrive on the same channel as your typing and are machine text about the
