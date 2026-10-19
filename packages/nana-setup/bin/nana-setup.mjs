@@ -9,9 +9,9 @@
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
  *  <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for
  *  doctor), a closing summary and the "next:" hint; stderr: the usage text and error messages;
- *  process.exitCode.
+ *  doctor's stderr carries no muted warning; process.exitCode.
  * @effects disk (through install / setupProject / dismissProject), process (the child processes
- *  those steps spawn; sets process.exitCode)
+ *  those steps spawn; replaces the warning listeners for doctor; sets process.exitCode)
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
  *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); uninstall operational failures print ✗ and exit 1; exit 1
  *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr);
@@ -93,6 +93,22 @@ function parse(argv) {
 }
 
 const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", problem: "✗" };
+
+// Contract values probed 2026-10-19 on Node 22.22.2, rows R-1750 and R-1751;
+// prior art: `loadSqlite` in `packages/nana-knowledge/lib/db.ts`.
+const DOCTOR_MUTED_WARNINGS = Object.freeze([
+	(warning) => warning?.name === "ExperimentalWarning" && /SQLite/.test(warning.message),
+	(warning) => warning?.code === "MODULE_TYPELESS_PACKAGE_JSON",
+]);
+
+function muteDoctorWarnings() {
+	const savedListeners = process.listeners("warning");
+	process.removeAllListeners("warning");
+	process.on("warning", (warning) => {
+		if (DOCTOR_MUTED_WARNINGS.some((matches) => matches(warning))) return;
+		for (const listener of savedListeners) listener(warning);
+	});
+}
 
 /**
  * An AMBIENT relative PI_CODING_AGENT_DIR resolves against THIS process's cwd, so any command that
@@ -314,6 +330,7 @@ function expandPattern(pattern, home) {
 }
 
 function runDoctor(opts) {
+	muteDoctorWarnings();
 	const layout = resolveLayout(opts);
 	const checks = diagnose(layout);
 	const width = Math.max(...checks.map((c) => c.label.length));
