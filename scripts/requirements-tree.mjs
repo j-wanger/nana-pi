@@ -7,7 +7,7 @@
  * @effects disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
  * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid lifecycle or sharing, nesting, or stale output.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
@@ -484,4 +484,4 @@ export function main(argv = process.argv.slice(2)) {
   }
   return 0;
 }
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) process.exit(main());
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exit(main());

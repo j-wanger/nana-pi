@@ -7,7 +7,7 @@
  * @effects disk and process
  * @errors CLI exits nonzero when arguments or repo inputs are invalid.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { impact, repoGraph, REPO_ROOT } from "./code-map.mjs";
@@ -81,7 +81,7 @@ function cli(argv) {
 	return 0;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
 	try {
 		process.exitCode = cli(process.argv.slice(2));
 	} catch (error) {
