@@ -52,6 +52,7 @@
 - 2026-10-19: the objective's four path-payload checks pin its escaping again. They build the expected path text by hand on every platform, so a change to how the objective block escapes a path now fails them. The fix was in the test only. The file passes on macOS and Windows with its checks unchanged — `docs/sessions/2026-10.md`.
 - 2026-10-19: the land and review tools treat two spellings of one folder as one folder. A second spelling now keeps one repository key and one ledger item. It can be a case change, a link, a Windows short name, a long-path prefix or a Unicode form. Before, nana-land merged when a reviewer's no sat under another spelling; now it refuses. Windows CI now passes every land and review test file. Its failing count fell from 23 of 150 files to 20, all desk and bench — `docs/sessions/2026-10.md`.
 - 2026-10-19: a lane's brief, review and land now show how the requirements tree moved. A new report lists, under each feature, every row a branch added, removed, re-statused, reworded or moved. Briefs name their feature, and the review brief and the land report carry the report. Nothing in the land or review tools changed — `docs/sessions/2026-10.md`.
+- 2026-10-19: the lane write guard's symlink check runs honestly on Linux. Its outside folder now comes from a parent that no permitted temp root covers, and it skips with a reason when none exists. CI's Linux leg now reads 0 failing files — `docs/sessions/2026-10.md`.
 - 2026-10-19: the lane write guard judges each edit and write at the path pi writes, in each folder's spelling on disk. Before, it allowed a home, at-sign or file URL path that pi wrote outside the lane, on every system. Now it refuses one. It now allows a temp or lane folder typed in another letter case, short name or link. On Windows it no longer counts the drive's tmp folder as a temp folder. CI on the build reads 0 failing files on macOS, and Windows fails only the 23 files main also failed. Windows CI skipped the tmp check itself — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
@@ -65,7 +66,7 @@
 - pi 1.0: the seed's `asyncByDefault: true` restates upstream (drop it at the next seed revision, R-361 diff first).
 - Review-ledger lane: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
 - Tranche 3: the land helper does not defend a branch switch in the main checkout mid-merge; reviews refuse repositories with submodules.
-- Tranche 4: the acceptance gate prints nothing on a pass; one Linux CI symlink check fails.
+- Tranche 4: the acceptance gate prints nothing on a pass.
 - Tranche 5: uninstall's preview stops at a loaded desk; its ancestor checks are preflight-only; the shared-memory hook throws on a closed pipe.
 - Tranche 6: per-check SKIPs inside a test file stay invisible to the rail; nothing keeps future pi tests on the locator; Jake's Windows machine passed the install-and-hooks check on 2026-10-16.
 - Knowledge ruling: `review-ledger run` sets no reviewer role; a review-test fixture can loop forever.
