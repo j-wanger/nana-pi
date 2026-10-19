@@ -3138,7 +3138,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove the Windows PATH shim renderings preserve supported arguments, exit status, runtime lookup and self-rewrite safety.
 - **inputs** — lib/win-shims.mjs, the host POSIX shell or Windows Git Bash, cmd.exe and Windows PowerShell, and temporary hostile-path fixtures.
-- **outputs** — PASS, FAIL or named SKIP lines for the six shim and PATH-resolution requirements.
+- **outputs** — PASS, FAIL or named SKIP lines for the seven shim and PATH-resolution requirements.
 - **effects** — disk (temporary callers, briefs, bins and shims), process (spawns shells and node through rendered shims).
 - **errors** — each case is awaited under a timeout; a failed assertion prints FAIL and makes the process exit nonzero.
 - **callers** — —
