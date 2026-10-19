@@ -142,6 +142,8 @@
 - Test details in the report (report-test-details): links go to GitHub only. A link to a commit nobody has pushed opens a not-found page.
 - Test details in the report (report-test-details): a project with no runtime data, Python projects included, shows every test as having no recorded run.
 - Test details in the report (report-test-details): nobody has opened a test link inside the hosted page. The links open a new tab because of a guess that a plain link fails there.
+- Test details in the report (review): the new checks read the runtime-data override variable from the caller's environment. Pointed at an empty data file, it turns two checks falsely red. Nothing in the repo sets it for a suite run.
+- Test details in the report (review): the page legend's second sentence starts in lower case. The README says "moved" where the code marks a changed or missing file. An origin address ending in a slash gets no link.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 - Tree report: nothing checks that a lane stays inside its named feature. A lane that changes rows in several features still lands; the report names them all. The report reads the ledger text, so a row moved by hand without a tree regeneration shows as moved.
 - Watchdog-exit lane: output that a background child of pi writes after pi exits is no longer captured. Before, the watchdog caught it by chance up to one poll later. Real pi's tools use pipes, so this should be rare (inferred).
@@ -180,8 +182,7 @@
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
    - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg blocks main after two green runs (both Jake's 2026-10-17 calls).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: test details in the product report, then an adoption refresh of basketball-geek and trading-zone.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: the rulings file every seat reads at startup (one copy in nana-pi, installed to the user-level pi folder, with no owner name). An adoption refresh of basketball-geek and aml-desk follows.
+   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: an adoption refresh of basketball-geek and trading-zone.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
