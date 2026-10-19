@@ -210,14 +210,13 @@ try {
 		check("win32 occupied skill dir: install exits 1 with ✗ naming the directory and the fix", r.status === 1 && /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), `${r.status}\n${r.stdout}`);
 		// req: R-1421
 		check("win32 occupied skill dir: the owner's folder is byte-identical after install", snapshot(target) === before, `${before}\n  ->\n  ${snapshot(target)}`);
-		// req: R-1422
 		const dry = run(["install", "--home", occupied, "--dry-run"], env);
+		// req: R-1422
 		check("win32 occupied skill dir: --dry-run exits 1 and leaves the folder unchanged", dry.status === 1 && snapshot(target) === before, `${dry.status}\n${dry.stdout}`);
-		// req: R-1423
 		const d = run(["doctor", "--home", occupied], env);
+		// req: R-1423
 		check("win32 occupied skill dir: doctor reads ✗ — a directory instead of nana-setup's copy — with the move fix", d.status === 1 && /✗ skill requirements\s+a directory is there instead of nana-setup's copy of .* — move it, then re-run `nana-setup install`/.test(d.stdout), d.stdout);
 
-		// req: R-1424
 		const fixture = fs.readFileSync(path.join(pkg, "tests", "fixtures", "skill-copy", "requirements-0499e52.md"), "utf8").replace(/\r\n/g, "\n");
 		const preMarkerResults = [["LF", fixture], ["CRLF", fixture.replace(/\n/g, "\r\n")]].map(([label, body]) => {
 			const home = freshHome();
@@ -227,13 +226,14 @@ try {
 			const pr = run(["install", "--home", home], env);
 			return { label, ok: pr.status === 0 && fs.readFileSync(path.join(preTarget, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))), status: pr.status, stdout: pr.stdout };
 		});
+		// req: R-1424
 		check("win32 pre-marker copy: install exits 0 and refreshes a shipped older SKILL.md, LF and CRLF", preMarkerResults.every((result) => result.ok), preMarkerResults.map((result) => `${result.label}: ${result.status}\n${result.stdout}`).join("\n---\n"));
 
-		// req: R-1425
 		const fresh = freshHome();
 		const freshTarget = path.join(fresh, ".claude", "skills", "requirements");
 		run(["install", "--home", fresh], env);
 		const markerStat = lstatSafe(path.join(freshTarget, ".nana-setup-copy"));
+		// req: R-1425
 		check("win32 fresh mirror: install writes the .nana-setup-copy marker", !!markerStat && markerStat.isFile() && !markerStat.isSymbolicLink());
 	}
 
