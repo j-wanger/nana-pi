@@ -246,7 +246,9 @@ console.log("VERDICT: LAND");
 		fs.mkdirSync(reviewTree, { recursive: true });
 		git(reviewTree, "init", "-q");
 		fs.writeFileSync(path.join(reviewTree, "f"), "f\n");
-		git(reviewTree, "add", "f"); git(reviewTree, "commit", "-qm", "f");
+		git(reviewTree, "add", "f");
+		git(reviewTree, "update-index", "--chmod=+x", "f"); // R-1370: a committed 100755 file, mode from the index, never chmod
+		git(reviewTree, "commit", "-qm", "f");
 		const reviewBriefPath = path.join(temp, "review-brief.md");
 		fs.writeFileSync(reviewBriefPath, "line one\nline two\n");
 		const reviewOut = path.join(temp, "review-out.md");
@@ -257,11 +259,12 @@ console.log("VERDICT: LAND");
 		check("Windows: pi-review hands the review standard to pi as text",
 			reviewRun.status === 0 && reviewCalls.length >= 1 && reviewCalls[0].argv.includes(reviewStandard),
 			JSON.stringify({ reviewRun, reviewCalls: reviewCalls.map((c) => ({ ...c, argv: "elided" })) }));
-		// A `+snap` revision would mean a reviewed tree holding a mode-bit file (review-round.mjs
-		// reads it from the index) does not match a plain-SHA LAND on Windows — CHANGE.md §5's claim
-		// most likely wrong, and a named carry (§6 item 15) if it ever shows. The test runner prints
-		// a failing check's detail even in non-verbose mode, so a `+snap` surfaces the revision to
-		// the seat reading the CI log; a clean round passes silently (an extra check, not a seat-titles title).
+		// R-1370: `f` is committed 100755 (update-index --chmod=+x above), but NTFS stores no execute
+		// bit, so the Windows checkout's disk mode never matches it. A `+snap` revision here would mean
+		// this ordinary lost-exec-bit checkout does not match a plain-SHA LAND on Windows — the lane's
+		// own "claim most likely wrong", and a named carry if it ever shows. The test runner prints a
+		// failing check's detail even in non-verbose mode, so a `+snap` surfaces the revision to the
+		// seat reading the CI log; a clean round passes silently (an extra check, not a seat-titles title).
 		let revisionDetail = "(ledger unreadable)";
 		let revisionIsSnap = true;
 		try {

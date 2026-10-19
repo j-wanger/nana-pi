@@ -376,7 +376,7 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` �
 
 ## Platforms
 
-Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 
 On native Windows, nana-setup wires every Claude Code hook entry in exec form from the checkout, needing Claude Code 2.1.139 or later to run at all. Installer copies and skipped PATH commands are still implementation details, not a claim of broader supported parity.
 On Windows the Claude Code `requirements` skill is the only one mirrored (a copy, not a link); `spec`, `py-lint`, `py-review` and `py-test` are skipped and stay pi-only there. A real directory at that skill path that nana-setup did not make — marked by a `.nana-setup-copy` file, byte-equal to the pack, or a pre-marker SKILL.md version the pack once shipped — is refused and left untouched, the same as macOS; install exits 1 naming it and doctor reads ✗.

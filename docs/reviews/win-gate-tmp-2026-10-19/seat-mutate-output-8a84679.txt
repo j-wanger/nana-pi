@@ -1,0 +1,14 @@
+seat-mutate: lane win-gate-tmp, tip 8a84679d11800b161f7ffc7b5fda4603702bc7c1, table 6e0e3d253b9402a648779c3bb357e941c067cb776eb783d7e76206b03027f85f, merge-base ca27d862c5f6e36f783fb28fcb7ea8c566224f54, 6 pairs in 1 shards (6, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-19T16:34:43.986Z
+DECLARED (a) every pair runs on macOS; the 8.3 halves of R-1431 and R-1432 and the Windows half of R-1430 exist only on the Windows leg
+DECLARED (b) main's temp-root form (/tmp on every platform) is red only on the Windows leg, so M5 inverts the platform test instead: on macOS it drops /tmp (the POSIX half goes red), on Windows it keeps \tmp (the Windows half goes red)
+DECLARED (c) real()'s native-to-plain fallback has no test (must-meet known limit): dropping it changes nothing where native works, so M6 tries the fail-open fallback (the typed path) instead
+[1/1] seat-mutate: lane win-gate-tmp, shard 1/1, tip 8a84679d11800b161f7ffc7b5fda4603702bc7c1, merge-base ca27d862c5f6e36f783fb28fcb7ea8c566224f54, 6 pairs, darwin, node v22.22.2, 2026-10-19T16:34:44.520Z
+[1/1] BASELINE ok   packages/nana-pack/tests/lane-write-guard.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[1/1] RESULT: 6/6 red (6 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 realOut judges the typed target instead of where pi's tools write it — 1/1 named: home, at-sign and file URL targets are judged where pi writes them; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 realOut resolves the target's deepest existing ancestor by plain JS realpath — 2/2 named: a temp file named through another spelling of the temp folder is allowed | a lane file named through another spelling of the lane folder is allowed; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 the lane root resolves by plain JS realpath — 1/1 named: a lane file named through another spelling of the lane folder is allowed; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 the temp roots resolve by plain JS realpath — 1/1 named: a temp file named through another spelling of the temp folder is allowed; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 the /tmp root's platform test is inverted (kept on Windows, dropped elsewhere) — 1/1 named: /tmp is a temporary root on macOS and Linux and not on Windows; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M6 real() falls back to the typed path when both realpaths throw (fail-open) — 2/2 named: dangling in-lane symlink to missing outside target is blocked | symlink loop is blocked; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 6/6 red (6 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards

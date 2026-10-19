@@ -2,7 +2,7 @@
 
 Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
 
-Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
@@ -22,7 +22,7 @@ Sibling repo to `~/nana-agent-loop`.
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
-  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the suite and install-check jobs pass on main; Linux and Windows suite legs are non-blocking, while the Windows install check blocks release. Generated CI
+  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the suite and install-check jobs pass on main; the Linux suite leg is non-blocking, while the Windows suite leg and the Windows install check block release. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
@@ -181,7 +181,7 @@ uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <
 ```
 
 Copier renders the latest `v*` tag, never HEAD — tags are cut only by
-`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after the suite and install-check jobs pass on main; Linux and Windows suite legs are non-blocking, while the Windows install check blocks release. The first green hosted run cut v0.6.4 on 2026-10-08. A passing gate prints no summary line, and the non-blocking Linux suite leg still fails one symlink-escape check. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
+`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after the suite and install-check jobs pass on main; the Linux suite leg is non-blocking, while the Windows suite leg and the Windows install check block release. The first green hosted run cut v0.6.4 on 2026-10-08. A passing gate prints no summary line, and the non-blocking Linux suite leg still fails one symlink-escape check. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
 tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
 
 ### From a local clone
@@ -214,7 +214,7 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 
 Run the rendered projects' native checks with `npm run template:accept -- [--src <repo>] [--ref <rev>]`.
 
-Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`). Release runs acceptance before creating a tag. CI runs release after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking.
+Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`). Release runs acceptance before creating a tag. CI runs release after the blocking macOS and Windows suite legs pass on main; the Linux suite leg is non-blocking.
 
 ### Updating and partial adoption
 
@@ -247,7 +247,7 @@ Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm
 
 ## Product report
 
-The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets, and on any nana project with the tree: `node "$HOME/nana-pi/scripts/product-report.mjs" --root .`. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input. The suite's historical stamp check needs full git history; `npm run report` itself does not. Under each row, every test its evidence cites in this repository lists its own title and file, linked to that file's GitHub page when the origin remote is a GitHub repository, beside each test file's label from the clone's last `npm run map:measure` — marked "changed since" when the file or a file it ran moved since that run, or "No recorded run" with no label when the runtime data has none. A row citing no test in this repository says so.
+The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, the ledger's open questions, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets, and on any nana project with the tree: `node "$HOME/nana-pi/scripts/product-report.mjs" --root .`. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input. The suite's historical stamp check needs full git history; `npm run report` itself does not. Under each row, every test its evidence cites in this repository lists its own title and file, linked to that file's GitHub page when the origin remote is a GitHub repository, beside each test file's label from the clone's last `npm run map:measure` — marked "changed since" when the file or a file it ran moved since that run, or "No recorded run" with no label when the runtime data has none. A row citing no test in this repository says so.
 
 ## Tests
 

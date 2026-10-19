@@ -7,15 +7,18 @@
  * @errors Failed checks exit nonzero; unexpected exceptions fail the process.
  */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { writeFakePi } from "./fake-pi.mjs";
 import { parseLandArgs, runLand as executeLand, runCleanup } from "../bin/nana-land.mjs";
 import { admit, complete, withReviewLedgerLock } from "../bin/review-round.mjs";
 import { realPath } from "../lib/real-path.mjs";
+
+const PI_REVIEW = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url));
 
 let failures = 0;
 const check = (title, fn) => {
@@ -588,4 +591,35 @@ check("a separate clone is refused before reviewed-SHA resolution or ledger read
 	assert.notEqual(out.code, 0); assert.match(out.text, /share one git repository/);
 	assert.equal(calls.some(({ args }) => args[0] === "cat-file" || (args[0] === "rev-parse" && args.includes(reviewed))), false);
 });
+// req: R-1372
+check("normalized checkout review lands its exact tip", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-mm3-"));
+	const main = repo(root, "mm3-main"); // repo() commits base.txt "base\n" under core.autocrlf=false
+	git(main, "config", "core.autocrlf", "true"); // the linked worktree below checks base.txt out CRLF
+	git(main, "config", "core.fileMode", "false");
+	writeFileSync(path.join(main, "run.sh"), "#!/bin/sh\n");
+	git(main, "add", "run.sh");
+	git(main, "update-index", "--chmod=+x", "run.sh"); // a committed mode, never chmod
+	git(main, "commit", "-m", "exec");
+	const feature = tree(main, "mm3-integration"); // `git worktree add` checks out base.txt as CRLF here
+	commit(feature, "next.txt", "next\n", "next");
+	chmodSync(path.join(feature, "run.sh"), 0o644); // the committed exec bit is lost on disk
+	const crlfBytes = readFileSync(path.join(feature, "base.txt"));
+	assert.ok(crlfBytes.includes(0x0d), "precondition: base.txt was not checked out with CRLF");
+	mkdirSync(path.join(feature, "docs", "reviews", "x"), { recursive: true });
+	const tip = git(feature, "rev-parse", "HEAD");
+	const home = path.join(root, "home");
+	mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+	const fakeBin = path.join(root, "fake-bin");
+	if (process.platform === "win32") writeFakePi(fakeBin, "console.log('VERDICT: LAND');\n");
+	else { mkdirSync(fakeBin, { recursive: true }); writeFileSync(path.join(fakeBin, "pi"), "#!/bin/sh\necho 'VERDICT: LAND'\n"); chmodSync(path.join(fakeBin, "pi"), 0o755); }
+	const out = path.join(feature, "docs", "reviews", "x", "r1.md");
+	const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` };
+	const review = spawnSync(process.execPath, [PI_REVIEW, "--item", "mm3", "--out", out, "--retries", "0", "--", "-p", "review"], { cwd: feature, env, encoding: "utf8", timeout: 30000 });
+	assert.equal(review.status, 0, review.stderr);
+	const result = executeLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [`${tip}=mm3`], home });
+	assert.equal(result.code, 0, result.text);
+	assert.equal(git(main, "rev-parse", "HEAD"), tip);
+});
+
 process.exit(failures ? 1 : 0);
