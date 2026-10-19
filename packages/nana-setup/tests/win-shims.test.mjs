@@ -24,6 +24,18 @@ const shq = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 const psq = (value) => `'${String(value).replaceAll("'", "''")}'`;
 const cmdq = (value) => `"${String(value)}"`;
 const real = (value) => fs.realpathSync.native(value);
+let caseRuns = [];
+const recordRun = (label, run) => {
+	caseRuns.push({ label, status: run.status, stdout: run.stdout ?? "", stderr: run.stderr ?? "", error: run.error?.message ?? "" });
+	return run;
+};
+const runDiagnostics = () => caseRuns.map((run) => `${run.label}: ${JSON.stringify(run)}`).join("\n");
+const withPath = (env, value) => {
+	const result = { ...env };
+	for (const key of Object.keys(result)) if (key.toLowerCase() === "path") delete result[key];
+	result[process.platform === "win32" ? "Path" : "PATH"] = value;
+	return result;
+};
 
 const root = tmpDir(path.join(os.tmpdir(), "nana shim space & % ( ) ' $a é-"));
 const shims = path.join(root, "shims");
@@ -44,9 +56,7 @@ const nodeDir = path.dirname(process.execPath);
 const windowsPath = `${shims};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`;
 const posixPath = `${shims}:${nodeDir}:${process.env.PATH ?? ""}`;
 const shellEnv = (shim) => ({
-	...process.env,
-	PATH: process.platform === "win32" ? windowsPath : posixPath,
-	Path: process.platform === "win32" ? windowsPath : process.env.Path,
+	...withPath(process.env, process.platform === "win32" ? windowsPath : posixPath),
 	PATHEXT: ".COM;.EXE;.BAT;.CMD",
 	NANA_REWRITE_SHIM: shim,
 });
@@ -63,8 +73,8 @@ const runShCaller = (args, rewrite = false) => {
 	return spawnSync(runner, [], { cwd: callerDir, input: fs.readFileSync(caller), encoding: "utf8", env: shellEnv(path.join(shims, "pi-review")), timeout: CASE_TIMEOUT_MS });
 };
 const cmdExe = process.env.ComSpec ?? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "cmd.exe");
-const runCmdCaller = (args, env = shellEnv(path.join(shims, "pi-review.cmd"))) => {
-	const command = `pi-review ${args.map(cmdq).join(" ")}`.trimEnd();
+const runCmdCaller = (args, env = shellEnv(path.join(shims, "pi-review.cmd")), commandName = "pi-review") => {
+	const command = `${commandName} ${args.map(cmdq).join(" ")}`.trimEnd();
 	return spawnSync(cmdExe, ["/d", "/v:off", "/s", "/c", `"${command}"`], { cwd: callerDir, encoding: "utf8", env, windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS });
 };
 const runPowerShellCaller = (args) => {
@@ -98,39 +108,52 @@ test("an sh shim rewritten by its own bin runs none of the new text", "R-1617", 
 
 // req: R-1612
 test("Windows: cmd.exe hands a .cmd shim's bin every double-quoted argument unchanged on the PATH node and returns its exit status", "R-1612", "win32", () => {
+	fs.writeFileSync(path.join(callerDir, "node.cmd"), "@exit /b 42\r\n");
+	const args = ["a space", "single'quote", "100%", "% & ^ ! ( ) | < >", "", `@${brief}`];
+	const run = recordRun("relative cmd shim", runCmdCaller(args));
 	assert.equal(WIN_CMD_SHIM_LAYOUT, "npm cmd-shim 7.0.0");
 	assert.ok(rendered.cmd.split("\r\n").length > 10 && !/(^|[^\r])\n/.test(rendered.cmd));
-	fs.writeFileSync(path.join(callerDir, "node.js"), "WScript.Quit(42)\r\n");
-	const args = ["a space", "single'quote", "100%", "% & ^ ! ( ) | < >", "", `@${brief}`];
 	assert.ok(args.every((arg) => !arg.includes('"') && !arg.endsWith("\\")));
-	const run = runCmdCaller(args);
-	assert.equal(run.status, 7, run.stderr);
+	assert.ok(bin.includes("é"));
+	assert.equal(run.status, 7);
 	const result = jsonResult(run);
 	assert.deepEqual(result.argv, args);
 	assert.equal(real(result.execPath).toLowerCase(), real(path.join(nodeDir, "node.exe")).toLowerCase());
+
+	const currentDrive = path.win32.parse(shims).root.slice(0, 1).toUpperCase();
+	const otherDrive = currentDrive === "Z" ? "Y" : "Z";
+	const absoluteRendered = renderWinShims(bin, `${otherDrive}:\\shims`);
+	assert.ok(absoluteRendered.cmd.includes(bin.replaceAll("%", "%%")));
+	fs.writeFileSync(path.join(shims, "pi-absolute.cmd"), absoluteRendered.cmd);
+	const absoluteRun = recordRun("absolute cmd shim", runCmdCaller(args, shellEnv(path.join(shims, "pi-absolute.cmd")), "pi-absolute"));
+	assert.equal(absoluteRun.status, 7);
+	const absoluteResult = jsonResult(absoluteRun);
+	assert.deepEqual(absoluteResult.argv, args);
+	assert.equal(real(absoluteResult.execPath).toLowerCase(), real(path.join(nodeDir, "node.exe")).toLowerCase());
 });
 
 // req: R-1613
 test("Windows: PowerShell hands a .cmd shim's bin every spaced argument unchanged and returns its exit status", "R-1613", "win32", () => {
 	const args = ["a space", "percent 100%", "amp & value", "pipe | value", "less < value", "greater > value", "caret ^ value", "left ( value", "right ) value"];
+	const run = recordRun("PowerShell cmd shim", runPowerShellCaller(args));
 	assert.ok(args.every((arg) => !arg.includes('"') && arg !== "" && !arg.endsWith("\\")));
-	const run = runPowerShellCaller(args);
-	assert.equal(run.status, 7, run.stderr);
+	assert.equal(run.status, 7);
 	assert.deepEqual(jsonResult(run).argv, args);
 });
 
 // req: R-1614
 test("Windows: a .cmd shim rewritten by its own bin runs none of the new text", "R-1614", "win32", () => {
-	const run = runCmdCaller(["--rewrite"]);
-	assert.equal(run.status, 7, run.stderr);
+	const run = recordRun("self-rewriting cmd shim", runCmdCaller(["--rewrite"]));
+	assert.equal(run.status, 7);
 	assert.doesNotMatch(run.stdout, /NANA_REWRITE_MARKER/);
 });
 
 // req: R-1618
 test("Windows: a .cmd shim without node.exe on PATH exits 1 and writes its not-found message only to stderr", "R-1618", "win32", () => {
-	const noNodeEnv = { ...shellEnv(path.join(shims, "pi-review.cmd")), Path: shims, PATH: shims };
-	const run = runCmdCaller([], noNodeEnv);
-	assert.equal(run.status, 1, run.error?.message ?? run.stderr);
+	fs.writeFileSync(path.join(shims, "pi-review.cmd"), rendered.cmd);
+	const noNodeEnv = withPath(shellEnv(path.join(shims, "pi-review.cmd")), shims);
+	const run = recordRun("no-node cmd shim", runCmdCaller([], noNodeEnv));
+	assert.equal(run.status, 1);
 	assert.equal(run.stdout, "");
 	assert.equal(run.stderr.trim(), "nana PATH shim: node.exe was not found on PATH");
 });
@@ -147,25 +170,26 @@ test("Windows: doctor reads PATH resolves pi-review ✓ only when the bin direct
 	fs.mkdirSync(vendor, { recursive: true });
 	fs.writeFileSync(path.join(vendor, "package.json"), JSON.stringify({ version: "0.75.0" }));
 	const env = { ...process.env, HOME: home, USERPROFILE: home, Path: `${path.join(home, ".local", "bin")};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`, PATH: `${path.join(home, ".local", "bin")};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`, PATHEXT: ".COM;.EXE;.BAT;.CMD" };
-	const invoke = (args, extra = {}) => spawnSync(process.execPath, [cli, ...args], { cwd: packageRoot, encoding: "utf8", env: { ...env, ...extra }, timeout: CASE_TIMEOUT_MS });
-	assert.equal(invoke(["install"]).status, 0);
-	const good = invoke(["doctor"]);
+	const invoke = (label, args, extra = {}) => recordRun(label, spawnSync(process.execPath, [cli, ...args], { cwd: packageRoot, encoding: "utf8", env: { ...env, ...extra }, timeout: CASE_TIMEOUT_MS }));
+	assert.equal(invoke("setup install", ["install"]).status, 0);
+	const good = invoke("doctor with shim first", ["doctor"]);
 	assert.match(good.stdout, /✓ PATH resolves pi-review/);
 	const absentPath = `${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`;
-	const absent = invoke(["doctor"], { Path: absentPath, PATH: absentPath });
+	const absent = invoke("doctor with shim absent", ["doctor"], { Path: absentPath, PATH: absentPath });
 	assert.equal(absent.status, 1);
 	assert.match(absent.stdout, /✗ PATH resolves pi-review/);
 	const shadow = path.join(root, "earlier shadow");
 	fs.mkdirSync(shadow, { recursive: true });
 	fs.writeFileSync(path.join(shadow, "pi-review.cmd"), "@exit /b 0\r\n");
 	const shadowPath = `${shadow};${env.Path}`;
-	const earlier = invoke(["doctor"], { Path: shadowPath, PATH: shadowPath });
+	const earlier = invoke("doctor with earlier shadow", ["doctor"], { Path: shadowPath, PATH: shadowPath });
 	assert.equal(earlier.status, 1);
 	assert.match(earlier.stdout, new RegExp(shadow.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
 });
 
 let failures = 0;
 for (const current of cases) {
+	caseRuns = [];
 	if (current.platforms === "win32" && process.platform !== "win32") {
 		console.log("SKIP", `${current.row} Windows leg only`);
 		continue;
@@ -179,7 +203,7 @@ for (const current of cases) {
 		console.log("PASS", current.title);
 	} catch (error) {
 		failures++;
-		console.log("FAIL", current.title, error?.message ?? String(error));
+		console.log("FAIL", current.title, `${error?.message ?? String(error)}${caseRuns.length ? `\n${runDiagnostics()}` : ""}`);
 	} finally {
 		clearTimeout(timer);
 	}
