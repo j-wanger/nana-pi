@@ -18,9 +18,13 @@
   `npm run map:check` exit 0 (0 problems). R-1800 and R-1801 read `implemented`.
 - Tree movement (`requirements-moved.mjs --base main`, merge-base 22ccd84): FEAT-009, R-1800 new (implemented),
   R-1801 new (implemented).
-- For the reviewer (inferred, not probed): R-1801's check writes `module.exports = {};` at the module path npm reports
-  for the test's temp prefix, with no check that the path lies under the test root. Where npm ignores the prefix
-  variable, that write would land in the machine's real pi.
+- R-1801's check wrote `module.exports = {};` at the module path npm reports for the test's temp prefix, with no check
+  that the path lies under the test root (inferred from reading, not probed): where npm ignores the prefix variable, the
+  write would land in the machine's real pi; where `npm root -g` prints nothing, under the test's working folder. Settled
+  in build 2 (`build-brief-2.md`, commit bdb6a204, a Claude Sonnet 5 subagent, test only): `freshTrustEnv` accepts the
+  module path only when it is absolute and inside the test root; otherwise R-1800 and R-1801 fail naming the probed npm
+  root and npm's status, and R-1801 writes nothing. The builder's wrong-code try (the path forced to the temp root's
+  parent) failed both checks by name with no file written outside the root; `trust.test.mjs` 13/13 PASS after.
 - Plan's known limits, all HANDOFF residuals: a pi from pnpm, bun, volta or yarn is not found; a mixed Node setup is told
   to install a second pi; a trust module's own missing dependency reports against the trust module's path; npm itself
   missing keeps the old line with no install command. The readme-install residual this lane fixes is gone from HANDOFF.

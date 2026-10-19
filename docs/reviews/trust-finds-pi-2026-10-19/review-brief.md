@@ -35,3 +35,5 @@ for the test's prefix, with no check that the path lies under the test root (the
 CLI header's `@errors` match the behavior and name no pi-internal file path; (6) nothing else changed — REQUIREMENTS.md,
 the tree and the code map change only by the two rows and their regenerated lines; (7) HANDOFF and the session entry
 are true; (8) any MUST.
+
+Build 2 (after this brief was first written): commit bdb6a204 adds the inside-temp-root guard to the two new checks (see the seat record). Judge it with check (1): the guard must fail a check, never skip it, and must stop the R-1801 write.
