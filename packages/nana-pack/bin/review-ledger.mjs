@@ -24,10 +24,10 @@
 //       would a review of this tree's revision be admitted? exit 0 yes / 1 no. Takes the lock,
 //       writes nothing (no reservation, no pruning).
 
-import { spawn, spawnSync } from 'node:child_process';
-import { realpathSync, writeFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { admit, complete, project, readRounds, release, startHeartbeat } from './review-round.mjs';
+import { admit, complete, project, readRounds, release, repoKeyOf, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -45,10 +45,7 @@ if (cmd === 'report') {
   const repoPath = ownOption('--repo');
   let repo;
   if (repoPath) {
-    const resolved = resolve(repoPath);
-    const git = spawnSync('git', ['rev-parse', '--git-common-dir'], { cwd: resolved, encoding: 'utf8' });
-    if (git.status !== 0) die(`--repo is not a git repository: ${repoPath}`);
-    repo = `git:${realpathSync(resolve(resolved, git.stdout.trim()))}`;
+    try { repo = repoKeyOf(resolve(repoPath)); } catch { die(`--repo is not a git repository: ${repoPath}`); }
   }
   const home = process.env.HOME ?? process.env.USERPROFILE;
   for (const r of readRounds(home, { item, repo })) {
