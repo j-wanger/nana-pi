@@ -25,6 +25,20 @@ import { platform } from "../lib/paths.mjs";
 
 const repoRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)), "..", "..");
 let fails = 0;
+const REBUILD_DEADLINE_MS = 20000; // chosen: cold Windows CI slack
+const rebuildSleep = new Int32Array(new SharedArrayBuffer(4));
+const rebuilt = (knowledgeHome, staleMtimeMs) => {
+	try { return fs.statSync(path.join(knowledgeHome, "index.db")).mtimeMs > staleMtimeMs + 60000 && !fs.existsSync(path.join(knowledgeHome, "build.lock")); }
+	catch { return false; }
+};
+const waitForRebuilt = (knowledgeHome, staleMtimeMs) => {
+	const deadline = Date.now() + REBUILD_DEADLINE_MS;
+	while (Date.now() < deadline) {
+		if (rebuilt(knowledgeHome, staleMtimeMs)) return Date.now();
+		Atomics.wait(rebuildSleep, 0, 0, 50);
+	}
+	return null;
+};
 // final review r1 (sol MUST 3): the detail/extra argument is printed on every line, not only on
 // FAIL — R-1058 records each entry's spawn duration there, which only this Windows leg can read.
 const check = (n, ok, extra) => {
@@ -211,6 +225,18 @@ try {
 		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt, cwd: project, session_id: "win32-exec" });
 		// req: R-1330
 		check("R-1330: on Windows the installed knowledge hook command prints a pull block naming the fixture file for a matching prompt", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md"), `build status ${built.status} ${built.stdout}${built.stderr}\n${detail(r)}`);
+	}
+	{
+		const staleDb = path.join(knowledgeHome, "index.db");
+		const staleTime = Date.now() / 1000 - 2 * 3600;
+		fs.utimesSync(staleDb, staleTime, staleTime);
+		const staleMtimeMs = fs.statSync(staleDb).mtimeMs;
+		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt: "quasar nebula telescope horizon findings once more", cwd: project, session_id: "win32-stale" });
+		const rebuiltOnReturn = rebuilt(knowledgeHome, staleMtimeMs);
+		const returnedAt = Date.now();
+		const rebuiltAt = waitForRebuilt(knowledgeHome, staleMtimeMs);
+		// req: R-1713
+		check("R-1713: on Windows the installed knowledge hook command on an index older than one hour prints the fixture's pull block and the index is rebuilt in the background", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md") && rebuiltAt !== null, `${detail(r)}; rebuilt when the command returned: ${rebuiltOnReturn}; rebuilt ${rebuiltAt === null ? "deadline" : rebuiltAt - returnedAt + " ms"} later`);
 	}
 
 	// SS1 (R-1340): the earlier objective/adoption checks above (R-1058, R-1063) prove only exit 0

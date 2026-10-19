@@ -889,7 +889,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Pins that the prompt hook is fail-open, bounded and never repeats a pointer inside one session, since it runs on every prompt the owner types
 - **inputs** — bin/nana-knowledge.ts, markdown sources and an index under a temp NANA_KNOWLEDGE_HOME
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
+- **effects** — disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI, kills the hook command's process group on POSIX and waits for one background build to finish)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`

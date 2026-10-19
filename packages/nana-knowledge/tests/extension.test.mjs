@@ -39,6 +39,19 @@ const { PROMPT_MAX_CHARS } = await import(new URL("../lib/tokenize.ts", import.m
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+const REBUILD_DEADLINE_MS = 20000; // chosen: cold Windows CI slack
+const rebuilt = (h, staleMtimeMs) => {
+	try { return fs.statSync(path.join(h, "index.db")).mtimeMs > staleMtimeMs + 60000 && !fs.existsSync(path.join(h, "build.lock")); }
+	catch { return false; }
+};
+const waitForRebuilt = async (h, staleMtimeMs) => {
+	const deadline = Date.now() + REBUILD_DEADLINE_MS;
+	while (Date.now() < deadline) {
+		if (rebuilt(h, staleMtimeMs)) return Date.now();
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	return null;
+};
 
 const HEADER = "[nana:knowledge] untrusted search pointers for this prompt";
 
@@ -212,6 +225,29 @@ for (const [label, prompt] of [["undefined", undefined], ["a number", 12345], ["
 	try { r = await handlers.before_agent_start({ prompt: "" }, ctxFor("pi-empty")); } catch { threw = true; }
 	check("11: an empty prompt does not throw", !threw);
 	check("11: ...and injects nothing (the producer skips it)", r === undefined);
+}
+
+// (12) a stale index is still queried while the producer rebuilds it in the background.
+{
+	const staleHome = path.join(td, "stalehome");
+	fs.mkdirSync(staleHome, { recursive: true });
+	fs.writeFileSync(path.join(staleHome, "sources.json"), JSON.stringify({ roots: [{ path: src, kind: "articles" }] }));
+	const priorHome = process.env.NANA_KNOWLEDGE_HOME;
+	process.env.NANA_KNOWLEDGE_HOME = staleHome;
+	await build();
+	const staleDb = path.join(staleHome, "index.db");
+	const staleTime = Date.now() / 1000 - 2 * 3600;
+	fs.utimesSync(staleDb, staleTime, staleTime);
+	const staleMtimeMs = fs.statSync(staleDb).mtimeMs;
+	const injectedStartedAt = Date.now();
+	const r = await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-stale"));
+	const injectedAt = Date.now();
+	if (priorHome === undefined) delete process.env.NANA_KNOWLEDGE_HOME; else process.env.NANA_KNOWLEDGE_HOME = priorHome;
+	const rebuiltAt = await waitForRebuilt(staleHome, staleMtimeMs);
+	console.log(`NOTE pi stale pull: injected ${injectedAt - injectedStartedAt} ms, rebuilt ${rebuiltAt === null ? "deadline" : rebuiltAt - injectedAt + " ms"} after`);
+	const lines = r?.message?.content?.split("\n") ?? [];
+	// req: R-1712
+	check("R-1712: pi on an index older than one hour injects only that index's pull block while a background build rebuilds the index", lines[0]?.startsWith(HEADER) === true && lines.length > 1 && lines.slice(1).every((line) => line.startsWith("- ")) && rebuiltAt !== null);
 }
 
 fs.rmSync(td, { recursive: true, force: true });
