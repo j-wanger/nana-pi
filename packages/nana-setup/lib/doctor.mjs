@@ -21,6 +21,7 @@
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
+import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
@@ -240,7 +241,7 @@ export function versionAtLeast(version, floor) {
 
 export function packageSourceState(layout, root = repoRoot) {
 	let settings;
-	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { return null; }
+	try { settings = parseJsonText(fs.readFileSync(layout.piSettings, "utf8")); } catch { return null; }
 	const entries = Array.isArray(settings?.packages) ? settings.packages.flatMap((entry) => typeof entry === "string" ? [entry] : entry && typeof entry === "object" && typeof entry.source === "string" ? [entry.source] : []) : [];
 	const checkout = realpathSafe(root);
 	const foreign = [];

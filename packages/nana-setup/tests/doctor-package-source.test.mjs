@@ -12,7 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { diagnose, packageSourceState } from "../lib/doctor.mjs";
 import { resolveLayout, repoRoot } from "../lib/paths.mjs";
-import { gitCommonDir } from "../lib/steps.mjs";
+import { gitCommonDir, packageCoverage } from "../lib/steps.mjs";
 
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
@@ -44,5 +44,14 @@ check("object-form remote source is classified", (() => { const s = row([{ sourc
 check("managed checkout remedy clones first", (() => { const root = path.join(layout.piHome, "git", "github.com", "j-wanger", "nana-pi"); const s = row(["git:github.com/j-wanger/nana-pi"], root); return s?.remedy?.includes("git clone https://github.com/j-wanger/nana-pi") && s.remedy.includes("run `nana-setup install` from the clone") && s.remedy.indexOf("nana-setup install") < s.remedy.indexOf("pi remove"); })());
 // req: R-998
 check("unrelated npm-only entries produce no package-source state", row(["npm:pi-subagents@0.75.0"]) === null);
+const localEntry = path.relative(layout.piHome, repoRoot);
+const settingsObjects = [{ packages: [localEntry] }, { packages: ["git:github.com/j-wanger/nana-pi", localEntry] }];
+const packageRows = () => diagnose(layout, { projectDir: home }).filter((item) => item.label === "pi packages" || item.label === "pi package source").map(({ status, label, detail }) => ({ status, label, detail }));
+// req: R-1810
+check("doctor prints the pi packages and pi package source rows for a pi settings.json saved with a byte-order mark as for the same file without one", settingsObjects.every((settings, index) => { const text = JSON.stringify(settings, null, 2) + "\n"; fs.writeFileSync(layout.piSettings, text); const baseline = packageRows(); const anchored = JSON.stringify(baseline.map(({ status }) => status)) === JSON.stringify(index === 0 ? ["ok", "ok"] : ["ok", "fail"]); return anchored && ["\uFEFF" + text, ("\uFEFF" + text).replace(/\n/g, "\r\n")].every((marked) => { fs.writeFileSync(layout.piSettings, marked); return JSON.stringify(packageRows()) === JSON.stringify(baseline); }); }));
+const validSettings = JSON.stringify({ packages: [localEntry] }, null, 2) + "\n";
+const invalidSettings = ["\uFEFF\uFEFF" + validSettings, "\uFEFF{" + "\uFEFF" + validSettings.slice(1), "\uFEFF" + validSettings.replace(/}\n$/, "\n")];
+// req: R-1812
+check("two leading marks, a mark inside the object or malformed text after one mark leave pi's settings with no package entries for doctor and install", invalidSettings.every((text) => { fs.writeFileSync(layout.piSettings, text); const coverage = packageCoverage(layout); return packageSourceState(layout) === null && !coverage.present && coverage.entries.length === 0; }));
 if (fails) process.exitCode = 1;
 } finally { process.env.PATH = savedPath; }

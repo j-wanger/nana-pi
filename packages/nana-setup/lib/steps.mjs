@@ -1025,7 +1025,7 @@ export function packageCoverage(layout, manifestRoot = repoRoot) {
 		return rel[0] === "packages" && rel.length > 2 ? path.join(manifestRoot, rel[0], rel[1]) : manifestRoot;
 	}))];
 	let settings = {};
-	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { /* no settings */ }
+	try { settings = parseJsonText(fs.readFileSync(layout.piSettings, "utf8")); } catch { /* no settings */ }
 	const entries = Array.isArray(settings.packages) ? settings.packages.filter((e) => typeof e === "string") : [];
 	const rootEntry = entries.find((entry) => remoteMatches(entry) || exactLocalEntry(entry, layout, manifestRoot, manifestRoot));
 	const loaded = new Set(rootEntry ? extensionDirs : []);
