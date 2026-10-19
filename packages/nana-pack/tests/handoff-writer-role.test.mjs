@@ -73,7 +73,7 @@ check("no marker: normal behaviour (picks up)", (await session(repo).prompt()).i
 if (process.platform === "win32") console.log("SKIP pi-review spawn env: POSIX shell stub");
 else {
 	const bin = tmpDir(path.join(os.tmpdir(), "stub-pi-"));
-	fs.writeFileSync(path.join(bin, "pi"), '#!/bin/sh\necho "VERDICT: stub NANA_HANDOFF=${NANA_HANDOFF:-unset}"\n', { mode: 0o755 });
+	fs.writeFileSync(path.join(bin, "pi"), '#!/bin/sh\necho "stub NANA_HANDOFF=${NANA_HANDOFF:-unset}"\necho "VERDICT: LAND"\n', { mode: 0o755 });
 	const out = path.join(bin, "review.md");
 	const piReview = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url));
 	const r = spawnSync(process.execPath, [piReview, "--item", "handoff-writer-role-test", "--out", out, "--poll", "1", "--stall-secs", "10", "--retries", "1", "--", "-p", "x"], {

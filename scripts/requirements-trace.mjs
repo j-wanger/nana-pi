@@ -2,9 +2,9 @@
 /**
  * @module scripts/requirements-trace.mjs
  * @purpose Run the project template's requirements-trace rail over this repo, so every REQUIREMENTS.md row's status is measured against the `req:` markers nana-pi's suites carry.
- * @inputs REQUIREMENTS.md at the repo root and every *.test.mjs under the six test roots named here
- * @outputs the summary line, the `ears:` off-form line, plus one problem line per disagreement between a row's status, form or evidence and the markers
- * @effects disk (reads REQUIREMENTS.md and the test sources), process (exits non-zero when a row and the suite disagree)
+ * @inputs REQUIREMENTS.md at the repo root, every *.test.mjs under the six test roots named here, and the process environment
+ * @outputs the summary line, the `ears:` off-form line, one problem line per disagreement between a row's status, form or evidence and the markers, and the opt-in unclaimed-declaration listing
+ * @effects disk (reads REQUIREMENTS.md and the test sources), process (writes reports and sets a non-zero exit code when a row and the suite disagree)
  * @errors exit 1 with the problem list; a thrown Error for a malformed requirements table, a bad requirement id or a marker that sits above no test call
  */
 // A shim, not a copy — the rail is ONE source, the template's
@@ -18,13 +18,13 @@ import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { check, ID, WHITESPACE, citesOf, requirementRowId, scanSource } from "../templates/typescript/template/tests/requirements-trace.ts";
+import { check, ID, UNCLAIMED_ENV, WHITESPACE, citesOf, printUnclaimed, requirementRowId, scanSource, unclaimedLines } from "../templates/typescript/template/tests/requirements-trace.ts";
 
 // Re-exported so the repo-level test's EARS fixtures (G-014/G-015) can call the generic
 // rail directly, over a scratch dir, rather than only through checkRepo() below.
 // citesOf is re-exported so the regroup checker (R-1176) reads an Evidence cell's citations
 // exactly as this rail does, by import, never by a copied split.
-export { check, ID, WHITESPACE, citesOf, requirementRowId, scanSource };
+export { check, ID, UNCLAIMED_ENV, WHITESPACE, citesOf, printUnclaimed, requirementRowId, scanSource, unclaimedLines };
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
 export const REPO_ROOT = resolve(
@@ -61,5 +61,6 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
 	const { report, problems } = checkRepo();
 	process.stdout.write(`${report}\n`);
 	for (const p of problems) process.stdout.write(`  ${p}\n`);
-	process.exit(problems.length ? 1 : 0);
+	printUnclaimed(REPO_ROOT, { testRoots: TEST_ROOTS, callNames: CALL_NAMES }, process.env);
+	process.exitCode = problems.length ? 1 : 0;
 }
