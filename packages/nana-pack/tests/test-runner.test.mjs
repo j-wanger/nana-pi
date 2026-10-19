@@ -33,6 +33,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
+const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test-runner-config.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
 // an isolated HOME for this file too, so it holds when run directly and not through the runner;
 // OUTER_HOME is what a fixture's per-file HOME must NOT be
@@ -55,6 +56,7 @@ function mkRoot(name, files) {
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
 	fs.copyFileSync(RUNTIME_MAP_CONFIG, path.join(root, "packages", "nana-pack", "lib", "runtime-map-config.mjs"));
 	fs.copyFileSync(WINDOWS_SKIPS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "windows-skips-config.mjs"));
+	fs.copyFileSync(TEST_RUNNER_CONFIG, path.join(root, "packages", "nana-pack", "lib", "test-runner-config.mjs"));
 	for (const [rel, body] of Object.entries(files)) {
 		const p = path.join(root, rel);
 		fs.mkdirSync(path.dirname(p), { recursive: true });

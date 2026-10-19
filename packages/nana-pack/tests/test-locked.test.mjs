@@ -7,6 +7,7 @@
  * @errors Reports failed contract checks and exits non-zero.
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { JOBS_FLAG, SUITE_JOBS } from "../lib/test-runner-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -92,6 +93,34 @@ const readEvents = () => fs.existsSync(events) ? fs.readFileSync(events, "utf8")
   // req: R-627
   check("npm CLI receives a Windows metacharacter filter as one literal argument without a shell while a lock is held", result.status === 0 && JSON.stringify(args) === JSON.stringify(["test", "--", filter]) && exists());
   fs.rmSync(LOCK, { recursive: true, force: true });
+}
+
+{
+  const argsFile = path.join(ROOT, "npm-args-jobs.json");
+  const runUnfiltered = (extra = {}, deleteKeys = []) => {
+    fs.rmSync(LOCK, { recursive: true, force: true });
+    fs.rmSync(argsFile, { force: true });
+    const productionEnv = env({ npm_execpath: NPM_CLI, CAPTURE_NPM_ARGS: argsFile, ...extra });
+    delete productionEnv.NANA_SUITE_TEST_COMMAND;
+    for (const k of deleteKeys) delete productionEnv[k];
+    const result = spawnSync(process.execPath, [SCRIPT], { cwd: REPO, env: productionEnv, encoding: "utf8", timeout: 10000 });
+    const args = fs.existsSync(argsFile) ? JSON.parse(fs.readFileSync(argsFile, "utf8")) : [];
+    fs.rmSync(LOCK, { recursive: true, force: true });
+    return { status: result.status, args };
+  };
+  const unset = runUnfiltered({}, ["NANA_SUITE_JOBS"]);
+  const empty = runUnfiltered({ NANA_SUITE_JOBS: "" });
+  const overridden = runUnfiltered({ NANA_SUITE_JOBS: String(SUITE_JOBS + 1) });
+  const defaultArgs = JSON.stringify(["test", "--", `${JOBS_FLAG}${SUITE_JOBS}`]);
+  const overriddenArgs = JSON.stringify(["test", "--", `${JOBS_FLAG}${SUITE_JOBS + 1}`]);
+  // req: R-1476
+  check(
+    "R-1476: an unfiltered locked run passes --jobs= with NANA_SUITE_JOBS, or the declared suite job count when it is unset or empty, to npm test",
+    unset.status === 0 && JSON.stringify(unset.args) === defaultArgs
+      && empty.status === 0 && JSON.stringify(empty.args) === defaultArgs
+      && overridden.status === 0 && JSON.stringify(overridden.args) === overriddenArgs,
+    JSON.stringify({ unset, empty, overridden }),
+  );
 }
 
 {

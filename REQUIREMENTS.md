@@ -1614,6 +1614,14 @@ Status: active
 | R-1381 | WHERE the platform is not win32, the test runner shall run each test file on the declared Windows skip list. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::R-1381: off win32 each file on the declared Windows skip list runs` |
 | R-1382 | WHERE the platform is win32, the test runner shall run each desk or bench test file that is not on the declared Windows skip list and whose other declared preconditions hold. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::R-1382: win32 still runs each desk and bench file off the declared Windows skip list` |
 | R-1383 | The declared Windows skip list shall name only test files the runner collects from apps/desk/test or apps/bench/test. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::R-1383: the declared Windows skip list names only collected desk and bench test files` |
+| R-1470 | WHEN `--jobs=N` is given, the test runner shall keep up to N test files running at once, starting the next collected file as soon as a running one ends and never running more than N. | planned | — |
+| R-1471 | WHEN `--jobs=N` is given, the test runner shall report each file's label, check counts and failing-line excerpt, the warnings, the failed-file list, the self-test verdict, the totals and the exit code exactly as the same run without `--jobs`, apart from timings and the order of file blocks. | planned | — |
+| R-1472 | WHERE `--jobs=N` runs files at the same time, the test runner shall print each file's shown output and its result line together as one uninterrupted block. | planned | — |
+| R-1473 | WHERE a test file is on the declared run-alone list and `--jobs=N` is given with N greater than 1, the test runner shall run that file only while no other test file runs. | planned | — |
+| R-1474 | The declared run-alone list shall name only test files the runner collects, each with a non-empty reason. | planned | — |
+| R-1475 | WHEN the test runner receives SIGINT or SIGTERM while `--jobs=N` has several files running, the test runner shall kill every running file's process tree and remove every running file's temporary root and the runner's scratch directory before it exits. | planned | — |
+| R-1476 | WHEN the locked suite command runs npm test with no filter, the locked suite command shall pass `--jobs=` followed by NANA_SUITE_JOBS when that is set and not empty, otherwise by the declared suite job count. | planned | — |
+| R-1477 | IF a `--jobs` argument is not `--jobs=` followed by a whole number of 1 or more THEN the test runner shall exit 1 naming that argument before it starts any test file. | planned | — |
 
 ## FEAT-032 · Keep instructions and documentation accurate
 Purpose: Check documentation and skill commands against the interfaces and files they claim to describe.
