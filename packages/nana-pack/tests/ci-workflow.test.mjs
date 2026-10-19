@@ -21,7 +21,6 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
   assert.match(workflow, /^permissions:\n  contents: read/m);
   assert.match(workflow, /^  suite:\n    strategy:/m);
   assert.match(workflow, /os: \[macos-latest, ubuntu-latest, windows-latest\]/);
-  assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
   assert.match(workflow, /^      - run: npm test/m);
   assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n    if: github.event_name == 'push' && github.ref == 'refs\/heads\/main'/m);
   assert.match(workflow, /^    permissions:\n      contents: write/m);
@@ -112,10 +111,49 @@ check("suite runs on Windows with bash and the pinned toolchain", () => {
   assert(positions.every((position) => position >= 0), "Windows suite must include all pinned setup and test steps");
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b), "suite setup, version check, and npm test must stay ordered");
 });
-// req: R-1032
-check("Windows suite failure does not block release", () => {
-  assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
-  assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n/m);
+// Reads the suite job's job-level `continue-on-error:` and returns, for a matrix os name,
+// whether that leg's failure stops the release job (R-1530, R-1531). Rejects more than one
+// continue-on-error line, a line not at the four-space job level (a step key included), and a
+// value that is not one of absent, `true`, `false`, or one `${{ matrix.os ==|!= '<os>' }}`.
+function suiteBlocksOn(workflowText) {
+  const suite = workflowText.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const lines = suite.split("\n").filter((line) => line.includes("continue-on-error:"));
+  if (lines.length > 1) throw new Error(`more than one continue-on-error line in the suite job: ${lines.join(" | ")}`);
+  let expr = "false";
+  if (lines.length === 1) {
+    if (!/^ {4}continue-on-error:/.test(lines[0])) {
+      throw new Error(`continue-on-error must sit at the four-space job level: ${JSON.stringify(lines[0])}`);
+    }
+    expr = lines[0].slice(lines[0].indexOf(":") + 1).trim();
+  }
+  return (os) => {
+    if (expr === "true") return false;
+    if (expr === "false") return true;
+    const m = expr.match(/^\$\{\{\s*matrix\.os\s*(==|!=)\s*'([a-z0-9-]+)'\s*\}\}$/);
+    if (!m) throw new Error(`unrecognized continue-on-error expression: ${expr}`);
+    const [, op, matchOs] = m;
+    const continues = op === "==" ? os === matchOs : os !== matchOs;
+    return !continues;
+  };
+}
+// req: R-1530
+check("R-1530: a failing macOS or Windows suite leg stops the release job", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const matrixLine = suite.match(/^ {8}os: \[(.+)\]$/m)?.[1] ?? "";
+  assert(matrixLine.includes("macos-latest"), "suite matrix must include a macOS leg");
+  assert(matrixLine.includes("windows-latest"), "suite matrix must include a Windows leg");
+  const needsLine = workflow.match(/^  release:\n {4}needs: \[(.+)\]$/m)?.[1] ?? "";
+  assert(needsLine.split(",").map((n) => n.trim()).includes("suite"), `release needs must include suite: ${needsLine}`);
+  const releaseHeader = workflow.match(/^  release:\n([\s\S]*?)^ {4}steps:/m)?.[1] ?? "";
+  assert(!/always\(\)|failure\(\)|cancelled\(\)/.test(releaseHeader), `release header must call none of always()/failure()/cancelled(): ${releaseHeader}`);
+  const blocks = suiteBlocksOn(workflow);
+  assert(blocks("macos-latest"), "a failing macOS suite leg must stop release");
+  assert(blocks("windows-latest"), "a failing Windows suite leg must stop release");
+});
+// req: R-1531
+check("R-1531: a failing Linux suite leg alone does not stop the release job", () => {
+  const blocks = suiteBlocksOn(workflow);
+  assert(!blocks("ubuntu-latest"), "a failing Linux suite leg alone must not stop release");
 });
 // req: R-1313
 check("R-1313: the Windows suite leg runs the suite verbose", () => {
