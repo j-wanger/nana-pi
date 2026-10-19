@@ -63,6 +63,7 @@
 - 2026-10-19: every new session now starts with nana's standing rulings, in both seats. Builders and reviewers get them too. The rulings live in one dated file in nana-pi that names no owner and no model. Install links the file into the Claude rules folder and the pi agent folder. On Windows it copies the file instead. A pi session whose copy is unusable shows a one-line notice in their place. Doctor flags a missing or stale copy. All 29 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 154 files. On Windows the lane's own checks pass — `docs/sessions/2026-10.md`.
 - 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, per the 2026-10-10 ruling. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
 - 2026-10-19: the product report lists the tests behind each requirement. Under every row, each cited test shows its title and its file. The file links to its GitHub page at the report's commit. Beside it sits the file's PASS, FAIL or SKIP from this clone's last measured run. A mark shows when that file, or code it ran, has changed since. A row that cites no test says so. The report's six new checks pass on macOS, Linux and Windows. The real page shows five implemented rows whose every test file skipped on this Mac — `docs/sessions/2026-10.md`.
+- 2026-10-19: CI's Windows leg now blocks release, as the macOS leg already did. A Windows failure on main now skips release. A Linux failure alone still does not. Two new checks pin both rules. Each of the builder's nine wrong versions of the CI file turns one of them red. The support line in all three front doors says the same. On the lane's CI run, all three legs read 0 failing of 156 files. CI still does not stop a land — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -166,6 +167,10 @@
 - g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
 - g005-carveout: on Windows, the rule and skill copies take the new wording only at the next install.
 - g005-carveout: the product report's assessment of the engineering-standards feature stays out of date until the queued report refresh.
+- win-leg-flip: the two new checks read the CI file as text, not as GitHub reads it. They fail on any expression they do not know, and name it.
+- win-leg-flip: the blocking Windows leg skips the 16 declared desk files. A new Windows failure in one of them cannot stop release.
+- win-leg-flip: the suite job has no time limit. A hung Windows leg can hold release for up to six hours, GitHub's default.
+- win-leg-flip: the README still says the Linux leg fails one symlink-escape check. That stopped being true when the lane write guard fix landed. It waits for the Linux question.
 
 ## Where things stand
 
@@ -180,7 +185,7 @@
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Feature-first development (Jake, 2026-10-17).** Per feature, the seat and one adversarial agent write only the must-meet tests, and the builder builds to them. Plans get no review round. A reviewer sends back only for a must-meet test that is missing or still passes with the feature removed, a bug that stops the feature's main use, or a harm the review standard lists: data lost or corrupted, a test, build step or seat script writing outside the lane worktree or the temp folder (a product command writing where its contract says is not this harm), a broken install or hook, or something main does today no longer working. Every other finding goes on the residual list and is fixed when someone hits it or next works on its feature. Ordinary lanes get one final reviewer; install, hook and gate lanes keep both, with wrong-code pairs and the independent check. The rules carry it since 2026-10-17. An install, hook or gate lane changes nana-setup install, uninstall or doctor, a Claude Code hook or a pi extension, the gate policy, or the land and review tools; every other lane is ordinary.
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
-   - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg blocks main after two green runs (both Jake's 2026-10-17 calls).
+   - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg now blocks release (both Jake's 2026-10-17 calls).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
    - Then the rest of Jake's 2026-10-16 feedback and the continuity study: an adoption refresh of basketball-geek and trading-zone.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
@@ -190,6 +195,8 @@
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
+- **[optional, since 2026-10-19] Should CI's Linux leg block release too?** It still does not. It has read 0 failing on five main runs in a row. That meets the two-green-runs rule the Windows leg had.
+- **[optional, since 2026-10-19] Should a land need a green Windows leg?** The land helper reads no CI result. So a red CI run stops no land today. Enforcing it would be its own land-tool lane.
 - **[optional, since 2026-10-17] Re-check out your Windows clone once.** After you pull, git leaves the files it already checked out with Windows line endings. Commit or stash any work, then run `git rm -r --cached -q . && git reset --hard` once in that clone. It discards uncommitted changes, so stash first.
 - **[optional, since 2026-10-16] Your larger-lane builder.** With your yes, the seat adds `"largerBuilder": {"runtime": "claude-code", "model": "sonnet"}` to the roster in this Mac's and your Windows machine's pi settings file.
 - **[optional, since 2026-10-13] Report the upstream break.** pi-codemode 1.2.0 removed two exports in a minor release. That breaks pi 1.0.2 for every user who installs it fresh. Filing an upstream issue is public, so the call is yours.
