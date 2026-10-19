@@ -358,6 +358,43 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	check("objective: without the setting GOALS.md is not an objective → line", reportsFor(r2).length === 1);
 }
 
+{
+	const defaultJournal = path.join(NANA_HOME, ".pi", "agent", "nana-journal.jsonl");
+	const countRoot = (file, root) => (fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "").split("\n").filter((line) => {
+		try { const record = JSON.parse(line); return record.event === "directory_unadopted" && record.cwd === root; } catch { return false; }
+	}).length;
+	const promptWithLimit = async (root) => {
+		let timer;
+		try {
+			return await Promise.race([
+				prompt(root),
+				new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`timed out: ${root}`)), 5_000); }),
+			]);
+		} finally {
+			clearTimeout(timer);
+		}
+	};
+	const observations = [];
+	try {
+		for (const testCase of [
+			{ name: "disabled", config: (journal) => ({ journal: { enabled: false, path: journal } }), expected: [0, 0] },
+			{ name: "absolute-path", config: (journal) => ({ journal: { enabled: true, path: journal } }), expected: [1, 0] },
+			{ name: "project-file", config: (journal) => ({ journal: { enabled: true, path: journal }, objective: { projectFile: "GOALS.md" } }), expected: [0, 0], goals: true },
+		]) {
+			const root = repo(`marked-${testCase.name}`);
+			const configured = path.join(base, `marked-${testCase.name}.jsonl`);
+			if (testCase.goals) fs.writeFileSync(path.join(root, "GOALS.md"), "x\n");
+			fs.writeFileSync(USER_CFG, `\uFEFF${JSON.stringify(testCase.config(configured))}`);
+			await promptWithLimit(root);
+			observations.push({ name: testCase.name, counts: [countRoot(configured, root), countRoot(defaultJournal, root)], expected: testCase.expected });
+		}
+	} finally {
+		cfg();
+	}
+	// req: R-1585
+	check("adoption: a nana-pack.json saved with a byte-order mark keeps journal.enabled false, journal.path and objective.projectFile", observations.every(({ counts, expected }) => JSON.stringify(counts) === JSON.stringify(expected)), JSON.stringify(observations));
+}
+
 // (e) the session prompt is byte-identical to the pre-L5 extension (eca3de4), same scenarios
 {
 	const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");

@@ -185,6 +185,25 @@ function walk(dir) {
 	check("and the reason is reported", /would shadow them here/.test(r.stdout), r.stdout);
 }
 
+{
+	const { dir, home } = freshProject();
+	const userConfig = path.join(home, ".pi", "agent", "nana-pack.json");
+	fs.mkdirSync(path.dirname(userConfig), { recursive: true });
+	fs.writeFileSync(userConfig, `\uFEFF${JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } })}`);
+	const result = run(["project", dir, "--home", home]);
+	// req: R-1582
+	check("project skips .pi/nana-pack.json when a user nana-pack.json saved with a byte-order mark has postEdit.commands", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")) && /would shadow them here/.test(result.stdout), result.stdout);
+}
+
+{
+	const { dir, home } = freshProject();
+	run(["project", dir, "--home", home]);
+	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), `\uFEFF${JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } })}`);
+	const result = run(["project", dir, "--check", "--home", home]);
+	// req: R-1583
+	check("--check counts post-edit commands from a .pi/nana-pack.json saved with a byte-order mark", /✓ post-edit commands\s+1 effective checker command\(s\)/.test(result.stdout), result.stdout);
+}
+
 /* --- 6. dry run writes nothing -------------------------------------------------------- */
 {
 	const { dir, home } = freshProject();
