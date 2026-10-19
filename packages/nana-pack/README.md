@@ -85,7 +85,9 @@ An independent review is run by a `pi` (Codex) call, and that endpoint intermitt
 `pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
 liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
 the whole process group and retries with a fresh session (`--retries N` = re-attempts after the
-first; default 2). SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
+first; default 2). The watchdog ends an attempt as soon as pi exits, rather than waiting for the
+next poll tick, and treats a pi killed by a signal the watchdog did not send as a failed attempt
+that is retried. SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
 non-empty *and* contains a case-sensitive line-start `VERDICT` word (the predicate lives
 in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
 exit 0 means the review is in `--out`, exit 1 means every attempt failed.
@@ -225,7 +227,11 @@ A roster replaces every slot, whole — there is no merge and no fallback to the
 
 A seat passes the roster's reviewer and land models to `pi-review` itself, as `pi-review … -- --provider <provider> --model <model> [--thinking <thinking>]`; `pi-review` reads no roster and prints no builder line. `pi-worker`'s lane mode reads `--lane-size <small|larger>` to pick `builder` or `largerBuilder` — see Lane builder above.
 
-To change one slot without hand-editing the whole file: pull before you add `largerBuilder` — an older checkout refuses a file holding it, naming it — then run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" --json`, which prints this machine's resolved roster as `{"roster": …}`. Set the file's `roster` member to that printed `roster` value, adding the member if the file has none or replacing the one already there, keep every other key (the installer's file already holds `objective`), then change the one slot you meant to change — pasting the whole command output beside the file's existing object makes invalid JSON.
+To change one slot without hand-editing the whole file, run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set <slot>[:] <tokens>`, pasting the slot and the tokens a plain run of the command above prints for the entry you want — `set builder example-gateway gpt-6-luna high`, `set largerBuilder claude-code sonnet`, `set land seat`, `set scout none`; a printed line's own trailing colon on the slot is accepted. It writes only that slot, prints the resulting roster the same way a plain run does, and writes `nana-roster: <slot> was: <previous tokens>` to stderr. It keeps every other top-level member (`objective`, `gate`, `postEdit` and an unrecognised key included) and, before replacing an existing file, copies its previous bytes to `nana-pack.json.bak` in the agent dir — copy that file back over `nana-pack.json` to undo a `set`. `set` must be the first argument: `nana-roster --json set …` prints the roster and sets nothing, and only one `.bak` is kept (the next `set`, or an edit by the desk, replaces it).
+
+`set` refuses, naming what is wrong, and changes no byte, in three cases: run inside a pi model shell (pi sets `PI_SESSION_ID` there for its own bash and powershell tool calls; a terminal, pi's `!`, and a Claude Code shell are all fine); malformed `set` input (no slot, an unknown slot, or tokens that do not form a valid entry for that slot); and a `nana-pack.json` the roster resolver itself refuses (invalid JSON, a directory, over the 1 MiB cap, and the like) — the path is left exactly as it was, never replaced with the default roster.
+
+Known limits: no lock, so a writer racing `set` (the desk, the installer, an editor) loses its write; the file is always re-serialized (two-space JSON, LF, BOM dropped, duplicate keys collapsed to the last) with values unchanged, while `nana-pack.json.bak` keeps the original bytes; a file with no roster gets the whole sealed default written into it, so a later change to that default stops reaching this machine until the `.bak` is copied back; the pi-model-shell guard is advisory — a model that unsets `PI_SESSION_ID`, an MCP or SDK shell that never sets it, and pi older than 0.82.0 all pass it, the same scope as the gate; and a relative `PI_CODING_AGENT_DIR` writes under the current folder exactly as a plain run reads it, with a missing agent dir refused and nothing created.
 
 #### Windows
 

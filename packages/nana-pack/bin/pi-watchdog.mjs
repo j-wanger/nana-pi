@@ -178,7 +178,14 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
 
   let spawnErr = null;
   onChild(child);
-  child.on('error', (e) => { spawnErr = e; }); // e.g. ENOENT if pi not on PATH — no uncaught throw
+  // `ended` is settled by the child's own 'exit' or 'error' event, registered before the poll
+  // loop starts — so a poll never misses it, unlike a 'close' listener added only after a wake
+  // (R-1393/R-1395: that listener could attach AFTER 'close' already fired for a signal-killed
+  // child, leaving the await unsettled forever — pi-review's exit 13).
+  let notifyEnded;
+  const ended = new Promise((resolve) => { notifyEnded = resolve; });
+  child.on('exit', () => notifyEnded());
+  child.on('error', (e) => { spawnErr = e; notifyEnded(); }); // e.g. ENOENT if pi not on PATH — no uncaught throw
 
   const cleanupCapture = () => {
     try { rmSync(dirname(tmp), { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
@@ -192,7 +199,14 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
   const maxFlat = Math.max(1, Math.ceil(stallSecs / pollSecs));
   while (true) {
     const remainingMs = maxSecs ? Math.max(0, maxSecs * 1000 - (Date.now() - startedAt)) : pollSecs * 1000;
-    await Promise.race([sleep(Math.min(pollSecs * 1000, remainingMs)), signalWait]);
+    // R-1390/R-1391/R-1392: `ended` races the poll timer so an attempt closes as soon as pi
+    // exits, not at the next tick; the timer is cleared either way — pi-review exits on its
+    // own, so an uncleared timer would keep the event loop (and pi-review) alive for the rest
+    // of the poll interval.
+    let timer;
+    const timerDone = new Promise((r) => { timer = setTimeout(r, Math.min(pollSecs * 1000, remainingMs)); });
+    await Promise.race([timerDone, signalWait, ended]);
+    clearTimeout(timer);
     if (spawnErr) {
       try { closeSync(fd); } catch { /* already closed */ }
       cleanupCapture();
@@ -221,8 +235,8 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
       return { ok: false, text: readOut() };
     }
   }
-  // Child exited on its own — wait for close, read output.
-  await new Promise((r) => (child.exitCode !== null ? r() : child.on('close', r)));
+  // Child exited on its own — `ended` is already settled (that's why the loop broke); read output.
+  await ended;
   const text = readOut();
   return { ok: child.exitCode === 0 && text.trim() !== '' && accept(text), text };
 }
