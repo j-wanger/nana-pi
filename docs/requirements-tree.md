@@ -80,12 +80,12 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-02 · Rows: 18 · IDs: R-588, R-975–R-979, R-981, R-1002–R-1007, R-1009, R-1011, R-1109, R-1355, R-1356
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
-  Parent: — · Rows: 141 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496
+  Parent: — · Rows: 143 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496, R-1800, R-1801
   - **FEAT-009 · Decide which project content is trusted**
     Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
     Status: active
     Also applies: R-069, R-190
-    Parent: CAP-03 · Rows: 31 · IDs: R-021–R-034, R-074–R-079, R-242, R-670–R-672, R-759–R-761, R-778, R-779, R-856, R-857
+    Parent: CAP-03 · Rows: 33 · IDs: R-021–R-034, R-074–R-079, R-242, R-670–R-672, R-759–R-761, R-778, R-779, R-856, R-857, R-1800, R-1801
   - **FEAT-010 · Guard risky commands and protected resources**
     Purpose: Inspect supported tool actions, preserve mandatory restrictions and provide actionable approval or refusal behavior.
     Status: active
