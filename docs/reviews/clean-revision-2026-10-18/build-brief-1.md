@@ -1,6 +1,6 @@
 # Lane clean-revision — build brief 1 (2026-10-19 · feat/clean-revision · tip after the seat merges feat/win-review-paths)
 
-**Builder: Claude Sonnet 5, a subagent in this worktree** (`/Users/jwang/nana-pi-wt/clean-revision`). A **gate lane**:
+**Builder: Claude Sonnet 5, a subagent in this worktree** (`<worktrees>/clean-revision`). A **gate lane**:
 it changes review-round's `workingState`, which pi-review and nana-land read. Follow
 `packages/nana-pack/prompts/builder-preamble.md` as your rules (WORKTREE = this worktree, BRANCH = `feat/clean-revision`).
 
