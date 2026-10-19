@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/mutation-runner.test.mjs
  * @purpose Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain,
  *  edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table
- *  identity and config-merge contracts (R-1230 to R-1244) against a disposable git fixture.
+ *  identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1777) against a disposable git fixture.
  * @inputs ../lib/mutation-runner.mjs, ../lib/mutation-runner-config.mjs, and a throwaway git repository this
  *  file builds under the OS temp directory for every run
  * @outputs PASS/FAIL lines for each marked check and a non-zero exit when any fails
@@ -292,6 +292,7 @@ function writeTable(fx, name, def) {
 
 const T1 = path.posix.join("pkg", "tests", "one.test.mjs");
 const T2 = path.posix.join("pkg", "tests", "probe.test.mjs");
+const CLEANUP_THREE_SHARDS = 3;
 
 /** Build a minimal table def; `self` is filled by writeTable. */
 function table(fx, pairs, extra = {}) {
@@ -395,58 +396,203 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	check("mutation runner: after a run at one shard and at three, and after one whose shard is killed outright, no running test file, scratch folder or git worktree entry is left, and with SEAT_MUTATE_KEEP=1 every scratch worktree is left and its path printed", reasons.length === 0, reasons.join("; "));
 }
 
-// ── R-1770 to R-1775: serialized worktree operations and refused-removal cleanup ───────────────
+// ── R-1770 to R-1777: serialized worktree operations and refused-removal cleanup ───────────────
 {
-	const td = tmpDir(path.join(os.tmpdir(), "mutrun-worktree-operation-lock-"));
+	const fx = newFixture("runner-operation-lock");
+	const scratchDir = path.join(fx.runTmp, "held-shard");
+	const operationLock = path.join(fx.td, "worktree-operation.lock");
+	const traceFile = outFile(fx, "git.trace");
+	const partFile = outFile(fx, "part.txt");
+	const tallyFile = outFile(fx, "tally.json");
+	const holder = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: "test-holder" });
+	fs.mkdirSync(scratchDir, { recursive: true });
+	fs.writeFileSync(operationLock, holder, { flag: "wx" });
+	const pairs = [{ n: "1", name: "pause before removal", edits: [...probeKeyEdit("real-lock"), probeModeEdit("rendezvous-lock")], tests: [T2], expectRed: [] }];
+	const selfUrl = writeTable(fx, "held-shard.mjs", table(fx, pairs));
+	const child = spawn(process.execPath, [fileURLToPath(selfUrl), "1"], {
+		stdio: ["ignore", "pipe", "pipe"],
+		env: {
+			...process.env,
+			NANA_TEST_MARKS: fx.marks,
+			NANA_TEST_WAIT_MS: "8000",
+			GIT_TRACE: traceFile,
+			TMPDIR: fx.runTmp, TEMP: fx.runTmp, TMP: fx.runTmp,
+			[CFG.ENV_NAMES.SHARD]: "1/1",
+			[CFG.ENV_NAMES.SHARDS]: "1",
+			[CFG.ENV_NAMES.SCRATCH]: scratchDir,
+			[CFG.ENV_NAMES.OUT]: partFile,
+			[CFG.ENV_NAMES.TALLY]: tallyFile,
+			[CFG.ENV_NAMES.TIP_COMMIT]: fx.tipSha,
+			[CFG.ENV_NAMES.WORKTREE_LOCK]: operationLock,
+		},
+	});
+	let childOutput = "";
+	child.stdout.on("data", (d) => { childOutput += d; });
+	child.stderr.on("data", (d) => { childOutput += d; });
+	const childRun = new Promise((resolve) => {
+		let settled = false;
+		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 20000);
+		const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal }); };
+		child.on("error", (err) => done(null, err.message));
+		child.on("close", done);
+	});
+	const trace = () => { try { return fs.readFileSync(traceFile, "utf8"); } catch { return ""; } };
+	const addStarted = (text) => text.split(/\r?\n/).some((line) => line.includes("trace: built-in: git worktree add"));
+	const removeStarted = (text) => text.split(/\r?\n/).some((line) => line.includes("trace: built-in: git worktree remove"));
+	const reachedAddLock = await waitUntil(() => fs.existsSync(path.join(scratchDir, "no-hooks")), 4000);
+	await sleep(CFG.WORKTREE_LOCK_WAIT_MS * 4);
+	const beforeAddRelease = trace();
+	if (fs.existsSync(operationLock) && fs.readFileSync(operationLock, "utf8") === holder) fs.rmSync(operationLock);
+	const pairHeld = await waitUntil(() => fs.existsSync(path.join(fx.marks, "lockheld-real-lock")), 8000);
+	const removalHolder = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: "test-removal-holder" });
+	if (pairHeld) fs.writeFileSync(operationLock, removalHolder, { flag: "wx" });
+	fs.writeFileSync(path.join(fx.marks, "release-real-lock"), "release");
+	const pairEnded = await waitUntil(() => !fs.existsSync(path.join(scratchDir, "running.pid")), 4000);
+	await sleep(CFG.WORKTREE_LOCK_WAIT_MS * 4);
+	const beforeRemoveRelease = trace();
+	if (fs.existsSync(operationLock) && fs.readFileSync(operationLock, "utf8") === removalHolder) fs.rmSync(operationLock);
+	const childResult = await childRun;
+	const finalTrace = trace();
+	const ok = reachedAddLock && pairHeld && pairEnded
+		&& !addStarted(beforeAddRelease) && !removeStarted(beforeRemoveRelease)
+		&& addStarted(finalTrace) && removeStarted(finalTrace)
+		&& childResult.code === 0 && worktreePaths(fx).length === 1 && !fs.existsSync(scratchDir);
+	// req: R-1775
+	check("mutation runner: a shard's real worktree add and removal each wait for the run's held operation lock before git starts", ok, JSON.stringify({ reachedAddLock, pairHeld, pairEnded, beforeAddRelease, beforeRemoveRelease, finalTrace, childResult, childOutput, paths: worktreePaths(fx), scratchLeft: fs.existsSync(scratchDir) }));
+}
+
+{
+	const td = tmpDir(path.join(os.tmpdir(), "mutrun-operation-contention-"));
 	const lockPath = path.join(td, "operation.lock");
-	const eventsPath = path.join(td, "events.txt");
-	const releasePath = path.join(td, "release");
-	const scriptPath = path.join(td, "operation.mjs");
-	fs.writeFileSync(scriptPath, [
+	const markerPath = path.join(td, "exclusive.marker");
+	const readyPath = path.join(td, "ready.txt");
+	const startPath = path.join(td, "start");
+	const overlapPath = path.join(td, "overlaps.txt");
+	const acquiredPath = path.join(td, "acquired.txt");
+	const badContentPath = path.join(td, "bad-content.txt");
+	const stopObserverPath = path.join(td, "stop-observer");
+	const workerPath = path.join(td, "worker.mjs");
+	const observerPath = path.join(td, "observer.mjs");
+	const ownershipPath = path.join(td, "ownership.mjs");
+	const ownershipEnteredPath = path.join(td, "ownership-entered");
+	const ownershipReleasePath = path.join(td, "ownership-release");
+	const malformedGate = "{";
+	const workers = 8;
+	const acquisitions = 300;
+	fs.writeFileSync(lockPath, malformedGate);
+	fs.writeFileSync(markerPath, "gate", { flag: "wx" });
+	fs.writeFileSync(workerPath, [
 		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
 		importLine("* as fs", "node:fs"),
-		"const [role, lockPath, eventsPath, releasePath] = process.argv.slice(2);",
-		"const sleepArray = new Int32Array(new SharedArrayBuffer(4));",
-		"withWorktreeOperationLock(lockPath, () => {",
-		'  fs.appendFileSync(eventsPath, `${role}-start\\n`);',
-		'  if (role === "remove") {',
-		"    const until = Date.now() + 4000;",
-		"    while (!fs.existsSync(releasePath) && Date.now() < until) Atomics.wait(sleepArray, 0, 0, 10);",
-		'    if (!fs.existsSync(releasePath)) throw new Error("release did not arrive");',
+		"const [id, lockPath, markerPath, readyPath, startPath, overlapPath, acquiredPath, countRaw] = process.argv.slice(2);",
+		"const sleeper = new Int32Array(new SharedArrayBuffer(4));",
+		'fs.appendFileSync(readyPath, `${id}\\n`);',
+		"const until = Date.now() + 10000;",
+		"while (!fs.existsSync(startPath) && Date.now() < until) Atomics.wait(sleeper, 0, 0, 2);",
+		'if (!fs.existsSync(startPath)) throw new Error("start did not arrive");',
+		"for (let i = 0; i < Number(countRaw); i++) withWorktreeOperationLock(lockPath, () => {",
+		"  let mine = false;",
+		'  try { fs.writeFileSync(markerPath, `${id}:${i}`, { flag: "wx" }); mine = true; } catch (err) {',
+		'    if (err.code !== "EEXIST") throw err;',
+		'    fs.appendFileSync(overlapPath, `${id}:${i}\\n`);',
 		"  }",
-		'  fs.appendFileSync(eventsPath, `${role}-end\\n`);',
+		'  fs.appendFileSync(acquiredPath, `${id}:${i}\\n`);',
+		"  Atomics.wait(sleeper, 0, 0, 1);",
+		"  if (mine) fs.rmSync(markerPath);",
 		"});",
 		"",
 	].join("\n"));
-	const start = (role) => {
-		const child = spawn(process.execPath, [scriptPath, role, lockPath, eventsPath, releasePath], { stdio: ["ignore", "pipe", "pipe"] });
-		return new Promise((resolve) => {
+	fs.writeFileSync(observerPath, [
+		importLine("* as fs", "node:fs"),
+		"const [lockPath, badPath, stopPath, ignored] = process.argv.slice(2);",
+		"while (!fs.existsSync(stopPath)) {",
+		"  try {",
+		'    const text = fs.readFileSync(lockPath, "utf8");',
+		"    if (text !== ignored) try { JSON.parse(text); } catch { fs.appendFileSync(badPath, `${JSON.stringify(text)}\\n`); }",
+		"  } catch (err) { if (err.code !== \"ENOENT\") throw err; }",
+		"  await new Promise((resolve) => setImmediate(resolve));",
+		"}",
+		"",
+	].join("\n"));
+	fs.writeFileSync(ownershipPath, [
+		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
+		importLine("* as fs", "node:fs"),
+		"const [lockPath, enteredPath, releasePath] = process.argv.slice(2);",
+		"const sleeper = new Int32Array(new SharedArrayBuffer(4));",
+		"withWorktreeOperationLock(lockPath, () => {",
+		'  fs.writeFileSync(enteredPath, "entered");',
+		"  const until = Date.now() + 5000;",
+		"  while (!fs.existsSync(releasePath) && Date.now() < until) Atomics.wait(sleeper, 0, 0, 2);",
+		'  if (!fs.existsSync(releasePath)) throw new Error("release did not arrive");',
+		"});",
+		"",
+	].join("\n"));
+	const starts = [];
+	const childRuns = [];
+	const startChild = (args) => {
+		const proc = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+		starts.push(proc);
+		childRuns.push(new Promise((resolve) => {
 			let output = "";
 			let settled = false;
-			child.stdout.on("data", (d) => { output += d; });
-			child.stderr.on("data", (d) => { output += d; });
-			const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 5000);
+			proc.stdout.on("data", (d) => { output += d; });
+			proc.stderr.on("data", (d) => { output += d; });
+			const timer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch { /* already gone */ } }, 30000);
 			const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
-			child.on("error", (err) => done(null, err.message));
-			child.on("close", done);
-		});
+			proc.on("error", (err) => done(null, err.message));
+			proc.on("close", done);
+		}));
 	};
-	const removeRun = start("remove");
-	const removeStarted = await waitUntil(() => fs.existsSync(eventsPath) && fs.readFileSync(eventsPath, "utf8").includes("remove-start"), 4000);
-	const addRun = start("add");
-	await sleep(150);
-	const whileHeld = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8") : "";
-	fs.writeFileSync(releasePath, "release");
-	const [removeResult, addResult] = await Promise.all([removeRun, addRun]);
-	const events = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8").trim().split(/\r?\n/) : [];
-	const ok = removeStarted && !whileHeld.includes("add-start") && events.join(",") === "remove-start,remove-end,add-start,add-end" && removeResult.code === 0 && addResult.code === 0 && !fs.existsSync(lockPath) && CFG.WORKTREE_LOCK_WAIT_MS === 25;
+
+	fs.rmSync(lockPath);
+	startChild([ownershipPath, lockPath, ownershipEnteredPath, ownershipReleasePath]);
+	const ownershipEntered = await waitUntil(() => fs.existsSync(ownershipEnteredPath), 5000);
+	const replacementOwner = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: "replacement-owner" });
+	if (ownershipEntered) {
+		fs.rmSync(lockPath);
+		fs.writeFileSync(lockPath, replacementOwner, { flag: "wx" });
+		fs.writeFileSync(ownershipReleasePath, "release");
+	}
+	const ownershipResult = await childRuns[0];
+	const keptReplacementOwner = fs.existsSync(lockPath) && fs.readFileSync(lockPath, "utf8") === replacementOwner;
+	fs.rmSync(lockPath, { force: true });
+	starts.length = 0;
+	childRuns.length = 0;
+
+	fs.writeFileSync(lockPath, malformedGate);
+	startChild([observerPath, lockPath, badContentPath, stopObserverPath, malformedGate]);
+	for (let i = 0; i < workers; i++) startChild([workerPath, String(i), lockPath, markerPath, readyPath, startPath, overlapPath, acquiredPath, String(acquisitions)]);
+	const allReady = await waitUntil(() => { try { return fs.readFileSync(readyPath, "utf8").trim().split(/\r?\n/).length === workers; } catch { return false; } }, 5000);
+	fs.writeFileSync(startPath, "start");
+	await sleep(CFG.WORKTREE_LOCK_WAIT_MS * 4);
+	const enteredFreshUnreadable = fs.existsSync(acquiredPath);
+	if (fs.existsSync(lockPath) && fs.readFileSync(lockPath, "utf8") === malformedGate) fs.rmSync(lockPath);
+	fs.rmSync(markerPath, { force: true });
+	const workerResults = await Promise.all(childRuns.slice(1));
+	fs.writeFileSync(stopObserverPath, "stop");
+	const observerResult = await childRuns[0];
+	const overlapText = fs.existsSync(overlapPath) ? fs.readFileSync(overlapPath, "utf8") : "";
+	const badContent = fs.existsSync(badContentPath) ? fs.readFileSync(badContentPath, "utf8") : "";
+	const acquired = fs.existsSync(acquiredPath) ? fs.readFileSync(acquiredPath, "utf8").trim().split(/\r?\n/).filter(Boolean).length : 0;
+	const ok = ownershipEntered && ownershipResult.code === 0 && keptReplacementOwner
+		&& allReady && !enteredFreshUnreadable && overlapText === "" && badContent === ""
+		&& acquired === workers * acquisitions && workerResults.every((r) => r.code === 0)
+		&& observerResult.code === 0 && !fs.existsSync(lockPath) && !fs.existsSync(markerPath);
+	// req: R-1776
+	// req: R-1777
+	check("mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections", ok, JSON.stringify({ ownershipEntered, ownershipResult, keptReplacementOwner, allReady, enteredFreshUnreadable, overlapText, badContent, acquired, workerResults, observerResult, lockLeft: fs.existsSync(lockPath), markerLeft: fs.existsSync(markerPath) }));
+}
+
+{
+	const ok = CFG.WORKTREE_LOCK_WAIT_MS === 25 && CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS === 30000;
 	// req: R-1775
-	check("mutation runner: a scratch worktree add waits for another shard's removal and all its retries to finish, so the git operations never overlap, with the sealed operation-lock wait", ok, JSON.stringify({ removeStarted, whileHeld, events, removeResult, addResult, lockLeft: fs.existsSync(lockPath), waitMs: CFG.WORKTREE_LOCK_WAIT_MS }));
+	// req: R-1777
+	check("mutation runner: sealed worktree-operation lock values", ok, JSON.stringify({ waitMs: CFG.WORKTREE_LOCK_WAIT_MS, unreadableStaleMs: CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS }));
 }
 
 {
 	const reasons = [];
-	for (const shards of [1, CFG.WORKTREE_REMOVE_RETRIES]) {
+	for (const shards of [1, CLEANUP_THREE_SHARDS]) {
 		const fx = newFixture(`cleanup-retry-${shards}`);
 		const pairs = Array.from({ length: shards }, (_, i) => cleanupFaultPair(i + 1, `drop-${i}`, "drop-dotgit"));
 		const r = await run(fx, "t.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: String(shards), [CFG.ENV_NAMES.STAGGER_SECS]: "0" });

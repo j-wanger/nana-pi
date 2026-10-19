@@ -13,7 +13,7 @@
 // a pair itself, one shard included). With SEAT_MUTATE_SHARD set, this call IS a shard: it owns one scratch
 // worktree, runs its baseline and pairs, and writes its part file.
 import { spawn, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -41,6 +41,7 @@ import {
 	WORKTREE_REMOVE_RETRIES,
 	WORKTREE_REMOVE_RETRY_MS,
 	WORKTREE_LOCK_WAIT_MS,
+	WORKTREE_LOCK_UNREADABLE_STALE_MS,
 	CHILD_NODE_ARGS,
 	TS_CHECK_ARGS,
 	logName,
@@ -219,25 +220,62 @@ function pidIsAlive(pid) {
 	try { process.kill(pid, 0); return true; } catch (err) { return err.code === "EPERM"; }
 }
 
+function publishWorktreeLock(lockPath, ownerText) {
+	const tempPath = path.join(path.dirname(lockPath), `.${path.basename(lockPath)}.${process.pid}.${randomUUID()}.tmp`);
+	try {
+		fs.writeFileSync(tempPath, ownerText, { flag: "wx" });
+		try {
+			fs.linkSync(tempPath, lockPath);
+			return true;
+		} catch (err) {
+			if (err.code === "EEXIST") return false;
+			throw err;
+		}
+	} finally {
+		try { fs.rmSync(tempPath, { force: true }); } catch { /* the lock directory's owner may be cleaning it */ }
+	}
+}
+
+function removeWorktreeLockIfOwned(lockPath, ownerText) {
+	try {
+		if (fs.readFileSync(lockPath, "utf8") !== ownerText) return false;
+		fs.unlinkSync(lockPath);
+		return true;
+	} catch (err) {
+		if (err.code === "ENOENT") return false;
+		throw err;
+	}
+}
+
 /** Run one scratch-worktree add or complete removal while no other shard can run either operation. */
 export function withWorktreeOperationLock(lockPath, operation) {
 	const sleeper = new Int32Array(new SharedArrayBuffer(4));
+	const ownerText = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: randomUUID() });
 	for (;;) {
-		try {
-			fs.writeFileSync(lockPath, JSON.stringify({ pid: process.pid, started: new Date().toISOString() }), { flag: "wx" });
-			break;
-		} catch (err) {
-			if (err.code !== "EEXIST") throw err;
-			let holder = null;
-			try { holder = JSON.parse(fs.readFileSync(lockPath, "utf8")); } catch { /* incomplete or stale */ }
-			if (!pidIsAlive(Number(holder?.pid))) {
-				try { fs.rmSync(lockPath, { force: true }); } catch { /* another waiter may replace it */ }
-				continue;
-			}
-			Atomics.wait(sleeper, 0, 0, WORKTREE_LOCK_WAIT_MS);
+		if (publishWorktreeLock(lockPath, ownerText)) break;
+
+		let observed;
+		try { observed = fs.readFileSync(lockPath, "utf8"); } catch (err) {
+			if (err.code === "ENOENT") continue;
+			throw err;
 		}
+		let holder = null;
+		try { holder = JSON.parse(observed); } catch { /* age decides whether unreadable content is stale */ }
+		let held = pidIsAlive(Number(holder?.pid));
+		if (!holder) {
+			try { held = Date.now() - fs.statSync(lockPath).mtimeMs <= WORKTREE_LOCK_UNREADABLE_STALE_MS; } catch (err) {
+				if (err.code === "ENOENT") continue;
+				throw err;
+			}
+		}
+		if (!held && removeWorktreeLockIfOwned(lockPath, observed)) continue;
+		Atomics.wait(sleeper, 0, 0, WORKTREE_LOCK_WAIT_MS);
 	}
-	try { return operation(); } finally { try { fs.rmSync(lockPath, { force: true }); } catch { /* parent cleanup owns the folder */ } }
+	try {
+		return operation();
+	} finally {
+		removeWorktreeLockIfOwned(lockPath, ownerText);
+	}
 }
 
 /** Remove this runner's scratch worktree entry, retrying a refused removal by its unique suffix. */
@@ -407,7 +445,10 @@ async function runOneShard(pairs, ctx) {
 			try {
 				const cleanupLine = removeScratchWorktree(repoRoot, scratchDir, operationLockPath);
 				if (cleanupLine) { log(cleanupLine); writePart(); }
-			} catch { /* ignore */ }
+			} catch (err) {
+				log(`seat-mutate: scratch worktree cleanup failed for ${scratchDir}: ${err?.message ?? err}`);
+				writePart();
+			}
 			try { fs.rmSync(scratchDir, { recursive: true, force: true }); } catch { /* ignore */ }
 		}
 		return code;

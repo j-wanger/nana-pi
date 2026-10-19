@@ -3,7 +3,7 @@
  * @purpose Hold the mutation runner's tunables and contract values, each with its provenance.
  * @inputs none
  * @outputs SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, WORKTREE_REMOVE_RETRIES,
- *  WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO,
+ *  WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, WORKTREE_LOCK_UNREADABLE_STALE_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO,
  *  OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT,
  *  SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
  * @effects none
@@ -41,6 +41,10 @@ export const WORKTREE_REMOVE_RETRY_MS = 250;
 // chosen: 25 milliseconds keeps a held cross-shard worktree-operation lock responsive without hot polling;
 // not measured (R-1775).
 export const WORKTREE_LOCK_WAIT_MS = 25;
+
+// chosen: 30 seconds is longer than this runner's normal add and bounded removal operation, while allowing
+// recovery from an old lock whose owner record was damaged before this atomic protocol (R-1777).
+export const WORKTREE_LOCK_UNREADABLE_STALE_MS = 30_000;
 
 // contract R-1234: the suite runner's drain (scripts/test.mjs :58), so a file ends as under `npm test`.
 // Defined twice until the parallel suite lane (CHANGE.md §3.5, residual 1): a declared violation.
