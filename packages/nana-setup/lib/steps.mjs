@@ -771,7 +771,10 @@ export function stepPath(layout, o) {
 			const status = writes.every((result) => result.status === UNCHANGED)
 				? UNCHANGED
 				: writes.every((result) => result.status === CREATED) ? CREATED : UPDATED;
-			return { label: `PATH ${name}`, status, detail: writes.map((result, index) => `${index ? ".cmd" : "sh"}: ${result.detail ?? result.status}`).join("; ") };
+			const detail = status === UNCHANGED
+				? "sh: no write; .cmd: no write"
+				: writes.map((result, index) => `${index ? ".cmd" : "sh"}: ${result.status === UNCHANGED ? "no write" : result.detail ?? result.status}`).join("; ");
+			return { label: `PATH ${name}`, status, detail };
 		});
 	} else {
 		out = commands.map(([name, source]) => ({ label: `PATH ${name}`, ...linkFile(path.join(layout.binDir, name), source, o) }));

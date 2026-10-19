@@ -7,7 +7,8 @@ project scaffolding, and dev-workflow skills.
 is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
 something they install), and `package.json` declares no `dependencies` or
 `devDependencies`. Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
-FAIL naming the locations tried when pi is absent. `DESK_PI_ROOT` points the suite at another install.
+FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
+and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
 
 Residual: the update-path legs in `tests/templates-update.test.mjs` do not assert three brief-named outcomes directly (no drift line on a fresh render; a Part G status survives an update; deleting a project's REQUIREMENTS-general.md restores exactly the nine legacy problems); focused fixtures in the same file pin the behaviour.
 
@@ -749,8 +750,13 @@ is user-scope only** — project config never contributes to it, trusted or not.
   successes stay out of its context and are reported by the status chip instead. Each failure
   is ONE line (`- check <command> exited N: <output>`, output line breaks shown as ` ⏎ `, the
   last 2000 chars kept and a truncation stated); the edited path is `promptPath`-rendered. `{file}` is
-  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort. On Windows, a
-  failed check is reclassified as `error` only when it exits 1 and begins with a simple literal
+  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort. Every check gets
+  `PYTHONUTF8=1` when pi's `PYTHONUTF8` is unset or empty; non-empty `PYTHONUTF8` and every
+  `PYTHONIOENCODING` from the owner pass through, with Python giving its non-empty I/O value precedence.
+  `LANG` and every `LC_*` value pass through
+  unchanged, set or unset. On Windows, Python before 3.15 therefore opens encoding-unspecified files
+  as UTF-8 under post-edit even when the owner's terminal uses an ANSI code page, so a check can differ.
+  On Windows, a failed check is reclassified as `error` only when it exits 1 and begins with a simple literal
   command name absent from the working folder, PATH and the sealed cmd.exe internal-command list.
   This check is conservative: commands later in a compound expression and names outside its internal
   vocabulary may remain ordinary `checks_failed` or be reported as `error`; neither result passes.

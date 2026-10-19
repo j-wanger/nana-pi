@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/win-shims.test.mjs
  * @purpose Prove the Windows PATH shim renderings preserve supported arguments, exit status, runtime lookup and self-rewrite safety.
  * @inputs lib/win-shims.mjs, the host POSIX shell or Windows Git Bash, cmd.exe and Windows PowerShell, and temporary hostile-path fixtures.
- * @outputs PASS, FAIL or named SKIP lines for the six shim and PATH-resolution requirements.
+ * @outputs PASS, FAIL or named SKIP lines for the seven shim and PATH-resolution requirements.
  * @effects disk (temporary callers, briefs, bins and shims), process (spawns shells and node through rendered shims).
  * @errors each case is awaited under a timeout; a failed assertion prints FAIL and makes the process exit nonzero.
  */
@@ -22,7 +22,7 @@ const cases = [];
 const test = (title, row, platforms, fn) => cases.push({ title, row, platforms, fn });
 const shq = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 const psq = (value) => `'${String(value).replaceAll("'", "''")}'`;
-const cmdq = (value) => `"${String(value).replaceAll("%", "%%")}"`;
+const cmdq = (value) => `"${String(value)}"`;
 const real = (value) => fs.realpathSync.native(value);
 
 const root = tmpDir(path.join(os.tmpdir(), "nana shim space & % ( ) ' $a é-"));
@@ -62,10 +62,10 @@ const runShCaller = (args, rewrite = false) => {
 	if (!runner) return null;
 	return spawnSync(runner, [], { cwd: callerDir, input: fs.readFileSync(caller), encoding: "utf8", env: shellEnv(path.join(shims, "pi-review")), timeout: CASE_TIMEOUT_MS });
 };
-const runCmdCaller = (args) => {
-	const caller = path.join(callerDir, "argument caller.cmd");
-	fs.writeFileSync(caller, `@echo off\r\npi-review ${args.map(cmdq).join(" ")}\r\nexit /b %ERRORLEVEL%\r\n`);
-	return spawnSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/v:off", "/s", "/c", `""${caller}""`], { cwd: callerDir, encoding: "utf8", env: shellEnv(path.join(shims, "pi-review.cmd")), windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS });
+const cmdExe = process.env.ComSpec ?? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "cmd.exe");
+const runCmdCaller = (args, env = shellEnv(path.join(shims, "pi-review.cmd"))) => {
+	const command = `pi-review ${args.map(cmdq).join(" ")}`.trimEnd();
+	return spawnSync(cmdExe, ["/d", "/v:off", "/s", "/c", `"${command}"`], { cwd: callerDir, encoding: "utf8", env, windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS });
 };
 const runPowerShellCaller = (args) => {
 	const caller = path.join(callerDir, "argument caller.ps1");
@@ -124,6 +124,15 @@ test("Windows: a .cmd shim rewritten by its own bin runs none of the new text", 
 	const run = runCmdCaller(["--rewrite"]);
 	assert.equal(run.status, 7, run.stderr);
 	assert.doesNotMatch(run.stdout, /NANA_REWRITE_MARKER/);
+});
+
+// req: R-1618
+test("Windows: a .cmd shim without node.exe on PATH exits 1 and writes its not-found message only to stderr", "R-1618", "win32", () => {
+	const noNodeEnv = { ...shellEnv(path.join(shims, "pi-review.cmd")), Path: shims, PATH: shims };
+	const run = runCmdCaller([], noNodeEnv);
+	assert.equal(run.status, 1, run.error?.message ?? run.stderr);
+	assert.equal(run.stdout, "");
+	assert.equal(run.stderr.trim(), "nana PATH shim: node.exe was not found on PATH");
 });
 
 // req: R-1616

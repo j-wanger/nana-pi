@@ -161,13 +161,15 @@ for (const label of HOOKS.map((h) => `hook ${h}`)) {
 // req: R-937
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
 const healthyPathRows = [...pathBins.keys()].every((name) => new RegExp(`✓ PATH ${name}\\b`).test(doc.stdout));
-fs.unlinkSync(path.join(binDir, "nana-land.cmd"));
+const nanaLandCmd = path.join(binDir, "nana-land.cmd");
+const nanaLandCmdPresent = fs.existsSync(nanaLandCmd);
+if (nanaLandCmdPresent) fs.unlinkSync(nanaLandCmd);
 const missingLand = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
 run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 fs.writeFileSync(path.join(binDir, "pi-worker"), renderWinShims(PI_REVIEW_BIN, binDir).sh);
 const wrongWorker = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
 // req: R-1615
-check("win32 doctor reads each PATH command ✓ only when both its shims are this checkout's", healthyPathRows && missingLand.status === 1 && /✗ PATH nana-land/.test(missingLand.stdout) && wrongWorker.status === 1 && /✗ PATH pi-worker/.test(wrongWorker.stdout), `${doc.stdout}\n${missingLand.stdout}\n${wrongWorker.stdout}`);
+check("win32 doctor reads each PATH command ✓ only when both its shims are this checkout's", nanaLandCmdPresent && healthyPathRows && missingLand.status === 1 && /✗ PATH nana-land/.test(missingLand.stdout) && wrongWorker.status === 1 && /✗ PATH pi-worker/.test(wrongWorker.stdout), `${doc.stdout}\n${missingLand.stdout}\n${wrongWorker.stdout}`);
 run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 for (const w of win32Wanted) {
 	// req: R-1055

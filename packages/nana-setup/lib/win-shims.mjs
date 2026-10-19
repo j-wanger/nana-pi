@@ -47,7 +47,7 @@ export function renderWinShims(binFile, shimDir) {
 		'SET "_prog="',
 		'FOR %%I IN (node.exe) DO SET "_prog=%%~$PATH:I"',
 		"IF NOT DEFINED _prog (",
-		"  ECHO nana PATH shim: node.exe was not found on PATH 1^>^&2",
+		"  1>&2 ECHO nana PATH shim: node.exe was not found on PATH",
 		"  EXIT /b 1",
 		")",
 		"",
