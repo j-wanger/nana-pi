@@ -548,7 +548,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
 - Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
 - Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
-- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, and reaches builders and reviewers.
+- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, reaches builders and reviewers, and adds a separate stale-install section when the injected rulings text is not this checkout's current file.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into
