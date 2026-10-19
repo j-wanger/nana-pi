@@ -43,4 +43,4 @@ const PAIRS = [
 	], tests: [LG], expectRed: [DANGLING, LOOP] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-gate-tmp", self: import.meta.url, tip: "e1e97f6", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-gate-tmp", self: import.meta.url, tip: "8a84679", declared: DECLARED, pairs: PAIRS });
