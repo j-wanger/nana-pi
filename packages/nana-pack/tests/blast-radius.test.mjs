@@ -7,7 +7,7 @@
  * @errors A failed check prints its reason and exits non-zero.
  */
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -301,8 +301,8 @@ check("R-1555: exactly the changed modules outside the test roots that no test i
 function pathSpellings(p) {
 	return [p, p.split(sep).join("/"), p.split("/").join("\\")];
 }
-const shortRoot = mkdtempSync(join(tmpdir(), "br-s-"));
-const longRoot = mkdtempSync(join(tmpdir(), "blast-radius-long-path-fixture-copy-"));
+const shortRoot = tmpDir(join(tmpdir(), "br-s-"));
+const longRoot = tmpDir(join(tmpdir(), "blast-radius-long-path-fixture-copy-"));
 const deepLongRoot = join(longRoot, "deeper", "still", "more");
 mkdirSync(deepLongRoot, { recursive: true });
 cpSync(fixtureRoot, shortRoot, { recursive: true });
@@ -322,9 +322,6 @@ check("R-1556: two copies of one checkout in different folders give byte-identic
 	runA.status === 0 && runB.status === 0 && bytesA.length > 0 && bytesA.equals(bytesB) && noRootLeak && noDateOrTime,
 	`statusA ${runA.status} statusB ${runB.status}; equal ${bytesA.equals(bytesB)}; noRootLeak ${noRootLeak}; noDateOrTime ${noDateOrTime}`,
 );
-try { rmSync(shortRoot, { recursive: true, force: true }); } catch {}
-try { rmSync(longRoot, { recursive: true, force: true }); } catch {}
-
 const noScript = !/<script/i.test(page);
 const noExternal = !/<link\b/i.test(page) && !/\bsrc="https?:/i.test(page) && !/\bhref="https?:/i.test(page) && !/<img\b/i.test(page);
 // req: R-1557
