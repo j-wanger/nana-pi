@@ -102,6 +102,43 @@ function cardFor(view, rowId) {
 function testItemsOf(card) {
   return card?.children.find((child) => child.tag === "ol" && child.attrs?.class === "row-tests")?.children.filter((child) => child.tag === "li") ?? [];
 }
+// Rewrites one heading's section of a fixture's REQUIREMENTS.md in place: everything from right
+// after `heading`'s own line up to (not including) the next line starting with "#", replaced
+// with `bodyLines`. `keepHeading: false` drops the heading line too. Used only by R-1570 and
+// R-1571, so those two checks can hand the written page a deterministic open-questions section
+// without disturbing the rest of the real ledger.
+function setLedgerSection(root, heading, bodyLines, { keepHeading = true, eol = "\n" } = {}) {
+  const ledgerPath = path.join(root, "REQUIREMENTS.md");
+  const lines = fs.readFileSync(ledgerPath, "utf8").replace(/\r\n?/g, "\n").split("\n");
+  const at = lines.indexOf(heading);
+  if (at === -1) throw new Error(`fixture ledger has no "${heading}" heading`);
+  let end = lines.length;
+  for (let i = at + 1; i < lines.length; i++) if (lines[i].startsWith("#")) { end = i; break; }
+  const kept = keepHeading ? [lines[at], ...bodyLines] : [...bodyLines];
+  lines.splice(at, end - at, ...kept);
+  fs.writeFileSync(ledgerPath, lines.join(eol));
+}
+// The helper R-1570 and R-1571 render through (must-meet.md, audit-open-questions-2026-10-19):
+// run the written page's own inline bootstrap script -- the <script> with no id -- in node:vm
+// against a minimal stub document (a "report" root, a "report-data" node holding the raw model
+// JSON), location.hash, a no-op addEventListener and window.scrollTo, so a reference the reader's
+// browser could not resolve throws here exactly as it would in the page. A throw counts as a
+// failed check.
+function renderPageAt(html, hash = "") {
+  const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
+  const bootstrap = scripts.find(([, attrs]) => !attrs.includes("id="));
+  if (!bootstrap) throw new Error("bootstrap script not found in generated page");
+  const dataMatch = html.match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!dataMatch) throw new Error("report-data script not found in generated page");
+  const rootNode = { tag: "main", children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...children) { this.children = children; } };
+  const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener() {} }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); return node; };
+  const reportDataNode = { textContent: dataMatch[1] };
+  const document = { getElementById: (id) => (id === "report" ? rootNode : id === "report-data" ? reportDataNode : null), createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
+  const context = { document, location: { hash }, addEventListener() {}, window: { scrollTo() {} } };
+  vm.runInNewContext(bootstrap[2], context);
+  const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
+  return flatten(rootNode);
+}
 try {
   {
     const { root, git } = fixture("deterministic");
@@ -865,6 +902,67 @@ try {
       utf16Run.status === 1 && /NUL/.test(utf16Err) && /UTF-16/.test(utf16Err) && !fs.existsSync(utf16Out) &&
       norowsRun.status === 1 && /no requirement rows/.test(norowsErr) && !fs.existsSync(norowsOut),
       `${utf16Err} / ${norowsErr}`);
+  }
+  {
+    const { root } = fixture("open-questions-numbers");
+    // A deterministic Deliberate omissions bullet, so a parser that reads past the heading
+    // boundary (W5) picks up a fixed, recognizable line rather than whatever the real section
+    // says today.
+    setLedgerSection(root, "## Deliberate omissions", ["- An omission."]);
+    setLedgerSection(root, "## Open questions", [
+      "Unruled decisions, numbered.",
+      "",
+      "- (lane, 2026-10-01) A bullet question.",
+      "1. First **bold** question.",
+      "6b. Lettered `code` question.",
+      "6. Six after six-b.",
+      "12. (origin) Long question",
+      "    continued one",
+      "    continued two.",
+      "",
+    ], { eol: "\r\n" });
+    const out = path.join(temp, "open-questions-numbers.html");
+    await generateReport({ root, out });
+    const nodes = renderPageAt(fs.readFileSync(out, "utf8"));
+    const list = nodes.find((node) => node.tag === "ul" && node.attrs?.class === "open-questions");
+    const items = (list?.children ?? []).filter((node) => node.tag === "li").map((node) => node.textContent);
+    const expected = [
+      "(lane, 2026-10-01) A bullet question.",
+      "1. First bold question.",
+      "6b. Lettered code question.",
+      "6. Six after six-b.",
+      "12. (origin) Long question continued one continued two.",
+    ];
+    // req: R-1570
+    check("R-1570: the Decisions view lists every open question with its number and full text in file order",
+      JSON.stringify(items) === JSON.stringify(expected), JSON.stringify(items));
+  }
+  {
+    const NO_OPEN_QUESTIONS = "Open questions: none recorded in REQUIREMENTS.md";
+    const saysNone = (nodes) => nodes.filter((node) => node.tag === "p" && node.textContent === NO_OPEN_QUESTIONS).length === 1
+      && nodes.filter((node) => node.tag === "ul" && node.attrs?.class === "open-questions").length === 0;
+
+    const noHeading = fixture("open-questions-no-heading");
+    setLedgerSection(noHeading.root, "## Open questions", [], { keepHeading: false });
+    const noHeadingOut = path.join(temp, "open-questions-no-heading.html");
+    await generateReport({ root: noHeading.root, out: noHeadingOut });
+    const noHeadingWritten = fs.existsSync(noHeadingOut);
+    const noHeadingNodes = noHeadingWritten ? renderPageAt(fs.readFileSync(noHeadingOut, "utf8")) : [];
+
+    const preamble = fixture("open-questions-preamble");
+    setLedgerSection(preamble.root, "## Open questions", ["Unruled decisions, numbered."]);
+    const preambleOut = path.join(temp, "open-questions-preamble.html");
+    await generateReport({ root: preamble.root, out: preambleOut });
+    const preambleWritten = fs.existsSync(preambleOut);
+    const preambleNodes = preambleWritten ? renderPageAt(fs.readFileSync(preambleOut, "utf8")) : [];
+
+    // req: R-1571
+    check("R-1571: a ledger with no open questions heading, or none under it, still writes the page and says none are recorded",
+      noHeadingWritten && preambleWritten && saysNone(noHeadingNodes) && saysNone(preambleNodes),
+      JSON.stringify({
+        noHeading: noHeadingNodes.filter((n) => n.tag === "p" || n.tag === "ul").map((n) => [n.tag, n.textContent]),
+        preamble: preambleNodes.filter((n) => n.tag === "p" || n.tag === "ul").map((n) => [n.tag, n.textContent]),
+      }));
   }
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;

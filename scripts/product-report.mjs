@@ -9,7 +9,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -77,6 +77,39 @@ function citedTestsOf(evidence) {
     tests.push({ title, file });
   }
   return tests;
+}
+
+// contract (R-1570): the exact line REQUIREMENTS.md's open-questions section starts at; read by
+// buildReport's own parse only -- renderInto ships to the page as String(renderInto), so it must
+// never read an identifier declared at module scope.
+const OPEN_QUESTIONS_HEADING = "## Open questions";
+const OPEN_QUESTIONS_ENTRY = /^(?:([0-9]+[a-z]?)\. |- )/;
+
+// Splits the open-questions section of the already-normalised ledgerText into its entries: a
+// column-zero "<digits><letter?>. " or "- " line opens an entry; every later non-blank line, up
+// to the next entry start or the next line starting with "#", continues it (trimmed and joined
+// with one space). Lines before the first entry are a preamble and are not returned. Returns []
+// when the heading, or every entry under it, is absent.
+function parseOpenQuestions(ledgerText) {
+  const lines = ledgerText.split("\n");
+  const start = lines.indexOf(OPEN_QUESTIONS_HEADING);
+  if (start === -1) return [];
+  const questions = [];
+  let current = null;
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith("#")) break;
+    const match = OPEN_QUESTIONS_ENTRY.exec(line);
+    if (match) {
+      if (current) questions.push(current);
+      const text = line.slice(match[0].length).trim();
+      current = { number: match[1] ?? null, parts: text ? [text] : [] };
+    } else if (current && line.trim()) {
+      current.parts.push(line.trim());
+    }
+  }
+  if (current) questions.push(current);
+  return questions.map(({ number, parts }) => ({ number, text: parts.join(" ") }));
 }
 
 // href = GITHUB_BLOB_PREFIX + "o/r/blob/<commit>/" + URI-encoded segments (R-1511). No link for
@@ -157,7 +190,15 @@ export function renderInto(document, model, { hash = "" } = {}) {
   const nav = el("nav", undefined, root); cls(nav, "tabs");
   for (const [label, target, key] of [["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Features", "#features", "features"], ["Shared", "#shared", "shared"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
   const viewHeading = el("h2", title, root);
-  if (view === "decisions") for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
+  if (view === "decisions") {
+    for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
+    // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
+    const NO_OPEN_QUESTIONS = "Open questions: none recorded in REQUIREMENTS.md";
+    const questions = model.questions ?? [];
+    el("h3", "Open questions in REQUIREMENTS.md", root);
+    if (questions.length) { const list = el("ul", undefined, root); cls(list, "open-questions"); for (const q of questions) { const li = el("li", undefined, list); text(li, q.number ? `${q.number}. ${q.text}` : q.text); } }
+    else paragraph(root, "", NO_OPEN_QUESTIONS);
+  }
   if (view === "product") for (const cap of model.capabilities) { const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome); for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } } }
   if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
@@ -395,7 +436,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
   // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
   const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
-  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
@@ -458,4 +499,4 @@ export function main(argv = process.argv.slice(2)) {
   if (packets) return generatePackets({ root, dir: packets }).then((files) => { console.log(`Wrote ${files.length} packet(s)`); return 0; }).catch((error) => { console.error(error.message); return 1; });
   return generateReport({ root, out }).then((file) => { console.log(`Wrote ${file}`); return 0; }).catch((error) => { console.error(error.message); return 1; });
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = await main();
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exitCode = await main();
