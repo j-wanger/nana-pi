@@ -16,7 +16,7 @@ const DECLARED = [
 	"(a) Windows leg only: R-1722 and R-1723 skip off Windows, and a by-name spawn of pi works on macOS and Linux",
 ];
 
-const PAIRS = [
+export const PAIRS = [
 	{ n: "X1", name: "pi is spawned by name, as before the lane", edits: [
 		one(RL, "const launch = child[0] === PI_BIN_NAME", "const launch = false"),
 	], tests: [LT, WL], expectRed: [R1721, R1722] },
@@ -29,4 +29,4 @@ const PAIRS = [
 	], tests: [WL], expectRed: [R1723] },
 ];
 
-process.exitCode = await runMutations({ lane: "review-ledger-run-reviewer", self: import.meta.url, tip: "ac1fbdac", declared: DECLARED, pairs: PAIRS });
+if (!process.env.SEAT_PAIRS_IMPORT) process.exitCode = await runMutations({ lane: "review-ledger-run-reviewer", self: import.meta.url, tip: "ac1fbdac", declared: DECLARED, pairs: PAIRS });

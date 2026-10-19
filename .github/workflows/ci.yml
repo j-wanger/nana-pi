@@ -75,8 +75,7 @@ jobs:
         run: |
           git config --global user.email "seat@example.invalid"; git config --global user.name "seat"
           git branch -f main origin/main  # the runner reads the tip's merge base with main
-          SEAT_MUTATE_SHARDS=1 SEAT_MUTATE_OUT="$RUNNER_TEMP/rlrr-win-mut.txt" node docs/reviews/review-ledger-run-reviewer-2026-10-19/seat-mutate-win.mjs; rc=$?
-          echo "===== RECORD ====="; cat "$RUNNER_TEMP/rlrr-win-mut.txt" || true; exit $rc
+          node docs/reviews/review-ledger-run-reviewer-2026-10-19/win-pairs.mjs docs/reviews/review-ledger-run-reviewer-2026-10-19/seat-mutate-win.mjs
 
   release:
     needs: [suite, install-check]
