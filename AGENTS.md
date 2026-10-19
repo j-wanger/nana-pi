@@ -147,6 +147,10 @@ Run the full suite with `npm run test:locked` when worktrees share a machine. Th
 
 Land checklist, nana-pi only (Jake, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result.
 
+### The tree in briefs, reviews and lands
+
+A lane brief names its feature as `Feature: FEAT-nnn · <label>`. Before the final review and the land, run `node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root . --base main` and carry its output in both.
+
 ### The desk
 
 Sessions here are visible and driveable on nana code (the desk, started separately) — a local browser

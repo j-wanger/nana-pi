@@ -167,7 +167,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("tally holds exactly 3 rounds, audit exactly 3 verdicts", roundsOf("four").length === 3 && verdictsOf("four").length === 3);
 	const rec = roundsOf("four")[0];
 	check("tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}",
-		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
+		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync.native(path.join(A.d, ".git"))}` &&
 		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", `${JSON.stringify(rec)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	const viaLedger = reviewAt("four", 4, ["--role", "opus"]);
 	// req: R-971
@@ -396,12 +396,12 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		cmd: [process.execPath, "-e", "console.log('VERDICT: '+process.cwd())"], outFile: viaTreeOut });
 	// req: R-621 R-705
 	check("scratch launcher cwd with --tree uses the reviewed repository scope",
-		viaTree.status === 0 && roundsOf("tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
+		viaTree.status === 0 && roundsOf("tree-scope")[0]?.repo === `git:${fs.realpathSync.native(path.join(A.d, ".git"))}` &&
 		roundsOf("tree-scope")[0]?.revision === A.shas[0] && A.shas[0] !== B.shas[5] &&
-		fs.readFileSync(viaTreeOut, "utf8").trim() === `VERDICT: ${A.d}`, viaTree.stderr);
+		fs.realpathSync.native(fs.readFileSync(viaTreeOut, "utf8").trim().slice("VERDICT: ".length)) === fs.realpathSync.native(A.d), viaTree.stderr);
 	const piTree = piReview(["--item", "pi-tree-scope", "--tree", A.d, "--out", out()], { cwd: scratch });
 	// req: R-621
-	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}`, `${piTree.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
+	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync.native(path.join(A.d, ".git"))}`, `${piTree.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	const nestedLauncher = path.join(A.d, "nested-launcher"), nestedTree = path.join(A.d, "nested-tree");
 	fs.mkdirSync(nestedLauncher); fs.mkdirSync(nestedTree);
 	const marker = path.join(tmp, "child-cwd-marker");
@@ -995,7 +995,7 @@ if (process.platform !== "win32") {
 	const dangling = path.join(outs, "dangling.md");
 	fs.symlinkSync(path.join(O.d, "made-by-link.md"), dangling);
 	check("a dangling --out link is resolved to where the write would land (in-tree → warns)",
-		/inside the reviewed tree/.test(mod.outInTree(fs.realpathSync(O.d), dangling) ?? ""));
+		/inside the reviewed tree/.test(mod.outInTree(fs.realpathSync.native(O.d), dangling) ?? ""));
 	// "..notes.md" is a legitimate in-tree name: the check is by path SEGMENT, not string prefix
 	fs.writeFileSync(path.join(O.d, "..notes.md"), "NOTES\n");
 	gitIn(O.d, "add", "..notes.md"); gitIn(O.d, "commit", "-qm", "dotdot");
