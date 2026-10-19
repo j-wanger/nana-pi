@@ -50,7 +50,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { displayPath, displayText } from "../lib/objective.ts";
 import { verifierPipeReason } from "../lib/pipe-guard.mjs";
-import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
+import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit, resolveToolPath } from "../lib/gate-paths.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
@@ -162,9 +162,19 @@ function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	return p ? { label: "protected path", reason: String(p) } : null;
 }
 
-/** Resolve a possibly missing target through its nearest existing ancestor. */
+// Native realpath folds case and expands 8.3 short names to the true on-disk spelling;
+// plain fs.realpathSync keeps whatever case or short name was typed. Falls back to plain
+// when native throws (e.g. a filesystem without the native call).
+function real(p: string): string {
+	try {
+		return fs.realpathSync.native(p);
+	} catch {
+		return fs.realpathSync(p);
+	}
+}
+/** Resolve a possibly missing target through its nearest existing ancestor, at the path pi's own edit/write tools write it to. */
 function realOut(target: string, cwd: string): string | null {
-	let candidate = path.resolve(cwd, target);
+	let candidate = path.resolve(cwd, resolveToolPath(target, cwd));
 	const suffix: string[] = [];
 	while (true) {
 		try {
@@ -178,7 +188,7 @@ function realOut(target: string, cwd: string): string | null {
 			continue;
 		}
 		try {
-			return path.resolve(fs.realpathSync(candidate), ...suffix.reverse());
+			return path.resolve(real(candidate), ...suffix.reverse());
 		} catch {
 			return null;
 		}
@@ -192,9 +202,10 @@ function laneWriteHit(subject: string, cwd: string): Hit {
 	const configured = process.env.NANA_WORKTREE_ROOT;
 	if (!configured) return null;
 	try {
-		const root = fs.realpathSync(configured);
+		const root = real(configured);
 		const target = realOut(subject, cwd);
-		const allowed = [root, os.tmpdir(), "/tmp"].map((p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } });
+		const tempRoots = process.platform === "win32" ? [os.tmpdir()] : [os.tmpdir(), "/tmp"];
+		const allowed = [root, ...tempRoots.map((p) => { try { return real(p); } catch { return path.resolve(p); } })];
 		if (target && allowed.some((p) => within(target, p))) return null;
 		return { label: "lane write boundary", reason: `target is outside NANA_WORKTREE_ROOT and temporary directories (${configured})` };
 	} catch {
