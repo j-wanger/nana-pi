@@ -1047,9 +1047,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-round.mjs`
 
 - **purpose** — The review round ledger — admit, project, complete and release one per-item review round under a user-scope lock.
-- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content), stdout/stderr file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
+- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
 - **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, and the projected round number
-- **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally and the rotated audit log), process (spawns git through spawnSync, runs a renewing heartbeat interval)
+- **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
 - **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
 - **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/verdict-config.mjs`
@@ -1631,7 +1631,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the same directory, now holding pi.cmd, its npm package.json and the body as cli.js
 - **effects** — disk (creates the directory if missing, writes three files under it)
 - **errors** — none; a write failure throws through node:fs
-- **callers** — `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
+- **callers** — `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`
 
 ### `packages/nana-pack/tests/frontier.test.mjs`
@@ -1812,7 +1812,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary test repositories).
 - **errors** — Failed checks exit nonzero; unexpected exceptions fail the process.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/lane-write-guard.test.mjs`
 
