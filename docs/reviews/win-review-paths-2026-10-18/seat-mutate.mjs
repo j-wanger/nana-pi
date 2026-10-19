@@ -85,4 +85,4 @@ const PAIRS = [
 	], tests: [PS], expectRed: [GP1C] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-review-paths", self: import.meta.url, tip: "1187eab", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-review-paths", self: import.meta.url, tip: "337efa1", declared: DECLARED, pairs: PAIRS });
