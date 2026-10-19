@@ -13,7 +13,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "bin", "nana-roster.mjs");
@@ -334,6 +334,25 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	check("roster command --json prints a refused roster on stderr with empty stdout and exits 1",
 		r.status === 1 && r.stdout === "" && r.stderr.includes(file) && r.stderr.includes("builder"),
 		JSON.stringify(r));
+}
+
+{
+	// Regression pin for the linked-launch guard shape (silent-main-guard): importing the
+	// module with argv[1] naming a file that is not this one — missing, or an existing other
+	// file — must never run main() and must never throw on the missing-file case.
+	const home = freshAgentDir("r1636-home");
+	const agentDir = freshAgentDir("r1636-agent");
+	const env = { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: agentDir };
+	const missing = path.join(temp, "r1636-missing-file-does-not-exist");
+	const other = fileURLToPath(import.meta.url);
+	const code = `await import(${JSON.stringify(pathToFileURL(cli).href)}); process.stdout.write('imported')`;
+	const rMissing = spawnSync(process.execPath, ["--input-type=module", "-e", code, missing], { encoding: "utf8", env });
+	const rOther = spawnSync(process.execPath, ["--input-type=module", "-e", code, other], { encoding: "utf8", env });
+	// req: R-1636
+	check("R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing",
+		rMissing.status === 0 && rMissing.stdout === "imported" &&
+		rOther.status === 0 && rOther.stdout === "imported",
+		JSON.stringify({ rMissing, rOther }));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

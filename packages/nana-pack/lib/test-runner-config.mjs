@@ -1,0 +1,38 @@
+/**
+ * @module packages/nana-pack/lib/test-runner-config.mjs
+ * @purpose Declare the parallel test runner's tunables with their provenance.
+ * @inputs none
+ * @outputs JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE
+ * @effects none
+ * @errors none
+ */
+// must-meet.md (docs/reviews/parallel-runner-2026-10-19/) is the plan of record: R-1470 to R-1477.
+// scripts/test.mjs and scripts/test-locked.mjs import every tunable here by name — never an
+// inline literal at a point of use.
+
+// contract (R-1470, R-1477): the test runner's --jobs argument prefix.
+export const JOBS_FLAG = "--jobs=";
+
+// chosen (must-meet.md measured table, 2026-10-19, the 10-core seat Mac, other lanes running):
+// 4 at once measured clean; 6 simulates 15-35s faster but adds load beside other lanes' builders;
+// 8 is slower. This is scripts/test-locked.mjs's default job count for an unfiltered run.
+export const SUITE_JOBS = 4;
+
+// contract (R-1476); chosen: a NANA_ name, so R-618's existing scrub already keeps it out of
+// every spawned test file's own env with no new code (the runner strips every ambient NANA_*
+// but the NANA_TEST_* knobs before building a test file's env).
+export const SUITE_JOBS_ENV = "NANA_SUITE_JOBS";
+
+// contract (R-1473, R-1474): a file on this list runs only while no other test file runs, when
+// --jobs=N is given with N greater than 1. Frozen so it can only be read, never mutated, by a
+// file this module does not control.
+// Chosen (must-meet.md measured table, 2026-10-19): each file here passed 8 of 8 runs under load
+// at --jobs=8, but its timing bound is load-sensitive by construction — running it alone instead
+// costs about 10s total across the four. A bound here is never loosened to make a file safe for
+// the pool; it joins this list instead.
+export const RUN_ALONE = Object.freeze({
+	"packages/nana-knowledge/tests/hook.test.mjs": "load-sensitive timing bounds (1500/1800 ms)",
+	"packages/nana-knowledge/tests/extension.test.mjs": "load-sensitive timing bounds (1000/1500 ms)",
+	"packages/nana-pack/tests/bounded-read.test.mjs": "load-sensitive timing bound (1000 ms)",
+	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",
+});

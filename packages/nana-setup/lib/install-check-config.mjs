@@ -46,3 +46,21 @@ export const SAMPLE_INPUTS = {
 };
 // Chosen 2026-10-12: bound network and doctor subprocesses within the 20-minute CI job.
 export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, hook: 5000, doctor: 120000, git: 30000 };
+// Contract values: the macOS fresh-machine checklist's rehearsal grammar and sandbox shape (R-1540 to R-1546),
+// each chosen 2026-10-19 to run the root README's checklist as written, in a second temporary home.
+export const README_REHEARSAL = {
+  item: "readme checklist", // contract: the install-check result-line item name (R-1540)
+  readme: "README.md", // contract: the rehearsed document, read from the repo root (R-1540)
+  heading: "### Fresh machine (macOS), in order", // contract: the checklist section this rehearses (R-1540)
+  platforms: ["darwin"], // chosen 2026-10-19: the README carries only a macOS checklist (R-1540)
+  home: "readme-home", // chosen 2026-10-19: a folder distinct from the install-check home, never reused (R-1540)
+  npmPrefix: ".npm-global", // chosen 2026-10-19: stands in for step 1's writable global npm prefix (R-1542)
+  shell: "/bin/zsh", // contract: macOS's default login shell (R-1542)
+  shellArgs: ["-l", "-c"], // contract: a login shell reads the profile files the checklist assumes (R-1542)
+  commandLeads: ["Run", "then"], // contract: the README's own command grammar (R-1541)
+  expectLead: "expect", // contract: the README's own expectation grammar (R-1541)
+  droppedEnv: ["ZDOTDIR"], // chosen 2026-10-19: a caller's ZDOTDIR would redirect the rehearsal's login shell away from its home (R-1542)
+  answers: [{ prefix: "nana-setup trust ", append: "--yes" }], // chosen 2026-10-19: no terminal is present to answer the trust prompt (R-1543)
+  stepTimeoutMs: 300000, // chosen 2026-10-19: bounds one step, including step 2's network pi install, within the CI job (R-1545)
+  maxOutput: 1000000, // chosen 2026-10-19: step 8's doctor output runs 7.5-7.9 KB today; headroom beyond the 10,001-character hook cap (R-1544)
+};

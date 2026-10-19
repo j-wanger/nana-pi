@@ -2,7 +2,7 @@
 /**
  * @module scripts/test-locked.mjs
  * @purpose Serialize unfiltered suite runs across worktrees while allowing filtered runs concurrently.
- * @inputs Filter arguments, NANA_SUITE_LOCK_DIR, and an optional fixture command override.
+ * @inputs Filter arguments, NANA_SUITE_LOCK_DIR, NANA_SUITE_JOBS, and an optional fixture command override.
  * @outputs The invoked suite's exit code.
  * @effects disk (lock directory), process (spawns npm or the injected command).
  * @errors Propagates suite failures through the process exit code and reports lock errors.
@@ -12,6 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
+import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 
 // chosen: keep the machine-wide lock in the user's private home, independent of each worktree.
 const LOCK_DIR = process.env.NANA_SUITE_LOCK_DIR || path.join(os.homedir(), ".nana", "suite.lock");
@@ -107,9 +108,14 @@ function commandSpec() {
     }
     return { command: TEST_COMMAND[0], args: [...TEST_COMMAND.slice(1), ...FILTERS], options: {} };
   }
+  // R-1476: an unfiltered run passes --jobs=, naming NANA_SUITE_JOBS when it is set and not
+  // empty, else the declared suite job count. A filtered run is unchanged (R-627 holds). The
+  // runner itself validates the value (R-1477) — a bad NANA_SUITE_JOBS fails the land closed.
+  const envJobs = process.env[SUITE_JOBS_ENV];
+  const jobsArg = `${JOBS_FLAG}${envJobs && envJobs.length > 0 ? envJobs : SUITE_JOBS}`;
   return {
     command: process.execPath,
-    args: [process.env.npm_execpath, "test", ...(FILTERS.length ? ["--", ...FILTERS] : [])],
+    args: [process.env.npm_execpath, "test", "--", ...(FILTERS.length ? FILTERS : [jobsArg])],
     options: {},
   };
 }
