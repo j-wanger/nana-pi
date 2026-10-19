@@ -1,15 +1,17 @@
 /**
  * @module packages/nana-setup/lib/stale-copies.mjs
  * @purpose Compare installed files with this checkout and render one shared stale-copy notice.
- * @inputs installed and source paths, stale doctor labels, the active platform and package root.
- * @outputs linkOk() and staleNotice().
+ * @inputs installed and source paths, stale doctor labels, the active platform and package root,
+ *  and the active Claude settings entry that records nana-setup's adoption-hook install.
+ * @outputs linkOk(), hasAdoptionInstallRecord() and staleNotice().
  * @effects disk (lstat, realpath and byte reads).
- * @errors comparison failures return false; notice rendering is total.
+ * @errors comparison or settings-read failures return false; notice rendering is total.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { codeSpan } from "../../nana-pack/lib/display.mjs";
-import { pkgRoot, platform } from "./paths.mjs";
+import { pkgRoot, platform, repoRoot } from "./paths.mjs";
+import { hasHook, desiredHooks } from "./settings.mjs";
 import { STALE_PREFIX } from "./stale-copies-config.mjs";
 
 /**
@@ -25,6 +27,20 @@ export function linkOk(target, source) {
 			return fs.realpathSync(target) === fs.realpathSync(source);
 		}
 		return platform() === "win32" && st.isFile() && fs.readFileSync(target).equals(fs.readFileSync(source));
+	} catch {
+		return false;
+	}
+}
+
+/** The SessionStart adoption entry is the install record for the hook that asks this question. */
+export function hasAdoptionInstallRecord(layout) {
+	try {
+		const raw = fs.readFileSync(layout.claudeSettings, "utf8");
+		const settings = raw.trim() === "" ? {} : JSON.parse(raw);
+		const platformValue = platform() === "win32" ? "win32" : undefined;
+		const adoption = desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform: platformValue })
+			.find((entry) => entry.label === "SessionStart adoption");
+		return Boolean(adoption && hasHook(settings, adoption.event, adoption.spec, adoption.matcher, platformValue));
 	} catch {
 		return false;
 	}

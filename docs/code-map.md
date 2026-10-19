@@ -2316,9 +2316,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/bin/stale-copies.mjs`
 
-- **purpose** — Report Claude Code rules and skills that are not this checkout's current installed files.
-- **inputs** — the default active-home layout, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
-- **outputs** — one stale-copy notice on stdout, or no output when every applicable item is current.
+- **purpose** — Report stale Claude Code rules and skills only for a home with a nana-setup adoption-hook install record.
+- **inputs** — the default active-home layout, its Claude settings, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
+- **outputs** — one stale-copy notice on stdout, or no output when no install is recorded or every applicable item is current.
 - **effects** — disk (reads installed and source files), process (writes stdout).
 - **errors** — unexpected failures reach the launcher, which emits the unavailable marker.
 - **callers** — —
@@ -2491,7 +2491,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean; desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook(); removeInstallerHooks(); installerTarget(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
 - **effects** — disk (reads only)
 - **errors** — none thrown — validateShape returns the reason the shape cannot be extended, and any command that is unparseable or carries a shell operator reads as NOT installed
-- **callers** — `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
+- **callers** — `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/shared-memory-input.mjs`
@@ -2517,12 +2517,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/stale-copies.mjs`
 
 - **purpose** — Compare installed files with this checkout and render one shared stale-copy notice.
-- **inputs** — installed and source paths, stale doctor labels, the active platform and package root.
-- **outputs** — linkOk() and staleNotice().
+- **inputs** — installed and source paths, stale doctor labels, the active platform and package root, and the active Claude settings entry that records nana-setup's adoption-hook install.
+- **outputs** — linkOk(), hasAdoptionInstallRecord() and staleNotice().
 - **effects** — disk (lstat, realpath and byte reads).
-- **errors** — comparison failures return false; notice rendering is total.
+- **errors** — comparison or settings-read failures return false; notice rendering is total.
 - **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`
-- **callees** — `packages/nana-pack/lib/display.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`
+- **callees** — `packages/nana-pack/lib/display.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`
 
 ### `packages/nana-setup/lib/state-manifest.mjs`
 

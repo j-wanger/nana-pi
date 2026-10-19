@@ -155,6 +155,19 @@ async function platformFixtures(platformName) {
 
 check("seal: stale-copy prefixes and pi section key are pinned", STALE_PREFIX === "[nana:install] INSTALL STALE:" && STALE_UNAVAILABLE_PREFIX === "[nana:install] STALE-COPY CHECK UNAVAILABLE:" && STALE_SECTION === "nana-install-stale");
 
+const uninstalled = { home: temp("nana-stale-uninstalled-home-"), project: temp("nana-stale-uninstalled-project-") };
+const uninstalledEnv = { ...process.env, HOME: uninstalled.home, USERPROFILE: uninstalled.home, CLAUDE_PROJECT_DIR: uninstalled.project };
+delete uninstalledEnv.PI_CODING_AGENT_DIR;
+const uninstalledHook = spawnSync(process.execPath, [adoptionSource], {
+	cwd: uninstalled.project,
+	encoding: "utf8",
+	env: uninstalledEnv,
+	timeout: CASE_LIMIT_MS,
+});
+const uninstalledFacts = { status: uninstalledHook.status, stale: staleLines(uninstalledHook), unavailable: unavailableLines(uninstalledHook), stderr: uninstalledHook.stderr };
+// req: R-1606
+check("R-1606: a home where nana-setup never installed adds no stale or unavailable line", uninstalledFacts.status === 0 && uninstalledFacts.stale.length === 0 && uninstalledFacts.unavailable.length === 0, JSON.stringify(uninstalledFacts));
+
 const cases = [];
 if (process.platform === "win32") {
 	skip("POSIX stale-copy fixtures require symlinks; native win32 installs copies");
