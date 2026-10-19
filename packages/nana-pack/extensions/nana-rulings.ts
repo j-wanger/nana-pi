@@ -1,16 +1,9 @@
 /**
  * @module packages/nana-pack/extensions/nana-rulings.ts
- * @purpose Append nana's standing rulings to every session's system prompt, read fresh at every
- *  session_start so an edited or a repaired copy is picked up at the next reason — the ninth
- *  pack extension.
- * @inputs pi `session_start` (every reason) and `before_agent_start` events; an injectable agent
- *  dir (opts.agentDir, defaulting to piAgentDir()); lib/rulings-config.mjs; lib/bounded-read.mjs
- * @outputs the rulings file's whole text under RULINGS_HEADING in the RULINGS_SECTION
- *  system-prompt section, or — when the installed file is missing, empty, not a regular file,
- *  over RULINGS_READ_CAP bytes or not valid UTF-8 — a one-line RULINGS_UNAVAILABLE marker naming
- *  the cause and the file, addressed to the user (an agent reading it tells the user; it never
- *  runs `nana-setup install` itself)
- * @effects disk (bounded-reads nana-rulings.md in pi's active agent dir)
+ * @purpose Append nana's standing rulings and stale-install guidance to every session's system prompt, rereading them at every session_start reason.
+ * @inputs pi `session_start` and `before_agent_start` events; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
+ * @outputs rulings text or its unavailable marker in RULINGS_SECTION, plus a separate stale-copy section when the injected file is not this checkout's current file.
+ * @effects disk (bounded-reads the installed rulings and compares it with the shipped source)
  * @errors none — the handler swallows everything; an unusable file injects the marker rather
  *  than throwing, hanging, or exhausting memory
  */
@@ -34,9 +27,12 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { readBounded } from "../lib/bounded-read.mjs";
 import { piAgentDir } from "../lib/agent-dir.mjs";
 import { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULINGS_UNAVAILABLE } from "../lib/rulings-config.mjs";
+import { STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
+import { linkOk, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
 
 /** A short, user-facing cause for the marker, from readBounded's thrown error code (or "empty",
  *  decided by the caller since readBounded itself does not refuse a zero-byte file) — never
@@ -87,19 +83,28 @@ export function buildBlock(agentDir: string = piAgentDir()): string {
 
 export default function (pi: ExtensionAPI, opts: { agentDir?: string } = {}) {
 	let block: string | null = null;
+	let stale = false;
 
 	pi.on("session_start", async (_event, _ctx) => {
 		// every reason, deliberately: a reload must re-read the file from disk (R-1410)
 		try {
-			block = buildBlock(opts.agentDir);
+			const agentDir = opts.agentDir ?? piAgentDir();
+			block = buildBlock(agentDir);
+			stale = block.startsWith(`${RULINGS_HEADING}\n\n`) && !linkOk(path.join(agentDir, RULINGS_FILE), fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url)));
 		} catch {
-			block = null; // never throw out of a handler
+			block = null;
+			stale = false; // never throw out of a handler
 		}
 	});
 
 	pi.on("before_agent_start", async (event, _ctx) => {
 		if (!block) return undefined;
-		(event as any).systemPromptOptions.sections[RULINGS_SECTION] = block;
+		try {
+			(event as any).systemPromptOptions.sections[RULINGS_SECTION] = block;
+			if (stale) (event as any).systemPromptOptions.sections[STALE_SECTION] = staleNotice([`pi ${RULINGS_FILE}`]);
+		} catch {
+			// A malformed event must not throw out of an extension handler.
+		}
 		// Deliberately no orderNanaSections call and no edit to prompt-sections.mjs (must-meet.md
 		// "Subtraction"): orderNanaSections leaves a non-nana key exactly where it already sits,
 		// and no test pins a new canonical position for this section.

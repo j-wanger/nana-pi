@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/lib/hook-producer.mjs
- * @purpose Run a nana-pack hook producer and emit its output or the stable fail-open marker.
+ * @purpose Run a nana hook producer and emit its output or the stable fail-open marker.
  * @inputs CLI path, marker text, cwd, environment and injectable process runner.
  * @outputs producer stdout or the supplied marker on stdout.
  * @effects process (spawns a child process and writes stdout).
@@ -8,6 +8,7 @@
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { STALE_UNAVAILABLE_PREFIX } from "./stale-copies-config.mjs";
 
 const launcherDefinitions = {
 	objective: {
@@ -17,6 +18,10 @@ const launcherDefinitions = {
 	adoption: {
 		cli: "packages/nana-pack/bin/nana-adoption.mjs",
 		marker: (cli) => `[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (${cli}).\n`,
+	},
+	"stale-copies": {
+		cli: "packages/nana-setup/bin/stale-copies.mjs",
+		marker: (cli) => `${STALE_UNAVAILABLE_PREFIX} checker failed (${cli}).\n`,
 	},
 };
 

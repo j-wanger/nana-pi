@@ -1,10 +1,10 @@
 """@module tests/conftest.py
 @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry, and that its Requirement cell carries exactly one `shall`.
-@inputs REQUIREMENTS.md, optional REQUIREMENTS-general.md, and every tests/**/test_*.py source, read from the pytest rootdir
+@inputs REQUIREMENTS.md, optional REQUIREMENTS-general.md, every tests/**/test_*.py source read from the pytest rootdir, and the process environment
 @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line,
-  a problem list, a summary line on the terminal, and a non-zero exit status on a full
-  run that disagrees
-@effects disk (reads REQUIREMENTS.md and the test sources), process (sets the session exit status)
+  a problem list, a summary line on the terminal, an optional unclaimed-declaration listing,
+  and a non-zero exit status on a full run that disagrees
+@effects disk (reads REQUIREMENTS.md and the test sources), process (writes terminal reports and sets the session exit status)
 @errors pytest.UsageError for a malformed requirements table or a bad or orphan marker
 
 The requirements-first rail. A test declares which rows it evidences with a
@@ -41,11 +41,13 @@ same full/partial distinction as every other problem here.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
+from _pytest.terminal import TerminalReporter
 
 pytest_plugins = ["pytester"]  # for tests/test_requirements_trace.py
 
@@ -134,6 +136,9 @@ GENERAL_REQUIREMENTS_FILE = "REQUIREMENTS-general.md"
 #: marked call is a call and not a ``def`` -- and may sit ANYWHERE on the line
 #: (``for case in CASES: check("...", ...)``). The FIRST such call on the line wins.
 CALL_NAMES = ("test", "it", "check")
+
+#: The environment switch for the opt-in unclaimed listing (contract, R-1665).
+UNCLAIMED_ENV = "NANA_REQ_UNCLAIMED"
 
 
 def _call_re(names: tuple[str, ...]) -> re.Pattern[str]:
@@ -325,6 +330,66 @@ def scan_source(source: str, name: str, call_names: tuple[str, ...] = CALL_NAMES
     return found
 
 
+def _unclaimed_source(source: str, name: str, call_names: tuple[str, ...]) -> list[tuple[int, str]]:
+    """One test source's declarations that no marker block directly claims."""
+    call_re = CALL_RE if call_names == CALL_NAMES else _call_re(call_names)
+    lines = [_rstrip_whitespace(line) for line in _without_leading_bom(source).split("\n")]
+    claimed: set[int] = set()
+    i = 0
+    while i < len(lines):
+        if not MARKER_RE.match(lines[i]):
+            i += 1
+            continue
+        _ids, j = _ids_at(lines, i, name)
+        while j < len(lines) and lines[j].lstrip().startswith("@"):
+            j += 1
+        line = lines[j] if j < len(lines) else ""
+        hit = DEF_RE.match(line) or call_re.search(line)
+        if hit is None:
+            raise pytest.UsageError(
+                f"{name}:{i + 1}: '# req:' must sit directly above a 'def test_...' line "
+                f"or a {' or '.join(f'{n}(' for n in call_names)} call"
+            )
+        claimed.add(j)
+        i = j + 1
+    found: list[tuple[int, str]] = []
+    for index, line in enumerate(lines):
+        hit = DEF_RE.match(line) or call_re.search(line)
+        if hit is None or index in claimed:
+            continue
+        found.append((index + 1, hit.group(1) if hit.re is DEF_RE else hit.group(2)))
+    return found
+
+
+def unclaimed_lines(
+    root: Path,
+    test_roots: tuple[str, ...] = ("tests",),
+    call_names: tuple[str, ...] = CALL_NAMES,
+) -> list[str]:
+    """The audit listing, sorted by complete POSIX project path and then source line."""
+    entries: list[tuple[str, int, str]] = []
+    for test_root in test_roots:
+        directory = root / test_root
+        if not directory.is_dir():
+            continue
+        prefix = Path(test_root).as_posix().rstrip("/")
+        for source_path in directory.rglob("test_*.py"):
+            if not source_path.is_file() or "__pycache__" in source_path.parts:
+                continue
+            relative_path = source_path.relative_to(directory).as_posix()
+            project_path = f"{prefix}/{relative_path}" if prefix else relative_path
+            with source_path.open(encoding="utf-8", newline="") as source:
+                source_text = source.read()
+            entries.extend(
+                (project_path, line, title) for line, title in _unclaimed_source(source_text, project_path, call_names)
+            )
+    entries.sort(key=lambda entry: (entry[0], entry[1]))
+    return [
+        f"unclaimed: {len(entries)} test declarations carry no req: marker",
+        *(f"  {path}:{line} {title}" for path, line, title in entries),
+    ]
+
+
 def scan_dir(directory: Path, call_names: tuple[str, ...] = CALL_NAMES, prefix: str = "tests") -> dict[str, list[str]]:
     """Every marker under a tests directory, as ``{id: ['tests/<path>::<test>', ...]}``.
 
@@ -498,6 +563,14 @@ def _is_full_run(config: pytest.Config) -> bool:
     return args == testpaths
 
 
+def _write_unclaimed(config: pytest.Config, reporter: TerminalReporter | None, trace_readable: bool) -> None:
+    """Write the opt-in listing after the trace report, without changing its status."""
+    if not trace_readable or reporter is None or os.environ.get(UNCLAIMED_ENV) != "1":
+        return
+    for line in unclaimed_lines(config.rootpath):
+        reporter.write_line(line)
+
+
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register the EARS allowance ini option (G-013/G-014/G-015): rows tolerated off form
     before a FULL run fails naming them. Default EARS_ALLOWANCE_DEFAULT (see above)."""
@@ -515,12 +588,14 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     config = session.config
     ears_allowance = config.getini("requirements_ears_allowance")
     drift_line: str | None = None
+    trace_readable = True
     try:
         requirements, traced, problems, _line, _off_form, _ears_line, report = check(
             config.rootpath, ears_allowance=ears_allowance
         )
         drift_line = _drift_line(config.rootpath)
     except pytest.UsageError as err:
+        trace_readable = False
         # A malformed table or a bad marker is reported as a trace problem rather
         # than an internal error: the point is a readable failure, not a traceback.
         requirements, traced, problems = {}, {}, [str(err)]
@@ -542,5 +617,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
                 reporter.write_line(f"  {p}", red=full)
             if full:
                 reporter.write_line("  fix REQUIREMENTS.md or the markers; do not silence this check")
+    _write_unclaimed(config, reporter, trace_readable)
     if problems and full and exitstatus == 0:
         session.exitstatus = int(pytest.ExitCode.TESTS_FAILED)

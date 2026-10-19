@@ -175,7 +175,15 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    writes no `REQUIREMENTS.md` itself — it is not one of the files the hard
    rule above permits.
 
-8. **Report** — list the `AGENTS.md` files written/refreshed, the seeds created
+8. **Close on the project check, then report.** Run `nana-setup project <dir>
+   --check`; where `nana-setup` is not on PATH, as on Windows, run `node
+   "$HOME/nana-pi/packages/nana-setup/bin/nana-setup.mjs" project <dir>
+   --check`. It writes nothing. Call the adoption ready only when it exits 0.
+   Otherwise report every ✗ and ! line with the repair the check names: a
+   fresh adoption reads ✗ for the month log until `nana-setup project <dir>`
+   runs, and ! for trust until the owner runs `nana-setup trust <dir>`. Run a
+   repair only with the owner's yes. Then list the `AGENTS.md` files
+   written/refreshed, the seeds created
    vs. left alone (and, when you used the fallback render, that the seeds carry
    this project's name and today's date), whether the `.pi/nana-pack.json` was
    created or reconciled, and what the audit left behind (rows drafted, conflicts

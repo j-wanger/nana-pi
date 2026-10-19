@@ -1,0 +1,22 @@
+# silent-main-guard — plan attack (one adversary)
+
+Verdict: AMEND
+
+AMEND. The guard half of the plan holds. I probed it in a temp clone of main f29827a on macOS with Node 22.22.2. A draft linked-launch test gave 5 FAIL on today's code and 5 PASS with the new guard. It ran in 0.75 s and its link was removed afterwards. Every affected single file stayed green with the guard changed: nana-roster 17/17, nana-roster-set 8/8, roster-notice 16/16, requirements-moved 4/4, requirement-rows 5/5, product-report 63/63, requirements-tree 89/89. R-1636 is green today, as the plan says. It goes red when existsSync is dropped (the import throws ENOENT) and under `if (true) main()` (the roster is printed). Both were probed.
+
+The amendments:
+(1) CUT the roster argument refusal: old R-1635, the R-1123/R-1192 rewording, and the pack README edit. It is a second behaviour, argument parsing. It sits outside this lane's own feature sentence, and AGENTS.md says a lane is one feature. It also changes two implemented rows and README behaviour that is documented on purpose. That README file is edited by four in-flight lanes (clean-revision, gate-rm-workdir, review-timeline, win-gate-tmp). The harm is low and stays recorded in the HANDOFF roster-set residual. It can be its own small lane. R-1635 is left unassigned rather than renumbered, so the IDs cannot be confused.
+(2) The real-path run MUST use fs.realpathSync of the checkout root. Probe: from the clone's path under $TMPDIR (/var/folders), which is a link to /private/var, the run that was meant as the direct one was ALSO silent for all five commands. The brief now requires realRoot. This is also the strongest user case: pi-review's detached checkout sits under os.tmpdir(), so a reviewer who runs these commands by absolute path gets a silent exit 0.
+(3) W6 was self-contradictory: it removed the helper's condition but still expected a fail. It is replaced by W4, `if (false)` as one script's guard, which only the printed-something condition catches.
+(4) The R-1636 test now sets HOME, USERPROFILE and PI_CODING_AGENT_DIR to temp dirs. Without that, W3 reads the real roster.
+(5) The guard uses the JS fs.realpathSync, not .native, to match Node's main-module resolution.
+(6) No shared helper. It would add a module, a header, a map entry and a cross-component import for a one-line expression.
+(7) waitFor is none. git merge-tree shows scripts/product-report.mjs merging cleanly with feat/audit-open-questions, because its hunks are far from the guard and import lines. A requirements-tree.test.mjs conflict exists, but it is between that branch and today's main, not this lane. Whichever lane lands second merges main and regenerates.
+
+Class: ordinary is confirmed. The roster-set lane took the same class for this file (docs/reviews/roster-set-2026-10-19). The hook's dynamic import of nana-roster sits inside its try.
+
+Files the build touches: packages/nana-pack/bin/nana-roster.mjs, scripts/requirements-moved.mjs, scripts/requirements-tree.mjs, scripts/requirement-rows.mjs, scripts/product-report.mjs, packages/nana-pack/tests/linked-launch.test.mjs (new), packages/nana-pack/tests/nana-roster.test.mjs, packages/nana-pack/tests/requirements-tree.test.mjs (R-291 total only), REQUIREMENTS.md, docs/requirements-tree.md and docs/code-map.md (both regenerated). Seat only, before the final round: HANDOFF.md (drop the Tree residual sentence about linked checkout folders; KEEP the roster 'after the JSON flag' residual), docs/sessions/, docs/reviews/silent-main-guard-<date>/.
+
+Conflicts: audit-open-questions edits scripts/product-report.mjs, and the merge is clean. Every lane that adds rows collides mechanically on REQUIREMENTS.md, docs/requirements-tree.md, docs/code-map.md and the R-291 total; regenerate at merge. win-leg-flip: if it makes the Windows leg blocking, the junction test must pass there, so the seat checks the Windows leg before the final review. With the README edit cut, there is no overlap with the pack-README lanes.
+
+The one claim most likely wrong: the Windows behaviour is inferred, not run. Node resolves an ESM main module with the JS fs.realpathSync, which resolves junctions and keeps 8.3 names. The guard makes the same call, so the five checks should go red before and green after on the Windows leg. Junction create, unlink and rmSync on Windows is already exercised by handoff-store.test.mjs. If the loader and fs.realpathSync disagree under the runner's 8.3 temp path, R-1630 to R-1634 fail on Windows after the fix.

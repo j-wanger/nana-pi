@@ -9,7 +9,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +38,28 @@ const GITHUB_BLOB_PREFIX = "https://github.com/";
 const GITHUB_REMOTE = /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([^/]+)\/([^/]+?)(?:\.git)?$/;
 const exactKeys = (value, keys) => value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const fingerprint = (row) => createHash("sha256").update(JSON.stringify([row.id, row.requirement, row.status])).digest("hex");
+
+// contract (R-1650, R-1651): the two recorded labels the not-passed rule reads. Module scope, and
+// only buildReport (never renderInto, which runs through String()) reads them.
+const PASS_LABEL = "PASS";
+const FAIL_LABEL = "FAIL";
+
+// The unique files a row's evidence cites, in citation order (R-1650..R-1655: the rule works on a
+// row's unique cited files, never one entry per cited test).
+function uniqueFilesOf(evidence) {
+  const files = [];
+  for (const { file } of citedTestsOf(evidence)) if (!files.includes(file)) files.push(file);
+  return files;
+}
+
+// R-1650/R-1651/R-1652/R-1653: did not pass when any cited file's recorded label is FAIL, or when
+// every cited file has a recorded run and none is PASS. No cited file never counts (R-1650). This
+// reads `runState.label` only — `changed` never enters the decision either way (R-1654).
+function didNotPass(runStates) {
+  if (!runStates.length) return false;
+  if (runStates.some((state) => state?.label === FAIL_LABEL)) return true;
+  return runStates.every((state) => state && state.label !== PASS_LABEL);
+}
 
 // The cited-test rule (must-meet.md, report-test-details-2026-10-19): a citation holding "::", a
 // non-empty title, and a path with "/" and no ":". Split at the first "::". This is deliberately
@@ -199,7 +221,17 @@ export function renderInto(document, model, { hash = "" } = {}) {
     el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
   }
   if (view === "shared") for (const receiving of model.features) for (const id of receiving.shared) { const home = model.features.find((candidate) => candidate.rows.some((r) => r.id === id && r.mark === "own")); const item = receiving.rows.find((r) => r.id === id); const card = el("article", undefined, root); el("h3", id, card); paragraph(card, "Requirement", item?.requirement); const homeLine = el("p", undefined, card); text(homeLine, "Home feature: "); home ? featureLink(homeLine, home.id) : text(homeLine, "Unknown"); const receivingLine = el("p", undefined, card); text(receivingLine, "Receiving feature: "); featureLink(receivingLine, receiving.id); }
-  if (view === "issues") { if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of model.violated) row(root, item); }
+  if (view === "issues") {
+    if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
+    for (const item of model.violated) row(root, item);
+    // contract (R-1655): declared inside renderInto, which runs through String() on the page —
+    // a module-scope constant here would throw there.
+    const notPassedHeading = `Implemented rows that did not pass in this clone's last measured run: ${model.notPassed.length}`;
+    const notPassedNote = "A row appears here when a cited file's last recorded run failed, or when every cited file's last recorded run skipped or failed. A file with no recorded run counts neither way.";
+    el("h3", notPassedHeading, root);
+    paragraph(root, "", notPassedNote);
+    for (const item of model.notPassed) row(root, item);
+  }
   if (view === "requirements") {
     const search = el("input", undefined, root); search.setAttribute("type", "search"); search.setAttribute("aria-label", "Search requirements");
     const status = el("select", undefined, root); status.setAttribute("aria-label", "Filter by status"); const featureFilter = el("select", undefined, root); featureFilter.setAttribute("aria-label", "Filter by feature");
@@ -398,10 +430,13 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   });
   const capabilities = parsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => ({ id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, features: features.filter((feature) => descendants(parsed, capability).some((heading) => heading.id === feature.id)).map((feature) => feature.id) }));
   const violated = rows.filter((row) => row.status === "violated");
+  // R-1650..R-1655: implemented rows this clone's last measured run did not pass, in ledger order
+  // and without duplicates (rows is the ledger's own flat, already-deduplicated row list).
+  const notPassed = rows.filter((row) => row.status === "implemented" && didNotPass(uniqueFilesOf(row.evidence).map(runStateOf)));
   // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
   // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
   const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
-  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
@@ -464,4 +499,4 @@ export function main(argv = process.argv.slice(2)) {
   if (packets) return generatePackets({ root, dir: packets }).then((files) => { console.log(`Wrote ${files.length} packet(s)`); return 0; }).catch((error) => { console.error(error.message); return 1; });
   return generateReport({ root, out }).then((file) => { console.log(`Wrote ${file}`); return 0; }).catch((error) => { console.error(error.message); return 1; });
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = await main();
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exitCode = await main();
