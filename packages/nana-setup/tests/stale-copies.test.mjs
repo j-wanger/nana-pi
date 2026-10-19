@@ -202,6 +202,22 @@ function breakWin32Occupied(fixture) {
 	editSettings(fixture, (hooks) => { delete hooks.UserPromptSubmit; });
 }
 
+function breakLinkedSkillsHealthy(fixture) {
+	const linkedSkills = path.join(fixture.home, "dotfiles-skills");
+	fs.renameSync(fixture.layout.skillsDir, linkedSkills);
+	fs.symlinkSync(linkedSkills, fixture.layout.skillsDir, process.platform === "win32" ? "junction" : "dir");
+	editSettings(fixture, (hooks) => { delete hooks.UserPromptSubmit; });
+}
+
+function breakLinkedClaudeMissingSkills(fixture) {
+	const linkedClaude = path.join(fixture.home, "dotfiles-claude");
+	fs.renameSync(fixture.layout.claudeHome, linkedClaude);
+	fs.symlinkSync(linkedClaude, fixture.layout.claudeHome, process.platform === "win32" ? "junction" : "dir");
+	fs.rmSync(path.join(linkedClaude, "skills"), { recursive: true, force: true });
+	fs.mkdirSync(path.join(linkedClaude, "skills"));
+	return { refusedLinkedFolder: fixture.layout.claudeHome };
+}
+
 function expectedMovePaths(item) {
 	const doctorFails = new Set(item.doctor.filter((row) => row.status === "fail" && row.label.startsWith("skill ")).map((row) => row.label));
 	return item.skillDryRun.filter((row) => row.status === "problem" && doctorFails.has(row.label)).map((row) => path.join(item.fixture.layout.skillsDir, row.label.slice("skill ".length)));
@@ -209,14 +225,14 @@ function expectedMovePaths(item) {
 
 async function buildBroken(platformName, name, breaker) {
 	const fixture = installHome(platformName, name);
-	breaker(fixture);
+	const metadata = breaker(fixture) ?? {};
 	const doctor = doctorRows(fixture);
 	const skillDryRun = stepSkills(fixture.layout, { dryRun: true });
 	const before = homeSnapshot(fixture.home);
 	const hook = hookResult(fixture, platformName);
 	const after = homeSnapshot(fixture.home);
 	const sections = name === "legacy" ? await extensionSections(fixture) : null;
-	return { platform: platformName, name, fixture, doctor, skillDryRun, before, hook, after, sections };
+	return { platform: platformName, name, fixture, doctor, skillDryRun, before, hook, after, sections, ...metadata };
 }
 
 async function platformFixtures(platformName) {
@@ -239,7 +255,9 @@ async function platformFixtures(platformName) {
 			broken.push(await buildBroken(platformName, "hook-only", breakWin32HookOnly));
 			broken.push(await buildBroken(platformName, "occupied", breakWin32Occupied));
 		}
-		return { platform: platformName, current, broken };
+		const moveFilter = await buildBroken(platformName, "linked-skills-filter", breakLinkedSkillsHealthy);
+		broken.push(await buildBroken(platformName, "linked-claude", breakLinkedClaudeMissingSkills));
+		return { platform: platformName, current, broken, moveFilter };
 	}));
 }
 
@@ -280,7 +298,9 @@ const r1761 = labelFacts.every(({ expected, actual, nonempty }) => nonempty && J
 // req: R-1761
 check("R-1761: the stale line names exactly the rule, skill and hook rows doctor marks failed", r1761, JSON.stringify(labelFacts));
 
-const moveFacts = brokenCases.map((item) => {
+const ordinaryMoveCases = brokenCases.filter((item) => !item.refusedLinkedFolder);
+const moveFilterCases = cases.map((item) => item.moveFilter).filter(Boolean);
+const moveFacts = [...ordinaryMoveCases, ...moveFilterCases].map((item) => {
 	const line = staleLines(item.hook)[0] ?? "";
 	const spans = codeSpans(line);
 	return { platform: item.platform, name: item.name, expected: expectedMovePaths(item), actual: spans.slice(0, -1), install: spans.at(-1) };
@@ -288,6 +308,24 @@ const moveFacts = brokenCases.map((item) => {
 const r1762 = moveFacts.every(({ expected, actual, install }) => JSON.stringify(actual) === JSON.stringify(expected) && install === expectedCommand);
 // req: R-1762
 check("R-1762: the stale line names as paths to move exactly the skill paths install refuses", r1762, JSON.stringify(moveFacts));
+
+const linkedParentFacts = brokenCases.filter((item) => item.refusedLinkedFolder).map((item) => {
+	const lines = staleLines(item.hook);
+	const spans = codeSpans(lines[0] ?? "");
+	const movePaths = spans.slice(0, -1);
+	return {
+		platform: item.platform,
+		name: item.name,
+		expected: item.refusedLinkedFolder,
+		movePaths,
+		allExist: movePaths.every((movePath) => fs.existsSync(movePath)),
+		install: spans.at(-1),
+		lineCount: lines.length,
+	};
+});
+const r1766 = linkedParentFacts.length > 0 && linkedParentFacts.every((item) => item.lineCount === 1 && JSON.stringify(item.movePaths) === JSON.stringify([item.expected]) && item.allExist && item.install === expectedCommand);
+// req: R-1766
+check("R-1766: a linked parent is the existing path to move before install", r1766, JSON.stringify(linkedParentFacts));
 
 const currentHookFacts = cases.map(({ platform, current }) => ({ platform, status: current.hook.status, stale: staleLines(current.hook), unavailable: unavailableLines(current.hook), stderr: current.hook.stderr }));
 const r1764 = currentHookFacts.every(({ status, stale, unavailable }) => status === 0 && stale.length === 0 && unavailable.length === 0);
@@ -327,7 +365,8 @@ async function repairCase(item) {
 	const line = staleLines(item.hook)[0] ?? "";
 	const spans = codeSpans(line);
 	const movePaths = spans.slice(0, -1);
-	const namedAsExpected = JSON.stringify(movePaths) === JSON.stringify(expectedMovePaths(item));
+	const expected = item.refusedLinkedFolder ? [item.refusedLinkedFolder] : expectedMovePaths(item);
+	const namedAsExpected = JSON.stringify(movePaths) === JSON.stringify(expected);
 	const safe = movePaths.every((movePath) => {
 		const relative = path.relative(item.fixture.home, movePath);
 		return relative !== "" && !relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative);

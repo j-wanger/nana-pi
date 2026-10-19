@@ -50,7 +50,7 @@ Doctor runs in process under `withPiStub`, as today. A broken home is a fresh in
 - The line rides the adoption hook. A missing adoption link or adoption settings entry silences the check (R-1606).
 - Retired bash hooks, the shared memory index, PATH commands and pi config or registration stay doctor-only. pi-side registration drift is a residual.
 - Some settings install cannot fix: a file it will not edit (bad JSON, a hooks shape it refuses, a leftover lock), or a customized hook entry it keeps while doctor fails it. These still get "install" as their fix, and the line repeats.
-- When the skills folder is itself a link, install refuses every skill. The line can then name a skill path that is absent, and moving it does not help.
+- When the Claude home or skills folder is itself a link and doctor fails a skill, install refuses that linked parent. The line names the linked folder once, rather than any child skill path. A linked skills folder whose skill rows all pass adds no move advice.
 - A retired nana-dev-kit copy whose dated backup already exists: the dry run says install would back it up, but the real install refuses. The line names no path and repeats. This comes from reading the code and is unprobed.
 - Doctor's own detail still names no move for a foreign link at a pi-only skill path, or for a regular file at the win32 skill path. The line now does.
 - No test pins wall time. The producer sets no time limit of its own, under Claude Code's five-second SessionStart limit. The builder reports the measured time.
