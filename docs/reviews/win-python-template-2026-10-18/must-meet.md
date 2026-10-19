@@ -38,3 +38,10 @@ in Windows encodings and locales in scope; deliberate forgery out.
 The rendered project's own CI is ubuntu-only. Under cp1252 output, the template's `scripts/readme_check.py` crashes with
 a UnicodeEncodeError when a README names a path holding a character cp1252 lacks (pi's post-edit runs on Windows would
 show the traceback). The rendered `test_requirements_trace.py` is over the template's 500-line module cap.
+
+## Seat amendment (2026-10-18, before the final round)
+
+R-1360's row now reads "those that pass under the default encoding shall pass". A user's project can carry tests that
+fail under any encoding; the row claims only that cp1252 output adds no failure, which PT1 pins on a freshly rendered
+project. The known limit above is the checker's own run under cp1252, not these three test files: the project-README
+test calls the checker inside pytest's output capture.
