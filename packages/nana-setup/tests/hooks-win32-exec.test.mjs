@@ -8,7 +8,7 @@
  */
 // Windows-leg-only (R-1058, R-1063, R-1064): the other legs never reach process.platform ===
 // "win32", so this file is declared in scripts/test.mjs SKIPS everywhere else and runs for real
-// only on the non-blocking Windows CI leg. It does NOT force NANA_SETUP_PLATFORM — the exec-form
+// only on the Windows CI leg, which blocks release. It does NOT force NANA_SETUP_PLATFORM — the exec-form
 // entries this file spawns are whatever the REAL install on the REAL platform wrote, the way
 // Claude Code itself would spawn them: node finds `node.exe` on PATH and quotes each `args`
 // element into the Windows command line (INFERRED that Claude Code's own spawner meets the same
