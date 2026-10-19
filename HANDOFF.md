@@ -58,6 +58,7 @@
 - 2026-10-19: the Windows test run skips the 20 desk and bench files that cannot pass there, and prints each one's declared reason. Every other desk and bench file still runs on Windows. macOS and Linux still run all of them. On the lane's CI run, Windows failed 3 of 150 files, all land and review files that main has since fixed. So CI's Windows failing count should fall from 20 of 150 files to 0 once this lands. Main's first run after the land will show it. A later lane makes the Windows leg block main — `docs/sessions/2026-10.md`.
 - 2026-10-19: pi-review and pi-worker end an attempt as soon as pi exits, not at the watchdog's next poll. At the default poll, a review now ends up to 15 seconds sooner. A pi killed by a signal from elsewhere now counts as a failed attempt, and the watchdog retries it. Before, such a kill made pi-review stop with exit code 13 and no retry. It also left pi-worker's lane lock behind, so pi-worker refused the next lane run. The six new checks pass on macOS, Linux and Windows. Each of the seat's eight wrong versions of the code fails at least one of them — `docs/sessions/2026-10.md`.
 - 2026-10-19: on Windows, install now refuses a requirements skill folder it did not make, as macOS does. Install and its dry run exit 1 and leave that folder untouched. Doctor marks it ✗ and says to move it. Before, install backed up the owner's file inside the folder and overwrote it. Copies nana-setup made keep refreshing, including older shipped versions in either line ending. CI's Windows leg passes the lane's seven checks; 20 of 152 files still fail there, all desk and bench — `docs/sessions/2026-10.md`.
+- 2026-10-19: a bench study now stops when it cannot write a graded run's evidence. It first writes that run's spend to the results file. The error names the evidence folder and the cause. No further paid run starts. Before, the study recorded a grader error and kept spending. A failed asset copy after the run now stops the study the same way. A grader error whose evidence is on disk still lets the study go on. CI's Windows leg passes the six new checks and reads 0 failing of 154 files — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -135,6 +136,12 @@
 - Watchdog-exit lane: a pi-worker run with retries and no lane now re-runs a pi killed by a signal. So it repeats that attempt's changes, as it already did after a failed attempt.
 - Watchdog-exit lane: its six checks are timing-based, with half a poll interval of margin. A very slow runner could fail them.
 - Watchdog-exit lane, found on main too: a review test that kills its launcher leaves one empty capture folder in the temp folder.
+- Study stop: the run that stopped the study stays a grader-error record, so a resume skips it. Delete its results line to run it again.
+- Study stop: a run whose asset copy fails after its child still leaves no evidence on disk. The study now stops there, but nothing writes that run's evidence.
+- Study stop: no test drives the exit code through the runner's entry, which needs a real pi install for pricing. The tests pin only the plan's stop.
+- Study stop: no test pins the stop for a failed diff read, a part-written evidence folder, a read-only folder or a full disk. A model that leaves its workspace unreadable may now stop the study too (inferred).
+- Study stop: the error names the run's spend, but no check pins that part of it. No check catches a stop that comes before the runner releases the in-flight run; the runner exits at once, so this does no harm.
+- Study stop, found on main too: a judge call whose ledger write fails stops the study but loses that call's record.
 
 ## Where things stand
 
@@ -155,7 +162,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - Small fixes ride along: the G-005 pi default-export carve-out and rm inside the working directory. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
@@ -170,7 +177,7 @@
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
-- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Six rows read `violated`: R-542 (fix queued) and five desk rows (declared while the desk is frozen).
+- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Five rows read violated, all desk rows declared during the desk freeze; the study-stop lane fixed R-542.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.
