@@ -25,7 +25,7 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
-Eight extensions giving pi the hook coverage we require (Claude Code parity classes):
+Nine extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -37,6 +37,7 @@ Eight extensions giving pi the hook coverage we require (Claude Code parity clas
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
+| `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
 **Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
 
@@ -535,6 +536,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
 - Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
 - Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
+- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, and reaches builders and reviewers.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into

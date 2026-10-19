@@ -5,14 +5,15 @@
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
  *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
  *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
- *  packages/nana-pack/rules (the writing rule); the
+ *  packages/nana-pack/rules (the writing rule and the rulings file); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
- *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
+ *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
+ *  win32), <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
@@ -40,6 +41,7 @@ import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacy
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
+import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
 
 export class SetupError extends Error {}
@@ -47,15 +49,16 @@ export class SetupError extends Error {}
 export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"];
 const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
- *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
-export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md"];
-/** nana-writing.md ships with the pack, not with this package, because the pi half (the
- *  nana-writing.ts extension) reads the SAME file — one source for both runtimes, the way
- *  PACK_SKILLS_DIR already shares the requirements skill (design-ruling.md Amendment 1, §A1). */
+ *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;
+ *  Amendment 1, §A1; rulings-file lane, 2026-10-19). */
+export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE];
+/** nana-writing.md and RULINGS_FILE ship with the pack, not with this package, because pi reads
+ *  a copy of the SAME file — one source for both runtimes, the way PACK_SKILLS_DIR already
+ *  shares the requirements skill (design-ruling.md Amendment 1, §A1). */
 export const PACK_RULES_DIR = path.join(repoRoot, "packages", "nana-pack", "rules");
 /** Where a CLAUDE_RULES entry's content actually lives. */
 export function ruleSource(rule) {
-	return rule === "nana-writing.md" ? path.join(PACK_RULES_DIR, rule) : path.join(pkgRoot, "claude", "rules", rule);
+	return rule === "nana-writing.md" || rule === RULINGS_FILE ? path.join(PACK_RULES_DIR, rule) : path.join(pkgRoot, "claude", "rules", rule);
 }
 /** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
 export const CLAUDE_SKILLS = ["requirements", "spec", "py-lint", "py-review", "py-test"];
@@ -656,6 +659,10 @@ export function stepPiConfig(layout, o) {
 	} else {
 		out.push({ label: "pi nana-objective.md", status: UNCHANGED, detail: `not needed — objective.path already points at ${target}` });
 	}
+	// The owner's install ruling ("install to user level .pi folder", rulings-file lane,
+	// 2026-10-19): a symlink on POSIX, a byte-equal copy on win32 — the nana-rulings extension
+	// reads THIS copy, never the pack file directly (unlike nana-writing's extension default).
+	out.push({ label: "pi nana-rulings.md", ...linkFile(layout.piRulings, ruleSource(RULINGS_FILE), { ...o, copyInstead: win() }) });
 	return out;
 }
 

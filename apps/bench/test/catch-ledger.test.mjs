@@ -1,9 +1,9 @@
 /**
  * @module apps/bench/test/catch-ledger.test.mjs
  * @purpose Pins the catch ledger — structural extraction over the real review corpus, the kappa arithmetic, the matcher's stages, ledger uniqueness, and the judge's fail-closed contract with zero model calls
- * @inputs lib/catch-extract.mjs, lib/catch-judge.mjs, lib/catch-stats.mjs, the docs/reviews corpus, and stub judge executables
+ * @inputs lib/catch-extract.mjs, lib/catch-judge.mjs, lib/catch-stats.mjs, the docs/reviews corpus, and stub judge scripts run through node
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp dirs, ledger files, reads the review corpus), process (spawns the stub judge executables)
+ * @effects disk (temp dirs, ledger files, reads the review corpus), process (runs the stub judge scripts through node)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // catch-ledger: structural extraction over the real review corpus, κ arithmetic, the matcher's
@@ -230,20 +230,24 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 {
 	const tmp = tmpDir(path.join(os.tmpdir(), "catch-judge-"));
 	const stub = (name, body) => {
-		const f = path.join(tmp, name);
-		fs.writeFileSync(f, `#!/usr/bin/env node\n${body}\n`, { mode: 0o755 });
+		const f = path.join(tmp, `${name}.mjs`);
+		fs.writeFileSync(f, `${body}\n`, { mode: 0o644 });
 		return f;
 	};
-	const run = (bin) => {
+	// Stub judges are plain .mjs modules, never directly executable (no shebang, mode 0o644 —
+	// Windows cannot start an extensionless shebang file). callJudge's injectable `spawn` seam
+	// runs them through node, passing the caller's opts UNCHANGED.
+	const viaNode = (bin, args, opts) => spawnSync(process.execPath, [bin, ...args], opts);
+	const run = (bin, spawn = viaNode) => {
 		process.env.CATCH_JUDGE_BIN = bin;
 		try {
-			return callJudge({ model: "claude-opus-5-5", system: "s", prompt: "p", schema: labelSchema });
+			return callJudge({ model: "claude-opus-5-5", system: "s", prompt: "p", schema: labelSchema, spawn });
 		} finally {
 			delete process.env.CATCH_JUDGE_BIN;
 		}
 	};
 	// req: R-537
-	check("judge missing → throws 'unavailable'", throws(() => run(path.join(tmp, "nope")), /unavailable/));
+	check("judge missing → throws 'unavailable'", throws(() => run(path.join(tmp, "nope"), spawnSync), /unavailable/));
 	// req: R-537
 	check("judge exit 1 → throws", throws(() => run(stub("fail", "process.exit(1)")), /exited 1/));
 	// req: R-537
@@ -252,8 +256,34 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("judge is_error → throws", throws(() => run(stub("err", `process.stdout.write(JSON.stringify({is_error:true,result:"x"}))`)), /no structured output/));
 	// req: R-537
 	check("judge silently on another model → throws", throws(() => run(stub("wrongmodel", `process.stdout.write(JSON.stringify({is_error:false,structured_output:{labels:[]},modelUsage:{"claude-haiku-4":{}}}))`)), /expected claude-opus/));
-	const ok = run(stub("ok", `process.stdout.write(JSON.stringify({is_error:false,structured_output:{labels:[]},modelUsage:{"claude-opus-5-5":{}},total_cost_usd:0.01}))`));
-	check("judge well-formed → returns structured output + cost", Array.isArray(ok.out.labels) && ok.cost === 0.01);
+	let ok = null, okErr = "";
+	try {
+		ok = run(stub("ok", `process.stdout.write(JSON.stringify({is_error:false,structured_output:{labels:[]},modelUsage:{"claude-opus-5-5":{}},total_cost_usd:0.01}))`));
+	} catch (e) {
+		okErr = e.message;
+	}
+	check("judge well-formed → returns structured output + cost", ok !== null && Array.isArray(ok.out.labels) && ok.cost === 0.01, okErr);
+	// The judge child must start in the OS temp folder, never a fixed /tmp — set TMPDIR/TEMP/TMP
+	// to a fresh folder for this one call so the assertion discriminates with or without the runner.
+	{
+		const judgeTmp = tmpDir(path.join(tmp, "judge-tmp-"));
+		const savedTMPDIR = process.env.TMPDIR, savedTEMP = process.env.TEMP, savedTMP = process.env.TMP;
+		process.env.TMPDIR = judgeTmp;
+		process.env.TEMP = judgeTmp;
+		process.env.TMP = judgeTmp;
+		let cwdRes = null, cwdErr = "";
+		try {
+			cwdRes = run(stub("cwd", `process.stdout.write(JSON.stringify({is_error:false,structured_output:{labels:[],cwd:process.cwd()},modelUsage:{"claude-opus-5-5":{}}}))`));
+		} catch (e) {
+			cwdErr = e.message;
+		} finally {
+			if (savedTMPDIR === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = savedTMPDIR;
+			if (savedTEMP === undefined) delete process.env.TEMP; else process.env.TEMP = savedTEMP;
+			if (savedTMP === undefined) delete process.env.TMP; else process.env.TMP = savedTMP;
+		}
+		// req: R-1520
+		check("R-1520: the judge child starts in the OS temp folder, not a fixed /tmp", cwdRes !== null && fs.realpathSync.native(cwdRes.out.cwd) === fs.realpathSync.native(judgeTmp), cwdErr || `${cwdRes?.out?.cwd} vs ${judgeTmp}`);
+	}
 	const L = (id, d, q) => ({ id, is_finding: true, top: "functional", sub: "logic", surface: "none", validity: "PLAUSIBLE", disposition: d, fix_quote: q, origin: "worker_impl", relation: "n/a", rationale: "" });
 	check("labels: missing id → throws", throws(() => validateLabels({ labels: [L("a", "unmatched", "")] }, ["a", "b"], ""), /missing b/));
 	const v = validateLabels({ labels: [L("a", "accepted", "Fix   these\nnow"), L("b", "accepted", "invented text")] }, ["a", "b"], "## Fix these now please");
