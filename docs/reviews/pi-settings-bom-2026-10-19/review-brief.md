@@ -1,0 +1,52 @@
+# Review — pi-settings-bom (doctor and install read pi's own settings file saved with a byte-order mark), 2026-10-19 (Opus, the final reviewer)
+
+Feature: FEAT-015 · Diagnose the active environment
+
+Review `git diff 22ccd849..HEAD` on `feat/pi-settings-bom` (main was `22ccd849` when the lane branched; `git merge-base
+HEAD main` is `22ccd849`). Main has since moved to `f497c5ad` (the review-ledger-run-reviewer, adopt-structure-markers
+and stale-copies-hooks lands), so the land needs a merge of main and a confirmation round on the merged tip. The plan
+of record is `docs/reviews/pi-settings-bom-2026-10-19/must-meet.md`: three must-meet checks, rows R-1810 to R-1812.
+`plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the build (cb1e0ba2). The seat's record is
+`seat-verify-cb1e0ba.md`: CI run 39334448538 on draft pull request #80, 0 failing files on all three legs (the Windows
+log `ci-windows-run-1.log` beside it), the wrong-code pairs (`seat-mutate.mjs`, `seat-mutate-output-cb1e0ba2.txt`: 4
+of 4 red, 0 survived, two declared items) and the independent check (`independent-check-cb1e0ba.md`: HOLDS, no MUST,
+ten probes; its one known bug is a HANDOFF residual). The local macOS install check runs before the land.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement 22ccd84..51ac579: 3 rows in 1 features
+FEAT-015 · Diagnose the active environment
+  R-1810 new (implemented)
+  R-1811 new (implemented)
+  R-1812 new (implemented)
+```
+
+No existing row changed. CAP-04 moves from 354 to 357 rows and FEAT-015 from 76 to 79.
+
+The code under review: `packageCoverage` in `packages/nana-setup/lib/steps.mjs` (install's pi packages step, and
+through `registrationState` doctor's pi packages row) and `packageSourceState` in `packages/nana-setup/lib/doctor.mjs`
+(doctor's pi package source row, plus one import line) now parse pi's settings file with `parseJsonText` from
+`packages/nana-pack/lib/json-text.mjs`, which removes exactly one leading U+FEFF; each keeps its catch and fallback.
+The checks: R-1810 and R-1812 in `packages/nana-setup/tests/doctor-package-source.test.mjs`, R-1811 in
+`packages/nana-setup/tests/pi-registration.test.mjs`, whose live-machine settings reader also switches to the same
+parser (the one existing check that changed, named in the brief).
+
+Judge whether doctor's two rows and install's pi packages step now read a settings file with one leading mark, LF or
+CRLF, exactly as the same file without it (R-1810, R-1811); whether text that is not valid JSON once one mark is
+removed still gives no package entries (R-1812); and whether an unmarked, missing or malformed file reads as on main.
+Judge too whether each check would fail with the change removed: the builder's six tries and the seat's four pairs
+cover macOS; on Windows, CI shows all three checks pass.
+
+Threat model: honest variation in our tools' output and the OS is in scope (pi's settings file re-saved by an editor
+or shell that writes a UTF-8 mark, such as Windows PowerShell 5.1; LF or CRLF; relative, absolute, remote and
+object-form entries; malformed text; macOS, Linux and Windows); deliberate forgery is out. Lane class: install, hook or
+gate — doctor and install in nana-setup.
+
+Check: (1) the three must-meet checks are not vacuous: R-1810 anchors its unmarked baseline statuses and fails on
+main's plain parse at either site, R-1811 fails on main's `packageCoverage` and starts no program even when broken,
+and R-1812 fails when more than one mark is removed; (2) both sites keep their catch and fallback, and nothing writes
+pi's settings file back; (3) nothing main does today stopped working for an unmarked, missing or malformed file on
+macOS, Linux or Windows; (4) the tests write only inside the temp folders and temp homes they own and clean up; (5)
+HANDOFF and the session entry are true, including the removed bom-pack-config residual, the three new residuals and
+the widened byte-order-mark question for the owner; (6) any MUST.

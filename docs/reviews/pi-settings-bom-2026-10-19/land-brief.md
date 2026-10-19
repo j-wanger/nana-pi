@@ -1,0 +1,48 @@
+# Review — pi-settings-bom (doctor and install read pi's own settings file saved with a byte-order mark), 2026-10-19 (Fable, the land reviewer)
+
+Feature: FEAT-015 · Diagnose the active environment
+
+Review `git diff 22ccd849..HEAD` on `feat/pi-settings-bom` (main was `22ccd849` when the lane branched; `git merge-base
+HEAD main` is `22ccd849`). Main has since moved to `f497c5ad` (the review-ledger-run-reviewer, adopt-structure-markers
+and stale-copies-hooks lands), so the land needs a merge of main and a confirmation round on the merged tip. The plan
+of record is `docs/reviews/pi-settings-bom-2026-10-19/must-meet.md`: three must-meet checks, rows R-1810 to R-1812.
+`plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the build (cb1e0ba2). The seat's record is
+`seat-verify-cb1e0ba.md`: CI run 39334448538 on macOS, Ubuntu and Windows, 0 failing files on each
+(`ci-windows-run-1.log` beside it), the wrong-code pairs (`seat-mutate.mjs`, `seat-mutate-output-cb1e0ba2.txt`: 4 of
+4 red, 0 survived, two declared items) and the independent check (`independent-check-cb1e0ba.md`: HOLDS, no MUST, ten
+probes). The final reviewer's brief is `review-brief.md`. The local macOS install check runs before the land.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement 22ccd84..51ac579: 3 rows in 1 features
+FEAT-015 · Diagnose the active environment
+  R-1810 new (implemented)
+  R-1811 new (implemented)
+  R-1812 new (implemented)
+```
+
+The code under review: `packageCoverage` in `packages/nana-setup/lib/steps.mjs` and `packageSourceState` in
+`packages/nana-setup/lib/doctor.mjs` now parse pi's settings file with `parseJsonText`
+(`packages/nana-pack/lib/json-text.mjs`), which removes exactly one leading U+FEFF; each keeps its catch and fallback,
+and doctor.mjs gains one import line. Three new checks sit in `packages/nana-setup/tests/doctor-package-source.test.mjs`
+and `packages/nana-setup/tests/pi-registration.test.mjs`; the live-machine settings reader in pi-registration switches
+to the same parser.
+
+Judge whether the lane fails open: text that is not valid JSON once one mark is removed read as package entries, a
+settings file that does not register nana reported as registered, so install skips a registration pi needs, or doctor
+showing ✓ where pi itself would not load the package. Judge whether it leaves a harm the review standard lists: a broken
+install or doctor run, pi's settings file rewritten or lost, or a test writing outside the temp folders and temp homes it
+owns. Judge whether anything main does today stopped working: doctor's pi packages and pi package source rows and
+install's pi packages step for an unmarked, missing or malformed settings file, the remote and object-form entries, and
+pi registration on Windows. One known change: a file holding a mark then `null` read as not covered on main and now
+crashes doctor and the install dry run, as an unmarked `null` already did on main. pi always writes an object, so the
+seat records it as a residual outside honest variation; judge whether that is a harm the standard lists or a known bug.
+
+Threat model: honest variation in our tools' output and the OS is in scope (pi's settings file re-saved by an editor
+or shell that writes a UTF-8 mark, such as Windows PowerShell 5.1; LF or CRLF; relative, absolute, remote and
+object-form entries; malformed text; macOS, Linux and Windows); deliberate forgery is out. Lane class: install, hook or
+gate — doctor and install in nana-setup.
+
+Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
+(4) HANDOFF and the session entry are true; (5) any MUST.
