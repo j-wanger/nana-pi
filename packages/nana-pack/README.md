@@ -85,7 +85,9 @@ An independent review is run by a `pi` (Codex) call, and that endpoint intermitt
 `pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
 liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
 the whole process group and retries with a fresh session (`--retries N` = re-attempts after the
-first; default 2). SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
+first; default 2). The watchdog ends an attempt as soon as pi exits, rather than waiting for the
+next poll tick, and treats a pi killed by a signal the watchdog did not send as a failed attempt
+that is retried. SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
 non-empty *and* contains a case-sensitive line-start `VERDICT` word (the predicate lives
 in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
 exit 0 means the review is in `--out`, exit 1 means every attempt failed.
