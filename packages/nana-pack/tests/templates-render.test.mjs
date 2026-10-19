@@ -1108,16 +1108,17 @@ if (!version) {
 	// -------------------------------------------- R-1440 to R-1443: cp1252/ascii output
 	// Python only: an extra scaffold render carrying a non-ASCII fixture (a README path
 	// claim and a module path neither ASCII nor cp1252 holds), removed in `finally`.
-	const encFixtureTitles = [
-		"python: the readme check prints every line under ASCII and cp1252 output",
-		"python: the code map check prints every line under ASCII and cp1252 output",
-		"python: the code map impact view prints every line under ASCII and cp1252 output",
-		"python: the readme check and code map print a non-ASCII path unescaped under UTF-8 output",
-	];
 	const encFixture = render("python", { ...LANGS.python.answers, adopt: "false" });
 	try {
 		if (!encFixture.ok) {
-			for (const title of encFixtureTitles) check(title, false, encFixture.out.slice(-800));
+			// req: R-1440
+			check("python: the readme check prints every line under ASCII and cp1252 output", false, encFixture.out.slice(-800));
+			// req: R-1441
+			check("python: the code map check prints every line under ASCII and cp1252 output", false, encFixture.out.slice(-800));
+			// req: R-1442
+			check("python: the code map impact view prints every line under ASCII and cp1252 output", false, encFixture.out.slice(-800));
+			// req: R-1443
+			check("python: the readme check and code map print a non-ASCII path unescaped under UTF-8 output", false, encFixture.out.slice(-800));
 		} else {
 			const readmeFile = path.join(encFixture.dest, "README.md");
 			fs.appendFileSync(readmeFile, "\nSee `docs/λ-notes.md` and `docs/gone.md`.\n");
@@ -1127,20 +1128,20 @@ if (!version) {
 			const readmeCheckCmp = compareAcrossEncodings(py, ["scripts/readme_check.py"], encFixture.dest);
 			const readmeListCmp = compareAcrossEncodings(py, ["scripts/readme_check.py", "--list"], encFixture.dest);
 			// req: R-1440
-			check(encFixtureTitles[0], readmeCheckCmp.ok && readmeListCmp.ok, [readmeCheckCmp.why, readmeListCmp.why].filter(Boolean).join(" || "));
+			check("python: the readme check prints every line under ASCII and cp1252 output", readmeCheckCmp.ok && readmeListCmp.ok, [readmeCheckCmp.why, readmeListCmp.why].filter(Boolean).join(" || "));
 
 			const mapCheckCmp = compareAcrossEncodings(py, ["scripts/code_map.py", "--check"], encFixture.dest);
 			// req: R-1441
-			check(encFixtureTitles[1], mapCheckCmp.ok, mapCheckCmp.why);
+			check("python: the code map check prints every line under ASCII and cp1252 output", mapCheckCmp.ok, mapCheckCmp.why);
 
 			// Literal string, not path.join: the fixture names a forward-slash path.
 			const mapImpactCmp = compareAcrossEncodings(py, ["scripts/code_map.py", "--impact", "src/tpl_py/modλ.py"], encFixture.dest);
 			// req: R-1442
-			check(encFixtureTitles[2], mapImpactCmp.ok, mapImpactCmp.why);
+			check("python: the code map impact view prints every line under ASCII and cp1252 output", mapImpactCmp.ok, mapImpactCmp.why);
 
 			const utf8Runs = [readmeCheckCmp, readmeListCmp, mapCheckCmp, mapImpactCmp];
 			// req: R-1443
-			check(encFixtureTitles[3], utf8Runs.every((r) => r.utf8Stdout.includes("λ")), utf8Runs.map((r) => r.utf8Stdout.includes("λ")).join(","));
+			check("python: the readme check and code map print a non-ASCII path unescaped under UTF-8 output", utf8Runs.every((r) => r.utf8Stdout.includes("λ")), utf8Runs.map((r) => r.utf8Stdout.includes("λ")).join(","));
 		}
 	} finally {
 		fs.rmSync(encFixture.dest, { recursive: true, force: true });
