@@ -1,0 +1,43 @@
+# Review — report-not-passed (the product report's Issues view lists implemented rows whose tests did not pass in this clone's last measured run), 2026-10-19 (Opus, the lane's one final reviewer)
+
+Feature: FEAT-039 · See the product and its decisions in one report
+
+Review `git diff 713d6aa..HEAD` on `feat/report-not-passed` (main was `713d6aa` when the lane last merged it and is
+`a1d07f6` now, after audit-open-questions landed; `git merge-base HEAD main` is `713d6aa`). audit-open-questions also
+edits `scripts/product-report.mjs`; the seat merges `a1d07f6` before this review, and a chain note will name that merge.
+The plan of record is `docs/reviews/report-not-passed-2026-10-19/must-meet.md` (rows R-1650 to R-1655), with the
+adversary's amendments in `plan-attack.md` and the build in `build-brief-1.md`. The seat's record
+`seat-verify-81efff9.md` holds CI, the Windows log beside it.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement 713d6aa..81efff9: 6 rows in 1 features
+FEAT-039 · See the product and its decisions in one report
+  R-1650 new (implemented)
+  R-1651 new (implemented)
+  R-1652 new (implemented)
+  R-1653 new (implemented)
+  R-1654 new (implemented)
+  R-1655 new (implemented)
+```
+
+Judge whether the written page's Issues view lists exactly the implemented rows that did not pass: a row is listed when
+any of its unique cited files last recorded FAIL, or when every cited file has a recorded run and none recorded PASS; a
+file with no recorded run counts neither way; a row citing no file is never listed; and the changed-since mark never
+enters the decision. Judge whether the heading states the number of rows listed under it (drawn at 0 too), whether the
+violated cards and legend above it are unchanged, and whether each of the six checks would fail if its behaviour were
+removed, given that the renderer ships to the page as source and the checks run the written page's own script.
+
+Threat model: honest variation in our tools' output and the OS in scope (PASS, FAIL or SKIP labels, missing or
+other-schema runtime data, files changed since the run, files with no recorded run, Python or TypeScript citations);
+deliberate forgery out, including a forged runtime-data file. Lane class: ordinary — the report
+script, its test, the ledger, the README paragraph, the tree outline and the R-291 leaf total.
+
+Check: (1) the six must-meet checks are not vacuous: each fails with its feature removed (per the builder, eight
+wrong-code tries each turned their named check red); (2) the rule reads the run states the report already computes and
+no new data, and `renderInto` reads nothing from module scope; (3) listed rows keep ledger order, carry no duplicates
+and share the violated entries' shape; (4) the existing checks, both R-1017 checks included, are unchanged except R-291's
+leaf total; (5) no test writes outside its temp folders; (6) the README paragraph, the row texts and the tree say what
+the code does, and the page's note never says "verified"; (7) HANDOFF, its four "Not-passed list" residual lines and the
+session entry are true; (8) any MUST.
