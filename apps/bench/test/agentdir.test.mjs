@@ -72,7 +72,11 @@ try {
 	check("…pointing at the operator's file", path.resolve(dir, await fs.readlink(path.join(dir, "auth.json"))) === path.join(src, "auth.json"));
 	check("models.json copied when present (a catalog, not a credential)", prep.seeded.includes("models.json"));
 	const mode = (p) => fs.stat(p).then((s) => s.mode & 0o777);
-	check("the dir is 0700", (await mode(dir)) === 0o700, (await mode(dir)).toString(8));
+	if (process.platform === "win32") {
+		console.log("SKIP the dir is 0700 — Windows has no POSIX mode bits to hold");
+	} else {
+		check("the dir is 0700", (await mode(dir)) === 0o700, (await mode(dir)).toString(8));
+	}
 
 	// 3. a stale dir is rebuilt, not merged into
 	await fs.writeFile(path.join(dir, "leftover.json"), "{}");

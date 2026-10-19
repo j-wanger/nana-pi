@@ -58,6 +58,13 @@ const linkTarget = (p) => {
 		return null;
 	}
 };
+const lstatSafe = (p) => {
+	try {
+		return fs.lstatSync(p);
+	} catch {
+		return null;
+	}
+};
 
 try {
 	/* --- 0. the sources exist and are what the installer claims ------------------------- */
@@ -187,25 +194,60 @@ try {
 			fs.rmSync(target, { recursive: true, force: true });
 			check("occupied skill dir: green once it is moved away", run(["install", "--home", occupied]).status === 0 && run(["doctor", "--home", occupied]).status === 0);
 		} else {
-			// win32 KNOWN BUG (the seat's ruling, 2026-10-18 — declared, not fixed by this lane):
-			// mirrorDirsProblem refuses only a symlink or junction at the skill path; a plain
-			// pre-existing directory is not a protected shape there, so linkFile's copy branch
-			// backs the owner's file up and overwrites it with the pack's copy, and install
-			// exits 0. This asserts that declared Windows shape, confirmed against the real CLI.
-			const baks = () => fs.readdirSync(target).filter((f) => f.includes(".bak-"));
-			check("win32 occupied skill dir: install EXITS 0 (known bug — the directory guard does not cover a plain occupied directory)", r.status === 0, String(r.status));
-			check("win32 occupied skill dir: the owner's exact bytes survive in one .bak- file inside the skill folder", baks().length === 1 && fs.readFileSync(path.join(target, baks()[0]), "utf8") === "---\nname: requirements\n---\n# MINE\n", baks().join(","));
-			check("win32 occupied skill dir: no .bak- folder at the skills root — no second skill claims the name", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
-			check("win32 occupied skill dir: the installed SKILL.md equals the pack's source", fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
-			const dryOccupied = freshHome();
-			const dryTarget = path.join(dryOccupied, ".claude", "skills", "requirements");
-			fs.mkdirSync(dryTarget, { recursive: true });
-			fs.writeFileSync(path.join(dryTarget, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
-			const dryRun = run(["install", "--home", dryOccupied, "--dry-run"]);
-			check("win32 occupied skill dir: --dry-run reports the change and writes nothing", dryRun.status === 0 && /skill requirements\s+updated/.test(dryRun.stdout) && fs.readFileSync(path.join(dryTarget, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n" && !fs.readdirSync(dryTarget).some((f) => f.includes(".bak-")), dryRun.stdout);
-			const d = run(["doctor", "--home", occupied]);
-			check("win32 occupied skill dir: doctor reads the mirror as healthy", d.status === 0 && /✓ skill requirements\s+copied from .* \(no symlink on this platform\)/.test(d.stdout), d.stdout);
+			console.log("SKIP win32 occupied skill dir (the POSIX refusal expects a symlink fix; section 4b runs the win32 refusal natively)");
+			skips++;
 		}
+	}
+
+	/* --- 4b. win32: a directory nana-setup did not make is refused, never clobbered ------- */
+	{
+		const env = process.platform === "win32" ? {} : { NANA_SETUP_PLATFORM: "win32" };
+		const snapshot = (dir) =>
+			fs
+				.readdirSync(dir, { recursive: true })
+				.sort()
+				.map((f) => {
+					const p = path.join(dir, f);
+					const st = fs.lstatSync(p);
+					return `${f}:${st.isDirectory() ? "dir" : st.isSymbolicLink() ? `link>${fs.readlinkSync(p)}` : fs.readFileSync(p).toString("hex")}`;
+				})
+				.join("|");
+
+		const occupied = freshHome();
+		const target = path.join(occupied, ".claude", "skills", "requirements");
+		fs.mkdirSync(target, { recursive: true });
+		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
+		const before = snapshot(target);
+		const r = run(["install", "--home", occupied], env);
+		// req: R-1420
+		check("win32 occupied skill dir: install exits 1 with ✗ naming the directory and the fix", r.status === 1 && /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), `${r.status}\n${r.stdout}`);
+		// req: R-1421
+		check("win32 occupied skill dir: the owner's folder is byte-identical after install", snapshot(target) === before, `${before}\n  ->\n  ${snapshot(target)}`);
+		const dry = run(["install", "--home", occupied, "--dry-run"], env);
+		// req: R-1422
+		check("win32 occupied skill dir: --dry-run exits 1 and leaves the folder unchanged", dry.status === 1 && snapshot(target) === before, `${dry.status}\n${dry.stdout}`);
+		const d = run(["doctor", "--home", occupied], env);
+		// req: R-1423
+		check("win32 occupied skill dir: doctor reads ✗ — a directory instead of nana-setup's copy — with the move fix", d.status === 1 && /✗ skill requirements\s+a directory is there instead of nana-setup's copy of .* — move it, then re-run `nana-setup install`/.test(d.stdout), d.stdout);
+
+		const fixture = fs.readFileSync(path.join(pkg, "tests", "fixtures", "skill-copy", "requirements-0499e52.md"), "utf8").replace(/\r\n/g, "\n");
+		const preMarkerResults = [["LF", fixture], ["CRLF", fixture.replace(/\n/g, "\r\n")]].map(([label, body]) => {
+			const home = freshHome();
+			const preTarget = path.join(home, ".claude", "skills", "requirements");
+			fs.mkdirSync(preTarget, { recursive: true });
+			fs.writeFileSync(path.join(preTarget, "SKILL.md"), body);
+			const pr = run(["install", "--home", home], env);
+			return { label, ok: pr.status === 0 && fs.readFileSync(path.join(preTarget, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))), status: pr.status, stdout: pr.stdout };
+		});
+		// req: R-1424
+		check("win32 pre-marker copy: install exits 0 and refreshes a shipped older SKILL.md, LF and CRLF", preMarkerResults.every((result) => result.ok), preMarkerResults.map((result) => `${result.label}: ${result.status}\n${result.stdout}`).join("\n---\n"));
+
+		const fresh = freshHome();
+		const freshTarget = path.join(fresh, ".claude", "skills", "requirements");
+		run(["install", "--home", fresh], env);
+		const markerStat = lstatSafe(path.join(freshTarget, ".nana-setup-copy"));
+		// req: R-1425
+		check("win32 fresh mirror: install writes the .nana-setup-copy marker", !!markerStat && markerStat.isFile() && !markerStat.isSymbolicLink());
 	}
 
 	/* --- 5. a symlink pointing somewhere ELSE is relinked --------------------------------- */
@@ -256,6 +298,7 @@ try {
 		const d = run(["doctor", "--home", w], env);
 		check("win32: doctor reads ✗ on a stale copy, naming the file", /✗ skill requirements\s+copy is stale or incomplete \(SKILL\.md\)/.test(d.stdout), d.stdout);
 		const fix = run(["install", "--home", w], env);
+		// req: R-1426
 		check("win32: install refreshes the stale copy", fix.status === 0 && fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		const baks = fs.readdirSync(target).filter((f) => f.includes(".bak-"));
 		check("win32: the hand-written file was backed up, not destroyed", baks.length === 1 && fs.readFileSync(path.join(target, baks[0]), "utf8").includes("HAND-WRITTEN"), baks.join(","));
