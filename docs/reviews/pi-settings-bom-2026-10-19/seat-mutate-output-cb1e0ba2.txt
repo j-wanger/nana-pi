@@ -1,0 +1,13 @@
+seat-mutate: lane pi-settings-bom, tip cb1e0ba255fcf727fe7d5b3621e8e6d74c3f7fb1, table 1f0c3f4a69bcb35d59e2f3e3c01a034b9567a8705a3cdad346a04a4212204a42, merge-base 22ccd8493048ea4758891c286b93bed83cdc555d, 4 pairs in 1 shards (4, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-19T22:28:33.069Z
+DECLARED (a) two pairs per product site: M1 and M2 restore main's plain JSON.parse; M3 and M4 strip more than one leading mark, the wrong forms the plan's probe A4 names, so R-1812 has a pair
+DECLARED (b) doctor.mjs's added import line is not a pair of its own; M1 leaves it in place, unused
+DECLARED (c) the live-machine check's reader in pi-registration.test.mjs is test code and has no pair
+[1/1] seat-mutate: lane pi-settings-bom, shard 1/1, tip cb1e0ba255fcf727fe7d5b3621e8e6d74c3f7fb1, merge-base 22ccd8493048ea4758891c286b93bed83cdc555d, 4 pairs, darwin, node v22.22.2, 2026-10-19T22:28:33.703Z
+[1/1] BASELINE ok   packages/nana-setup/tests/doctor-package-source.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/pi-registration.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[1/1] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 packageSourceState parses pi's settings with plain JSON.parse (main) — 1/1 named: doctor prints the pi packages and pi package source rows for a pi settings.json saved with a byte-o…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 packageCoverage parses pi's settings with plain JSON.parse (main) — 2/2 named: doctor prints the pi packages and pi package source rows for a pi settings.json saved with a byte-o… | install reports a pi settings.json saved with a byte-order mark as registered and starts no pi; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 packageSourceState removes every mark in pi's settings before parsing — 1/1 named: two leading marks, a mark inside the object or malformed text after one mark leave pi's settings wi…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 packageCoverage removes a leading run of marks in pi's settings before parsing — 1/1 named: two leading marks, a mark inside the object or malformed text after one mark leave pi's settings wi…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards

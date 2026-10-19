@@ -19,6 +19,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findPi } from "../../nana-pack/lib/win-command.mjs";
+import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -193,6 +194,18 @@ function piHomeWith(packages) {
 	} finally { process.env.PATH = savedPath; }
 }
 
+{
+	const home = piHomeWith(null);
+	const agent = path.join(home, ".pi", "agent");
+	const settings = JSON.stringify({ packages: [path.relative(agent, repo)] }, null, 2) + "\n";
+	fs.writeFileSync(path.join(agent, "settings.json"), ("\uFEFF" + settings).replace(/\n/g, "\r\n"));
+	const calls = [];
+	const spawn = (command, args, options) => { calls.push({ command, args, options }); return { status: 0, stdout: "1.0.2", stderr: "" }; };
+	const result = stepPiRegister({ ...resolveLayout({ home }), isRealHome: true }, {}, { spawn });
+	// req: R-1811
+	check("install reports a pi settings.json saved with a byte-order mark as registered and starts no pi", result.length === 1 && result[0]?.status === "unchanged" && calls.length === 0, JSON.stringify({ result, calls }));
+}
+
 /* --- a WORKTREE of the same repo is the same repo --------------------------------------- */
 {
 	// This is the exact shape sol r1 flagged: the installer runs from a worktree
@@ -259,7 +272,7 @@ function piHomeWith(packages) {
 	if (!fs.existsSync(live)) {
 		console.log("SKIP no ~/.pi/agent/settings.json on this machine");
 	} else {
-		const entries = JSON.parse(fs.readFileSync(live, "utf8")).packages ?? [];
+		const entries = parseJsonText(fs.readFileSync(live, "utf8")).packages ?? [];
 		const canonical = path.join(os.homedir(), "nana-pi");
 		if (!fs.existsSync(canonical)) console.log("SKIP no ~/nana-pi clone on this machine");
 		else
