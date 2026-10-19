@@ -106,17 +106,26 @@ counted in a user-scope ledger — never from the output file name, and the same
   Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
   **one** round: a round is one review pass over one state of the work, and a fix makes a new
   commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
-  not by this cap). A **dirty tree** is its own state: when the working tree's *content* differs
-  from HEAD's, its revision is `<HEAD sha>+snap:<full sha256 of a content snapshot>`. The snapshot
-  covers every path in HEAD's tree, the index, and the untracked files that `.gitignore` does not
-  ignore; per path present on disk, in byte order: file mode as on disk (644/755 by the owner-x
-  bit, symlink, submodule), then the sha256 of the **raw bytes** (a symlink's target; a
-  submodule's own revision, recursively). It never renders a diff, so diff/color/prefix config,
-  EOL normalization, clean filters and `core.fileMode` cannot merge two states, and staging does
-  not change it: staged and unstaged of one content are **one** revision (so `git add` alone earns
-  no round), while a new untracked, non-ignored file is a new state. Reverting to an already-reviewed state earns no round. Ledger
-  lines carry both parts as `head` and `snapshot` (`snapshot: null` when clean). **Any git
-  failure refuses admission** with git's error — it is never read as "clean". `--revision` is only a fallback when the reviewed git tree has no HEAD; otherwise it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
+  not by this cap). A **dirty tree** is its own state (W7c amend, 2026-10-18): the revision is the
+  tree `git add -A` would record on top of HEAD, plus any dirty or new nested repository; when that
+  differs from HEAD, the revision is `<HEAD sha>+snap:<full sha256 of the working-state snapshot>`.
+  Derivation never writes the repository or its real index — a throwaway index is seeded from HEAD
+  (never a copy of the real one) and a throwaway object folder borrows the repo's objects through
+  its own *objects/info/alternates* file (one absolute path per line; a git-internal path, not one
+  of nana-pi's own files). Because the tree is what git itself would stage, git's own
+  `core.fileMode`, `core.autocrlf`, `core.symlinks`, `.gitattributes`, clean filters and ignores
+  apply, so a checkout **git itself calls clean reads clean** here too — whatever raw bytes or
+  filesystem mode happen to be on disk (an `rsync`'d Windows checkout, a lost execute bit under
+  `core.fileMode=false`, a CRLF checkout under `core.autocrlf=true`). A configured clean filter runs
+  during derivation and may write outside the throwaway folder or behave non-deterministically; a
+  non-reproducible dirty tree then refuses pi-review's checkout equality check (below), not this
+  derivation. It never renders a diff, so diff/color/prefix config cannot merge two states, and
+  staging does not change it: staged and unstaged of one content are **one** revision (so `git add`
+  alone earns no round, and so does `git rm --cached` of content still checked out unchanged),
+  while a new untracked, non-ignored file or directory is a new state. Reverting to an
+  already-reviewed state earns no round. Ledger lines carry both parts as `head` and `snapshot`
+  (`snapshot: null` when clean). **Any git failure refuses admission** with git's error — it is
+  never read as "clean". `--revision` is only a fallback when the reviewed git tree has no HEAD; otherwise it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
 - **A completed verdict earns the round — with one exception.** A stall, an infrastructure failure
   or a timeout returns the reservation. The exception is below: a completion whose tree changed
   during the review still consumes the round, as *unverified*. A completion must own a live reservation: an expired, pruned or

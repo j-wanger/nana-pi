@@ -787,36 +787,112 @@ if (process.platform !== "win32") {
 	fs.rmSync(path.join(S.d, "new.txt"));
 	check("…and removing it returns to the clean sha", revOf(S.d) === clean);
 
-	const E = repo("E", 0);
-	fs.writeFileSync(path.join(E.d, ".gitattributes"), "* text=auto\n");
-	fs.writeFileSync(path.join(E.d, "t.txt"), "l1\nl2\n");
-	gitIn(E.d, "add", "."); gitIn(E.d, "commit", "-qm", "lf");
-	const eLF = revOf(E.d);
-	fs.writeFileSync(path.join(E.d, "t.txt"), "l1\r\nl2\r\n");
-	// req: R-709
-	check("collapse: CRLF vs LF under text=auto (git diff empty) → distinct", eLF === gitIn(E.d, "rev-parse", "HEAD") && revOf(E.d) !== eLF && rendered(E.d) === "", rendered(E.d));
+	// clean-revision (W7c amend, 2026-10-18): a checkout git itself calls clean now retains plain
+	// HEAD (R-1370, R-1371, R-1373), reversing the collapse checks these replace (R-709's dated note).
+	const Mx = repo("Mx", 1); // commits "f" as a plain 100644 file
+	gitIn(Mx.d, "update-index", "--chmod=+x", "f"); // a committed mode, never chmod on disk
+	gitIn(Mx.d, "commit", "-qm", "exec");
+	const mxHead = gitIn(Mx.d, "rev-parse", "HEAD");
+	gitIn(Mx.d, "config", "core.fileMode", "false");
+	fs.chmodSync(path.join(Mx.d, "f"), 0o644); // the committed exec bit is lost on disk
+	const mxLsTree = gitIn(Mx.d, "ls-tree", "HEAD", "--", "f");
+	const mxDiffQuiet = spawnSync("git", ["diff", "--quiet", "HEAD", "--"], { cwd: Mx.d }).status;
+	// req: R-1370
+	check("lost committed exec bit retains plain HEAD",
+		/^100755/.test(mxLsTree) && mxDiffQuiet === 0 && revOf(Mx.d) === mxHead,
+		`lsTree=${mxLsTree} diffQuiet=${mxDiffQuiet} rev=${revOf(Mx.d)} head=${mxHead}`);
+
+	const Cr = repo("Cr", 0);
+	fs.writeFileSync(path.join(Cr.d, "t.txt"), "l1\nl2\n");
+	gitIn(Cr.d, "add", "."); gitIn(Cr.d, "commit", "-qm", "lf");
+	const crHead = gitIn(Cr.d, "rev-parse", "HEAD");
+	gitIn(Cr.d, "config", "core.autocrlf", "true");
+	fs.rmSync(path.join(Cr.d, "t.txt"));
+	gitIn(Cr.d, "checkout", "--", "t.txt"); // git itself writes the CRLF bytes back
+	const crBytes = fs.readFileSync(path.join(Cr.d, "t.txt"));
+	const crDiffQuiet = spawnSync("git", ["diff", "--quiet", "HEAD", "--"], { cwd: Cr.d }).status;
+	// req: R-1371
+	check("CRLF checkout retains plain HEAD",
+		crBytes.includes(0x0d) && crDiffQuiet === 0 && revOf(Cr.d) === crHead,
+		`bytes=${JSON.stringify(crBytes.toString())} diffQuiet=${crDiffQuiet} rev=${revOf(Cr.d)} head=${crHead}`);
+	gitIn(Cr.d, "rm", "-q", "--cached", "t.txt"); // index-only removal; the CRLF checkout stays on disk
+	const rcBytes = fs.readFileSync(path.join(Cr.d, "t.txt"));
+	// req: R-1376
+	check("cached removal of normalized content retains plain HEAD",
+		rcBytes.includes(0x0d) && revOf(Cr.d) === crHead,
+		`bytes=${JSON.stringify(rcBytes.toString())} rev=${revOf(Cr.d)} head=${crHead}`);
 
 	const M = repo("M", 1);
 	gitIn(M.d, "config", "core.fileMode", "false");
 	fs.chmodSync(path.join(M.d, "f"), 0o755);
-	if (process.platform !== "win32") {
-		// req: R-709
-		check("collapse: chmod +x under core.fileMode=false (git diff empty) → distinct", revOf(M.d) !== M.shas[0] && rendered(M.d) === "");
-	} else {
-		console.log("SKIP collapse: chmod +x under core.fileMode=false (git diff empty) → distinct — NTFS stores no exec bit");
-	}
 	fs.chmodSync(path.join(M.d, "f"), 0o644);
 	check("…chmod back → the clean sha", revOf(M.d) === M.shas[0]);
 
-	const F = repo("F", 0);
-	gitIn(F.d, "config", "filter.strip.clean", "sed -e 's/#.*//'");
-	gitIn(F.d, "config", "filter.strip.smudge", "cat");
-	fs.writeFileSync(path.join(F.d, ".gitattributes"), "*.c filter=strip\n");
-	fs.writeFileSync(path.join(F.d, "x.c"), "a\n");
-	gitIn(F.d, "add", "."); gitIn(F.d, "commit", "-qm", "c");
-	fs.writeFileSync(path.join(F.d, "x.c"), "a#one\n"); const f1 = revOf(F.d), d1 = rendered(F.d);
-	fs.writeFileSync(path.join(F.d, "x.c"), "a#two\n"); const f2 = revOf(F.d), d2 = rendered(F.d);
-	check("collapse: two contents one clean filter maps to the same blob (same rendered diff) → distinct", d1 === d2 && f1 !== f2 && f1.startsWith(gitIn(F.d, "rev-parse", "HEAD") + "+snap:"), `${d1 === d2} ${f1} ${f2}`);
+	const V = repo("V", 0);
+	fs.writeFileSync(path.join(V.d, "t.txt"), "orig\n");
+	gitIn(V.d, "add", "."); gitIn(V.d, "commit", "-qm", "base");
+	gitIn(V.d, "config", "core.autocrlf", "true");
+	gitIn(V.d, "config", "core.fileMode", "false");
+	const vSnaps = [];
+	for (const eol of ["\n", "\r\n"]) {
+		for (const mode of [0o644, 0o755]) {
+			fs.writeFileSync(path.join(V.d, "t.txt"), `orig${eol}edited${eol}`);
+			fs.chmodSync(path.join(V.d, "t.txt"), mode);
+			vSnaps.push(revOf(V.d));
+		}
+	}
+	fs.chmodSync(path.join(V.d, "t.txt"), 0o644);
+	// req: R-1373
+	check("normalized dirty copies share one snapshot",
+		new Set(vSnaps).size === 1 && /\+snap:[0-9a-f]{64}$/.test(vSnaps[0]), JSON.stringify(vSnaps));
+
+	const Gm = repo("Gm", 1);
+	fs.writeFileSync(path.join(Gm.d, "f"), "metadata-dirty");
+	const gmGitDir = path.join(Gm.d, ".git");
+	const gmSnapshot = () => {
+		const out = [];
+		const walk = (dir) => {
+			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+				const full = path.join(dir, entry.name);
+				const st = fs.lstatSync(full);
+				out.push(`${path.relative(gmGitDir, full)}\t${st.size}\t${st.mode}\t${st.mtimeMs}`);
+				if (entry.isDirectory()) walk(full);
+			}
+		};
+		walk(gmGitDir);
+		return out.sort().join("\n");
+	};
+	const gmBefore = gmSnapshot();
+	revOf(Gm.d); // a dirty derivation (no clean/smudge filter configured here)
+	const gmAfter = gmSnapshot();
+	// req: R-1375
+	check("snapshot derivation leaves git metadata unchanged", gmBefore === gmAfter, `changed: ${gmBefore !== gmAfter}`);
+
+	const specialBase = path.join(tmp, "special dir;日本語");
+	fs.mkdirSync(specialBase, { recursive: true });
+	const specialMain = path.join(specialBase, "main");
+	fs.mkdirSync(specialMain);
+	gitIn(specialMain, "init", "-q", "-b", "main");
+	fs.writeFileSync(path.join(specialMain, "f"), "base\n");
+	gitIn(specialMain, "add", "f"); gitIn(specialMain, "commit", "-qm", "base");
+	const specialHead = gitIn(specialMain, "rev-parse", "HEAD");
+	const specialWt = path.join(tmp, "special-wt");
+	gitIn(specialMain, "worktree", "add", "-q", "--detach", specialWt, specialHead);
+	const specialCleanRev = revOf(specialWt);
+	fs.writeFileSync(path.join(specialWt, "f"), "dirty content");
+	const specialDirtyRev = revOf(specialWt);
+	const ordMain = path.join(tmp, "OrdSpecial");
+	fs.mkdirSync(ordMain);
+	gitIn(ordMain, "init", "-q", "-b", "main");
+	fs.writeFileSync(path.join(ordMain, "f"), "base\n");
+	gitIn(ordMain, "add", "f"); gitIn(ordMain, "commit", "-qm", "base");
+	fs.writeFileSync(path.join(ordMain, "f"), "dirty content");
+	const ordDirtyRev = revOf(ordMain);
+	const snapOf = (rev) => String(rev).split("+snap:")[1];
+	// req: R-1377
+	check("scratch objects resolve a linked repository with special path characters",
+		specialCleanRev === specialHead && !!snapOf(specialDirtyRev) && snapOf(specialDirtyRev) === snapOf(ordDirtyRev),
+		`clean=${specialCleanRev} head=${specialHead} specialDirty=${specialDirtyRev} ordDirty=${ordDirtyRev}`);
 
 	const Sub = repo("Sub", 1), P = repo("P", 1);
 	spawnSync("git", ["-c", "protocol.file.allow=always", "-c", "user.name=t", "-c", "user.email=t@t", "submodule", "add", "-q", Sub.d, "sub"], { cwd: P.d });

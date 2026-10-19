@@ -3,12 +3,14 @@
  * @purpose The review round ledger — admit, project, complete and release one per-item review round under a
  *  user-scope lock.
  * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git
- *  state (common dir, HEAD, tracked and non-ignored untracked content), stdout/stderr file identities, env NANA_REVIEW_RES_STALE_MS, and
- *  the ledger files under ~/.pi/agent
+ *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
+ *  file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
  *  tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, and the projected round number
  * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally
- *  and the rotated audit log), process (spawns git through spawnSync, runs a renewing heartbeat interval)
+ *  and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the
+ *  working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing
+ *  heartbeat interval)
  * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
  *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap
  *  revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
@@ -55,10 +57,10 @@
 // (see README "Trust model").
 
 import {
-  openSync, closeSync, writeSync, readFileSync, fstatSync, lstatSync, mkdirSync, readdirSync,
-  unlinkSync, renameSync, realpathSync, readlinkSync, existsSync, futimesSync, constants as C,
+  openSync, closeSync, writeSync, writeFileSync, readFileSync, fstatSync, lstatSync, mkdirSync, mkdtempSync,
+  readdirSync, unlinkSync, renameSync, rmSync, realpathSync, readlinkSync, existsSync, futimesSync, constants as C,
 } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
@@ -70,6 +72,9 @@ export const REVIEW_ROUND_CAP = 3;
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
 export const SLUG_MAX = 128; // characters, after canonicalization
 const REVISION_MAX = 128;
+// chosen: names the throwaway scratch index+object folder workingState borrows the repo's objects into
+// (W7c amend, 2026-10-18), so a leftover from a crashed derivation is recognizable in the OS temp dir.
+export const SNAPSHOT_SCRATCH_PREFIX = 'nana-snapshot-';
 const LOCK_WAIT_MS = 15_000;
 const LOCK_ORPHAN_MS = 5_000; // a lock file with no readable pid, older than this, is a crashed create
 // A reservation is stale when its owner stops renewing it for this long (heartbeat every 1/5 of it).
@@ -136,10 +141,12 @@ export function optValue(args, name) {
 }
 
 /** Run git; THROWS with git's own error on any failure (sol r2 #10: never read a failure as "clean").
- *  Pinned config so nothing a user sets changes what is enumerated. */
-function gitOut(cwd, args, { okStatus = [0] } = {}) {
+ *  Pinned config so nothing a user sets changes what is enumerated. `env` (W7c amend, 2026-10-18)
+ *  overlays process.env — workingState's scratch derivation points GIT_INDEX_FILE and
+ *  GIT_OBJECT_DIRECTORY at a throwaway folder so the real index and object store are never written. */
+function gitOut(cwd, args, { okStatus = [0], env } = {}) {
   const r = spawnSync('git', ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', ...args],
-    { cwd, encoding: 'utf8', maxBuffer: 1 << 30 });
+    { cwd, encoding: 'utf8', maxBuffer: 1 << 30, env: env ? { ...process.env, ...env } : process.env });
   if (r.error) throw new Error(`git ${args[0]} could not run in ${cwd}: ${r.error.message} — admission refused`);
   if (!okStatus.includes(r.status)) {
     throw new Error(`git ${args.join(' ')} failed in ${cwd} (exit ${r.status ?? r.signal}): ` +
@@ -193,69 +200,96 @@ const nulList = (t) => t.split('\0').filter(Boolean);
 const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
 const sha256 = (...parts) => { const h = createHash('sha256'); for (const x of parts) h.update(x); return h.digest('hex'); };
 
-/** {head, snapshot}: snapshot = null when the working tree's content equals HEAD's tree, else the
- *  FULL sha256 of the working-state snapshot:
- *    files  = paths in HEAD's tree ∪ the index ∪ untracked files not ignored (--exclude-standard)
- *             — so staging/unstaging never moves a path in or out; an ignored file never counts
- *    record = "<mode> <sha256(raw bytes)>\t<path>\0" per path present on disk, in byte order of path;
- *             mode from the filesystem (100644 / 100755 by the owner-x bit, 120000 symlink →
- *             sha256 of its target, 160000 submodule → the submodule's own revision, recursively;
- *             an uninitialized submodule → its recorded commit). A missing path has no record.
- *  Raw bytes: no clean/smudge filter, no EOL normalization, no core.fileMode, no diff config.
- *  "Content equals HEAD" compares the same records by git object id against `git ls-tree -r HEAD`. */
+/** Write `objectsDir` as the scratch object folder's one alternate (W7c amend, 2026-10-18): the derivation
+ *  borrows the repo's objects by FILE, never by the delimiter-joined GIT_ALTERNATE_OBJECT_DIRECTORIES env
+ *  var, which breaks on a path holding the platform delimiter (plan-attack.md). One absolute path per line;
+ *  forward slashes on Windows (git's own alternates parser wants them); a path holding a newline cannot be
+ *  the sole line separator, so it refuses rather than risk a misread. */
+function writeAlternates(file, objectsDir) {
+  if (objectsDir.includes('\n')) {
+    throw new Error(`the repository's object directory ${JSON.stringify(objectsDir)} holds a newline — the scratch alternates file cannot encode it; admission refused`);
+  }
+  writeFileSync(file, `${process.platform === 'win32' ? objectsDir.split('\\').join('/') : objectsDir}\n`);
+}
+
+/** {head, snapshot}: snapshot = null when the working tree equals HEAD's tree and no nested repository is
+ *  dirty or new, else the FULL sha256 of "tree <id>\0" plus every nested record below, sorted in byte order.
+ *  The tree is what `git add -A` would record over HEAD (W7c amend, 2026-10-18 — plan-design.md, amended by
+ *  plan-attack.md): git applies its own core.fileMode, core.autocrlf, core.symlinks, .gitattributes, clean
+ *  filters and ignores, so a checkout git itself calls clean reads clean here too.
+ *  Built with:
+ *    - a THROWAWAY index seeded by `read-tree HEAD` (never a copy of the real index, R-710/R-1374 stay live);
+ *    - a THROWAWAY object folder that borrows the repo's objects through its `info/alternates` file (never
+ *      the real index or object store is written);
+ *    - the REAL index read first (the untracked-directory listing below), so a corrupt index still refuses
+ *      admission (R-712 stays live) before any scratch folder is created;
+ *    - `--out` paths (named by `exclude`) restored to HEAD after the add: `git add -A` can itself
+ *      re-case an ancestor directory to match an index entry already seeded from HEAD (a case-diverged
+ *      folder, MUST 1 of brief 2), so the excluded path's own file identity (dev+ino, win-review-paths'
+ *      case-diverged-folder fallback) finds the add's own git-listed spelling to reset, never a string compare;
+ *    - an untracked, non-ignored DIRECTORY (a new, uninitialized nested repository) excluded from the add —
+ *      an unborn one makes `git add -A` exit 128 — and folded in instead by a recursive call, always
+ *      recorded as "new <head|unborn>[+snap:x]\t<path>" (a change, like R-835);
+ *    - an initialized submodule (160000 in the post-add scratch index) folded in by the same recursion,
+ *      recorded as "sub <head>+snap:<x>\t<path>" only when dirty — a clean one needs no record, since its
+ *      gitlink already lands on its HEAD commit, same as the superproject's own tree.
+ *  "Equals HEAD" compares the scratch tree's id against `git rev-parse <head>^{tree}`. */
 export function workingState(root, exclude = []) {
   const head = headOf(root);
   if (!head) return { head: null, snapshot: null };
-  const fmt = gitOut(root, ['rev-parse', '--show-object-format']).stdout.trim() || 'sha1';
-  const blobId = (buf) => createHash(fmt === 'sha256' ? 'sha256' : 'sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
-  const inHead = new Map();
-  for (const rec of nulList(gitOut(root, ['ls-tree', '-r', '-z', '--full-tree', head]).stdout)) {
-    const m = /^(\d+) \w+ ([0-9a-f]+)\t([\s\S]+)$/.exec(rec);
-    if (!m) throw new Error(`git ls-tree: unparseable entry ${JSON.stringify(rec.slice(0, 60))} — admission refused`);
-    inHead.set(m[3], `${m[1]} ${m[2]}`);
-  }
-  const gitlink = new Map();
-  const paths = new Set(inHead.keys());
-  for (const rec of nulList(gitOut(root, ['ls-files', '-z', '--stage']).stdout)) {
-    const m = /^(\d+) ([0-9a-f]+) \d\t([\s\S]+)$/.exec(rec);
-    if (!m) throw new Error(`git ls-files: unparseable entry ${JSON.stringify(rec.slice(0, 60))} — admission refused`);
-    paths.add(m[3]);
-    if (m[1] === '160000') gitlink.set(m[3], m[2]);
-  }
-  for (const p of nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)) paths.add(p.replace(/\/$/, ''));
-  for (const p of inHead.keys()) if (inHead.get(p).startsWith('160000 ')) gitlink.set(p, gitlink.get(p) ?? inHead.get(p).split(' ')[1]);
+  // Reads the REAL index (git needs it to know what is "other"), so a corrupt index still refuses here,
+  // before any scratch folder exists (R-712).
+  const nested = nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)
+    .filter((p) => p.endsWith('/')).map((p) => p.slice(0, -1));
   const skip = new Set(exclude.map((x) => relUnder(root, realOut(x))).filter(Boolean).map(gitPathKey));
   // MUST 1 (brief 3): git's untracked listing carries the disk case here, so the path-key skip
-  // above handles the case-diverged folder without relying on a potentially lossy file identity.
-
-  const records = [], ids = [];
-  for (const p of [...paths].sort(byteOrder)) {
-    if (skip.has(gitPathKey(p))) continue;
-    if (p.includes('�')) throw new Error(`path ${JSON.stringify(p)} is not valid UTF-8 — the snapshot cannot read it; admission refused`);
-    const full = join(root, p);
-    let st;
-    try { st = lstatSync(full); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') continue; throw e; }
-    let mode, content, id;
-    if (st.isSymbolicLink()) {
-      const t = readlinkSync(full, { encoding: 'buffer' });
-      mode = '120000'; content = sha256(t); id = blobId(t);
-    } else if (st.isFile()) {
-      const b = readFileSync(full);
-      mode = st.mode & 0o100 ? '100755' : '100644'; content = sha256(b); id = blobId(b);
-    } else if (st.isDirectory()) {
-      mode = '160000';
-      if (existsSync(join(full, '.git'))) {
-        const sub = workingState(realpathSync(full));
-        content = id = sub.snapshot ? `${sub.head ?? 'unborn'}+snap:${sub.snapshot}` : (sub.head ?? 'unborn');
-      } else if (gitlink.has(p)) content = id = gitlink.get(p); // uninitialized submodule: its recorded commit
-      else { mode = '040000'; content = id = 'dir'; }
-    } else throw new Error(`${full} is not a file, symlink or directory — the snapshot refuses it; admission refused`);
-    records.push(`${mode} ${content}\t${p}\0`);
-    ids.push(`${mode} ${id}\t${p}`);
+  // above handles the nested-directory exclusion's case-diverged folder (never added, so never re-cased).
+  const skipIds = exclude.map((x) => {
+    const real = realOut(x), rel = relUnder(root, real);
+    return rel ? { base: basename(rel), id: fileIdentity(real) } : null;
+  }).filter((s) => s?.id);
+  const scratch = mkdtempSync(join(tmpdir(), SNAPSHOT_SCRATCH_PREFIX));
+  try {
+    const scratchObjects = join(scratch, 'objects');
+    mkdirSync(join(scratchObjects, 'info'), { recursive: true });
+    const objectsDir = resolve(root, gitOut(root, ['rev-parse', '--git-path', 'objects']).stdout.trim());
+    writeAlternates(join(scratchObjects, 'info', 'alternates'), objectsDir);
+    const env = { GIT_INDEX_FILE: join(scratch, 'index'), GIT_OBJECT_DIRECTORY: scratchObjects };
+    gitOut(root, ['read-tree', head], { env });
+    gitOut(root, ['add', '-A', '--', ':/', ...nested.map((p) => `:(top,literal,exclude)${p}`)], { env });
+    if (skipIds.length) {
+      // A literal pathspec is case-SENSITIVE even under core.ignorecase (probed), so a re-cased ancestor
+      // directory needs the file's own identity, not its spelling, to find what the add actually staged.
+      const bases = new Set(skipIds.map((s) => s.base));
+      const candidates = nulList(gitOut(root, ['ls-files', '-z'], { env }).stdout).filter((p) => bases.has(basename(p)));
+      const toReset = candidates.filter((p) => {
+        const id = fileIdentity(join(root, p));
+        return id && skipIds.some((s) => s.id.dev === id.dev && s.id.ino === id.ino);
+      });
+      if (toReset.length) gitOut(root, ['reset', '-q', head, '--', ...toReset.map((p) => `:(top,literal)${p}`)], { env });
+    }
+    const tree = gitOut(root, ['write-tree'], { env }).stdout.trim();
+    const recs = [];
+    for (const rec of nulList(gitOut(root, ['ls-files', '-z', '--stage'], { env }).stdout)) {
+      const m = /^160000 [0-9a-f]+ \d\t([\s\S]+)$/.exec(rec);
+      if (!m) continue;
+      const p = m[1];
+      if (!existsSync(join(root, p, '.git'))) continue; // uninitialized: its gitlink already matches HEAD
+      const sub = workingState(realpathSync(join(root, p)));
+      if (sub.snapshot) recs.push(`sub ${sub.head}+snap:${sub.snapshot}\t${p}\0`);
+    }
+    for (const p of nested) {
+      if (skip.has(gitPathKey(p))) continue;
+      const sub = workingState(realpathSync(join(root, p)));
+      recs.push(`new ${sub.head ?? 'unborn'}${sub.snapshot ? `+snap:${sub.snapshot}` : ''}\t${p}\0`);
+    }
+    recs.sort(byteOrder);
+    const headTree = gitOut(root, ['rev-parse', `${head}^{tree}`]).stdout.trim();
+    const clean = !recs.length && tree === headTree;
+    return { head, snapshot: clean ? null : sha256(`tree ${tree}\0`, ...recs) };
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
   }
-  const headIds = [...inHead.keys()].sort(byteOrder).map((p) => `${inHead.get(p)}\t${p}`);
-  const clean = ids.length === headIds.length && ids.every((x, i) => x === headIds[i]);
-  return { head, snapshot: clean ? null : sha256(records.join('')) };
 }
 /** `abs` relative to `root` as a git path ("a/b"), or null when it is `root` itself or outside it.
  *  Outside = the FIRST path SEGMENT is ".." (T2b r5: a string prefix test misread "..notes.md"). */
