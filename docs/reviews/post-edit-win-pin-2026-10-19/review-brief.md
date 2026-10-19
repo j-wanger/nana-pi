@@ -1,0 +1,48 @@
+# Review — post-edit-win-pin (a timed-out post-edit check ends its processes on Windows too), 2026-10-19 (Opus, the lane's one final reviewer)
+
+Feature: FEAT-030 · Get trustworthy feedback after edits
+
+Review `git diff 27603d4..HEAD` on `feat/post-edit-win-pin` (`git merge-base HEAD main` is `27603d4`: the lane left
+main at `a1d07f6`, and the seat merged main `27603d4`, the review-timeline land, in `f8569bd`; main was at `8482c2e`
+when this brief was written, one land later (win-leg-flip), and the lane has not merged it — that merge gets its own
+confirmation round). The plan of record is `docs/reviews/post-edit-win-pin-2026-10-19/must-meet.md` (rows R-1700 to
+R-1703; R-097, R-107 and R-243 retire as superseded), with the adversary's amendments in `plan-attack.md` and the
+build in `build-brief-1.md`. The seat's record `seat-verify-f8569bd.md` holds CI, the Windows log beside it.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement 27603d4..f8569bd: 7 rows in 1 features
+FEAT-030 · Get trustworthy feedback after edits
+  R-097 untested -> retired
+  R-107 untested -> retired
+  R-243 untested -> retired
+  R-1700 new (implemented)
+  R-1701 new (implemented)
+  R-1702 new (implemented)
+  R-1703 new (implemented)
+```
+
+Judge whether, when a post-edit check outlives its timeoutMs, the process its command started and that process's
+still-running child both end on every platform (R-1700); whether on Windows, with taskkill unable to start, the
+check's shell is killed and the run settles as timed out (R-1701); whether timeoutMs 0 arms no deadline while an
+ordinary timeoutMs arms exactly one (R-1702); and whether an all-pass run appends nothing to the tool result, even when
+a passing check printed output (R-1703). Judge too whether each check would fail with that behaviour removed. The
+builder's macOS wrong-code tries cover R-1700, R-1702 and R-1703. The plan's Windows mutant CI run did not happen (the
+seat's record says so), so judge R-1700's and R-1701's Windows non-vacuity from the code: what a taskkill without `/T`,
+or both fallbacks made no-ops, would leave alive.
+
+Threat model: honest variation in our tools' output and the OS in scope (sh execing a simple command on POSIX while
+cmd.exe never execs, process start-up time, PATH contents and a node shim on it, Node emitting `close` after a spawn
+ENOENT, checker output on stdout and stderr, a busy folder on Windows); deliberate forgery out (a hand-made fixture,
+and a checker that detaches on purpose, which stays R-094's residual). Lane class: ordinary — the two post-edit test
+files, rows, the generated tree and code map, and one pack README sentence; `nana-post-edit.ts` does not change.
+
+Check: (1) the four must-meet checks are not vacuous: R-1700 and R-1701 first see their pids alive before the
+deadline, and R-1702's control records exactly [300]; (2) R-1701 passes only if the check's own processes survive —
+judge whether that soundly proves the fallback ran rather than taskkill, and say so if it pins a residual as required
+behaviour; (3) every new run restores PATH and `globalThis.setTimeout` in `finally`, reaps its fixture processes by
+pid, and no test writes outside its temp folders; (4) the extension is unchanged, and among existing tests only the
+R-291 leaf total changed (1,306 to 1,310); (5) the three retirements and four new rows match `must-meet.md`, and the
+README sentence and the hardening file's header match the tests; (6) HANDOFF and the session entry are true, including
+the residual that the plan's Windows mutant run did not happen; (7) any MUST.
