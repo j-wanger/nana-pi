@@ -573,8 +573,8 @@ check("R-1380: win32 SKIPs each file on the declared Windows skip list with its 
 // req: R-1381
 check("R-1381: off win32 each file on the declared Windows skip list runs", listedPaths.length > 0 && listedPaths.every((p) =>
 	labelFor(linuxRun.out, p) === "PASS" && ranMarker(linuxRun.out_dir, p)));
-// req: R-1382
 const unlistedDeskBenchPaths = windowsFixturePaths.filter((p) => !Object.hasOwn(WINDOWS_SKIPS, p));
+// req: R-1382
 check("R-1382: win32 still runs each desk and bench file off the declared Windows skip list", unlistedDeskBenchPaths.length > 0 && unlistedDeskBenchPaths.every((p) =>
 	labelFor(win32Run.out, p) === "PASS" && ranMarker(win32Run.out_dir, p)));
 // req: R-1383
