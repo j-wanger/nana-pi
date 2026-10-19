@@ -26,8 +26,9 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { hasHook, desiredHooks, hookTargets, knowledgeHookHealthy, commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
@@ -320,11 +321,7 @@ export function diagnose(layout, opts = {}) {
 	}
 
 	// --- Claude Code half ---
-	for (const h of HOOKS) {
-		const src = path.join(pkgRoot, "claude", "hooks", h);
-		if (win) add(NOTE, `hook ${h}`, "skipped (win32)");
-		else add(linkOk(path.join(layout.hooksDir, h), src) ? OK : FAIL, `hook ${h}`, `-> ${src}`);
-	}
+	for (const row of hookLinkRows(layout)) add(row.skipped ? NOTE : row.ok ? OK : FAIL, row.label, row.detail);
 	for (const rule of CLAUDE_RULES) {
 		const src = ruleSource(rule);
 		add(linkOk(path.join(layout.rulesDir, rule), src) ? OK : FAIL, `rule ${rule}`, `-> ${src}`);
@@ -371,32 +368,7 @@ export function diagnose(layout, opts = {}) {
 	// its script resolves inside the checkout (hookTargets). On POSIX the five hook rows keep
 	// hasHook alone and the knowledge row keeps knowledgeHookHealthy, both exactly as on `main`
 	// (R-1061).
-	const platformValue = win ? "win32" : undefined;
-	for (const w of desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform: platformValue })) {
-		if (parseError) { add(FAIL, `settings ${w.label}`, `settings.json ${parseError}`); continue; }
-		if (win) {
-			const present = hasHook(settings, w.event, w.spec, w.matcher, platformValue);
-			const targets = hookTargets(settings, w.event, w.spec, platformValue);
-			// win32.isAbsolute, not the platform-dependent path.isAbsolute: an exec-form
-			// target is a win32 path even when this check is forced on a POSIX host.
-			const resolves = targets.length > 0 && targets.every((target) => {
-				try {
-					const real = fs.realpathSync(target);
-					const root = fs.realpathSync(repoRoot);
-					return path.win32.isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
-				} catch { return false; }
-			});
-			const healthy = present && resolves;
-			add(healthy ? OK : FAIL, `settings ${w.label}`, healthy ? w.marker : `${w.marker} — target is missing or does not resolve inside ${repoRoot}`);
-			continue;
-		}
-		const healthy = w.label === "UserPromptSubmit knowledge pull"
-			? knowledgeHookHealthy(settings, repoRoot)
-			: hasHook(settings, w.event, w.spec, w.matcher);
-		add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
-			? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
-			: w.marker);
-	}
+	for (const row of hookSettingsRows(layout, settings, parseError)) add(row.ok ? OK : FAIL, row.label, row.detail);
 	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
 	// problem pi-cmd-launch solved for pi, which is not worth it for a floor Jake already exceeds.
 	if (win) add(NOTE, "Claude Code hooks floor", `need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later (not checked here — \`claude --version\` is never run)`);

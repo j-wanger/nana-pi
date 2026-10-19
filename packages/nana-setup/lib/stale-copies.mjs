@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-setup/lib/stale-copies.mjs
  * @purpose Compare installed files with this checkout and render one shared stale-copy notice.
- * @inputs installed and source paths, stale doctor labels, the active platform and package root,
+ * @inputs installed and source paths, stale doctor labels, optional blocked skill paths, the active platform and package root,
  *  and the active Claude settings entry that records nana-setup's adoption-hook install.
- * @outputs linkOk(), hasAdoptionInstallRecord() and staleNotice().
+ * @outputs linkOk(), hasAdoptionInstallRecord() and staleNotice(labels, movePaths).
  * @effects disk (lstat, realpath and byte reads).
  * @errors comparison or settings-read failures return false; notice rendering is total.
  */
@@ -33,10 +33,13 @@ export function linkOk(target, source) {
 }
 
 /** The SessionStart adoption entry is the install record for the hook that asks this question. */
-export function hasAdoptionInstallRecord(layout) {
+export function hasAdoptionInstallRecord(layout, parsedSettings) {
 	try {
-		const raw = fs.readFileSync(layout.claudeSettings, "utf8");
-		const settings = raw.trim() === "" ? {} : JSON.parse(raw);
+		let settings = parsedSettings;
+		if (arguments.length < 2) {
+			const raw = fs.readFileSync(layout.claudeSettings, "utf8");
+			settings = raw.trim() === "" ? {} : JSON.parse(raw);
+		}
 		const platformValue = platform() === "win32" ? "win32" : undefined;
 		const adoption = desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform: platformValue })
 			.find((entry) => entry.label === "SessionStart adoption");
@@ -46,8 +49,11 @@ export function hasAdoptionInstallRecord(layout) {
 	}
 }
 
-export function staleNotice(labels) {
+export function staleNotice(labels, movePaths = []) {
 	if (!labels.length) return "";
 	const command = `node "${path.join(pkgRoot, "bin", "nana-setup.mjs")}" install`;
-	return `${STALE_PREFIX} ${labels.join(", ")} — tell the user; they fix it with ${codeSpan(command) ?? "nana-setup install"}`;
+	const install = codeSpan(command) ?? "nana-setup install";
+	if (!movePaths.length) return `${STALE_PREFIX} ${labels.join(", ")} — tell the user; they fix it with ${install}`;
+	const moves = movePaths.map((movePath) => codeSpan(movePath) ?? `skill ${path.basename(movePath)}`);
+	return `${STALE_PREFIX} ${labels.join(", ")} — tell the user; they move ${moves.join(", ")} out of the way, then fix it with ${install}`;
 }
