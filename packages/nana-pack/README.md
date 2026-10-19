@@ -270,7 +270,7 @@ Known limits: no lock, so a writer racing `set` (the desk, the installer, an edi
 
 #### Windows
 
-Until the queued PATH lane links `pi-worker` and `pi-review`, run them as `node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"` and `node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"` with the same arguments. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run -- pi …` starts pi the same way; any other command starts by name, so a `.exe`/`.com` starts and a `.cmd`/`.bat` does not.
+`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run -- pi …` starts pi the same way; any other command starts by name, so a `.exe`/`.com` starts and a `.cmd`/`.bat` does not.
 
 ### Trust model
 
@@ -780,7 +780,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **A checker that ignores SIGTERM no longer hangs the turn** (same commit): its process group
   gets SIGTERM (win32: `taskkill /T /F`), SIGKILL 2 s later, and the run **settles either way**
   with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
-  handler pending forever. `timeoutMs: 0` still means no deadline. CI's Windows leg runs the win32 branch: a timed-out check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
+  handler pending forever. `timeoutMs: 0` still means no deadline. CI's Windows leg runs the win32 branch: a timed-out or aborted check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
 - **Journal** is best-effort JSONL at `<agent dir>/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
 - **Notify** writes OSC 777 only in TUI mode, so RPC stdout stays clean even when it has a UI.

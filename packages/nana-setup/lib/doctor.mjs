@@ -12,7 +12,7 @@
  * @outputs an array of { status, label, detail } rows, including a win32-only note row naming the
  *  Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
- *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath()
+ *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
@@ -21,16 +21,19 @@
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
+import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { hasHook, desiredHooks, hookTargets, knowledgeHookHealthy, commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
-import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
 const OK = "ok";
@@ -239,7 +242,7 @@ export function versionAtLeast(version, floor) {
 
 export function packageSourceState(layout, root = repoRoot) {
 	let settings;
-	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { return null; }
+	try { settings = parseJsonText(fs.readFileSync(layout.piSettings, "utf8")); } catch { return null; }
 	const entries = Array.isArray(settings?.packages) ? settings.packages.flatMap((entry) => typeof entry === "string" ? [entry] : entry && typeof entry === "object" && typeof entry.source === "string" ? [entry.source] : []) : [];
 	const checkout = realpathSafe(root);
 	const foreign = [];
@@ -273,6 +276,24 @@ export function firstOnPath(name, pathValue = process.env.PATH) {
 		try { if (fs.statSync(candidate).isFile() && fs.accessSync(candidate, fs.constants.X_OK) === undefined) return candidate; } catch { /* skip missing or non-executable */ }
 	}
 	return null;
+}
+
+/** Both Windows launcher files must be regular, byte-equal renderings for this checkout. */
+export function winShimState(name, source, binDir) {
+	const rendered = renderWinShims(source, binDir);
+	const files = [
+		[path.join(binDir, `${name}${WIN_SHIM_SUFFIXES.sh}`), rendered.sh],
+		[path.join(binDir, `${name}${WIN_SHIM_SUFFIXES.cmd}`), rendered.cmd],
+	];
+	const wrong = files.filter(([file, wanted]) => {
+		try {
+			const stat = fs.lstatSync(file);
+			return stat.isSymbolicLink() || !stat.isFile() || !fs.readFileSync(file).equals(Buffer.from(wanted));
+		} catch { return true; }
+	}).map(([file]) => file);
+	return wrong.length
+		? { ok: false, detail: `missing or stale: ${wrong.join(", ")} — run \`nana-setup install\`` }
+		: { ok: true, detail: `sh and .cmd match this checkout in ${binDir}` };
 }
 
 export function diagnose(layout, opts = {}) {
@@ -319,11 +340,7 @@ export function diagnose(layout, opts = {}) {
 	}
 
 	// --- Claude Code half ---
-	for (const h of HOOKS) {
-		const src = path.join(pkgRoot, "claude", "hooks", h);
-		if (win) add(NOTE, `hook ${h}`, "skipped (win32)");
-		else add(linkOk(path.join(layout.hooksDir, h), src) ? OK : FAIL, `hook ${h}`, `-> ${src}`);
-	}
+	for (const row of hookLinkRows(layout)) add(row.skipped ? NOTE : row.ok ? OK : FAIL, row.label, row.detail);
 	for (const rule of CLAUDE_RULES) {
 		const src = ruleSource(rule);
 		add(linkOk(path.join(layout.rulesDir, rule), src) ? OK : FAIL, `rule ${rule}`, `-> ${src}`);
@@ -370,32 +387,7 @@ export function diagnose(layout, opts = {}) {
 	// its script resolves inside the checkout (hookTargets). On POSIX the five hook rows keep
 	// hasHook alone and the knowledge row keeps knowledgeHookHealthy, both exactly as on `main`
 	// (R-1061).
-	const platformValue = win ? "win32" : undefined;
-	for (const w of desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform: platformValue })) {
-		if (parseError) { add(FAIL, `settings ${w.label}`, `settings.json ${parseError}`); continue; }
-		if (win) {
-			const present = hasHook(settings, w.event, w.spec, w.matcher, platformValue);
-			const targets = hookTargets(settings, w.event, w.spec, platformValue);
-			// win32.isAbsolute, not the platform-dependent path.isAbsolute: an exec-form
-			// target is a win32 path even when this check is forced on a POSIX host.
-			const resolves = targets.length > 0 && targets.every((target) => {
-				try {
-					const real = fs.realpathSync(target);
-					const root = fs.realpathSync(repoRoot);
-					return path.win32.isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
-				} catch { return false; }
-			});
-			const healthy = present && resolves;
-			add(healthy ? OK : FAIL, `settings ${w.label}`, healthy ? w.marker : `${w.marker} — target is missing or does not resolve inside ${repoRoot}`);
-			continue;
-		}
-		const healthy = w.label === "UserPromptSubmit knowledge pull"
-			? knowledgeHookHealthy(settings, repoRoot)
-			: hasHook(settings, w.event, w.spec, w.matcher);
-		add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
-			? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
-			: w.marker);
-	}
+	for (const row of hookSettingsRows(layout, settings, parseError)) add(row.ok ? OK : FAIL, row.label, row.detail);
 	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
 	// problem pi-cmd-launch solved for pi, which is not worth it for a floor Jake already exceeds.
 	if (win) add(NOTE, "Claude Code hooks floor", `need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later (not checked here — \`claude --version\` is never run)`);
@@ -590,10 +582,16 @@ export function diagnose(layout, opts = {}) {
 
 	// --- PATH ---
 	if (win) {
-		add(NOTE, "PATH pi-review", "skipped (win32)");
-		add(NOTE, "PATH pi-worker", "skipped (win32)");
-		add(NOTE, "PATH nana-land", "skipped (win32)");
-		add(NOTE, "PATH nana-setup", "skipped (win32)");
+		for (const [name, source] of [["pi-review", PI_REVIEW_BIN], ["pi-worker", PI_WORKER_BIN], ["nana-land", NANA_LAND_BIN], ["nana-setup", NANA_SETUP_BIN]]) {
+			const state = winShimState(name, source, layout.binDir);
+			add(state.ok ? OK : FAIL, `PATH ${name}`, state.detail);
+		}
+		const found = findOnPath("pi-review");
+		const expected = path.win32.resolve(path.join(layout.binDir, `pi-review${WIN_SHIM_SUFFIXES.cmd}`));
+		const matches = found !== null && path.win32.resolve(found).toLowerCase() === expected.toLowerCase();
+		const remedy = `add ${layout.binDir} to the user Path in Environment Variables, then open a new terminal`;
+		const detail = matches ? `${found} is this checkout's .cmd shim` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
 	} else {
 		const link = path.join(layout.binDir, "pi-review");
 		const worker = path.join(layout.binDir, "pi-worker");
