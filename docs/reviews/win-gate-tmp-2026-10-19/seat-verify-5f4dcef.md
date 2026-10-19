@@ -59,7 +59,9 @@ Windows check skipped on CI; its build 1 detail, CI run 1 and independent-check 
 - **The seat's open finding on ba0c960 is closed.** R-1430's Windows check runs and passes on the real runner in runs 2
   and 3. The lane checks on Windows are 13 of 13 PASS, against 12 PASS and 1 SKIP on run 1. One limit stays: no
   Windows run has shown that check red on main's gate. The red side rests on the builders' forced-win32 probes on macOS
-  (builds 2 and 3) and on the code.
+  (builds 2 and 3) and on the code. Correction after the final review: those probes reverted only the lane's tmp
+  line through macOS's path module, so they show that line matters, not main's gate failing; on CI's drive layout
+  main's gate already refuses the plain spelling. Build 4 adds the drive-joined spelling to the check.
 - The seat's wrong-code pairs (`seat-mutate.mjs`), re-run on e1e97f6: 6 of 6 red, 0 survived, unsplit (one shard), on
   macOS (`seat-mutate-output-e1e97f6.txt`; merge-base a0e0a69, baseline 13 PASS, 0 FAIL). Each pair turns exactly its
   named checks red. The three declared limits are unchanged: the Windows halves exist only on the Windows leg; M5
@@ -74,3 +76,8 @@ Windows check skipped on CI; its build 1 detail, CI run 1 and independent-check 
   943 implemented, 943 traced, 0 rows off form. `npm run map:check`: 289 modules, 0 problems.
 - Main has moved on since a0e0a69 (06a874a when this was written). The land needs another merge of main and a
   confirmation round on the merged tip.
+
+## Addendum — build 4 and the merge of main ca27d86 (tip ed498f7)
+
+- Build 4 (`7dff2bf`) makes R-1430's Windows half assert the drive-joined tmp spelling as well as the plain one, after the final review found main's gate already refuses the plain spelling on CI's drive layout. It also corrects the pack README's TMP sentence.
+- CI run 39273747583 on `ed498f7` (the lane merged with main `ca27d86`): macOS 154 files, 152 PASS, 0 FAIL; Ubuntu 152 PASS, 0 FAIL; Windows 133 PASS, 0 FAIL, 21 SKIP (desk files declared unsupported, and study-tasks' missing extension); install-check macOS and Windows success. The Windows leg prints `PASS /tmp is a temporary root on macOS and Linux and not on Windows` and `PASS symlink escape outside lane is blocked` (`ci-windows-run-4.log`).
