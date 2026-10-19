@@ -129,11 +129,9 @@ function killTree(child: ChildProcess, escalate: boolean): void {
 		return;
 	}
 	try {
-		const tk = spawn("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true, stdio: "ignore" });
-		tk.on("error", direct);
-		tk.on("close", (code) => {
-			if (code !== 0) direct();
-		});
+		const tk = spawn("taskkill", ["/F", "/PID", String(pid)], { windowsHide: true, stdio: "ignore" });
+		tk.on("error", () => {});
+		tk.on("close", () => {});
 	} catch {
 		direct();
 	}
