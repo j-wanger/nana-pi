@@ -179,6 +179,8 @@
 - rm inside the working folder (gate-rm-workdir): the exemption assumes the command runs as typed in the session's working folder. A command prefix in pi's settings that changes folder voids it. So do a shell startup file the environment names and an exported rm function.
 - rm inside the working folder (gate-rm-workdir): the git check looks only one level under a target. A target holding a git repository deeper down now runs unasked, where main asked. So does a target holding a policy file deeper down, a mount point or an inner link. Nobody has tested that Git Bash on Windows does not follow an inner junction.
 - rm inside the working folder (gate-rm-workdir): the gate does not recognise a bare repository. A bare repository as the target now runs unasked, where main asked. In a bare repository as the working folder, removing its object and ref folders runs unasked.
+- rm inside the working folder (review): a target that is a mount point inside the working folder counts as inside it. In a container whose working folder holds a mounted host folder, removing that folder now runs unasked, where main asked.
+- rm inside the working folder (review): three gate corpus checks for allow patterns on rm of a build folder now pass through the new exemption, so they no longer prove the pattern works.
 
 ## Where things stand
 
@@ -199,8 +201,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: rm inside the working directory. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
-   - Small fixes ride along: the G-005 pi default-export carve-out and the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - The three small fixes have landed: the G-005 carve-out, rm inside the working directory and the study stop. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
