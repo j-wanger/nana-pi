@@ -18,6 +18,7 @@ env:
 
 jobs:
   install-check:
+    if: false  # SEAT SCRATCH: only the oracle pair table runs on this branch
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]  # SEAT SCRATCH
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
@@ -67,10 +68,12 @@ jobs:
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test
-        if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
-        if: matrix.os == 'windows-latest'
+      - name: SEAT SCRATCH — oracle-only pairs for pwsh-lexer-oracle
+        run: |
+          pwsh --version || true; if [ "$RUNNER_OS" = Windows ]; then powershell -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'; fi
+          export npm_execpath="$(node -p "require('path').join(require('path').dirname(process.execPath), process.platform === 'win32' ? '' : '..', process.platform === 'win32' ? '' : 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')")"
+          echo "npm_execpath=$npm_execpath"; test -f "$npm_execpath"
+          node docs/reviews/pwsh-lexer-oracle-2026-10-19/win-pairs.mjs docs/reviews/pwsh-lexer-oracle-2026-10-19/seat-mutate-ci.mjs
 
   release:
     needs: [suite, install-check]
