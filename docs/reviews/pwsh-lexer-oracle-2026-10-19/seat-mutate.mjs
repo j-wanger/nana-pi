@@ -88,8 +88,12 @@ const PAIRS = [
 		one(PG, "tokenStart = standalone && nested.closed;", "tokenStart = nested.closed;"),
 	], tests: LEX, expectRed: [TS_SUBEXPR] },
 	{ n: "M10", name: "every backtick escape starts a token, not only backtick-LF (main's boundary set)", edits: [
-		one(PG, 'if (source[i + 1] === "\\n" || source[i + 1] === "\\r") tokenStart = true;', "tokenStart = true;"),
+		one(PG, 'tokenStart = source[i + 1] === "\\n" || source[i + 1] === "\\r";', "tokenStart = true;"),
 	], tests: LEX, expectRed: [TS_ESCAPE] },
+	// Added after build 2 (7ca1eafb), whose fix makes a non-continuation escape clear the token start.
+	{ n: "M22", name: "an escape that is not a line continuation keeps the token start (build 1's form; the independent check's F1)", edits: [
+		one(PG, 'tokenStart = source[i + 1] === "\\n" || source[i + 1] === "\\r";', 'if (source[i + 1] === "\\n" || source[i + 1] === "\\r") tokenStart = true;'),
+	], tests: LEX, expectRed: ["token start: leading escape before line comment marker", "token start: leading escape before block comment marker"] },
 	{ n: "M11", name: "a variable's `[ … ]` index close starts no token", edits: [
 		one(PG, "if (variableIndexDepth === 0) { tokenStart = true; wordStart = i; }", "if (variableIndexDepth === 0) { tokenStart = false; wordStart = i; }"),
 	], tests: LEX, expectRed: [TS_INDEX], alsoRed: [PG_BRACKET] },
@@ -125,4 +129,4 @@ const PAIRS = [
 	], tests: [OT], expectRed: [R1732] },
 ];
 
-process.exitCode = await runMutations({ lane: "pwsh-lexer-oracle", self: import.meta.url, tip: "983da287", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "pwsh-lexer-oracle", self: import.meta.url, tip: "c78c6e79", declared: DECLARED, pairs: PAIRS });
