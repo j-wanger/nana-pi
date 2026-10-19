@@ -591,7 +591,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
   && npm test`) still ask; the exemption assumes the command runs as typed in the session cwd, so
   a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids it; a bare
   repository as the cwd (`repo.git`, no dot-named part) is not recognised, so `rm -rf objects
-  refs` runs unasked there; PowerShell keeps asking for every form.
+  refs` runs unasked there; a target that holds a git repository two or more levels down is not
+  recognised either — the `.git` check looks only one level under the target, so `rm -rf vendor`
+  runs unasked when the repository actually sits a level deeper inside it; nor is a target that
+  is itself a bare repository (`rm -rf origin.git`, which has no `.git` entry inside it to catch);
+  PowerShell keeps asking for every form.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,

@@ -1658,8 +1658,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin the one rm exemption (R-1490) and its six guard rows (R-1491 to R-1496) over the REAL registered gate handler
 - **inputs** — extensions/nana-gate.ts with lib/gate-rm-inside.ts, lib/gate-shell.ts, lib/gate-paths.ts and lib/real-path.mjs, a temp HOME, a temp cwd fixture tree and env PI_CODING_AGENT_DIR
-- **outputs** — PASS/FAIL lines per row on stdout, and exit 1 when any row fails
-- **effects** — disk (temp HOME, cwd fixtures incl. two symlinks, config files), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR)
+- **outputs** — PASS/FAIL lines per row on stdout, a SKIP line when the case-changed HOME spelling does not exist on this filesystem, and exit 1 when any row fails
+- **effects** — disk (temp HOME, cwd fixtures incl. three symlinks, config files), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR)
 - **errors** — a failed row prints FAIL with the cases that got the wrong verdict and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
