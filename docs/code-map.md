@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 285 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 286 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -733,12 +733,12 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/test.mjs`
 
 - **purpose** — The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a fresh temp HOME and report one line each.
-- **inputs** — argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS and NANA_COVERAGE_DIR (runtime-map's coverage knob), and the test files directly under each package's tests/ dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded)
+- **inputs** — argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS and NANA_COVERAGE_DIR (runtime-map's coverage knob), the test files directly under each package's tests/ dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), and on win32 the declared Windows skip list (windows-skips-config.mjs)
 - **outputs** — one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; while NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds record, plus one completion record naming the collected file count
 - **effects** — process (spawns each file as `node --experimental-strip-types` in its own group with a child env scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR, kills that group or taskkills the tree on timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test fixtures, all removed on every exit path; while NANA_COVERAGE_DIR is set, a record and a completion file under that folder, never removed by this runner)
 - **errors** — exit 1 when any file failed, timed out, died on a signal, matched nothing, or a self-test fixture missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`
+- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`
 
 ### `scripts/ts-syntax-check.mjs`
 
@@ -1363,6 +1363,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — refusals are returned as values; lookup errors mean absent.
 - **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/tests/win-command.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
 - **callees** — `packages/nana-pack/lib/win-command-config.mjs`
+
+### `packages/nana-pack/lib/windows-skips-config.mjs`
+
+- **purpose** — Declare the whole-file Windows test skips the runner (scripts/test.mjs) reads on win32.
+- **inputs** — none
+- **outputs** — WINDOWS_SKIPS
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test.mjs`
+- **callees** — —
 
 ### `packages/nana-pack/lib/writing-check.mjs`
 
@@ -2082,7 +2092,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs the copied runner as a child per case; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/tmp-dir.mjs`
 
