@@ -1,0 +1,18 @@
+Seat CI run of the oracle-only wrong-code pairs (seat-mutate-ci.mjs) for pwsh-lexer-oracle on lane tip c78c6e79, in place on the CI legs through win-pairs.mjs and npm test (scratch branch seatmut/pwsh-lexer-oracle, commit 7bc43c8a = c78c6e79 plus the helper and a CI job that runs only this table; run 39338540305; never merged). Each pair keeps every deterministic check green and must turn the oracle title red: pwsh on every leg, and Windows PowerShell 5.1 too on Windows.
+
+== ubuntu-latest
+PowerShell 7.6.6
+BASELINE ok packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs (exit 0, 25 PASS, 0 FAIL)
+RED W1 a here-string opens only at an ASCII quote, so @‘ and @“ here-strings are missed (first disagreement: command 27, "@‘\ntypographic\n’@"; 2 commands differ) — 1/1 named: oracle: pwsh reports the lexer's comment and string spans for every generated command; also FAIL: packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  23 pass, 1 fail, 1 skip  1.4s  — exit 1
+RED W2 ’ (U+2019) is dropped from the single-quote set (first disagreement: command 55, "Write-Output ‘a’’b’ | Write-Output; Write-Output $(Write-Output inner)"; 69 commands differ) — 1/1 named: oracle: pwsh reports the lexer's comment and string spans for every generated command; also FAIL: packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  23 pass, 1 fail, 1 skip  1.5s  — exit 1
+RED W3 only an ASCII quote doubles as an escape, so ’’ and ”” end the string (main's rule; first disagreement: command 11, "Write-Output ‘a’’b’"; 265 commands differ) — 1/1 named: oracle: pwsh reports the lexer's comment and string spans for every generated command; also FAIL: packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  23 pass, 1 fail, 1 skip  1.4s  — exit 1
+RESULT: 3/3 red
+
+== windows-latest
+PowerShell 7.6.6
+5.1.26100.33438
+BASELINE ok packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs (exit 0, 25 PASS, 0 FAIL)
+RED W1 a here-string opens only at an ASCII quote, so @‘ and @“ here-strings are missed (first disagreement: command 27, "@‘\ntypographic\n’@"; 2 commands differ) — 2/2 named: oracle: pwsh reports the lexer's comment and string spans for every generated command | oracle: powershell reports the lexer's comment and string spans for every generated command; also FAIL: packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  22 pass, 2 fail  2.3s  — exit 1
+RED W2 ’ (U+2019) is dropped from the single-quote set (first disagreement: command 55, "Write-Output ‘a’’b’ | Write-Output; Write-Output $(Write-Output inner)"; 69 commands differ) — 2/2 named: oracle: pwsh reports the lexer's comment and string spans for every generated command | oracle: powershell reports the lexer's comment and string spans for every generated command; also FAIL: packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  22 pass, 2 fail  2.3s  — exit 1
+RED W3 only an ASCII quote doubles as an escape, so ’’ and ”” end the string (main's rule; first disagreement: command 11, "Write-Output ‘a’’b’"; 265 commands differ) — 2/2 named: oracle: pwsh reports the lexer's comment and string spans for every generated command | oracle: powershell reports the lexer's comment and string spans for every generated command; also FAIL: packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  22 pass, 2 fail  2.3s  — exit 1
+RESULT: 3/3 red
