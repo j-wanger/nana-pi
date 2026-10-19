@@ -232,8 +232,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - The three small fixes have landed: the G-005 carve-out, rm inside the working directory and the study stop. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
-   - Small fixes ride along: rm inside the working directory, the study stop on unwritable evidence. Then the seat regenerates the product report and republishes its page. Open questions 14 and 16–23 are the seat's own calls.
+   - The three small fixes have landed: the G-005 carve-out, rm inside the working directory and the study stop. The confirmed audit issues are now open questions. Then the seat regenerates the product report and republishes its page. Open questions 14 and 16–23 are the seat's own calls.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
