@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 312 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 315 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1328,11 +1328,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Detect pipeline exit masking before a git commit when pipefail is not active.
 - **inputs** — a shell command string from bash, PowerShell, or another shell-like tool.
-- **outputs** — a human-readable reason for a risky command, or null.
+- **outputs** — verifierPipeReason and PowerShell comment/string spans.
 - **effects** — none
 - **errors** — none; non-string input is treated as an empty command.
-- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-setup/lib/verifier-hook.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
-- **callees** — —
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-setup/lib/verifier-hook.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **callees** — `packages/nana-pack/lib/pwsh-lexer-config.mjs`
 
 ### `packages/nana-pack/lib/prompt-sections.mjs`
 
@@ -1342,6 +1342,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`
+- **callees** — —
+
+### `packages/nana-pack/lib/pwsh-lexer-config.mjs`
+
+- **purpose** — Define the PowerShell lexer alphabet and oracle run settings.
+- **inputs** — none.
+- **outputs** — quote sets, token enders, shell names, corpus settings, and timeout.
+- **effects** — none
+- **errors** — none.
+- **callers** — `packages/nana-pack/lib/pipe-guard.mjs`, `packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/real-path.mjs`
@@ -2014,6 +2024,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
+### `packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs`
+
+- **purpose** — Compare the pipe guard's PowerShell spans with deterministic and live tokenizer oracles.
+- **inputs** — the PowerShell scanner, generated corpus, injected runner fakes, and installed shells.
+- **outputs** — PASS, FAIL, and SKIP lines plus a nonzero exit on any failed check.
+- **effects** — disk, process
+- **errors** — reports the first command behind an oracle or comparison failure.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/pipe-guard.mjs`, `packages/nana-pack/lib/pwsh-lexer-config.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`
+
 ### `packages/nana-pack/tests/pipe-guard.test.mjs`
 
 - **purpose** — Pins verifier-pipe classification and pi gate composition.
@@ -2063,6 +2083,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed assertions set a nonzero test exit.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`
+
+### `packages/nana-pack/tests/pwsh-oracle.mjs`
+
+- **purpose** — Generate parse-clean PowerShell commands and obtain tokenizer spans from PowerShell.
+- **inputs** — a seed and size, plus injected platform, spawn function, and temporary root.
+- **outputs** — named corpus, shell-selection, oracle-runner, and span-comparison helpers.
+- **effects** — disk, process
+- **errors** — rejects on startup, timeout, parse, incomplete output, or span disagreement.
+- **callers** — `packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs`
+- **callees** — `packages/nana-pack/lib/pwsh-lexer-config.mjs`
 
 ### `packages/nana-pack/tests/readme-check.test.mjs`
 
