@@ -22,8 +22,10 @@ import {
 	collectModules,
 	formatImpact,
 	impact,
+	isLayerExempt,
 	loadConfig,
 	main,
+	untracedTests,
 	writeMap as writeMapAt,
 } from "../templates/typescript/template/scripts/code-map.mjs";
 import { checkoutDrift, dataPath, formatRuntime, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
@@ -35,7 +37,7 @@ export const REPO_ROOT = resolve(
 	"..",
 );
 
-export { buildGraph, collectModules, formatImpact, impact, loadConfig };
+export { buildGraph, collectModules, formatImpact, impact, isLayerExempt, loadConfig, untracedTests };
 
 /** The whole map check over THIS repo. */
 export const checkRepo = () => checkRepoAt(REPO_ROOT);
