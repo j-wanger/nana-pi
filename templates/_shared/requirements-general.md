@@ -47,7 +47,7 @@ Purpose: a module has one purpose, named exports and injected resources, and the
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | G-004 | Every module shall open with a contract header in a fixed, scannable form stating its purpose in one sentence, its inputs (what it reads or is given), its outputs (what it returns, writes or emits), its side effects (none, disk, database, network, process) and the typed errors or statuses it can produce. | {{ _status }} | {{ ('`' ~ _g004 ~ '`') if _ev else '—' }} |
-| G-005 | A module shall expose its behaviour only through named exports that are its entry points. | untested | — |
+| G-005 | A module shall expose its behaviour only through named exports that are its entry points, where a pi extension's default export counts as its named entry point. | untested | — |
 | G-018 | No module shall reach into another module's internals, private helpers or mutable state. | untested | split from G-005 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-006 | Resources with identity or side effects (database handles, clocks, random sources, fetchers, file roots) shall be injected at a module's boundary so the module is exercisable without the real resource. | untested | — |
 | G-007 | Imports shall follow the layer direction declared in the code-map config — a module may import its own layer or the one directly after it, and tests may import anything. | untested | — |

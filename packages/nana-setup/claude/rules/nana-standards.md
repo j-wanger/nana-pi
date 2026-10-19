@@ -34,8 +34,9 @@ live in `nana-soul.md`; this file is only the mechanics.) Where a project carrie
 - Every module opens with the six-tag header: `@module`, `@purpose` (one sentence — two
   sentences means two modules), `@inputs`, `@outputs`, `@effects` (none / disk / database /
   network / process), `@errors`.
-- Named exports only. Never reach into another module's internals, private helpers or
-  mutable module-level state.
+- Named exports only; a pi extension's default export counts as its named entry point,
+  because pi's loader requires one. Never reach into another module's internals, private
+  helpers or mutable module-level state.
 - Inject resources that carry identity or side effects — database handles, clocks, random
   sources, fetchers, file roots — at the module boundary, so the module runs without the
   real resource.

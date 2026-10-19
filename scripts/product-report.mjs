@@ -2,7 +2,7 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and injected git runner.
+ * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
  * @outputs A complete product ledger HTML file, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
@@ -14,8 +14,10 @@ import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
-import { WHITESPACE } from "./requirements-trace.mjs";
+import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenForJake } from "../packages/nana-pack/lib/handoff-asks.mjs";
+import { dataPath, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
+import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEMPLATE = path.join(path.dirname(fileURLToPath(import.meta.url)), "product-report/template.html");
@@ -29,8 +31,42 @@ const validDate = (value) => {
 const STORE_STATUSES = new Set(["implemented", "untested", "violated", "planned", "retired"]);
 const FEATURE_STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const RAIL_ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
+// contract (R-1511): the prefix every cited-test file link is built from.
+const GITHUB_BLOB_PREFIX = "https://github.com/";
+// contract (R-1511): the three origin-remote spellings a GitHub link is read from, each with an
+// optional ".git" suffix, matched strictly so another host or embedded credentials never matches.
+const GITHUB_REMOTE = /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([^/]+)\/([^/]+?)(?:\.git)?$/;
 const exactKeys = (value, keys) => value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const fingerprint = (row) => createHash("sha256").update(JSON.stringify([row.id, row.requirement, row.status])).digest("hex");
+
+// The cited-test rule (must-meet.md, report-test-details-2026-10-19): a citation holding "::", a
+// non-empty title, and a path with "/" and no ":". Split at the first "::". This is deliberately
+// looser than the trace rail's own isLocal (TypeScript-only, by file suffix): it also admits a
+// Python `tests/test_a.py::test_x` citation, and naturally excludes an `other-repo:` external
+// citation, since its path-before-"::" carries the prefix's own ":".
+function citedTestsOf(evidence) {
+  const tests = [];
+  for (const cite of citesOf(evidence)) {
+    const at = cite.indexOf("::");
+    if (at === -1) continue;
+    const file = cite.slice(0, at);
+    const title = cite.slice(at + 2).trim();
+    if (!title || !file.includes("/") || file.includes(":")) continue;
+    tests.push({ title, file });
+  }
+  return tests;
+}
+
+// href = GITHUB_BLOB_PREFIX + "o/r/blob/<commit>/" + URI-encoded segments (R-1511). No link for
+// no matched GitHub origin, an absolute path (an empty leading segment), or an empty, "." or ".."
+// segment — built from the matched owner/repo and encoded segments, never path.join, so a
+// traversal segment is refused rather than silently collapsed.
+function githubHref(repo, commit, file) {
+  if (!repo || !file) return null;
+  const segments = file.split("/");
+  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) return null;
+  return `${GITHUB_BLOB_PREFIX}${repo.owner}/${repo.repo}/blob/${commit}/${segments.map(encodeURIComponent).join("/")}`;
+}
 
 function git(gitRunner, root, args) {
   const result = gitRunner(args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } });
@@ -70,7 +106,29 @@ export function renderInto(document, model, { hash = "" } = {}) {
     for (const status of ["implemented", "untested", "planned", "violated", "retired"]) { const amount = item.counts?.[status] ?? 0; const segment = el("span", undefined, bar); cls(segment, `status-segment status-${status}`); segment.setAttribute("style", `flex-grow:${amount}`); segment.setAttribute("aria-hidden", "true"); }
     paragraph(wrap, "Counts", ["implemented", "untested", "planned", "violated", "retired"].map((status) => `${status} ${item.counts?.[status] ?? 0}`).join(" · "), "count-label"); return wrap;
   };
-  const row = (parent, item) => { const card = el("article", undefined, parent); cls(card, "requirement-card"); const heading = el("h3", undefined, card); cls(heading, "row-heading"); text(heading, `${item.id} `); const pill = el("span", item.status, heading); cls(pill, `status-pill status-${item.status}`); if (item.mark) paragraph(card, "Row type", item.mark); paragraph(card, "", item.requirement, "row-text"); paragraph(card, "", item.evidence, "row-evidence"); return card; };
+  const row = (parent, item) => {
+    const card = el("article", undefined, parent); cls(card, "requirement-card");
+    const heading = el("h3", undefined, card); cls(heading, "row-heading"); text(heading, `${item.id} `);
+    const pill = el("span", item.status, heading); cls(pill, `status-pill status-${item.status}`);
+    if (item.mark) paragraph(card, "Row type", item.mark);
+    paragraph(card, "", item.requirement, "row-text");
+    paragraph(card, "", item.evidence, "row-evidence");
+    const tests = item.tests ?? [];
+    if (!tests.length) paragraph(card, "", "Tests: none cited in this repository");
+    else {
+      const list = el("ol", undefined, card); cls(list, "row-tests");
+      for (const t of tests) {
+        const li = el("li", undefined, list);
+        text(li, `${t.title} — `);
+        const info = model.files?.[t.file];
+        if (info?.href) { const link = el("a", t.file, li); link.setAttribute("href", info.href); link.setAttribute("target", "_blank"); link.setAttribute("rel", "noopener noreferrer"); }
+        else text(li, t.file);
+        const run = info?.run;
+        text(li, run ? ` — File's last measured run: ${run.label}${run.changed ? " · changed since" : ""}` : " — No recorded run");
+      }
+    }
+    return card;
+  };
   root.replaceChildren();
   const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ decisions: "Decisions", product: "Product", features: "Features", shared: "Shared", issues: "Issues", requirements: "Requirements" })[view];
   el("h1", "Nana pi product ledger", root); paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
@@ -97,15 +155,16 @@ export function renderInto(document, model, { hash = "" } = {}) {
     countBar(root, feature);
     const sharedBy = el("p", undefined, root); text(sharedBy, "Shared by: "); if (feature.sharedBy.length) feature.sharedBy.forEach((id, index) => { if (index) text(sharedBy, ", "); featureLink(sharedBy, id); }); else text(sharedBy, "None");
     paragraph(root, "Shared rows", feature.shared.join(", ") || "None");
-    el("h3", "Requirements", root); for (const item of feature.rows) row(root, item);
+    el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
   }
   if (view === "shared") for (const receiving of model.features) for (const id of receiving.shared) { const home = model.features.find((candidate) => candidate.rows.some((r) => r.id === id && r.mark === "own")); const item = receiving.rows.find((r) => r.id === id); const card = el("article", undefined, root); el("h3", id, card); paragraph(card, "Requirement", item?.requirement); const homeLine = el("p", undefined, card); text(homeLine, "Home feature: "); home ? featureLink(homeLine, home.id) : text(homeLine, "Unknown"); const receivingLine = el("p", undefined, card); text(receivingLine, "Receiving feature: "); featureLink(receivingLine, receiving.id); }
-  if (view === "issues") for (const item of model.violated) row(root, item);
+  if (view === "issues") { if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of model.violated) row(root, item); }
   if (view === "requirements") {
     const search = el("input", undefined, root); search.setAttribute("type", "search"); search.setAttribute("aria-label", "Search requirements");
     const status = el("select", undefined, root); status.setAttribute("aria-label", "Filter by status"); const featureFilter = el("select", undefined, root); featureFilter.setAttribute("aria-label", "Filter by feature");
     const addOption = (select, value) => { const option = el("option", value || "All", select); option.setAttribute("value", value); };
     addOption(status, ""); for (const value of ["implemented", "untested", "violated", "planned", "retired"]) addOption(status, value); addOption(featureFilter, ""); for (const item of model.features) addOption(featureFilter, item.id);
+    if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
     const list = el("div", undefined, root); const all = []; for (const item of model.features) for (const r of item.rows) if (!all.some((entry) => entry.id === r.id)) all.push(r);
     const update = () => { list.replaceChildren(); const candidates = featureFilter.value ? (model.features.find((item) => item.id === featureFilter.value)?.rows ?? []) : all; for (const item of candidates) if ((!search.value || `${item.id} ${item.requirement} ${item.evidence}`.toLowerCase().includes(search.value.toLowerCase())) && (!status.value || item.status === status.value)) row(list, item); };
     search.addEventListener("input", update); status.addEventListener("change", update); featureFilter.addEventListener("change", update); update();
@@ -218,6 +277,50 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error(`git rev-parse returned an invalid full commit hash: ${commit}`);
   const date = git(gitRunner, root, ["log", "-1", "--format=%cI"]);
   const dirty = git(gitRunner, root, ["status", "--porcelain", "--untracked-files=normal"]) !== "";
+
+  // R-1511: the origin remote, read without throwing — a missing origin, another host, or a
+  // runner that itself throws are all simply "no link", never a refusal.
+  let githubRepo = null;
+  try {
+    const originResult = gitRunner(["remote", "get-url", "origin"], { cwd: root, encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } });
+    if (originResult?.status === 0) {
+      const match = GITHUB_REMOTE.exec(String(originResult.stdout ?? "").trim());
+      if (match) githubRepo = { owner: match[1], repo: match[2] };
+    }
+  } catch { /* no origin, or a runner that throws, is not an error (R-1511) */ }
+
+  // R-1512/R-1514: dataPath calls its git hook with {cwd} only (no encoding), so the hook is
+  // wrapped here to add it; a dataPath throw (no git-common-dir, e.g. not a git checkout at all)
+  // counts as no runtime data, same as a missing, unreadable or wrong-schema file.
+  const runtimeRunner = (args, options) => gitRunner(args, { encoding: "utf8", ...options });
+  let runtimeData = null;
+  let runtimeReason = "no runtime data";
+  try {
+    const loaded = loadRuntime(dataPath(root, { git: runtimeRunner }));
+    if (loaded.ok) runtimeData = loaded.data;
+    else runtimeReason = loaded.reason;
+  } catch { /* a dataPath throw counts as no runtime data (R-1514) */ }
+
+  // R-1513: a cited file's label is marked changed when it, or any file the runtime data credits
+  // it with running, is missing or hashes (cached, since many rows can cite the same file)
+  // differently from the recorded hash.
+  const hashCache = new Map();
+  const hashOf = (file) => { if (!hashCache.has(file)) hashCache.set(file, hashFile(path.resolve(root, file))); return hashCache.get(file); };
+  function runStateOf(file) {
+    if (!runtimeData) return null;
+    const entry = runtimeData.tests?.[file];
+    if (!entry) return null;
+    const covered = [file, ...(Array.isArray(entry.ran) ? entry.ran : [])];
+    const changed = covered.some((candidate) => hashOf(candidate) !== runtimeData.hashes?.[candidate]);
+    return { label: entry.label, changed };
+  }
+  const files = new Map();
+  function testsOf(evidence) {
+    return citedTestsOf(evidence).map(({ title, file }) => {
+      if (!files.has(file)) files.set(file, { href: githubHref(githubRepo, commit, file), run: runStateOf(file) });
+      return { title, file };
+    });
+  }
   const storePath = path.join(root, "docs/product-report/assessments.json");
   let storedFeatures = [];
   try {
@@ -250,11 +353,14 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     };
     const stale = added.length || removed.length || changed.length || differences.purpose || differences.status;
     const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, assessmentState, assessment, differences, counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared" })) };
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, assessmentState, assessment, differences, counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
   });
   const capabilities = parsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => ({ id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, features: features.filter((feature) => descendants(parsed, capability).some((heading) => heading.id === feature.id)).map((feature) => feature.id) }));
   const violated = rows.filter((row) => row.status === "violated");
-  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })) };
+  // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
+  // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
+  const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
+  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 

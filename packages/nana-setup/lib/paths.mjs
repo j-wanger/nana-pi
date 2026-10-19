@@ -3,14 +3,14 @@
  * @purpose The single resolver for every path the installer touches, so `install`, `doctor` and
  *  `project` can never disagree about where a piece lives.
  * @inputs opts.home / opts.claudeHome / opts.piHome; os.homedir(); nana-pack's agent-dir resolver
- *  (PI_CODING_AGENT_DIR, else ~/.pi/agent) and its cwd-relative probe; process.cwd();
- *  NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
+ *  (PI_CODING_AGENT_DIR, else ~/.pi/agent) and its cwd-relative probe; nana-pack's RULINGS_FILE;
+ *  process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
  * @outputs pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
  *  base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings,
- *  piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, knowledgeHome
- *  (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent,
- *  piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome;
- *  platform(); tildeify()
+ *  piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings,
+ *  knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig,
+ *  reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath,
+ *  isRealHome; platform(); tildeify()
  * @effects none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
  * @errors none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
  */
@@ -20,6 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
+import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
 /** <repo>/packages/nana-setup — the files this package ships. */
 export const pkgRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -56,6 +57,7 @@ export function resolveLayout(opts = {}) {
 		piSettings: path.join(piHome, "settings.json"),
 		piPackConfig: path.join(piHome, "nana-pack.json"),
 		piObjective: path.join(piHome, "nana-objective.md"),
+		piRulings: path.join(piHome, RULINGS_FILE),
 		// pi-subagents' own config file (a third-party vendor extension nana-pi only consumes —
 		// architecture-ruling.md 2026-10-04 §2): seed-once, doctor-verifies, never clobber a hand
 		// edit, the exact policy nana-pack.json already follows.

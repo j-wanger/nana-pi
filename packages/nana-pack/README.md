@@ -25,7 +25,7 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
-Eight extensions giving pi the hook coverage we require (Claude Code parity classes):
+Nine extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -37,6 +37,7 @@ Eight extensions giving pi the hook coverage we require (Claude Code parity clas
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
+| `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
 **Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
 
@@ -108,17 +109,29 @@ counted in a user-scope ledger — never from the output file name, and the same
   Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
   **one** round: a round is one review pass over one state of the work, and a fix makes a new
   commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
-  not by this cap). A **dirty tree** is its own state: when the working tree's *content* differs
-  from HEAD's, its revision is `<HEAD sha>+snap:<full sha256 of a content snapshot>`. The snapshot
-  covers every path in HEAD's tree, the index, and the untracked files that `.gitignore` does not
-  ignore; per path present on disk, in byte order: file mode as on disk (644/755 by the owner-x
-  bit, symlink, submodule), then the sha256 of the **raw bytes** (a symlink's target; a
-  submodule's own revision, recursively). It never renders a diff, so diff/color/prefix config,
-  EOL normalization, clean filters and `core.fileMode` cannot merge two states, and staging does
-  not change it: staged and unstaged of one content are **one** revision (so `git add` alone earns
-  no round), while a new untracked, non-ignored file is a new state. Reverting to an already-reviewed state earns no round. Ledger
-  lines carry both parts as `head` and `snapshot` (`snapshot: null` when clean). **Any git
-  failure refuses admission** with git's error — it is never read as "clean". `--revision` is only a fallback when the reviewed git tree has no HEAD; otherwise it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
+  not by this cap). A **dirty tree** is its own state (W7c amend, 2026-10-18): the revision is the
+  tree `git add -A` would record on top of HEAD, plus any dirty or new nested repository; when that
+  differs from HEAD, the revision is `<HEAD sha>+snap:<full sha256 of the working-state snapshot>`.
+  Derivation adds and removes nothing in the repository, never writes its real index, and runs
+  none of its hooks — a throwaway index is seeded from HEAD (never a copy of the real one) and a
+  throwaway object folder borrows the repo's objects through its own *objects/info/alternates*
+  file (one absolute path per line; a git-internal path, not one of nana-pi's own files). Because
+  that lookup re-hashes every file against a stat-less index, git may refresh (touch the mtime of,
+  never resize) an object it would write that already exists in the real store; content, size and
+  mode never change. Because the tree is what git itself would stage, git's own
+  `core.fileMode`, `core.autocrlf`, `core.symlinks`, `.gitattributes`, clean filters and ignores
+  apply, so a checkout **git itself calls clean reads clean** here too — whatever raw bytes or
+  filesystem mode happen to be on disk (an `rsync`'d Windows checkout, a lost execute bit under
+  `core.fileMode=false`, a CRLF checkout under `core.autocrlf=true`). A configured clean filter runs
+  during derivation and may write outside the throwaway folder or behave non-deterministically; a
+  non-reproducible dirty tree then refuses pi-review's checkout equality check (below), not this
+  derivation. It never renders a diff, so diff/color/prefix config cannot merge two states, and
+  staging does not change it: staged and unstaged of one content are **one** revision (so `git add`
+  alone earns no round, and so does `git rm --cached` of content still checked out unchanged),
+  while a new untracked, non-ignored file or directory is a new state. Reverting to an
+  already-reviewed state earns no round. Ledger lines carry both parts as `head` and `snapshot`
+  (`snapshot: null` when clean). **Any git failure refuses admission** with git's error — it is
+  never read as "clean". `--revision` is only a fallback when the reviewed git tree has no HEAD; otherwise it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
 - **A completed verdict earns the round — with one exception.** A stall, an infrastructure failure
   or a timeout returns the reservation. The exception is below: a completion whose tree changed
   during the review still consumes the round, as *unverified*. A completion must own a live reservation: an expired, pruned or
@@ -535,6 +548,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
 - Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
 - Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
+- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, and reaches builders and reviewers.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into
@@ -564,7 +578,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
   outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
   Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,
-  `r''m`) or `--force`, `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
+  `r''m`) or `--force` (except the plain in-directory form below), `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
   `git reset --hard`, `git clean -f`/`--force`, `git checkout -- .`, `git restore .`,
   `git branch -D`, `git stash drop|clear`, `find -delete`/`-exec rm`, `rsync --delete`,
   `truncate`, `shred`, `python -c`/`node -e` deleting files, `chmod 777`, `dd of=/dev/`,
@@ -575,6 +589,29 @@ is user-scope only** — project config never contributes to it, trusted or not.
   checked in commands AND edit/write targets. rm-text checks scan every command segment,
   including quoted arguments and text-only mentions. Interpreter deletion scans inspect the
   complete interpreter command string.
+- **The plain in-directory `rm` exemption** (L2, 2026-10-19, Jake's ruling): a bash-tool command
+  that is EXACTLY `rm`, flags drawn only from `-r`/`-R`/`-f`/`-v` (alone or combined) or
+  `--recursive`/`--force`/`--verbose`, and one or more literal relative targets made of ASCII
+  letters, digits, `.`, `_`, `@`, `-` and `/` that each lie strictly inside the session working
+  directory, runs with no prompt and no headless block. Every other form still asks: an absolute
+  target, the working directory itself, or a path outside it; a target with a dot-named part
+  (`..`, `.git`, `.pi`), one that directly holds a `.git` entry, or one overlapping the active pi
+  agent folder in either direction; a symbolic link or junction anywhere on the way; a glob,
+  variable, substitution, quote, backslash, `~`, `--`, another flag, a prefix (`sudo`, `command`,
+  `/bin/rm`, `VAR=value`), a second command, leading/trailing whitespace, or the powershell tool;
+  and a home, home-ancestor, root or dot-named working directory. A configured `extraPatterns` or
+  `protectedPaths` match and a named policy file still stop it — this exemption clears only the
+  non-floor "rm recursive/forced" danger, never the floor or those later checks. Known limits:
+  plain `rm` and `rm -f` still pass anywhere outside the working directory, as before — making
+  those ask too is a separate lane; absolute and dot-named targets and compounds (`rm -rf build
+  && npm test`) still ask; the exemption assumes the command runs as typed in the session cwd, so
+  a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids it; a bare
+  repository as the cwd (`repo.git`, no dot-named part) is not recognised, so `rm -rf objects
+  refs` runs unasked there; a target that holds a git repository two or more levels down is not
+  recognised either — the `.git` check looks only one level under the target, so `rm -rf vendor`
+  runs unasked when the repository actually sits a level deeper inside it; nor is a target that
+  is itself a bare repository (`rm -rf origin.git`, which has no `.git` entry inside it to catch);
+  PowerShell keeps asking for every form.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,
