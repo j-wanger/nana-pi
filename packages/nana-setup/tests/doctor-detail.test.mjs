@@ -158,6 +158,48 @@ try {
 		check("absent: detail names the fix (`nana-setup install`)", /nana-setup install/.test(c?.detail ?? ""), JSON.stringify(c));
 	}
 
+	{
+		const layout = layoutWith("file");
+		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
+		const target = path.join(layout.base, "configured-objective.md");
+		fs.writeFileSync(target, "**Objective:** configured\n");
+		const text = JSON.stringify({ objective: { path: target, projectFile: "GOALS.md" } }, null, 2).replace(/\n/g, "\r\n");
+		fs.writeFileSync(layout.piPackConfig, text);
+		const labels = ["pi nana-pack.json", "pi objective.projectFile", "pi objective file"];
+		const plain = diagnoseWithPi(layout, { projectDir: layout.base }).filter((row) => labels.includes(row.label));
+		fs.writeFileSync(layout.piPackConfig, `\uFEFF${text}`);
+		const marked = diagnoseWithPi(layout, { projectDir: layout.base }).filter((row) => labels.includes(row.label));
+		const result = (rows) => rows.map(({ label, status, detail }) => ({ label, status, detail }));
+		// req: R-1580
+		check("doctor reads a nana-pack.json saved with a byte-order mark and CRLF as it reads the same file without one", plain.find((row) => row.label === "pi nana-pack.json")?.status === "ok" && JSON.stringify(result(marked)) === JSON.stringify(result(plain)), `${layout.piPackConfig}: ${JSON.stringify({ plain: result(plain), marked: result(marked) })}`);
+	}
+
+	{
+		const { adoptionSettings } = await import(new URL("../../nana-pack/lib/adoption.mjs", import.meta.url).href);
+		const savedAgentDir = process.env.PI_CODING_AGENT_DIR;
+		const observations = [];
+		const makeConfig = (layout) => JSON.stringify({ journal: { path: path.join(layout.base, "configured-journal.jsonl") }, objective: { projectFile: "GOALS.md" } });
+		for (const shape of [
+			(text) => `\uFEFF\uFEFF${text}`,
+			(text) => `${text.slice(0, 1)}\uFEFF${text.slice(1)}`,
+			(text) => `\uFEFF${text.replace(/^\{"journal"[\s\S]*$/, "{ nope")}`,
+		]) {
+			const layout = layoutWith("file");
+			fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
+			fs.writeFileSync(layout.piPackConfig, shape(makeConfig(layout)));
+			const doctorRow = diagnoseWithPi(layout, { projectDir: layout.base }).find((row) => row.label === "pi nana-pack.json");
+			try {
+				process.env.PI_CODING_AGENT_DIR = layout.piHome;
+				observations.push({ doctorRow, settings: adoptionSettings(), expectedJournal: path.join(layout.piHome, "nana-journal.jsonl") });
+			} finally {
+				if (savedAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+				else process.env.PI_CODING_AGENT_DIR = savedAgentDir;
+			}
+		}
+		// req: R-1586
+		check("two leading marks, a mark inside the object or malformed text after one mark stay unparseable for doctor and adoption", observations.every(({ doctorRow, settings, expectedJournal }) => doctorRow?.status === "fail" && settings.journal === expectedJournal && settings.objectiveFile === "OBJECTIVE.md"), JSON.stringify(observations));
+	}
+
 	// objective.projectFile: default / rename / INVALID are three distinct verdicts (T2a astra land MUST 2).
 	// Driven through diagnose() with a real ~/.pi/agent/nana-pack.json, so the ✓/✗ is the one doctor prints.
 	const pfCheck = (value) => {

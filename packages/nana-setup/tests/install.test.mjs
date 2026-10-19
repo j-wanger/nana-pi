@@ -462,6 +462,16 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	check("objective seed: the reason is reported", /not needed — objective\.path already points at/.test(r.stdout));
 	check("objective seed: doctor is still green", run(["doctor", "--home", elsewhere]).status === 0, run(["doctor", "--home", elsewhere]).stdout);
 
+	const markedHome = freshHome();
+	const markedObjective = path.join(markedHome, "another-objective.md");
+	fs.writeFileSync(markedObjective, "**Objective:** elsewhere\n");
+	const markedConfig = path.join(markedHome, ".pi", "agent", "nana-pack.json");
+	const markedBytes = `\uFEFF${JSON.stringify({ objective: { path: markedObjective, projectFile: "GOALS.md" } })}`;
+	fs.writeFileSync(markedConfig, markedBytes);
+	const markedRun = run(["install", "--home", markedHome]);
+	// req: R-1581
+	check("objective seed: not created when a nana-pack.json saved with a byte-order mark points elsewhere", !fs.existsSync(path.join(markedHome, ".pi", "agent", "nana-objective.md")) && /not needed — objective\.path already points at/.test(markedRun.stdout) && fs.readFileSync(markedConfig, "utf8") === markedBytes, markedRun.stdout);
+
 	// and when the config IS ours, the starter file is created
 	const ours = freshHome();
 	run(["install", "--home", ours]);
