@@ -1,0 +1,32 @@
+seat-mutate: lane win-skill-occupied, tip 04c14e8b3891d48fdd2b274af53505f2fbf85956, table 2d428fb607cf7b970adb50870560876beafa3fe5cd91d73f00011f968463659d, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-19T12:00:21.279Z
+DECLARED (a) every pair forces win32 through NANA_SETUP_PLATFORM on macOS; the native Windows run is CI's Windows leg
+DECLARED (b) M5 and M8 name no title: no must-meet check covers them, and they run to show whether any check does; M8 is equivalent at this tip, since the pack ships only SKILL.md and its current hash (79114a0) is in the frozen list
+DECLARED (c) no pair for the lstat-only SKILL.md guard or the marker's regular-file test: a planted link or marker is forgery, outside the threat model
+[1/5] seat-mutate: lane win-skill-occupied, shard 1/5, tip 04c14e8b3891d48fdd2b274af53505f2fbf85956, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 3 pairs, darwin, node v22.22.2, 2026-10-19T12:00:21.999Z
+[1/5] BASELINE ok   packages/nana-setup/tests/skills-and-standards.test.mjs (exit 0, 80 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane win-skill-occupied, shard 2/5, tip 04c14e8b3891d48fdd2b274af53505f2fbf85956, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 3 pairs, darwin, node v22.22.2, 2026-10-19T12:00:25.919Z
+[2/5] BASELINE ok   packages/nana-setup/tests/skills-and-standards.test.mjs (exit 0, 80 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane win-skill-occupied, shard 3/5, tip 04c14e8b3891d48fdd2b274af53505f2fbf85956, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 2 pairs, darwin, node v22.22.2, 2026-10-19T12:00:30.124Z
+[3/5] BASELINE ok   packages/nana-setup/tests/skills-and-standards.test.mjs (exit 0, 80 PASS, 0 FAIL, )
+[3/5] RESULT: 1/2 red (0 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 1 survived [M8]
+[4/5] seat-mutate: lane win-skill-occupied, shard 4/5, tip 04c14e8b3891d48fdd2b274af53505f2fbf85956, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 2 pairs, darwin, node v22.22.2, 2026-10-19T12:00:34.111Z
+[4/5] BASELINE ok   packages/nana-setup/tests/skills-and-standards.test.mjs (exit 0, 80 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (1 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane win-skill-occupied, shard 5/5, tip 04c14e8b3891d48fdd2b274af53505f2fbf85956, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 2 pairs, darwin, node v22.22.2, 2026-10-19T12:00:38.069Z
+[5/5] BASELINE ok   packages/nana-setup/tests/skills-and-standards.test.mjs (exit 0, 80 PASS, 0 FAIL, )
+[5/5] RESULT: 1/2 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 1 survived [M5]
+RED M1 linkSkill keeps main: a directory nana-setup did not make is never refused — 4/4 named: win32 occupied skill dir: install exits 1 with ✗ naming the directory and the fix | win32 occupied skill dir: the owner's folder is byte-identical after install | win32 occupied skill dir: --dry-run exits 1 and leaves the folder unchanged | win32 occupied skill dir: doctor reads ✗ — a directory instead of nana-setup's copy — with the move…; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 the ownership refusal is skipped on --dry-run — 1/1 named: win32 occupied skill dir: --dry-run exits 1 and leaves the folder unchanged; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 the marker is written before the ownership check — 4/4 named: win32 occupied skill dir: install exits 1 with ✗ naming the directory and the fix | win32 occupied skill dir: the owner's folder is byte-identical after install | win32 occupied skill dir: --dry-run exits 1 and leaves the folder unchanged | win32 occupied skill dir: doctor reads ✗ — a directory instead of nana-setup's copy — with the move…; UNNAMED red: [skills-and-standards.test.mjs] win32: install says so nana-setup install; 5 FAIL total (1 file changed, 1 insertion(+))
+RED M4 install never writes the marker — 2/2 named: win32 fresh mirror: install writes the .nana-setup-copy marker | win32: install refreshes the stale copy; UNNAMED red: [skills-and-standards.test.mjs] win32: doctor reads ✗ on a stale copy, naming the file nana-setup doctor — <tmp>… | [skills-and-standards.test.mjs] win32: the hand-written file was backed up, not destroyed | [skills-and-standards.test.mjs] win32: doctor is green again; 5 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+GREEN M5 the marker's status is not folded into the step's — SURVIVED
+RED M6 the marker content carries a timestamp — 1/1 named: win32: a second run changes nothing; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M7 ownSkillCopy never reads the marker — 1/1 named: win32: install refreshes the stale copy; UNNAMED red: [skills-and-standards.test.mjs] win32: doctor reads ✗ on a stale copy, naming the file nana-setup doctor — <tmp>… | [skills-and-standards.test.mjs] win32: the hand-written file was backed up, not destroyed | [skills-and-standards.test.mjs] win32: doctor is green again; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN M8 ownSkillCopy drops the byte-equal-to-pack test — SURVIVED
+RED M9 ownSkillCopy never consults the history list — 1/1 named: win32 pre-marker copy: install exits 0 and refreshes a shipped older SKILL.md, LF and CRLF; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M10 the history hash is taken without reading CRLF as LF — 1/1 named: win32 pre-marker copy: install exits 0 and refreshes a shipped older SKILL.md, LF and CRLF; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M11 the history list is missing the 0499e52 version — 1/1 named: win32 pre-marker copy: install exits 0 and refreshes a shipped older SKILL.md, LF and CRLF; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M12 doctor keeps main: no ownership check on win32 — 1/1 named: win32 occupied skill dir: doctor reads ✗ — a directory instead of nana-setup's copy — with the move…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 10/12 red (7 exactly their named titles, 0 with a named title green, 3 with an unnamed red), 2 survived [M5, M8], across 5 shards
