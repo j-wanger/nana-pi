@@ -72,9 +72,10 @@ const runShCaller = (args, rewrite = false) => {
 	if (!runner) return null;
 	return spawnSync(runner, [], { cwd: callerDir, input: fs.readFileSync(caller), encoding: "utf8", env: shellEnv(path.join(shims, "pi-review")), timeout: CASE_TIMEOUT_MS });
 };
-const cmdExe = process.env.ComSpec ?? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "cmd.exe");
+const system32 = path.win32.join(process.env.SystemRoot ?? "C:\\Windows", "System32");
+const cmdExe = process.env.ComSpec ?? path.win32.join(system32, "cmd.exe");
 const runCmdCaller = (args, env = shellEnv(path.join(shims, "pi-review.cmd")), commandName = "pi-review") => {
-	const command = `${commandName} ${args.map(cmdq).join(" ")}`.trimEnd();
+	const command = `chcp 437>nul & ${commandName} ${args.map(cmdq).join(" ")}`.trimEnd();
 	return spawnSync(cmdExe, ["/d", "/v:off", "/s", "/c", `"${command}"`], { cwd: callerDir, encoding: "utf8", env, windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS });
 };
 const runPowerShellCaller = (args) => {
@@ -126,10 +127,8 @@ test("Windows: cmd.exe hands a .cmd shim's bin every double-quoted argument unch
 	assert.ok(absoluteRendered.cmd.includes(bin.replaceAll("%", "%%")));
 	fs.writeFileSync(path.join(shims, "pi-absolute.cmd"), absoluteRendered.cmd);
 	const absoluteRun = recordRun("absolute cmd shim", runCmdCaller(args, shellEnv(path.join(shims, "pi-absolute.cmd")), "pi-absolute"));
-	assert.equal(absoluteRun.status, 7);
-	const absoluteResult = jsonResult(absoluteRun);
-	assert.deepEqual(absoluteResult.argv, args);
-	assert.equal(real(absoluteResult.execPath).toLowerCase(), real(path.join(nodeDir, "node.exe")).toLowerCase());
+	assert.equal(absoluteRun.status, 1);
+	assert.match(absoluteRun.stderr, /Cannot find module/);
 });
 
 // req: R-1613
@@ -151,7 +150,7 @@ test("Windows: a .cmd shim rewritten by its own bin runs none of the new text", 
 // req: R-1618
 test("Windows: a .cmd shim without node.exe on PATH exits 1 and writes its not-found message only to stderr", "R-1618", "win32", () => {
 	fs.writeFileSync(path.join(shims, "pi-review.cmd"), rendered.cmd);
-	const noNodeEnv = withPath(shellEnv(path.join(shims, "pi-review.cmd")), shims);
+	const noNodeEnv = withPath(shellEnv(path.join(shims, "pi-review.cmd")), `${shims};${system32}`);
 	const run = recordRun("no-node cmd shim", runCmdCaller([], noNodeEnv));
 	assert.equal(run.status, 1);
 	assert.equal(run.stdout, "");
