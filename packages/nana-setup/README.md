@@ -217,6 +217,9 @@ purpose — copier has no date variable — and is filled by this command or by 
 `nana-setup trust <dir>` and confirm interactively, or pass `--yes` in a script. The command
 records through pi's own `ProjectTrustStore` and prints the store path. `pi -a` / `--approve`
 (and the desk's trust box, which sends `-a`) trusts one run only; it is not a recorded decision.
+Trust loads pi's store from the pi package in npm's global folder (`npm root -g`). When it is
+missing there or has no `ProjectTrustStore`, trust exits 2 with one line naming the path it
+tried and the pi install command. A pi installed by another package manager is not found there.
 
 `project` and every scaffold and adopt completion message name the first two steps: ratify the
 seeded `OBJECTIVE.md`, then run `nana-setup trust <dir>`. Scaffold and adopt messages also say
