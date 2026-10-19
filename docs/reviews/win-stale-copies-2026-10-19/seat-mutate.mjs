@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane win-stale-copies (install and hook lane), written by the seat 2026-10-19 on the merged
 // tip defdeda, on the shared runner. Each pair reverts one product site the lane changed to its main form or to the
-// obvious wrong implementation (must-meet.md design; the builder's own wrong-code tries in build 1b). Run from the
-// worktree root:
+// obvious wrong implementation (must-meet.md design; the builder's own wrong-code tries in build 1b). M16-M18 were
+// added on e99866d for build 2's install record (R-1606). Run from the worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/win-stale-copies-2026-10-19/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
@@ -19,6 +19,7 @@ const R1602 = "R-1602: the stale line names exactly the rule and skill rows doct
 const R1603 = "R-1603: a failed stale-copies checker writes only the unavailable line";
 const R1604 = "R-1604: a rulings copy doctor marks failed sets one stale line in its own section";
 const R1605 = "R-1605: a rulings copy doctor marks current sets no stale section";
+const R1606 = "R-1606: a home where nana-setup never installed adds no stale or unavailable line";
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const STALE_SET = "if (stale) (event as any).systemPromptOptions.sections[STALE_SECTION] = staleNotice([`pi ${RULINGS_FILE}`]);";
 
@@ -26,6 +27,7 @@ const DECLARED = [
 	"(a) every pair runs on macOS: the POSIX fixtures natively, the win32 fixtures through NANA_SETUP_PLATFORM; the native Windows run is CI's non-blocking Windows leg",
 	"(b) no pair reverts doctor.mjs to main's private verbatim linkOk: that revert is equivalent by design; M11 instead lets doctor's check drift from the shared one",
 	"(c) no pair for the rulings-text guard in nana-rulings.ts (block.startsWith(RULINGS_HEADING)) or the handlers' catch paths: no must-meet fixture has an unavailable rulings file or a malformed event",
+	"(d) M18 is a known survivor: the R-1606 fixture home holds no settings.json, and no fixture's settings hold a SessionStart entry other than nana-setup's adoption entry, so accepting any SessionStart entry changes no check",
 ];
 
 const PAIRS = [
@@ -74,6 +76,16 @@ const PAIRS = [
 	{ n: "M15", name: "the rulings extension's stale line names the file without doctor's pi label", edits: [
 		one(EXT, "staleNotice([`pi ${RULINGS_FILE}`])", "staleNotice([RULINGS_FILE])"),
 	], tests: [SC], expectRed: [R1604] },
+	{ n: "M16", name: "the CLI drops the install-record test, so the check runs in a home nana-setup never installed", edits: [
+		one(CLI, "if (hasAdoptionInstallRecord(layout)) {", "if (true) {"),
+	], tests: [SC], expectRed: [R1606] },
+	{ n: "M17", name: "a home whose settings hold the adoption entry but which lacks one rule counts as no install", edits: [
+		one(CLI, 'import * as path from "node:path";', 'import * as fs from "node:fs";\nimport * as path from "node:path";'),
+		one(CLI, "if (hasAdoptionInstallRecord(layout)) {", "if (hasAdoptionInstallRecord(layout) && CLAUDE_RULES.every((name) => fs.existsSync(path.join(layout.rulesDir, name)))) {"),
+	], tests: [SC], expectRed: [R1600, R1602] },
+	{ n: "M18", name: "any SessionStart entry, not only nana-setup's adoption entry, counts as the install record", edits: [
+		one(LIB, "return Boolean(adoption && hasHook(settings, adoption.event, adoption.spec, adoption.matcher, platformValue));", "return Boolean(adoption && Array.isArray(settings?.hooks?.[adoption.event]) && settings.hooks[adoption.event].some((g) => Array.isArray(g?.hooks) && g.hooks.length > 0));"),
+	], tests: [SC], expectRed: [R1606] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-stale-copies", self: import.meta.url, tip: "defdeda", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-stale-copies", self: import.meta.url, tip: "e99866d", declared: DECLARED, pairs: PAIRS });
