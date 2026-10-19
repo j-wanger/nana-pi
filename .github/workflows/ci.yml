@@ -18,6 +18,7 @@ env:
 
 jobs:
   install-check:
+    if: false  # SEAT SCRATCH: only the Windows pair table runs on this branch
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]  # SEAT SCRATCH
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
@@ -69,8 +70,12 @@ jobs:
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: npm test
         if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
+      - name: SEAT SCRATCH — Windows-only pair table for review-ledger-run-reviewer
         if: matrix.os == 'windows-latest'
+        run: |
+          git config --global user.email "seat@example.invalid"; git config --global user.name "seat"
+          SEAT_MUTATE_SHARDS=1 SEAT_MUTATE_OUT="$RUNNER_TEMP/rlrr-win-mut.txt" node docs/reviews/review-ledger-run-reviewer-2026-10-19/seat-mutate-win.mjs; rc=$?
+          echo "===== RECORD ====="; cat "$RUNNER_TEMP/rlrr-win-mut.txt" || true; exit $rc
 
   release:
     needs: [suite, install-check]
