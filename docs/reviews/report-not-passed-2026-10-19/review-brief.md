@@ -56,3 +56,5 @@ FEAT-039 · See the product and its decisions in one report
   R-1654 new (implemented)
   R-1655 new (implemented)
 ```
+
+One code conflict in this merge, resolved by the seat: `scripts/product-report.mjs`'s `const model = { … }` line. This lane added a `notPassed` field and audit-open-questions added a `questions` field to the same line. The merge `7b8a3f6` keeps every field of both sides once, with `notPassed` after `violated` as on this lane. `git show --remerge-diff 7b8a3f6 -- scripts/product-report.mjs` shows it. Judge it with the rest: product-report runs 71 checks, all passing, on the merged tip.
