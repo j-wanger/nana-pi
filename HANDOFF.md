@@ -188,7 +188,6 @@
 - Clean revision: dirty-tree snapshot values change once when this lands, so land it with no review running. Old ledger lines stay as they are.
 - Clean revision (review): deriving the tree refreshes the timestamps of objects git re-hashes, so git's cleanup keeps unreachable copies of them a little longer.
 - Clean revision (review): an ignored file force-added and staged, not committed, now reviews as the plain commit, but the reviewer's copy still shows it. nana-land refuses while it stays staged. Unstaged afterwards, the land goes ahead on a review that saw one extra file.
-- Clean revision: a file forced past the ignore list and staged, but not committed, no longer changes the revision. nana-land still refuses the land while the file sits staged.
 - Clean revision: each derivation takes about a third of a second longer on nana-pi.
 - Clean revision: no test or wrong-code pair covers the scratch folder's removal or the refusal of a path holding a newline. Neither covers an untracked nested repository with commits. No pair runs on Windows, so only the Windows CI check pins the alternates file's form there.
 
