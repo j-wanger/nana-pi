@@ -90,7 +90,7 @@ const nonVacuityControl = async (label) => {
 			console.log("SKIP /tmp is a temporary root on macOS and Linux and not on Windows: \\tmp on the current drive lies inside the lane or OS temp root");
 		} else {
 			// req: R-1430
-			check("/tmp is a temporary root on macOS and Linux and not on Windows", await call("write", r1430Literal));
+			check("/tmp is a temporary root on macOS and Linux and not on Windows", await call("write", r1430Joined) && await call("write", r1430Literal));
 		}
 	} else {
 		// req: R-1430
