@@ -130,8 +130,7 @@ const overlap1470at3 = maxOverlap(Object.values(ivl1470at3));
 // with a "start N, wait for all N" batcher, c would only start once BOTH a and b have ended.
 const cStartsBeforeAEnds = !!ivl1470at2.a && !!ivl1470at2.c && ivl1470at2.c.start < ivl1470at2.a.end;
 // req: R-1470
-check(
-	"R-1470: --jobs=2 and --jobs=3 keep exactly that many files running and never more, and a freed slot starts the next file while a longer one still runs",
+check("R-1470: --jobs=2 and --jobs=3 keep exactly that many files running and never more, and a freed slot starts the next file while a longer one still runs",
 	run1470at2.code === 0 && run1470at3.code === 0 && overlap1470at2 === 2 && overlap1470at3 === 3 && cStartsBeforeAEnds,
 	JSON.stringify({ overlap1470at2, overlap1470at3, ivl1470at2, ivl1470at3 }),
 );
@@ -231,8 +230,7 @@ const selfTestMatch1471 = selfTestLine1471 !== null
 	&& selfTestLine1471 === lineStartingWith(parallel1471.out, "self-test")
 	&& selfTestLine1471 === "self-test: every fixture got its expected verdict";
 // req: R-1471
-check(
-	"R-1471: a parallel run that overlaps reports every label, count, excerpt, warning, failed name, self-test verdict, total and exit code exactly as a serial run",
+check("R-1471: a parallel run that overlaps reports every label, count, excerpt, warning, failed name, self-test verdict, total and exit code exactly as a serial run",
 	serial1471.code !== 0 && serial1471.code === parallel1471.code
 		&& overlapped1471 && totalsMatch1471 && warnsMatch1471 && failedMatch1471 && selfTestMatch1471 && blocksMatch1471,
 	JSON.stringify({ serialTotals1471, parallelTotals1471, overlapped1471, warnsMatch1471, failedMatch1471, selfTestMatch1471, blocksMatch1471, serialCode: serial1471.code, parallelCode: parallel1471.code }),
@@ -302,8 +300,7 @@ const plainRun1472 = run(rootR1472, ["--jobs=2"]);
 const plainSeq1472 = ownerSequence(plainRun1472.out, { tag1: "      | FAIL r1-", tag2: "      | FAIL r2-", result1: "r1.test.mjs", result2: "r2.test.mjs" });
 const rOverlap1472 = maxOverlap([readJson(plainRun1472.out_dir, "r1.json"), readJson(plainRun1472.out_dir, "r2.json")]);
 // req: R-1472
-check(
-	"R-1472: files that ran at the same time print their verbose output, or their failing excerpt, and their result line as uninterrupted blocks",
+check("R-1472: files that ran at the same time print their verbose output, or their failing excerpt, and their result line as uninterrupted blocks",
 	verboseRun1472.code === 0 && plainRun1472.code === 1 && vOverlap1472 === 2 && rOverlap1472 === 2
 		&& isContiguousPair(vSeq1472) && isContiguousPair(plainSeq1472),
 	JSON.stringify({ vSeq1472, plainSeq1472, vOverlap1472, rOverlap1472 }),
@@ -335,11 +332,15 @@ function mkRootWithAloneOverride(name, aloneFile, files) {
 	);
 	return root;
 }
+// a (pool) ends well before c and d (pool): a wrong pool that lets an "alone" file start as
+// soon as ANY slot frees, rather than once the WHOLE pool has drained, would start b around
+// when a ends — while c and d are still running — and this fixture is built to catch exactly
+// that (W7: an alone file only waits for a free slot).
 const root1473 = mkRootWithAloneOverride("r1473", "packages/probe/tests/b.test.mjs", {
-	"packages/probe/tests/a.test.mjs": sleepRecordFixture("a", 1000),
-	"packages/probe/tests/b.test.mjs": sleepRecordFixture("b", 1000),
-	"packages/probe/tests/c.test.mjs": sleepRecordFixture("c", 1000),
-	"packages/probe/tests/d.test.mjs": sleepRecordFixture("d", 1000),
+	"packages/probe/tests/a.test.mjs": sleepRecordFixture("a", 600),
+	"packages/probe/tests/b.test.mjs": sleepRecordFixture("b", 500),
+	"packages/probe/tests/c.test.mjs": sleepRecordFixture("c", 2000),
+	"packages/probe/tests/d.test.mjs": sleepRecordFixture("d", 2000),
 });
 const run1473 = run(root1473, ["--jobs=3"]);
 const ivl1473 = intervalsOf(run1473.out_dir, ["a", "b", "c", "d"]);
@@ -347,8 +348,7 @@ const poolOverlap1473 = maxOverlap([ivl1473.a, ivl1473.c, ivl1473.d]);
 const poolEnd1473 = Math.max(ivl1473.a?.end ?? 0, ivl1473.c?.end ?? 0, ivl1473.d?.end ?? 0);
 const bRanAlone1473 = !!ivl1473.b && ivl1473.b.start >= poolEnd1473;
 // req: R-1473
-check(
-	"R-1473: a file on the run-alone list runs while no other file runs, and the other files still overlap",
+check("R-1473: a file on the run-alone list runs while no other file runs, and the other files still overlap",
 	run1473.code === 0 && poolOverlap1473 >= 2 && bRanAlone1473,
 	JSON.stringify({ ivl1473, poolOverlap1473, poolEnd1473 }),
 );
@@ -416,8 +416,7 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 	);
 }
 // req: R-1475
-check(
-	"R-1475: SIGINT and SIGTERM during a parallel run kill every running tree and remove every running temp root (external signals on POSIX; handler trigger on Windows)",
+check("R-1475: SIGINT and SIGTERM during a parallel run kill every running tree and remove every running temp root (external signals on POSIX; handler trigger on Windows)",
 	signal1475Results.every(Boolean),
 	JSON.stringify(signal1475Results),
 );
@@ -440,8 +439,7 @@ const badJobsResults = BAD_JOBS_ARGS.map((arg) => {
 	return { arg, ok: r.code === 1 && r.out.includes(arg) && !fs.existsSync(path.join(r.out_dir, "marker.ran")) };
 });
 // req: R-1477
-check(
-	"R-1477: --jobs=0, --jobs=abc, --jobs=2.5, --jobs= and a bare --jobs each exit 1 naming the argument before any file starts",
+check("R-1477: --jobs=0, --jobs=abc, --jobs=2.5, --jobs= and a bare --jobs each exit 1 naming the argument before any file starts",
 	badJobsResults.every((r) => r.ok),
 	JSON.stringify(badJobsResults),
 );

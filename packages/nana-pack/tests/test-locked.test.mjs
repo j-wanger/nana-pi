@@ -114,8 +114,7 @@ const readEvents = () => fs.existsSync(events) ? fs.readFileSync(events, "utf8")
   const defaultArgs = JSON.stringify(["test", "--", `${JOBS_FLAG}${SUITE_JOBS}`]);
   const overriddenArgs = JSON.stringify(["test", "--", `${JOBS_FLAG}${SUITE_JOBS + 1}`]);
   // req: R-1476
-  check(
-    "R-1476: an unfiltered locked run passes --jobs= with NANA_SUITE_JOBS, or the declared suite job count when it is unset or empty, to npm test",
+  check("R-1476: an unfiltered locked run passes --jobs= with NANA_SUITE_JOBS, or the declared suite job count when it is unset or empty, to npm test",
     unset.status === 0 && JSON.stringify(unset.args) === defaultArgs
       && empty.status === 0 && JSON.stringify(empty.args) === defaultArgs
       && overridden.status === 0 && JSON.stringify(overridden.args) === overriddenArgs,

@@ -261,6 +261,16 @@ active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero m
 deliberately failing file to prove the runner turns red. On win32 the runner also SKIPs each
 desk or bench file on the declared Windows skip list
 (`packages/nana-pack/lib/windows-skips-config.mjs`), printing that file's reason without
-starting it. `node scripts/template-acceptance.mjs`
+starting it.
+
+`npm test -- --jobs=N` keeps up to N collected files running at once (default 1), reporting
+the same labels, counts, excerpts, warnings, failed list, self-test verdict, totals and exit
+code as a serial run, apart from timings and the order file blocks print in; a file on the
+declared run-alone list (`packages/nana-pack/lib/test-runner-config.mjs`) still runs alone,
+after every other file's pool has drained. `npm run test:locked` with no filter passes
+`--jobs=` with the declared suite job count from that same module; `NANA_SUITE_JOBS`
+overrides it, and `NANA_SUITE_JOBS=1` restores today's serial run.
+
+`node scripts/template-acceptance.mjs`
 runs the separate rendered-template acceptance gate; `--src <repo>` and `--ref <rev>` select
 its source and commit. It is intentionally not collected by `npm test`.
