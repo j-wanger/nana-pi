@@ -10,6 +10,7 @@
 // study measures something other than what it registered, so every flag is pinned here.
 // Run: node apps/bench/test/argv.test.mjs   (exit 0 = all PASS)
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ISOLATION_FLAGS, renderRun, validateProfile } from "../lib/profiles.mjs";
@@ -123,10 +124,13 @@ for (const p of study.profiles) check(`study profile "${p.name}" validates`, thr
 // A relative extension path resolves against the STUDY dir, never the process cwd
 // (the child runs inside a throwaway fixture copy).
 {
+	const base = path.join(os.tmpdir(), "nana-bench");
+	const studyDir = path.join(base, "studies", "s1");
 	const relProfile = { ...P("research"), extensions: P("research").extensions.map((e) => ({ ...e, path: "../../.ext/pi-web-access/node_modules/pi-web-access/index.ts" })) };
-	const r = renderRun(relProfile, study, { ...ctx, studyDir: "/tmp/nana-bench/studies/s1" });
+	const r = renderRun(relProfile, study, { ...ctx, studyDir });
 	const i = r.argv.indexOf("-e");
-	check("relative -e path is made absolute against studyDir", i >= 0 && r.argv[i + 1] === "/tmp/nana-bench/.ext/pi-web-access/node_modules/pi-web-access/index.ts", r.argv[i + 1]);
+	const expected = path.join(base, ".ext", "pi-web-access", "node_modules", "pi-web-access", "index.ts");
+	check("relative -e path is made absolute against studyDir", i >= 0 && r.argv[i + 1] === expected, r.argv[i + 1]);
 }
 
 process.exit(fails ? 1 : 0);

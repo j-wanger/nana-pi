@@ -286,7 +286,8 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 
 	// A BENCH_PI_ROOT that points nowhere must fail with the paths it tried, not fall back.
 	const prev = process.env.BENCH_PI_ROOT;
-	process.env.BENCH_PI_ROOT = "/definitely/not/a/pi/install";
+	const wrongRoot = path.join(fixtureRoot, "definitely-not-a-pi-install");
+	process.env.BENCH_PI_ROOT = wrongRoot;
 	threw = null;
 	try {
 		await loadPiExports({ piBin: null });
@@ -296,7 +297,7 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	if (prev === undefined) delete process.env.BENCH_PI_ROOT;
 	else process.env.BENCH_PI_ROOT = prev;
 	// req: R-508
-	check("a wrong BENCH_PI_ROOT fails and names the path tried", /definitely\/not\/a\/pi\/install/.test(threw ?? ""), (threw ?? "").slice(0, 80));
+	check("a wrong BENCH_PI_ROOT fails and names the path tried", (threw ?? "").includes(wrongRoot), (threw ?? "").slice(0, 80));
 	const workflowText = fs.readFileSync(path.join(here, "../../..", ".github/workflows/ci.yml"), "utf8");
 	const ciVersion = workflowText.match(/^  PI_VERSION: (\S+)$/m)?.[1];
 	const ciBefore = workflowText.match(/^  PI_BEFORE: "([^"]+)"$/m)?.[1];
