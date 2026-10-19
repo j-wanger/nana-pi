@@ -43,7 +43,7 @@ const check = (n, ok, why = "") => {
 	if (!ok) fails++;
 };
 const skip = (n, why) => console.log("SKIP", n, "—", why);
-const run = (cmd, args, cwd) => spawnSync(cmd, args, { cwd, encoding: "utf-8", timeout: 240_000 });
+const run = (cmd, args, cwd, extraEnv) => spawnSync(cmd, args, { cwd, encoding: "utf-8", timeout: 240_000, ...(extraEnv ? { env: { ...process.env, ...extraEnv } } : {}) });
 const out = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
 
 /** `uvx copier`, if this machine has it. */
@@ -91,6 +91,42 @@ function rewriteToCrlf(dir) {
 function pytestAvailable() {
 	const probe = run("uv", ["run", "--no-project", "--with", "pytest", "python3", "-c", "import pytest"], REPO);
 	return probe.status === 0;
+}
+
+/** `uvx --with pytest pytest`, the resolvable-pytest probe for the R-1360 cp1252 check below.
+ *  Separate from `pytestAvailable()`'s `uv run --no-project ... python3` probe, which SKIPs on
+ *  Windows (no `python3` in uv's Windows environment, win-template-tests log line 4633) while
+ *  `uvx --with pytest pytest` runs there too (the update leg). */
+function uvxPytestAvailable() {
+	return run("uvx", ["--with", "pytest", "pytest", "--version"], REPO).status === 0;
+}
+
+/** R-1360: a scaffolded or adopted Python project's requirements-trace, code-map and
+ *  readme-check tests run their own child Python processes, and pass when those children
+ *  write their output in cp1252 — the Windows default a user who sets no PYTHONIOENCODING
+ *  gets. Forces the same decode mismatch on macOS/Linux with PYTHONIOENCODING=cp1252 and a
+ *  Latin-1 locale, in a real pytest run against the actual render. Returns `{ available:
+ *  false }` when uvx cannot resolve pytest, so the caller SKIPs (or FAILs under
+ *  NANA_TEST_REQUIRE_COPIER=1) rather than guessing "unresolvable" from the real run's exit
+ *  code (uv and pytest both use exit 2 too); the caller does its own `check(` so the row's
+ *  marker sits directly above a literal call, this file's own trace-rail convention.
+ *  `deselect` carries test ids this render's state fails for a reason the cp1252 fix does
+ *  not touch (adopt mode's own self-tests — see the adopt call site below); it is empty for
+ *  the scaffold render, which starts in a state where every test applies. */
+function runCp1252(dest, deselect = []) {
+	if (!uvxPytestAvailable()) return { available: false };
+	const args = ["--with", "pytest", "pytest", "-o", "addopts=", "-p", "no:cacheprovider", "tests/test_requirements_trace.py", "tests/test_code_map.py", "tests/test_readme_check.py"];
+	for (const id of deselect) args.push("--deselect", id);
+	const r = run(
+		"uvx",
+		args,
+		dest,
+		// PYTHONDONTWRITEBYTECODE keeps this render's own file list clean for the checks
+		// that run after this one (a later check compares the render's whole file list
+		// against the skill's declared list; a stray `__pycache__` would fail it).
+		{ PYTHONIOENCODING: "cp1252", LC_ALL: "en_US.ISO8859-1", PYTHONDONTWRITEBYTECODE: "1" },
+	);
+	return { available: true, ok: r.status === 0, tail: out(r).slice(-800) };
 }
 
 /** Call the rendered project's own trace-rail `check()` directly, with no test framework
@@ -645,6 +681,17 @@ if (!version) {
 			// req: R-737
 			check(`${language}: copier renders the template`, ok, log.slice(-800));
 			if (!ok) continue;
+			if (language === "python") {
+				const cp1252 = runCp1252(dest);
+				if (!cp1252.available) {
+					const title = `${language} scaffold: requirements-trace, code-map and readme-check tests pass under a cp1252 Python environment`;
+					if (process.env.NANA_TEST_REQUIRE_COPIER === "1") check(title, false, "NANA_TEST_REQUIRE_COPIER=1 but uvx could not resolve pytest");
+					else skip(title, "uvx could not resolve pytest");
+				} else {
+					// req: R-1360
+					check(`${language} scaffold: requirements-trace, code-map and readme-check tests pass under a cp1252 Python environment`, cp1252.ok, cp1252.tail);
+				}
+			}
 			const currentTarget = { name: `${language}-scaffold`, root: dest };
 			const declaredKey = `${language}-scaffold`;
 			const sharedText = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
@@ -841,6 +888,25 @@ if (!version) {
 		try {
 			check(`${language} adopt: copier renders the template`, adopt.ok, adopt.out.slice(-800));
 			if (!adopt.ok) continue;
+			if (language === "python") {
+				// An adopt render deliberately skips the README/map starters (copier.yml's
+				// adopt help text), so test_this_project_headers_and_map_are_current and
+				// test_this_project_readme_passes fail here under ANY encoding (verified
+				// against the default encoding too) — a pre-existing adopt-mode gap, not the
+				// cp1252 decode mismatch this check pins. Deselect only those two.
+				const cp1252 = runCp1252(adopt.dest, [
+					"tests/test_code_map.py::test_this_project_headers_and_map_are_current",
+					"tests/test_readme_check.py::test_this_project_readme_passes",
+				]);
+				if (!cp1252.available) {
+					const title = `${language} adopt: requirements-trace, code-map and readme-check tests pass under a cp1252 Python environment`;
+					if (process.env.NANA_TEST_REQUIRE_COPIER === "1") check(title, false, "NANA_TEST_REQUIRE_COPIER=1 but uvx could not resolve pytest");
+					else skip(title, "uvx could not resolve pytest");
+				} else {
+					// req: R-1360
+					check(`${language} adopt: requirements-trace, code-map and readme-check tests pass under a cp1252 Python environment`, cp1252.ok, cp1252.tail);
+				}
+			}
 			const dir = adopt.dest;
 			const adoptTarget = { name: `${language}-adopt`, root: dir };
 			const adoptKey = `${language}-adopt`;
