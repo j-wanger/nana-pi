@@ -65,6 +65,24 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    disk may you render a throwaway scaffold and copy the `## Working under nana-pi`
    section out of its `AGENTS.md`.
 
+   Write the lines inside this three-line fence into the root `AGENTS.md` — write the lines
+   INSIDE the fence, never the fence markup itself, because the project check ignores markers
+   that sit inside a fenced code block. These markers let `nana-setup project <dir>` refresh the
+   section later and let `nana-setup project <dir> --check` read ✓ for it:
+
+   ```markdown
+   <!-- nana:working-under-nana-pi begin -->
+   <the shared file's contents, copied verbatim>
+   <!-- nana:working-under-nana-pi end -->
+   ```
+
+   **Re-adoption.** When the root `AGENTS.md` already holds an unmarked copy of this section —
+   it runs from its `## Working under nana-pi` heading through the last line that came from the
+   shared file — replace that copy with the marked block above and never add a second copy. The
+   project's own lines after it stay below the end marker; when the end is unclear, show the
+   owner and ask. When the markers are already there, replace only the lines between them.
+   Projects adopted before the markers existed are fixed the same way.
+
    Render it with **this project's real name**, not a dummy: copier substitutes
    `<name>` in the step-6 seeds at render time, so a throwaway named `_tmp` would
    seed `# Objective and current priority — _tmp`. With the real name, the seeds
@@ -78,13 +96,19 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    single quote in it is typed `'\''` in bash and doubled `''` in PowerShell.)
 
    Separate commands on purpose — `&&` breaks in Windows PowerShell 5.1 — and
-   `node` instead of `sed`, which a native Windows shell does not have.
+   `node` instead of `sed`, which a native Windows shell does not have. Each `node -e` line below
+   prints only the marked block — from the start of the begin-marker line through the end of the
+   end-marker line, and nothing after it — found by the search strings `nana:working-under-nana-pi
+   begin` and `nana:working-under-nana-pi end`, never a needle starting `<!--`, because
+   interactive bash reads `!-` as a history expansion. Outside its file-path argument, the line
+   carries no `$`, backtick, `%` or `"`, no `!` except right before `=`, and no backslash except
+   right before `n`, so every listed shell hands node the same text.
    macOS / Linux:
 
    ```bash
    NANA_PROJECT_NAME='<the project name>'
    uvx copier copy --defaults --data language=python --data project_name="$NANA_PROJECT_NAME" https://github.com/j-wanger/nana-pi.git /tmp/nana-canon
-   node -e "const s=require('fs').readFileSync('/tmp/nana-canon/AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
+   node -e "const s=require('fs').readFileSync('/tmp/nana-canon/AGENTS.md','utf8');const b=s.indexOf('nana:working-under-nana-pi begin'),e=s.indexOf('nana:working-under-nana-pi end'),n=s.indexOf('\n',e);if(b!==-1&&e>b)process.stdout.write(s.slice(s.lastIndexOf('\n',b)+1,n===-1?s.length:n+1))"
    ```
 
    Windows PowerShell (in cmd use `"%TEMP%\nana-canon"` — quoted — for the destination; the
@@ -93,7 +117,7 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    ```powershell
    $env:NANA_PROJECT_NAME = '<the project name>'
    uvx copier copy --defaults --data language=python --data project_name=$env:NANA_PROJECT_NAME https://github.com/j-wanger/nana-pi.git $env:TEMP\nana-canon
-   node -e "const s=require('fs').readFileSync(process.env.TEMP + '\\nana-canon\\AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
+   node -e "const s=require('fs').readFileSync(process.env.TEMP + '\\nana-canon\\AGENTS.md','utf8');const b=s.indexOf('nana:working-under-nana-pi begin'),e=s.indexOf('nana:working-under-nana-pi end'),n=s.indexOf('\n',e);if(b!==-1&&e>b)process.stdout.write(s.slice(s.lastIndexOf('\n',b)+1,n===-1?s.length:n+1))"
    ```
 
    Delete the throwaway scaffold afterwards — it is outside the project on
