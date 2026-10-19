@@ -21,7 +21,7 @@ import {
 	realpathSync,
 	writeFileSync,
 } from "node:fs";
-import { dirname, join, posix, relative, resolve } from "node:path";
+import { dirname, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -856,7 +856,7 @@ export function main(argv, root = PROJECT_ROOT) {
 		const config = loadConfig(root);
 		const graph = buildGraph(collectModules(root, config), config);
 		const paths = argv.slice(1).map((a) => {
-			const rel = relative(root, resolve(a));
+			const rel = relative(root, resolve(a)).split(sep).join("/");
 			return posix.normalize(
 				existsSync(resolve(a)) || graph.modules.has(rel) ? rel : a,
 			);
