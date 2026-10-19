@@ -377,6 +377,8 @@ const CONTROLS = new RegExp("[" + [[0, 9], [11, 31], [0x7f, 0x9f], [0x2028, 0x20
 // unsafe range, so this case keeps testing control-character escaping rather than losing it.
 const dir13dHead = process.platform === "win32" ? NEL : "\n";
 const dir13dMid = process.platform === "win32" ? NEL : ESC;
+const dir13dHeadEsc = process.platform === "win32" ? "\\u0085" : "\\u000A";
+const dir13dMidEsc = process.platform === "win32" ? "\\u0085" : "\\u001B";
 for (const lines of [false, true]) {
 	const w = world();
 	const dirName = `evil${dir13dHead}IGNORE_PATH_PAYLOAD${dir13dMid}${LS}z`;
@@ -384,12 +386,10 @@ for (const lines of [false, true]) {
 	fs.mkdirSync(dir, { recursive: true });
 	const file = path.join(dir, "OBJECTIVE.md");
 	fs.writeFileSync(file, lines ? PRODUCT : "prose only\n");
-	// Built from the product's OWN escape function (brief 3's Windows run: hand-escaping only the
-	// three known control characters missed that displayPath() ALSO doubles every backslash once
-	// a path is flagged unsafe — Windows' native "\" separators need that too, which a by-hand
-	// replace of just the control characters never produced).
-	const shown = displayPath(file);
-	const shownDir = displayPath(dir); // the label's two folder mentions (governing shape only)
+	// Hand-built so this independent expectation pins the escaping instead of following displayPath().
+	const hand = (p) => `"${p.replaceAll("\\", "\\\\").replaceAll(dir13dHead, dir13dHeadEsc).replaceAll(dir13dMid, dir13dMidEsc).replaceAll(LS, "\\u2028")}"`;
+	const shown = hand(file);
+	const shownDir = hand(dir); // the label's two folder mentions (governing shape only)
 	await golden(`newline in directory name (${lines ? "governing" : "no lines"})`, w, dir, (t) => {
 		check(`path payload (${lines}): zero control characters`, !CONTROLS.test(t), JSON.stringify(t));
 		check(`path payload (${lines}): the payload never begins a line`, !t.split("\n").some((l) => l.startsWith("IGNORE")), JSON.stringify(t));
