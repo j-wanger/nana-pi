@@ -2,7 +2,7 @@
 
 Feature: FEAT-013 · Install and connect harness runtimes. Class: install, hook or gate. Builder: pi gpt-5.6-sol through pi-worker --lane-size larger.
 Rows: R-1610 to R-1617 new (block R-1610 to R-1619). R-995 retired; R-589, R-937, R-1072, R-1081 and R-684 change. Read must-meet.md first; its Design section is the spec.
-Base: main after win-leg-flip, readme-install, bom-pack-config and install-honest-report have landed.
+Base: bom-pack-config's reviewed tip, which already holds win-leg-flip, readme-install, install-honest-report and leaf-total-drop. The lane lands after bom-pack-config.
 
 ## Change, in order
 1. REQUIREMENTS.md FEAT-013 SUB-015: add R-1610 to R-1617 as `planned`, text from must-meet. Retire R-995 ("retired <date>: win32 install writes shims; R-1610 replaces it"). Edit R-589, R-937, R-1072, R-1081 and R-684 per must-meet's "Old contract text". Run `npm run req:tree`.
@@ -17,7 +17,7 @@ Base: main after win-leg-flip, readme-install, bom-pack-config and install-hones
      - R-1616: real-home layout (HOME and USERPROFILE set to the temp home, no --home): bin folder first gives ✓; bin folder absent gives ✗ and exit 1; an earlier folder holding another pi-review.cmd gives ✗ naming it.
    - install.test.mjs Windows branch: delete the four "not installed on win32" checks, "doctor reads every PATH entry skipped on win32" and "second install still has no PATH links on win32"; keep the shebang check; fix the comment above them.
    - install-check.test.mjs: the R-1081 pin; the R-1072 title loses "except on win32"; its win32 assertion expects the bin folder first, joined with `;`, under the fixture's Path key.
-   - state-manifest.test.mjs: drop the four bins from posixOnlyInstallTargets. templates-render.test.mjs: canonicalSupport. requirements-tree.test.mjs: R-291 total = the total `node scripts/requirements-trace.mjs` prints (skip if leaf-total-drop has landed).
+   - state-manifest.test.mjs: drop the four bins from posixOnlyInstallTargets. templates-render.test.mjs: canonicalSupport. (leaf-total-drop has landed: no typed leaf total remains, so requirements-tree.test.mjs needs no edit.)
 3. Code: lib/win-shims.mjs; fsops.mjs (the bytes function; linkFile's copy branch calls it); steps.mjs stepPath win32 branch, PATH-check predicate, header; doctor.mjs win32 PATH rows, resolves row, header; install-check-config.mjs DOCTOR_NOTES.win32; install-check.mjs bin folder first on win32; state-manifest.mjs four `.cmd` rebuildable rows.
 4. Docs per "Old contract text", plus the setup README's Windows paragraph carrying the known limits and a tests-table row for win-shims.test.mjs.
 5. Flip the rows to implemented; Windows-only rows say "Windows leg only" in Evidence. Run `npm run req:tree` and `npm run map`.
