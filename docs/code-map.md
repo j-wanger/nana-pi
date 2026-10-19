@@ -2601,7 +2601,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — setupProject() reports rows and checkProject() asynchronously reports rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`, every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT, BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS, RENAME_RETRY_ATTEMPTS, RENAME_RETRY_DELAY_MS
 - **effects** — disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a parent-side deadline — SIGTERM then SIGKILL after the grace)
 - **errors** — SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a path that is not a git repository root; everything else is a row — SKIPPED for a nested-repo `git init`, a failed `git init`, a missing index, a held build lock, a build failure or the refresh deadline
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
 - **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
 
 ### `packages/nana-setup/lib/readme-rehearsal.mjs`
@@ -2816,13 +2816,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/entry-guidance.test.mjs`
 
-- **purpose** — Pins the completion guidance each scaffold, adopt, copier and project path gives: ratification before trust, and the adopt skills' closing project check.
-- **inputs** — copier.yml, four pack skill files, and nana-setup project CLI output.
+- **purpose** — Pins the completion guidance each scaffold, adopt, copier and project path gives: ratification before trust, the adopt skills' closing project check, and adopt-structure step 4's marker fence and fallback commands.
+- **inputs** — copier.yml, four pack skill files, nana-setup project CLI output, and the shared working file and project lib's WORKING_BEGIN/WORKING_END/agentsStub.
 - **outputs** — PASS/FAIL lines and a nonzero process exit when any assertion fails.
 - **effects** — disk (temporary project and home), process (runs the CLI).
 - **errors** — a failed assertion prints FAIL and exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/fresh-machine.test.mjs`
 
