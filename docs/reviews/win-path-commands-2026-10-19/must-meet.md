@@ -7,7 +7,7 @@ Class: install, hook or gate (install and doctor). Full ladder: final reviewer, 
 WHERE the platform is win32 and the bin directory is on PATH, after install pi-review, pi-worker, nana-land and nana-setup run by bare name from Git Bash, cmd.exe and Windows PowerShell, handing node this checkout's bin with the arguments and exit status unchanged; doctor reads ✓ only when that holds.
 
 ## Threat model
-In scope (honest variation): the three shells; arguments with spaces, both quote kinds, `% & ^ ! ( ) | < >`, a line break, an empty argument and an `@<full path>` brief; folder names holding a space, `&`, `%`, parentheses, `'`, `$` or a non-ASCII letter; a `node.js` in the caller's folder; a hand-written file at a shim path; install rewriting its own running shim; another `pi-review.cmd` earlier on PATH. Out: a forged `node.exe` planted on PATH, a deliberate edit that keeps a shim's bytes, registry settings made to break cmd.exe.
+In scope (honest variation): the three shells; arguments with spaces, both quote kinds, `% & ^ ! ( ) | < >`, a line break, an empty argument and an `@<full path>` brief; folder names holding a space, `&`, `%`, parentheses, `'`, `$` or a non-ASCII letter; a `node.cmd` in the caller's folder; a hand-written file at a shim path; install rewriting its own running shim; another `pi-review.cmd` earlier on PATH. Out: a forged `node.exe` planted on PATH, a deliberate edit that keeps a shim's bytes, registry settings made to break cmd.exe.
 
 ## Design
 - New `packages/nana-setup/lib/win-shims.mjs` (six-tag header, effects none) renders two texts for one bin file and the bin directory:
@@ -44,8 +44,8 @@ Unchanged: templates/_shared's "Where pi-worker and pi-review are not on PATH (W
 ## Known limits
 - PowerShell 5.1 drops an empty argument and breaks a spaced one ending in `\`. cmd.exe changes an argument with no space but one of `& | < > ^ ( )`, an embedded double quote, or a defined `%NAME%`. Both hold for every .cmd, npm's `pi.cmd` included; use Git Bash or the node form.
 - Git Bash rewrites a `/`-shaped argument as a path for any native program, `node <bin>` typed directly included.
-- A non-ASCII letter in the .cmd's embedded path (below the shared folder, or a checkout on another drive) likely misreads in the console code page (inferred). Doctor still reads ✓.
-- Whether `%~$PATH:` also searches the caller's folder first is unverified; a `node.exe` there would run (inferred).
+- An absolute bin path containing a non-ASCII letter worked on the hosted Windows runner; the relative form is retained so a same-drive checkout and its shims can move together. A UTF-8 batch caller did misread the same letter in the console code page, so generated batch callers remain unsupported.
+- A bare `node` searches the caller's folder before PATH; the renderer's explicit `node.exe` PATH lookup avoids a caller-local `node.cmd`.
 - `~/.local/bin` is not on a Windows PATH by default, so doctor reads ✗ on the real home until the owner adds it.
 - A changed shim text backs up the old shim, as win32 rule copies do. The install PATH-check line is not pinned. Windows uninstall stays unsupported and leaves the shims.
 
