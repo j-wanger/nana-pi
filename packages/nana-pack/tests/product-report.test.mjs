@@ -102,6 +102,43 @@ function cardFor(view, rowId) {
 function testItemsOf(card) {
   return card?.children.find((child) => child.tag === "ol" && child.attrs?.class === "row-tests")?.children.filter((child) => child.tag === "li") ?? [];
 }
+// Rewrites one heading's section of a fixture's REQUIREMENTS.md in place: everything from right
+// after `heading`'s own line up to (not including) the next line starting with "#", replaced
+// with `bodyLines`. `keepHeading: false` drops the heading line too. Used only by R-1570 and
+// R-1571, so those two checks can hand the written page a deterministic open-questions section
+// without disturbing the rest of the real ledger.
+function setLedgerSection(root, heading, bodyLines, { keepHeading = true, eol = "\n" } = {}) {
+  const ledgerPath = path.join(root, "REQUIREMENTS.md");
+  const lines = fs.readFileSync(ledgerPath, "utf8").replace(/\r\n?/g, "\n").split("\n");
+  const at = lines.indexOf(heading);
+  if (at === -1) throw new Error(`fixture ledger has no "${heading}" heading`);
+  let end = lines.length;
+  for (let i = at + 1; i < lines.length; i++) if (lines[i].startsWith("#")) { end = i; break; }
+  const kept = keepHeading ? [lines[at], ...bodyLines] : [...bodyLines];
+  lines.splice(at, end - at, ...kept);
+  fs.writeFileSync(ledgerPath, lines.join(eol));
+}
+// The helper R-1570 and R-1571 render through (must-meet.md, audit-open-questions-2026-10-19):
+// run the written page's own inline bootstrap script -- the <script> with no id -- in node:vm
+// against a minimal stub document (a "report" root, a "report-data" node holding the raw model
+// JSON), location.hash, a no-op addEventListener and window.scrollTo, so a reference the reader's
+// browser could not resolve throws here exactly as it would in the page. A throw counts as a
+// failed check.
+function renderPageAt(html, hash = "") {
+  const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
+  const bootstrap = scripts.find(([, attrs]) => !attrs.includes("id="));
+  if (!bootstrap) throw new Error("bootstrap script not found in generated page");
+  const dataMatch = html.match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!dataMatch) throw new Error("report-data script not found in generated page");
+  const rootNode = { tag: "main", children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...children) { this.children = children; } };
+  const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener() {} }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); return node; };
+  const reportDataNode = { textContent: dataMatch[1] };
+  const document = { getElementById: (id) => (id === "report" ? rootNode : id === "report-data" ? reportDataNode : null), createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
+  const context = { document, location: { hash }, addEventListener() {}, window: { scrollTo() {} } };
+  vm.runInNewContext(bootstrap[2], context);
+  const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
+  return flatten(rootNode);
+}
 try {
   {
     const { root, git } = fixture("deterministic");
@@ -717,6 +754,108 @@ try {
       JSON.stringify({ none: noneCard?.textContent, cited: citedCard?.textContent }));
   }
   {
+    const { root } = fixture("not-passed");
+    // Block-local: setRowEvidence (above) keeps a row's status, so this sets both the status and
+    // the evidence a fixture row needs (build-brief-1.md amendment 4).
+    const setRowStatusAndEvidence = (id, status, evidence) => {
+      const ledgerPath = path.join(root, "REQUIREMENTS.md");
+      const text = fs.readFileSync(ledgerPath, "utf8");
+      const target = readRequirementRows(parseLedger(text)).find((candidate) => candidate.id === id);
+      if (!target) throw new Error(`fixture row ${id} not found`);
+      const lines = text.split("\n");
+      lines[target.line - 1] = `| ${target.id} | ${target.requirement} | ${status} | ${evidence} |`;
+      fs.writeFileSync(ledgerPath, lines.join("\n"));
+    };
+    const testsDir = path.join(root, "packages", "nana-pack", "tests");
+    fs.mkdirSync(testsDir, { recursive: true });
+    const hashes = {};
+    const runs = {};
+    // Fixture-only file names no real row cites (build-brief-1.md): np-*.test.mjs. Each measured
+    // one is written to disk and hashed; the two behind R-1030 and R-1040 are rewritten afterwards
+    // so their recorded label survives while they read as changed since (R-1654).
+    const measure = (name, label) => {
+      const file = `packages/nana-pack/tests/${name}`;
+      const content = `// ${name}\n`;
+      fs.writeFileSync(path.join(testsDir, name), content);
+      hashes[file] = createHash("sha256").update(content).digest("hex");
+      runs[file] = { label, seconds: 0.1, ran: [] };
+    };
+    for (const [name, label] of [
+      ["np-skip-1.test.mjs", "SKIP"], ["np-skip-2.test.mjs", "SKIP"], ["np-skip-3.test.mjs", "SKIP"],
+      ["np-pass-1.test.mjs", "PASS"], ["np-pass-2.test.mjs", "PASS"], ["np-skip-4.test.mjs", "SKIP"],
+      ["np-pass-3.test.mjs", "PASS"], ["np-fail-1.test.mjs", "FAIL"], ["np-pass-4.test.mjs", "PASS"],
+      ["np-fail-2.test.mjs", "FAIL"], ["np-fail-3.test.mjs", "FAIL"], ["np-skip-5.test.mjs", "SKIP"],
+      ["np-changed-skip.test.mjs", "SKIP"], ["np-changed-pass.test.mjs", "PASS"], ["np-control-skip.test.mjs", "SKIP"],
+    ]) measure(name, label);
+
+    setRowStatusAndEvidence("R-1020", "implemented", "`packages/nana-pack/tests/np-skip-1.test.mjs::skip one`");
+    setRowStatusAndEvidence("R-1021", "implemented", "`packages/nana-pack/tests/np-skip-2.test.mjs::skip two`, `packages/nana-pack/tests/np-skip-3.test.mjs::skip three`");
+    setRowStatusAndEvidence("R-1022", "implemented", "`packages/nana-pack/tests/np-pass-1.test.mjs::pass one`");
+    setRowStatusAndEvidence("R-1023", "implemented", "`packages/nana-pack/tests/np-pass-2.test.mjs::pass two`, `packages/nana-pack/tests/np-skip-4.test.mjs::skip four`");
+    setRowStatusAndEvidence("R-1024", "implemented", "`packages/nana-pack/tests/np-pass-3.test.mjs::pass three`, `packages/nana-pack/tests/np-unmeasured-1.test.mjs::unmeasured one`");
+    setRowStatusAndEvidence("R-1025", "implemented", "`packages/nana-pack/tests/np-fail-1.test.mjs::fail one`");
+    setRowStatusAndEvidence("R-1026", "implemented", "`packages/nana-pack/tests/np-pass-4.test.mjs::pass four`, `packages/nana-pack/tests/np-fail-2.test.mjs::fail two`");
+    setRowStatusAndEvidence("R-1027", "implemented", "`packages/nana-pack/tests/np-fail-3.test.mjs::fail three`, `packages/nana-pack/tests/np-unmeasured-2.test.mjs::unmeasured two`");
+    setRowStatusAndEvidence("R-1028", "implemented", "`packages/nana-pack/tests/np-unmeasured-3.test.mjs::unmeasured three`");
+    setRowStatusAndEvidence("R-1029", "implemented", "`packages/nana-pack/tests/np-skip-5.test.mjs::skip five`, `packages/nana-pack/tests/np-unmeasured-4.test.mjs::unmeasured four`");
+    setRowStatusAndEvidence("R-1030", "implemented", "`packages/nana-pack/tests/np-changed-skip.test.mjs::changed skip`");
+    setRowStatusAndEvidence("R-1040", "implemented", "`packages/nana-pack/tests/np-changed-pass.test.mjs::changed pass`");
+    setRowStatusAndEvidence("R-1041", "untested", "`packages/nana-pack/tests/np-control-skip.test.mjs::control skip`");
+
+    writeRuntimeFile(root, { schema: 1, hashes, tests: runs });
+    // R-1654: rewritten after being recorded, so each keeps its recorded label but reads as changed.
+    fs.writeFileSync(path.join(testsDir, "np-changed-skip.test.mjs"), "// np-changed-skip.test.mjs, changed\n");
+    fs.writeFileSync(path.join(testsDir, "np-changed-pass.test.mjs"), "// np-changed-pass.test.mjs, changed\n");
+
+    const out = path.join(temp, "not-passed.html");
+    await generateReport({ root, out });
+    const view = renderHtmlAt(fs.readFileSync(out, "utf8"), "#issues");
+    const headingRe = /^Implemented rows that did not pass in this clone's last measured run: (\d+)$/;
+    const headingIndex = view.root.children.findIndex((node) => node.tag === "h3" && headingRe.test(node.textContent));
+    const heading = view.root.children[headingIndex];
+    const headingCount = heading ? Number(headingRe.exec(heading.textContent)[1]) : null;
+    const listedCards = headingIndex === -1 ? [] : view.root.children.slice(headingIndex + 1).filter((node) => node.tag === "article");
+    const listedIds = listedCards.map((card) => card.children.find((child) => child.tag === "h3")?.textContent.trim().split(" ")[0]);
+    // R-1040 is excluded from the Issues list by design (PASS, no FAIL), so it has no card there;
+    // the "changed since" mark on both is read from the detail view, which shows every row.
+    const detailView = renderHtmlAt(fs.readFileSync(out, "utf8"), "#FEAT-039");
+    const changedSinceTextOf = (id) => testItemsOf(cardFor(detailView, id))[0]?.textContent ?? "";
+
+    const { root: noRuntimeRoot } = fixture("not-passed-no-runtime");
+    const noRuntimeOut = path.join(temp, "not-passed-no-runtime.html");
+    await generateReport({ root: noRuntimeRoot, out: noRuntimeOut });
+    const noRuntimeView = renderHtmlAt(fs.readFileSync(noRuntimeOut, "utf8"), "#issues");
+    const noRuntimeHeading = noRuntimeView.root.children.find((node) => node.tag === "h3" && headingRe.test(node.textContent));
+    const noRuntimeCount = noRuntimeHeading ? Number(headingRe.exec(noRuntimeHeading.textContent)[1]) : null;
+
+    // req: R-1650
+    check("R-1650: an implemented row whose cited files all last ran SKIP, one file or two, is listed as not passed, and an untested row citing such a file is not",
+      listedIds.includes("R-1020") && listedIds.includes("R-1021") && !listedIds.includes("R-1041"),
+      JSON.stringify(listedIds));
+    // req: R-1651
+    check("R-1651: an implemented row citing a failing file is listed as not passed, alone, beside a passing file and beside a file with no recorded run",
+      listedIds.includes("R-1025") && listedIds.includes("R-1026") && listedIds.includes("R-1027"),
+      JSON.stringify(listedIds));
+    // req: R-1652
+    check("R-1652: an implemented row citing a passing file and no failing one, alone or beside a skipped file or a file with no recorded run, is left out of the not-passed list",
+      Boolean(heading) && !listedIds.includes("R-1022") && !listedIds.includes("R-1023") && !listedIds.includes("R-1024") && listedIds.includes("R-1020"),
+      JSON.stringify({ heading: Boolean(heading), listedIds }));
+    // req: R-1653
+    check("R-1653: a row citing a file with no recorded run, alone or beside a skipped file, is left out, and with no runtime data the not-passed list is empty",
+      Boolean(heading) && !listedIds.includes("R-1028") && !listedIds.includes("R-1029") && listedIds.includes("R-1020") && noRuntimeCount === 0,
+      JSON.stringify({ heading: Boolean(heading), listedIds, noRuntimeCount }));
+    // req: R-1654
+    check("R-1654: a label marked changed since still decides, so a row whose only file last ran SKIP and changed since is listed and one whose only file last ran PASS and changed since is not",
+      listedIds.includes("R-1030") && !listedIds.includes("R-1040") && /changed since/i.test(changedSinceTextOf("R-1030")) && /changed since/i.test(changedSinceTextOf("R-1040")),
+      JSON.stringify({ listedIds, r1030: changedSinceTextOf("R-1030"), r1040: changedSinceTextOf("R-1040") }));
+    // req: R-1655
+    check("R-1655: the not-passed heading states the number of rows listed under it",
+      Boolean(heading) && headingCount === listedCards.length &&
+      JSON.stringify([...listedIds].sort()) === JSON.stringify(["R-1020", "R-1021", "R-1025", "R-1026", "R-1027", "R-1030"].sort()) &&
+      headingCount !== view.model.violated.length,
+      JSON.stringify({ headingCount, listedIds, violated: view.model.violated.length }));
+  }
+  {
     // req: R-1027
     check("validateStore accepts the real repository without a store", (await validateStore()).length === 0);
   }
@@ -763,6 +902,67 @@ try {
       utf16Run.status === 1 && /NUL/.test(utf16Err) && /UTF-16/.test(utf16Err) && !fs.existsSync(utf16Out) &&
       norowsRun.status === 1 && /no requirement rows/.test(norowsErr) && !fs.existsSync(norowsOut),
       `${utf16Err} / ${norowsErr}`);
+  }
+  {
+    const { root } = fixture("open-questions-numbers");
+    // A deterministic Deliberate omissions bullet, so a parser that reads past the heading
+    // boundary (W5) picks up a fixed, recognizable line rather than whatever the real section
+    // says today.
+    setLedgerSection(root, "## Deliberate omissions", ["- An omission."]);
+    setLedgerSection(root, "## Open questions", [
+      "Unruled decisions, numbered.",
+      "",
+      "- (lane, 2026-10-01) A bullet question.",
+      "1. First **bold** question.",
+      "6b. Lettered `code` question.",
+      "6. Six after six-b.",
+      "12. (origin) Long question",
+      "    continued one",
+      "    continued two.",
+      "",
+    ], { eol: "\r\n" });
+    const out = path.join(temp, "open-questions-numbers.html");
+    await generateReport({ root, out });
+    const nodes = renderPageAt(fs.readFileSync(out, "utf8"));
+    const list = nodes.find((node) => node.tag === "ul" && node.attrs?.class === "open-questions");
+    const items = (list?.children ?? []).filter((node) => node.tag === "li").map((node) => node.textContent);
+    const expected = [
+      "(lane, 2026-10-01) A bullet question.",
+      "1. First bold question.",
+      "6b. Lettered code question.",
+      "6. Six after six-b.",
+      "12. (origin) Long question continued one continued two.",
+    ];
+    // req: R-1570
+    check("R-1570: the Decisions view lists every open question with its number and full text in file order",
+      JSON.stringify(items) === JSON.stringify(expected), JSON.stringify(items));
+  }
+  {
+    const NO_OPEN_QUESTIONS = "Open questions: none recorded in REQUIREMENTS.md";
+    const saysNone = (nodes) => nodes.filter((node) => node.tag === "p" && node.textContent === NO_OPEN_QUESTIONS).length === 1
+      && nodes.filter((node) => node.tag === "ul" && node.attrs?.class === "open-questions").length === 0;
+
+    const noHeading = fixture("open-questions-no-heading");
+    setLedgerSection(noHeading.root, "## Open questions", [], { keepHeading: false });
+    const noHeadingOut = path.join(temp, "open-questions-no-heading.html");
+    await generateReport({ root: noHeading.root, out: noHeadingOut });
+    const noHeadingWritten = fs.existsSync(noHeadingOut);
+    const noHeadingNodes = noHeadingWritten ? renderPageAt(fs.readFileSync(noHeadingOut, "utf8")) : [];
+
+    const preamble = fixture("open-questions-preamble");
+    setLedgerSection(preamble.root, "## Open questions", ["Unruled decisions, numbered."]);
+    const preambleOut = path.join(temp, "open-questions-preamble.html");
+    await generateReport({ root: preamble.root, out: preambleOut });
+    const preambleWritten = fs.existsSync(preambleOut);
+    const preambleNodes = preambleWritten ? renderPageAt(fs.readFileSync(preambleOut, "utf8")) : [];
+
+    // req: R-1571
+    check("R-1571: a ledger with no open questions heading, or none under it, still writes the page and says none are recorded",
+      noHeadingWritten && preambleWritten && saysNone(noHeadingNodes) && saysNone(preambleNodes),
+      JSON.stringify({
+        noHeading: noHeadingNodes.filter((n) => n.tag === "p" || n.tag === "ul").map((n) => [n.tag, n.textContent]),
+        preamble: preambleNodes.filter((n) => n.tag === "p" || n.tag === "ul").map((n) => [n.tag, n.textContent]),
+      }));
   }
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;
