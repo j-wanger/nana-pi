@@ -1,0 +1,115 @@
+[
+ {
+  "file": "packages/nana-pack/tests/template-release.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/template-release.test.mjs              4 pass, 1 fail  7.6s  \u2014 exit 1   (log line 4306; the failing check is at log line 4299: \"FAIL release CLI runs its in-process gate from spaced and percent-looking checkout paths The input did not match the regular expression /uvx/. Input: 'release failed: cannot resolve commit (spawnSync git ENOENT)\\n\\n'\")",
+  "macosCount": 5,
+  "causes": [
+   {
+    "lines": "33-52 (check 'release CLI runs its in-process gate from spaced and percent-looking checkout paths'; setup at 35, 46, 47; failing assert at 49)",
+    "cause": "The test finds git with `which git` (35), symlinks it into a private folder under the extensionless name 'git' (46), and runs the release CLI with PATH set to that folder alone (47). On Windows, libuv's PATH search for a bare command name tries only 'git.com' and 'git.exe', never an extensionless 'git'. So spawnSync('git') in scripts/template-release.mjs:15 fails with ENOENT. runRelease then stops at :31-32 with 'release failed: cannot resolve commit (spawnSync git ENOENT)', before it ever reaches the default acceptance gate that would name uvx. The log prints that exact message, so the ENOENT and the early stop are confirmed. Two compounding points are inferred, not seen in the log: (a) `which` here is Git for Windows' MSYS which.exe, which prints a POSIX path such as /mingw64/bin/git, so the link would dangle even under the name git.exe; (b) a symlinked Git launcher may also fail to find its install or DLLs. Node passes PATH (not Path) to the child, because 'PATH' sorts before 'Path' in its case-insensitive dedupe, which fits the ENOENT. The check at 48 passed because status was 1, and line 35 did not throw. The other four checks inject runGit and gate and pass on Windows. The product behaves correctly on Windows with a normal PATH, because git.exe is found there. The release job runs only on ubuntu-latest (ci.yml:75-100).",
+    "kind": "test-only",
+    "fix": "Test-only. On win32, resolve git with `execFileSync('where', ['git'])`, take the first line, trim it, and set PATH to path.dirname of that path (Git\\cmd, which holds git.exe and no uvx). Do not symlink there. Keep the POSIX `which` plus symlink path unchanged. Put that one helper in a shared test helper and use it in template-acceptance.test.mjs:49-62 too. That file has the identical pattern and fails in the same run with 'template acceptance failed: git could not start'. A declared win32 skip is a fallback, since releases run only on ubuntu. It would leave R-596's CLI path unpinned on Windows, so the directory-on-PATH fix is preferred.",
+    "confidence": "confirmed"
+   }
+  ],
+  "productFilesTouched": [],
+  "maskedLayers": "The first loop iteration ('release path with spaces') throws at line 49, so this check has never run on Windows past runRelease's first git call. Masked, all inferred: (1) The second iteration, 'release a%20b checkout', never ran. That includes its percent-looking path through the CLI guard at template-release.mjs:58 (realpathSync(argv[1]) vs fileURLToPath(import.meta.url)). The guard did pass for the spaced path, which is confirmed because runRelease logged. (2) The rest of runRelease's real-git sequence has not run on Windows: merge-base against refs/remotes/origin/main, tag --points-at, for-each-ref, and rev-list --count with the templates and copier.yml pathspec. The in-process checks with injected runGit and system git pass, so this layer is likely fine. (3) The default gate, runAcceptance, has not run under the CLI on Windows. Its steps are git -C rev-parse, mkdtempSync in os.tmpdir() (an 8.3 RUNNER~1 path), and spawnSync('uvx') ENOENT. That ENOENT should produce 'python scaffold: uvx copier copy exited 1' and satisfy /uvx/, followed by 'release failed: template acceptance gate failed'. (4) The no-tag assertion at line 50 has not run. I expect no further Windows failure after the PATH fix, but that is unverified. The likeliest surprise is whatever `where git` returns first on the runner (Git\\cmd vs Git\\bin vs mingw64\\bin), and the fix should take its directory as-is. The sibling template-acceptance.test.mjs also has separate D:\\D:\\ repoRoot failures, at its clone and ci.yml-read checks. Those are not this file's."
+ },
+ {
+  "file": "packages/nana-pack/tests/test-runner.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/test-runner.test.mjs                   35 pass, 3 fail, 1 skip  15.1s  \u2014 exit 1",
+  "macosCount": 39,
+  "causes": [
+   {
+    "lines": "224 (fixture at 154)",
+    "cause": "The g-signal fixture calls process.kill(process.pid, 'SIGKILL'). On win32, libuv turns that into TerminateProcess(handle, 1), so the runner's child 'exit' event sees code 1 and signal null. scripts/test.mjs:405 then prints 'exit 1' rather than 'exit SIGKILL', and the /exit SIG/ clause fails. The FAIL label clause should still hold. The runner behaves correctly: no Windows API lets a parent see a signal for a child that kills itself.",
+    "kind": "test-only",
+    "fix": "Make the predicate depend on the platform. On POSIX keep labelFor === 'FAIL' && /exit SIG/. On win32 assert labelFor === 'FAIL' && /\u2014 exit 1$/ on the g-signal line, because a Windows self-kill has no signal to name. Optionally note in the check name that the signal is named on POSIX only. Leave scripts/test.mjs alone.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "233 (fixture at 181)",
+    "cause": "The post-edit-hardening TRAP fixture expects the runner's declared pgrep skip to fire. scripts/test.mjs:172-173 makes that skip POSIX-only on purpose (posix && !onPath('pgrep')), so on win32 the trap runs, prints 'FAIL the declared platform skip did not skip' and exits 1. The non-verbose tail then shows that line as well, giving 21 lines that match /^      \\| (?:FAIL|not ok)/ (20 from d-red plus 1 from the trap), so the check's 'exactly 20' clause fails. The test's own branch at 243-247 already knows the skip is POSIX-only, but this check does not allow for it.",
+    "kind": "test-only",
+    "fix": "On win32, write the post-edit-hardening fixture as a passing file, for example console.log('PASS runs on win32, where its declared skip does not apply'), and keep the TRAP on POSIX. The count of 20 then holds on both platforms with no other change to this check.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "235 (fixture at 181)",
+    "cause": "This is the same root cause: the post-edit-hardening trap runs on win32 because the declared skip is POSIX-only. The totals become fail 5, skip 1 and checks.fail 23, but the check hard-codes fail 4, skip 2 and checks.fail 22 (and pass 8, checks.pass 9).",
+    "kind": "test-only",
+    "fix": "With the win32 passing fixture from the previous fix, make the expected tallies platform-aware. POSIX stays files 14, pass 8, fail 4, skip 2, checks.pass 9, checks.fail 22, checks.skip 2, exit 1. win32 becomes files 14, pass 9, fail 4, skip 1, checks.pass 10, checks.fail 22, checks.skip 2, exit 1. Put both sets of numbers in one named constant near the fixture, not as inline literals.",
+    "confidence": "inferred"
+   },
+   {
+    "lines": "243-247",
+    "cause": "This is the one SKIP in the Windows count. The check 'a file declared unrunnable on this platform SKIPs with its reason printed' (R-607) is wrapped in if (posix), so on win32 it prints a SKIP with the reason 'the only declared skip is POSIX-only'. That is intended and is not a failure.",
+    "kind": "declared-skip",
+    "fix": "Optional, once the 181 fixture passes on win32: replace the win32 skip() with a check that post-edit-hardening.test.mjs is labelled PASS on win32. That pins the 'SKIP only when its precondition is false' half of R-607 on Windows and brings Windows to 39 checks, matching macOS. Even without this, the earlier fixes give 38 pass and 1 skip.",
+    "confidence": "confirmed"
+   }
+  ],
+  "productFilesTouched": [],
+  "maskedLayers": "No crash masks anything. The file ran to its last check: 35 pass + 3 fail + 1 declared skip = 39 events. That equals 38 check() calls on win32 plus the skip at 247, against 39 checks on macOS (all pass, 15.9s), and the log ends with the final check and '3 check(s) failed'. The log's FAIL lines carry no detail, and the test never prints the runner's output (A.out), so each failure's mechanism comes from reading the code, not from the log. The only possible masking is inside the compound && predicates. At 235, once fail/skip/checks.fail are fixed, the checks.pass, checks.skip and A.code === 1 clauses have never been seen passing on Windows. At 224, the g-signal line's exact form ('\u2014 exit 1') is inferred from libuv's TerminateProcess(handle, 1). Both are likely to hold, an inference from the sibling checks that pass on Windows (d-red 'exit 1' with run exit 1, e-warn WARN tally, f-allskip/j-silent labels, diagnostic lines shown). The older triage in docs/reviews/windows-fixes-2026-10-17/rows.json (line 690) gives the same diagnosis at 34/3/1. Windows has gained one passing check since then, the R-1270 coverage-knob check."
+ },
+ {
+  "file": "packages/nana-pack/tests/template-acceptance.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/template-acceptance.test.mjs           9 pass, 3 fail  8.3s  \u2014 exit 1",
+  "macosCount": 12,
+  "causes": [
+   {
+    "lines": "49-62 (51 which git, 57 symlink as extensionless 'git', 58 PATH=toolBin only)",
+    "cause": "The CLI child never gets past its first git call, so it never reaches uvx. Log, confirmed: assertion input is 'template acceptance failed: git could not start'. That text comes from scripts/template-acceptance.mjs:75 only when the git spawn returns no output at all, i.e. a spawn error, not a git error (a failing rev-parse would print 'fatal: ...'). The same log shows the identical shim pattern in template-release.test.mjs failing with 'spawnSync git ENOENT'. Why git cannot spawn (inferred, not visible in the log): line 51 runs MSYS `which git` under the CI bash shell, which prints a POSIX path such as /mingw64/bin/git; line 57 links that as an extensionless 'git'; libuv's Windows PATH search only tries name+.com and name+.exe for an extensionless command, so toolBin/git is never found (and its target is also an MSYS path, so the link dangles). Only the first loop iteration ('acceptance path with spaces') ran; the 'a%20b' iteration never ran. The product's main guard did work on Windows (the CLI reached runAcceptance from a RUNNER~1 temp path with spaces).",
+    "kind": "test-only",
+    "fix": "On win32, find the real git with `execFileSync(\"where\", [\"git\"], {encoding:\"utf8\"}).split(/\\r?\\n/)[0].trim()` and set the child PATH to path.dirname(thatGitExe) instead of building toolBin with a symlink (keep the which+symlink path on POSIX, or use the dirname approach everywhere). Do NOT link git.exe into toolBin: Git for Windows' launcher finds its install root from its own location, so a linked or copied git.exe may still fail (inferred). The git folder holds no uvx, so the 'reports missing uvx' assertion still exercises the product. Best as one shared test helper also used by template-release.test.mjs:35 and immutable-review.test.mjs:199, which use the same `which git` pattern.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "108-109",
+    "cause": "Line 109 passes path.resolve(new URL(\"../../../\", import.meta.url).pathname) to git clone. On win32 .pathname is '/D:/a/nana-pi/nana-pi/' and path.resolve turns it into 'D:\\D:\\a\\nana-pi\\nana-pi'. Log, confirmed: 'Command failed: git clone --local --no-hardlinks D:\\D:\\a\\nana-pi\\nana-pi C:\\Users\\RUNNER~1\\...\\dirty-copier-repo'. The uvx copier probe at 105-107 passed on Windows (the failure came after it).",
+    "kind": "test-only",
+    "fix": "path.resolve(fileURLToPath(new URL(\"../../../\", import.meta.url))) at line 109; fileURLToPath is already imported at line 12.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "120-124 (121)",
+    "cause": "Line 121 builds the templates folder with path.resolve(new URL(\"../../../templates\", import.meta.url).pathname), giving 'D:\\D:\\a\\...\\templates' on win32. Log, confirmed: \"ENOENT: no such file or directory, open 'D:\\D:\\a\\nana-pi\\nana-pi\\templates\\python\\template\\.github\\workflows\\ci.yml'\".",
+    "kind": "test-only",
+    "fix": "path.resolve(fileURLToPath(new URL(\"../../../templates\", import.meta.url))) at line 121.",
+    "confidence": "confirmed"
+   }
+  ],
+  "productFilesTouched": [],
+  "maskedLayers": "There is no crash. All 12 checks reported on Windows (9 pass + 3 fail = 12, the same as the macOS 12 pass), so no whole check is hidden. Each failing check stops at its first assertion, which hides the steps after it.\n(1) CLI check, 49-62: the second loop iteration never ran. Neither did the real assertion that the product names missing uvx. After the git fix, the child takes the uvx-ENOENT branch and logs 'python scaffold: uvx copier copy exited 1', so I expect it to pass. Inferred.\n(2) Dirty-SHA render, 110-116: these lines are hidden. They cover rev-parse in the clone, the append to templates/python/template/.gitignore, the `uvx copier copy --vcs-ref <sha> .` render and the .gitignore read. I expect a pass. templates-render.test.mjs passes on this same Windows run (161 pass, 2 skip) with the same `uvx copier copy --trust --vcs-ref` from a git repo, and the checkout is fetch-depth 0, not shallow. Inferred.\n(3) CI mirror, 122-128: the ci.yml command comparison and the mutated-copy drift check are hidden. I expect a pass. The `git check-attr` command reports eol=lf for templates/python/template/.github/workflows/ci.yml, ciCheckCommands splits on /\\r?\\n/, and the '\\n  template-drift:' replace also matches CRLF text. Inferred.\nNo product file needs a change: scripts/template-acceptance.mjs failed closed and named git correctly. All three fixes are test-only, so the lane stays ordinary."
+ },
+ {
+  "file": "packages/nana-pack/tests/templates-update.test.mjs",
+  "windowsLine": "FAIL  packages/nana-pack/tests/templates-update.test.mjs              19 pass, 9 fail, 2 skip  5.7s  \u2014 exit 1   (wph-win-5.log line 4778; macOS is 34 pass. On Windows 19 + 9 = 28 checks run, and the 2 SKIP lines stand in for 6 checks that never run: 5 in the update legs plus the adopt check.)",
+  "macosCount": 34,
+  "causes": [
+   {
+    "lines": "128 (pythonRail helper), failing checks at 139, 143, 149, 153, 157",
+    "cause": "The helper passes new URL('../../../templates/python/template/tests/conftest.py', import.meta.url).pathname to Python as argv[2]. On Windows that is '/D:/a/nana-pi/nana-pi/templates/...'. runpy.run_path runs with cwd in the fixture on the C: temp drive, so Python reads it as a path from the root of C:. The log shows OSError: [Errno 22] Invalid argument: 'C:\\\\D:\\\\a\\\\nana-pi\\\\nana-pi\\\\templates\\\\python\\\\template\\\\tests\\\\conftest.py' for all five Python rail checks. conftest.py itself loads on Windows: the two 'full pytest reports malformed ...' checks copy its source and PASS.",
+    "kind": "test-only",
+    "fix": "Add `import { fileURLToPath } from \"node:url\"` and pass fileURLToPath(new URL('../../../templates/python/template/tests/conftest.py', import.meta.url)) at line 128.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "195 (copier source arg), failing check at 203 x4 (python/false, python/true, typescript/false, typescript/true)",
+    "cause": "copyArgs.push(sourceRoot.pathname, dest) gives copier '/D:/a/nana-pi/nana-pi/' as the template source. Copier's Template.local_abspath raises ValueError: Local template must be a directory. The render exits non-zero and the detail shows 0/22 Part G rows. templates-render.test.mjs resolves its repo root with fileURLToPath, and its copier renders PASS on the same runner.",
+    "kind": "test-only",
+    "fix": "Define once `const sourcePath = fileURLToPath(sourceRoot)` (or path.resolve of it, like templates-render's REPO, to drop the trailing separator) and push sourcePath at line 195.",
+    "confidence": "confirmed"
+   },
+   {
+    "lines": "209 (hasOldTag probe), SKIP at 211 and 263, which hide the checks at 223, 255 and 259 (python and typescript) and 284",
+    "cause": "`git -C repo.pathname rev-parse --verify v0.6.0` passes '/D:/a/nana-pi/nana-pi/' to git. Git cannot change into that folder, so the probe fails, hasOldTag is false, and both update blocks print 'v0.6.0 tag unavailable'. The tag is present on CI: the suite job checks out with fetch-depth: 0, which fetches all tags. Copier was available, because the render legs ran. The update legs would also give copier repo.pathname at 215 and 272. NANA_TEST_REQUIRE_COPIER=1 does not turn this skip into a failure, so the CI log mislabels it as a missing tag.",
+    "kind": "test-only",
+    "fix": "Use the same sourcePath (fileURLToPath(sourceRoot)) for repo at 209, 215 and 272. Optionally, make a missing tag a FAIL when NANA_TEST_REQUIRE_COPIER=1 and the checkout has full history, so this skip cannot hide checks again.",
+    "confidence": "inferred"
+   }
+  ],
+  "productFilesTouched": [],
+  "maskedLayers": "The skip at 209 hides 6 checks that have never run on Windows: the rejects, drift and clean checks at 223, 255 and 259 for python and typescript, and the adopt check at 284. Once the path fixes land, these risks follow (all INFERRED, none seen in a log):\n(1) Copier copies the v0.6.0 tag, which has no .gitattributes; the eol=lf commit 2d3f112 is dated 10-07, after the 10-02 tag. Copier's clone (copier/_vcs.py) sets no core.autocrlf. GitHub's Windows git sets autocrlf=true at system scope, and the test's HOME override changes only global scope. So the v0.6.0 project files are probably CRLF. Copier update builds its diffs in git, which normalizes line endings, so a .rej or a rewritten REQUIREMENTS.md is possible but unlikely. REQUIREMENTS.md (_skip_if_exists) probably stays CRLF. The HEAD rails tolerate CRLF: the Python conftest strips trailing whitespace, and the TS CRLF case (R-1321) passes on Windows in templates-render. The older triage's 'lane-5 CRLF parser bug' therefore looks resolved.\n(2) The check at 255 runs the updated Python project's full pytest on Windows, which no Windows test has done before. That suite uses pytester runpytest_subprocess and runs scripts through sys.executable. If it fails, the fix touches the template tests under templates/python/template/tests/, which are product files and would change the lane's class. Status unknown.\n(3) `python3 scripts/code_map.py` at 243 and 244 should work: templates-render's 'python: the code map checks clean' runs python3 and PASSES on the runner.\n(4) Line 229 imports 'file://' + process.cwd() + '/tests/requirements-trace.ts'. Node's WHATWG parser turns 'file://C:\\\\\\\\Users\\\\\\\\RUNNER~1\\\\\\\\...' into file:///C:/Users/RUNNER~1/... (checked with Node on macOS), so it probably works. pathToFileURL(...).href would be cheap hardening, not a needed fix.\n(5) After fileURLToPath, .copier-answers.yml records _src_path as a Windows path with a trailing backslash. Copier update reads that path back; this is probably harmless.\n(6) The 4 render legs should pass once fixed, because templates-render's HEAD renders from the same repo pass on Windows."
+ }
+]

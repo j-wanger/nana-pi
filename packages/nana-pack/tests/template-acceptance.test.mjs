@@ -12,6 +12,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
+import { gitOnlyPath } from "./git-only-path.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { ACCEPTANCE_COMMANDS, ADOPT_FIXTURE_FILES, runAcceptance } from "../../../scripts/template-acceptance.mjs";
 
@@ -48,13 +49,12 @@ check("renders all four modes with the exact resolved SHA and prepares adopt ove
 // req: R-594
 check("CLI executes from paths with spaces and encoded-looking names and reports missing uvx", () => {
   const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../scripts/template-acceptance.mjs");
-  const gitBinary = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
   for (const name of ["acceptance path with spaces", "acceptance a%20b checkout"]) {
     const checkout = path.join(root, name); fs.mkdirSync(path.join(checkout, "scripts"), { recursive: true });
     fs.copyFileSync(source, path.join(checkout, "scripts/template-acceptance.mjs"));
     execFileSync("git", ["init", checkout], { stdio: "ignore" });
     execFileSync("git", ["-C", checkout, "-c", "user.name=Test", "-c", "user.email=test@example", "commit", "--allow-empty", "-m", "base"], { stdio: "ignore" });
-    const toolBin = path.join(root, `${name}-bin`); fs.mkdirSync(toolBin); fs.symlinkSync(gitBinary, path.join(toolBin, "git"));
+    const toolBin = gitOnlyPath(path.join(root, `${name}-bin`));
     const result = spawnSync(process.execPath, [path.join(checkout, "scripts/template-acceptance.mjs")], { cwd: checkout, encoding: "utf8", env: { ...process.env, PATH: toolBin } });
     assert.notEqual(result.status, 0, `${name}: CLI must execute and fail when uvx is unavailable`);
     assert.match(`${result.stdout}\n${result.stderr}`, /uvx/);
@@ -106,7 +106,7 @@ check("a dirty template edit is excluded from a SHA render", () => {
   assert.notEqual(available.error?.code, "ENOENT", "required tool uvx is missing; install uv to run the dirty SHA render");
   assert.equal(available.status, 0, `copier availability probe failed: ${available.stderr}`);
   const repo = path.join(root, "dirty-copier-repo");
-  execFileSync("git", ["clone", "--local", "--no-hardlinks", path.resolve(new URL("../../../", import.meta.url).pathname), repo], { stdio: "ignore" });
+  execFileSync("git", ["clone", "--local", "--no-hardlinks", path.resolve(fileURLToPath(new URL("../../../", import.meta.url))), repo], { stdio: "ignore" });
   const sha = execFileSync("git", ["-C", repo, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const template = path.join(repo, "templates/python/template/.gitignore");
   fs.appendFileSync(template, "dirty-uncommitted-template-marker\n");
@@ -118,7 +118,7 @@ check("a dirty template edit is excluded from a SHA render", () => {
 
 // req: R-595
 check("declared commands mirror each template CI check job with the install substitution", () => {
-  const templates = path.resolve(new URL("../../../templates", import.meta.url).pathname);
+  const templates = path.resolve(fileURLToPath(new URL("../../../templates", import.meta.url)));
   for (const [language, substitution] of [["python", null], ["typescript", ["pnpm install --frozen-lockfile", "pnpm install"]]]) {
     const ciPath = path.join(templates, language, "template/.github/workflows/ci.yml");
     assert.equal(declaredCommandsMatch(ciPath, language, substitution), true, `${language} check job command drift`);
