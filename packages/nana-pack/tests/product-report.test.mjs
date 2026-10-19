@@ -51,9 +51,62 @@ function writeStore(root, features) {
   fs.writeFileSync(storePath, JSON.stringify({ version: 1, features }, null, 2));
   return storePath;
 }
+// Replaces one row's Evidence cell in a fixture's own REQUIREMENTS.md, by line number, so a
+// test can exercise a cited-test shape without disturbing the row's requirement text or status.
+function setRowEvidence(root, id, evidence) {
+  const ledgerPath = path.join(root, "REQUIREMENTS.md");
+  const text = fs.readFileSync(ledgerPath, "utf8");
+  const target = readRequirementRows(parseLedger(text)).find((candidate) => candidate.id === id);
+  if (!target) throw new Error(`fixture row ${id} not found`);
+  const lines = text.split("\n");
+  lines[target.line - 1] = `| ${target.id} | ${target.requirement} | ${target.status} | ${evidence} |`;
+  fs.writeFileSync(ledgerPath, lines.join("\n"));
+}
+// Schema-1 runtime data at the fixture's own .git/nana/runtime-map.json (R-1278's default
+// place), never injected and never the real clone's.
+function writeRuntimeFile(root, data) {
+  const file = path.join(root, ".git", "nana", "runtime-map.json");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(data));
+  return file;
+}
+// The one helper every new check renders through (must-meet.md, report-test-details-2026-10-19):
+// pull the renderer source and the report-data JSON from the HTML generateReport wrote, evaluate
+// the renderer in a fresh vm context (so a reference to an import or module constant the real
+// page cannot see throws exactly as it would in the browser), and render one hash into a stub DOM.
+function renderHtmlAt(html, hash = "") {
+  const prefix = "const renderInto = (";
+  const start = html.indexOf(prefix);
+  if (start === -1) throw new Error("renderer source not found in generated page");
+  const afterStart = start + prefix.length;
+  const close = /\);\r?\n(?=const data = JSON\.parse)/.exec(html.slice(afterStart));
+  if (!close) throw new Error("renderer close not found in generated page");
+  const source = html.slice(afterStart, afterStart + close.index);
+  const sandbox = {};
+  vm.runInNewContext(`renderInto = (${source});`, sandbox);
+  const dataMatch = html.match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/);
+  const model = JSON.parse(dataMatch[1]);
+  const handlers = [];
+  const rootNode = { tag: "main", children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...children) { this.children = children; } };
+  const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener(type, callback) { handlers.push({ node: this, type, callback }); } }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); return node; };
+  const document = { getElementById: () => rootNode, createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
+  sandbox.renderInto(document, model, { hash });
+  const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
+  return { nodes: flatten(rootNode), root: rootNode, model, handlers };
+}
+// Finds a row's <article> card (detail/issues/requirements views share row()) by its heading's
+// leading "<id> " text, and that card's row-tests <ol> items.
+function cardFor(view, rowId) {
+  return view.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent.startsWith(`${rowId} `)));
+}
+function testItemsOf(card) {
+  return card?.children.find((child) => child.tag === "ol" && child.attrs?.class === "row-tests")?.children.filter((child) => child.tag === "li") ?? [];
+}
 try {
   {
-    const { root } = fixture("deterministic");
+    const { root, git } = fixture("deterministic");
+    git(["remote", "add", "origin", "https://github.com/example-org/example-repo.git"]);
+    writeRuntimeFile(root, { schema: 1, hashes: { "packages/nana-pack/tests/product-report.test.mjs": "0".repeat(64) }, tests: { "packages/nana-pack/tests/product-report.test.mjs": { label: "PASS", seconds: 1, ran: [] } } });
     const first = path.join(temp, "first.html"); const second = path.join(temp, "second.html");
     await generateReport({ root, out: first }); await generateReport({ root, out: second });
     // req: R-1012
@@ -480,6 +533,188 @@ try {
     }
     // req: R-1021
     check("rendered difference sections name added, removed, text-changed, and status-changed rows", renderedDifferences.length === 4 && renderedDifferences.every(Boolean), JSON.stringify(renderedDifferences));
+  }
+  {
+    const { root } = fixture("cited-tests");
+    setRowEvidence(root, "R-1013", "`packages/nana-pack/tests/widget.test.mjs::renders the widget`, `tests/test_widget.py::test_renders`, `other-repo:packages/nana-pack/tests/widget.test.mjs::renders the widget`, `Known gap: manual review only.`");
+    const out = path.join(temp, "cited-tests.html");
+    await generateReport({ root, out });
+    const html = fs.readFileSync(out, "utf8");
+    const detail = renderHtmlAt(html, "#FEAT-039");
+    const requirements = renderHtmlAt(html, "#requirements");
+    const expectedTests = [{ title: "renders the widget", file: "packages/nana-pack/tests/widget.test.mjs" }, { title: "test_renders", file: "tests/test_widget.py" }];
+    const checkView = (view) => { const items = testItemsOf(cardFor(view, "R-1013")); return items.length === 2 && expectedTests.every((expected) => items.some((item) => item.textContent.includes(expected.title) && item.textContent.includes(expected.file))); };
+    // req: R-1510
+    check("R-1510: each cited test is its own item with title and file as separate text, for TypeScript and Python citations, and external or prose citations are not listed",
+      checkView(detail) && checkView(requirements),
+      JSON.stringify({ detail: testItemsOf(cardFor(detail, "R-1013")).map((i) => i.textContent), requirements: testItemsOf(cardFor(requirements, "R-1013")).map((i) => i.textContent) }));
+  }
+  {
+    const { root, git } = fixture("origin-links");
+    setRowEvidence(root, "R-1014", "`packages/nana-pack/tests/thing.test.mjs::does the thing`");
+    setRowEvidence(root, "R-1015", "`packages/nana-pack/tests/../../../etc/passwd.test.mjs::traversal attempt`");
+    const commit = git(["rev-parse", "HEAD"]).stdout.trim();
+    const expectedHref = `https://github.com/example-org/example-repo/blob/${commit}/packages/nana-pack/tests/thing.test.mjs`;
+    const renderCard = async (label, rowId) => {
+      const out = path.join(temp, `origin-links-${label}.html`);
+      await generateReport({ root, out });
+      const html = fs.readFileSync(out, "utf8");
+      const view = renderHtmlAt(html, "#FEAT-039");
+      return testItemsOf(cardFor(view, rowId))[0];
+    };
+    const setOrigin = (url) => { git(["remote", "remove", "origin"]); if (url) git(["remote", "add", "origin", url]); };
+    const spellings = [
+      ["https", "https://github.com/example-org/example-repo.git"],
+      ["ssh", "ssh://git@github.com/example-org/example-repo.git"],
+      ["scp", "git@github.com:example-org/example-repo.git"],
+      ["https-no-git", "https://github.com/example-org/example-repo"],
+    ];
+    const spellingResults = [];
+    for (const [label, url] of spellings) {
+      setOrigin(url);
+      const item = await renderCard(label, "R-1014");
+      const link = item?.children.find((child) => child.tag === "a");
+      spellingResults.push([label, Boolean(link) && link.attrs.href === expectedHref && link.attrs.target === "_blank" && link.attrs.rel === "noopener noreferrer"]);
+    }
+    setOrigin(null);
+    const noOriginItem = await renderCard("none", "R-1014");
+    setOrigin("https://gitlab.com/example-org/example-repo.git");
+    const otherHostItem = await renderCard("other-host", "R-1014");
+    setOrigin("https://user:pass@github.com/example-org/example-repo.git");
+    const credentialsItem = await renderCard("credentials", "R-1014");
+    setOrigin("https://github.com/example-org/example-repo.git");
+    const traversalItem = await renderCard("traversal", "R-1015");
+    const hasLink = (item) => Boolean(item?.children.some((child) => child.tag === "a"));
+    // req: R-1511
+    check("R-1511: cited test files link in a new tab to their GitHub page at the report's commit for each GitHub origin spelling, and nothing links otherwise",
+      spellingResults.every(([, ok]) => ok) && !hasLink(noOriginItem) && !hasLink(otherHostItem) && !hasLink(credentialsItem) && !hasLink(traversalItem) && (traversalItem?.textContent ?? "").includes("traversal attempt"),
+      JSON.stringify({ spellingResults, noOrigin: hasLink(noOriginItem), otherHost: hasLink(otherHostItem), credentials: hasLink(credentialsItem), traversal: hasLink(traversalItem) }));
+  }
+  {
+    const { root, git } = fixture("run-state");
+    setRowEvidence(root, "R-1016", "`packages/nana-pack/tests/cited-one.test.mjs::covers one`, `tests/cited_two.py::covers_two`");
+    fs.writeFileSync(path.join(root, ".gitattributes"), "* -text\n");
+    const testsDir = path.join(root, "packages", "nana-pack", "tests");
+    fs.mkdirSync(testsDir, { recursive: true });
+    fs.writeFileSync(path.join(testsDir, "cited-one.test.mjs"), "// cited fixture one\n");
+    fs.mkdirSync(path.join(root, "tests"), { recursive: true });
+    fs.writeFileSync(path.join(root, "tests", "cited_two.py"), "# cited fixture two\n");
+    git(["add", "-A"]); git(["commit", "-qm", "cited fixture files"]);
+    const hashOne = createHash("sha256").update(fs.readFileSync(path.join(testsDir, "cited-one.test.mjs"))).digest("hex");
+    const hashTwo = createHash("sha256").update(fs.readFileSync(path.join(root, "tests", "cited_two.py"))).digest("hex");
+    writeRuntimeFile(root, {
+      schema: 1,
+      hashes: { "packages/nana-pack/tests/cited-one.test.mjs": hashOne, "tests/cited_two.py": hashTwo },
+      tests: {
+        "packages/nana-pack/tests/cited-one.test.mjs": { label: "PASS", seconds: 1.1, ran: ["packages/nana-pack/tests/cited-one.test.mjs"] },
+        "tests/cited_two.py": { label: "FAIL", seconds: 0.4, ran: ["tests/cited_two.py"] },
+      },
+    });
+    const checkoutOut = path.join(temp, "run-state-checkout.html");
+    await generateReport({ root, out: checkoutOut });
+    const worktreeDir = path.join(temp, "run-state-worktree");
+    git(["worktree", "add", "--detach", worktreeDir]);
+    const worktreeOut = path.join(temp, "run-state-worktree.html");
+    await generateReport({ root: worktreeDir, out: worktreeOut });
+    const itemsFor = (htmlPath) => testItemsOf(cardFor(renderHtmlAt(fs.readFileSync(htmlPath, "utf8"), "#FEAT-039"), "R-1016"));
+    const checkoutItems = itemsFor(checkoutOut);
+    const worktreeItems = itemsFor(worktreeOut);
+    const hasLabel = (items, file, label) => items.some((item) => item.textContent.includes(file) && /file.*last measured run:/i.test(item.textContent) && item.textContent.includes(label));
+    // req: R-1512
+    check("R-1512: a cited test shows its file's recorded PASS, FAIL or SKIP worded as the file's result, read from the clone's runtime data in a checkout and a linked worktree",
+      hasLabel(checkoutItems, "packages/nana-pack/tests/cited-one.test.mjs", "PASS") && hasLabel(checkoutItems, "tests/cited_two.py", "FAIL") &&
+      hasLabel(worktreeItems, "packages/nana-pack/tests/cited-one.test.mjs", "PASS") && hasLabel(worktreeItems, "tests/cited_two.py", "FAIL"),
+      JSON.stringify({ checkout: checkoutItems.map((i) => i.textContent), worktree: worktreeItems.map((i) => i.textContent) }));
+  }
+  {
+    const { root } = fixture("changed-since");
+    setRowEvidence(root, "R-1013", "`packages/nana-pack/tests/r1513-a.test.mjs::a`");
+    setRowEvidence(root, "R-1014", "`packages/nana-pack/tests/r1513-b.test.mjs::b`");
+    setRowEvidence(root, "R-1015", "`packages/nana-pack/tests/r1513-c.test.mjs::c`");
+    setRowEvidence(root, "R-1016", "`packages/nana-pack/tests/r1513-d.test.mjs::d`");
+    const testsDir = path.join(root, "packages", "nana-pack", "tests");
+    fs.mkdirSync(testsDir, { recursive: true });
+    const write = (name, content) => { fs.writeFileSync(path.join(testsDir, name), content); return createHash("sha256").update(content).digest("hex"); };
+    const hashA = write("r1513-a.test.mjs", "unchanged\n");
+    const hashB = write("r1513-b.test.mjs", "original\n");
+    const hashC = write("r1513-c.test.mjs", "will be deleted\n");
+    const hashD = write("r1513-d.test.mjs", "unchanged too\n");
+    const depPath = path.join(root, "packages", "nana-pack", "lib", "r1513-dep.mjs");
+    fs.mkdirSync(path.dirname(depPath), { recursive: true });
+    fs.writeFileSync(depPath, "original dep\n");
+    const depHash = createHash("sha256").update("original dep\n").digest("hex");
+    writeRuntimeFile(root, {
+      schema: 1,
+      hashes: {
+        "packages/nana-pack/tests/r1513-a.test.mjs": hashA,
+        "packages/nana-pack/tests/r1513-b.test.mjs": hashB,
+        "packages/nana-pack/tests/r1513-c.test.mjs": hashC,
+        "packages/nana-pack/tests/r1513-d.test.mjs": hashD,
+        "packages/nana-pack/lib/r1513-dep.mjs": depHash,
+      },
+      tests: {
+        "packages/nana-pack/tests/r1513-a.test.mjs": { label: "PASS", seconds: 1, ran: ["packages/nana-pack/tests/r1513-a.test.mjs"] },
+        "packages/nana-pack/tests/r1513-b.test.mjs": { label: "PASS", seconds: 1, ran: ["packages/nana-pack/tests/r1513-b.test.mjs"] },
+        "packages/nana-pack/tests/r1513-c.test.mjs": { label: "PASS", seconds: 1, ran: ["packages/nana-pack/tests/r1513-c.test.mjs"] },
+        "packages/nana-pack/tests/r1513-d.test.mjs": { label: "PASS", seconds: 1, ran: ["packages/nana-pack/tests/r1513-d.test.mjs", "packages/nana-pack/lib/r1513-dep.mjs"] },
+      },
+    });
+    fs.writeFileSync(path.join(testsDir, "r1513-b.test.mjs"), "changed\n");
+    fs.rmSync(path.join(testsDir, "r1513-c.test.mjs"));
+    fs.writeFileSync(depPath, "changed dep\n");
+    const out = path.join(temp, "changed-since.html");
+    await generateReport({ root, out });
+    const html = fs.readFileSync(out, "utf8");
+    const view = renderHtmlAt(html, "#FEAT-039");
+    const itemFor = (rowId) => testItemsOf(cardFor(view, rowId))[0];
+    const changedSince = (item) => /changed since/i.test(item?.textContent ?? "");
+    // req: R-1513
+    check("R-1513: a recorded label is marked changed when the test file or a file it ran changed or is gone since the run, and unmarked otherwise",
+      !changedSince(itemFor("R-1013")) && changedSince(itemFor("R-1014")) && changedSince(itemFor("R-1015")) && changedSince(itemFor("R-1016")),
+      JSON.stringify({ a: itemFor("R-1013")?.textContent, b: itemFor("R-1014")?.textContent, c: itemFor("R-1015")?.textContent, d: itemFor("R-1016")?.textContent }));
+  }
+  {
+    const { root } = fixture("no-run-state");
+    setRowEvidence(root, "R-1013", "`packages/nana-pack/tests/r1514.test.mjs::cited`");
+    const runtimeDir = path.join(root, ".git", "nana");
+    const runtimeFile = path.join(runtimeDir, "runtime-map.json");
+    fs.mkdirSync(runtimeDir, { recursive: true });
+    const render = async (label) => {
+      const out = path.join(temp, `no-run-state-${label}.html`);
+      await generateReport({ root, out });
+      const html = fs.readFileSync(out, "utf8");
+      const view = renderHtmlAt(html, "#FEAT-039");
+      return testItemsOf(cardFor(view, "R-1013"))[0];
+    };
+    const results = {};
+    results.missing = await render("missing");
+    fs.writeFileSync(runtimeFile, "{not json");
+    results.unreadable = await render("unreadable");
+    fs.writeFileSync(runtimeFile, JSON.stringify({ schema: 2, hashes: {}, tests: {} }));
+    results.otherSchema = await render("other-schema");
+    fs.writeFileSync(runtimeFile, JSON.stringify({ schema: 1, hashes: {}, tests: {} }));
+    results.silent = await render("silent");
+    const noRecorded = (item) => /no recorded run/i.test(item?.textContent ?? "") && !/\b(PASS|FAIL|SKIP)\b/.test(item?.textContent ?? "");
+    // req: R-1514
+    check("R-1514: missing, unreadable, other-schema or silent runtime data shows no recorded run and never a label",
+      Object.values(results).every(noRecorded),
+      JSON.stringify(Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v?.textContent]))));
+  }
+  {
+    const { root } = fixture("none-cited");
+    setRowEvidence(root, "R-1013", "`No test in this repository covers this; manual review only.`");
+    setRowEvidence(root, "R-1014", "`packages/nana-pack/tests/r1515.test.mjs::cited`");
+    const out = path.join(temp, "none-cited.html");
+    await generateReport({ root, out });
+    const html = fs.readFileSync(out, "utf8");
+    const view = renderHtmlAt(html, "#FEAT-039");
+    const noneCard = cardFor(view, "R-1013");
+    const citedCard = cardFor(view, "R-1014");
+    const noneText = "Tests: none cited in this repository";
+    // req: R-1515
+    check("R-1515: a row citing no test in this repository says so, and a row citing one does not",
+      (noneCard?.textContent ?? "").includes(noneText) && !(citedCard?.textContent ?? "").includes(noneText),
+      JSON.stringify({ none: noneCard?.textContent, cited: citedCard?.textContent }));
   }
   {
     // req: R-1027
