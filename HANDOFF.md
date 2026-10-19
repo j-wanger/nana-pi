@@ -49,6 +49,7 @@
 - 2026-10-18: the template and test-runner tools' tests run on Windows: templates-update, template-acceptance, template-release and test-runner. The template update legs ran there for the first time, and three of the four files pass with no skip. CI's Windows failing count fell from 28 of 150 files to 25 — `docs/sessions/2026-10.md`.
 - 2026-10-18: a Python project made from the template passes its own tests on Windows. Its trace tests now run their pytest children with UTF-8 output, and its code-map and readme-check helpers read and write UTF-8 on both sides. What a user sees is unchanged. CI's Windows failing count fell to 24 of 150 files — `docs/sessions/2026-10.md`.
 - 2026-10-18: the code map's impact view finds a module on Windows. Both generators now turn the relative path to forward slashes before they look it up, so a module named with backslashes reads as mapped. The runtime-map tests pass there for the first time. CI's Windows failing count fell from 24 of 150 files to 23 — `docs/sessions/2026-10.md`.
+- 2026-10-19: the lane write guard's symlink check runs honestly on Linux. Its outside folder now comes from a parent that no permitted temp root covers, and it skips with a reason when none exists. CI's Linux leg now reads 0 failing files — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -61,7 +62,7 @@
 - pi 1.0: the seed's `asyncByDefault: true` restates upstream (drop it at the next seed revision, R-361 diff first).
 - Review-ledger lane: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
 - Tranche 3: the land helper does not defend a branch switch in the main checkout mid-merge; reviews refuse repositories with submodules.
-- Tranche 4: the acceptance gate prints nothing on a pass; one Linux CI symlink check fails.
+- Tranche 4: the acceptance gate prints nothing on a pass.
 - Tranche 5: uninstall's preview stops at a loaded desk; its ancestor checks are preflight-only; the shared-memory hook throws on a closed pipe.
 - Tranche 6: per-check SKIPs inside a test file stay invisible to the rail; nothing keeps future pi tests on the locator; Jake's Windows machine passed the install-and-hooks check on 2026-10-16.
 - Knowledge ruling: `review-ledger run` sets no reviewer role; a review-test fixture can loop forever.
