@@ -1,13 +1,13 @@
 /**
  * @module packages/nana-pack/tests/post-edit-hardening.test.mjs
- * @purpose Pins that the post-edit checker is bounded — a SIGTERM-ignoring checker and a descendant holding the pipe both end in a recorded timeout with the process really gone
- * @inputs extensions/nana-post-edit.ts and stub checkers that ignore signals or leak descendants, under a temp HOME
- * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, stub checker scripts), process (sets HOME, spawns and kills the stub checkers and their descendants)
+ * @purpose Pins that the post-edit checker is bounded and ends a timed-out command's process tree on every platform, including the Windows taskkill fallback
+ * @inputs extensions/nana-post-edit.ts and stub checkers that ignore signals, leak descendants or record a two-level process tree, under a temp HOME
+ * @outputs PASS/FAIL/SKIP lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, stub checker scripts), process (sets HOME and Windows PATH, spawns and kills the stub checkers and their descendants)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -41,10 +41,10 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 //      pattern and rewrite the command).
 //  (j) pi's file-mutation queue being unavailable is reported, not swallowed.
 //
-// NOT covered here (darwin): the win32 `taskkill` branch of killTree — including
-// its error/non-zero-exit fallback to child.kill(). Needs a real Windows run. The
-// property that protects the agent regardless — run() settles anyway — IS covered,
-// platform-independently, by (f).
+// NOT covered on this darwin run: executing the win32 `taskkill` branch. Windows
+// CI runs both its successful tree kill and its missing-taskkill fallback. The
+// property that protects the agent regardless — run() settles anyway — is also
+// covered platform-independently by (f).
 // Run: node --experimental-strip-types <this file>
 const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
 const { loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
@@ -91,6 +91,8 @@ async function settle(promise) {
 // marker rides in argv so `pgrep -f` can prove nothing was left running.
 const POSIX = process.platform !== "win32";
 const FIXTURE_EXIT_MS = 30_000; // chosen: self-reap well after WATCHDOG_MS so broken kill paths stay observable.
+const TREE_DEADLINE_MS = 2500; // chosen: about 6x the observed Windows checker-run time, leaving ample process-tree startup margin.
+const POST_KILL_POLL_MS = 2000; // chosen: gives platform process tables time to observe taskkill or signal completion without hiding a survivor.
 const mark = (tag) => `nana-${tag}-${process.pid}-${Math.random().toString(36).slice(2)}`;
 const ignoresSigterm = (marker) => `node -e "process.on('SIGTERM',()=>{});setInterval(()=>{},1000);setTimeout(()=>process.exit(0),${FIXTURE_EXIT_MS})" ${marker}`;
 // checks that the tool argument names an existing file — proves the substituted path
@@ -105,6 +107,53 @@ function survivors(marker) {
 }
 function reap(list) {
 	for (const pid of list.split("\n").filter(Boolean)) { try { process.kill(Number(pid), "SIGKILL"); } catch { /* gone */ } }
+}
+function pidAlive(pid) {
+	if (!Number.isInteger(pid) || pid <= 0) return false;
+	try { process.kill(pid, 0); return true; } catch { return false; }
+}
+async function waitUntil(predicate, timeoutMs) {
+	const started = Date.now();
+	while (Date.now() - started < timeoutMs) {
+		if (predicate()) return true;
+		await sleep(20);
+	}
+	return predicate();
+}
+function readPid(file) {
+	try { return Number(fs.readFileSync(file, "utf8").trim()); } catch { return undefined; }
+}
+function writeTreeFixture(td) {
+	const script = path.join(td, "tree.cjs");
+	fs.writeFileSync(script, [
+		'const { spawn } = require("node:child_process");',
+		'const fs = require("node:fs");',
+		'const path = require("node:path");',
+		'const dir = process.argv[2];',
+		'if (process.argv[3] === "level-b") {',
+		'  fs.writeFileSync(path.join(dir, "level-b.pid"), String(process.pid));',
+		'} else {',
+		'  fs.writeFileSync(path.join(dir, "level-a.pid"), String(process.pid));',
+		'  fs.writeFileSync(path.join(dir, "level-a.ppid"), String(process.ppid));',
+		'  spawn(process.execPath, [__filename, dir, "level-b"], { stdio: "inherit" });',
+		'}',
+		'setInterval(() => {}, 1000);',
+		`setTimeout(() => process.exit(0), ${FIXTURE_EXIT_MS});`,
+	].join("\n"));
+	return script;
+}
+async function reapTree(pids) {
+	for (const pid of pids.filter(Number.isInteger)) {
+		if (pidAlive(pid)) { try { process.kill(pid, "SIGKILL"); } catch { /* gone */ } }
+	}
+	return waitUntil(() => pids.filter(Number.isInteger).every((pid) => !pidAlive(pid)), POST_KILL_POLL_MS);
+}
+function removeTreeFixture(td) {
+	if (process.platform === "win32") {
+		try { fs.rmSync(td, { recursive: true, force: true }); } catch { /* tmpDir exit cleanup retries busy folders */ }
+	} else {
+		fs.rmSync(td, { recursive: true, force: true });
+	}
 }
 
 // (a) timeout + SIGTERM-ignoring checker: bounded by deadline + kill grace,
@@ -159,6 +208,112 @@ if (POSIX) {
 	check("b: no orphaned grandchild survives the kill", left === "");
 	reap(left);
 	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// Every platform builds the same two-level checker tree. The pending-run probe
+// proves both processes existed before the timeout; the post-run probe names any
+// survivor without relying on a platform process-list command.
+{
+	const { td, cfg, fire } = setup([]);
+	const script = writeTreeFixture(td);
+	const levelAFile = path.join(td, "level-a.pid");
+	const levelBFile = path.join(td, "level-b.pid");
+	const command = `"${process.execPath}" "${script}" "${td}"`;
+	fs.writeFileSync(USER_CFG, JSON.stringify({
+		journal: { enabled: true, path: JOURNAL },
+		receipts: { enabled: true, dir: path.join(td, "receipts") },
+		postEdit: { commands: [{ match: "\\.txt$", run: command, timeoutMs: TREE_DEADLINE_MS }] },
+	}));
+	const file = path.join(td, "cross-platform-tree.txt");
+	fs.writeFileSync(file, "one\n");
+	let levelA;
+	let levelB;
+	let builtAlive = false;
+	let ended = false;
+	try {
+		const started = Date.now();
+		const pending = fire(file);
+		builtAlive = await waitUntil(() => {
+			levelA = readPid(levelAFile);
+			levelB = readPid(levelBFile);
+			return Date.now() - started < TREE_DEADLINE_MS && pidAlive(levelA) && pidAlive(levelB);
+		}, TREE_DEADLINE_MS);
+		const { hung } = await settle(pending);
+		ended = !hung && await waitUntil(() => !pidAlive(levelA) && !pidAlive(levelB), POST_KILL_POLL_MS);
+	} finally {
+		const cleanupEnded = await reapTree([levelA, levelB]);
+		if (cleanupEnded) removeTreeFixture(td);
+	}
+	// req: R-1700
+	check("tree: a timed-out check's process and that process's still-running child are both ended", TREE_DEADLINE_MS === 2500 && POST_KILL_POLL_MS === 2000 && builtAlive && ended);
+}
+
+// On Windows, removing taskkill from PATH exercises both asynchronous ENOENT
+// fallbacks. cmd.exe must die and the handler must settle; its node descendants
+// are the documented residual and are reaped explicitly before fixture cleanup.
+if (process.platform === "win32") {
+	const originalPath = process.env.PATH;
+	let td;
+	let shellPid;
+	let levelA;
+	let levelB;
+	let precondition = false;
+	let preconditionCause = "taskkill probe did not run";
+	let shellWasAlive = false;
+	let shellEnded = false;
+	let descendantsSurvived = false;
+	let settledTimedOut = false;
+	let cleanupEnded = false;
+	try {
+		process.env.PATH = path.dirname(process.execPath);
+		const taskkillProbe = spawnSync("taskkill", ["/?"], { stdio: "ignore" });
+		precondition = taskkillProbe.error?.code === "ENOENT";
+		preconditionCause = taskkillProbe.error
+			? `taskkill spawn error was ${taskkillProbe.error.code ?? taskkillProbe.error.message}`
+			: `taskkill unexpectedly started and exited ${taskkillProbe.status}`;
+		if (precondition) {
+			({ td } = setup([]));
+			const handlers = {};
+			const script = writeTreeFixture(td);
+			const levelAFile = path.join(td, "level-a.pid");
+			const levelBFile = path.join(td, "level-b.pid");
+			const ppidFile = path.join(td, "level-a.ppid");
+			const command = `"${process.execPath}" "${script}" "${td}"`;
+			fs.writeFileSync(USER_CFG, JSON.stringify({
+				journal: { enabled: true, path: JOURNAL },
+				receipts: { enabled: true, dir: path.join(td, "receipts") },
+				postEdit: { commands: [{ match: "\\.txt$", run: command, timeoutMs: TREE_DEADLINE_MS }] },
+			}));
+			ext({ on: (name, fn) => { handlers[name] = fn; } });
+			const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true, signal: new AbortController().signal };
+			const file = path.join(td, "missing-taskkill.txt");
+			fs.writeFileSync(file, "one\n");
+			const started = Date.now();
+			const pending = handlers.tool_result(
+				{ toolName: "edit", isError: false, input: { path: file }, content: [{ type: "text", text: "edited" }] },
+				ctx,
+			);
+			shellWasAlive = await waitUntil(() => {
+				levelA = readPid(levelAFile);
+				levelB = readPid(levelBFile);
+				shellPid = readPid(ppidFile);
+				return Date.now() - started < TREE_DEADLINE_MS && shellPid !== process.pid && pidAlive(shellPid) && pidAlive(levelA) && pidAlive(levelB);
+			}, TREE_DEADLINE_MS);
+			const { hung, ret } = await settle(pending);
+			shellEnded = await waitUntil(() => !pidAlive(shellPid), POST_KILL_POLL_MS);
+			descendantsSurvived = pidAlive(levelA) && pidAlive(levelB);
+			settledTimedOut = !hung && ret?.content?.at(-1)?.text?.includes("did not complete (timed out)") === true;
+		}
+	} finally {
+		if (originalPath === undefined) delete process.env.PATH; else process.env.PATH = originalPath;
+		cleanupEnded = await reapTree([levelA, levelB, shellPid]);
+		if (td && cleanupEnded) removeTreeFixture(td);
+	}
+	if (!precondition) console.log(`taskkill-off-PATH precondition failed: ${preconditionCause}`);
+	// req: R-1701
+	check("win32: with taskkill off PATH the timed-out check's shell is killed and the run settles", precondition && shellWasAlive && shellEnded && descendantsSurvived && settledTimedOut && cleanupEnded);
+} else {
+	console.log("SKIP win32: with taskkill off PATH the timed-out check's shell is killed and the run settles — taskkill is Windows-only");
 }
 
 // (c) an aborted turn with NO deadline (timeoutMs 0) terminates the checker for

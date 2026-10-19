@@ -1956,10 +1956,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/post-edit-hardening.test.mjs`
 
-- **purpose** — Pins that the post-edit checker is bounded — a SIGTERM-ignoring checker and a descendant holding the pipe both end in a recorded timeout with the process really gone
-- **inputs** — extensions/nana-post-edit.ts and stub checkers that ignore signals or leak descendants, under a temp HOME
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, stub checker scripts), process (sets HOME, spawns and kills the stub checkers and their descendants)
+- **purpose** — Pins that the post-edit checker is bounded and ends a timed-out command's process tree on every platform, including the Windows taskkill fallback
+- **inputs** — extensions/nana-post-edit.ts and stub checkers that ignore signals, leak descendants or record a two-level process tree, under a temp HOME
+- **outputs** — PASS/FAIL/SKIP lines per check on stdout, and exit 1 when any check fails
+- **effects** — disk (temp HOME, stub checker scripts), process (sets HOME and Windows PATH, spawns and kills the stub checkers and their descendants)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
