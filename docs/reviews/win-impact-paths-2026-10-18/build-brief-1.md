@@ -1,7 +1,7 @@
 # Lane win-impact-paths — build brief 1 (2026-10-18 · feat/win-impact-paths · tip after the seat's plan commit)
 
 Read `must-meet.md` here first. Row R-1361 is already in `REQUIREMENTS.md` as `planned` (the R-291 leaf total is
-already 1,214); take no other row ID.
+already 1,215); take no other row ID.
 
 **Commit 1 — the check only.** Add IP2's check to `packages/nana-pack/tests/code-map.test.mjs` as `must-meet.md` says,
 with `// req: R-1361` directly above the `check(` call, and IP1's detail argument to R-1278's existing check in
