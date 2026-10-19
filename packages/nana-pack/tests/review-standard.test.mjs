@@ -1,12 +1,13 @@
 /**
  * @module packages/nana-pack/tests/review-standard.test.mjs
  * @purpose Pins the review standard's required verdict and MUST text, and pi-review's refusal before admission when the standard file is missing, not a regular file, or blank.
- * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/real-path.mjs and prompts/, a stub pi executable, and a temporary git repository.
+ * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
  * @outputs PASS/FAIL lines per check on stdout, and a nonzero exit when any check fails.
- * @effects disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi; POSIX only)
+ * @effects disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { writeFakePi } from "./fake-pi.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,7 +16,6 @@ import { fileURLToPath } from "node:url";
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
-const skip = (name, why) => console.log("SKIP", name, "—", why);
 
 const PACK = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STANDARD_TEXT = fs.readFileSync(path.join(PACK, "prompts", "review-standard.md"), "utf8");
@@ -49,19 +49,16 @@ check("R-1108: the review standard makes a missing or empty must-meet test, a br
 	!STANDARD_TEXT.includes("a security or review boundary bypassed"),
 	STANDARD_TEXT);
 
-// ---------------------------------------------------------------- R-1106: refusal before admission from a pack copy
+// ---------------------------------------------------------------- R-1106/R-1680-1682: refusal before admission from a pack copy
 // A copy of bin/, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/real-path.mjs and
 // prompts/ (pi-watchdog.mjs's piLaunch needs the last two) lets each variant mutate the copy's own
-// review-standard.md without ever touching the real file. Spawn cases SKIP on win32 (POSIX
-// shell stub), like handoff-writer-role.test.mjs.
+// review-standard.md without ever touching the real file. win32 lays the stub out as an npm
+// global install (writeFakePi, ./fake-pi.mjs) since piLaunch never runs a POSIX shell script there;
+// POSIX keeps the sh stub.
 const MISSING_TITLE = "missing review standard is refused before admission";
 const DIRECTORY_TITLE = "directory at the review standard path is refused before admission";
 const BLANK_TITLE = "blank review standard is refused before admission";
-if (process.platform === "win32") {
-	skip(MISSING_TITLE, "POSIX shell stub");
-	skip(DIRECTORY_TITLE, "POSIX shell stub");
-	skip(BLANK_TITLE, "POSIX shell stub");
-} else {
+{
 	const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-standard-")));
 	const pack = path.join(scratch, "pack-copy");
 	for (const dir of ["bin", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(pack, dir), { recursive: true });
@@ -73,9 +70,16 @@ if (process.platform === "win32") {
 	const copyStandard = path.join(pack, "prompts", "review-standard.md");
 
 	const stubBin = path.join(scratch, "stub-bin");
-	fs.mkdirSync(stubBin);
-	fs.writeFileSync(path.join(stubBin, "pi"), '#!/bin/sh\nif [ -n "$STUB_MARKER" ]; then : > "$STUB_MARKER"; fi\necho \'VERDICT: LAND\'\n');
-	fs.chmodSync(path.join(stubBin, "pi"), 0o755);
+	if (process.platform === "win32") {
+		writeFakePi(stubBin, `const fs = require("node:fs");
+if (process.env.STUB_MARKER) fs.writeFileSync(process.env.STUB_MARKER, "");
+console.log("VERDICT: LAND");
+`);
+	} else {
+		fs.mkdirSync(stubBin);
+		fs.writeFileSync(path.join(stubBin, "pi"), '#!/bin/sh\nif [ -n "$STUB_MARKER" ]; then : > "$STUB_MARKER"; fi\necho \'VERDICT: LAND\'\n');
+		fs.chmodSync(path.join(stubBin, "pi"), 0o755);
+	}
 
 	const repo = path.join(scratch, "repo");
 	fs.mkdirSync(repo);
@@ -102,11 +106,12 @@ if (process.platform === "win32") {
 		return { r, home, marker, out };
 	};
 
-	// Control: with the as-copied (real) standard in place the copy must run and start the stub,
-	// so none of the refusals below could pass vacuously against a launcher that always exits 1.
+	// Control: with the as-copied (real) standard in place the copy must run, start the stub and
+	// create the reservation folder, so none of the refusals below could pass vacuously against a
+	// launcher that always exits 1, or against a ledger kept outside this probed folder.
 	const control = run("control: review standard present");
-	check("control: a pack copy with the review standard present exits 0 and starts the stub",
-		control.r.status === 0 && fs.existsSync(control.marker), control.r.stderr);
+	check("control: a pack copy with the review standard present exits 0, starts the stub and creates the reservation folder",
+		control.r.status === 0 && fs.existsSync(control.marker) && fs.existsSync(resDir(control.home)), control.r.stderr);
 
 	const refused = (r, home, marker, out) =>
 		r.status === 1 &&
@@ -118,19 +123,19 @@ if (process.platform === "win32") {
 
 	fs.rmSync(copyStandard, { recursive: true, force: true });
 	const missing = run(MISSING_TITLE);
-	// req: R-1106
+	// req: R-1106 R-1680
 	check("missing review standard is refused before admission", refused(missing.r, missing.home, missing.marker, missing.out), missing.r.stderr);
 
 	fs.rmSync(copyStandard, { recursive: true, force: true });
 	fs.mkdirSync(copyStandard);
 	const directory = run(DIRECTORY_TITLE);
-	// req: R-1106
+	// req: R-1106 R-1681
 	check("directory at the review standard path is refused before admission", refused(directory.r, directory.home, directory.marker, directory.out), directory.r.stderr);
 
 	fs.rmSync(copyStandard, { recursive: true, force: true });
 	fs.writeFileSync(copyStandard, " \r\n\t\r\n");
 	const blank = run(BLANK_TITLE);
-	// req: R-1106
+	// req: R-1106 R-1682
 	check("blank review standard is refused before admission", refused(blank.r, blank.home, blank.marker, blank.out), blank.r.stderr);
 }
 

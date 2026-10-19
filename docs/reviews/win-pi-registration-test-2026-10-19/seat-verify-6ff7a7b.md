@@ -43,3 +43,10 @@
   packages/nana-setup/bin/install-check.mjs` on macOS, since the lane touches `packages/nana-setup/`.
 - The known limits in `must-meet.md` stay open, except that the R-392 and R-654 checks now pass on Windows (no longer
   inferred). HANDOFF carries each open one as a residual.
+
+## The Windows re-run (added before the final review)
+
+The seat re-ran the failed Windows job of run 39305895780 (attempt 2). It passed: every suite and install-check job
+of the run now reads success. The one failure in attempt 1, the mutation runner's cleanup check, passed on the re-run
+with no change to the code, so the seat reads it as a flake. It stays a carried residual, because a Windows failure
+now blocks release.
