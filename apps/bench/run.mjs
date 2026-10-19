@@ -14,7 +14,8 @@
  *  installs SIGINT handling, exits non-zero), network (the model calls those children make)
  * @errors exit 1 on a bad invocation or a study that fails to load; a run failure is recorded as
  *  data (state fail | harness | grader) rather than thrown; the plan stops on the cumulative
- *  budget, on 3 consecutive systemic failures, or on a child that did not die cleanly
+ *  budget, on 3 consecutive systemic failures, on a child that did not die cleanly, or — once
+ *  that run's record is on disk — on a graded run whose evidence could not be written
  */
 // pi bench runner — executes a pre-registered study and appends one JSON line per run.
 //
@@ -29,7 +30,9 @@
 //   * A run counts as OK only with a clean process exit AND a stream that reached
 //     `agent_settled` (rpc.md:866) with no dangling tool calls AND a passing checker.
 //   * A GRADER failure is never recorded as a model failure.
-//   * Every run leaves evidence on disk: raw stream, stderr, and the workspace diff.
+//   * Every run leaves evidence on disk: raw stream, stderr, and the workspace diff — a run
+//     whose child finished but whose evidence could not be written still gets its record, then
+//     STOPS the study (R-542; Jake ruled 2026-10-10 docs/sessions/2026-10.md).
 //   * Spend stops on a cumulative budget or on 3 consecutive harness/grader failures.
 
 import { spawn } from "node:child_process";
@@ -424,6 +427,10 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 	// diffing or evidence writing must not replace a measured run with a zero-token harness record
 	// — that would quietly delete spend from the budget.
 	let measured = null;
+	// Hoisted above the try: the catch below needs this SAME path to name the folder it could not
+	// write to, whether the failure was in copying an asset or in writeEvidence itself.
+	const evidenceDir = path.join(studyDir, "raw", task.id, profile.name, `rep${rep}`);
+	let evidenceWritten = false;
 	try {
 		const sessionDir = path.join(runDir, "sessions");
 		await fs.mkdir(sessionDir, { recursive: true });
@@ -452,7 +459,6 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 			preRun.set(rel, await fs.readFile(path.join(work, rel), "utf8"));
 		}
 
-		const evidenceDir = path.join(studyDir, "raw", task.id, profile.name, `rep${rep}`);
 		// Salvage hook: if the operator interrupts us — mid-child, mid-postprocessing or mid-append —
 		// this is the record AND the evidence that get written down. It reads `measured` once the child
 		// has finished, so the numbers are the ones the run actually produced rather than a re-parse.
@@ -537,6 +543,7 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 		await copyAssets(studyDir, work, task.assets); // AFTER the child: the probe is ungrabbable
 		const diffs = fixtureDir ? await workspaceDiffs(baseline, work, fixtureDir, benchPaths, mutated) : [];
 		await writeEvidence(evidenceDir, { stdout: r.stdout, stderr: r.stderr, argvShown, diffs });
+		evidenceWritten = true;
 
 		const check = task.check
 			? runCheck(task.check, { finalText: parsed.finalText, dir: work, fixtureDir, baseline, benchPaths, preRun, snapshotKey, snapshotFailed })
@@ -616,7 +623,18 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 	} catch (e) {
 		// Preserve the child's measured cost through a post-processing failure.
 		const base2 = measured ? { ...dead("grader-error", null), ...measured } : dead("grader-error", null);
-		return { ...base2, state: "grader-error", ok: null, error: `harness: ${e.message}${measured ? ` (child had already spent ${measured.spend} tokens — preserved)` : ""}` };
+		return {
+			...base2,
+			state: "grader-error",
+			ok: null,
+			error: `harness: ${e.message}${measured ? ` (child had already spent ${measured.spend} tokens — preserved)` : ""}`,
+			// The child ran and spent money, but no evidence folder backs that spend — `runPlan` must
+			// stop before another paid child starts (R-1500/R-1501/R-1503), once this record is on
+			// disk. A grader error whose evidence IS written (an unknown checker type, a bad pattern)
+			// never reaches this catch — `runCheck` returns its grader-error record without throwing —
+			// so `evidenceWritten` is never false there, and R-1504 keeps going.
+			...(measured && !evidenceWritten ? { evidenceError: { path: evidenceDir, code: e.code ?? null, message: e.message } } : {}),
+		};
 	} finally {
 		if (opts.keep) console.log(`  kept ${runDir}`);
 		else await fs.rm(runDir, { recursive: true, force: true }).catch(() => {});
@@ -1041,6 +1059,17 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 		// ACKNOWLEDGED — see the salvage hook in executeRun. Until this line an interrupt still owes
 		// the study a record for this run.
 		releaseInflight(inflightRunKey(item.task, item.profile, item.rep));
+		// FAIL CLOSED, same reasoning as the probe above (run.mjs:994) and the append above: the run's
+		// spend is already safely on disk by this line, so stopping here costs nothing further — only
+		// going on with no evidence backing this run's record would (R-542, R-1500, R-1501, R-1503).
+		if (rec.evidenceError) {
+			const { path: evDir, code, message } = rec.evidenceError;
+			throw new Error(
+				`${tupleKey(item)}: this run finished but its evidence at ${evDir} could not be written` +
+					`${code ? ` (${code})` : ""}: ${message}. Its spend (${spendOf(rec)} tokens) is recorded at ${resultsPath}. ` +
+					"Refusing to spend anything further.",
+			);
+		}
 		n++;
 		spentTokens += spendOf(rec);
 		spentWall += rec.wallMs ?? 0;

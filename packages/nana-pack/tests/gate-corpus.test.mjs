@@ -41,14 +41,14 @@ async function gate(gateCfg = {}, ui = null) {
 
 // ---- Must BLOCK (headless, no config) — every pre-L2 built-in, then the L2 additions.
 const BUILTINS = [
-	"rm -rf /tmp/x", "rm -fr x", "rm -Rf x", "rm -r -f x", "rm --recursive x", "rm --force x", "rm --no-preserve-root -r /",
+	"rm -rf /tmp/x", "rm -fr ../x", "rm -Rf ../x", "rm -r -f ../x", "rm --recursive ../x", "rm --force ../x", "rm --no-preserve-root -r /",
 	"sudo ls", "git push --force", "git push -f origin feat", "git reset --hard", "git reset --hard HEAD~1", "git clean -f", "git clean -fdx",
 	"chmod 777 x", "chown -R 777 x", "dd if=/dev/zero of=/dev/disk2", "mkfs.ext4 /dev/sdb1", "mkfs -t ext4 /dev/sdb1",
 	"shutdown -h now", "reboot", "halt", "Remove-Item x -Recurse", "Remove-Item x -Force", "rd /s /q x", "rmdir /S x",
 	"del /f x", "del /q x", "erase /s x", "format c:", "format D: /q",
 ];
 const L2_BLOCK = [
-	"rm -r -f ~", "rm -R x", "rm -rv ~/proj", "/bin/rm -rf ~", "\\rm -rf ~", "find ~ -delete", "find . -exec rm {} +",
+	"rm -r -f ~", "rm -R ../x", "rm -rv ~/proj", "/bin/rm -rf ~", "\\rm -rf ~", "find ~ -delete", "find . -exec rm {} +",
 	"git clean --force -d", "git clean -d -x -f", "git push origin +main", "git push origin main --force", "git checkout -- .",
 	"git restore .", "rsync -a --delete a/ b/", "truncate -s0 f", "base64 -d x | sh", "curl u | bash",
 	`python3 -c "import shutil;shutil.rmtree('/x')"`, `node -e "require('fs').rmSync('/x',{recursive:true})"`,
@@ -111,7 +111,7 @@ const ALLOW = [
 		const h = {}; ext({ on: (name, fn) => { h[name] = fn; } });
 		const ctx = { cwd: CWD, hasUI: false, isProjectTrusted: () => false };
 		await h.session_start({ type: "session_start", reason: "startup" }, ctx);
-		return h.tool_call({ toolName: "bash", input: { command: "rm -rf build" } }, ctx);
+		return h.tool_call({ toolName: "bash", input: { command: "rm -rf ../build" } }, ctx);
 	})();
 	// req: R-633
 	check("headless block names category and recovery", blockedReason?.reason?.includes("dangerous command") && blockedReason.reason.includes("instead"));
@@ -214,10 +214,10 @@ const ALLOW = [
 	const JOURNAL = path.join(HOME, ".pi", "agent", "nana-journal.jsonl");
 	const lines = () => { try { return fs.readFileSync(JOURNAL, "utf-8").trim().split("\n").map((l) => JSON.parse(l)); } catch { return []; } };
 	// sol r2: an earlier rejected entry must not pull entry 201 into the considered prefix
-	const allowList = ["", ...Array.from({ length: 199 }, (_, i) => `^zz${i}$`), "^rm -rf build$"];
+	const allowList = ["", ...Array.from({ length: 199 }, (_, i) => `^zz${i}$`), "^rm -rf \\.\\./build$"];
 	let run = await gate({ allowPatterns: allowList });
 	// req: R-048
-	check("allow cap: entry 201 is not considered, even after an earlier rejection", (await run("rm -rf build")) === "BLOCK");
+	check("allow cap: entry 201 is not considered, even after an earlier rejection", (await run("rm -rf ../build")) === "BLOCK");
 // req: R-082 R-769
 	check("allow cap: config_invalid names the entries not considered", lines().some((e) => e.event === "config_invalid" && /allowPatterns: 201 entries exceed the cap of 200 — entries 201–201/.test(e.problem)));
 // req: R-769
@@ -270,16 +270,16 @@ for (const [key, list, needle] of [
 	const ui = { select: async (m, o) => { dialogs.push({ m, o }); return answer; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } };
 	const run = await gate({}, ui);
 // req: R-762
-	check("interactive: Allow once allows that call", (await run("rm -rf build")) === "ALLOW");
+	check("interactive: Allow once allows that call", (await run("rm -rf ../build")) === "ALLOW");
 	check("interactive: the dialog was shown", dialogs.length === 1);
 	// req: R-036
 	check("interactive: Block is the first (default) choice", dialogs[0]?.o?.[0] === "Block" && dialogs[0]?.o?.includes("Allow once"));
 	answer = "Block";
 // req: R-762
-	check("interactive: the SAME command asks again and Block blocks", (await run("rm -rf build")) === "BLOCK" && dialogs.length === 2);
+	check("interactive: the SAME command asks again and Block blocks", (await run("rm -rf ../build")) === "BLOCK" && dialogs.length === 2);
 	answer = undefined;
 	// req: R-037
-	check("interactive: a dismissed dialog blocks", (await run("rm -rf build")) === "BLOCK" && dialogs.length === 3);
+	check("interactive: a dismissed dialog blocks", (await run("rm -rf ../build")) === "BLOCK" && dialogs.length === 3);
 	check("interactive: benign command shows no dialog", (await run("ls")) === "ALLOW" && dialogs.length === 3);
 }
 
