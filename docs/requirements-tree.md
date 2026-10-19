@@ -220,7 +220,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-06 · Rows: 22 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-459, R-465, R-493–R-499, R-940, R-943, R-944
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
-  Parent: — · Rows: 228 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1521, G-001–G-022
+  Parent: — · Rows: 236 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1521, R-1550–R-1557, G-001–G-022
   - **FEAT-028 · Maintain requirement identity and trace links**
     Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
     Status: active
@@ -230,7 +230,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Maintain a generated module map and find candidate affected requirements through source and test relationships.
     Status: active
     Also applies: G-004, G-007, G-008, G-009, G-010, G-011, G-019
-    Parent: CAP-07 · Rows: 15 · IDs: R-649, R-860–R-864, R-1271–R-1278, R-1361
+    Parent: CAP-07 · Rows: 23 · IDs: R-649, R-860–R-864, R-1271–R-1278, R-1361, R-1550–R-1557
   - **FEAT-030 · Get trustworthy feedback after edits**
     Purpose: Run matching checks after file edits and communicate failures, timeouts, skipped work and evidence state correctly.
     Status: active
