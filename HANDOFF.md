@@ -379,7 +379,6 @@
 - Adoption markers (adopt-structure-markers): the skill's closing step says the setup command is not on the path on Windows. That sentence goes stale if the win-path-commands lane puts it there.
 - Review launcher (review-ledger-run-reviewer): when review-ledger run refuses a pi launch, it writes nothing to the output file. pi-worker and pi-review write the refusal reason there. So a wrapper that reads the output file after exit 1 finds no reason. Standard error still carries it.
 - Review launcher (review-ledger-run-reviewer): the refused-launch check does not assert that the output file is absent. The code meets it, because it exits before it starts pi, but nothing pins it.
-- Python output in post-edit (win-post-edit-utf8): no wrong-code pair runs on Windows. No check pins that post-edit reads the owner's UTF-8 setting from pi's own environment, not its copy. On Windows the two differ only in letter case. No check pins that pi's own environment stays unchanged after a check; the independent check saw it unchanged.
 - Adoption markers (adopt-structure-markers): when the shared working-section file is missing, the structure-only adopt skill's fallback commands print the whole marked block, markers included. Its step 4 still says to copy the section and write it between the markers. An agent that pastes the printed block over the placeholder gets two begin and two end markers. The project check then reads ! and setup skips the region. Nothing is lost, and only the fallback path hits it. No check covers it.
 
 ## Where things stand

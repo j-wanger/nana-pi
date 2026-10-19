@@ -1,4 +1,4 @@
-# Independent check — stale-copies-hooks at 1565bb0 (2026-10-19)
+# Independent check — stale-copies-hooks at f089623a (2026-10-19)
 
 VERDICT: HOLDS
 

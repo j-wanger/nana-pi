@@ -54,7 +54,7 @@
     (d) still predicts that M6 survives; that held on f089623a only, and the 1565bb0e output shows M6 red. Item (b)
     names a `failedSkills.size` guard, but the code guards the dry run with `labels.length`: it runs whenever any row
     fails, not only a skill row as build brief 1 said. The move paths still come only from failed skills.
-- Independent check (`independent-check-1565bb0.md`). It ran on build 1 (f089623a), not on 1565bb0e: a private clone
+- Independent check (`independent-check-f089623a.md`). It ran on build 1 (f089623a), not on 1565bb0e: a private clone
   on macOS, a temp HOME and TMPDIR for every probe. VERDICT HOLDS, 14 probes, no MUST. The installed hook on a fresh
   POSIX install took 0.11 s and printed nothing. A hook link replaced by a copy, a deleted skills folder, a forced-win32
   edited skill copy and a foreign skill link each gave one line; following it cleared the line. Doctor's rows matched
