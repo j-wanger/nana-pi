@@ -8,7 +8,12 @@ import { resolve } from "node:path";
 process.env.SEAT_PAIRS_IMPORT = "1";
 const { PAIRS } = await import(pathToFileURL(resolve(process.argv[2])).href);
 const run = (file) => {
-  const r = spawnSync(process.execPath, [file], { encoding: "utf8", timeout: 900000 });
+  // Run the file the way the suite job does (npm test -- --verbose <file>), so its environment (npm_execpath, the
+  // console code page the runner inherits) matches the suite's; fall back to node <file> when npm's script is unknown.
+  const npmCli = process.env.npm_execpath;
+  const r = npmCli
+    ? spawnSync(process.execPath, [npmCli, "test", "--", "--verbose", file], { encoding: "utf8", timeout: 900000 })
+    : spawnSync(process.execPath, [file], { encoding: "utf8", timeout: 900000 });
   const out = `${r.stdout || ""}\n${r.stderr || ""}`;
   const lines = out.split(/\r?\n/);
   return { status: r.status, pass: new Set(lines.filter((l) => l.startsWith("PASS ")).map((l) => l.slice(5).trim())),

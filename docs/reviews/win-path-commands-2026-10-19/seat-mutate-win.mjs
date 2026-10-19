@@ -11,7 +11,6 @@ const R1614 = "Windows: a .cmd shim rewritten by its own bin runs none of the ne
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 
 const DECLARED = [
-	"(b) no pair for an absolute bin path in place of %dp0%: build 3 found that hosted Windows runs it even with é in the path, and R-1612 now runs both forms (must-meet Known limits)",
 	"(a) Windows leg only: on macOS and Linux every pair below skips with the test file's 'Windows leg only' line",
 ];
 
@@ -27,6 +26,9 @@ export const PAIRS = [
 	], tests: [WS], expectRed: [R1614] },
 	{ n: "W4", name: "a % in the bin's relative path is not doubled", edits: [
 		one(SH, String.raw`const batchPath = (value) => value.replaceAll("/", "\\").replaceAll("%", "%%");`, String.raw`const batchPath = (value) => value.replaceAll("/", "\\");`),
+	], tests: [WS], expectRed: [R1612] },
+	{ n: "W5", name: "the shim names the bin by its absolute path instead of %dp0%", edits: [
+		one(SH, "const target = sameWindowsDrive(binFile, shimDir)", "const target = false"),
 	], tests: [WS], expectRed: [R1612] },
 ];
 
