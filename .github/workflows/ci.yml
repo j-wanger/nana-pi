@@ -75,6 +75,8 @@ jobs:
         run: |
           git config --global user.email "seat@example.invalid"; git config --global user.name "seat"
           git branch -f main origin/main  # the runner reads the tip's merge base with main
+          export npm_execpath="$(node -p "require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')")"  # as npm test sets it; the Windows fixture reads it
+          echo "npm_execpath=$npm_execpath"; test -f "$npm_execpath"
           node docs/reviews/review-ledger-run-reviewer-2026-10-19/win-pairs.mjs docs/reviews/review-ledger-run-reviewer-2026-10-19/seat-mutate-win.mjs
 
   release:
