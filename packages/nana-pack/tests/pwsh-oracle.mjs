@@ -10,6 +10,7 @@ import { spawn as nodeSpawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { tmpDir } from "./tmp-dir.mjs";
 import {
 	POWERSHELL_CORPUS_SEED,
 	POWERSHELL_CORPUS_SIZE,
@@ -147,7 +148,7 @@ export async function runPowerShellOracle(shell, commands, {
 		if (shell === "powershell" && platform === "win32") throw new Error(`${shell} did not start: executable is not on PATH`);
 		return { skipped: true, reason: `${shell} is not on PATH` };
 	}
-	const root = fs.mkdtempSync(path.join(tempRoot, "nana-pwsh-oracle-"));
+	const root = tmpDir(path.join(tempRoot, "nana-pwsh-oracle-"));
 	const inputPath = path.join(root, "corpus.txt");
 	const outputPath = path.join(root, "offsets.txt");
 	fs.writeFileSync(inputPath, commands.join("\0"), "utf8");
