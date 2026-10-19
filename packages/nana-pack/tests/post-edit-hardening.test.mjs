@@ -176,7 +176,7 @@ function removeTreeFixture(td) {
 	// req: R-093
 	check("a: the checker is gone, not just abandoned", left === "");
 	reap(left);
-	fs.rmSync(td, { recursive: true, force: true });
+	try { fs.rmSync(td, { recursive: true, force: true }); } catch { /* SEAT MUTATION 3: let the run reach R-1700/R-1701 */ }
 }
 
 // (b) posix tree kill: the checker exits immediately but leaves a SIGTERM-ignoring
