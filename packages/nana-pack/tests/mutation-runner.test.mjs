@@ -16,7 +16,7 @@
 // the requirements-trace rail never read a fixture specifier or a fixture `// req:`-shaped line as real
 // (build-brief rule 5, CHANGE.md §5 and the M1 fact-check finding). Each fixture run gets its own TMPDIR
 // (a check-owned folder under tmpDir()), so a leftover-scan stays local to that check.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -395,7 +395,55 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	check("mutation runner: after a run at one shard and at three, and after one whose shard is killed outright, no running test file, scratch folder or git worktree entry is left, and with SEAT_MUTATE_KEEP=1 every scratch worktree is left and its path printed", reasons.length === 0, reasons.join("; "));
 }
 
-// ── R-1770 to R-1774: cleanup after git refuses its first removal ───────────────────────────────
+// ── R-1770 to R-1775: serialized worktree operations and refused-removal cleanup ───────────────
+{
+	const td = tmpDir(path.join(os.tmpdir(), "mutrun-worktree-operation-lock-"));
+	const lockPath = path.join(td, "operation.lock");
+	const eventsPath = path.join(td, "events.txt");
+	const releasePath = path.join(td, "release");
+	const scriptPath = path.join(td, "operation.mjs");
+	fs.writeFileSync(scriptPath, [
+		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
+		importLine("* as fs", "node:fs"),
+		"const [role, lockPath, eventsPath, releasePath] = process.argv.slice(2);",
+		"const sleepArray = new Int32Array(new SharedArrayBuffer(4));",
+		"withWorktreeOperationLock(lockPath, () => {",
+		'  fs.appendFileSync(eventsPath, `${role}-start\\n`);',
+		'  if (role === "remove") {',
+		"    const until = Date.now() + 4000;",
+		"    while (!fs.existsSync(releasePath) && Date.now() < until) Atomics.wait(sleepArray, 0, 0, 10);",
+		'    if (!fs.existsSync(releasePath)) throw new Error("release did not arrive");',
+		"  }",
+		'  fs.appendFileSync(eventsPath, `${role}-end\\n`);',
+		"});",
+		"",
+	].join("\n"));
+	const start = (role) => {
+		const child = spawn(process.execPath, [scriptPath, role, lockPath, eventsPath, releasePath], { stdio: ["ignore", "pipe", "pipe"] });
+		return new Promise((resolve) => {
+			let output = "";
+			let settled = false;
+			child.stdout.on("data", (d) => { output += d; });
+			child.stderr.on("data", (d) => { output += d; });
+			const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 5000);
+			const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
+			child.on("error", (err) => done(null, err.message));
+			child.on("close", done);
+		});
+	};
+	const removeRun = start("remove");
+	const removeStarted = await waitUntil(() => fs.existsSync(eventsPath) && fs.readFileSync(eventsPath, "utf8").includes("remove-start"), 4000);
+	const addRun = start("add");
+	await sleep(150);
+	const whileHeld = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8") : "";
+	fs.writeFileSync(releasePath, "release");
+	const [removeResult, addResult] = await Promise.all([removeRun, addRun]);
+	const events = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8").trim().split(/\r?\n/) : [];
+	const ok = removeStarted && !whileHeld.includes("add-start") && events.join(",") === "remove-start,remove-end,add-start,add-end" && removeResult.code === 0 && addResult.code === 0 && !fs.existsSync(lockPath) && CFG.WORKTREE_LOCK_WAIT_MS === 25;
+	// req: R-1775
+	check("mutation runner: a scratch worktree add waits for another shard's removal and all its retries to finish, so the git operations never overlap, with the sealed operation-lock wait", ok, JSON.stringify({ removeStarted, whileHeld, events, removeResult, addResult, lockLeft: fs.existsSync(lockPath), waitMs: CFG.WORKTREE_LOCK_WAIT_MS }));
+}
+
 {
 	const reasons = [];
 	for (const shards of [1, CFG.WORKTREE_REMOVE_RETRIES]) {

@@ -455,8 +455,9 @@ config module; every other key is refused by name before any worktree.
 seat guide's rule). A parent killed outright writes no record, leaves its shards to end on
 their own, and leaves its lock for the next run on that record to replace. On Windows a stop
 ends each shard outright rather than delivering a signal it can catch, and npm's config values
-are not read there. After a scratch-worktree removal fails, the runner checks whether its entry
-is still listed, waits, deletes the scratch folder, and retries the removal by the unique
+are not read there. Shards share one operation lock, so a scratch-worktree add never overlaps
+another shard's complete removal and its retries. After a scratch-worktree removal fails, the runner
+checks whether its entry is still listed, waits, deletes the scratch folder, and retries the removal by the unique
 `<scratch folder base name>/wt` suffix. It never runs `git worktree prune`, because pruning can
 remove entries the runner did not create. A locked scratch entry therefore stays listed after
 the retries and the record names it. A table names a check's longer title when a shorter named
