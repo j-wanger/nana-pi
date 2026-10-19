@@ -1,0 +1,57 @@
+# win-pi-registration-test: Windows install completes a partial pi registration (2026-10-19)
+
+Feature: FEAT-013 · Install and connect harness runtimes
+
+**Feature.** On Windows, the suite proves that the installer adds only the missing per-package pi entry, and never a root entry, by running a `.cmd` pi through the same cmd.exe launch that real installs use.
+
+**Class: ordinary.** The lane changes one test file, adds one row, regenerates the tree outline and sets the R-291 leaf total while that literal exists. No install, doctor, hook, extension, gate or review-tool code changes. The lane touches `packages/nana-setup/`, so the seat runs `node packages/nana-setup/bin/install-check.mjs` on macOS before `nana-land`.
+
+**Threat model.** In scope: honest platform variation. That covers drive letters, a temp folder on a different drive from the checkout, 8.3 short temp names, the PATH key spelled `Path` or `PATH`, PATHEXT, and Node refusing to start a `.cmd` without cmd.exe. Out of scope: deliberate forgery.
+
+**Today.** In `packages/nana-setup/tests/pi-registration.test.mjs`, the knowledge-only block sits inside `if (process.platform !== "win32")`. On the Windows leg it prints `SKIP POSIX-only fake-pi registration test` (CI run 39293614371 on main: 64 pass, 3 skip). The guard also hides the R-392 coverage check and the R-654 doctor check, and neither needs anything POSIX-only. On Windows, only the fresh case through cmd.exe is proven, by R-1034's npm-shim check, which injects the platform, env and manifest root.
+
+**Design**
+- Drop the guard. The block becomes a plain `{ … }` and runs on every platform.
+- Use one recorder. `record.cjs` in the fake bin folder appends `JSON.stringify(process.argv.slice(2))` and a newline to `calls` in the same folder.
+  - POSIX `pi`: `#!/bin/sh` + `exec '<process.execPath>' '<record.cjs>' "$@"`, mode 0755.
+  - win32 `pi.cmd`: `@"<process.execPath>" "%~dp0record.cjs" %*` with CRLF. Only cmd.exe can run it.
+- Prepend the fake folder to `process.env.PATH` with `path.delimiter`, and restore it in `finally`. Call `stepPiRegister({ ...resolveLayout({ home }), isRealHome: true }, {})` with no injection, so the real `platform()`, `findPi`, `winCommand`, ComSpec and `spawnSync` all run.
+- One assertion serves both platforms: status `created`, and the calls deep-equal `[["--version"], ["install", path.join(repo, "packages", "nana-pack")]]`. A missing log reads as `[]` and fails.
+- The title depends on the platform. win32 gets the R-1690 title. Elsewhere the check keeps the R-323 title byte for byte, because R-323's Evidence cites it.
+- `packages/nana-pack/tests/fake-pi.mjs` is not touched. Six nana-pack tests share it, and its `pi.cmd` is a placeholder on purpose.
+
+**Must-meet**
+| ID | Row (EARS) | Test | Red today |
+|---|---|---|---|
+| R-1690 | WHERE the platform is win32, WHEN the installer registers pi packages for the real home while only the nana-knowledge package is registered in pi's settings and a `.cmd` pi is first on PATH, the installer shall run that pi through cmd.exe exactly twice: `--version`, then `install` of the nana-pack package directory. | `packages/nana-setup/tests/pi-registration.test.mjs::win32 install runs a pi.cmd through cmd.exe to add only the missing per-package entry, never a root entry` | The check does not exist today, and the Windows leg skips its block (CI log above). See the probes below. |
+
+**Probes (temp clone of 713d6aa, temp HOME, macOS)**
+- With the change and the row:
+  - Trace: 1,299 rows, 0 problems, 0 rows off EARS form.
+  - requirements-tree at 1,299: 89 pass.
+  - map:check and readme:check: 0 problems.
+  - `node scripts/test.mjs packages/nana-setup/tests/pi-registration.test.mjs`: 64 pass, 3 skip, the same as main.
+- Wrong code against the shared assertion (R-323 branch):
+  - W1, install every package root: FAIL, 3 calls.
+  - W2, install the manifest root: FAIL.
+  - W4, report `created` without running install: FAIL.
+  - W5, skip the version probe: FAIL.
+- W3 is win32-only and was not run: launch the `.cmd` directly without ComSpec. Node 22 should return EINVAL, giving a problem, no calls and a red check (inferred).
+- `winCommand` accepts a fake pi path shaped like CI's (8.3 short temp name) and the checkout path on the other drive, with no refusal.
+
+**Seat evidence (no row)**
+1. Open a draft PR. On the Windows leg, pi-registration should go from 64 pass, 3 skip to 67 pass, 2 skip. R-1690, the R-392 knowledge-only check and the R-654 doctor check should PASS, with no new FAIL. Only this run proves R-1690, so land only after it is green.
+2. On macOS, pi-registration should stay at 64 pass, 3 skip through the runner. The trace should show 0 problems, and map:check, readme:check and the locked suite should be green.
+3. Run `node packages/nana-setup/bin/install-check.mjs` on macOS before `nana-land`.
+4. Carry the `requirements-moved` output in the review brief and the land.
+
+**Known limits**
+- The recorder `pi.cmd` is hand-written, not generated by npm. The fidelity of npm's real shim stays with R-1034's integration check.
+- Only the CI Windows leg can prove the row. macOS and Linux run the R-323 branch instead.
+- R-1035 refuses a checkout or temp path containing `%`, `!` or `"`, so the check would then fail. CI's paths have none of those characters.
+- The `.cmd` embeds Node's own path, and cmd.exe would expand a `%` in it. CI's Node path has none.
+- The POSIX fake single-quotes two paths, so a `'` in either one breaks it. The old fake had the same limit.
+- The R-392 and R-654 checks passing on Windows is inferred. Doctor's "pi packages ✓" check and R-679's cross-drive match already pass there, and the draft PR will confirm.
+
+## Row the builder adds (FEAT-013 / SUB-013, directly after R-1039)
+- **R-1690**: the row text above, `implemented`, citing the test.

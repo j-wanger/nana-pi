@@ -3,7 +3,7 @@
  * @purpose Pins that the prompt hook is fail-open, bounded and never repeats a pointer inside one session, since it runs on every prompt the owner types
  * @inputs bin/nana-knowledge.ts, markdown sources and an index under a temp NANA_KNOWLEDGE_HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
+ * @effects disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI, kills the hook command's process group on POSIX and waits for one background build to finish)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate: the hook is fail-open, bounded, and never repeats a pointer inside a session.
@@ -29,7 +29,7 @@ fs.writeFileSync(path.join(src, "long.md"), "# " + "Titanic ".repeat(30) + "\n" 
 fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({ roots: [{ path: src, kind: "articles" }] }));
 
 const { build, acquireBuildLock, releaseBuildLock, LOCK_TTL_MS, RECLAIM_ORPHAN_MS } = await import(new URL("../lib/build.ts", import.meta.url).href);
-const { openDb } = await import(new URL("../lib/db.ts", import.meta.url).href);
+const { openDb, getMeta } = await import(new URL("../lib/db.ts", import.meta.url).href);
 const { search } = await import(new URL("../lib/query.ts", import.meta.url).href);
 const hook = await import(new URL("../lib/hook.ts", import.meta.url).href);
 const { runHook, renderBlock, ensureFreshIndex, readShown, BLOCK_MAX_CHARS } = hook;
@@ -41,6 +41,19 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 const payload = (o) => JSON.stringify({ session_id: "s1", cwd: td, transcript_path: "/nope", ...o });
 const noSpawn = () => { throw new Error("build must never be spawned in these tests"); };
 const logBytes = (h) => fs.existsSync(path.join(h, "pull.log")) ? fs.readFileSync(path.join(h, "pull.log"), "utf8") : "";
+const REBUILD_DEADLINE_MS = 20000; // chosen: cold Windows CI slack
+const rebuilt = (h, staleMtimeMs) => {
+	try { return fs.statSync(path.join(h, "index.db")).mtimeMs > staleMtimeMs + 60000 && !fs.existsSync(path.join(h, "build.lock")); }
+	catch { return false; }
+};
+const waitForRebuilt = async (h, staleMtimeMs) => {
+	const deadline = Date.now() + REBUILD_DEADLINE_MS;
+	while (Date.now() < deadline) {
+		if (rebuilt(h, staleMtimeMs)) return Date.now();
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	return null;
+};
 const loggedOutcome = (before, h, reason, hits) => {
 	const after = logBytes(h);
 	const rows = after.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
@@ -226,6 +239,23 @@ check("an index older than 1 h is stale (a doc written this morning is pullable 
 	ensureFreshIndex(Date.now(), () => spawned++) === "spawned" && spawned === 2);
 fs.utimesSync(dbFile, Date.now() / 1000, Date.now() / 1000);
 
+{
+	const beforeDb = await openDb(dbFile, {});
+	const builtAtBefore = getMeta(beforeDb, "built_at");
+	beforeDb.close();
+	const staleTime = Date.now() / 1000 - 2 * 3600;
+	fs.utimesSync(dbFile, staleTime, staleTime);
+	let staleSpawns = 0;
+	const stalePull = await call(payload({ session_id: "stale-1", prompt: "what is the pi review round cap" }), { spawnFn: () => staleSpawns++ });
+	const afterDb = await openDb(dbFile, {});
+	const builtAtAfter = getMeta(afterDb, "built_at");
+	afterDb.close();
+	fs.utimesSync(dbFile, Date.now() / 1000, Date.now() / 1000);
+	// req: R-892
+	// req: R-1710
+	check("R-1710: a pull on an index older than one hour prints its pointers and returns before the index is rebuilt", stalePull.reason === "ok" && stalePull.output?.includes("rounds.md") === true && staleSpawns === 1 && builtAtAfter === builtAtBefore);
+}
+
 // --- missing index: still fail-open, still no synchronous build ---
 const home2 = path.join(td, "home2");
 fs.mkdirSync(home2, { recursive: true });
@@ -237,7 +267,9 @@ const rn = await call(payload({ prompt: "what is the pi review round cap" }), { 
 check("no index: prints nothing", rn.output === null && rn.reason.startsWith("no-index"));
 // req: R-231
 check("no-index appends one correctly shaped outcome row", loggedOutcome(beforeNoIndex, home2, rn.reason, []));
+// req: R-230
 check("no index: spawns a background build", spawned2 === 1);
+// req: R-892
 check("no index: does NOT build synchronously", !fs.existsSync(path.join(home2, "index.db")));
 process.env.NANA_KNOWLEDGE_HOME = home;
 
@@ -343,6 +375,47 @@ const garbage = await spawnHook((stdin) => stdin.end("}{ not json at all"));
 check("malformed stdin: exit code 0", garbage.code === 0);
 // req: R-225
 check("malformed stdin: prints nothing", garbage.out === "" && garbage.err === "");
+
+// --- a stale CLI pull survives teardown while its detached build finishes ---
+const staleHome = path.join(td, "stalehome");
+fs.mkdirSync(staleHome, { recursive: true });
+fs.writeFileSync(path.join(staleHome, "sources.json"), JSON.stringify({ roots: [{ path: src, kind: "articles" }] }));
+process.env.NANA_KNOWLEDGE_HOME = staleHome;
+await build();
+process.env.NANA_KNOWLEDGE_HOME = home;
+const staleDb = path.join(staleHome, "index.db");
+const staleTime = Date.now() / 1000 - 2 * 3600;
+fs.utimesSync(staleDb, staleTime, staleTime);
+const staleMtimeMs = fs.statSync(staleDb).mtimeMs;
+const staleStartedAt = Date.now();
+const staleCommand = spawn(process.execPath, [cli, "hook"], {
+	stdio: ["pipe", "pipe", "pipe"],
+	detached: process.platform !== "win32",
+	env: { ...process.env, NODE_NO_WARNINGS: "1", NANA_KNOWLEDGE_HOME: staleHome },
+});
+let staleOut = "", staleErr = "", staleExitAt = null;
+staleCommand.stdout.on("data", (d) => { staleOut += d; });
+staleCommand.stderr.on("data", (d) => { staleErr += d; });
+staleCommand.stdin.end(payload({ session_id: "stale-cli", prompt: "what is the pi review round cap" }));
+staleCommand.on("exit", () => {
+	staleExitAt = Date.now();
+	if (process.platform !== "win32") { try { process.kill(-staleCommand.pid, "SIGKILL"); } catch {} }
+});
+const staleClosed = await new Promise((resolve) => {
+	const timer = setTimeout(() => {
+		try { if (process.platform !== "win32") process.kill(-staleCommand.pid, "SIGKILL"); else staleCommand.kill("SIGKILL"); } catch {}
+		resolve({ code: null, at: Date.now(), timedOut: true });
+	}, REBUILD_DEADLINE_MS);
+	timer.unref?.();
+	staleCommand.on("close", (code) => { clearTimeout(timer); resolve({ code, at: Date.now(), timedOut: false }); });
+});
+const rebuiltBeforeClose = rebuilt(staleHome, staleMtimeMs);
+const rebuiltAt = await waitForRebuilt(staleHome, staleMtimeMs);
+console.log(`NOTE stale pull: exit ${(staleExitAt ?? staleClosed.at) - staleStartedAt} ms, output closed ${staleClosed.at - staleStartedAt} ms, rebuilt before close ${rebuiltBeforeClose}, rebuilt ${rebuiltAt === null ? "deadline" : rebuiltAt - staleClosed.at + " ms"} after close`);
+const staleLines = staleOut.trimEnd().split("\n");
+// req: R-230
+// req: R-1711
+check("R-1711: the hook command on an index older than one hour prints only the pull block and a build outside its process group rebuilds the index", staleClosed.code === 0 && staleErr === "" && staleLines[0]?.startsWith("[nana:knowledge]") === true && staleLines.length > 1 && staleLines.slice(1).every((line) => line.startsWith("- ")) && rebuiltAt !== null);
 
 // --- the build lock is atomic: exactly one of N racing builders wins ---
 const lockHome = path.join(td, "lockhome");
