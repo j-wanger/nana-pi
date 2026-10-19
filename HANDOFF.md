@@ -60,6 +60,7 @@
 - 2026-10-19: on Windows, install now refuses a requirements skill folder it did not make, as macOS does. Install and its dry run exit 1 and leave that folder untouched. Doctor marks it ✗ and says to move it. Before, install backed up the owner's file inside the folder and overwrote it. Copies nana-setup made keep refreshing, including older shipped versions in either line ending. CI's Windows leg passes the lane's seven checks; 20 of 152 files still fail there, all desk and bench — `docs/sessions/2026-10.md`.
 - 2026-10-19: the folder-spelling test's two letter-case checks now run only where one folder can have two spellings. On a case-sensitive volume, like CI's Linux runner, each skips with a printed reason. Before, both failed there on every run. The fix was in the test only. CI's Linux leg now passes the file: 9 checks pass and none fail. macOS and Windows still run both checks, and both pass — `docs/sessions/2026-10.md`.
 - 2026-10-19: every bench test file now runs and passes on Windows. The Windows skip list now holds only the 16 desk files. The catch ledger's judge now starts in the system temp folder, not a fixed folder Windows lacks. Three test files no longer assume POSIX paths or scripts Windows cannot start. One folder-mode check skips on Windows with its reason. CI's Windows leg reads 0 failing of 153 files. The four bench files add 223 passing checks there — `docs/sessions/2026-10.md`.
+- 2026-10-19: every new session now starts with nana's standing rulings, in both seats. Builders and reviewers get them too. The rulings live in one dated file in nana-pi that names no owner and no model. Install links the file into the Claude rules folder and the pi agent folder. On Windows it copies the file instead. A pi session whose copy is unusable shows a one-line notice in their place. Doctor flags a missing or stale copy. All 29 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 154 files. On Windows the lane's own checks pass — `docs/sessions/2026-10.md`.
 - 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, per the 2026-10-10 ruling. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
@@ -140,6 +141,15 @@
 - Watchdog-exit lane: a pi-worker run with retries and no lane now re-runs a pi killed by a signal. So it repeats that attempt's changes, as it already did after a failed attempt.
 - Watchdog-exit lane: its six checks are timing-based, with half a poll interval of margin. A very slow runner could fail them.
 - Watchdog-exit lane, found on main too: a review test that kills its launcher leaves one empty capture folder in the temp folder.
+- Rulings file: no test proves that a live Claude Code or pi session loads the rulings. The tests stop at the installed file and the prompt section.
+- Rulings file: each machine gets the rulings only after one install run after the pull. Until then pi shows the notice, and Claude Code shows nothing.
+- Rulings file: a Windows copy stays stale until the next install. Doctor flags it meanwhile.
+- Rulings file: on Windows, each install that refreshes a changed file leaves a dated backup beside both copies, so backups pile up. Claude Code should not load them as rules; nobody has tested that.
+- Rulings file: every session, builder and reviewer now carries about 600 more tokens.
+- Rulings file: no test pins how a model reads the scope sentence. A builder or reviewer may still act on a seat-only ruling, such as pushing its branch.
+- Rulings file: the owner and model word lists are short lists, not proofs. Each ruling's wording and scope are the seat's reading of its memory.
+- Rulings file: the seat's memory still states the rulings itself. After the land, the seat points its memory at the file.
+- Rulings file: on macOS and Linux the pi agent folder holds a link into the checkout. An edit through that link changes the checkout.
 - g005-carveout: the export rule stays untested. No check scans modules for a default export; a reviewer reads the rule.
 - g005-carveout: a project made from the template gets the new export wording at its next template update. Until it copies the wording into its own ledger, its rail prints one drift line that does not fail. trading-zone needs a follow-up lane in its own repo for that copy.
 - g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
@@ -161,7 +171,7 @@
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
    - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg blocks main after two green runs (both Jake's 2026-10-17 calls).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: the rulings file every seat reads at startup (one copy in nana-pi, installed to the user-level pi folder, with no owner name). Test details in the product report follow, then an adoption refresh of basketball-geek and aml-desk.
+   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: test details in the product report, then an adoption refresh of basketball-geek and trading-zone.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
