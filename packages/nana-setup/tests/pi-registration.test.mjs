@@ -154,7 +154,7 @@ function piHomeWith(packages) {
 	// req: R-679
 	check("fixture manifest root checkout identity covers its extension directories", rootCoverage.present && rootCoverage.match === path.relative(agent, repo), JSON.stringify(rootCoverage));
 }
-if (process.platform !== "win32") {
+{
 	const home = piHomeWith(null);
 	const agent = path.join(home, ".pi", "agent");
 	const knowledge = path.relative(agent, path.join(repo, "packages", "nana-knowledge"));
@@ -168,18 +168,30 @@ if (process.platform !== "win32") {
 	const fakeBin = tmpDir(path.join(os.tmpdir(), "nana-fake-pi-"));
 	tmps.push(fakeBin);
 	const log = path.join(fakeBin, "calls");
-	fs.writeFileSync(path.join(fakeBin, "pi"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\nexit 0\n`);
-	fs.chmodSync(path.join(fakeBin, "pi"), 0o755);
+	const recorder = path.join(fakeBin, "record.cjs");
+	fs.writeFileSync(recorder, `const fs = require("node:fs");\nconst path = require("node:path");\nfs.appendFileSync(path.join(__dirname, "calls"), JSON.stringify(process.argv.slice(2)) + "\\n");\n`);
+	if (process.platform === "win32") fs.writeFileSync(path.join(fakeBin, "pi.cmd"), `@"${process.execPath}" "%~dp0record.cjs" %*\r\n`);
+	else {
+		fs.writeFileSync(path.join(fakeBin, "pi"), `#!/bin/sh\nexec '${process.execPath}' '${recorder}' "$@"\n`);
+		fs.chmodSync(path.join(fakeBin, "pi"), 0o755);
+	}
 	const savedPath = process.env.PATH;
-	process.env.PATH = `${fakeBin}:${savedPath}`;
+	process.env.PATH = `${fakeBin}${path.delimiter}${savedPath}`;
 	try {
 		const fakeReal = { ...resolveLayout({ home }), isRealHome: true };
 		const installed = stepPiRegister(fakeReal, {});
-		const calls = fs.readFileSync(log, "utf8").trim().split("\n");
-		// req: R-323
-		check("install adds only the missing per-package entry, never a root entry", calls.length === 2 && calls[1] === `install ${path.join(repo, "packages", "nana-pack")}` && !calls.some((line) => line === `install ${repo}`), `${JSON.stringify(calls)} ${JSON.stringify(installed)}`);
+		const calls = fs.existsSync(log) ? fs.readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
+		const ok = installed[0]?.status === "created" && JSON.stringify(calls) === JSON.stringify([["--version"], ["install", path.join(repo, "packages", "nana-pack")]]);
+		const extra = `${JSON.stringify(calls)} ${JSON.stringify(installed)}`;
+		if (process.platform === "win32") {
+			// req: R-1690
+			check("win32 install runs a pi.cmd through cmd.exe to add only the missing per-package entry, never a root entry", ok, extra);
+		} else {
+			// req: R-323
+			check("install adds only the missing per-package entry, never a root entry", ok, extra);
+		}
 	} finally { process.env.PATH = savedPath; }
-} else console.log("SKIP POSIX-only fake-pi registration test: it uses a #!/bin/sh executable and colon-separated PATH");
+}
 
 /* --- a WORKTREE of the same repo is the same repo --------------------------------------- */
 {
