@@ -369,5 +369,34 @@ check("nested repository is refused before admission and consumes no round", ref
   reviewRound.readRounds(home, { item: "nested-refusal" }).length === beforeRounds && !fs.existsSync(path.join(root, "nested-observe")) &&
   !afterRefusal.includes("nana-review-"), refusal.stderr);
 
+// clean-revision (W7c amend, 2026-10-18): a tracked edit, an untracked file and a new execute-bit
+// staged addition, under autocrlf and fileMode normalization, still reproduce and record a verified
+// HEAD+snap verdict — a self-contained repo, independent of the shared `repo` fixture above.
+{
+  const mm5Root = path.join(root, "mm5-repo");
+  fs.mkdirSync(mm5Root);
+  git(mm5Root, "init", "-q", "-b", "main");
+  git(mm5Root, "config", "core.autocrlf", "true");
+  git(mm5Root, "config", "core.fileMode", "false");
+  fs.writeFileSync(path.join(mm5Root, "tracked.txt"), "base\n");
+  git(mm5Root, "add", "tracked.txt");
+  git(mm5Root, "commit", "-m", "base");
+  const mm5Head = git(mm5Root, "rev-parse", "HEAD");
+  fs.writeFileSync(path.join(mm5Root, "tracked.txt"), "edited\n"); // a tracked edit
+  fs.writeFileSync(path.join(mm5Root, "untracked.txt"), "new\n"); // an untracked file
+  fs.writeFileSync(path.join(mm5Root, "staged-exec.sh"), "#!/bin/sh\n"); // a new file staged with an execute bit
+  git(mm5Root, "add", "staged-exec.sh");
+  git(mm5Root, "update-index", "--chmod=+x", "staged-exec.sh"); // a committed mode, never chmod
+  const mm5Run = spawnSync(process.execPath, [piReview, "--item", "mm5", "--out", path.join(root, "mm5.md"), "--retries", "0", "--", "-p", "review"], {
+    cwd: mm5Root, env: env({ OBSERVE: path.join(root, "mm5-observe") }), encoding: "utf8", timeout: 30000,
+  });
+  const mm5Row = reviewRound.readRounds(home, { item: "mm5" })[0];
+  // req: R-1374
+  check("normalized dirty review reproduces exactly",
+    mm5Run.status === 0 && mm5Row?.verdict === "LAND" && mm5Row?.unverified !== true &&
+      new RegExp(`^${mm5Head}\\+snap:[0-9a-f]{64}$`).test(mm5Row?.revision ?? ""),
+    JSON.stringify({ status: mm5Run.status, stderr: mm5Run.stderr, row: mm5Row }));
+}
+
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(failures);

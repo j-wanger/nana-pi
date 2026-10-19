@@ -455,11 +455,11 @@ try {
 		} catch (e) {
 			error = e.message;
 		}
-		// req: R-517
+		// req: R-517 R-542
 		check("append failure: a results append that fails STOPS the study", error !== null, error ?? "no error");
-		// req: R-517
+		// req: R-517 R-542
 		check("append failure: …naming the spend that is now unrecorded", /could not record a completed run \(410 tokens already spent\)/.test(error ?? ""), (error ?? "").slice(0, 140));
-		// req: R-517
+		// req: R-517 R-542
 		check("append failure: …and no further paid child starts", runs === 1, `runs=${runs}`);
 	}
 
@@ -505,6 +505,182 @@ try {
 		check("append failure/salvage: an interrupt afterwards STILL writes the run down", out.persisted.length === 1 && rows.length === 1, JSON.stringify([out.persisted.length, rows.length]));
 		check("append failure/salvage: …as an interrupted, unpriced record", rows[0].interrupted === true && rows[0].cost === null, JSON.stringify([rows[0].interrupted, rows[0].cost]));
 		resetInterruptForTests();
+	}
+
+	// ── 8c. a paid run that leaves no evidence stops the study ──────────────────────────────────
+	// Jake ruled 2026-10-10 (docs/sessions/2026-10.md): a study stops when it cannot write its
+	// evidence (R-542). The real runPlan and executeRun drive every case here; only the launcher is
+	// a stub. plainProfile ("lean") has no extensions, so no registration probe runs — the probe's
+	// own evidence-write stop (run.mjs:994) gets its own case at the end, unchanged by this lane.
+	{
+		const t2 = { ...task, id: "t2" };
+		const countingScript = (payload, counterPath) =>
+			`import fs from "node:fs";\nfs.appendFileSync(${JSON.stringify(counterPath)}, "x");\n${emitScript(payload)}`;
+		const countingBin = async (name, counterPath, payload = streamOf({ text: "the answer", tokens: 100 })) => stub(name, countingScript(payload, counterPath));
+		const spawnsOf = async (counterPath) => (await fs.readFile(counterPath, "utf8").catch(() => "")).length;
+		// t1/0, t2/0, t1/1, t2/1: a healthy task interleaved with the faulting one, so "no further
+		// paid child starts" is a real claim (something WAS scheduled next) and the three-failure
+		// streak (R-519) never gets a chance to be the thing that stopped the study instead.
+		const interleavedTodo = [
+			{ task: "t1", profile: "lean", rep: 0, block: "t1|0" },
+			{ task: "t2", profile: "lean", rep: 0, block: "t2|0" },
+			{ task: "t1", profile: "lean", rep: 1, block: "t1|1" },
+			{ task: "t2", profile: "lean", rep: 1, block: "t2|1" },
+		];
+
+		// ── evidence write fault: raw/t1 is a FILE, so writeEvidence's mkdir cannot create rep0 under it
+		{
+			const dir = await freshStudyDir("evidence-fails");
+			const resultsPath = path.join(dir, "results.jsonl");
+			const counter = path.join(dir, "spawns.counter");
+			const bin = await countingBin("evidence-fails.mjs", counter);
+			await fs.mkdir(path.join(dir, "raw"), { recursive: true });
+			await fs.writeFile(path.join(dir, "raw", "t1"), "blocker");
+			const evDir = path.join(dir, "raw", "t1", "lean", "rep0");
+			// The reference mkdir supplies Node's own code and message for THIS platform, so the stop's
+			// error is checked against what Node actually says here, not an assumed shape.
+			const ref = await fs.mkdir(evDir, { recursive: true }).catch((e) => e);
+			let error = null;
+			try {
+				await runPlan({
+					study: { ...study, profiles: [plainProfile] },
+					studyDir: dir,
+					tasks: [task, t2],
+					todo: interleavedTodo,
+					launcher: { cmd: process.execPath, pre: [bin] },
+					fingerprint: "fp",
+					agentDir: null,
+					pricer: null,
+					resultsPath,
+					runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+					priorRecords: [],
+					deps: { ledger: [], blockKeys: new Map(), log: () => {} },
+				});
+			} catch (e) {
+				error = e.message;
+			}
+			const spawns = await spawnsOf(counter);
+			const msg = error ?? "";
+			// req: R-1500 R-542
+			check("evidence failure: no further paid child starts after a run's evidence cannot be written", spawns === 1, `spawns=${spawns}`);
+			// req: R-1501 R-542
+			check("evidence failure: the stop names the run's evidence folder and the error code",
+				ref instanceof Error && msg.split(ref.message).join("").includes(evDir) && msg.includes(ref.code),
+				msg,
+			);
+			const rows = await readJsonl(resultsPath);
+			// req: R-1502
+			check("evidence failure: the run's spend is in results.jsonl before the stop",
+				rows.length === 1 && rows[0].task === "t1" && rows[0].rep === 0 && spendOf(rows[0]) === 110,
+				JSON.stringify(rows),
+			);
+		}
+
+		// ── asset-copy fault: the child finished, but copying the task's declared asset throws
+		{
+			const dir = await freshStudyDir("asset-fails");
+			const resultsPath = path.join(dir, "results.jsonl");
+			const counter = path.join(dir, "spawns.counter");
+			const bin = await countingBin("asset-fails.mjs", counter);
+			const t1asset = { ...task, assets: [{ from: "missing-asset.txt", to: "asset.txt" }] };
+			let error = null;
+			try {
+				await runPlan({
+					study: { ...study, profiles: [plainProfile] },
+					studyDir: dir,
+					tasks: [t1asset, t2],
+					todo: interleavedTodo,
+					launcher: { cmd: process.execPath, pre: [bin] },
+					fingerprint: "fp",
+					agentDir: null,
+					pricer: null,
+					resultsPath,
+					runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+					priorRecords: [],
+					deps: { ledger: [], blockKeys: new Map(), log: () => {} },
+				});
+			} catch (e) {
+				error = e.message;
+			}
+			const spawns = await spawnsOf(counter);
+			// req: R-1503 R-542
+			check("asset failure: no further paid child starts after a run's asset copy fails and leaves no evidence",
+				spawns === 1,
+				`spawns=${spawns} err=${error ?? "none"}`,
+			);
+		}
+
+		// ── grader error with evidence on disk: an unknown checker type never reaches the catch
+		{
+			const dir = await freshStudyDir("grader-error-continues");
+			const resultsPath = path.join(dir, "results.jsonl");
+			const counter = path.join(dir, "spawns.counter");
+			const bin = await countingBin("grader-continues.mjs", counter);
+			const t1grader = { ...task, check: { type: "no-such-checker" } };
+			let rejected = false;
+			try {
+				await runPlan({
+					study: { ...study, profiles: [plainProfile] },
+					studyDir: dir,
+					tasks: [t1grader, t2],
+					todo: interleavedTodo,
+					launcher: { cmd: process.execPath, pre: [bin] },
+					fingerprint: "fp",
+					agentDir: null,
+					pricer: null,
+					resultsPath,
+					runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+					priorRecords: [],
+					deps: { ledger: [], blockKeys: new Map(), log: () => {} },
+				});
+			} catch (e) {
+				rejected = true;
+			}
+			const spawns = await spawnsOf(counter);
+			const rows = await readJsonl(resultsPath);
+			const graderRows = rows.filter((r) => r.state === "grader-error");
+			// req: R-1504
+			check("grader error: a checker grader error with its evidence on disk does not stop the study",
+				!rejected && spawns === 4 && graderRows.length === 2,
+				`rejected=${rejected} spawns=${spawns} graderRows=${graderRows.length}`,
+			);
+		}
+
+		// ── probe evidence fault: unchanged existing path (run.mjs:994), pinned so this lane cannot break it
+		{
+			const dir = await freshStudyDir("probe-evidence-fails");
+			const resultsPath = path.join(dir, "results.jsonl");
+			const counter = path.join(dir, "spawns.counter");
+			const bin = await countingBin("probe-evidence-fails.mjs", counter, streamOf({ text: JSON.stringify(TOOLS), tokens: 100 }));
+			await fs.writeFile(path.join(dir, "raw"), "blocker");
+			const profile = extProfile(bin);
+			let error = null;
+			try {
+				await runPlan({
+					study: { ...study, profiles: [profile] },
+					studyDir: dir,
+					tasks: [task],
+					todo: [{ task: "t1", profile: profile.name, rep: 0, block: "t1|0" }],
+					launcher: { cmd: process.execPath, pre: [bin] },
+					fingerprint: "fp",
+					agentDir: null,
+					pricer: null,
+					resultsPath,
+					runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+					priorRecords: [],
+					deps: { ledger: [], blockKeys: new Map(), log: () => {} },
+				});
+			} catch (e) {
+				error = e.message;
+			}
+			const spawns = await spawnsOf(counter);
+			const ledger = await readLedger(dir);
+			// req: R-542
+			check("probe evidence failure: the study stops with the probe's spend in the ledger and no graded run started",
+				error !== null && spawns === 1 && ledger.length === 1 && ledger[0].tokens === 110,
+				JSON.stringify({ error, spawns, ledger }),
+			);
+		}
 	}
 
 	// ── 9. the SIGINT wiring itself, driven through process.emit ──────────────────────────────────
