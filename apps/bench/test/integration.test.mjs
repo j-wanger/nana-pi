@@ -294,9 +294,9 @@ try {
 		// THE defect: a failed ledger append used to print a warning and keep spending.
 		const { calls, error } = await orchestration({ ledgerFails: true });
 		check("orchestration: a FAILED ledger append STOPS the study", error !== null, error ?? "no error");
-		// req: R-517
+		// req: R-517 R-542
 		check("orchestration: …saying the probe's spend could not be recorded", /could not record the .* registration probe \(700 tokens already spent\)/.test(error ?? ""), (error ?? "").slice(0, 130));
-		// req: R-517
+		// req: R-517 R-542
 		check("orchestration: …and NO further paid child is spawned", calls.runs === 0, `runs=${calls.runs}`);
 		check("orchestration: …and it does not silently retry the probe", calls.probes === 1);
 	}

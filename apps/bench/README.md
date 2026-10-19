@@ -258,8 +258,13 @@ code runs.
    budget verdict instead of being granted time the budget does not have.
 6. **Fail-closed persistence** — if a probe's ledger line or its evidence cannot be written, the
    study **stops**: an unrecorded paid child would be paid for twice and missing from every budget.
-   Ctrl-C likewise writes the in-flight child's buffered stream and partial spend as a
-   `run-error: interrupted` record before exiting.
+   A graded run is the same once its child has finished: if its evidence could not be written —
+   a file where a folder should be, a read-only folder, a full disk — the run's record, with its
+   measured spend, is appended to `results.jsonl` first, and only then does the study **stop**,
+   exit 1, naming the evidence folder and the write's error code. A grader error whose evidence
+   IS on disk (an unknown checker type, a bad pattern) does not stop the study; the run is
+   recorded and the schedule goes on. Ctrl-C likewise writes the in-flight child's buffered
+   stream and partial spend as a `run-error: interrupted` record before exiting.
 5. **Systemic-failure stop** — 3 consecutive non-model failures abort the study. That includes
    `run-error` (auth, spawn, timeout), which otherwise burns the whole schedule 300 seconds at a
    time. The streak is **restored from the trailing records on resume**, so restarting does not
@@ -275,6 +280,10 @@ started from**, i.e. the fixture with the task's planted mutations applied. Agai
 fixture instead, a correct fix that reverts a planted bug produced an empty diff for the very runs a
 reviewer most wants to read). Snapshotted oracle keys are
 appended to `keys.jsonl` with a timestamp and the block they graded.
+
+A run whose child finished but whose evidence folder could not be written still gets its record,
+with its measured spend, in `results.jsonl` — then the study stops (see "Fail-closed persistence"
+above) rather than spend further with no audit trail for that run.
 
 ## Isolation, and why
 

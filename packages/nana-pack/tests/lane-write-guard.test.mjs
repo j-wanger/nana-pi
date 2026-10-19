@@ -10,8 +10,10 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 const worktree = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "lane-root-")));
-const contained = (parent, child) => { const rel = path.relative(parent, child); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".."); };
+const homeFixture = fs.realpathSync(tmpDir(path.join(os.homedir(), "lane-guard-home-")));
+const contained = (parent, child) => { const rel = path.relative(parent, child); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
 const tempRoot = fs.realpathSync(os.tmpdir()), tmpAlias = process.platform === "win32" ? tempRoot : fs.realpathSync("/tmp");
 // chosen: the runner's HOME sits under /tmp on Linux, and /var/tmp is outside both permitted temp roots.
 const OUTSIDE_FIXTURE_PARENTS = process.platform === "win32" ? [os.homedir()] : [os.homedir(), "/var/tmp"];
@@ -58,6 +60,156 @@ check("symlink loop is blocked", await call("edit", "loop-a"));
 check("temporary output remains allowed", !(await call("write", path.join(os.tmpdir(), "nana-lane-safe.txt"))));
 // req: R-962
 check("bash writes stay explicitly outside this gate guard", !(await call("bash", "printf x > ../outside.txt")));
+
+// --- R-1430 to R-1433: real temp roots, alternate spellings and pi's own path forms (NANA_WORKTREE_ROOT stays set) ---
+const pid = process.pid;
+const TEMP_VARS = process.platform === "win32" ? ["TEMP", "TMP"] : ["TMPDIR"];
+const savedTempVars = TEMP_VARS.map((name) => process.env[name]);
+const setTempVars = (value) => { for (const name of TEMP_VARS) process.env[name] = value; };
+const restoreTempVars = () => { TEMP_VARS.forEach((name, i) => { if (savedTempVars[i] === undefined) delete process.env[name]; else process.env[name] = savedTempVars[i]; }); };
+const toggleCase = (s) => s.replace(/[a-zA-Z]/g, (c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()));
+const swapLastSegmentCase = (p) => path.join(path.dirname(p), toggleCase(path.basename(p)));
+const sameCanonical = (a, b) => { try { const sa = fs.statSync(a), sb = fs.statSync(b); return sa.dev === sb.dev && sa.ino === sb.ino; } catch { return false; } };
+const callWithCwd = async (toolName, target, cwd) => (await handler({ toolName, input: { path: target } }, { cwd, hasUI: false }))?.block === true;
+// Non-vacuity control: a sibling of the fixtures below, under the suite's own HOME, must still
+// be refused. If it is allowed (this environment's permitted roots already cover it — the
+// suite's Linux HOME/TMPDIR sit under the real /tmp), the spelling check that follows would
+// pass no matter what the code does, so it prints SKIP and is never counted as PASS.
+const nonVacuityControl = async (label) => {
+	const refused = await call("write", path.join(homeFixture, `sibling-${label}-${pid}`, "x.txt"));
+	if (!refused) console.log(`SKIP ${label}: the sibling-folder control was allowed (this environment's permitted roots mask the result)`);
+	return refused;
+};
+
+{
+	const r1430Joined = path.join(path.resolve("/tmp"), `nana-lane-${pid}`, "x.txt");
+	const r1430Literal = `/tmp/nana-lane-${pid}/x.txt`;
+	if (process.platform === "win32") {
+		const r1430WinTmp = path.win32.resolve(process.cwd(), "/tmp");
+		if ([worktree, tempRoot].some((root) => contained(root, r1430WinTmp))) {
+			console.log("SKIP /tmp is a temporary root on macOS and Linux and not on Windows: \\tmp on the current drive lies inside the lane or OS temp root");
+		} else {
+			// req: R-1430
+			check("/tmp is a temporary root on macOS and Linux and not on Windows", await call("write", r1430Joined) && await call("write", r1430Literal));
+		}
+	} else {
+		// req: R-1430
+		check("/tmp is a temporary root on macOS and Linux and not on Windows", !(await call("write", r1430Joined)) && !(await call("write", r1430Literal)));
+	}
+}
+
+{
+	const r1431SwapDir = path.join(homeFixture, `TempCase-${pid}`);
+	fs.mkdirSync(r1431SwapDir);
+	const r1431SwapAlt = swapLastSegmentCase(r1431SwapDir);
+	const r1431CasePairOk = r1431SwapAlt !== r1431SwapDir && sameCanonical(r1431SwapDir, r1431SwapAlt);
+	const r1431RawTemp = os.tmpdir();
+	const r1431NativeTemp = fs.realpathSync.native(r1431RawTemp);
+	const r1431OsSpellingOk = r1431RawTemp !== r1431NativeTemp;
+	const r1431LinkDir = path.join(homeFixture, `TempLink-${pid}`);
+	fs.mkdirSync(r1431LinkDir);
+	const r1431LinkAlias = path.join(homeFixture, `TempLinkAlias-${pid}`);
+	fs.symlinkSync(r1431LinkDir, r1431LinkAlias, process.platform === "win32" ? "junction" : "dir");
+	try {
+		if (await nonVacuityControl("a temp file named through another spelling of the temp folder is allowed")) {
+			const results = [];
+			if (r1431CasePairOk) {
+				setTempVars(r1431SwapDir);
+				results.push(!(await call("write", path.join(r1431SwapAlt, "case-file-a.txt"))));
+				setTempVars(r1431SwapAlt);
+				results.push(!(await call("write", path.join(r1431SwapDir, "case-file-b.txt"))));
+			} else {
+				console.log("SKIP a temp file named through another spelling of the temp folder is allowed (case pair): swapped path is not the same file on this volume");
+			}
+			if (r1431OsSpellingOk) {
+				setTempVars(r1431RawTemp);
+				results.push(!(await call("write", path.join(r1431NativeTemp, "os-spelling-file-a.txt"))));
+				setTempVars(r1431NativeTemp);
+				results.push(!(await call("write", path.join(r1431RawTemp, "os-spelling-file-b.txt"))));
+			} else {
+				console.log("SKIP a temp file named through another spelling of the temp folder is allowed (OS spelling pair): as-given and native spellings are equal strings");
+			}
+			setTempVars(r1431LinkDir);
+			results.push(!(await call("write", path.join(r1431LinkAlias, "link-file-a.txt"))));
+			setTempVars(r1431LinkAlias);
+			results.push(!(await call("write", path.join(r1431LinkDir, "link-file-b.txt"))));
+			// req: R-1431
+			check("a temp file named through another spelling of the temp folder is allowed", results.length > 0 && results.every(Boolean));
+		}
+	} finally {
+		restoreTempVars();
+	}
+}
+
+{
+	const r1432TempSibling = path.join(homeFixture, `r1432-temp-sibling-${pid}`);
+	const r1432SwapRoot = swapLastSegmentCase(worktree);
+	const r1432CasePairOk = r1432SwapRoot !== worktree && sameCanonical(worktree, r1432SwapRoot);
+	const r1432LinkAlias = path.join(homeFixture, `LaneAlias-${pid}`);
+	fs.symlinkSync(worktree, r1432LinkAlias, process.platform === "win32" ? "junction" : "dir");
+	const r1432NativeRoot = fs.realpathSync.native(worktree);
+	const r1432OsSpellingOk = r1432NativeRoot !== worktree;
+	setTempVars(r1432TempSibling); // keep the broad temp allowance off the lane fixtures
+	try {
+		if (await nonVacuityControl("a lane file named through another spelling of the lane folder is allowed")) {
+			const results = [];
+			if (r1432CasePairOk) {
+				process.env.NANA_WORKTREE_ROOT = worktree;
+				results.push(!(await call("write", path.join(r1432SwapRoot, "case-file-a.txt"))));
+				process.env.NANA_WORKTREE_ROOT = r1432SwapRoot;
+				results.push(!(await call("write", path.join(worktree, "case-file-b.txt"))));
+				process.env.NANA_WORKTREE_ROOT = r1432SwapRoot;
+				results.push(!(await callWithCwd("write", "relative-case-file-a.txt", worktree)));
+				process.env.NANA_WORKTREE_ROOT = worktree;
+				results.push(!(await callWithCwd("write", "relative-case-file-b.txt", r1432SwapRoot)));
+			} else {
+				console.log("SKIP a lane file named through another spelling of the lane folder is allowed (case and relative-target pairs): swapped path is not the same file on this volume");
+			}
+			process.env.NANA_WORKTREE_ROOT = worktree;
+			results.push(!(await call("write", path.join(r1432LinkAlias, "link-file-a.txt"))));
+			process.env.NANA_WORKTREE_ROOT = r1432LinkAlias;
+			results.push(!(await call("write", path.join(worktree, "link-file-b.txt"))));
+			if (r1432OsSpellingOk) {
+				process.env.NANA_WORKTREE_ROOT = worktree;
+				results.push(!(await call("write", path.join(r1432NativeRoot, "os-spelling-file-a.txt"))));
+				process.env.NANA_WORKTREE_ROOT = r1432NativeRoot;
+				results.push(!(await call("write", path.join(worktree, "os-spelling-file-b.txt"))));
+			} else {
+				console.log("SKIP a lane file named through another spelling of the lane folder is allowed (OS spelling pair): as-given and native spellings are equal strings");
+			}
+			// req: R-1432
+			check("a lane file named through another spelling of the lane folder is allowed", results.length > 0 && results.every(Boolean));
+		}
+	} finally {
+		process.env.NANA_WORKTREE_ROOT = worktree;
+		restoreTempVars();
+	}
+}
+
+{
+	const fsRoot = path.parse(worktree).root;
+	const outsideDir = path.join(fsRoot, `nana-lane-guard-missing-${pid}`);
+	const outsideTarget = path.join(outsideDir, "x.txt");
+	const laneTarget = path.join(worktree, `r1433-lane-file-${pid}.txt`);
+	const savedHome = process.env.HOME, savedUserProfile = process.env.USERPROFILE;
+	try {
+		const results = [];
+		process.env.HOME = outsideDir; process.env.USERPROFILE = outsideDir;
+		results.push(await call("write", `~/x.txt`));
+		process.env.HOME = worktree; process.env.USERPROFILE = worktree;
+		results.push(!(await call("write", `~/r1433-lane-file-${pid}.txt`)));
+		results.push(await call("write", `@${outsideTarget}`));
+		results.push(!(await call("write", `@${laneTarget}`)));
+		results.push(await call("write", pathToFileURL(outsideTarget).href));
+		results.push(!(await call("write", pathToFileURL(laneTarget).href)));
+		results.push(!fs.existsSync(outsideDir));
+		// req: R-1433
+		check("home, at-sign and file URL targets are judged where pi writes them", results.every(Boolean));
+	} finally {
+		process.env.HOME = savedHome; process.env.USERPROFILE = savedUserProfile;
+	}
+}
+
 process.env.NANA_WORKTREE_ROOT = "";
 // req: R-962
 check("empty worktree root changes no existing path decision", !(await call("write", "../outside-unset.txt")));
