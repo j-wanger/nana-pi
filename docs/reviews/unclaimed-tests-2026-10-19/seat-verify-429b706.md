@@ -28,3 +28,10 @@
   lines against 300, Python `conftest.py` 546 against 500). The lane grows them to 710 and 622. Only the rendered
   project's post-edit gate checks the cap.
 - No wrong-code pairs and no independent check: an ordinary lane.
+
+## Template acceptance (the seat, on the merged tip)
+
+The builder's report gave no result for `npm run template:accept`, which build brief 1 lists under Done. The seat ran
+it on `29f08c1`, after the merge of report-not-passed's reviewed tip: exit 0 in 68 seconds. The script prints one report
+per failed command and nothing on success (its header), so both templates and both adoption modes passed every native
+check job at that commit.
