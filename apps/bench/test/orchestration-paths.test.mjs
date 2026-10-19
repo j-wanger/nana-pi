@@ -564,15 +564,13 @@ try {
 			// req: R-1500 R-542
 			check("evidence failure: no further paid child starts after a run's evidence cannot be written", spawns === 1, `spawns=${spawns}`);
 			// req: R-1501 R-542
-			check(
-				"evidence failure: the stop names the run's evidence folder and the error code",
+			check("evidence failure: the stop names the run's evidence folder and the error code",
 				ref instanceof Error && msg.split(ref.message).join("").includes(evDir) && msg.includes(ref.code),
 				msg,
 			);
 			const rows = await readJsonl(resultsPath);
 			// req: R-1502
-			check(
-				"evidence failure: the run's spend is in results.jsonl before the stop",
+			check("evidence failure: the run's spend is in results.jsonl before the stop",
 				rows.length === 1 && rows[0].task === "t1" && rows[0].rep === 0 && spendOf(rows[0]) === 110,
 				JSON.stringify(rows),
 			);
@@ -606,8 +604,7 @@ try {
 			}
 			const spawns = await spawnsOf(counter);
 			// req: R-1503 R-542
-			check(
-				"asset failure: no further paid child starts after a run's asset copy fails and leaves no evidence",
+			check("asset failure: no further paid child starts after a run's asset copy fails and leaves no evidence",
 				spawns === 1,
 				`spawns=${spawns} err=${error ?? "none"}`,
 			);
@@ -643,8 +640,7 @@ try {
 			const rows = await readJsonl(resultsPath);
 			const graderRows = rows.filter((r) => r.state === "grader-error");
 			// req: R-1504
-			check(
-				"grader error: a checker grader error with its evidence on disk does not stop the study",
+			check("grader error: a checker grader error with its evidence on disk does not stop the study",
 				!rejected && spawns === 4 && graderRows.length === 2,
 				`rejected=${rejected} spawns=${spawns} graderRows=${graderRows.length}`,
 			);
@@ -680,8 +676,7 @@ try {
 			const spawns = await spawnsOf(counter);
 			const ledger = await readLedger(dir);
 			// req: R-542
-			check(
-				"probe evidence failure: the study stops with the probe's spend in the ledger and no graded run started",
+			check("probe evidence failure: the study stops with the probe's spend in the ledger and no graded run started",
 				error !== null && spawns === 1 && ledger.length === 1 && ledger[0].tokens === 110,
 				JSON.stringify({ error, spawns, ledger }),
 			);

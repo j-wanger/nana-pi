@@ -258,7 +258,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-07 · Rows: 23 · IDs: R-1012–R-1030, R-1040–R-1043
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 87 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095
+  Parent: — · Rows: 92 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
@@ -273,7 +273,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 16 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560
+    Parent: CAP-08 · Rows: 21 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560, R-1500–R-1504
   - **FEAT-037 · Grade behavior with trustworthy checks**
     Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
     Status: active
