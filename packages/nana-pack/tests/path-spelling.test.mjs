@@ -202,6 +202,12 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const diskName = fs.readdirSync(cdRepo).find((n) => n.toLowerCase() === "docs");
   if (diskName !== "docs") {
     console.log("SKIP GP1 (case-divergence): this volume's git kept the disk and index/HEAD case in sync after reset --mixed");
+  } else if (!fs.existsSync(path.join(cdRepo, "Docs", "review.md"))) {
+    // The guard asks the VOLUME, not the platform: on a case-sensitive volume the two `git mv`s
+    // above physically renamed the folder to "docs" on disk, so the old spelling "Docs" no longer
+    // reaches it — the rename left two different folders (git's view: "Docs" deleted, "docs"
+    // untracked), not one folder whose case diverges, so the check below does not apply here.
+    console.log("SKIP GP1 (case-divergence): this volume is case-sensitive, so the rename left two different folders");
   } else {
     // req: R-1350
     check("GP1: a tracked --out reached through a folder whose disk case diverges from git's index/HEAD is refused before the review runs", () => {
@@ -306,6 +312,10 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const diskName2 = fs.readdirSync(cd2Repo).find((n) => n.toLowerCase() === "docs");
   if (diskName2 !== "docs") {
     console.log("SKIP GP2 (case-divergence): this volume's git kept the disk and index/HEAD case in sync after reset --mixed");
+  } else if (!fs.existsSync(path.join(cd2Repo, "Docs", "seed.md"))) {
+    // Twin of the GP1 case-divergence guard above: the old spelling "Docs" must still reach the
+    // renamed folder on disk for this to be a genuine case divergence rather than two folders.
+    console.log("SKIP GP2 (case-divergence): this volume is case-sensitive, so the rename left two different folders");
   } else {
     // req: R-1351
     check("GP2: an untracked in-tree --out under a folder whose disk case diverges from git's index/HEAD stays out of the snapshot and the review checkout", () => {
