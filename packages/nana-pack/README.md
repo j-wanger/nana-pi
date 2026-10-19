@@ -193,6 +193,27 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
 launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
 
+`node bin/review-timeline.mjs --item <slug> [--repo <path>]` prints one lane's review timeline as
+markdown: every round the ledger recorded for that item in the selected repository (the current
+folder by default), in ledger order, each review with its short revision, role, model, verdict and
+duration. It reads only the review ledger (the tally, and the audit log plus its one rotated
+generation, to find each review's recorded output path) and the review files that path names; it
+writes nothing. Under a sent-back review whose recorded file's last `VERDICT:` line still reads
+`SEND-BACK`, it lists that file's MUST findings by title — a heading reading `MUST — <title>`; a bare
+`MUST` heading or `**MUST**` line opening a section whose findings are every sibling of the first
+item form seen in it (a deeper heading, a numbered item, a bullet, or a bold-led paragraph whose bold
+text is not a label ending in `:`); or a line that, after an optional list marker and emphasis marks,
+starts with `MUST —`. No SHOULD or NOTE item is ever listed. A sent-back review with no recorded file,
+a gone file, a disagreeing last verdict, or no readable MUST states which of those holds instead of
+findings. An unverified, over-cap, no-verdict or older (version 1) review line is marked rather than
+guessed. Every field collapses whitespace to one space, and every review file is named by its file
+name alone — never an absolute path. Known limits: a relative recorded path, a rotated-away audit
+generation, or an older tally line with no end time reads as no file recorded; a review file moved or
+deleted after its run reads as gone; the timeline searches no folder but the one the ledger recorded,
+so run it while that folder still exists (the seat runs it at land, from the session that ran the
+reviews); a MUST layout outside the five above may read as unreadable or list a detail line; markdown
+only, no diagram.
+
 ### Land helper: `bin/nana-land.mjs`
 
 `nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` accepts only those four options; there are no exemptions. Keep a clean source tree and a clean tracked state in the checkout on `main`; both checkouts must share one Git repository. Every commit the merge adds must be covered by a named reviewed revision, and each named revision needs a verified `LAND` review at version 2 for its canonical item and SHA. Any verified non-LAND verdict for a named commit or snapshot refuses the merge, even under another item; an in-flight review also refuses. The helper runs the suite in the source tree. Immediately before merging it rechecks both checkouts and main's captured HEAD. It performs one `git merge --ff-only`, verifies containment, and requires the main ref equal to the tip with clean tracked state before success. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, but a detected switch prevents success and the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. The helper never pushes or writes HANDOFF/session archive text. A legacy version-1 LAND does not authorize a land; every pre-change revision needs a fresh review. On success the helper prints the push command and release status. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
