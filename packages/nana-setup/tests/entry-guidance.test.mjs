@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/tests/entry-guidance.test.mjs
- * @purpose Pins that each scaffold, adopt, copier and project completion path prompts objective ratification before trust.
+ * @purpose Pins the completion guidance each scaffold, adopt, copier and project path gives: ratification before trust, and the adopt skills' closing project check.
  * @inputs copier.yml, four pack skill files, and nana-setup project CLI output.
  * @outputs PASS/FAIL lines and a nonzero process exit when any assertion fails.
  * @effects disk (temporary project and home), process (runs the CLI).
@@ -59,6 +59,38 @@ check("adopt-structure ratifies after seed handling without contradictory guidan
  structureFlat.includes("leave owner-written lines unchanged") &&
  !structureFlat.includes("leave every other `<…>`") && !structureFlat.includes("an existing `OBJECTIVE.md` is a ratified decision") && !structureFlat.includes("two edits they still owe"),
  "ratification must follow seeding, preserve existing files, and not describe placeholders as already ratified");
+const lastStep = (raw) => {
+ const text = raw.replace(/\r\n/g, "\n");
+ const marker = "\n## Steps\n";
+ const start = text.indexOf(marker);
+ if (start < 0) return "";
+ const after = text.slice(start + marker.length);
+ const endIndex = after.search(/\n## /);
+ const section = endIndex < 0 ? after : after.slice(0, endIndex);
+ const lines = section.split("\n");
+ let lastLineIndex = -1;
+ for (let i = 0; i < lines.length; i++) {
+  if (/^\d+\.\s\*\*/.test(lines[i])) lastLineIndex = i;
+ }
+ if (lastLineIndex < 0) return "";
+ return lines.slice(lastLineIndex).join("\n").replace(/\s+/g, " ").trim();
+};
+const closingParts = [
+ "`nana-setup project <dir> --check`",
+ `\`node "$HOME/nana-pi/packages/nana-setup/bin/nana-setup.mjs" project <dir> --check\``,
+ "ready only when it exits 0",
+ "every ✗ and ! line",
+ "only with the owner's yes",
+];
+const closingMissing = {};
+for (const skill of ["adopt-py", "adopt-ts", "adopt-structure"]) {
+ const step = lastStep(skillText(skill));
+ const missing = closingParts.filter((part) => !step.includes(part));
+ if (missing.length) closingMissing[skill] = missing;
+}
+const closingBinExists = fs.existsSync(path.join(repo, "packages/nana-setup/bin/nana-setup.mjs"));
+// req: R-1670
+check("R-1670: adopt-py, adopt-ts and adopt-structure each end on the project check, ready only on exit 0, repairs only with the owner's yes", Object.keys(closingMissing).length === 0 && closingBinExists, `${closingBinExists ? "" : "bin missing; "}${Object.entries(closingMissing).map(([skill, missing]) => `${skill} missing: ${missing.join(" | ")}`).join("; ")}`);
 const root = tmpDir(path.join(os.tmpdir(), "nana-guidance-"));
 const dir = path.join(root, "project");
 fs.mkdirSync(dir);

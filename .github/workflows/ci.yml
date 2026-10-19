@@ -47,7 +47,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os != 'macos-latest' }}
+    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
       run:
         shell: bash

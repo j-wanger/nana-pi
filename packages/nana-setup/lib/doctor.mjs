@@ -31,6 +31,7 @@ import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { linkOk } from "./stale-copies.mjs";
 
 const OK = "ok";
 const FAIL = "fail";
@@ -63,24 +64,6 @@ export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite"
 	} catch (error) {
 		return { ok: false, detail: `cannot open/query expected docs schema (${error.message})` };
 	} finally { try { db?.close(); } catch { /* already closed */ } }
-}
-
-/**
- * ✓ means "this file is the repo's file". On posix that is a symlink and nothing else — a
- * byte-identical copy would silently stop tracking the repo at the next `git pull`, so it reads
- * as ✗ and `install` relinks it (backing the copy up first). Windows has no usable symlink, so
- * there a matching copy is the installed state.
- */
-function linkOk(target, source) {
-	try {
-		const st = fs.lstatSync(target);
-		if (st.isSymbolicLink()) {
-			return fs.realpathSync(target) === fs.realpathSync(source);
-		}
-		return platform() === "win32" && st.isFile() && fs.readFileSync(target).equals(fs.readFileSync(source));
-	} catch {
-		return false;
-	}
 }
 
 /**

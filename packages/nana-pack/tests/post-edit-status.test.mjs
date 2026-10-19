@@ -36,6 +36,14 @@ const ext = postEditModule.default;
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+const REAL_SET_TIMEOUT = globalThis.setTimeout;
+async function settle(promise, limitMs = 5000) {
+	const stuck = Symbol("stuck");
+	let timer;
+	const ret = await Promise.race([promise, new Promise((resolve) => { timer = REAL_SET_TIMEOUT(() => resolve(stuck), limitMs); })]);
+	clearTimeout(timer);
+	return { hung: ret === stuck, ret };
+}
 const postEditSource = fs.readFileSync(new URL("../extensions/nana-post-edit.ts", import.meta.url), "utf8");
 const statusUnion = postEditSource.match(/type CheckStatus = ([^;]+);/)?.[1] ?? "";
 // req: R-868
@@ -133,6 +141,39 @@ for (const [command, expected] of [["missing-tool x", "error"], ["ruff check", "
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
+// Record only timers armed by the extension: settle's per-case watchdog uses the
+// saved real timer. The control proves the recorder sees an ordinary deadline.
+{
+	const recorded = [];
+	const realSetTimeout = globalThis.setTimeout;
+	let controlOk = false;
+	let zeroOk = false;
+	try {
+		globalThis.setTimeout = (callback, delay, ...args) => {
+			recorded.push(delay);
+			return realSetTimeout(callback, delay, ...args);
+		};
+		const control = setup([{ match: "\\.txt$", run: PASS_CMD, timeoutMs: 300 }]);
+		const controlFile = path.join(control.td, "deadline-control.txt");
+		fs.writeFileSync(controlFile, "x\n");
+		const controlRun = await settle(control.fire(controlFile));
+		controlOk = !controlRun.hung && recorded.length === 1 && recorded[0] === 300;
+		fs.rmSync(control.td, { recursive: true, force: true });
+
+		recorded.length = 0;
+		const zero = setup([{ match: "\\.txt$", run: SLOW_PASS_CMD, timeoutMs: 0 }]);
+		const zeroFile = path.join(zero.td, "no-deadline.txt");
+		fs.writeFileSync(zeroFile, "x\n");
+		const zeroRun = await settle(zero.fire(zeroFile));
+		zeroOk = !zeroRun.hung && recorded.length === 0 && zero.statuses.at(-1)?.text.includes("✓ 1 check");
+		fs.rmSync(zero.td, { recursive: true, force: true });
+	} finally {
+		globalThis.setTimeout = realSetTimeout;
+	}
+	// req: R-1702
+	check("timeoutMs 0 arms no deadline and a slow check passes", controlOk && zeroOk);
+}
+
 // A shell's missing-command result is an execution error, not a successful checker verdict.
 {
 	const { td, statuses, fire } = setup([{ match: "\\.txt$", run: "nana-post-edit-executable-that-does-not-exist" }]);
@@ -176,6 +217,20 @@ if (process.platform === "win32") {
 	// req: R-086
 	check("a: a passing run raises no check-failure toast",
 		!notifies.some((n) => n.message.includes("checks failed")));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+{
+	const { td, fire } = setup([
+		{ match: "\\.txt$", run: PASS_CMD },
+		{ match: "\\.txt$", run: 'node -e "console.log(\'stdout\');console.error(\'stderr\')"' },
+	]);
+	const file = path.join(td, "printed-pass.txt");
+	fs.writeFileSync(file, "one\n");
+	const { hung, ret } = await settle(fire(file));
+	const originalContent = [{ type: "text", text: "edited" }];
+	// req: R-1703
+	check("an all-pass run whose checks print output appends nothing to the tool result", !hung && (ret === undefined || JSON.stringify(ret?.content) === JSON.stringify(originalContent)));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

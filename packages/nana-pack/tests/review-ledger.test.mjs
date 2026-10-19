@@ -17,7 +17,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { VERDICT_LOOKALIKE_FOLD } from "../lib/verdict-config.mjs";
+import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD } from "../lib/verdict-config.mjs";
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const PI_REVIEW = path.join(bin, "pi-review.mjs");
@@ -223,7 +223,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	}
 	const text = "VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n";
 	const final = ledgerRun(["--item", "corpus-final"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-	const finalPassed = final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === null;
+	const finalPassed = final.status === 1 && jsonl(tallyFile).at(-1)?.item === "corpus-final" && jsonl(tallyFile).at(-1)?.verdict === null;
 	const quoted = "Example from the review:\n    VERDICT: LAND\n    Correction: VERDICT: SEND-BACK\nMore findings.\nVERDICT: SEND-BACK\n";
 	const quotedResult = ledgerRun(["--item", "corpus-quoted"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(quoted)})`] });
 	const quotedPassed = quotedResult.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
@@ -238,7 +238,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const problems = [];
 	for (const [i, text] of malformed.entries()) {
 		const result = ledgerRun(["--item", `malformed-${i}`], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-		const passed = result.status === 0 && jsonl(tallyFile).at(-1)?.verdict === null;
+		const passed = result.status === 1 && jsonl(tallyFile).at(-1)?.item === `malformed-${i}` && jsonl(tallyFile).at(-1)?.verdict === null;
 		if (!passed) problems.push(`${JSON.stringify(text)}: ${result.status} ${result.stderr} ${JSON.stringify(jsonl(tallyFile).at(-1))}`);
 		empty &&= passed;
 	}
@@ -250,7 +250,8 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	freshHome("verdict-position"); A.at(0);
 	const run = (item, text) => {
 		const result = ledgerRun(["--item", item], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-		return result.status === 0 ? jsonl(tallyFile).at(-1)?.verdict : `exit:${result.status}`;
+		const last = jsonl(tallyFile).at(-1);
+		return (result.status === 0 || result.status === 1) && last?.item === item ? last.verdict : `exit:${result.status}`;
 	};
 	const accepted = [
 		["plain", "VERDICT: LAND\nnotes", "LAND"],
@@ -319,6 +320,84 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	// req: R-969 R-1010
 	check("every configured verdict look-alike canonicalizes to its target", tableInvariant,
 		Object.entries(VERDICT_LOOKALIKE_FOLD).filter(([key, target]) => canon(key) !== target.toLowerCase()).map(([key, target]) => `${key}→${target}: ${canon(key)}`).join(", "));
+}
+
+{
+	freshHome("unread-ledger"); A.at(0);
+	const unreadText = "**VERDICT: LAND**\r\n\r\nbody\r\nVERDICT: LAND\r\n";
+	const unread = ledgerRun(["--item", "unread-ledger"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(unreadText)})`] });
+	const unreadRow = jsonl(tallyFile).at(-1);
+	const readable = ledgerRun(["--item", "readable-ledger"], { cmd: [process.execPath, "-e", "process.stdout.write('notes\\nVERDICT: LAND')"] });
+	// req: R-1620
+	check("review-ledger run exits 1 when the recorded verdict is empty and 0 when it is a word",
+		unread.status === 1 && !/verdict recorded/.test(unread.stderr) && roundsOf("unread-ledger").length === 1 && unreadRow?.item === "unread-ledger" && unreadRow?.verdict === null &&
+		readable.status === 0 && /verdict recorded/.test(readable.stderr) && !/verdict unread/.test(readable.stderr),
+		JSON.stringify({ unread: { status: unread.status, stderr: unread.stderr }, readable: { status: readable.status, stderr: readable.stderr }, tally: jsonl(tallyFile).slice(-2) }));
+}
+
+{
+	freshHome("unread-pi"); A.at(0);
+	const unreadText = "**VERDICT: LAND**\r\n\r\nbody\r\nVERDICT: LAND\r\n";
+	const unread = piReview(["--item", "unread-pi", "--out", out()], { stub: "plain-review", extra: unreadText });
+	const readable = piReview(["--item", "readable-pi", "--out", out()]);
+	// req: R-1621
+	check("pi-review exits 1 without its success line when the recorded verdict is empty",
+		unread.status === 1 && !/SUCCESS/.test(unread.stderr) && roundsOf("unread-pi").length === 1 && roundsOf("unread-pi")[0]?.verdict === null &&
+		readable.status === 0 && /SUCCESS/.test(readable.stderr),
+		JSON.stringify({ unread: { status: unread.status, stderr: unread.stderr }, readable: { status: readable.status, stderr: readable.stderr }, tally: jsonl(tallyFile) }));
+}
+
+{
+	freshHome("unread-detail"); A.at(0);
+	const C = UNREAD_VERDICT_CONDITIONS;
+	const cases = [
+		["conflict", "**VERDICT: LAND**\r\n\r\nbody\r\nVERDICT: LAND\r\n", 4, "VERDICT: LAND", C.FIRST_LINE_CONFLICT, 1, "**VERDICT: LAND**"],
+		["final-grammar", "notes\n\nVERDICT: LAND!\t", 3, "VERDICT: LAND!\t", C.FINAL_LINE_GRAMMAR, null, null],
+		["first-grammar", "`VERDICT: LAND`\nnotes\n", 1, "`VERDICT: LAND`", C.FIRST_LINE_GRAMMAR, null, null],
+		["later-mention", "VERDICT: LAND\n\nThe verdict holds.", 1, "VERDICT: LAND", C.LATER_MENTION, 3, "The verdict holds."],
+	];
+	const failures = [];
+	for (const [name, text, selectedLine, selectedText, condition, triggerLine, triggerText] of cases) {
+		const result = ledgerRun(["--item", `unread-${name}`], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
+		const notes = result.stderr.split(/\r?\n/).filter((line) => line.includes("verdict unread"));
+		const note = notes[0] ?? "";
+		const ok = result.status === 1 && notes.length === 1 && note.includes(`selected line ${selectedLine} ${JSON.stringify(selectedText)} — ${condition}`) &&
+			(triggerLine === null || note.includes(`; line ${triggerLine} ${JSON.stringify(triggerText)}`)) && !result.stdout.includes("verdict unread");
+		if (!ok) failures.push({ name, status: result.status, stderr: result.stderr, stdout: result.stdout });
+	}
+	const pi = piReview(["--item", "unread-detail-pi", "--out", out()], { stub: "plain-review", extra: cases[0][1] });
+	const piNotes = pi.stderr.split(/\r?\n/).filter((line) => line.includes("verdict unread"));
+	if (!(pi.status === 1 && piNotes.length === 1 && piNotes[0].includes(`selected line 4 "VERDICT: LAND" — ${C.FIRST_LINE_CONFLICT}; line 1 "**VERDICT: LAND**"`) && !pi.stdout.includes("verdict unread"))) {
+		failures.push({ name: "pi-review", status: pi.status, stderr: pi.stderr, stdout: pi.stdout });
+	}
+	// req: R-1622
+	check("an empty verdict prints one stderr line naming the selected line, its condition and the conflicting line", failures.length === 0, JSON.stringify(failures));
+}
+
+{
+	freshHome("unread-rounds-left");
+	const CAP = mod.REVIEW_ROUND_CAP;
+	const roundsRepo = repo("unread-rounds-left-repo", CAP + 1);
+	const failures = [];
+	for (let i = 0; i < CAP + 1; i++) {
+		roundsRepo.at(i);
+		const extra = i === CAP ? ["--over-cap", "final confirmation"] : [];
+		const result = ledgerRun(["--item", "unread-rounds-left", ...extra], { cwd: roundsRepo.d, cmd: [process.execPath, "-e", "process.stdout.write('notes\\n\\nVERDICT: LAND!\\t')"] });
+		const expected = `${Math.max(0, CAP - (i + 1))} of ${CAP} rounds remain for the item`;
+		if (!(result.status === 1 && result.stderr.includes("nana-land will refuse this revision for good") &&
+			result.stderr.includes("make a new commit and review it") && result.stderr.includes(expected) && result.stderr.includes("review kept at "))) {
+			failures.push({ i, expected, status: result.status, stderr: result.stderr });
+		}
+	}
+	A.at(0);
+	const pi = piReview(["--item", "unread-rounds-left-pi", "--out", out()], { stub: "plain-review", extra: "notes\n\nVERDICT: LAND!\t" });
+	if (!(pi.status === 1 && pi.stderr.includes("nana-land will refuse this revision for good") &&
+		pi.stderr.includes("make a new commit and review it") && pi.stderr.includes(`${CAP - 1} of ${CAP} rounds remain for the item`) &&
+		pi.stderr.includes("review kept at "))) {
+		failures.push({ i: "pi-review", status: pi.status, stderr: pi.stderr });
+	}
+	// req: R-1623
+	check("the empty-verdict line says nana-land refuses the revision and counts the rounds left", failures.length === 0, JSON.stringify(failures));
 }
 
 {
@@ -393,27 +472,27 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	A.at(0); B.at(5);
 	const viaTreeOut = out();
 	const viaTree = ledgerRun(["--item", "tree-scope", "--tree", A.d], { cwd: B.d,
-		cmd: [process.execPath, "-e", "console.log('VERDICT: '+process.cwd())"], outFile: viaTreeOut });
+		cmd: [process.execPath, "-e", "console.log(process.cwd()); console.log('VERDICT: LAND')"], outFile: viaTreeOut });
 	// req: R-621 R-705
 	check("scratch launcher cwd with --tree uses the reviewed repository scope",
 		viaTree.status === 0 && roundsOf("tree-scope")[0]?.repo === `git:${fs.realpathSync.native(path.join(A.d, ".git"))}` &&
 		roundsOf("tree-scope")[0]?.revision === A.shas[0] && A.shas[0] !== B.shas[5] &&
-		fs.realpathSync.native(fs.readFileSync(viaTreeOut, "utf8").trim().slice("VERDICT: ".length)) === fs.realpathSync.native(A.d), viaTree.stderr);
+		fs.realpathSync.native(fs.readFileSync(viaTreeOut, "utf8").split(/\r?\n/)[0]) === fs.realpathSync.native(A.d), viaTree.stderr);
 	const piTree = piReview(["--item", "pi-tree-scope", "--tree", A.d, "--out", out()], { cwd: scratch });
 	// req: R-621
 	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync.native(path.join(A.d, ".git"))}`, `${piTree.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	const nestedLauncher = path.join(A.d, "nested-launcher"), nestedTree = path.join(A.d, "nested-tree");
 	fs.mkdirSync(nestedLauncher); fs.mkdirSync(nestedTree);
 	const marker = path.join(tmp, "child-cwd-marker");
-	const cwdCommand = [process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(marker)}, process.cwd()); console.log('VERDICT: '+process.cwd())`];
+	const cwdCommand = [process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(marker)}, process.cwd()); console.log(process.cwd()); console.log('VERDICT: LAND')`];
 	const nestedOut = out(), selectedOut = out();
 	const fromNestedLauncher = ledgerRun(["--item", "cwd-default"], { cwd: nestedLauncher, cmd: cwdCommand, outFile: nestedOut });
 	const fromSelectedTree = ledgerRun(["--item", "cwd-tree", "--tree", nestedTree], { cwd: nestedLauncher, cmd: cwdCommand, outFile: selectedOut });
 	// req: R-729
 	check("review-ledger child executes from selected directory, not repository root",
 		fromNestedLauncher.status === 0 && fromSelectedTree.status === 0 &&
-		fs.readFileSync(nestedOut, "utf8").trim() === `VERDICT: ${nestedLauncher}` &&
-		fs.readFileSync(selectedOut, "utf8").trim() === `VERDICT: ${nestedTree}` &&
+		fs.readFileSync(nestedOut, "utf8").split(/\r?\n/)[0] === nestedLauncher &&
+		fs.readFileSync(selectedOut, "utf8").split(/\r?\n/)[0] === nestedTree &&
 		fs.readFileSync(marker, "utf8") === nestedTree, `${fromNestedLauncher.stderr}\n${fromSelectedTree.stderr}`);
 	const legacy = { v: 1, kind: "round", repo: "path:/legacy/scratch", item: "legacy", revision: "old-revision" };
 	fs.mkdirSync(agent, { recursive: true }); fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
