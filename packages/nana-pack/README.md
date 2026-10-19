@@ -775,7 +775,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **A checker that ignores SIGTERM no longer hangs the turn** (same commit): its process group
   gets SIGTERM (win32: `taskkill /T /F`), SIGKILL 2 s later, and the run **settles either way**
   with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
-  handler pending forever. `timeoutMs: 0` still means no deadline. CI's Windows leg runs the win32 branch: a timed-out check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
+  handler pending forever. `timeoutMs: 0` still means no deadline. CI's Windows leg runs the win32 branch: a timed-out or aborted check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
 - **Journal** is best-effort JSONL at `<agent dir>/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
 - **Notify** writes OSC 777 only in TUI mode, so RPC stdout stays clean even when it has a UI.

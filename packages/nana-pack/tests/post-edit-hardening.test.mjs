@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/post-edit-hardening.test.mjs
- * @purpose Pins that the post-edit checker is bounded and ends a timed-out command's process tree on every platform, including the Windows taskkill fallback
+ * @purpose Pins that the post-edit checker ends a timed-out or aborted command's process tree on every platform
  * @inputs extensions/nana-post-edit.ts and stub checkers that ignore signals, leak descendants or record a two-level process tree, under a temp HOME
  * @outputs PASS/FAIL/SKIP lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, stub checker scripts), process (sets HOME and Windows PATH, spawns and kills the stub checkers and their descendants)
@@ -21,14 +21,13 @@ const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Liveness + fidelity properties of the post-edit checker, driving the REAL
 // registered handler:
-//  (a) a checker that IGNORES SIGTERM is still bounded — Node's exec sends one
-//      signal and never escalates, so the pre-fix handler stayed pending forever
-//      and hung the turn (pi awaits tool_result).
+//  (a) a timed-out checker that IGNORES SIGTERM is bounded and its recorded pid
+//      is gone on every platform after the run settles.
 //  (b) the checker's DESCENDANTS are killed too. Pre-fix the run still resolved
 //      here (exec destroys the stdio pipes when its own timeout fires) but the
 //      grandchild was left running: the deadline killed one pid, not the tree.
-//  (c) an aborted turn terminates the checker for real. Pre-fix the handler
-//      resolved but a SIGTERM-ignoring checker survived the abort as an orphan.
+//  (c) an aborted turn ends a SIGTERM-ignoring checker and its still-running
+//      child, found by their recorded pids on every platform.
 //  (f) the run SETTLES within timeout + grace even when the kill cannot reach
 //      what is holding it open — pinned with a descendant that re-parents into
 //      its own process group, the platform-native equivalent of win32 `taskkill`
@@ -87,18 +86,17 @@ async function settle(promise) {
 	return { hung: ret === stuck, ret, ms: Date.now() - started };
 }
 
-// A checker that installs a no-op SIGTERM handler and never exits. The unique
-// marker rides in argv so `pgrep -f` can prove nothing was left running.
+// The pgrep marker probes are POSIX-only and support only (b) and (f); the
+// cross-platform timeout and abort probes use pid files instead.
 const POSIX = process.platform !== "win32";
 const FIXTURE_EXIT_MS = 30_000; // chosen: self-reap well after WATCHDOG_MS so broken kill paths stay observable.
 const TREE_DEADLINE_MS = 2500; // chosen: about 6x the observed Windows checker-run time, leaving ample process-tree startup margin.
 const POST_KILL_POLL_MS = 2000; // chosen: gives platform process tables time to observe taskkill or signal completion without hiding a survivor.
 const mark = (tag) => `nana-${tag}-${process.pid}-${Math.random().toString(36).slice(2)}`;
-const ignoresSigterm = (marker) => `node -e "process.on('SIGTERM',()=>{});setInterval(()=>{},1000);setTimeout(()=>process.exit(0),${FIXTURE_EXIT_MS})" ${marker}`;
 // checks that the tool argument names an existing file — proves the substituted path
 const EXISTS_CHECK = `node -e "process.exit(require('fs').existsSync(process.argv[1])?0:1)" {file}`;
 function survivors(marker) {
-	if (!POSIX) return "";
+	if (!POSIX) throw new Error("survivors() uses pgrep and is POSIX-only");
 	try {
 		return execFileSync("pgrep", ["-f", marker], { encoding: "utf-8" }).trim();
 	} catch {
@@ -123,19 +121,20 @@ async function waitUntil(predicate, timeoutMs) {
 function readPid(file) {
 	try { return Number(fs.readFileSync(file, "utf8").trim()); } catch { return undefined; }
 }
-function writeTreeFixture(td) {
+function writeTreeFixture(td, { ignoreSigterm = false, child = true } = {}) {
 	const script = path.join(td, "tree.cjs");
 	fs.writeFileSync(script, [
 		'const { spawn } = require("node:child_process");',
 		'const fs = require("node:fs");',
 		'const path = require("node:path");',
+		...(ignoreSigterm ? ['process.on("SIGTERM", () => {});'] : []),
 		'const dir = process.argv[2];',
 		'if (process.argv[3] === "level-b") {',
 		'  fs.writeFileSync(path.join(dir, "level-b.pid"), String(process.pid));',
 		'} else {',
 		'  fs.writeFileSync(path.join(dir, "level-a.pid"), String(process.pid));',
 		'  fs.writeFileSync(path.join(dir, "level-a.ppid"), String(process.ppid));',
-		'  spawn(process.execPath, [__filename, dir, "level-b"], { stdio: "inherit" });',
+		...(child ? ['  spawn(process.execPath, [__filename, dir, "level-b"], { stdio: "inherit" });'] : []),
 		'}',
 		'setInterval(() => {}, 1000);',
 		`setTimeout(() => process.exit(0), ${FIXTURE_EXIT_MS});`,
@@ -156,27 +155,44 @@ function removeTreeFixture(td) {
 	}
 }
 
-// (a) timeout + SIGTERM-ignoring checker: bounded by deadline + kill grace,
-// recorded `timeout`, and actually dead. Pre-fix: run() never resolves.
+// (a) timeout + one-level SIGTERM-ignoring checker: bounded by deadline +
+// kill grace, recorded `timeout`, and found gone by pid on every platform.
 {
-	const marker = mark("hang");
-	const cmd = ignoresSigterm(marker);
-	const { td, cfg, fire } = setup([{ match: "\\.txt$", run: cmd, timeoutMs: 300 }]);
+	const { td, cfg, fire } = setup([]);
+	const script = writeTreeFixture(td, { ignoreSigterm: true, child: false });
+	const levelAFile = path.join(td, "level-a.pid");
+	const command = `"${process.execPath}" "${script}" "${td}"`;
+	fs.writeFileSync(USER_CFG, JSON.stringify({
+		journal: { enabled: true, path: JOURNAL },
+		receipts: { enabled: true, dir: path.join(td, "receipts") },
+		postEdit: { commands: [{ match: "\\.txt$", run: command, timeoutMs: 300 }] },
+	}));
 	const file = path.join(td, "hang.txt");
 	fs.writeFileSync(file, "one\n");
-	const { hung, ret, ms } = await settle(fire(file));
+	let hung = true;
+	let ret;
+	let ms = WATCHDOG_MS;
+	let levelA;
+	let ended = false;
+	let aliveBeforeReap = [];
+	try {
+		({ hung, ret, ms } = await settle(fire(file)));
+		levelA = readPid(levelAFile);
+		ended = await waitUntil(() => !pidAlive(levelA), POST_KILL_POLL_MS);
+	} finally {
+		aliveBeforeReap = [levelA].filter((pid) => Number.isInteger(pid) && pidAlive(pid));
+		const cleanupEnded = await reapTree([levelA]);
+		if (cleanupEnded) removeTreeFixture(td);
+	}
 // req: R-787
 	check("a: SIGTERM-ignoring checker does not hang the handler", !hung);
 // req: R-787
 	check(`a: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
 	check("a: timeout fed back to the model",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
-	await sleep(200);
-	const left = survivors(marker);
-	// req: R-093
-	check("a: the checker is gone, not just abandoned", left === "");
-	reap(left);
-	fs.rmSync(td, { recursive: true, force: true });
+	// req: R-787
+	check("a: the checker is gone, not just abandoned", ended);
+	if (!ended) console.log(`a: pids alive before reap: ${aliveBeforeReap.join(", ") || "none"}`);
 }
 
 // (b) posix tree kill: the checker exits immediately but leaves a SIGTERM-ignoring
@@ -316,27 +332,51 @@ if (process.platform === "win32") {
 	console.log("SKIP win32: with taskkill off PATH the timed-out check's shell is killed and the run settles — taskkill is Windows-only");
 }
 
-// (c) an aborted turn with NO deadline (timeoutMs 0) terminates the checker for
-// real: the same terminate-then-escalate path runs on abort. Pre-fix the handler
-// returned promptly but the SIGTERM-ignoring checker kept running as an orphan.
+// (c) an aborted turn with NO deadline (timeoutMs 0) ends a two-level,
+// SIGTERM-ignoring checker tree whose pids were alive before the abort.
 {
-	const marker = mark("abort");
-	const cmd = ignoresSigterm(marker);
 	const ac = new AbortController();
-	const { td, cfg, fire } = setup([{ match: "\\.txt$", run: cmd, timeoutMs: 0 }], { ctx: { signal: ac.signal } });
+	const { td, cfg, fire } = setup([], { ctx: { signal: ac.signal } });
+	const script = writeTreeFixture(td, { ignoreSigterm: true });
+	const levelAFile = path.join(td, "level-a.pid");
+	const levelBFile = path.join(td, "level-b.pid");
+	const command = `"${process.execPath}" "${script}" "${td}"`;
+	fs.writeFileSync(USER_CFG, JSON.stringify({
+		journal: { enabled: true, path: JOURNAL },
+		receipts: { enabled: true, dir: path.join(td, "receipts") },
+		postEdit: { commands: [{ match: "\\.txt$", run: command, timeoutMs: 0 }] },
+	}));
 	const file = path.join(td, "abort.txt");
 	fs.writeFileSync(file, "one\n");
-	const p = fire(file);
-	setTimeout(() => ac.abort(), 200);
-	const { hung, ms } = await settle(p);
+	let levelA;
+	let levelB;
+	let builtAlive = false;
+	let hung = true;
+	let ms = WATCHDOG_MS;
+	let ended = false;
+	let aliveBeforeReap = [];
+	try {
+		const started = Date.now();
+		const pending = fire(file);
+		builtAlive = await waitUntil(() => {
+			levelA = readPid(levelAFile);
+			levelB = readPid(levelBFile);
+			return Date.now() - started < TREE_DEADLINE_MS && pidAlive(levelA) && pidAlive(levelB);
+		}, TREE_DEADLINE_MS);
+		ac.abort();
+		({ hung, ms } = await settle(pending));
+		ended = !hung && await waitUntil(() => !pidAlive(levelA) && !pidAlive(levelB), POST_KILL_POLL_MS);
+	} finally {
+		ac.abort();
+		aliveBeforeReap = [levelA, levelB].filter((pid) => Number.isInteger(pid) && pidAlive(pid));
+		const cleanupEnded = await reapTree([levelA, levelB]);
+		if (cleanupEnded) removeTreeFixture(td);
+	}
 	check("c: abort does not hang a SIGTERM-ignoring checker", !hung);
 	check(`c: aborted run resolved within the kill grace (${ms}ms)`, !hung && ms < 6000);
-	await sleep(300);
-	const left = survivors(marker);
-	// req: R-096
-	check("c: the aborted checker is killed, not orphaned", left === "");
-	reap(left);
-	fs.rmSync(td, { recursive: true, force: true });
+	// req: R-1820
+	check("c: an aborted turn ends the check's process and that process's still-running child", builtAlive && ended);
+	if (!(builtAlive && ended)) console.log(`c: pids alive before reap: ${aliveBeforeReap.join(", ") || "none"}`);
 }
 
 // (f) FORCED SETTLEMENT. The grandchild is spawned DETACHED, so it leaves our

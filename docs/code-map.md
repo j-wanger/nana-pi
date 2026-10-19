@@ -2046,7 +2046,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/post-edit-hardening.test.mjs`
 
-- **purpose** — Pins that the post-edit checker is bounded and ends a timed-out command's process tree on every platform, including the Windows taskkill fallback
+- **purpose** — Pins that the post-edit checker ends a timed-out or aborted command's process tree on every platform
 - **inputs** — extensions/nana-post-edit.ts and stub checkers that ignore signals, leak descendants or record a two-level process tree, under a temp HOME
 - **outputs** — PASS/FAIL/SKIP lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOME, stub checker scripts), process (sets HOME and Windows PATH, spawns and kills the stub checkers and their descendants)
