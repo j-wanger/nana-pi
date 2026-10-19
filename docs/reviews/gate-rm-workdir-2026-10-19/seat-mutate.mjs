@@ -129,4 +129,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R1492, R1495] },
 ];
 
-process.exitCode = await runMutations({ lane: "gate-rm-workdir", self: import.meta.url, tip: "d6f0613", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "gate-rm-workdir", self: import.meta.url, tip: "0862220", declared: DECLARED, pairs: PAIRS });
