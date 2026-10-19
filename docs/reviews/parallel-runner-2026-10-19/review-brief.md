@@ -2,8 +2,9 @@
 
 Feature: FEAT-031 · Run checks reliably and without contaminating work
 
-Review `git diff b8616fb..HEAD` on `feat/parallel-runner` (the lane branched from main at `4be0b79` and last merged main
-at `b8616fb`, in `1932efe`; `git merge-base HEAD main` is `b8616fb`, and main has since moved to `6b3e432`). The plan of
+Review `git diff 713d6aa..HEAD` on `feat/parallel-runner` (the lane branched from main at `4be0b79`, built through
+`1932efe`, and merged main `713d6aa` in `23c95f2`; `git merge-base HEAD main` is `713d6aa`, today's main; `d482325` adds
+the seat's evidence on the merged tip to `seat-verify-1932efe.md` and HANDOFF). The plan of
 record is `docs/reviews/parallel-runner-2026-10-19/must-meet.md`: R-1470 to R-1477, with the adversary's amendments
 inside; `plan-attack.md` holds its reasons, and `build-brief-1.md` and `build-brief-2.md` the two builds. The seat's
 record is `seat-verify-1932efe.md`: CI on all three legs (the Windows log `ci-windows-run-1.log` beside it), the seat's
@@ -15,7 +16,7 @@ and one seat probe (a parent holding an IPC channel now waits for the runner).
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
 
 ```
-tree movement b8616fb..1932efe: 8 rows in 1 features
+tree movement 713d6aa..d482325: 8 rows in 1 features
 FEAT-031 · Run checks reliably and without contaminating work
   R-1470 new (implemented)
   R-1471 new (implemented)
@@ -27,7 +28,7 @@ FEAT-031 · Run checks reliably and without contaminating work
   R-1477 new (implemented)
 ```
 
-FEAT-031 59 to 67 rows; CAP-07 235 to 243; leaf total 1,273 to 1,281. No existing row changed.
+Eight new rows in FEAT-031; leaf total 1,298 to 1,306. No existing row changed.
 
 The code under review: `scripts/test.mjs` (the `--jobs=N` parse and refusal, the pool, one write per file block,
 collection-order WARN and `failed:` lines, the sets behind cleanup, the pipe-holder reap after the one fixture that holds

@@ -2,8 +2,9 @@
 
 Feature: FEAT-031 · Run checks reliably and without contaminating work
 
-Review `git diff b8616fb..HEAD` on `feat/parallel-runner` (the lane branched from main at `4be0b79` and last merged main
-at `b8616fb`, in `1932efe`; `git merge-base HEAD main` is `b8616fb`, and main has since moved to `6b3e432`). The plan of
+Review `git diff 713d6aa..HEAD` on `feat/parallel-runner` (the lane branched from main at `4be0b79`, built through
+`1932efe`, and merged main `713d6aa` in `23c95f2`; `git merge-base HEAD main` is `713d6aa`, today's main; `d482325` adds
+the seat's evidence on the merged tip to `seat-verify-1932efe.md` and HANDOFF). The plan of
 record is `docs/reviews/parallel-runner-2026-10-19/must-meet.md`: R-1470 to R-1477, with the adversary's amendments
 inside; `plan-attack.md` holds its reasons, and `build-brief-1.md` and `build-brief-2.md` the two builds. The seat's
 record is `seat-verify-1932efe.md`: CI on all three legs (`ci-windows-run-1.log` beside it), the seat's parallel full
