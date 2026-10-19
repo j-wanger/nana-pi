@@ -562,7 +562,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
   outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
   Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,
-  `r''m`) or `--force`, `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
+  `r''m`) or `--force` (except the plain in-directory form below), `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
   `git reset --hard`, `git clean -f`/`--force`, `git checkout -- .`, `git restore .`,
   `git branch -D`, `git stash drop|clear`, `find -delete`/`-exec rm`, `rsync --delete`,
   `truncate`, `shred`, `python -c`/`node -e` deleting files, `chmod 777`, `dd of=/dev/`,
@@ -573,6 +573,25 @@ is user-scope only** — project config never contributes to it, trusted or not.
   checked in commands AND edit/write targets. rm-text checks scan every command segment,
   including quoted arguments and text-only mentions. Interpreter deletion scans inspect the
   complete interpreter command string.
+- **The plain in-directory `rm` exemption** (L2, 2026-10-19, Jake's ruling): a bash-tool command
+  that is EXACTLY `rm`, flags drawn only from `-r`/`-R`/`-f`/`-v` (alone or combined) or
+  `--recursive`/`--force`/`--verbose`, and one or more literal relative targets made of ASCII
+  letters, digits, `.`, `_`, `@`, `-` and `/` that each lie strictly inside the session working
+  directory, runs with no prompt and no headless block. Every other form still asks: an absolute
+  target, the working directory itself, or a path outside it; a target with a dot-named part
+  (`..`, `.git`, `.pi`), one that directly holds a `.git` entry, or one overlapping the active pi
+  agent folder in either direction; a symbolic link or junction anywhere on the way; a glob,
+  variable, substitution, quote, backslash, `~`, `--`, another flag, a prefix (`sudo`, `command`,
+  `/bin/rm`, `VAR=value`), a second command, leading/trailing whitespace, or the powershell tool;
+  and a home, home-ancestor, root or dot-named working directory. A configured `extraPatterns` or
+  `protectedPaths` match and a named policy file still stop it — this exemption clears only the
+  non-floor "rm recursive/forced" danger, never the floor or those later checks. Known limits:
+  plain `rm` and `rm -f` still pass anywhere outside the working directory, as before — making
+  those ask too is a separate lane; absolute and dot-named targets and compounds (`rm -rf build
+  && npm test`) still ask; the exemption assumes the command runs as typed in the session cwd, so
+  a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids it; a bare
+  repository as the cwd (`repo.git`, no dot-named part) is not recognised, so `rm -rf objects
+  refs` runs unasked there; PowerShell keeps asking for every form.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,

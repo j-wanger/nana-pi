@@ -51,6 +51,7 @@ import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPack
 import { displayPath, displayText } from "../lib/objective.ts";
 import { verifierPipeReason } from "../lib/pipe-guard.mjs";
 import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
+import { rmInsideCwd } from "../lib/gate-rm-inside.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
@@ -119,7 +120,7 @@ function journal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 	}
 }
 
-function commandHit(command: string, gate: Policy, cwd: string): Hit {
+function commandHit(command: string, gate: Policy, cwd: string, tool: string): Hit {
 	const policy = commandPolicyHit(command, cwd);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
 	const split = splitCommand(command);
@@ -128,6 +129,7 @@ function commandHit(command: string, gate: Policy, cwd: string): Hit {
 	const det = segmentable ? segments : [...segments, ...detectionSegments(command)];
 	const dangers = new Map(det.map((s) => [s, segmentDanger(s)] as [typeof s, Danger | null]));
 	for (const d of dangers.values()) if (d?.floor) return { label: "dangerous command", reason: d.reason };
+	if (tool === "bash" && segmentable && det.length === 1 && rmInsideCwd(command, cwd)) dangers.set(det[0], null);
 	const allow = compileRegexes(gate.allowPatterns);
 	const extra = compileRegexes(gate.extraPatterns);
 	const prot = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)];
@@ -320,7 +322,7 @@ export default function (pi: ExtensionAPI) {
 		const cwd = String((ctx as any).cwd ?? "");
 		let hit: Hit;
 		try {
-			hit = isCommand ? commandHit(subject, gate, cwd) : pathHit(subject, gate, cwd);
+			hit = isCommand ? commandHit(subject, gate, cwd, event.toolName) : pathHit(subject, gate, cwd);
 			if (!isCommand && !hit) hit = laneWriteHit(subject, cwd);
 		} catch {
 			hit = { label: "unanalysable call", reason: "gate analysis failed" };
