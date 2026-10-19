@@ -23,7 +23,9 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { HOOKS } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { HOOKS, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { renderWinShims } = await import(new URL("../lib/win-shims.mjs", import.meta.url).href);
+const { findGitBash } = await import(new URL("../lib/install-check.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -49,10 +51,11 @@ const run = (args, env = {}, cwd = process.cwd()) => {
 	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
 };
 
-const posixHome = freshHome();
-const posix = run(["install", "--dry-run", "--home", posixHome], { NANA_SETUP_PLATFORM: "darwin" });
-const pathLabels = [...new Set(posix.stdout.split("\n").map((entry) => entry.match(/\b(PATH [^\s]+)/)?.[1]).filter((label) => label && label !== "PATH check"))];
 const home = freshHome();
+const binDir = path.join(home, ".local", "bin");
+fs.mkdirSync(binDir, { recursive: true });
+const handWritten = path.join(binDir, "pi-worker.cmd");
+fs.writeFileSync(handWritten, "@echo hand-written\r\n");
 const r = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 check("win32 install exits 0", r.status === 0, r.stderr);
 
@@ -61,16 +64,47 @@ const line = (label) => lines.find((l) => l.includes(label)) ?? "";
 for (const label of ["hook nana-objective.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs"]) {
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
-// req: R-995
-check("win32 install skips every POSIX PATH command and leaves bin absent or empty", posix.status === 0 && pathLabels.length > 0 && pathLabels.every((label) => /skipped\s+skipped \(win32\)/.test(line(label))) && (!fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0), pathLabels.find((label) => !/skipped\s+skipped \(win32\)/.test(line(label))) ?? "bin directory is not empty");
-// req: R-589
-check("win32: PATH nana-setup reports skipped (win32)", /skipped\s+skipped \(win32\)/.test(line("PATH nana-setup")), line("PATH nana-setup"));
+const pathBins = new Map([
+	["pi-review", PI_REVIEW_BIN],
+	["pi-worker", PI_WORKER_BIN],
+	["nana-land", NANA_LAND_BIN],
+	["nana-setup", NANA_SETUP_BIN],
+]);
+const expectedShimFiles = [...pathBins].flatMap(([name, source]) => {
+	const rendered = renderWinShims(source, binDir);
+	return [[path.join(binDir, name), rendered.sh], [path.join(binDir, `${name}.cmd`), rendered.cmd]];
+});
+const shimFileState = (file) => {
+	try { return { file, bytes: fs.readFileSync(file), mtimeMs: fs.statSync(file).mtimeMs }; }
+	catch { return null; }
+};
+const firstShimState = expectedShimFiles.map(([file]) => shimFileState(file));
+const secondPathInstall = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
+const allHelp = [...pathBins.keys()].every((name) => {
+	const shim = path.join(binDir, name);
+	const shExecutable = process.platform === "win32"
+		? findGitBash(String(process.env.Path ?? process.env.PATH ?? "").split(";"))
+		: "/bin/sh";
+	if (!shExecutable) return false;
+	const shRun = spawnSync(shExecutable, [shim, "--help"], { encoding: "utf8", timeout: 30_000 });
+	if (!/(?:usage|nana-setup —)/i.test(`${shRun.stdout}${shRun.stderr}`)) return false;
+	if (process.platform !== "win32") return true;
+	const cmdRun = spawnSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", `""${shim}.cmd" "--help""`], { encoding: "utf8", windowsVerbatimArguments: true, timeout: 30_000 });
+	return /(?:usage|nana-setup —)/i.test(`${cmdRun.stdout}${cmdRun.stderr}`);
+});
+const backup = fs.readdirSync(binDir).find((name) => /^pi-worker\.cmd\.bak-\d{8}(?:-\d+)?$/.test(name));
+const exactAndUnchanged = expectedShimFiles.every(([file, bytes]) => shimFileState(file)?.bytes.equals(Buffer.from(bytes))) && firstShimState.every((before) => {
+	if (!before) return false;
+	const after = shimFileState(before.file);
+	return after?.bytes.equals(before.bytes) && after.mtimeMs === before.mtimeMs;
+});
+// req: R-1610
+check("win32 install leaves an sh and a .cmd shim for each PATH command, rewriting only what differs and backing up a hand-written file", expectedShimFiles.length === 8 && exactAndUnchanged && allHelp && secondPathInstall.status === 0 && [...pathBins.keys()].every((name) => /unchanged/.test(secondPathInstall.stdout.split("\n").find((row) => row.includes(`PATH ${name}`)) ?? "")) && backup && fs.readFileSync(path.join(binDir, backup), "utf8") === "@echo hand-written\r\n", secondPathInstall.stdout);
 // R-1051: the five Node hook settings entries are wired on win32 now, in exec form — not skipped.
 for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice"]) {
 	check(`win32: ${label} is created, not skipped`, line(label).includes("created"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
-check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0);
 check("win32: no launchd plist", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
 /* the pieces that DO work on Windows still run */
@@ -119,16 +153,24 @@ const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, do
 check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 // req: R-937
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
-// final review r2 (sol MUST 2, astra MUST 1): pin every expected win32-skipped doctor row BY
-// LABEL, individually — the five hook-file rows and the four PATH rows — not "at least four",
-// which a changed OTHER row's detail (still counting toward 4) would satisfy without proving any
-// particular row is marked.
-for (const label of [...HOOKS.map((h) => `hook ${h}`), "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup"]) {
+// The hook-file rows remain platform skips. PATH rows are real shim checks now.
+for (const label of HOOKS.map((h) => `hook ${h}`)) {
 	// req: R-937
 	check(`win32 doctor: ${label} reads skipped (win32)`, new RegExp(`${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+skipped \\(win32\\)`).test(doc.stdout), doc.stdout);
 }
 // req: R-937
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
+const healthyPathRows = [...pathBins.keys()].every((name) => new RegExp(`✓ PATH ${name}\\b`).test(doc.stdout));
+const nanaLandCmd = path.join(binDir, "nana-land.cmd");
+const nanaLandCmdPresent = fs.existsSync(nanaLandCmd);
+if (nanaLandCmdPresent) fs.unlinkSync(nanaLandCmd);
+const missingLand = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
+run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
+fs.writeFileSync(path.join(binDir, "pi-worker"), renderWinShims(PI_REVIEW_BIN, binDir).sh);
+const wrongWorker = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
+// req: R-1615
+check("win32 doctor reads each PATH command ✓ only when both its shims are this checkout's", nanaLandCmdPresent && healthyPathRows && missingLand.status === 1 && /✗ PATH nana-land/.test(missingLand.stdout) && wrongWorker.status === 1 && /✗ PATH pi-worker/.test(wrongWorker.stdout), `${doc.stdout}\n${missingLand.stdout}\n${wrongWorker.stdout}`);
+run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 for (const w of win32Wanted) {
 	// req: R-1055
 	check(`win32 doctor: settings ${w.label} is ✓`, new RegExp(`✓ settings ${w.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);

@@ -527,7 +527,7 @@ function checkInstructionContracts() {
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
-	const canonicalSupport = `Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
+	const canonicalSupport = `Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	// req: R-1126

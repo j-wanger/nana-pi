@@ -237,7 +237,8 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
-  const run = runInstallCheck({ root, home, platformName, env: { PATH: platformName === "win32" ? "C:\\tools" : "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => piShim ? candidate.toLowerCase().endsWith("\\pi.cmd") : candidate.toLowerCase().endsWith("\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
+  const pathEnv = platformName === "win32" ? { Path: "C:\\tools" } : { PATH: "/bin" };
+  const run = runInstallCheck({ root, home, platformName, env: { ...pathEnv, ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => candidate.toLowerCase() === (piShim ? "c:\\tools\\pi.cmd" : "c:\\tools\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
   return { home, calls, run };
 }
 
@@ -691,7 +692,7 @@ check("roster notice: a wrong prefix fails the run's roster row", async () => aw
   return { stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
 }), "hook roster notice"));
 // req: R-1072
-check("checklist: the check writes only the objective lines and one MEMORY.md line, and puts the bin folder first on PATH except on win32", async () => {
+check("checklist: the check writes only the objective lines and one MEMORY.md line, and puts the bin folder first on PATH", async () => {
   for (const platformName of ["linux", "win32"]) {
     const fixture = recordingRun({ platformName });
     try {
@@ -714,9 +715,11 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       };
       visit(fixture.home);
       assert.deepEqual(written.sort(), [".claude/nana-memory/shared/MEMORY.md", ".pi/agent/nana-objective.md"]);
-      const pathValue = fixture.calls.find(call => call.args[0] === "init").options.env.PATH;
-      if (platformName === "win32") assert.equal(pathValue, "C:\\tools");
-      else assert.equal(pathValue.split(path.delimiter)[0], path.join(fixture.home, ".local/bin"));
+      const child = fixture.calls.find(call => call.args[0] === "init").options.env;
+      const pathKey = Object.keys(child).find((key) => key.toLowerCase() === "path");
+      const pathValue = child[pathKey];
+      assert.equal(pathValue.split(platformName === "win32" ? ";" : path.delimiter)[0], path.join(fixture.home, ".local/bin"));
+      if (platformName === "win32") assert.equal(pathKey, "Path");
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
 });
@@ -819,7 +822,7 @@ check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
   });
 });
 // req: R-1073

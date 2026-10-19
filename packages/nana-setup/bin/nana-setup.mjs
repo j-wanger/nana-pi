@@ -13,7 +13,8 @@
  * @effects disk (through install / setupProject / dismissProject), process (the child processes
  *  those steps spawn; replaces the warning listeners for doctor; sets process.exitCode)
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
- *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); uninstall operational failures print ✗ and exit 1; exit 1
+ *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
+ *  store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1
  *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr);
  *  exit 0 otherwise
  */
@@ -36,7 +37,7 @@ import { createInterface } from "node:readline/promises";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify, platform } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
-import { SetupError, install, installExitCode } from "../lib/steps.mjs";
+import { PI_INSTALL_HINT, SetupError, install, installExitCode } from "../lib/steps.mjs";
 import { decideTrust } from "../lib/trust-decision.mjs";
 import { stateRows } from "../lib/state-manifest.mjs";
 import { uninstall } from "../lib/uninstall.mjs";
@@ -442,7 +443,15 @@ async function runTrust(opts) {
 	delete npmEnv.USERPROFILE;
 	const root = spawnNpmRoot({ env: npmEnv });
 	if (root.status !== 0 || !root.stdout.trim()) throw new SetupError("cannot locate the globally installed pi package");
-	const trustModule = await import(pathToFileURL(path.join(root.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
+	const trustModulePath = path.join(root.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js");
+	let trustModule;
+	try {
+		trustModule = await import(pathToFileURL(trustModulePath).href);
+	} catch (err) {
+		throw new SetupError(`cannot load pi's trust store from ${trustModulePath} (${err.code ?? err.name}); install pi with \`${PI_INSTALL_HINT}\``);
+	}
+	if (typeof trustModule.ProjectTrustStore !== "function")
+		throw new SetupError(`pi's trust module at ${trustModulePath} has no ProjectTrustStore; install pi with \`${PI_INSTALL_HINT}\``);
 	const store = new trustModule.ProjectTrustStore(layout.piHome);
 	const result = await decideTrust({
 		yes: opts.yes,

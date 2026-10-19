@@ -192,7 +192,9 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   const lines = [];
   const emitLine = (line) => { lines.push(line); out(line); };
   const childEnv = buildEnvironment(env, home, platformName);
-  if (platformName !== "win32") childEnv.PATH = `${path.join(home, ".local", "bin")}${path.delimiter}${childEnv.PATH ?? ""}`;
+  const pathKey = Object.keys(childEnv).find((key) => key.toLowerCase() === "path") ?? (platformName === "win32" ? "Path" : "PATH");
+  const pathSeparator = platformName === "win32" ? ";" : path.delimiter;
+  childEnv[pathKey] = `${path.join(home, ".local", "bin")}${pathSeparator}${childEnv[pathKey] ?? ""}`;
   const project = path.join(home, "project");
   const notes = path.join(home, "notes");
   fs.mkdirSync(path.join(home, "tmp"), { recursive: true });
@@ -204,7 +206,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     spawn(command, args, { cwd: root, ...options, env: options.env ?? childEnv });
   const git = (folder) => invoke("git", ["init", "--quiet", folder], { cwd: folder, timeout: SPAWN_TIMEOUT_MS.git });
   const resolveOnPath = (name) => {
-    for (const dir of String(childEnv.PATH ?? "").split(path.delimiter)) {
+    for (const dir of String(childEnv[pathKey] ?? "").split(pathSeparator)) {
       const candidate = path.join(dir, name);
       try { if (fs.statSync(candidate).isFile() && fs.accessSync(candidate, fs.constants.X_OK) === undefined) return fs.realpathSync(candidate); } catch {}
     }
@@ -218,8 +220,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   let pi = platformName === "win32" ? (findPi({ env: childEnv, cwd: root, exists }) ?? "pi") : resolveOnPath("pi");
   let bash = null;
   if (platformName === "win32") {
-    const pathKey = Object.keys(childEnv).find((key) => key.toLowerCase() === "path");
-    bash = findGitBash(String(pathKey ? childEnv[pathKey] : "").split(/[;]/), exists);
+    bash = findGitBash(String(childEnv[pathKey] ?? "").split(";"), exists);
     emitLine(`Git Bash: ${bash ?? "not found"}`);
   }
   emitLine(`pi: ${path.resolve(pi)}`);

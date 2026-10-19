@@ -9,7 +9,7 @@
  * @outputs { status, detail } with status one of CREATED | UPDATED | UNCHANGED | SKIPPED | PROBLEM;
  *  on disk: symlinks (linkFile), byte copies on a platform without symlinks, files written only
  *  when absent (seedFile), directories (ensureDir), content-compared writes (writeIfChanged) and
- *  <name>.bak-<YYYYMMDD> backups of anything replaced
+ *  <name>.bak-<YYYYMMDD> backups of anything replaced; writeBytesWithBackup() for byte renderings
  * @effects disk (symlink, unlink, mkdir -p, writeFile, rename-to-backup; nothing under dryRun)
  * @errors none typed — an unreadable source or an undeletable target propagates the raw fs error;
  *  a symlink or directory in the way is returned as SKIPPED and never written through
@@ -58,29 +58,7 @@ function lstat(p) {
 export function linkFile(target, source, { dryRun = false, copyInstead = false } = {}) {
 	const st = lstat(target);
 	const resolved = path.resolve(source);
-	if (copyInstead) {
-		// The copy path owes the same no-destruction guarantee as the symlink path (sol r1):
-		// back up a regular file first, and NEVER write through a symlink — that would silently
-		// overwrite whatever the link points at.
-		const want = fs.readFileSync(source);
-		if (st?.isFile() && !st.isSymbolicLink() && fs.readFileSync(target).equals(want)) return { status: UNCHANGED, detail: "copy" };
-		if (dryRun) {
-			if (!st) return { status: CREATED, detail: "would copy" };
-			return { status: UPDATED, detail: st.isSymbolicLink() ? "would replace a symlink with a copy" : `would back up to ${path.basename(backupPath(target))} and copy` };
-		}
-		fs.mkdirSync(path.dirname(target), { recursive: true });
-		let detail = "copied (no symlink on this platform)";
-		if (st?.isSymbolicLink()) {
-			fs.unlinkSync(target);
-			detail = "replaced a symlink with a copy (the link's target was not written through)";
-		} else if (st) {
-			const bak = backupPath(target);
-			fs.renameSync(target, bak);
-			detail = `backed up ${path.basename(target)} -> ${path.basename(bak)}, then copied`;
-		}
-		fs.writeFileSync(target, want);
-		return { status: st ? UPDATED : CREATED, detail };
-	}
+	if (copyInstead) return writeBytesWithBackup(target, fs.readFileSync(source), { dryRun, action: "copy" });
 	if (st?.isSymbolicLink()) {
 		const current = path.resolve(path.dirname(target), fs.readlinkSync(target));
 		if (current === resolved) return { status: UNCHANGED, detail: null };
@@ -100,6 +78,35 @@ export function linkFile(target, source, { dryRun = false, copyInstead = false }
 	fs.mkdirSync(path.dirname(target), { recursive: true });
 	fs.symlinkSync(resolved, target);
 	return { status: CREATED, detail: null };
+}
+
+/**
+ * Write exact bytes, leaving a byte-equal regular file unchanged. A differing regular file or
+ * directory is renamed to a dated backup first. A symlink is unlinked and replaced without ever
+ * reading or writing through it. This is the shared copy/shim primitive.
+ */
+export function writeBytesWithBackup(target, contents, { dryRun = false, action = "write" } = {}) {
+	const st = lstat(target);
+	const want = Buffer.isBuffer(contents) ? contents : Buffer.from(contents);
+	if (st?.isFile() && !st.isSymbolicLink() && fs.readFileSync(target).equals(want)) return { status: UNCHANGED, detail: action };
+	if (dryRun) {
+		if (!st) return { status: CREATED, detail: `would ${action}` };
+		return { status: UPDATED, detail: st.isSymbolicLink() ? `would replace a symlink and ${action}` : `would back up to ${path.basename(backupPath(target))} and ${action}` };
+	}
+	fs.mkdirSync(path.dirname(target), { recursive: true });
+	let detail = action === "copy" ? "copied (no symlink on this platform)" : "written";
+	if (st?.isSymbolicLink()) {
+		fs.unlinkSync(target);
+		detail = action === "copy"
+			? "replaced a symlink with a copy (the link's target was not written through)"
+			: "replaced a symlink and wrote bytes (the link's target was not written through)";
+	} else if (st) {
+		const bak = backupPath(target);
+		fs.renameSync(target, bak);
+		detail = `backed up ${path.basename(target)} -> ${path.basename(bak)}, then ${action === "copy" ? "copied" : "wrote"}`;
+	}
+	fs.writeFileSync(target, want);
+	return { status: st ? UPDATED : CREATED, detail };
 }
 
 /**
