@@ -717,6 +717,108 @@ try {
       JSON.stringify({ none: noneCard?.textContent, cited: citedCard?.textContent }));
   }
   {
+    const { root } = fixture("not-passed");
+    // Block-local: setRowEvidence (above) keeps a row's status, so this sets both the status and
+    // the evidence a fixture row needs (build-brief-1.md amendment 4).
+    const setRowStatusAndEvidence = (id, status, evidence) => {
+      const ledgerPath = path.join(root, "REQUIREMENTS.md");
+      const text = fs.readFileSync(ledgerPath, "utf8");
+      const target = readRequirementRows(parseLedger(text)).find((candidate) => candidate.id === id);
+      if (!target) throw new Error(`fixture row ${id} not found`);
+      const lines = text.split("\n");
+      lines[target.line - 1] = `| ${target.id} | ${target.requirement} | ${status} | ${evidence} |`;
+      fs.writeFileSync(ledgerPath, lines.join("\n"));
+    };
+    const testsDir = path.join(root, "packages", "nana-pack", "tests");
+    fs.mkdirSync(testsDir, { recursive: true });
+    const hashes = {};
+    const runs = {};
+    // Fixture-only file names no real row cites (build-brief-1.md): np-*.test.mjs. Each measured
+    // one is written to disk and hashed; the two behind R-1030 and R-1040 are rewritten afterwards
+    // so their recorded label survives while they read as changed since (R-1654).
+    const measure = (name, label) => {
+      const file = `packages/nana-pack/tests/${name}`;
+      const content = `// ${name}\n`;
+      fs.writeFileSync(path.join(testsDir, name), content);
+      hashes[file] = createHash("sha256").update(content).digest("hex");
+      runs[file] = { label, seconds: 0.1, ran: [] };
+    };
+    for (const [name, label] of [
+      ["np-skip-1.test.mjs", "SKIP"], ["np-skip-2.test.mjs", "SKIP"], ["np-skip-3.test.mjs", "SKIP"],
+      ["np-pass-1.test.mjs", "PASS"], ["np-pass-2.test.mjs", "PASS"], ["np-skip-4.test.mjs", "SKIP"],
+      ["np-pass-3.test.mjs", "PASS"], ["np-fail-1.test.mjs", "FAIL"], ["np-pass-4.test.mjs", "PASS"],
+      ["np-fail-2.test.mjs", "FAIL"], ["np-fail-3.test.mjs", "FAIL"], ["np-skip-5.test.mjs", "SKIP"],
+      ["np-changed-skip.test.mjs", "SKIP"], ["np-changed-pass.test.mjs", "PASS"], ["np-control-skip.test.mjs", "SKIP"],
+    ]) measure(name, label);
+
+    setRowStatusAndEvidence("R-1020", "implemented", "`packages/nana-pack/tests/np-skip-1.test.mjs::skip one`");
+    setRowStatusAndEvidence("R-1021", "implemented", "`packages/nana-pack/tests/np-skip-2.test.mjs::skip two`, `packages/nana-pack/tests/np-skip-3.test.mjs::skip three`");
+    setRowStatusAndEvidence("R-1022", "implemented", "`packages/nana-pack/tests/np-pass-1.test.mjs::pass one`");
+    setRowStatusAndEvidence("R-1023", "implemented", "`packages/nana-pack/tests/np-pass-2.test.mjs::pass two`, `packages/nana-pack/tests/np-skip-4.test.mjs::skip four`");
+    setRowStatusAndEvidence("R-1024", "implemented", "`packages/nana-pack/tests/np-pass-3.test.mjs::pass three`, `packages/nana-pack/tests/np-unmeasured-1.test.mjs::unmeasured one`");
+    setRowStatusAndEvidence("R-1025", "implemented", "`packages/nana-pack/tests/np-fail-1.test.mjs::fail one`");
+    setRowStatusAndEvidence("R-1026", "implemented", "`packages/nana-pack/tests/np-pass-4.test.mjs::pass four`, `packages/nana-pack/tests/np-fail-2.test.mjs::fail two`");
+    setRowStatusAndEvidence("R-1027", "implemented", "`packages/nana-pack/tests/np-fail-3.test.mjs::fail three`, `packages/nana-pack/tests/np-unmeasured-2.test.mjs::unmeasured two`");
+    setRowStatusAndEvidence("R-1028", "implemented", "`packages/nana-pack/tests/np-unmeasured-3.test.mjs::unmeasured three`");
+    setRowStatusAndEvidence("R-1029", "implemented", "`packages/nana-pack/tests/np-skip-5.test.mjs::skip five`, `packages/nana-pack/tests/np-unmeasured-4.test.mjs::unmeasured four`");
+    setRowStatusAndEvidence("R-1030", "implemented", "`packages/nana-pack/tests/np-changed-skip.test.mjs::changed skip`");
+    setRowStatusAndEvidence("R-1040", "implemented", "`packages/nana-pack/tests/np-changed-pass.test.mjs::changed pass`");
+    setRowStatusAndEvidence("R-1041", "untested", "`packages/nana-pack/tests/np-control-skip.test.mjs::control skip`");
+
+    writeRuntimeFile(root, { schema: 1, hashes, tests: runs });
+    // R-1654: rewritten after being recorded, so each keeps its recorded label but reads as changed.
+    fs.writeFileSync(path.join(testsDir, "np-changed-skip.test.mjs"), "// np-changed-skip.test.mjs, changed\n");
+    fs.writeFileSync(path.join(testsDir, "np-changed-pass.test.mjs"), "// np-changed-pass.test.mjs, changed\n");
+
+    const out = path.join(temp, "not-passed.html");
+    await generateReport({ root, out });
+    const view = renderHtmlAt(fs.readFileSync(out, "utf8"), "#issues");
+    const headingRe = /^Implemented rows that did not pass in this clone's last measured run: (\d+)$/;
+    const headingIndex = view.root.children.findIndex((node) => node.tag === "h3" && headingRe.test(node.textContent));
+    const heading = view.root.children[headingIndex];
+    const headingCount = heading ? Number(headingRe.exec(heading.textContent)[1]) : null;
+    const listedCards = headingIndex === -1 ? [] : view.root.children.slice(headingIndex + 1).filter((node) => node.tag === "article");
+    const listedIds = listedCards.map((card) => card.children.find((child) => child.tag === "h3")?.textContent.trim().split(" ")[0]);
+    // R-1040 is excluded from the Issues list by design (PASS, no FAIL), so it has no card there;
+    // the "changed since" mark on both is read from the detail view, which shows every row.
+    const detailView = renderHtmlAt(fs.readFileSync(out, "utf8"), "#FEAT-039");
+    const changedSinceTextOf = (id) => testItemsOf(cardFor(detailView, id))[0]?.textContent ?? "";
+
+    const { root: noRuntimeRoot } = fixture("not-passed-no-runtime");
+    const noRuntimeOut = path.join(temp, "not-passed-no-runtime.html");
+    await generateReport({ root: noRuntimeRoot, out: noRuntimeOut });
+    const noRuntimeView = renderHtmlAt(fs.readFileSync(noRuntimeOut, "utf8"), "#issues");
+    const noRuntimeHeading = noRuntimeView.root.children.find((node) => node.tag === "h3" && headingRe.test(node.textContent));
+    const noRuntimeCount = noRuntimeHeading ? Number(headingRe.exec(noRuntimeHeading.textContent)[1]) : null;
+
+    // req: R-1650
+    check("R-1650: an implemented row whose cited files all last ran SKIP, one file or two, is listed as not passed, and an untested row citing such a file is not",
+      listedIds.includes("R-1020") && listedIds.includes("R-1021") && !listedIds.includes("R-1041"),
+      JSON.stringify(listedIds));
+    // req: R-1651
+    check("R-1651: an implemented row citing a failing file is listed as not passed, alone, beside a passing file and beside a file with no recorded run",
+      listedIds.includes("R-1025") && listedIds.includes("R-1026") && listedIds.includes("R-1027"),
+      JSON.stringify(listedIds));
+    // req: R-1652
+    check("R-1652: an implemented row citing a passing file and no failing one, alone or beside a skipped file or a file with no recorded run, is left out of the not-passed list",
+      Boolean(heading) && !listedIds.includes("R-1022") && !listedIds.includes("R-1023") && !listedIds.includes("R-1024") && listedIds.includes("R-1020"),
+      JSON.stringify({ heading: Boolean(heading), listedIds }));
+    // req: R-1653
+    check("R-1653: a row citing a file with no recorded run, alone or beside a skipped file, is left out, and with no runtime data the not-passed list is empty",
+      Boolean(heading) && !listedIds.includes("R-1028") && !listedIds.includes("R-1029") && listedIds.includes("R-1020") && noRuntimeCount === 0,
+      JSON.stringify({ heading: Boolean(heading), listedIds, noRuntimeCount }));
+    // req: R-1654
+    check("R-1654: a label marked changed since still decides, so a row whose only file last ran SKIP and changed since is listed and one whose only file last ran PASS and changed since is not",
+      listedIds.includes("R-1030") && !listedIds.includes("R-1040") && /changed since/i.test(changedSinceTextOf("R-1030")) && /changed since/i.test(changedSinceTextOf("R-1040")),
+      JSON.stringify({ listedIds, r1030: changedSinceTextOf("R-1030"), r1040: changedSinceTextOf("R-1040") }));
+    // req: R-1655
+    check("R-1655: the not-passed heading states the number of rows listed under it",
+      Boolean(heading) && headingCount === listedCards.length &&
+      JSON.stringify([...listedIds].sort()) === JSON.stringify(["R-1020", "R-1021", "R-1025", "R-1026", "R-1027", "R-1030"].sort()) &&
+      headingCount !== view.model.violated.length,
+      JSON.stringify({ headingCount, listedIds, violated: view.model.violated.length }));
+  }
+  {
     // req: R-1027
     check("validateStore accepts the real repository without a store", (await validateStore()).length === 0);
   }
