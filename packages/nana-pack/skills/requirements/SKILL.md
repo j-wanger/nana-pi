@@ -160,6 +160,12 @@ repo or area up front (`R-001`–`R-199` repo A, `R-200`–`R-299` repo B, …) 
 need renumbering. Then place the markers mechanically (an idempotent script over the cited
 titles) and get the rail green.
 
+Set `NANA_REQ_UNCLAIMED=1` and run the suite; the rail prints every test declaration no
+marker claims. Treat each listed declaration as a proposal: mark a row it already evidences,
+draft a row for behaviour no row states, or leave it. A listed line is never a row or evidence
+by itself. A zero count covers only what the grammar sees; `req-candidate:` tests stay listed
+until their rows are promoted.
+
 **Pass 2 — conflicts and failing-now.** A second read-only pass, two tables:
 
 - **Conflicts** — rows that cannot all hold at once. Each one: the row IDs, what the conflict

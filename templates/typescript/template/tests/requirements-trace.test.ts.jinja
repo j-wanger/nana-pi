@@ -32,6 +32,7 @@ import {
 	ID,
 	loadRequirements,
 	printReport,
+	printUnclaimed,
 	scanSource,
 	shallCounts,
 	summary,
@@ -577,6 +578,7 @@ describe("this project", () => {
 	test("REQUIREMENTS.md status agrees with the markers in tests/", () => {
 		const result = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
 		printReport(result);
+		printUnclaimed(ROOT, {}, process.env);
 		expect(
 			result.problems,
 			`requirements trace FAILED:\n  ${result.problems.join("\n  ")}`,
