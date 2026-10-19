@@ -49,6 +49,7 @@
 - 2026-10-18: the template and test-runner tools' tests run on Windows: templates-update, template-acceptance, template-release and test-runner. The template update legs ran there for the first time, and three of the four files pass with no skip. CI's Windows failing count fell from 28 of 150 files to 25 — `docs/sessions/2026-10.md`.
 - 2026-10-18: a Python project made from the template passes its own tests on Windows. Its trace tests now run their pytest children with UTF-8 output, and its code-map and readme-check helpers read and write UTF-8 on both sides. What a user sees is unchanged. CI's Windows failing count fell to 24 of 150 files — `docs/sessions/2026-10.md`.
 - 2026-10-18: the code map's impact view finds a module on Windows. Both generators now turn the relative path to forward slashes before they look it up, so a module named with backslashes reads as mapped. The runtime-map tests pass there for the first time. CI's Windows failing count fell from 24 of 150 files to 23 — `docs/sessions/2026-10.md`.
+- 2026-10-19: pi-review and pi-worker end an attempt as soon as pi exits, not at the watchdog's next poll. At the default poll, a review now ends up to 15 seconds sooner. A pi killed by a signal from elsewhere now counts as a failed attempt, and the watchdog retries it. Before, such a kill made pi-review stop with exit code 13 and no retry. It also left pi-worker's lane lock behind, so pi-worker refused the next lane run. The six new checks pass on macOS, Linux and Windows. Each of the seat's eight wrong versions of the code fails at least one of them — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -100,6 +101,12 @@
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
+- Watchdog-exit lane: output that a background child of pi writes after pi exits is no longer captured. Before, the watchdog caught it by chance up to one poll later. Real pi's tools use pipes, so this should be rare (inferred).
+- Watchdog-exit lane: if pi exits during a CPU read, the watchdog notices only when the read returns. That read takes about a second on Windows, and it can add one extra CPU progress line.
+- Watchdog-exit lane: no test pins the quick end when pi is missing, or pi-review's quick exit after Ctrl-C. The independent check's probes saw both work.
+- Watchdog-exit lane: a pi-worker run with retries and no lane now re-runs a pi killed by a signal. So it repeats that attempt's changes, as it already did after a failed attempt.
+- Watchdog-exit lane: its six checks are timing-based, with half a poll interval of margin. A very slow runner could fail them.
+- Watchdog-exit lane, found on main too: a review test that kills its launcher leaves one empty capture folder in the temp folder.
 
 ## Where things stand
 
