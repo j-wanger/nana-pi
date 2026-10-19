@@ -220,7 +220,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-06 · Rows: 22 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-459, R-465, R-493–R-499, R-940, R-943, R-944
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
-  Parent: — · Rows: 228 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1521, G-001–G-022
+  Parent: — · Rows: 235 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1480, R-1510–R-1515, R-1521, G-001–G-022
   - **FEAT-028 · Maintain requirement identity and trace links**
     Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
     Status: active
@@ -250,15 +250,15 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Keep shared configuration and module-boundary policies in one place and link their applicability to project features.
     Status: active
     Also applies: R-756
-    Parent: CAP-07 · Rows: 24 · IDs: R-920, R-1301, G-001–G-022
+    Parent: CAP-07 · Rows: 25 · IDs: R-920, R-1301, R-1480, G-001–G-022
   - **FEAT-039 · See the product and its decisions in one report**
     Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.
     Status: active
     Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
-    Parent: CAP-07 · Rows: 23 · IDs: R-1012–R-1030, R-1040–R-1043
+    Parent: CAP-07 · Rows: 29 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 88 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1520
+  Parent: — · Rows: 93 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
@@ -273,7 +273,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 16 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560
+    Parent: CAP-08 · Rows: 21 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560, R-1500–R-1504
   - **FEAT-037 · Grade behavior with trustworthy checks**
     Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
     Status: active

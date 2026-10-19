@@ -61,6 +61,9 @@
 - 2026-10-19: the folder-spelling test's two letter-case checks now run only where one folder can have two spellings. On a case-sensitive volume, like CI's Linux runner, each skips with a printed reason. Before, both failed there on every run. The fix was in the test only. CI's Linux leg now passes the file: 9 checks pass and none fail. macOS and Windows still run both checks, and both pass — `docs/sessions/2026-10.md`.
 - 2026-10-19: every bench test file now runs and passes on Windows. The Windows skip list now holds only the 16 desk files. The catch ledger's judge now starts in the system temp folder, not a fixed folder Windows lacks. Three test files no longer assume POSIX paths or scripts Windows cannot start. One folder-mode check skips on Windows with its reason. CI's Windows leg reads 0 failing of 153 files. The four bench files add 223 passing checks there — `docs/sessions/2026-10.md`.
 - 2026-10-19: every new session now starts with nana's standing rulings, in both seats. Builders and reviewers get them too. The rulings live in one dated file in nana-pi that names no owner and no model. Install links the file into the Claude rules folder and the pi agent folder. On Windows it copies the file instead. A pi session whose copy is unusable shows a one-line notice in their place. Doctor flags a missing or stale copy. All 29 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 154 files. On Windows the lane's own checks pass — `docs/sessions/2026-10.md`.
+- 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, per the 2026-10-10 ruling. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
+- 2026-10-19: the product report lists the tests behind each requirement. Under every row, each cited test shows its title and its file. The file links to its GitHub page at the report's commit. Beside it sits the file's PASS, FAIL or SKIP from this clone's last measured run. A mark shows when that file, or code it ran, has changed since. A row that cites no test says so. The report's six new checks pass on macOS, Linux and Windows. The real page shows five implemented rows whose every test file skipped on this Mac — `docs/sessions/2026-10.md`.
+- 2026-10-19: a bench study now stops when it cannot write a graded run's evidence. It first writes that run's spend to the results file. The error names the evidence folder and the cause. No further paid run starts. Before, the study recorded a grader error and kept spending. A failed asset copy after the run now stops the study the same way. A grader error whose evidence is on disk still lets the study go on. CI's Windows leg passes the six new checks and reads 0 failing of 154 files — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -132,6 +135,16 @@
 - Bench judge folder (bench-win): on macOS and Linux the real judge now starts in the user's temp folder, not the fixed one. Nobody re-ran the recorded study labels. The move should not change them, since no project instructions sit above either folder (inferred).
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
+- Test details in the report (report-test-details): a test skipped for its platform shows only as this clone's SKIP for its whole file. The page reads no skip reason, no CI Linux or Windows result and no SKIP line inside a file.
+- Test details in the report (report-test-details): the label belongs to the whole file, so a PASS file may have skipped the cited check. The page legend says so.
+- Test details in the report (report-test-details): the "changed since" mark misses code run from a temporary copy or by a killed child. The page legend says so.
+- Test details in the report (report-test-details): a test that carries a row's marker but is not cited in the row's evidence is not listed.
+- Test details in the report (report-test-details): no cited test shows its line number.
+- Test details in the report (report-test-details): links go to GitHub only. A link to a commit nobody has pushed opens a not-found page.
+- Test details in the report (report-test-details): a project with no runtime data, Python projects included, shows every test as having no recorded run.
+- Test details in the report (report-test-details): nobody has opened a test link inside the hosted page. The links open a new tab because of a guess that a plain link fails there.
+- Test details in the report (review): the new checks read the runtime-data override variable from the caller's environment. Pointed at an empty data file, it turns two checks falsely red. Nothing in the repo sets it for a suite run.
+- Test details in the report (review): the page legend's second sentence starts in lower case. The README says "moved" where the code marks a changed or missing file. An origin address ending in a slash gets no link.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 - Tree report: nothing checks that a lane stays inside its named feature. A lane that changes rows in several features still lands; the report names them all. The report reads the ledger text, so a row moved by hand without a tree regeneration shows as moved.
 - Watchdog-exit lane: output that a background child of pi writes after pi exits is no longer captured. Before, the watchdog caught it by chance up to one poll later. Real pi's tools use pipes, so this should be rare (inferred).
@@ -149,6 +162,18 @@
 - Rulings file: the owner and model word lists are short lists, not proofs. Each ruling's wording and scope are the seat's reading of its memory.
 - Rulings file: the seat's memory still states the rulings itself. After the land, the seat points its memory at the file.
 - Rulings file: on macOS and Linux the pi agent folder holds a link into the checkout. An edit through that link changes the checkout.
+- g005-carveout: the export rule stays untested. No check scans modules for a default export; a reviewer reads the rule.
+- g005-carveout: a project made from the template gets the new export wording at its next template update. Until it copies the wording into its own ledger, its rail prints one drift line that does not fail. trading-zone needs a follow-up lane in its own repo for that copy.
+- g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
+- g005-carveout: on Windows, the rule and skill copies take the new wording only at the next install.
+- g005-carveout: the product report's assessment of the engineering-standards feature stays out of date until the queued report refresh.
+- Study stop: the run that stopped the study stays a grader-error record, so a resume skips it. Delete its results line to run it again.
+- Study stop: a run whose asset copy fails after its child still leaves no evidence on disk. The study now stops there, but nothing writes that run's evidence.
+- Study stop: no test drives the exit code through the runner's entry, which needs a real pi install for pricing. The tests pin only the plan's stop.
+- Study stop: no test pins the stop for a failed diff read, a part-written evidence folder, a read-only folder or a full disk. A model that leaves its workspace unreadable may now stop the study too (inferred).
+- Study stop: the error names the run's spend, but no check pins that part of it. No check catches a stop that comes before the runner releases the in-flight run; the runner exits at once, so this does no harm.
+- Study stop, found on main too: a judge call whose ledger write fails stops the study but loses that call's record.
+- Study stop (review): when a run's asset copy fails, the stop message says its evidence could not be written, though the asset source was missing. Node's own message, appended, names the real path.
 
 ## Where things stand
 
@@ -165,11 +190,11 @@
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
    - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg blocks main after two green runs (both Jake's 2026-10-17 calls).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: test details in the product report, then an adoption refresh of basketball-geek and trading-zone.
+   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: an adoption refresh of basketball-geek and trading-zone.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - Small fixes ride along: rm inside the working directory. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
@@ -184,7 +209,7 @@
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
-- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Six rows read `violated`: R-542 (fix queued) and five desk rows (declared while the desk is frozen).
+- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Five rows read violated, all desk rows declared during the desk freeze; the study-stop lane fixed R-542.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.

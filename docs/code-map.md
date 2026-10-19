@@ -166,7 +166,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **inputs** — argv `<study-dir> [--smoke|--go] [--task id] [--profile name] [--rep n] [--keep]`; study.json, tasks, fixtures and schedule.json in that dir; env PI_BENCH_ENTRY and PATH; the prepared pi agent dir
 - **outputs** — appends records to results.jsonl; writes each run's raw stream, stderr and workspace diff under the study dir; exports parseArgs/loadStudy/runChild/executeRun/registrationProbe/runPlan and the interrupt and budget helpers; progress on stdout
 - **effects** — disk (study dir reads, evidence and results writes), process (spawns pi children, installs SIGINT handling, exits non-zero), network (the model calls those children make)
-- **errors** — exit 1 on a bad invocation or a study that fails to load; a run failure is recorded as data (state fail | harness | grader) rather than thrown; the plan stops on the cumulative budget, on 3 consecutive systemic failures, or on a child that did not die cleanly
+- **errors** — exit 1 on a bad invocation or a study that fails to load; a run failure is recorded as data (state fail | harness | grader) rather than thrown; the plan stops on the cumulative budget, on 3 consecutive systemic failures, on a child that did not die cleanly, or — once that run's record is on disk — on a graded run whose evidence could not be written
 - **callers** — `apps/bench/test/integration.test.mjs`, `apps/bench/test/ops.test.mjs`, `apps/bench/test/orchestration-paths.test.mjs`, `apps/bench/test/plan.test.mjs`, `apps/bench/test/study-tasks.test.mjs`, `apps/bench/test/timeout.test.mjs`
 - **callees** — `apps/bench/lib/agentdir.mjs`, `apps/bench/lib/checkers.mjs`, `apps/bench/lib/fixture.mjs`, `apps/bench/lib/pi-exports.mjs`, `apps/bench/lib/plan.mjs`, `apps/bench/lib/profiles.mjs`, `apps/bench/lib/usage.mjs`
 
@@ -613,12 +613,12 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/product-report.mjs`
 
 - **purpose** — Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
-- **inputs** — REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and injected git runner.
+- **inputs** — REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
 - **outputs** — A complete product ledger HTML file, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`
-- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/readme-check.mjs`
 
@@ -1371,7 +1371,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — RUNTIME_SCHEMA, COVERAGE_ENV, RECORD_FILE, COMPLETION_FILE, KNOB_LINE, DATA_FILE_ENV, DATA_SUBPATH, STOP_SIGNALS, STALE_MARK, NOTE_PREFIX, NOT_COUNTED, COVERAGE_PREFIX, SECONDS_DIGITS, STOP_WAIT_MS, TREE_LIST
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/code-map.mjs`, `scripts/runtime-measure.mjs`, `scripts/test.mjs`
+- **callers** — `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/runtime-map.mjs`
@@ -1381,7 +1381,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the resolved data-file path, a file's sha256 hash, the parsed data or a reason it could not be read, the checkout drift, and the formatted --impact runtime block
 - **effects** — disk (reads a file to hash it or to load the runtime data), process (spawns git for the common directory; every effect is injectable for tests)
 - **errors** — never throws from loadRuntime, hashFile or checkoutDrift; dataPath throws when git itself fails
-- **callers** — `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/runtime-measure.mjs`
+- **callers** — `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`
 - **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`
 
 ### `packages/nana-pack/lib/verdict-config.mjs`
