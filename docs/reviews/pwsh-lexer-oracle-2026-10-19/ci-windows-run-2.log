@@ -5927,11 +5927,11 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.8276341Z PA
 suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9193175Z PASS --not-a-project on a missing folder refuses with the reason 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9237800Z all passed
 suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9329872Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  1.0s
-suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9993138Z PASS key(/Users/jwang/aml-desk) = -Users-jwang-aml-desk 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9995647Z PASS key(/Users/jwang/.nana-worktrees/x) = -Users-jwang--nana-worktrees-x 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9997435Z PASS key(/Users/jwang/nana-agent-loop) = -Users-jwang-nana-agent-loop 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9999102Z PASS key(/Users/jwang/nana-pi) = -Users-jwang-nana-pi 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9999919Z PASS key(/Users/jwang/the-hive) = -Users-jwang-the-hive 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9993138Z PASS key(<home>/aml-desk) = -Users-jwang-aml-desk 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9995647Z PASS key(<home>/.nana-worktrees/x) = -Users-jwang--nana-worktrees-x 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9997435Z PASS key(<home>/nana-agent-loop) = -Users-jwang-nana-agent-loop 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9999102Z PASS key(<repo>) = -Users-jwang-nana-pi 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:08.9999919Z PASS key(<home>/the-hive) = -Users-jwang-the-hive 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:09.0000977Z PASS key(/Users/x/my_repo) = -Users-x-my-repo 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:09.0002690Z PASS key(/Users/x/a b.c) = -Users-x-a-b-c 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-19T21:52:09.0003529Z PASS key(C:\dev\repo) = C--dev-repo 
