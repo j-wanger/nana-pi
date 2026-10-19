@@ -70,6 +70,7 @@
 - 2026-10-19: the product report's Decisions tab now lists every open question in the requirements ledger. Each shows its number and its full text, in file order. A ledger with none still gets its page, and the page says so. The ledger gained eleven open questions from the 2026-10-09 audit, and one stale question closed. The two new checks pass on macOS, Linux and Windows. CI reads 0 failing files on all three — `docs/sessions/2026-10.md`.
 - 2026-10-19: one command now prints a lane's review timeline. It groups the lane's reviews into rounds in the order the ledger recorded them. Each review shows its revision, role, model, verdict and duration. Under each sent-back review, it lists the MUST findings that review's own file states. When it cannot read them, it says why. It reads only the review ledger and those files, and writes nothing. The new test file passes 11 of 11 checks on macOS, Linux and Windows. CI reads 0 failing files on all three legs — `docs/sessions/2026-10.md`.
 - 2026-10-19: CI's Windows leg now blocks release, as the macOS leg already did. A Windows failure on main now skips release. A Linux failure alone still does not. Two new checks pin both rules. Each of the builder's nine wrong versions of the CI file turns one of them red. The support line in all three front doors says the same. On the lane's CI run, all three legs read 0 failing of 156 files. CI still does not stop a land — `docs/sessions/2026-10.md`.
+- 2026-10-19: tests now pin the knowledge pull on an index over an hour old, in both seats. The pull answers at once from the old index. A background build then rebuilds it. Before, no test ran that build, so a broken one would have frozen the index without a sign. The hook code did not change. Three new checks pass on macOS, Linux and Windows. A fourth runs only on Windows and passes there. On Windows the rebuild finished 153 to 214 ms after each answer. Each of the builder's six wrong versions of the code fails a check. CI reads 0 failing of 158 files on all three legs — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -212,6 +213,11 @@
 - win-leg-flip: the blocking Windows leg skips the 16 declared desk files. A new Windows failure in one of them cannot stop release.
 - win-leg-flip: the suite job has no time limit. A hung Windows leg can hold release for up to six hours, GitHub's default.
 - win-leg-flip: the README still says the Linux leg fails one symlink-escape check. That stopped being true when the lane write guard fix landed. It waits for the Linux question.
+- knowledge-refresh-pin: four older knowledge-pull requirements stay untested. They cover the hook's input cap, pi's handling of a failed or silent pull, and pi's pull log.
+- knowledge-refresh-pin: nobody knows how Claude Code ends a hook's processes. The tests stand in with a process-group kill on macOS and Linux, and the hook's own exit on Windows.
+- knowledge-refresh-pin: the check for a build still tied to the hook works only while the build outlives the hook. That margin is about 100 ms on macOS.
+- knowledge-refresh-pin: a wrong version of the code that builds inside the pull leaves a second build after the pi test's cleanup. That build indexes the home folder's stores. So wrong-code tries run only under a temp home.
+- knowledge-refresh-pin: on Windows the background build starts without the hide-window flag. Its detached start gives it no console, so no window should show (inferred). Nobody has watched a Windows desktop for one.
 
 ## Where things stand
 
