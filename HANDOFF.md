@@ -56,6 +56,7 @@
 - 2026-10-19: one command now changes one slot of a machine's roster. You paste the slot and the words a plain roster run prints for it. The command rewrites only that slot and keeps every other setting. It saves the old file as a backup beside it. It refuses inside a pi model's own shell, on bad input and on a bad file, and then changes nothing. Its eight new checks pass on macOS, Linux and Windows. CI's macOS leg reads 0 failing of 151 files — `docs/sessions/2026-10.md`.
 - 2026-10-19: a Python project's readme check and code map print their whole report under any output encoding. Before, the first character the encoding lacked stopped the report with a crash. Python's default pipe encoding on Windows lacks many such characters, such as Greek letters. Now each one prints as its Python backslash escape. The exit status matches a UTF-8 run. CI's Windows leg passes the four new checks. Its failing count stays at 23 of 150 files, all of them main's — `docs/sessions/2026-10.md`.
 - 2026-10-19: the Windows test run skips the 20 desk and bench files that cannot pass there, and prints each one's declared reason. Every other desk and bench file still runs on Windows. macOS and Linux still run all of them. On the lane's CI run, Windows failed 3 of 150 files, all land and review files that main has since fixed. So CI's Windows failing count should fall from 20 of 150 files to 0 once this lands. Main's first run after the land will show it. A later lane makes the Windows leg block main — `docs/sessions/2026-10.md`.
+- 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, as Jake ruled on 2026-10-10. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -122,6 +123,11 @@
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 - Tree report: nothing checks that a lane stays inside its named feature. A lane that changes rows in several features still lands; the report names them all. The report reads the ledger text, so a row moved by hand without a tree regeneration shows as moved.
+- g005-carveout: the export rule stays untested. No check scans modules for a default export; a reviewer reads the rule.
+- g005-carveout: a project made from the template gets the new export wording at its next template update. Until it copies the wording into its own ledger, its rail prints one drift line that does not fail. trading-zone needs a follow-up lane in its own repo for that copy.
+- g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
+- g005-carveout: on Windows, the rule and skill copies take the new wording only at the next install.
+- g005-carveout: the product report's assessment of the engineering-standards feature stays out of date until the queued report refresh.
 
 ## Where things stand
 
@@ -142,7 +148,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - Small fixes ride along: rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
