@@ -21,6 +21,7 @@ const R1761 = "R-1761: the stale line names exactly the rule, skill and hook row
 const R1762 = "R-1762: the stale line names as paths to move exactly the skill paths install refuses";
 const R1763 = "R-1763: moving the named paths and running the named install clears the stale line";
 const R1764 = "R-1764: a current install adds no stale or unavailable line to the adoption hook output";
+const R1766 = "R-1766: a linked parent is the existing path to move before install";
 const R1765 = "R-1765: the adoption hook leaves every file, folder and link in the home unchanged";
 
 const SETTINGS_LABELS = ["SessionStart objective", "SessionStart adoption", "SessionStart shared-memory", "SessionStart roster notice", "PreToolUse verifier pipe", "UserPromptSubmit knowledge pull"];
@@ -59,7 +60,7 @@ const PAIRS = [
 		one(BIN, 'if (row.status === "problem" && failedSkills.has(name))', "if (failedSkills.has(name))"),
 	], tests: [SC], expectRed: [R1762, R1763] },
 	{ n: "M5", name: "producer names the pack source as the move path", edits: [
-		one(BIN, "movePaths.push(path.join(layout.skillsDir, name))", "movePaths.push(path.join(PACK_SKILLS_DIR, name))"),
+		one(BIN, "existingPath(path.join(layout.skillsDir, name))", "existingPath(path.join(PACK_SKILLS_DIR, name))"),
 	], tests: [SC], expectRed: [R1762, R1763] },
 	{ n: "M6", name: "producer names every skill install refuses, without doctor's judgement", edits: [
 		one(BIN, 'row.status === "problem" && failedSkills.has(name)', 'row.status === "problem"'),
@@ -97,6 +98,12 @@ const PAIRS = [
 	{ n: "M16", name: "doctor marks every hook settings row healthy", edits: [
 		one(DOC, "for (const row of hookSettingsRows(layout, settings, parseError)) add(row.ok ? OK : FAIL,", "for (const row of hookSettingsRows(layout, settings, parseError)) add(OK,"),
 	], tests: [SC, WD, DD], expectRed: [R1761, ...WD_STALE, WD_MATCHER, WD_EVENT, WD_OUTSIDE, WD_DUPLICATE, DD_KNOWLEDGE] },
+	{ n: "M17", name: "a linked parent folder is never named; the skill paths are (build 1)", edits: [
+		one(BIN, 'if (!row.detail?.startsWith("unsafe source ancestor")) return null;', "return null;"),
+	], tests: [SC], expectRed: [R1766] },
+	{ n: "M18", name: "a move path that does not exist is still named (build 1)", edits: [
+		one(BIN, "const movePath = linkedSkillParent(row) ?? existingPath(path.join(layout.skillsDir, name));", "const movePath = linkedSkillParent(row) ?? path.join(layout.skillsDir, name);"),
+	], tests: [SC], expectRed: [R1766] },
 ];
 
 process.exitCode = await runMutations({ lane: "stale-copies-hooks", self: import.meta.url, tip: "f089623a", declared: DECLARED, pairs: PAIRS });
