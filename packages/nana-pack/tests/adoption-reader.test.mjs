@@ -182,6 +182,25 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	check("c: reads the configured journal.path", r.stdout.includes(`- \`${roots[6]}\` —`), r.stdout);
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 }
+{
+	const hookBase = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-hook-mark-")));
+	const hookHome = path.join(hookBase, "home");
+	const hookAgent = path.join(hookHome, "active-agent");
+	const hookRoot = path.join(hookBase, "configured-only-root");
+	const hookJournal = path.join(hookBase, "configured-journal.jsonl");
+	const hookConfig = path.join(hookAgent, "nana-pack.json");
+	fs.mkdirSync(path.join(hookRoot, ".git"), { recursive: true });
+	fs.mkdirSync(hookAgent, { recursive: true });
+	fs.writeFileSync(hookConfig, `\uFEFF${JSON.stringify({ journal: { path: hookJournal }, objective: { projectFile: "GOALS.md" } })}`);
+	fs.writeFileSync(hookJournal, line(hookRoot, 1));
+	const result = run(process.execPath, [HOOK], { ...process.env, HOME: hookHome, USERPROFILE: hookHome, PI_CODING_AGENT_DIR: hookAgent, CLAUDE_PROJECT_DIR: hookRoot, NANA_TEST_TEMP_ROOTS: "" });
+	const defaultJournal = path.join(hookAgent, "nana-journal.jsonl");
+	fs.rmSync(hookConfig);
+	// req: R-1584
+	check("hook: a nana-pack.json saved with a byte-order mark keeps its absolute journal.path", result.status === 0 && result.stdout.includes(`- \`${hookRoot}\` —`) && (!fs.existsSync(defaultJournal) || !fs.readFileSync(defaultJournal, "utf8").includes(hookRoot)), JSON.stringify(result));
+	fs.rmSync(hookBase, { recursive: true, force: true });
+}
+
 // malformed producer configuration remains fail-open; no-node markers are retired.
 {
 	fs.writeFileSync(path.join(AGENT, "nana-pack.json"), JSON.stringify({ journal: { path: base } })); // a directory

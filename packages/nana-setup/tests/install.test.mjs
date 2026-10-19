@@ -303,6 +303,10 @@ check("no desk plist without --desk", !fs.existsSync(path.join(home, "Library", 
 const before = JSON.stringify(walk(home));
 const second = run(["install", "--home", home]);
 check("second install exits 0", second.status === 0, second.stderr);
+// req: R-1591
+check("second install prints no retired row for a skill it linked", !/retired \.claude\/skills\//.test(second.stdout), second.stdout);
+// req: R-1592
+check("second install reports no more skipped rows than the first", second.stdout.split("\n").filter((line) => /^\s*–/.test(line)).length <= first.stdout.split("\n").filter((line) => /^\s*–/.test(line)).length, `${first.stdout}\n--- second ---\n${second.stdout}`);
 // req: R-300
 check("second install reports nothing to do", second.stdout.includes("nothing to do"));
 // req: R-300
@@ -457,6 +461,16 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	// req: R-309
 	check("objective seed: the reason is reported", /not needed — objective\.path already points at/.test(r.stdout));
 	check("objective seed: doctor is still green", run(["doctor", "--home", elsewhere]).status === 0, run(["doctor", "--home", elsewhere]).stdout);
+
+	const markedHome = freshHome();
+	const markedObjective = path.join(markedHome, "another-objective.md");
+	fs.writeFileSync(markedObjective, "**Objective:** elsewhere\n");
+	const markedConfig = path.join(markedHome, ".pi", "agent", "nana-pack.json");
+	const markedBytes = `\uFEFF${JSON.stringify({ objective: { path: markedObjective, projectFile: "GOALS.md" } })}`;
+	fs.writeFileSync(markedConfig, markedBytes);
+	const markedRun = run(["install", "--home", markedHome]);
+	// req: R-1581
+	check("objective seed: not created when a nana-pack.json saved with a byte-order mark points elsewhere", !fs.existsSync(path.join(markedHome, ".pi", "agent", "nana-objective.md")) && /not needed — objective\.path already points at/.test(markedRun.stdout) && fs.readFileSync(markedConfig, "utf8") === markedBytes, markedRun.stdout);
 
 	// and when the config IS ours, the starter file is created
 	const ours = freshHome();

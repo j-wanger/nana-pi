@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { ID } from "../../../scripts/requirements-trace.mjs";
+import { ID, requirementRowId } from "../../../scripts/requirements-trace.mjs";
 import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants, ledgerReadProblem } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
@@ -36,28 +36,60 @@ check("R-290: real feature and subgroup headings have direct-level parents", act
 check("R-291: committed outline equals a fresh render", map === actual.outline, "committed outline differs from renderOutline");
 // req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
-// req: R-291
-check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,353", (() => {
-  const outlineLines = map.split("\n");
-  let leafTotal = 0;
-  for (const heading of actual.parsed.headings) {
+// R-1640 to R-1643: the rows each heading is expected to carry come from the trace rail's
+// own row reader (requirementRowId), never a typed count, so adding a requirement row
+// changes no number here.
+function treeAccounting(parsed, outline) {
+  const problems = [];
+  const outlineLines = outline.split("\n");
+  for (const heading of parsed.headings) {
     const titleIndex = outlineLines.findIndex((value) => value.includes(`**${heading.id} · `));
     const line = outlineLines[titleIndex + (heading.id.startsWith("FEAT-") ? 4 : 2)];
     const ids = expandRowIds(line?.match(/IDs: (.+)$/)?.[1] ?? "");
-    const children = actual.parsed.headings.some((candidate) => candidate.parent === heading);
+    const children = parsed.headings.some((candidate) => candidate.parent === heading);
     const source = children
-      ? actual.parsed.headings.filter((candidate) => candidate === heading || isDescendant(candidate, heading)).flatMap((candidate) => candidate.rows)
+      ? parsed.headings.filter((candidate) => candidate === heading || isDescendant(candidate, heading)).flatMap((candidate) => candidate.rows)
       : heading.rows;
-    if (!children) leafTotal += heading.rows.length;
-    if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
+    if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(","))
+      problems.push(`${heading.id}: committed IDs differ from its rows`);
   }
-  return leafTotal === 1353;
-})(), "committed IDs differ or leaf total is not 1,353");
+  const lines = new Map();
+  for (const text of parsed.lines) {
+    const id = requirementRowId(text);
+    if (id) lines.set(id, (lines.get(id) ?? 0) + 1);
+  }
+  const tree = new Map();
+  for (const heading of parsed.headings) for (const id of heading.rows) tree.set(id, (tree.get(id) ?? 0) + 1);
+  for (const [id, count] of tree) if (count > 1) problems.push(`${id} is read ${count} times by the tree`);
+  for (const [id, count] of lines) if (count > (tree.get(id) ?? 0)) problems.push(`${id} has a requirement row line the tree does not read`);
+  return problems;
+}
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
   while (parent) { if (parent === ancestor) return true; parent = parent.parent; }
   return false;
 }
+const accounting = treeAccounting(actual.parsed, map);
+// req: R-291
+check("R-291: every real heading's committed IDs survive expansion and the tree reads every row line once", accounting.length === 0, accounting.join("; "));
+const r291Row = row("R-291");
+const insertedParsed = parseLedger(ledger.replace(r291Row, `${r291Row}\n| R-9999 | The added row shall be read. | untested | — |`));
+const insertedProblems = treeAccounting(insertedParsed, renderOutline(insertedParsed));
+// req: R-1640
+check("R-1640: a row added to a real feature table passes the tree accounting with no test edit", Boolean(r291Row) && row("R-9999") === "" && insertedParsed.headings.some((h) => h.rows.includes("R-9999")) && insertedProblems.length === 0, insertedProblems.join("; "));
+const droppedParsed = parseLedger("# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n| R-002 | B shall work. | untested | — |\n");
+const droppedProblems = treeAccounting(droppedParsed, renderOutline(droppedParsed));
+// req: R-1641
+check("R-1641: a requirement row line the tree parser drops fails the accounting naming its ID", droppedProblems.some((p) => p.includes("R-002")) && !droppedProblems.some((p) => p.includes("R-001")), droppedProblems.join("; "));
+const duplicatedParsed = parseLedger("# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n## FEAT-002 · C\nPurpose: feat2\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n");
+const duplicatedProblems = treeAccounting(duplicatedParsed, renderOutline(duplicatedParsed));
+// req: R-1642
+check("R-1642: a row ID read under two headings fails the accounting naming its ID", duplicatedProblems.some((p) => p.includes("R-001")), duplicatedProblems.join("; "));
+const subgroupParsed = parseLedger("# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n### SUB-001 · D\nPurpose: sub\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | B shall work. | untested | — |\n");
+const subgroupFeature = subgroupParsed.headings.find((h) => h.id === "FEAT-001");
+const subgroupProblems = treeAccounting(subgroupParsed, renderOutline(subgroupParsed));
+// req: R-1643
+check("R-1643: a row on a feature that has subgroups is counted once by the accounting", Boolean(subgroupFeature?.rows.includes("R-001")) && subgroupProblems.length === 0, subgroupProblems.join("; "));
 const feat033 = actual.parsed.headings.find((h) => h.id === "FEAT-033");
 const parsedForReader = parseLedger(`# CAP-01 · Cap\nPurpose: capability\nOutcome: a visible outcome\n\n## FEAT-001 · Home\nPurpose: feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-001 | A requirement text. | implemented | test cite |\n| R-1000 | A four-digit requirement. | planned | — |\n`);
 const rowsForReader = readRequirementRows(parsedForReader);

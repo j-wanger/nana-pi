@@ -34,6 +34,7 @@ import { randomUUID } from "node:crypto";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { repoRoot } from "./paths.mjs";
+import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { KNOWLEDGE_CLI, SetupError, readPiPackConfig } from "./steps.mjs";
 
 /** The single source of the three seeds — shared with the copier templates and the skill. */
@@ -679,7 +680,7 @@ export async function checkProject(dir, layout = {}) {
 	});
 	let projectConfig = null;
 	if (pack.ok) {
-		try { projectConfig = JSON.parse(fs.readFileSync(path.join(dir, ".pi", "nana-pack.json"), "utf8")); } catch { /* the file-presence row reports existence; diagnostics fail closed */ }
+		try { projectConfig = parseJsonText(fs.readFileSync(path.join(dir, ".pi", "nana-pack.json"), "utf8")); } catch { /* the file-presence row reports existence; diagnostics fail closed */ }
 	}
 	let commands = user?.postEdit?.commands;
 	try {
