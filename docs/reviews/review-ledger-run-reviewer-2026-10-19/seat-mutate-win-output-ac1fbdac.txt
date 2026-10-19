@@ -1,0 +1,7 @@
+Seat Windows-only wrong-code pairs for review-ledger-run-reviewer, run in place on the Windows CI leg (scratch branch seatmut/review-ledger-run-reviewer, commit 5b5e8eff = lane tip ac1fbdac merged with main 22ccd849, plus the table and a Windows-only CI job that sets npm_execpath as npm test does; run 39329561483; never merged). Table: seat-mutate-win.mjs; helper: win-pairs.mjs.
+BASELINE ok packages/nana-pack/tests/review-ledger.test.mjs (exit 0, 163 PASS, 0 FAIL)
+BASELINE ok packages/nana-pack/tests/win32-launch.test.mjs (exit 0, 15 PASS, 0 FAIL)
+RED X1 pi is spawned by name, as before the lane — 2/2 named: review-ledger run -- pi starts pi and records its round | Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged; also FAIL: Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round {"refusedLed
+RED X2 pi is started through cmd.exe instead of its npm entry — 1/1 named: Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged; also FAIL: Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round {"refusedLed
+RED X3 a refused pi launch is reported after admission, with no release — 1/1 named: Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round
+RESULT: 3/3 red
