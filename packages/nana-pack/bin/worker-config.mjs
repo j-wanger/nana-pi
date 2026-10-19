@@ -4,8 +4,8 @@
  * @inputs none
  * @outputs LANE_MAX_SECS, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS,
  *  CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, LANE_SIZE_SLOTS,
- *  LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, NPM_DIRS, PI_MODEL_SHELL_ENV,
- *  SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN
+ *  LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, REVIEWER_CHILD_ENV, NPM_DIRS,
+ *  PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN
  * @effects none
  * @errors none
  */
@@ -67,6 +67,8 @@ export const ROSTER_DEFAULTS = Object.freeze({
 // contract: pi 1.0.2 package.json name and bin {"pi": "dist/bundle/cli.js"}, read 2026-10-13.
 export const PI_PACKAGE = '@earendil-works/pi-coding-agent';
 export const PI_BIN_NAME = 'pi';
+// contract: R-1720, R-974
+export const REVIEWER_CHILD_ENV = Object.freeze({ NANA_ROLE: 'reviewer', NANA_HANDOFF: 'off' });
 // contract: npm 10.9.7's bin-links 5.0.0 bin-target.js — a shim's package sits in the sibling
 // node_modules (the global layout) or one level up through node_modules/.bin (the local layout).
 export const NPM_DIRS = Object.freeze(['node_modules', '.bin']);

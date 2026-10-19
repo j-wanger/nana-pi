@@ -4,13 +4,15 @@
  * @purpose The review round cap as a hook for any launcher — `run` reserves a round around a command and
  *  records its verdict, `check` asks whether one would be admitted.
  * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
- *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
+ *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, the user-scope review ledger,
+ *  pi-watchdog.mjs's piLaunch, and worker-config.mjs's PI_BIN_NAME and REVIEWER_CHILD_ENV
  * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
  *  `check`, and the admission note, warnings, unread-verdict note and refusals on stderr
- * @effects process (spawns the review command with stdout piped, runs the reservation heartbeat, sets the
- *  exit code), disk (writes --out and the ledger's lock, reservation, tally and audit files)
+ * @effects process (resolves a first-word `pi`, spawns the review command with reviewer child env and
+ *  stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's
+ *  lock, reservation, tally and audit files)
  * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
- *  admission, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result
+ *  pi launch or admission, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result
  *  (only the latter returns the reservation with no round consumed); exit 0 otherwise
  */
 // review-ledger.mjs — the review round cap for ANY launcher (T2b). Same ledger and rules as
@@ -29,6 +31,8 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { admit, complete, project, readRounds, release, repoKeyOf, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
+import { piLaunch } from './pi-watchdog.mjs';
+import { PI_BIN_NAME, REVIEWER_CHILD_ENV } from './worker-config.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const sep = rest.indexOf('--');
@@ -73,6 +77,10 @@ const childOption = (name) => {
   const i = child.indexOf(name);
   return i >= 0 ? child[i + 1] : null;
 };
+const launch = child[0] === PI_BIN_NAME
+  ? piLaunch(child.slice(1), { cwd: process.cwd() })
+  : { command: child[0], args: child.slice(1) };
+if (launch.refused) die(`pi launch refused: ${launch.refused}`);
 const adm = admit(own, { launcher: 'review-ledger run', provider: childOption('--provider'), model: childOption('--model'), attempts: 1 });
 if (!adm.ok) die(adm.message);
 process.stderr.write(`review-ledger: ${adm.note}\n`);
@@ -82,7 +90,7 @@ const out = adm.res.out;
 const stopHeartbeat = startHeartbeat(adm.res);
 const r = await new Promise((done) => {
   const chunks = [];
-  const k = spawn(child[0], child.slice(1), { cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'] });
+  const k = spawn(launch.command, launch.args, { cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV } });
   k.stdout.on('data', (c) => chunks.push(c));
   k.on('error', (error) => done({ status: null, error, stdout: Buffer.concat(chunks).toString('utf8') }));
   k.on('close', (status, signal) => done({ status, signal, stdout: Buffer.concat(chunks).toString('utf8') }));
