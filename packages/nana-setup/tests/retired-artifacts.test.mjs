@@ -372,6 +372,19 @@ try {
 	}
 	{
 		const h = home();
+		const outside = tmpDir(path.join(os.tmpdir(), "nana-retired-link-"));
+		dirs.push(outside);
+		fs.writeFileSync(path.join(outside, "SKILL.md"), "outside skill\n");
+		const target = path.join(h, ".claude", "skills", "nana");
+		fs.mkdirSync(path.dirname(target), { recursive: true });
+		fs.symlinkSync(outside, target, "junction");
+		const before = fs.readlinkSync(target);
+		const result = install(h);
+		// req: R-1593
+		check("a link at a retired skill name install does not link is still reported unrecognized", /retired \.claude\/skills\/nana\s+skipped\s+unrecognized kind or provenance/.test(result.stdout) && fs.readlinkSync(target) === before, result.stdout);
+	}
+	{
+		const h = home();
 		const external = tmpDir(path.join(os.tmpdir(), "nana-foreign-skill-"));
 		dirs.push(external);
 		fs.writeFileSync(path.join(external, "SKILL.md"), "owner's separate skill\n");

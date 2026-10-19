@@ -450,6 +450,22 @@ function freshHome(prefix = "nana-setup-settings-") {
 	return td;
 }
 const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home", home], { encoding: "utf8" });
+const homeSnapshot = (root) => {
+	const entries = [];
+	const walk = (dir, relative = "") => {
+		for (const name of fs.readdirSync(dir).sort()) {
+			const absolute = path.join(dir, name);
+			const child = relative ? `${relative}/${name}` : name;
+			const stat = fs.lstatSync(absolute);
+			if (stat.isSymbolicLink()) entries.push([child, "link", fs.readlinkSync(absolute)]);
+			else if (stat.isDirectory()) { entries.push([child, "directory"]); walk(absolute, child); }
+			else if (stat.isFile()) entries.push([child, "file", fs.readFileSync(absolute).toString("base64")]);
+			else entries.push([child, "other"]);
+		}
+	};
+	walk(root);
+	return JSON.stringify(entries);
+};
 
 /* --- end to end: a real settings.json with foreign hooks ------------------------------ */
 {
@@ -620,9 +636,14 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 {
 	const home = freshHome();
 	fs.writeFileSync(path.join(home, ".claude", "settings.json"), "{}\n", { mode: 0o600 });
+	fs.writeFileSync(path.join(home, ".claude", "enforce"), "");
 	const held = { pid: 4242, at: Date.now() - 90_000 };
 	fs.writeFileSync(lockOf(home), JSON.stringify(held));
+	const before = homeSnapshot(home);
 	const r = run(["install"], home);
+	const after = homeSnapshot(home);
+	// req: R-1590
+	check("lock: a held lock stops install before its first write", r.status === 2 && r.stderr.includes("Nothing was written") && after === before, `${r.status}\n${r.stderr}\n${after}`);
 	check("lock: an existing lock aborts the install", r.status === 2, String(r.status));
 	check("lock: the message prints the lock path", r.stderr.includes(lockOf(home)), r.stderr);
 	check("lock: the message prints the recorded pid", r.stderr.includes("pid 4242"), r.stderr);
@@ -656,6 +677,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const home = freshHome();
 	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: process.pid, at: Date.now() }));
 	const r = run(["install", "--dry-run"], home);
+	// req: R-926
 	check("lock: --dry-run is not blocked by a lock", r.status === 0, r.stderr);
 	check("lock: --dry-run reports what it would add", /settings SessionStart objective\s+created/.test(r.stdout), r.stdout);
 	check("lock: --dry-run wrote nothing", !fs.existsSync(path.join(home, ".claude", "hooks")));

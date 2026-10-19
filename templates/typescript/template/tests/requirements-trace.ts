@@ -1,9 +1,9 @@
 /**
  * @module tests/requirements-trace.ts
  * @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries, and that its Requirement cell carries exactly one `shall`.
- * @inputs REQUIREMENTS.md, optional REQUIREMENTS-general.md, and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
- * @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a list of human-readable problems and a one-line summary
- * @effects disk (reads REQUIREMENTS.md and the test sources), process (printReport writes the report to stdout)
+ * @inputs REQUIREMENTS.md, optional REQUIREMENTS-general.md, every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root, and an environment mapping for opt-in output
+ * @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a list of human-readable problems, a one-line summary, and an optional unclaimed-declaration listing
+ * @effects disk (reads REQUIREMENTS.md and the test sources), process (printReport and printUnclaimed write reports to stdout)
  * @errors a thrown Error for a malformed requirements table (duplicate id, unknown status, a pipe inside a cell) or a bad or orphan marker
  */
 // The requirements-first rail. A test declares which rows it evidences with a
@@ -161,6 +161,8 @@ export const GENERAL_REQUIREMENTS_FILE = "REQUIREMENTS-general.md";
 export const CALL_NAMES = ["test", "it"];
 /** The test directories scanned, when a project does not say. */
 export const TEST_ROOTS = ["tests"];
+/** The environment switch for the opt-in unclaimed listing (contract, R-1665). */
+export const UNCLAIMED_ENV = "NANA_REQ_UNCLAIMED";
 /** The filename suffixes a test source carries, in either runtime. */
 export const TEST_EXTENSIONS = [
 	".test.ts",
@@ -378,6 +380,88 @@ function testFiles(dir: string, prefix = ""): string[] {
 		}
 	}
 	return found;
+}
+
+/** One test source's declarations that no marker block directly claims. */
+function unclaimedSource(
+	source: string,
+	name: string,
+	callNames: string[],
+): { line: number; title: string }[] {
+	const call = callNames === CALL_NAMES ? CALL : callRegex(callNames);
+	const lines = withoutLeadingBom(source)
+		.split(/\r?\n/)
+		.map(stripWhitespaceEnd);
+	const claimed = new Set<number>();
+	let i = 0;
+	while (i < lines.length) {
+		if (!MARKER.test(lines[i] as string)) {
+			i += 1;
+			continue;
+		}
+		const { next } = idsAt(lines, i, name);
+		const hit = next < lines.length ? call.exec(lines[next] as string) : null;
+		if (!hit)
+			throw new Error(
+				`${name}:${i + 1}: '// req:' must sit directly above a ${callNames.map((n) => `${n}(`).join(" or ")} call`,
+			);
+		claimed.add(next);
+		i = next + 1;
+	}
+	return lines.flatMap((line, index) => {
+		const hit = call.exec(line);
+		if (!hit || claimed.has(index)) return [];
+		return [
+			{
+				line: index + 1,
+				title: (hit[2] as string).replace(/\\(.)/g, "$1").replace(/`/g, ""),
+			},
+		];
+	});
+}
+
+/**
+ * The opt-in audit listing, always beginning with its count (including zero).
+ * Entries sort by the complete project-relative path, then by source line.
+ */
+export function unclaimedLines(
+	root: string,
+	options: Pick<CheckOptions, "testRoots" | "callNames"> = {},
+): string[] {
+	const testRoots = options.testRoots ?? TEST_ROOTS;
+	const callNames = options.callNames ?? CALL_NAMES;
+	const entries: { path: string; line: number; title: string }[] = [];
+	for (const dir of testRoots) {
+		const fullDir = join(root, dir);
+		if (!existsSync(fullDir)) continue;
+		const prefix = dir.replaceAll("\\", "/").replace(/\/$/, "");
+		for (const file of testFiles(fullDir)) {
+			const path = prefix === "" ? file : `${prefix}/${file}`;
+			for (const declaration of unclaimedSource(
+				readFileSync(join(fullDir, file), "utf8"),
+				path,
+				callNames,
+			))
+				entries.push({ path, ...declaration });
+		}
+	}
+	entries.sort((a, b) =>
+		a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1,
+	);
+	return [
+		`unclaimed: ${entries.length} test declarations carry no req: marker`,
+		...entries.map(({ path, line, title }) => `  ${path}:${line} ${title}`),
+	];
+}
+
+/** Print the unclaimed listing only when its environment switch is exactly `1`. */
+export function printUnclaimed(
+	root: string,
+	options: Pick<CheckOptions, "testRoots" | "callNames">,
+	env: Readonly<Record<string, string | undefined>>,
+): void {
+	if (env[UNCLAIMED_ENV] !== "1") return;
+	for (const line of unclaimedLines(root, options)) console.log(line);
 }
 
 /**
