@@ -136,4 +136,4 @@ const PAIRS = [
 	], tests: [TL], expectRed: [R627] },
 ];
 
-process.exitCode = await runMutations({ lane: "parallel-runner", self: import.meta.url, tip: "d50de2f", declared: DECLARED, config: { SHARDS_DEFAULT: 1 }, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "parallel-runner", self: import.meta.url, tip: "5782c50", declared: DECLARED, config: { SHARDS_DEFAULT: 1 }, pairs: PAIRS });
