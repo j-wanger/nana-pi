@@ -127,16 +127,13 @@ const removeWorktree = () => {
 const copySnapshot = (root, target, excludedPath = null) => {
   const files = [...new Set([...list(root, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']), ...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
   const excludedKey = excludedPath ? gitPathKey(resolve(excludedPath)) : null;
-  // MUST 1 (brief 2): under a case-diverged folder, git's own untracked-file listing can carry
-  // the INDEX's case (adjust_dirname_case) rather than the disk case `excludedPath` was built
-  // from, so the key compare above can miss it. Identity (dev+ino) does not depend on case.
-  const excludedId = excludedPath ? fileIdentity(excludedPath) : null;
+  // MUST 1 (brief 3): git's untracked listing carries the disk case here, so the path-key skip
+  // above handles the case-diverged folder without relying on a potentially lossy file identity.
   for (const p of files) {
     const from = join(root, p), to = join(target, p);
     if (excludedKey && gitPathKey(resolve(from)) === excludedKey) continue;
     let st;
     try { st = lstatSync(from); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') { rmSync(to, { recursive: true, force: true }); continue; } throw e; }
-    if (excludedId && Number.isFinite(st.dev) && Number.isFinite(st.ino) && st.dev === excludedId.dev && st.ino === excludedId.ino) continue;
     mkdirSync(dirname(to), { recursive: true });
     rmSync(to, { recursive: true, force: true });
     if (st.isSymbolicLink()) symlinkSync(readlinkSync(from), to);

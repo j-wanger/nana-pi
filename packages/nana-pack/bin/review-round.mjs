@@ -225,11 +225,8 @@ export function workingState(root, exclude = []) {
   for (const p of nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)) paths.add(p.replace(/\/$/, ''));
   for (const p of inHead.keys()) if (inHead.get(p).startsWith('160000 ')) gitlink.set(p, gitlink.get(p) ?? inHead.get(p).split(' ')[1]);
   const skip = new Set(exclude.map((x) => relUnder(root, realOut(x))).filter(Boolean).map(gitPathKey));
-  // MUST 1 (brief 2): a path git lists under a case-diverged folder can carry the INDEX's case
-  // (git's own adjust_dirname_case, on a case-insensitive volume) rather than the disk case
-  // `realOut`/`relUnder` gave `skip` above, so the string compare above can miss the excluded
-  // path entirely. Identity (dev+ino) does not depend on which case either side typed.
-  const skipIds = exclude.map((x) => fileIdentity(realOut(x))).filter(Boolean);
+  // MUST 1 (brief 3): git's untracked listing carries the disk case here, so the path-key skip
+  // above handles the case-diverged folder without relying on a potentially lossy file identity.
 
   const records = [], ids = [];
   for (const p of [...paths].sort(byteOrder)) {
@@ -238,7 +235,6 @@ export function workingState(root, exclude = []) {
     const full = join(root, p);
     let st;
     try { st = lstatSync(full); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') continue; throw e; }
-    if (skipIds.length && Number.isFinite(st.dev) && Number.isFinite(st.ino) && skipIds.some((id) => id.dev === st.dev && id.ino === st.ino)) continue;
     let mode, content, id;
     if (st.isSymbolicLink()) {
       const t = readlinkSync(full, { encoding: 'buffer' });

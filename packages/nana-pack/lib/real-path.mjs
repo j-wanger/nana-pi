@@ -4,8 +4,8 @@
  *  spellings of one folder (case, an 8.3 short name, a link, a `\\?\` prefix or a Unicode form) resolve the same.
  * @inputs a path string and, for realPath, an optional mustExist flag
  * @outputs realPath(p, opts): the folder's native spelling on disk; gitPathKey(s): s normalized for a
- *  git-path compare; fileIdentity(p): the entry's {dev, ino} on disk, or null
- * @effects disk (reads: realpathSync.native / realpathSync walk up to an existing ancestor, lstatSync)
+ *  git-path compare; fileIdentity(p): the entry's exact bigint {dev, ino}, or null when unavailable
+ * @effects disk (reads: realpathSync.native / realpathSync walk up to an existing ancestor, bigint lstatSync)
  * @errors realPath throws (as realpathSync does) when mustExist is true and p does not exist, or (SHOULD
  *  5, brief 2) on any other native error (ELOOP, EACCES, …) reached with mustExist; otherwise it never
  *  throws, and fileIdentity never throws
@@ -63,14 +63,12 @@ export function realPath(p, { mustExist = false } = {}) {
   }
 }
 
-/** `{dev, ino}` of the entry AT `p` (no symlink follow — `lstatSync`), or `null` when `p` does not
- *  exist or its identity is not numeric. Never throws. Used to recognize one on-disk entry under
- *  two different path STRINGS (a case-diverged git listing vs. the disk spelling, MUST 1 of W7c
- *  brief 2), the way `inTreeRedirect` already does for stdout/stderr. */
+/** `{dev, ino}` as exact bigints for the entry AT `p` (no symlink follow — `lstatSync`), or `null`
+ *  when `p` does not exist or the volume reports no file ID (`ino === 0n`). Never throws. */
 export function fileIdentity(p) {
   try {
-    const st = lstatSync(p);
-    return Number.isFinite(st.dev) && Number.isFinite(st.ino) ? { dev: st.dev, ino: st.ino } : null;
+    const st = lstatSync(p, { bigint: true });
+    return st.ino !== 0n ? { dev: st.dev, ino: st.ino } : null;
   } catch {
     return null;
   }
