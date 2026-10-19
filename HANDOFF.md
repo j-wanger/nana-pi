@@ -173,6 +173,7 @@
 - Study stop: no test pins the stop for a failed diff read, a part-written evidence folder, a read-only folder or a full disk. A model that leaves its workspace unreadable may now stop the study too (inferred).
 - Study stop: the error names the run's spend, but no check pins that part of it. No check catches a stop that comes before the runner releases the in-flight run; the runner exits at once, so this does no harm.
 - Study stop, found on main too: a judge call whose ledger write fails stops the study but loses that call's record.
+- Study stop (review): when a run's asset copy fails, the stop message says its evidence could not be written, though the asset source was missing. Node's own message, appended, names the real path.
 
 ## Where things stand
 
@@ -193,8 +194,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
-   - Small fixes ride along: the G-005 pi default-export carve-out and rm inside the working directory. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - Small fixes ride along: rm inside the working directory. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
