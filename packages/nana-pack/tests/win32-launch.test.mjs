@@ -4,10 +4,10 @@
  *  volumes on every leg, and a real npm-installed fake pi package on the Windows leg.
  * @inputs pi-watchdog.mjs's piLaunch, injected win32 path/env/exists/isFile/readText fixtures,
  *  worker-config.mjs's PI_PACKAGE/PI_BIN_NAME, and, on win32, a real npm pack+install of a fake
- *  pi package plus pi-worker.mjs/pi-review.mjs child runs
+ *  pi package plus pi-worker.mjs/pi-review.mjs/review-ledger.mjs child runs
  * @outputs named PASS/FAIL/SKIP lines
  * @effects disk (temp fixtures; on win32 a real npm global install under a temp prefix), process
- *  (on win32, npm pack/install and pi-worker/pi-review child processes)
+ *  (on win32, npm pack/install and pi-worker/pi-review/review-ledger child processes)
  * @errors a missing piLaunch export fails every forced title, not the whole file; failed
  *  assertions exit nonzero
  */
@@ -26,6 +26,7 @@ const { findPi } = await import(pathToFileURL(path.join(root, "lib", "win-comman
 const { PI_PACKAGE, PI_BIN_NAME, LANE_DEFAULTS } = await import(pathToFileURL(path.join(root, "bin", "worker-config.mjs")).href);
 const workerBin = path.join(root, "bin", "pi-worker.mjs");
 const reviewBin = path.join(root, "bin", "pi-review.mjs");
+const reviewLedgerBin = path.join(root, "bin", "review-ledger.mjs");
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -159,6 +160,8 @@ const WINDOWS_TITLES = [
 	"Windows: pi-review hands the review standard to pi as text",
 	"Windows: a busy pi is not stopped as stalled",
 	"Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory",
+	"Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged",
+	"Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
 	"Windows: lane pi-worker starts pi from a short or differently cased worktree path",
 ];
 
@@ -309,6 +312,35 @@ console.log("VERDICT: LAND");
 		check("Windows: a refused launch writes its reason to --out",
 			noPkgOutText !== null && noPkgOutText.startsWith("pi launch refused:") && noPkgRun.stderr.includes(noPkgOutText.trim()),
 			JSON.stringify({ noPkgOutText, noPkgRun }));
+
+		// -- review-ledger run starts pi through its npm package --
+		fs.rmSync(record, { force: true });
+		const ledgerOut = path.join(temp, "ledger-out.md");
+		const ledgerRun = spawnSync(process.execPath, [reviewLedgerBin, "run", "--item", "winledger", "--tree", reviewTree, "--out", ledgerOut, "--", "pi", ...rawArgs], { cwd: temp, encoding: "utf8", timeout: 60000, env });
+		const ledgerCalls = readRecord();
+		// req: R-1722
+		check("Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged",
+			ledgerRun.status === 0 && ledgerCalls.length === 1 &&
+			ledgerCalls[0].execPath.toLowerCase() === process.execPath.toLowerCase() &&
+			ledgerCalls[0].entry.toLowerCase() === installedEntry.toLowerCase() &&
+			ledgerCalls[0].ppid === ledgerRun.pid &&
+			JSON.stringify(ledgerCalls[0].argv) === JSON.stringify(rawArgs),
+			JSON.stringify({ ledgerRun, ledgerCalls }));
+
+		const reservations = path.join(temp, ".pi", "agent", "review-ledger.reservations");
+		const reservationNames = () => { try { return fs.readdirSync(reservations).sort(); } catch { return []; } };
+		const reservationsBefore = reservationNames();
+		fs.rmSync(record, { force: true });
+		const refusedLedgerOut = path.join(temp, "ledger-refused-out.md");
+		const refusedLedgerRun = spawnSync(process.execPath, [reviewLedgerBin, "run", "--item", "winledger-refused", "--tree", reviewTree, "--out", refusedLedgerOut, "--", "pi", "-p", "x"], { cwd: temp, encoding: "utf8", timeout: 60000, env: voltaEnv });
+		let refusedRounds = [];
+		try { refusedRounds = fs.readFileSync(path.join(temp, ".pi", "agent", "review-ledger.rounds.jsonl"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.kind === "round" && row.item === "winledger-refused"); } catch { /* no ledger is also no round */ }
+		// req: R-1723
+		check("Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
+			refusedLedgerRun.status === 1 && /pi launch refused: pi at .* is not an npm global install/.test(refusedLedgerRun.stderr) &&
+			readRecord().length === 0 && refusedRounds.length === 0 &&
+			JSON.stringify(reservationNames()) === JSON.stringify(reservationsBefore),
+			JSON.stringify({ refusedLedgerRun, calls: readRecord(), refusedRounds, reservationsBefore, reservationsAfter: reservationNames() }));
 
 		// -- a short or differently cased worktree path --
 		fs.rmSync(record, { force: true });
