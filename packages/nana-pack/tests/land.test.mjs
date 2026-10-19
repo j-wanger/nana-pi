@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { parseLandArgs, runLand as executeLand, runCleanup } from "../bin/nana-land.mjs";
 import { admit, complete, withReviewLedgerLock } from "../bin/review-round.mjs";
+import { realPath } from "../lib/real-path.mjs";
 
 let failures = 0;
 const check = (title, fn) => {
@@ -488,6 +489,9 @@ check("cleanup removes a contained feat branch without force", () => {
 	// W7c: cleanup now removes by git's OWN registered spelling, not the --worktree argument's — on
 	// this Mac, the default TMPDIR's /var -> /private/var symlink already makes the two differ, so
 	// the captured real path (while the worktree still exists) is what the remove call must name.
+	// SHOULD 6 (brief 2): compare through realPath on both sides, not by raw string — git's own
+	// registered path always uses forward slashes, while `realpathSync.native` on Windows returns
+	// backslashes, so a literal `===` would fail there even though both name the same entry.
 	const featureReal = realpathSync.native(feature);
 	const calls = []; const runGit = (cwd, args) => {
 		calls.push({ cwd, args });
@@ -496,7 +500,7 @@ check("cleanup removes a contained feat branch without force", () => {
 	};
 	const result = runCleanup("landed", { main, worktree: feature, runGit });
 	assert.equal(result.code, 0, result.text);
-	assert(calls.some(({ cwd, args }) => cwd === main && args.length === 3 && args[0] === "worktree" && args[1] === "remove" && args[2] === featureReal));
+	assert(calls.some(({ cwd, args }) => cwd === main && args.length === 3 && args[0] === "worktree" && args[1] === "remove" && realPath(args[2]) === realPath(featureReal)));
 	assert(calls.some(({ cwd, args }) => cwd === main && args.length === 3 && args[0] === "branch" && args[1] === "-d" && args[2] === "feat/landed"));
 	assert.equal(existsSync(feature), false); assert.throws(() => git(main, "show-ref", "--verify", "refs/heads/feat/landed"));
 });

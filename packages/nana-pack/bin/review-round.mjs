@@ -63,7 +63,7 @@ import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'nod
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
-import { realPath, gitPathKey } from '../lib/real-path.mjs';
+import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
 export const REVIEW_ROUND_CAP = 3;
@@ -157,7 +157,11 @@ function gitOut(cwd, args, { okStatus = [0] } = {}) {
 export function repoKeyOf(tree) {
   for (const args of [['--path-format=absolute', '--git-common-dir'], ['--git-common-dir']]) {
     const r = spawnSync('git', ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', 'rev-parse', ...args], { cwd: tree, encoding: 'utf8' });
-    if (r.status === 0 && r.stdout.trim()) return `git:${realPath(resolve(tree, r.stdout.trim()), { mustExist: true })}`;
+    const out = r.stdout.trim();
+    // SHOULD 1 (brief 2): a git too old to know --path-format does not FAIL the rev-parse — it
+    // echoes the unrecognized flag back as an extra output line instead, which would otherwise be
+    // read as part of the common-dir path. Treat that echo as a failure of THIS form and fall back.
+    if (r.status === 0 && out && !out.startsWith('--path-format')) return `git:${realPath(resolve(tree, out), { mustExist: true })}`;
   }
   throw new Error(`git rev-parse --git-common-dir failed in ${tree} — admission refused`);
 }
@@ -221,6 +225,11 @@ export function workingState(root, exclude = []) {
   for (const p of nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)) paths.add(p.replace(/\/$/, ''));
   for (const p of inHead.keys()) if (inHead.get(p).startsWith('160000 ')) gitlink.set(p, gitlink.get(p) ?? inHead.get(p).split(' ')[1]);
   const skip = new Set(exclude.map((x) => relUnder(root, realOut(x))).filter(Boolean).map(gitPathKey));
+  // MUST 1 (brief 2): a path git lists under a case-diverged folder can carry the INDEX's case
+  // (git's own adjust_dirname_case, on a case-insensitive volume) rather than the disk case
+  // `realOut`/`relUnder` gave `skip` above, so the string compare above can miss the excluded
+  // path entirely. Identity (dev+ino) does not depend on which case either side typed.
+  const skipIds = exclude.map((x) => fileIdentity(realOut(x))).filter(Boolean);
 
   const records = [], ids = [];
   for (const p of [...paths].sort(byteOrder)) {
@@ -229,6 +238,7 @@ export function workingState(root, exclude = []) {
     const full = join(root, p);
     let st;
     try { st = lstatSync(full); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') continue; throw e; }
+    if (skipIds.length && Number.isFinite(st.dev) && Number.isFinite(st.ino) && skipIds.some((id) => id.dev === st.dev && id.ino === st.ino)) continue;
     let mode, content, id;
     if (st.isSymbolicLink()) {
       const t = readlinkSync(full, { encoding: 'buffer' });
@@ -264,7 +274,11 @@ export function relUnder(root, abs) {
  *  its parent; a dangling symlink leaf is followed to where the write would create its target. */
 export function realOut(p, hops = 0) {
   if (hops > 40) throw new Error(`--out ${p}: too many levels of symbolic links — refused`);
-  try { return realPath(p, { mustExist: true }); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  // SHOULD 4 (brief 2): a missing leaf under a REGULAR FILE ancestor (not a directory) native-
+  // realpaths as ENOTDIR, not ENOENT; catching only ENOENT here let that propagate uncaught past
+  // this function's own ENOENT/ENOTDIR lstat fallback below, surfacing as a raw stack trace instead
+  // of pi-review's clean one-line refusal.
+  try { return realPath(p, { mustExist: true }); } catch (e) { if (e.code !== 'ENOENT' && e.code !== 'ENOTDIR') throw e; }
   let st = null;
   try { st = lstatSync(p); } catch (e) { if (e.code !== 'ENOENT' && e.code !== 'ENOTDIR') throw e; }
   if (st?.isSymbolicLink()) return realOut(resolve(dirname(p), readlinkSync(p)), hops + 1);
@@ -532,14 +546,34 @@ export function inTreeRedirect(root, fds = [1, 2]) {
  *   - an ignored path returns null (the snapshot never reads it — the recommended in-tree place);
  *   - any other in-tree path returns a warning (a leftover output there changes the NEXT revision
  *     and so can spend a distinct-revision slot); outside the tree, or outside git → null. */
+/** Whether `relGit` is tracked in the index or HEAD (MUST 1, brief 2): a literal pathspec compare
+ *  first (cheap, covers the ordinary case); when it misses and the target exists on disk, a
+ *  case-only folder rename can leave git's own index/HEAD spelling different from the disk
+ *  spelling `relGit` carries (a branch switch on a case-insensitive volume: git treats the two as
+ *  already equal and never touches the directory entry) — so fall back to the target's on-disk
+ *  identity (dev+ino) against every tracked path, as `inTreeRedirect` already does for stdout/stderr. */
+function trackedByPath(root, relGit, head) {
+  const listed = (args) => gitOut(root, ['--literal-pathspecs', ...args, '--', relGit]).stdout.length > 0;
+  return listed(['ls-files', '-z', '--cached']) || (head && listed(['ls-tree', '-r', '-z', '--name-only', '--full-tree', head]));
+}
+function trackedByIdentity(root, real, head) {
+  const targetId = fileIdentity(real);
+  if (!targetId) return false;
+  const tracked = new Set(nulList(gitOut(root, ['ls-files', '-z', '--cached']).stdout));
+  if (head) for (const p of nulList(gitOut(root, ['ls-tree', '-r', '-z', '--name-only', '--full-tree', head]).stdout)) tracked.add(p);
+  for (const p of tracked) {
+    const id = fileIdentity(join(root, p));
+    if (id && id.dev === targetId.dev && id.ino === targetId.ino) return true;
+  }
+  return false;
+}
 export function outInTree(root, outAbs) {
   if (!root) return null;
   const real = realOut(outAbs); // the full path, leaf symlink included (T2b r5)
   const relGit = relUnder(root, real); // by path segment: "..notes.md" is in the tree (T2b r5)
   if (relGit === null) return null;
-  const listed = (args) => gitOut(root, ['--literal-pathspecs', ...args, '--', relGit]).stdout.length > 0;
   const head = headOf(root);
-  if (listed(['ls-files', '-z', '--cached']) || (head && listed(['ls-tree', '-r', '-z', '--name-only', '--full-tree', head]))) {
+  if (trackedByPath(root, relGit, head) || trackedByIdentity(root, real, head)) {
     throw new Error(`--out ${outAbs}${real === outAbs ? '' : ` (→ ${real})`} is a TRACKED file in the reviewed tree (${root}): the review would overwrite it, and ` +
       'excluding it from the snapshot would hide that. Write the output outside the tree (or to an ignored path)');
   }

@@ -25,7 +25,11 @@ const { runLand, runCleanup } = await import(pathToFileURL(path.join(bin, "nana-
 const { admit, complete, readRounds } = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
 
 const win32 = process.platform === "win32";
-const tmpRoot = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "path-spelling-test-")));
+// MUST 4 (brief 2): do NOT resolve this to its long/native form. On Windows CI the runner's own
+// os.tmpdir() is already a short 8.3-style path (e.g. under `RUNNER~1`) — the natural second
+// spelling every repo and home built under it inherits for free. Each "canonical" ground truth
+// below is still resolved explicitly, on its own, where it is declared.
+const tmpRoot = tmpDir(path.join(os.tmpdir(), "path-spelling-test-"));
 
 // ---------------------------------------------------------------- the fake pi (every launch "LAND"s)
 // MODE=lock (GP5): the fake pi locks its own cwd (the review checkout) before answering, so
@@ -59,6 +63,11 @@ const check = (name, fn) => {
   try { fn(); console.log("PASS", name); } catch (error) { failures++; console.log("FAIL", name, error.message); }
 };
 const ok = (cond, detail) => { if (!cond) throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail)); };
+// SHOULD 2 (brief 2): a volume offering no second spelling at all (case-sensitive, no symlink
+// permission) must SKIP its check, never vacuously PASS it. Every `if (spellings.length) check(…)
+// else console.log(skipMsg(…))` below is written on one `if` line so the requirements-trace rail
+// (which looks for a literal `check(` on the line right after a `// req:` marker) still finds it.
+const skipMsg = (name) => `SKIP ${name} — no second spelling is available on this volume`;
 
 let homeCounter = 0;
 /** A fresh ~/.pi/agent HOME (and PATH carrying the fake pi), isolated per check/spelling. */
@@ -114,6 +123,15 @@ function otherSpellings(canonical, label) {
     } else fs.symlinkSync(dir, linkParent);
     out.push({ kind: "link", path: path.join(linkParent, name) });
   } catch (e) { console.log(`SKIP ${label} (link): ${e.message}`); }
+  if (win32) {
+    // MUST 4 (brief 2): the 8.3 short name, probed the way win32-launch.test.mjs:310-337 does —
+    // neither a case flip nor a link, so it still turns a check red where `path.win32.relative`
+    // folds a mere case difference away.
+    const shortProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${canonical}').ShortPath`], { encoding: "utf8" });
+    const shortPath = shortProbe.status === 0 ? shortProbe.stdout.trim() : null;
+    if (shortPath && shortPath.toLowerCase() !== canonical.toLowerCase()) out.push({ kind: "8.3", path: shortPath });
+    else console.log(`SKIP ${label} (8.3): this volume keeps no 8.3 short name`);
+  }
   return out;
 }
 const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}: trying ${kind} — canonical=${canonical} spelled=${spelled}`);
@@ -126,37 +144,88 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   commit(gp1Repo, "tracked.md", "keep\n", "base");
   const canonical = fs.realpathSync.native(gp1Repo);
   const spellings = otherSpellings(canonical, "GP1");
+  // MUST 4 (brief 2): `\\?\` is GP1-only (must-meet.md), not a general otherSpellings() kind.
+  if (win32) spellings.push({ kind: "unc-prefix", path: `\\\\?\\${canonical}` });
   // req: R-1350
-  check("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (review-ledger run, review-ledger check, pi-review)", () => {
-    for (const { kind, path: spelled } of spellings) {
-      printSpelling("GP1", kind, canonical, spelled);
-      const outPath = path.join(spelled, "tracked.md");
+  if (spellings.length) check("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (review-ledger run, review-ledger check, pi-review)", () => {
+   for (const { kind, path: spelled } of spellings) {
+    printSpelling("GP1", kind, canonical, spelled);
+    const outPath = path.join(spelled, "tracked.md");
+    for (const launcher of ["ledger-run", "ledger-check", "pi-review"]) {
+      const home = freshHome();
+      const item = `gp1-${kind}-${launcher}`;
+      const before = fs.readFileSync(path.join(canonical, "tracked.md"));
+      let res;
+      if (launcher === "ledger-run") {
+        res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
+      } else if (launcher === "ledger-check") {
+        res = spawnSync(process.execPath, [LEDGER_CLI, "check", "--item", item, "--out", outPath], { cwd: canonical, env: env(home), encoding: "utf8" });
+      } else {
+        res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-observe-${kind}-${launcher}`) }), encoding: "utf8" });
+      }
+      const after = fs.readFileSync(path.join(canonical, "tracked.md"));
+      const resDir = path.join(home, ".pi", "agent", "review-ledger.reservations");
+      const reservations = fs.existsSync(resDir) ? fs.readdirSync(resDir) : [];
+      const worktrees = git(canonical, "worktree", "list", "--porcelain");
+      ok(res.status === 1, `[${kind}/${launcher}] expected exit 1, got ${res.status}: ${res.stderr}`);
+      ok(/TRACKED file/.test(res.stderr), `[${kind}/${launcher}] expected "TRACKED file" in stderr: ${res.stderr}`);
+      ok(before.equals(after), `[${kind}/${launcher}] tracked.md changed: ${after.toString()}`);
+      ok(readRounds(home, { item }).length === 0, `[${kind}/${launcher}] a round was recorded`);
+      ok(reservations.length === 0, `[${kind}/${launcher}] a reservation remains: ${reservations}`);
+      ok(!worktrees.includes("nana-review-"), `[${kind}/${launcher}] a review worktree was registered: ${worktrees}`);
+      if (launcher === "pi-review") ok(!fs.existsSync(path.join(tmpRoot, `gp1-observe-${kind}-${launcher}`)), `[${kind}/${launcher}] the fake pi started`);
+    }
+   }
+  });
+  else console.log(skipMsg("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (review-ledger run, review-ledger check, pi-review)"));
+}
+
+// -- GP1 case divergence (MUST 1 of brief 2): a case-only folder rename (`git mv X tmp; git mv tmp
+// x`), then `reset --mixed` back to the commit that never got the rename, leaves git's index/HEAD
+// spelled differently from the folder's actual spelling on disk, the way the must-meet's own
+// "a case-only rename, then a branch switch" does: on a volume whose git ALSO corrects a plain
+// branch switch's on-disk case (confirmed on this Mac — ignorecase does not stop checkout from
+// renaming the directory back), `reset --mixed` builds the identical end state deliberately,
+// since it moves HEAD and the index without ever touching the working tree. Only meaningful on a
+// case-insensitive volume, else a printed SKIP.
+{
+  const cdRepo = repo(tmpRoot, "gp1-case-divergence-repo");
+  fs.mkdirSync(path.join(cdRepo, "Docs"));
+  fs.writeFileSync(path.join(cdRepo, "Docs", "review.md"), "keep\n");
+  git(cdRepo, "add", "Docs");
+  git(cdRepo, "commit", "-qm", "add Docs/review.md");
+  const cdBase = git(cdRepo, "rev-parse", "HEAD");
+  git(cdRepo, "mv", "Docs", "tmp");
+  git(cdRepo, "mv", "tmp", "docs");
+  git(cdRepo, "commit", "-qm", "case-only rename");
+  git(cdRepo, "reset", "--mixed", cdBase);
+  const diskName = fs.readdirSync(cdRepo).find((n) => n.toLowerCase() === "docs");
+  if (diskName !== "docs") {
+    console.log("SKIP GP1 (case-divergence): this volume's git kept the disk and index/HEAD case in sync after reset --mixed");
+  } else {
+    // req: R-1350
+    check("GP1: a tracked --out reached through a folder whose disk case diverges from git's index/HEAD is refused before the review runs", () => {
+      const outPath = path.join(cdRepo, "docs", "review.md"); // typed in the DISK's current case
       for (const launcher of ["ledger-run", "ledger-check", "pi-review"]) {
         const home = freshHome();
-        const item = `gp1-${kind}-${launcher}`;
-        const before = fs.readFileSync(path.join(canonical, "tracked.md"));
+        const item = `gp1-casediv-${launcher}`;
+        const before = fs.readFileSync(outPath);
         let res;
         if (launcher === "ledger-run") {
-          res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
+          res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: cdRepo, env: env(home), encoding: "utf8" });
         } else if (launcher === "ledger-check") {
-          res = spawnSync(process.execPath, [LEDGER_CLI, "check", "--item", item, "--out", outPath], { cwd: canonical, env: env(home), encoding: "utf8" });
+          res = spawnSync(process.execPath, [LEDGER_CLI, "check", "--item", item, "--out", outPath], { cwd: cdRepo, env: env(home), encoding: "utf8" });
         } else {
-          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-observe-${kind}-${launcher}`) }), encoding: "utf8" });
+          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: cdRepo, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-casediv-observe-${launcher}`) }), encoding: "utf8" });
         }
-        const after = fs.readFileSync(path.join(canonical, "tracked.md"));
-        const resDir = path.join(home, ".pi", "agent", "review-ledger.reservations");
-        const reservations = fs.existsSync(resDir) ? fs.readdirSync(resDir) : [];
-        const worktrees = git(canonical, "worktree", "list", "--porcelain");
-        ok(res.status === 1, `[${kind}/${launcher}] expected exit 1, got ${res.status}: ${res.stderr}`);
-        ok(/TRACKED file/.test(res.stderr), `[${kind}/${launcher}] expected "TRACKED file" in stderr: ${res.stderr}`);
-        ok(before.equals(after), `[${kind}/${launcher}] tracked.md changed: ${after.toString()}`);
-        ok(readRounds(home, { item }).length === 0, `[${kind}/${launcher}] a round was recorded`);
-        ok(reservations.length === 0, `[${kind}/${launcher}] a reservation remains: ${reservations}`);
-        ok(!worktrees.includes("nana-review-"), `[${kind}/${launcher}] a review worktree was registered: ${worktrees}`);
-        if (launcher === "pi-review") ok(!fs.existsSync(path.join(tmpRoot, `gp1-observe-${kind}-${launcher}`)), `[${kind}/${launcher}] the fake pi started`);
+        const after = fs.readFileSync(outPath);
+        ok(res.status === 1, `[${launcher}] expected exit 1, got ${res.status}: ${res.stderr}`);
+        ok(/TRACKED file/.test(res.stderr), `[${launcher}] expected "TRACKED file" in stderr: ${res.stderr}`);
+        ok(before.equals(after), `[${launcher}] review.md changed: ${after.toString()}`);
+        ok(readRounds(home, { item }).length === 0, `[${launcher}] a round was recorded`);
       }
-    }
-  });
+    });
+  }
 }
 
 // ================================================================= GP2 (R-1351)
@@ -178,41 +247,94 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     spellings.push({ kind: "nfd-via-nfc", path: path.join(canonical, nfcName) }, { kind: "nfc-via-nfd", path: path.join(canonical, nfdName) });
   }
   // req: R-1351
-  check("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path warns, runs, and stays out of the snapshot and the review checkout", () => {
-    for (const { kind, path: spelled } of spellings) {
-      printSpelling("GP2", kind, canonical, spelled);
-      const outDir = spelled;
-      fs.mkdirSync(outDir, { recursive: true });
-      const outPath = path.join(outDir, "review-out.md");
+  if (spellings.length) check("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path warns, runs, and stays out of the snapshot and the review checkout", () => {
+   for (const { kind, path: spelled } of spellings) {
+    printSpelling("GP2", kind, canonical, spelled);
+    const outDir = spelled;
+    fs.mkdirSync(outDir, { recursive: true });
+    const outPath = path.join(outDir, "review-out.md");
+    fs.writeFileSync(outPath, "old output\n");
+    for (const launcher of ["ledger-run", "pi-review"]) {
+      const home = freshHome();
+      const item = `gp2-${kind}-${launcher}`;
+      const listing = path.join(tmpRoot, `gp2-listing-${kind}-${launcher}`);
+      let res;
+      if (launcher === "ledger-run") {
+        res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
+      } else {
+        res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
+      }
+      ok(res.status === 0, `[${kind}/${launcher}] expected exit 0: ${res.stderr}`);
+      ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${kind}/${launcher}] missing in-tree warning: ${res.stderr}`);
+      const rows = readRounds(home, { item });
+      ok(rows.length === 1, `[${kind}/${launcher}] expected one recorded round, got ${rows.length}`);
+      ok(rows[0].revision === headSha && !rows[0].unverified, `[${kind}/${launcher}] expected the bare HEAD sha, got ${JSON.stringify(rows[0])}`);
+      if (launcher === "pi-review") {
+        ok(fs.existsSync(listing), `[${kind}/${launcher}] the fake pi never ran`);
+        const names = fs.readFileSync(listing, "utf8").split(/\r?\n/);
+        ok(!names.includes("review-out.md"), `[${kind}/${launcher}] the review checkout held the excluded --out file: ${names}`);
+      }
+      fs.writeFileSync(outPath, "old output\n"); // restore for the next launcher's run
+    }
+    // This kind's --out location is reached via a DIFFERENT folder spelling each iteration
+    // (sometimes the repo root itself, sometimes a subfolder): remove it so it cannot leak
+    // into a later kind's snapshot as an unrelated extra untracked file.
+    fs.rmSync(outPath, { force: true });
+   }
+  });
+  else console.log(skipMsg("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path warns, runs, and stays out of the snapshot and the review checkout"));
+}
+
+// -- GP2 case divergence (MUST 1 of brief 2, matching leg): an untracked --out under the SAME
+// disk/index case-diverged folder as above must still stay out of the snapshot and the review
+// checkout — the enumerated untracked path can carry git's adjust_dirname_case (the INDEX's case
+// for the folder), while the exclude set `realOut`/`relUnder` built carries the disk's case.
+{
+  const cd2Repo = repo(tmpRoot, "gp2-case-divergence-repo");
+  fs.mkdirSync(path.join(cd2Repo, "Docs"));
+  fs.writeFileSync(path.join(cd2Repo, "Docs", "seed.md"), "seed\n");
+  git(cd2Repo, "add", "Docs");
+  git(cd2Repo, "commit", "-qm", "add Docs/seed.md");
+  const cd2Base = git(cd2Repo, "rev-parse", "HEAD");
+  git(cd2Repo, "mv", "Docs", "tmp");
+  git(cd2Repo, "mv", "tmp", "docs");
+  git(cd2Repo, "commit", "-qm", "case-only rename");
+  // `reset --mixed` (see the GP1 case-divergence block above): moves HEAD/index back to the
+  // pre-rename commit without touching the working tree, so the disk stays "docs".
+  git(cd2Repo, "reset", "--mixed", cd2Base);
+  const headSha2 = git(cd2Repo, "rev-parse", "HEAD");
+  const diskName2 = fs.readdirSync(cd2Repo).find((n) => n.toLowerCase() === "docs");
+  if (diskName2 !== "docs") {
+    console.log("SKIP GP2 (case-divergence): this volume's git kept the disk and index/HEAD case in sync after reset --mixed");
+  } else {
+    // req: R-1351
+    check("GP2: an untracked in-tree --out under a folder whose disk case diverges from git's index/HEAD stays out of the snapshot and the review checkout", () => {
+      const outPath = path.join(cd2Repo, "docs", "gp2-casediv-out.md");
       fs.writeFileSync(outPath, "old output\n");
       for (const launcher of ["ledger-run", "pi-review"]) {
         const home = freshHome();
-        const item = `gp2-${kind}-${launcher}`;
-        const listing = path.join(tmpRoot, `gp2-listing-${kind}-${launcher}`);
+        const item = `gp2-casediv-${launcher}`;
+        const listing = path.join(tmpRoot, `gp2-casediv-listing-${launcher}`);
         let res;
         if (launcher === "ledger-run") {
-          res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
+          res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: cd2Repo, env: env(home), encoding: "utf8" });
         } else {
-          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
+          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: cd2Repo, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
         }
-        ok(res.status === 0, `[${kind}/${launcher}] expected exit 0: ${res.stderr}`);
-        ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${kind}/${launcher}] missing in-tree warning: ${res.stderr}`);
+        ok(res.status === 0, `[${launcher}] expected exit 0: ${res.stderr}`);
+        ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${launcher}] missing in-tree warning: ${res.stderr}`);
         const rows = readRounds(home, { item });
-        ok(rows.length === 1, `[${kind}/${launcher}] expected one recorded round, got ${rows.length}`);
-        ok(rows[0].revision === headSha && !rows[0].unverified, `[${kind}/${launcher}] expected the bare HEAD sha, got ${JSON.stringify(rows[0])}`);
+        ok(rows.length === 1, `[${launcher}] expected one recorded round, got ${rows.length}`);
+        ok(rows[0].revision === headSha2 && !rows[0].unverified, `[${launcher}] expected the bare HEAD sha, got ${JSON.stringify(rows[0])}`);
         if (launcher === "pi-review") {
-          ok(fs.existsSync(listing), `[${kind}/${launcher}] the fake pi never ran`);
+          ok(fs.existsSync(listing), `[${launcher}] the fake pi never ran`);
           const names = fs.readFileSync(listing, "utf8").split(/\r?\n/);
-          ok(!names.includes("review-out.md"), `[${kind}/${launcher}] the review checkout held the excluded --out file: ${names}`);
+          ok(!names.includes("gp2-casediv-out.md"), `[${launcher}] the review checkout held the excluded --out file: ${names}`);
         }
-        fs.writeFileSync(outPath, "old output\n"); // restore for the next launcher's run
+        fs.writeFileSync(outPath, "old output\n");
       }
-      // This kind's --out location is reached via a DIFFERENT folder spelling each iteration
-      // (sometimes the repo root itself, sometimes a subfolder): remove it so it cannot leak
-      // into a later kind's snapshot as an unrelated extra untracked file.
-      fs.rmSync(outPath, { force: true });
-    }
-  });
+    });
+  }
 }
 
 // ================================================================= GP3 (R-1352)
@@ -225,35 +347,36 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const spellings = otherSpellings(canonical, "GP3");
   const scratch = tmpDir(path.join(tmpRoot, "gp3-scratch-"));
   // req: R-1352
-  check("GP3: one repository reviewed through two spellings of its folder is one ledger item, under one repo key, reported under either spelling", () => {
-    for (const { kind, path: spelled } of spellings) {
-      printSpelling("GP3", kind, canonical, spelled);
-      const home = freshHome();
-      const item = `gp3-${kind}`;
-      commit(gp3Repo, `c1-${kind}.txt`, "c1\n", "c1");
-      const r1 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", path.join(tmpRoot, `gp3-out1-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
-      ok(r1.status === 0, `round 1 (canonical cwd) refused: ${r1.stderr}`);
-      commit(gp3Repo, `c2-${kind}.txt`, "c2\n", "c2");
-      const r2 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out2-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: scratch, env: env(home), encoding: "utf8" });
-      ok(r2.status === 0, `round 2 (--tree ${kind}) refused: ${r2.stderr}`);
-      commit(gp3Repo, `c3-${kind}.txt`, "c3\n", "c3");
-      const r3 = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out3-${kind}.md`), "--retries", "0", "--", "-p", "review"], { cwd: scratch, env: env(home), encoding: "utf8" });
-      ok(r3.status === 0, `round 3 (pi-review --tree ${kind}) refused: ${r3.stderr}`);
-      const rows = readRounds(home, { item });
-      ok(rows.length === 3, `expected 3 recorded rounds, got ${rows.length}: ${JSON.stringify(rows)}`);
-      const repoKeys = new Set(rows.map((r) => r.repo));
-      ok(repoKeys.size === 1, `expected one repo key across all three rounds, got ${[...repoKeys]}`);
-      commit(gp3Repo, `c4-${kind}.txt`, "c4\n", "c4");
-      const r4 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out4-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: scratch, env: env(home), encoding: "utf8" });
-      ok(r4.status === 1, `round 4 should be over the cap, got exit ${r4.status}`);
-      ok(/over the cap/.test(r4.stderr), `round 4 did not refuse over the cap: ${r4.stderr}`);
-      for (const repoArg of [spelled, canonical]) {
-        const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", item, "--repo", repoArg], { cwd: canonical, env: env(home), encoding: "utf8" });
-        const lines = report.stdout.trim().split(/\r?\n/).filter(Boolean);
-        ok(report.status === 0 && lines.length === 3, `report --repo ${repoArg} printed ${lines.length} lines, expected 3: ${report.stdout} ${report.stderr}`);
-      }
+  if (spellings.length) check("GP3: one repository reviewed through two spellings of its folder is one ledger item, under one repo key, reported under either spelling", () => {
+   for (const { kind, path: spelled } of spellings) {
+    printSpelling("GP3", kind, canonical, spelled);
+    const home = freshHome();
+    const item = `gp3-${kind}`;
+    commit(gp3Repo, `c1-${kind}.txt`, "c1\n", "c1");
+    const r1 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", path.join(tmpRoot, `gp3-out1-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
+    ok(r1.status === 0, `round 1 (canonical cwd) refused: ${r1.stderr}`);
+    commit(gp3Repo, `c2-${kind}.txt`, "c2\n", "c2");
+    const r2 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out2-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: scratch, env: env(home), encoding: "utf8" });
+    ok(r2.status === 0, `round 2 (--tree ${kind}) refused: ${r2.stderr}`);
+    commit(gp3Repo, `c3-${kind}.txt`, "c3\n", "c3");
+    const r3 = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out3-${kind}.md`), "--retries", "0", "--", "-p", "review"], { cwd: scratch, env: env(home), encoding: "utf8" });
+    ok(r3.status === 0, `round 3 (pi-review --tree ${kind}) refused: ${r3.stderr}`);
+    const rows = readRounds(home, { item });
+    ok(rows.length === 3, `expected 3 recorded rounds, got ${rows.length}: ${JSON.stringify(rows)}`);
+    const repoKeys = new Set(rows.map((r) => r.repo));
+    ok(repoKeys.size === 1, `expected one repo key across all three rounds, got ${[...repoKeys]}`);
+    commit(gp3Repo, `c4-${kind}.txt`, "c4\n", "c4");
+    const r4 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out4-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: scratch, env: env(home), encoding: "utf8" });
+    ok(r4.status === 1, `round 4 should be over the cap, got exit ${r4.status}`);
+    ok(/over the cap/.test(r4.stderr), `round 4 did not refuse over the cap: ${r4.stderr}`);
+    for (const repoArg of [spelled, canonical]) {
+      const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", item, "--repo", repoArg], { cwd: canonical, env: env(home), encoding: "utf8" });
+      const lines = report.stdout.trim().split(/\r?\n/).filter(Boolean);
+      ok(report.status === 0 && lines.length === 3, `report --repo ${repoArg} printed ${lines.length} lines, expected 3: ${report.stdout} ${report.stderr}`);
     }
+   }
   });
+  else console.log(skipMsg("GP3: one repository reviewed through two spellings of its folder is one ledger item, under one repo key, reported under either spelling"));
 }
 
 // ================================================================= GP4 (R-1353)
@@ -266,24 +389,25 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const tempParent = fs.realpathSync.native(tmpDir(path.join(tmpRoot, "gp4-temp-")));
   const spellings = otherSpellings(tempParent, "GP4");
   // req: R-1353
-  check("GP4: a dead review checkout registered under one spelling of the temp folder is reclaimed when pi-review's own temp folder env points at another", () => {
-    for (const { kind, path: other } of spellings) {
-      printSpelling("GP4", kind, tempParent, other);
-      for (const [dirA, dirB, label] of [[tempParent, other, "canonical-then-other"], [other, tempParent, "other-then-canonical"]]) {
-        const dead = spawnSync(process.execPath, ["-e", ""]).pid;
-        ok(Number.isInteger(dead) && dead > 0, `could not get a dead pid`);
-        const deadPath = path.join(dirA, `nana-review-${dead}-gp4`);
-        git(canonicalRepo, "worktree", "add", "--detach", deadPath);
-        const home = freshHome();
-        const tempEnv = win32 ? { TEMP: dirB, TMP: dirB } : { TMPDIR: dirB };
-        const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp4-${kind}-${label}`, "--out", path.join(tmpRoot, `gp4-out-${kind}-${label}.md`), "--retries", "0", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, tempEnv), encoding: "utf8" });
-        const worktrees = git(canonicalRepo, "worktree", "list", "--porcelain");
-        ok(res.status === 0, `[${kind}/${label}] pi-review refused: ${res.stderr}`);
-        ok(!fs.existsSync(deadPath), `[${kind}/${label}] the dead checkout folder is still present: ${deadPath}`);
-        ok(!worktrees.includes(`nana-review-${dead}-gp4`), `[${kind}/${label}] the dead checkout is still registered: ${worktrees}`);
-      }
+  if (spellings.length) check("GP4: a dead review checkout registered under one spelling of the temp folder is reclaimed when pi-review's own temp folder env points at another", () => {
+   for (const { kind, path: other } of spellings) {
+    printSpelling("GP4", kind, tempParent, other);
+    for (const [dirA, dirB, label] of [[tempParent, other, "canonical-then-other"], [other, tempParent, "other-then-canonical"]]) {
+      const dead = spawnSync(process.execPath, ["-e", ""]).pid;
+      ok(Number.isInteger(dead) && dead > 0, `could not get a dead pid`);
+      const deadPath = path.join(dirA, `nana-review-${dead}-gp4`);
+      git(canonicalRepo, "worktree", "add", "--detach", deadPath);
+      const home = freshHome();
+      const tempEnv = win32 ? { TEMP: dirB, TMP: dirB } : { TMPDIR: dirB };
+      const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp4-${kind}-${label}`, "--out", path.join(tmpRoot, `gp4-out-${kind}-${label}.md`), "--retries", "0", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, tempEnv), encoding: "utf8" });
+      const worktrees = git(canonicalRepo, "worktree", "list", "--porcelain");
+      ok(res.status === 0, `[${kind}/${label}] pi-review refused: ${res.stderr}`);
+      ok(!fs.existsSync(deadPath), `[${kind}/${label}] the dead checkout folder is still present: ${deadPath}`);
+      ok(!worktrees.includes(`nana-review-${dead}-gp4`), `[${kind}/${label}] the dead checkout is still registered: ${worktrees}`);
     }
+   }
   });
+  else console.log(skipMsg("GP4: a dead review checkout registered under one spelling of the temp folder is reclaimed when pi-review's own temp folder env points at another"));
 }
 
 // ================================================================= GP5 (R-1354)
@@ -296,24 +420,25 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const tempParent = fs.realpathSync.native(tmpDir(path.join(tmpRoot, "gp5-temp-")));
   const spellings = otherSpellings(tempParent, "GP5");
   // req: R-1354
-  check("GP5: a remaining review checkout registration is reported and refused when the temp folder is spelled differently", () => {
-    for (const { kind, path: other } of spellings) {
-      printSpelling("GP5", kind, tempParent, other);
-      const home = freshHome();
-      const tempEnv = win32 ? { TEMP: other, TMP: other } : { TMPDIR: other };
-      const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp5-${kind}`, "--out", path.join(tmpRoot, `gp5-out-${kind}.md`), "--retries", "0", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, { ...tempEnv, MODE: "lock" }), encoding: "utf8" });
-      ok(res.status === 1, `[${kind}] expected exit 1, got ${res.status}: ${res.stderr}`);
-      ok(/worktree registration remains/.test(res.stderr), `[${kind}] missing "worktree registration remains": ${res.stderr}`);
-      // Clean up the lock this check left, so it cannot block a later pi-review on this repo.
-      const porcelain = git(canonicalRepo, "worktree", "list", "--porcelain");
-      const stale = porcelain.split(/\r?\n/).filter((l) => l.startsWith("worktree ") && l.includes("nana-review-")).map((l) => l.slice(9));
-      for (const p of stale) {
-        spawnSync("git", ["worktree", "unlock", p], { cwd: canonicalRepo });
-        spawnSync("git", ["worktree", "remove", "--force", "--force", p], { cwd: canonicalRepo });
-      }
-      spawnSync("git", ["worktree", "prune", "--expire", "now"], { cwd: canonicalRepo });
+  if (spellings.length) check("GP5: a remaining review checkout registration is reported and refused when the temp folder is spelled differently", () => {
+   for (const { kind, path: other } of spellings) {
+    printSpelling("GP5", kind, tempParent, other);
+    const home = freshHome();
+    const tempEnv = win32 ? { TEMP: other, TMP: other } : { TMPDIR: other };
+    const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp5-${kind}`, "--out", path.join(tmpRoot, `gp5-out-${kind}.md`), "--retries", "0", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, { ...tempEnv, MODE: "lock" }), encoding: "utf8" });
+    ok(res.status === 1, `[${kind}] expected exit 1, got ${res.status}: ${res.stderr}`);
+    ok(/worktree registration remains/.test(res.stderr), `[${kind}] missing "worktree registration remains": ${res.stderr}`);
+    // Clean up the lock this check left, so it cannot block a later pi-review on this repo.
+    const porcelain = git(canonicalRepo, "worktree", "list", "--porcelain");
+    const stale = porcelain.split(/\r?\n/).filter((l) => l.startsWith("worktree ") && l.includes("nana-review-")).map((l) => l.slice(9));
+    for (const p of stale) {
+      spawnSync("git", ["worktree", "unlock", p], { cwd: canonicalRepo });
+      spawnSync("git", ["worktree", "remove", "--force", "--force", p], { cwd: canonicalRepo });
     }
+    spawnSync("git", ["worktree", "prune", "--expire", "now"], { cwd: canonicalRepo });
+   }
   });
+  else console.log(skipMsg("GP5: a remaining review checkout registration is reported and refused when the temp folder is spelled differently"));
 }
 
 // ================================================================= GP6 (R-1355)
@@ -336,16 +461,17 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     const canonicalMain = fs.realpathSync.native(main);
     const spellings = otherSpellings(canonicalMain, "GP6(i)");
     // req: R-1355
-    check("GP6(i): nana-land merge treats --main through a second spelling as the registered checkout", () => {
-      for (const { kind, path: spelled } of spellings) {
-        printSpelling("GP6(i)", kind, canonicalMain, spelled);
-        const home = freshHome();
-        recordLand(home, feature, `gp6i-${kind}`, tip);
-        const out = runLand({ tree: feature, main: spelled, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6i-${kind}`], home });
-        ok(out.code === 0, `[${kind}] runLand refused: ${out.text}`);
-        ok(git(main, "rev-parse", "HEAD") === tip, `[${kind}] main did not advance to the tip`);
-      }
+    if (spellings.length) check("GP6(i): nana-land merge treats --main through a second spelling as the registered checkout", () => {
+     for (const { kind, path: spelled } of spellings) {
+      printSpelling("GP6(i)", kind, canonicalMain, spelled);
+      const home = freshHome();
+      recordLand(home, feature, `gp6i-${kind}`, tip);
+      const out = runLand({ tree: feature, main: spelled, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6i-${kind}`], home });
+      ok(out.code === 0, `[${kind}] runLand refused: ${out.text}`);
+      ok(git(main, "rev-parse", "HEAD") === tip, `[${kind}] main did not advance to the tip`);
+     }
     });
+    else console.log(skipMsg("GP6(i): nana-land merge treats --main through a second spelling as the registered checkout"));
   }
   // (ii) the original checkout O is on feat/gp6ii; a linked worktree holds main; LAND via --tree O.
   {
@@ -357,16 +483,17 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     const canonicalOrig = fs.realpathSync.native(original);
     const spellings = otherSpellings(canonicalOrig, "GP6(ii)");
     // req: R-1355
-    check("GP6(ii): nana-land merge treats --tree through a second spelling as the registered checkout", () => {
-      for (const { kind, path: spelled } of spellings) {
-        printSpelling("GP6(ii)", kind, canonicalOrig, spelled);
-        const home = freshHome();
-        recordLand(home, original, `gp6ii-${kind}`, tip);
-        const out = runLand({ tree: spelled, main: linkedMain, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6ii-${kind}`], home });
-        ok(out.code === 0, `[${kind}] runLand refused: ${out.text}`);
-        ok(git(linkedMain, "rev-parse", "HEAD") === tip, `[${kind}] main did not advance to the tip`);
-      }
+    if (spellings.length) check("GP6(ii): nana-land merge treats --tree through a second spelling as the registered checkout", () => {
+     for (const { kind, path: spelled } of spellings) {
+      printSpelling("GP6(ii)", kind, canonicalOrig, spelled);
+      const home = freshHome();
+      recordLand(home, original, `gp6ii-${kind}`, tip);
+      const out = runLand({ tree: spelled, main: linkedMain, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6ii-${kind}`], home });
+      ok(out.code === 0, `[${kind}] runLand refused: ${out.text}`);
+      ok(git(linkedMain, "rev-parse", "HEAD") === tip, `[${kind}] main did not advance to the tip`);
+     }
     });
+    else console.log(skipMsg("GP6(ii): nana-land merge treats --tree through a second spelling as the registered checkout"));
   }
   // (iii) runCleanup(lane, {main: M3, worktree: <S of W>}) removes the lane worktree and branch.
   {
@@ -374,23 +501,34 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     const canonicalMain = fs.realpathSync.native(main);
     const spellings = otherSpellings(canonicalMain, "GP6(iii)-main");
     // req: R-1355
-    check("GP6(iii): nana-land cleanup matches a worktree named through a second spelling to its registration", () => {
-      for (const { kind, path: spelledMain } of spellings) {
-        const feature = path.join(tmpRoot, `gp6iii-feat-${kind}`);
-        git(main, "worktree", "add", "-b", `feat/gp6iii-${kind}`, feature);
-        commit(feature, `next-${kind}.txt`, "next\n", "next");
-        git(main, "merge", "--ff-only", `feat/gp6iii-${kind}`);
+    if (spellings.length) check("GP6(iii): nana-land cleanup matches a worktree named through a second spelling to its registration", () => {
+     for (const { kind, path: spelledMain } of spellings) {
+      // Learn this volume's available WORKTREE-folder spelling kinds from one throwaway worktree,
+      // then tear it down (main still needs a clean, available branch slot), so every kind below
+      // gets its OWN fresh worktree — SHOULD 3 (brief 2): a successful cleanup REMOVES its
+      // subject, so reusing one worktree across kinds could only ever exercise the first.
+      const probe = path.join(tmpRoot, `gp6iii-probe-${kind}`);
+      git(main, "worktree", "add", "-b", `feat/gp6iii-probe-${kind}`, probe);
+      const featureKinds = otherSpellings(fs.realpathSync.native(probe), "GP6(iii)-feature").map((s) => s.kind);
+      const probeResult = runCleanup(`gp6iii-probe-${kind}`, { main: spelledMain, worktree: probe });
+      ok(probeResult.code === 0, `[${kind}] probe cleanup refused: ${probeResult.text}`);
+      if (!featureKinds.length) { console.log(`SKIP GP6(iii) [${kind}] — no second spelling of the feature worktree is available`); continue; }
+      for (const wtKind of featureKinds) {
+        const feature = path.join(tmpRoot, `gp6iii-feat-${kind}-${wtKind}`);
+        git(main, "worktree", "add", "-b", `feat/gp6iii-${kind}-${wtKind}`, feature);
+        commit(feature, `next-${kind}-${wtKind}.txt`, "next\n", "next");
+        git(main, "merge", "--ff-only", `feat/gp6iii-${kind}-${wtKind}`);
         const canonicalFeature = fs.realpathSync.native(feature);
-        const featureSpellings = otherSpellings(canonicalFeature, "GP6(iii)-feature");
-        for (const { kind: wtKind, path: spelledFeature } of featureSpellings) {
-          printSpelling("GP6(iii)", `${kind}+${wtKind}`, `${canonicalMain}|${canonicalFeature}`, `${spelledMain}|${spelledFeature}`);
-          const result = runCleanup(`gp6iii-${kind}`, { main: spelledMain, worktree: spelledFeature });
-          ok(result.code === 0, `[${kind}/${wtKind}] cleanup refused: ${result.text}`);
-          ok(!fs.existsSync(feature), `[${kind}/${wtKind}] the worktree folder is still present`);
-          break; // one worktree spelling per main spelling keeps this O(spellings), not O(spellings^2)
-        }
+        const spelledFeature = otherSpellings(canonicalFeature, "GP6(iii)-feature").find((s) => s.kind === wtKind)?.path;
+        ok(spelledFeature, `[${kind}/${wtKind}] expected a ${wtKind} spelling of ${canonicalFeature} to still be available`);
+        printSpelling("GP6(iii)", `${kind}+${wtKind}`, `${canonicalMain}|${canonicalFeature}`, `${spelledMain}|${spelledFeature}`);
+        const result = runCleanup(`gp6iii-${kind}-${wtKind}`, { main: spelledMain, worktree: spelledFeature });
+        ok(result.code === 0, `[${kind}/${wtKind}] cleanup refused: ${result.text}`);
+        ok(!fs.existsSync(feature), `[${kind}/${wtKind}] the worktree folder is still present`);
       }
+     }
     });
+    else console.log(skipMsg("GP6(iii): nana-land cleanup matches a worktree named through a second spelling to its registration"));
   }
 }
 
@@ -402,51 +540,67 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const feature = path.join(tmpRoot, "gp7-feat");
   git(main, "worktree", "add", "-b", "feat/gp7", feature);
   const tip = commit(feature, "next.txt", "next\n", "next");
-  const canonicalFeature = fs.realpathSync.native(feature);
-  // Spelled through the FEATURE checkout (already at `tip`), so admit()'s own HEAD-derived
-  // revision naturally equals `tip` without needing a separate --revision override.
-  const spellings = otherSpellings(canonicalFeature, "GP7");
+  const canonicalMain = fs.realpathSync.native(main);
+  // MUST 2 (brief 2): spell the MAIN checkout, not the linked FEATURE worktree. A linked
+  // worktree's `git rev-parse --git-common-dir` (no --path-format) prints a "../.." path whose
+  // suffix is already the absolute, correctly-cased string git wrote at `worktree add` time, so
+  // spelling the worktree's OWN folder never reaches repoKeyOf's old bug (confirmed: that is why
+  // this check used to pass even on the unfixed tools). The MAIN checkout's own common dir is
+  // just ".git", so the old `resolve(tree, ".git")` kept whatever case `tree` itself carried.
+  // Detach main's own checkout at the tip for the admit calls below; it is restored to branch
+  // "main" (unchanged, at the base commit) before runLand, which requires that.
+  const spellings = otherSpellings(canonicalMain, "GP7");
   // req: R-1356
-  check("GP7: a non-LAND verdict or an in-flight review recorded through a second spelling of the repository's folder refuses the land", () => {
-    for (const { kind, path: spelled } of spellings) {
-      printSpelling("GP7", kind, canonicalFeature, spelled);
-      // Leg 1: a verified SEND-BACK for another item at the tip, recorded through the spelled path.
-      {
-        const home = freshHome();
-        const admission = admit(["--item", `gp6-other-${kind}`, "--tree", spelled, "--role", "test"], { home, cwd: spelled, launcher: "path-spelling.test.mjs" });
-        ok(admission.ok, `[${kind}] admit (send-back) failed: ${admission.message}`);
-        const c = complete(admission.res, "VERDICT: SEND-BACK", { home });
-        ok(c.ok, `[${kind}] complete (send-back) failed: ${c.message}`);
-        const landAdmission = admit(["--item", `gp6-${kind}`, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "path-spelling.test.mjs" });
-        ok(landAdmission.ok, `[${kind}] admit (land) failed: ${landAdmission.message}`);
-        const landComplete = complete(landAdmission.res, "VERDICT: LAND", { home });
-        ok(landComplete.ok, `[${kind}] complete (land) failed: ${landComplete.message}`);
-        const before = git(main, "rev-parse", "HEAD");
-        const out = runLand({ tree: feature, main, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6-${kind}`], home });
-        ok(out.code !== 0, `[${kind}] non-LAND leg: expected a refusal, got code 0`);
-        ok(/non-LAND verdict/.test(out.text), `[${kind}] non-LAND leg: missing "non-LAND verdict": ${out.text}`);
-        ok(git(main, "rev-parse", "HEAD") === before, `[${kind}] non-LAND leg: main moved`);
-      }
-      // Leg 2: item A is LANDED at the tip; item B is admitted (not completed) at the tip, through
-      // the spelled path. The in-flight reservation for B must still block the land of A, because
-      // the round cap (and this check) binds to the REVISION, not the item.
-      {
-        const home = freshHome();
-        const landAdmission = admit(["--item", `gp6-land-${kind}`, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "path-spelling.test.mjs" });
-        ok(landAdmission.ok, `[${kind}] admit (land) failed: ${landAdmission.message}`);
-        const landComplete = complete(landAdmission.res, "VERDICT: LAND", { home });
-        ok(landComplete.ok, `[${kind}] complete (land) failed: ${landComplete.message}`);
-        const held = admit(["--item", `gp6-inflight-${kind}`, "--tree", spelled, "--role", "test"], { home, cwd: spelled, launcher: "path-spelling.test.mjs" });
-        ok(held.ok, `[${kind}] admit (in-flight) failed: ${held.message}`);
-        ok(held.res.revision === tip, `[${kind}] admitted revision is not the tip: ${held.res.revision}`);
-        const before = git(main, "rev-parse", "HEAD");
-        const out = runLand({ tree: feature, main, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6-land-${kind}`], home });
-        ok(out.code !== 0, `[${kind}] in-flight leg: expected a refusal, got code 0`);
-        ok(/review in flight/.test(out.text), `[${kind}] in-flight leg: missing "review in flight": ${out.text}`);
-        ok(git(main, "rev-parse", "HEAD") === before, `[${kind}] in-flight leg: main moved`);
-      }
+  if (spellings.length) check("GP7: a non-LAND verdict or an in-flight review recorded through a second spelling of the repository's folder refuses the land", () => {
+   for (const { kind, path: spelled } of spellings) {
+    printSpelling("GP7", kind, canonicalMain, spelled);
+    // Leg 1: a verified SEND-BACK for another item at the tip, recorded through the spelled path.
+    // Main is detached at the tip for BOTH admit AND complete — complete() re-derives the
+    // revision under the admission's own stored cwd, so the tree there must still read as the
+    // tip when it runs — then restored to branch "main" before runLand, which requires that.
+    {
+      const home = freshHome();
+      git(main, "checkout", "-q", "--detach", tip);
+      const admission = admit(["--item", `gp6-other-${kind}`, "--tree", spelled, "--role", "test"], { home, cwd: spelled, launcher: "path-spelling.test.mjs" });
+      const c = admission.ok ? complete(admission.res, "VERDICT: SEND-BACK", { home }) : null;
+      git(main, "checkout", "-q", "main");
+      ok(admission.ok, `[${kind}] admit (send-back) failed: ${admission.message}`);
+      ok(admission.res.revision === tip, `[${kind}] admitted revision is not the tip: ${admission.res.revision}`);
+      ok(c?.ok, `[${kind}] complete (send-back) failed: ${c?.message}`);
+      const landAdmission = admit(["--item", `gp6-${kind}`, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "path-spelling.test.mjs" });
+      ok(landAdmission.ok, `[${kind}] admit (land) failed: ${landAdmission.message}`);
+      const landComplete = complete(landAdmission.res, "VERDICT: LAND", { home });
+      ok(landComplete.ok, `[${kind}] complete (land) failed: ${landComplete.message}`);
+      const before = git(main, "rev-parse", "HEAD");
+      const out = runLand({ tree: feature, main, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6-${kind}`], home });
+      ok(out.code !== 0, `[${kind}] non-LAND leg: expected a refusal, got code 0`);
+      ok(/non-LAND verdict/.test(out.text), `[${kind}] non-LAND leg: missing "non-LAND verdict": ${out.text}`);
+      ok(git(main, "rev-parse", "HEAD") === before, `[${kind}] non-LAND leg: main moved`);
     }
+    // Leg 2: item A is LANDED at the tip; item B is admitted (not completed) at the tip, through
+    // the spelled path. The in-flight reservation for B must still block the land of A, because
+    // the round cap (and this check) binds to the REVISION, not the item. `held` is never
+    // completed, so main only needs to be detached for the admit() call itself.
+    {
+      const home = freshHome();
+      const landAdmission = admit(["--item", `gp6-land-${kind}`, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "path-spelling.test.mjs" });
+      ok(landAdmission.ok, `[${kind}] admit (land) failed: ${landAdmission.message}`);
+      const landComplete = complete(landAdmission.res, "VERDICT: LAND", { home });
+      ok(landComplete.ok, `[${kind}] complete (land) failed: ${landComplete.message}`);
+      git(main, "checkout", "-q", "--detach", tip);
+      const held = admit(["--item", `gp6-inflight-${kind}`, "--tree", spelled, "--role", "test"], { home, cwd: spelled, launcher: "path-spelling.test.mjs" });
+      git(main, "checkout", "-q", "main");
+      ok(held.ok, `[${kind}] admit (in-flight) failed: ${held.message}`);
+      ok(held.res.revision === tip, `[${kind}] admitted revision is not the tip: ${held.res.revision}`);
+      const before = git(main, "rev-parse", "HEAD");
+      const out = runLand({ tree: feature, main, suite: "node -e \"process.exit(0)\"", reviewed: [`${tip}=gp6-land-${kind}`], home });
+      ok(out.code !== 0, `[${kind}] in-flight leg: expected a refusal, got code 0`);
+      ok(/review in flight/.test(out.text), `[${kind}] in-flight leg: missing "review in flight": ${out.text}`);
+      ok(git(main, "rev-parse", "HEAD") === before, `[${kind}] in-flight leg: main moved`);
+    }
+   }
   });
+  else console.log(skipMsg("GP7: a non-LAND verdict or an in-flight review recorded through a second spelling of the repository's folder refuses the land"));
 }
 
 console.log(failures ? `${failures} FAILED` : "all passed");

@@ -30,7 +30,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree, realOut } from './review-round.mjs';
-import { realPath, gitPathKey } from '../lib/real-path.mjs';
+import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
@@ -126,11 +126,17 @@ const removeWorktree = () => {
 };
 const copySnapshot = (root, target, excludedPath = null) => {
   const files = [...new Set([...list(root, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']), ...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
+  const excludedKey = excludedPath ? gitPathKey(resolve(excludedPath)) : null;
+  // MUST 1 (brief 2): under a case-diverged folder, git's own untracked-file listing can carry
+  // the INDEX's case (adjust_dirname_case) rather than the disk case `excludedPath` was built
+  // from, so the key compare above can miss it. Identity (dev+ino) does not depend on case.
+  const excludedId = excludedPath ? fileIdentity(excludedPath) : null;
   for (const p of files) {
     const from = join(root, p), to = join(target, p);
-    if (excludedPath && gitPathKey(resolve(from)) === gitPathKey(excludedPath)) continue;
+    if (excludedKey && gitPathKey(resolve(from)) === excludedKey) continue;
     let st;
     try { st = lstatSync(from); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') { rmSync(to, { recursive: true, force: true }); continue; } throw e; }
+    if (excludedId && Number.isFinite(st.dev) && Number.isFinite(st.ino) && st.dev === excludedId.dev && st.ino === excludedId.ino) continue;
     mkdirSync(dirname(to), { recursive: true });
     rmSync(to, { recursive: true, force: true });
     if (st.isSymbolicLink()) symlinkSync(readlinkSync(from), to);
