@@ -127,7 +127,7 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 		}
 		if (ch === "`" && i + 1 < source.length) {
 			live += hidden(ch) + hidden(source[i + 1]);
-			if (source[i + 1] === "\n" || source[i + 1] === "\r") tokenStart = true;
+			tokenStart = source[i + 1] === "\n" || source[i + 1] === "\r";
 			i += 2;
 			continue;
 		}

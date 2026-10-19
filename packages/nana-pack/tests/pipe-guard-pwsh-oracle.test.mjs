@@ -91,6 +91,8 @@ const tokenStartCases = [
 	["dollar before line comment marker", "$#c", true],
 	["word subexpression before line comment marker", "a$(1)#c", true],
 	["escaped space before line comment marker", "a` #c", true],
+	["leading escape before line comment marker", "`a#c", true],
+	["leading escape before block comment marker", "`a<#c", true],
 	["braced variable before line comment marker", "${a}#c", true],
 	["quoted part before block comment marker", "a'b'<#c", true],
 	["indexed variable starts a comment", "$a[0]#c", false],

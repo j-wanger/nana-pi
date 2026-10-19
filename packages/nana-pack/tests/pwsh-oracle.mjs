@@ -56,7 +56,7 @@ function mulberry32(seed) {
 }
 
 const atoms = [
-	"alpha", "$a", "$a[0]", "${a}", "$env:X[0]", "a#b", "a<#b", "a@'b'", 'a@"b"',
+	"alpha", "$a", "$a[0]", "${a}", "$env:X[0]", "`a#b", "a#b", "a<#b", "a@'b'", 'a@"b"',
 	"'a''b'", '"a`"b"', "‘a’’b’", "'a‛", '“a””b”', '"a„',
 	"$(Write-Output inner)", "a$(Write-Output inner)b", "(Write-Output inner)", "{ Write-Output inner }",
 	'"a$(Write-Output \'inner\')b"',
