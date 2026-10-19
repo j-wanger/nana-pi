@@ -1,0 +1,49 @@
+# Review — win-review-stubs (the Windows test run proves pi-review's review-standard refusals and its handoff-off reviewer child), 2026-10-19 (Opus, the lane's one final reviewer)
+
+Feature: FEAT-007 · Review a specific revision independently
+
+Review `git diff 77aa31d..HEAD` on `feat/win-review-stubs`. The lane started from `77aa31d`, the knowledge-refresh-pin
+lane's reviewed tip, not from main; that lane lands first. `git merge-base HEAD main` is `904aa30`, so `git diff
+904aa30..HEAD` also shows knowledge-refresh-pin's change, which its own review covers. Main was `8bbcd48` when this
+brief was written; the lane has not merged it, so a merge of the chain end and a confirmation round follow before the
+land. The plan of record is `docs/reviews/win-review-stubs-2026-10-19/must-meet.md` (rows R-1680 to R-1683), with the
+adversary's AMEND in `plan-attack.md` and the one build in `build-brief-1.md` (7710d09). The seat's record
+`seat-verify-7710d09.md` holds CI run 39315973548 (0 failing files on macOS, Ubuntu and Windows; on Windows both test
+files pass 7 with no skip), the Windows log `ci-windows-run-1.log` beside it.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base 77aa31d1` at 7710d09; the seat's notes commit
+changes no row): four rows added under FEAT-007, all `implemented`; no existing row changed. Against main (`--base
+main`) the report shows 12 rows in 3 features; the other eight are knowledge-refresh-pin's.
+
+```
+tree movement 77aa31d..7710d09: 4 rows in 1 features
+FEAT-007 · Review a specific revision independently
+  R-1680 new (implemented)
+  R-1681 new (implemented)
+  R-1682 new (implemented)
+  R-1683 new (implemented)
+```
+
+The change under review: two test files, rows, the tree and the code map only. `bin/pi-review.mjs`,
+`bin/pi-watchdog.mjs` and `tests/fake-pi.mjs` are unchanged. Judge whether, on win32, review-standard's three refusal
+checks start the copied pi-review against a `writeFakePi` npm-layout stub and fail when pi-review admits a missing,
+directory or blank standard. Judge whether the strengthened control, which now also asserts the reservation folder
+under its scratch home, keeps the refusals' "creating no reservation" clause from passing against a ledger kept
+elsewhere, on Windows too, where the ledger home comes from USERPROFILE. Judge whether handoff-writer-role's spawn check
+reads the child's real environment on win32 and fails without `NANA_HANDOFF=off`. Judge whether its new scratch
+repository keeps pi-review's admission (`git worktree add` and `remove`, the tracked-file copy) inside temp, so the
+test no longer touches the checkout it runs from. Judge whether R-1680 to R-1683 are no wider than their checks, and
+whether R-1106 and R-139 still hold on the titles they cite.
+
+Threat model: honest variation in our tools' output and the OS in scope: macOS, Linux and Windows on Node 22, short
+and long temp spellings, env-key case (PATH and Path, HOME and USERPROFILE), npm's global install layout, a lane
+worktree versus the main checkout. Deliberate forgery out (a forged stub, a hostile ledger). Lane class: ordinary — two
+test files, rows, the tree and the code map; no install, hook, extension, gate-policy or land and review tool file.
+
+Check: (1) the must-meet checks are not vacuous: each reds on the wrong-code shapes the plan names (no handoff-off
+setting, a catch that falls through, no blank check, a stub with no marker, a misspelled reservation folder), and each
+row is no wider than its test; (2) no test writes outside the temp folders it owns, and the handoff check no longer
+runs git against its own checkout; (3) nothing else changed: no review-tool or fake-pi code, and the regenerated tree
+and code map match a fresh run; (4) the POSIX legs keep their sh stubs and still pass, and the four marked check
+titles are unchanged byte for byte; (5) HANDOFF and the session entry are true, including the new residual lines;
+(6) any MUST.
