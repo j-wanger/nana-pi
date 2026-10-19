@@ -76,37 +76,37 @@ function register(cwd) {
 	return { bash, call, start, tally, notes, statuses };
 }
 
-const BASE = { gate: { extraPatterns: [], allowPatterns: ["^rm -rf node_modules$"], protectedPaths: [] } };
+const BASE = { gate: { extraPatterns: [], allowPatterns: ["^rm -rf \\.\\./node_modules$"], protectedPaths: [] } };
 writeJson(USER_CFG, BASE);
 const g = register(PROJ);
 await g.start("startup");
-check("baseline: rm -rf build gated", (await g.bash("rm -rf build")) === "BLOCK");
-check("baseline: rm -rf node_modules exempt", (await g.bash("rm -rf node_modules")) === "ALLOW");
+check("baseline: rm -rf build gated", (await g.bash("rm -rf ../build")) === "BLOCK");
+check("baseline: rm -rf node_modules exempt", (await g.bash("rm -rf ../node_modules")) === "ALLOW");
 
 // (1) user allow-everything written behind the gate's back
-writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: ["^rm -rf node_modules$", ".*"] } });
+writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: ["^rm -rf \\.\\./node_modules$", ".*"] } });
 // req: R-059
 check("1: user .* → rm -rf ~ BLOCK", (await g.bash("rm -rf ~")) === "BLOCK");
-check("1: user .* → rm -rf build BLOCK (not in the session baseline)", (await g.bash("rm -rf build")) === "BLOCK");
+check("1: user .* → rm -rf build BLOCK (not in the session baseline)", (await g.bash("rm -rf ../build")) === "BLOCK");
 check("1: user .* → write nana-pack.json BLOCK", (await g.call("write", { path: USER_CFG })) === "BLOCK");
 check("1: user .* → write .pi/nana-pack.json BLOCK", (await g.call("write", { path: ".pi/nana-pack.json" })) === "BLOCK");
 check("1: tally correct", g.tally(), g.statuses.at(-1));
 
 // (2) the empty string, and project scope
-writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: ["^rm -rf node_modules$", ""] } });
+writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: ["^rm -rf \\.\\./node_modules$", ""] } });
 check("2: user \"\" → rm -rf ~ BLOCK", (await g.bash("rm -rf ~")) === "BLOCK");
-check("2: user \"\" → rm -rf build BLOCK", (await g.bash("rm -rf build")) === "BLOCK");
+check("2: user \"\" → rm -rf build BLOCK", (await g.bash("rm -rf ../build")) === "BLOCK");
 // a live REMOVAL of an allow pattern tightens at once
 writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: [] } });
 // req: R-059
-check("2: removing an allow pattern applies live", (await g.bash("rm -rf node_modules")) === "BLOCK");
+check("2: removing an allow pattern applies live", (await g.bash("rm -rf ../node_modules")) === "BLOCK");
 writeJson(USER_CFG, BASE);
 // req: R-061
-check("2: restoring it mid-session does NOT re-open it", (await g.bash("rm -rf node_modules")) === "BLOCK");
+check("2: restoring it mid-session does NOT re-open it", (await g.bash("rm -rf ../node_modules")) === "BLOCK");
 writeJson(PROJ_CFG, { gate: { allowPatterns: [".*", "^rm"], extraPatterns: ["\\bterraform\\s+plan\\b"] } });
 check("2: project .*/^rm → rm -rf ~ BLOCK", (await g.bash("rm -rf ~")) === "BLOCK");
 // req: R-060
-check("2: project ^rm → rm -rf build BLOCK (loosening waits for session_start)", (await g.bash("rm -rf build")) === "BLOCK");
+check("2: project ^rm → rm -rf build BLOCK (loosening waits for session_start)", (await g.bash("rm -rf ../build")) === "BLOCK");
 check("2: project .* → write nana-pack.json BLOCK", (await g.call("edit", { path: PROJ_CFG })) === "BLOCK");
 check("2: the project file IS honored (its extraPattern gates live)", (await g.bash("terraform plan")) === "BLOCK");
 fs.rmSync(PROJ_CFG);
@@ -129,7 +129,7 @@ check("4: no persisted snapshot next to the config", fs.readdirSync(AGENT).filte
 check("4: tally correct", g.tally(), g.statuses.at(-1));
 
 // (6) empty-matching allow pattern: rejected at load, with a warning (and a journal line)
-writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: ["^rm -rf node_modules$", "^rm -rf build$", "^", ".*"] } });
+writeJson(USER_CFG, { gate: { ...BASE.gate, allowPatterns: ["^rm -rf \\.\\./node_modules$", "^rm -rf \\.\\./build$", "^", ".*"] } });
 await g.bash("ls");
 // req: R-043
 check("6: warning names the empty-matching pattern", g.notes.some((m) => m.includes('"^"') && m.includes("empty string")), JSON.stringify(g.notes));
@@ -138,14 +138,14 @@ check("6: journal config_invalid for it", journal().some((e) => e.event === "con
 
 // (5) reload adopts the loosened config and journals it
 await g.start("reload");
-check("5: after reload the new exception applies", (await g.bash("rm -rf build")) === "ALLOW");
+check("5: after reload the new exception applies", (await g.bash("rm -rf ../build")) === "ALLOW");
 check("5: after reload terraform no longer gated (the owner dropped it)", (await g.bash("terraform destroy")) === "ALLOW");
 // req: R-765
-check("5: after reload .* / ^ still exempt nothing", (await g.bash("rm -rf dist")) === "BLOCK");
+check("5: after reload .* / ^ still exempt nothing", (await g.bash("rm -rf ../dist")) === "BLOCK");
 check("5: after reload the floor holds", (await g.bash("rm -rf ~")) === "BLOCK");
 const widened = journal().filter((e) => e.event === "gate_policy_widened");
 // req: R-060
-check("5: gate_policy_widened journaled with reason reload", widened.some((e) => e.reason === "reload" && e.allowAdded?.includes("^rm -rf build$") && e.extraRemoved?.includes("\\bterraform\\s+destroy\\b")), JSON.stringify(widened));
+check("5: gate_policy_widened journaled with reason reload", widened.some((e) => e.reason === "reload" && e.allowAdded?.includes("^rm -rf \\.\\./build$") && e.extraRemoved?.includes("\\bterraform\\s+destroy\\b")), JSON.stringify(widened));
 // req: R-062
 check("5: the rejected patterns are not in the widened line", !widened.some((e) => e.allowAdded?.includes(".*") || e.allowAdded?.includes("^")));
 check("7: tally correct", g.tally(), g.statuses.at(-1));
@@ -157,19 +157,19 @@ check("7: tally correct", g.tally(), g.statuses.at(-1));
 	process.env.USERPROFILE = HOME2;
 	const cfg2 = path.join(HOME2, ".pi", "agent", "nana-pack.json");
 	fs.mkdirSync(path.dirname(cfg2), { recursive: true });
-	fs.writeFileSync(cfg2, '{ "gate": { "allowPatterns": ["^rm -rf build$"], }, }');
+	fs.writeFileSync(cfg2, '{ "gate": { "allowPatterns": ["^rm -rf \\.\\./build$"], }, }');
 	const cwd2 = tmpDir(path.join(os.tmpdir(), "gate-mut-cwd2-"));
 	const s = register(cwd2);
 	await s.start("startup");
 	check("+: malformed at start → ls blocked (stop)", (await s.bash("ls")) === "BLOCK");
-	writeJson(cfg2, { gate: { allowPatterns: ["^rm -rf build$"] } });
+	writeJson(cfg2, { gate: { allowPatterns: ["^rm -rf \\.\\./build$"] } });
 	// req: R-065
 	check("+: repaired → benign ls allowed again without restart", (await s.bash("ls")) === "ALLOW");
 	// req: R-060
-	check("+: repaired file's exception waits for session_start", (await s.bash("rm -rf build")) === "BLOCK");
+	check("+: repaired file's exception waits for session_start", (await s.bash("rm -rf ../build")) === "BLOCK");
 	await s.start("reload");
 	// req: R-065
-	check("+: after reload the repaired exception applies", (await s.bash("rm -rf build")) === "ALLOW");
+	check("+: after reload the repaired exception applies", (await s.bash("rm -rf ../build")) === "ALLOW");
 	check("+: tally correct", s.tally(), s.statuses.at(-1));
 	process.env.HOME = HOME;
 	process.env.USERPROFILE = HOME;
