@@ -22,15 +22,17 @@
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
+import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
+const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
 // an isolated HOME for this file too, so it holds when run directly and not through the runner;
 // OUTER_HOME is what a fixture's per-file HOME must NOT be
@@ -52,6 +54,7 @@ function mkRoot(name, files) {
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
 	fs.copyFileSync(RUNTIME_MAP_CONFIG, path.join(root, "packages", "nana-pack", "lib", "runtime-map-config.mjs"));
+	fs.copyFileSync(WINDOWS_SKIPS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "windows-skips-config.mjs"));
 	for (const [rel, body] of Object.entries(files)) {
 		const p = path.join(root, rel);
 		fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -515,6 +518,68 @@ const helperRun = spawnSync(process.execPath, ["--input-type=module", "-e", [
 const helperRoot = fs.readFileSync(helperProbe, "utf8");
 // req: R-917
 check("the shared temp helper removes its registered root when the process exits", helperRun.status === 0 && !fs.existsSync(helperRoot));
+
+// ── case J: the declared Windows skip list (R-1380, R-1381, R-1382, R-1383) ──────────────────
+// One fixture root, two runs: the real runner's own process.platform checks (posix, SKIPS, …)
+// read process.platform directly, so a preloaded `--import` that overrides it with
+// Object.defineProperty steers the runner's own logic — passed through argv, never NODE_OPTIONS,
+// so the children this preloaded process spawns keep their real platform. `os.tmpdir()` also
+// reads process.platform on every call (proven empirically: forced win32 honours TEMP/TMP, which
+// run()/runForced() already supply), but `path.sep` and `fileURLToPath` stay on the host flavour
+// — which is why the real Windows leg, not this forced run, is the platform evidence (see
+// windows-skips-config.mjs's provenance comment and the lane's known limits).
+const relRepo = (p) => path.relative(REPO, p).split(path.sep).join("/");
+const realTestsIn = (dir) => fs.existsSync(dir)
+	? fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith(".test.mjs")).map((e) => relRepo(path.join(dir, e.name)))
+	: [];
+const listedPaths = Object.keys(WINDOWS_SKIPS);
+const realDeskBenchPaths = [...realTestsIn(path.join(REPO, "apps", "desk", "test")), ...realTestsIn(path.join(REPO, "apps", "bench", "test"))];
+const windowsFixturePaths = [...new Set([...listedPaths, ...realDeskBenchPaths])];
+const marker = (p) => p.split("/").join("__") + ".ran";
+const windowsFixtureBody = (p) => [
+	'import * as fs from "node:fs";',
+	'import * as path from "node:path";',
+	`fs.writeFileSync(path.join(process.env.PROBE_OUT, ${JSON.stringify(marker(p))}), "ran");`,
+	'console.log("PASS fixture ran");',
+	"",
+].join("\n");
+const windowsFixtureFiles = {};
+for (const p of windowsFixturePaths) windowsFixtureFiles[p] = windowsFixtureBody(p);
+const rootWindows = mkRoot("windows-skips", {
+	...windowsFixtureFiles,
+	"apps/bench/.ext/pi-web-access/package.json": "{}\n",
+});
+const forceWin32 = path.join(TD, "force-win32.mjs");
+fs.writeFileSync(forceWin32, 'Object.defineProperty(process, "platform", { value: "win32" });\n');
+const forceLinux = path.join(TD, "force-linux.mjs");
+fs.writeFileSync(forceLinux, 'Object.defineProperty(process, "platform", { value: "linux" });\n');
+/** Like run(), but preloads a module (via --import, never NODE_OPTIONS) that forces process.platform. */
+function runForced(root, preload) {
+	const tmp = tmpDir(path.join(TD, "tmpdir-"));
+	const out_dir = tmpDir(path.join(TD, "probeout-"));
+	const env = { ...process.env, TMPDIR: tmp, TEMP: tmp, TMP: tmp, PROBE_OUT: out_dir, OUTER_HOME };
+	const r = spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, path.join(root, "scripts", "test.mjs")], {
+		cwd: root, env, encoding: "utf8", timeout: 120000,
+	});
+	return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? ""), out_dir, tmp };
+}
+const win32Run = runForced(rootWindows, forceWin32);
+const linuxRun = runForced(rootWindows, forceLinux);
+const ranMarker = (outDir, p) => fs.existsSync(path.join(outDir, marker(p)));
+
+// req: R-1380
+check("R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it", listedPaths.length > 0 && listedPaths.every((p) =>
+	labelFor(win32Run.out, p) === "SKIP" && lineFor(win32Run.out, p).includes(WINDOWS_SKIPS[p]) && !ranMarker(win32Run.out_dir, p)));
+// req: R-1381
+check("R-1381: off win32 each file on the declared Windows skip list runs", listedPaths.length > 0 && listedPaths.every((p) =>
+	labelFor(linuxRun.out, p) === "PASS" && ranMarker(linuxRun.out_dir, p)));
+const unlistedDeskBenchPaths = windowsFixturePaths.filter((p) => !Object.hasOwn(WINDOWS_SKIPS, p));
+// req: R-1382
+check("R-1382: win32 still runs each desk and bench file off the declared Windows skip list", unlistedDeskBenchPaths.length > 0 && unlistedDeskBenchPaths.every((p) =>
+	labelFor(win32Run.out, p) === "PASS" && ranMarker(win32Run.out_dir, p)));
+// req: R-1383
+check("R-1383: the declared Windows skip list names only collected desk and bench test files", listedPaths.length > 0 && listedPaths.every((p) =>
+	/^apps\/(desk|bench)\/test\/[^/]+\.test\.mjs$/.test(p) && fs.existsSync(path.join(REPO, p))));
 
 fs.rmSync(TD, { recursive: true, force: true });
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");
