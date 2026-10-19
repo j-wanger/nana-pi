@@ -161,7 +161,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
       } else if (launcher === "ledger-check") {
         res = spawnSync(process.execPath, [LEDGER_CLI, "check", "--item", item, "--out", outPath], { cwd: canonical, env: env(home), encoding: "utf8" });
       } else {
-        res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-observe-${kind}-${launcher}`) }), encoding: "utf8" });
+        res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-observe-${kind}-${launcher}`) }), encoding: "utf8" });
       }
       const after = fs.readFileSync(path.join(canonical, "tracked.md"));
       const resDir = path.join(home, ".pi", "agent", "review-ledger.reservations");
@@ -216,7 +216,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
         } else if (launcher === "ledger-check") {
           res = spawnSync(process.execPath, [LEDGER_CLI, "check", "--item", item, "--out", outPath], { cwd: cdRepo, env: env(home), encoding: "utf8" });
         } else {
-          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: cdRepo, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-casediv-observe-${launcher}`) }), encoding: "utf8" });
+          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: cdRepo, env: env(home, { OBSERVE_LISTING: path.join(tmpRoot, `gp1-casediv-observe-${launcher}`) }), encoding: "utf8" });
         }
         const after = fs.readFileSync(outPath);
         ok(res.status === 1, `[${launcher}] expected exit 1, got ${res.status}: ${res.stderr}`);
@@ -262,7 +262,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
       if (launcher === "ledger-run") {
         res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: canonical, env: env(home), encoding: "utf8" });
       } else {
-        res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
+        res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
       }
       ok(res.status === 0, `[${kind}/${launcher}] expected exit 0: ${res.stderr}`);
       ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${kind}/${launcher}] missing in-tree warning: ${res.stderr}`);
@@ -319,7 +319,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
         if (launcher === "ledger-run") {
           res = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", outPath, "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: cd2Repo, env: env(home), encoding: "utf8" });
         } else {
-          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--", "-p", "review"], { cwd: cd2Repo, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
+          res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: cd2Repo, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
         }
         ok(res.status === 0, `[${launcher}] expected exit 0: ${res.stderr}`);
         ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${launcher}] missing in-tree warning: ${res.stderr}`);
@@ -359,7 +359,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     const r2 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out2-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: scratch, env: env(home), encoding: "utf8" });
     ok(r2.status === 0, `round 2 (--tree ${kind}) refused: ${r2.stderr}`);
     commit(gp3Repo, `c3-${kind}.txt`, "c3\n", "c3");
-    const r3 = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out3-${kind}.md`), "--retries", "0", "--", "-p", "review"], { cwd: scratch, env: env(home), encoding: "utf8" });
+    const r3 = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out3-${kind}.md`), "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: scratch, env: env(home), encoding: "utf8" });
     ok(r3.status === 0, `round 3 (pi-review --tree ${kind}) refused: ${r3.stderr}`);
     const rows = readRounds(home, { item });
     ok(rows.length === 3, `expected 3 recorded rounds, got ${rows.length}: ${JSON.stringify(rows)}`);
@@ -399,7 +399,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
       git(canonicalRepo, "worktree", "add", "--detach", deadPath);
       const home = freshHome();
       const tempEnv = win32 ? { TEMP: dirB, TMP: dirB } : { TMPDIR: dirB };
-      const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp4-${kind}-${label}`, "--out", path.join(tmpRoot, `gp4-out-${kind}-${label}.md`), "--retries", "0", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, tempEnv), encoding: "utf8" });
+      const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp4-${kind}-${label}`, "--out", path.join(tmpRoot, `gp4-out-${kind}-${label}.md`), "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, tempEnv), encoding: "utf8" });
       const worktrees = git(canonicalRepo, "worktree", "list", "--porcelain");
       ok(res.status === 0, `[${kind}/${label}] pi-review refused: ${res.stderr}`);
       ok(!fs.existsSync(deadPath), `[${kind}/${label}] the dead checkout folder is still present: ${deadPath}`);
@@ -425,7 +425,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     printSpelling("GP5", kind, tempParent, other);
     const home = freshHome();
     const tempEnv = win32 ? { TEMP: other, TMP: other } : { TMPDIR: other };
-    const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp5-${kind}`, "--out", path.join(tmpRoot, `gp5-out-${kind}.md`), "--retries", "0", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, { ...tempEnv, MODE: "lock" }), encoding: "utf8" });
+    const res = spawnSync(process.execPath, [PI_REVIEW, "--item", `gp5-${kind}`, "--out", path.join(tmpRoot, `gp5-out-${kind}.md`), "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: canonicalRepo, env: env(home, { ...tempEnv, MODE: "lock" }), encoding: "utf8" });
     ok(res.status === 1, `[${kind}] expected exit 1, got ${res.status}: ${res.stderr}`);
     ok(/worktree registration remains/.test(res.stderr), `[${kind}] missing "worktree registration remains": ${res.stderr}`);
     // Clean up the lock this check left, so it cannot block a later pi-review on this repo.
