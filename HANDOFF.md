@@ -63,6 +63,7 @@
 - 2026-10-19: every new session now starts with nana's standing rulings, in both seats. Builders and reviewers get them too. The rulings live in one dated file in nana-pi that names no owner and no model. Install links the file into the Claude rules folder and the pi agent folder. On Windows it copies the file instead. A pi session whose copy is unusable shows a one-line notice in their place. Doctor flags a missing or stale copy. All 29 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 154 files. On Windows the lane's own checks pass — `docs/sessions/2026-10.md`.
 - 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, per the 2026-10-10 ruling. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
 - 2026-10-19: the product report lists the tests behind each requirement. Under every row, each cited test shows its title and its file. The file links to its GitHub page at the report's commit. Beside it sits the file's PASS, FAIL or SKIP from this clone's last measured run. A mark shows when that file, or code it ran, has changed since. A row that cites no test says so. The report's six new checks pass on macOS, Linux and Windows. The real page shows five implemented rows whose every test file skipped on this Mac — `docs/sessions/2026-10.md`.
+- 2026-10-19: the product report's Decisions tab now lists every open question in the requirements ledger. Each shows its number and its full text, in file order. A ledger with none still gets its page, and the page says so. The ledger gained eleven open questions from the 2026-10-09 audit, and one stale question closed. The two new checks pass on macOS, Linux and Windows. CI reads 0 failing files on all three — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -166,6 +167,10 @@
 - g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
 - g005-carveout: on Windows, the rule and skill copies take the new wording only at the next install.
 - g005-carveout: the product report's assessment of the engineering-standards feature stays out of date until the queued report refresh.
+- Open questions in the report (audit-open-questions): closed questions still list, each with its own closed note. The page has no filter for them.
+- Open questions in the report (audit-open-questions): only a dash bullet or a numbered line starts a question. A star bullet joins the question above it.
+- Open questions in the report (audit-open-questions): a new project's placeholder question lists as question 1, with its underscores shown.
+- Open questions in the report (audit-open-questions): the 2026-10-09 verification found issues beyond the audit, in two rows, one pack README line and misfiled rows. No open question records them.
 
 ## Where things stand
 
@@ -186,7 +191,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - Small fixes ride along: rm inside the working directory, the study stop on unwritable evidence. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - Small fixes ride along: rm inside the working directory, the study stop on unwritable evidence. Then the seat regenerates the product report and republishes its page. Open questions 14 and 16–23 are the seat's own calls.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
@@ -201,7 +206,7 @@
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
-- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Six rows read `violated`: R-542 (fix queued) and five desk rows (declared while the desk is frozen).
+- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 6, 6b, 10–12 (the code-map three), 15 and 13's template half wait for you. Question 9 closed with four-digit IDs, and question 3 closed as stale. Six rows read `violated`: R-542 (fix queued) and five desk rows (declared while the desk is frozen).
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.
