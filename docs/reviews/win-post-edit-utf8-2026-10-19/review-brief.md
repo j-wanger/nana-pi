@@ -1,0 +1,50 @@
+# Review — win-post-edit-utf8 (a Python post-edit check's non-ASCII output reaches the model as printed), 2026-10-19 (Opus, the final reviewer)
+
+Feature: FEAT-030 · Get trustworthy feedback after edits
+
+Review `git diff f8d20142..HEAD` on `feat/win-post-edit-utf8` (main was `f8d20142` when this brief was written; `git
+merge-base HEAD main` is `f8d20142`). The plan of record is `docs/reviews/win-post-edit-utf8-2026-10-19/must-meet.md`:
+four must-meet checks, rows R-1740 to R-1743 (R-1744 to R-1749 stay unused). `plan-attack.md` holds the adversary's
+AMEND; `build-brief-1.md` is the build. The seat's record is `seat-verify-a05d269.md`: CI run 39315128937 on all three
+legs (the Windows log `ci-windows-run-1.log` beside it), the wrong-code pairs (`seat-mutate.mjs`,
+`seat-mutate-output-a05d269.txt`: 9 of 9 red, 0 survived, four declared gaps), the independent check
+(`independent-check-a05d269.md`: HOLDS, no MUST, one finding recorded as a HANDOFF residual) and the plan's Windows
+scratch run of the new test against main's extension (pending when this brief was written; the seat adds its result
+to the record before this review starts).
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement f8d2014..d0f8d38: 4 rows in 1 features
+FEAT-030 · Get trustworthy feedback after edits
+  R-1740 new (implemented)
+  R-1741 new (implemented)
+  R-1742 new (implemented)
+  R-1743 new (implemented)
+```
+
+The code under review: the check's environment in `packages/nana-pack/extensions/nana-post-edit.ts` (now a copy of
+pi's environment on every platform, with `PYTHONUTF8=1` added when pi's own `PYTHONUTF8` is unset or empty, and
+NANA_PI_FILE on win32 as before; the name and value sit beside MAX_OUTPUT), the pack README's post-edit bullet and
+Dependencies line, and the new `packages/nana-pack/tests/post-edit-utf8.test.mjs`. No existing test changed.
+
+Judge whether, on every platform, a failing Python 3.7 or later check's non-ASCII output reaches the model as printed
+when pi leaves PYTHONUTF8 unset or empty (R-1740), including output it captured from its own Python child (R-1741);
+whether the owner's non-empty PYTHONUTF8, PYTHONIOENCODING, LANG, LC_ALL and LC_CTYPE values reach every check
+unchanged (R-1742) and the ones pi leaves unset stay unset (R-1743); and whether pi's own environment stays unchanged.
+Judge too whether each check would fail with that behaviour removed: the builder's eight tries and the seat's nine
+pairs cover macOS; on Windows, CI shows all four checks run and pass with no skip, and the scratch run shows the red
+half.
+
+Threat model: honest variation in our tools' output and the OS is in scope (host output encodings: the Windows ANSI
+code page, Latin-1 and C locales; Python 3.7 and later; the owner's PYTHONUTF8, PYTHONIOENCODING, LANG and LC_*
+values; Windows' case-insensitive environment; CRLF output); deliberate forgery is out (a checker that rewrites its
+own environment or lies about its encoding). Lane class: install, hook or gate — a pi extension, nana-post-edit.
+
+Check: (1) the four must-meet checks are not vacuous: R-1740 and R-1741 fail on main's extension, and they skip only
+when the control run shows the host already writes UTF-8, printing why; (2) pi's PYTHONUTF8 is read from pi's own
+environment, not the copy, and nothing writes into pi's own environment; (3) NANA_PI_FILE still reaches a check on
+win32, and nothing else in the run path changed; (4) the test restores every variable it changes in `finally`, and
+writes only inside its temp folders; (5) the README's precedence, pass-through and trade sentences match the code and
+the known limits, including the independent check's finding that the trade also applies under a non-UTF-8 locale on
+macOS or Linux; (6) HANDOFF and the session entry are true; (7) any MUST.
