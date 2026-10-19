@@ -364,7 +364,6 @@
 - Review launcher (review-ledger-run-reviewer): review-ledger run still has no stall watchdog. It adds no session name to pi. It does not retry a refused pi launch.
 - Review launcher (review-ledger-run-reviewer): a Claude Code reviewer skips the knowledge pull only if Claude Code passes its environment to its hooks. Claude Code's hooks documentation says it does. Nobody has probed it.
 - Mutation runner on Windows (review-ledger-run-reviewer): the shared runner could not judge the lane's Windows pairs. Its baseline failed for the launch test file. That file's fixture reads a variable that npm's test command sets and the runner does not. The runner's record kept only the counts, not the failing lines. So the seat ran the three pairs in place on CI's Windows leg, through a scratch CI job, one at a time.
-- Python output in post-edit (win-post-edit-utf8): no wrong-code pair runs on Windows. No check pins that post-edit reads the owner's UTF-8 setting from pi's own environment, not its copy. On Windows the two differ only in letter case. No check pins that pi's own environment stays unchanged after a check; the independent check saw it unchanged.
 - Adoption markers (adopt-structure-markers): the project check does not see a bare copy of the working section left beside the marked block. Only the skill's wording forbids a second copy, and the check pins only that wording.
 - Adoption markers (adopt-structure-markers): an agent may not tell where an older bare copy ends. Older shared sections held parts that later moved into project sections. The skill tells the agent to ask the owner then.
 - Adoption markers (adopt-structure-markers): an agent that also copies the code-fence lines gets ! for the working region. The project check ignores markers inside a fence. Only the skill's prose warns against it.
@@ -373,6 +372,7 @@
 - Adoption markers (adopt-structure-markers): the new checks read the skill's text. They cannot prove that an agent follows it.
 - Adoption markers (adopt-structure-markers): the skill's closing step says the setup command is not on the path on Windows. That sentence goes stale if the win-path-commands lane puts it there.
 - Review launcher (review-ledger-run-reviewer): when review-ledger run refuses a pi launch, it writes nothing to the output file. pi-worker and pi-review write the refusal reason there. So a wrapper that reads the output file after exit 1 finds no reason. Standard error still carries it.
+- Review launcher (review-ledger-run-reviewer): the refused-launch check does not assert that the output file is absent. The code meets it, because it exits before it starts pi, but nothing pins it.
 
 ## Where things stand
 
