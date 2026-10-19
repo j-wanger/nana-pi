@@ -26,3 +26,20 @@
 - Seat helper, on the worktree at 9a5aa8c plus these notes: the requirements trace exits 0 (`1409 total`, `ears: 0 rows
   off form`); `map:check` reports 0 problems; R-1770 to R-1775 read implemented. Tree movement against main: FEAT-031
   gains R-1770 to R-1775, all new and implemented.
+
+## Round 1 and build 3 (the seat, after the final reviewer's SEND-BACK on f864d4d0)
+
+- Opus round 1 sent the lane back with two MUSTs, both from the reviewer's own probes. M1: with neither call site taking
+  the lock, the file still passed 34/34, because R-1775's check drove the lock helper with a fake operation. M2: the
+  lock was not mutually exclusive: `writeFileSync(…, { flag: "wx" })` creates an empty file before writing the pid, so a
+  waiter could read the gap, treat the lock as stale and take it (8 processes x 300 acquisitions: 63 of 2,400 overlapped).
+  SHOULDs: R-1775's "one lane repository" was wider than the lock; T1's three-shard case read the retry count; a lock
+  failure at a shard's end was swallowed silently.
+- Build 3 (`build-brief-3.md`, commit 79f6b0b9, a pi gpt-5.6-sol builder): the lock is published atomically by a hard
+  link of a complete temp file; a stale or released lock is removed only while it still holds the exact content read;
+  an unreadable lock counts as held for up to 30,000 ms (sealed, R-1777); cleanup failures are recorded. R-1775 now
+  drives a real shard's add and removal (skipping either lock call fails it), and is narrowed to one runner run; new
+  R-1776 runs 8 children for 2,400 acquisitions with an exclusive marker and asserts no overlap; T1's three-shard case
+  has its own value. Builder's wrong-code tries: the old lock, a non-atomic publication and an unconditional removal
+  each fail. `mutation-runner.test.mjs` 36/36 three runs in a row.
+- The HANDOFF line no longer says "and so does a bypassed lock" (the reviewer's S4).
