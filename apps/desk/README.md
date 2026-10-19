@@ -743,6 +743,15 @@ is not":
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
   this repo, including everything above, do not reach it until it is restarted. Follow the nana-setup [updating and removal runbook](../../packages/nana-setup/README.md#updating-and-removing) before updating the checkout.
+- **16 desk test files are declared Windows skips, not fixed for Windows.** 13 of them share one
+  cause: `resolvePiPackage` cannot tie pi to a package there — its `npm root -g` and `pi --version`
+  probes run `.cmd` shims through `execFileSync` with no shell, which Node does not run on win32,
+  and the error is swallowed (inferred); the desk server then stops with "cannot start". The other
+  three carry their own declared reason: `host-rule` and `origin-rule` fail because the harness
+  passes a Windows pathname into the same resolver bug, and `knowledge-home-isolation` fails on an
+  unrelated source-scan regex that expects `/`. Each file's own reason is declared in
+  `packages/nana-pack/lib/windows-skips-config.mjs`, which the repo test runner reads on win32;
+  `live-feel` and every other desk file keep running there.
 
 Fixed and worth remembering: the 2026-09-02 double-rendered-user-message bug. `send()` appends
 the user bubble optimistically *before* the POST and queues it; the `message_end` handler swaps

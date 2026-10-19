@@ -65,6 +65,7 @@ map:impact` then lists those test files under each named file. Copies run from a
 folder and children stopped by a signal are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
 nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems or a `0 problems` line. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
+`node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root <dir> --base <rev>` prints, per feature, which rows <dir>'s REQUIREMENTS.md added, removed, re-statused, reworded or moved since the merge base of `<rev>` and HEAD.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`. `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
 extracts rows from a project that has none yet) into both pi and Claude Code, plus a
 `packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in `~/aml-desk`
@@ -257,6 +258,9 @@ if any file fails — also when no file matched the filter, or a `--self-test` f
 its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
 active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
 `npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
-deliberately failing file to prove the runner turns red. `node scripts/template-acceptance.mjs`
+deliberately failing file to prove the runner turns red. On win32 the runner also SKIPs each
+desk or bench file on the declared Windows skip list
+(`packages/nana-pack/lib/windows-skips-config.mjs`), printing that file's reason without
+starting it. `node scripts/template-acceptance.mjs`
 runs the separate rendered-template acceptance gate; `--src <repo>` and `--ref <rev>` select
 its source and commit. It is intentionally not collected by `npm test`.

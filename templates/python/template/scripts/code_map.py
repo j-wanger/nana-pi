@@ -24,6 +24,7 @@ walk are testable on fixture sources with no filesystem.
 from __future__ import annotations
 
 import ast
+import io
 import json
 import re
 import sys
@@ -838,6 +839,8 @@ def _relative(arg: str, root: Path) -> str:
 
 
 if __name__ == "__main__":
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(errors="backslashreplace")
     try:
         sys.exit(main(sys.argv[1:]))
     except ConfigError as err:  # a bad config is a usage error, not a traceback

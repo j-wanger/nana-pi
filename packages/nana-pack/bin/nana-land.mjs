@@ -12,8 +12,9 @@ import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { canonicalItem, withReviewLedgerLock } from "./review-round.mjs";
+import { canonicalItem, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
+import { realPath } from "../lib/real-path.mjs";
 
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
 const commandDefault = (command, cwd) => spawnSync(command, { cwd, shell: true, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
@@ -66,16 +67,14 @@ function reviewedPairs(pairs) {
 export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
-		const treeCommon = git(runGit, tree, "rev-parse", "--git-common-dir");
-		const mainCommon = git(runGit, main, "rev-parse", "--git-common-dir");
-		if (realpathSync(path.resolve(tree, treeCommon)) !== realpathSync(path.resolve(main, mainCommon))) throw new Error("--tree and --main must share one git repository");
+		const repo = repoKeyOf(tree);
+		if (repo !== repoKeyOf(main)) throw new Error("--tree and --main must share one git repository");
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
 		const capturedMain = git(runGit, main, "rev-parse", "refs/heads/main");
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
 		if (!isAncestor(runGit, capturedMain, tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
-		const repo = `git:${realpathSync(path.resolve(tree, treeCommon))}`;
 		const refs = reviewedPairs(reviewed).map(({ sha, item }) => {
 			if (!/^[0-9a-f]{40,64}$/i.test(sha)) throw new Error(`review revision ${sha} is not a plain commit SHA`);
 			if (git(runGit, tree, "cat-file", "-t", sha) !== "commit") throw new Error(`review revision ${sha} is not a plain commit SHA`);
@@ -145,15 +144,17 @@ export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 		if (!registeredPath) throw new Error(`cannot resolve worktree for ${branch}`);
 		worktree = path.resolve(worktree ?? registeredPath);
 		try {
-			if (realpathSync(worktree) !== realpathSync(registeredPath)) throw new Error(`worktree path does not match registered branch ${branch}`);
+			if (realPath(worktree, { mustExist: true }) !== realPath(registeredPath, { mustExist: true })) throw new Error(`worktree path does not match registered branch ${branch}`);
 		} catch (error) { throw new Error(error.message.includes("does not match") ? error.message : `worktree for ${branch} is missing or unavailable: ${error.message}`); }
 		const status = git(runGit, worktree, "status", "--porcelain");
 		if (status) throw new Error(`worktree ${worktree} is dirty`);
 		const branchSha = git(runGit, main, "rev-parse", branch);
 		if (!isAncestor(runGit, branchSha, "refs/heads/main", main)) throw new Error(`branch ${branch} is not contained in main`);
-		git(runGit, main, "worktree", "remove", worktree);
+		// Remove by git's OWN registered spelling (not the possibly differently spelled --worktree
+		// argument): worktree remove must match what git registered, or it refuses on some platforms.
+		git(runGit, main, "worktree", "remove", registeredPath);
 		git(runGit, main, "branch", "-d", branch);
-		return { code: 0, text: `removed ${worktree} and ${branch}\n` };
+		return { code: 0, text: `removed ${registeredPath} and ${branch}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

@@ -1,0 +1,26 @@
+seat-mutate: lane win-leg-blocking, tip f74ab32293beddaa312bc30bc8b76ac8af014106, table d1fa95089ba3fa32b8e949650440ed1f13be3a96b19303165ac5e1f71b85871c, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 6 pairs in 5 shards (2+1+1+1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-19T11:58:40.895Z
+DECLARED (a) every pair runs on macOS, where the test forces the runner's platform with an --import preload; path and fileURLToPath stay on the host flavour, so the Windows leg on the tip is the platform evidence
+DECLARED (b) the list's membership (which 20 files) is pinned by no must-meet check: dropping a listed file or adding another collected desk or bench file stays green by design; the seat's Windows-leg run is that evidence; no pair
+DECLARED (c) the SKIP branch (tally, SKIP line, coverage record, continue) is shared and unchanged by the lane, and the WINDOWS_SKIPS import has no wrong form of its own; no pair
+[1/5] seat-mutate: lane win-leg-blocking, shard 1/5, tip f74ab32293beddaa312bc30bc8b76ac8af014106, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 2 pairs, darwin, node v22.22.2, 2026-10-19T11:58:41.369Z
+[1/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 43 PASS, 0 FAIL, )
+[1/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane win-leg-blocking, shard 2/5, tip f74ab32293beddaa312bc30bc8b76ac8af014106, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T11:58:45.453Z
+[2/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 43 PASS, 0 FAIL, )
+[2/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane win-leg-blocking, shard 3/5, tip f74ab32293beddaa312bc30bc8b76ac8af014106, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T11:58:49.414Z
+[3/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 43 PASS, 0 FAIL, )
+[3/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane win-leg-blocking, shard 4/5, tip f74ab32293beddaa312bc30bc8b76ac8af014106, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T11:58:53.433Z
+[4/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 43 PASS, 0 FAIL, )
+[4/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane win-leg-blocking, shard 5/5, tip f74ab32293beddaa312bc30bc8b76ac8af014106, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T11:58:57.500Z
+[5/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 43 PASS, 0 FAIL, )
+[5/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 the runner reads no Windows skip list (main's skipReason) — 1/1 named: R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 the Windows skip fallback ignores the platform — 1/1 named: R-1381: off win32 each file on the declared Windows skip list runs; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 on win32 the runner skips every desk and bench test file, listed or not — 1/1 named: R-1382: win32 still runs each desk and bench file off the declared Windows skip list; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 the runner prints one generic reason, not the file's declared reason — 1/1 named: R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 the declared list names a pack test file — 1/1 named: R-1383: the declared Windows skip list names only collected desk and bench test files; 1 FAIL total (1 file changed, 1 insertion(+))
+RED M6 a listed desk path is misspelled — 1/1 named: R-1383: the declared Windows skip list names only collected desk and bench test files; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 6/6 red (6 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards

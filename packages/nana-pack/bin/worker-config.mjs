@@ -4,7 +4,8 @@
  * @inputs none
  * @outputs LANE_MAX_SECS, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS,
  *  CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, LANE_SIZE_SLOTS,
- *  LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, NPM_DIRS
+ *  LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, NPM_DIRS, PI_MODEL_SHELL_ENV,
+ *  SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN
  * @effects none
  * @errors none
  */
@@ -38,6 +39,11 @@ export const CLAUDE_CODE_RUNTIME = 'claude-code';
 export const CLAUDE_CODE_SUBAGENT_MODELS = Object.freeze(['sonnet', 'opus', 'haiku', 'fable']);
 // contract: R-1123, R-1192 — the print order every roster-reading surface agrees on.
 export const SLOT_PRINT_ORDER = Object.freeze(['scout', 'builder', 'largerBuilder', 'reviewer', 'land']);
+// contract: R-1123 — the roster command's printed token for a null scout, largerBuilder or land;
+// builder and reviewer are mandatory entries and have none.
+export const SLOT_NULL_TOKENS = Object.freeze({ scout: 'none', largerBuilder: 'none', land: 'seat' });
+// contract: R-1123 — the roster command's printed token for a pi entry's null (pi-default) thinking.
+export const DEFAULT_THINKING_TOKEN = 'default';
 // contract: pi 1.0.2 dist/cli/args.js:6 VALID_THINKING_LEVELS, read 2026-10-13.
 export const THINKING_LEVELS = Object.freeze(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 // contract: R-1190 — pi-worker's --lane-size value to the roster slot it starts.
@@ -64,3 +70,8 @@ export const PI_BIN_NAME = 'pi';
 // contract: npm 10.9.7's bin-links 5.0.0 bin-target.js — a shim's package sits in the sibling
 // node_modules (the global layout) or one level up through node_modules/.bin (the local layout).
 export const NPM_DIRS = Object.freeze(['node_modules', '.bin']);
+
+// contract: pi 1.0.2 dist/core/tools/bash.js:135-157 and docs/environment-variables.md "Shell
+// Tool Session Environment", read 2026-10-19 — the variable pi sets for its own bash and
+// powershell tool calls only; a model's `!` shell does not get it.
+export const PI_MODEL_SHELL_ENV = 'PI_SESSION_ID';
