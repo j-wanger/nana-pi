@@ -38,6 +38,8 @@ import {
 	STAGGER_SECS_DEFAULT,
 	TABLE_HASH_ALGO,
 	TASKKILL_ARGS,
+	WORKTREE_REMOVE_RETRIES,
+	WORKTREE_REMOVE_RETRY_MS,
 	CHILD_NODE_ARGS,
 	TS_CHECK_ARGS,
 	logName,
@@ -211,6 +213,32 @@ function killPid(pid) {
 	} catch { /* already gone */ }
 }
 
+/** Remove this runner's scratch worktree entry, retrying a refused removal by its unique suffix. */
+function removeScratchWorktree(repoRoot, scratchDir) {
+	const wt = path.join(scratchDir, "wt");
+	const noHooks = path.join(scratchDir, "no-hooks");
+	const suffix = `${path.basename(scratchDir)}/wt`;
+	const remove = (name) => sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "remove", "--force", name]);
+	const isListed = () => {
+		const list = sh("git", ["-C", repoRoot, "worktree", "list", "--porcelain"]);
+		if (list.status !== 0) return true;
+		return list.stdout.split(/\r?\n/).some((line) => {
+			if (!line.startsWith("worktree ")) return false;
+			const listedPath = line.slice("worktree ".length).replace(/[ \t]+$/, "").replace(/\\/g, "/");
+			return listedPath.endsWith(`/${suffix}`);
+		});
+	};
+
+	if (remove(wt).status === 0) return null;
+	for (let retry = 0; retry < WORKTREE_REMOVE_RETRIES; retry++) {
+		if (!isListed()) return null;
+		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, WORKTREE_REMOVE_RETRY_MS);
+		try { fs.rmSync(wt, { recursive: true, force: true }); } catch { /* ignore */ }
+		if (remove(suffix).status === 0) return null;
+	}
+	return isListed() ? `seat-mutate: git worktree entry ${wt} is still listed after ${WORKTREE_REMOVE_RETRIES} retries` : null;
+}
+
 /** Dead-shard cleanup (R-1231): the shard ended but its scratch folder is still there. */
 function cleanupDeadShard(repoRoot, scratchDir, keep, log) {
 	const pidFile = path.join(scratchDir, "running.pid");
@@ -220,15 +248,11 @@ function cleanupDeadShard(repoRoot, scratchDir, keep, log) {
 	} catch { /* no running test file */ }
 	if (keep) {
 		log?.(`seat-mutate: KEEP — scratch left at ${scratchDir}`);
-		return;
+		return null;
 	}
-	const wt = path.join(scratchDir, "wt");
-	const noHooks = path.join(scratchDir, "no-hooks");
-	if (fs.existsSync(wt)) {
-		sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "remove", "--force", wt]);
-		try { fs.rmSync(wt, { recursive: true, force: true }); } catch { /* ignore */ }
-	}
+	const cleanupLine = removeScratchWorktree(repoRoot, scratchDir);
 	try { fs.rmSync(scratchDir, { recursive: true, force: true }); } catch { /* ignore */ }
+	return cleanupLine;
 }
 
 // ── one test file's run (R-1232, R-1233, R-1234) ────────────────────────────────────────────────
@@ -350,7 +374,10 @@ async function runOneShard(pairs, ctx) {
 		writePart(); // write before any cleanup removes the folder the part file lives in
 		try { fs.rmSync(runningPidFile, { force: true }); } catch { /* ignore */ }
 		if (!keep) {
-			try { sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "remove", "--force", wt]); } catch { /* ignore */ }
+			try {
+				const cleanupLine = removeScratchWorktree(repoRoot, scratchDir);
+				if (cleanupLine) { log(cleanupLine); writePart(); }
+			} catch { /* ignore */ }
 			try { fs.rmSync(scratchDir, { recursive: true, force: true }); } catch { /* ignore */ }
 		}
 		return code;
@@ -545,12 +572,15 @@ async function runParent(selected, n, staggerMs, ctx) {
 		});
 		const ends = await Promise.all(groups.map((ids, i) => new Promise((resolve) => setTimeout(() => resolve(runShard(i + 1, ids)), i * staggerMs))));
 
-		for (const end of ends) if (end.scratchDir && fs.existsSync(end.scratchDir)) cleanupDeadShard(ctx.repoRoot, end.scratchDir, ctx.keep, (l) => console.log(l));
+		const notes = [];
+		for (const end of ends) if (end.scratchDir && fs.existsSync(end.scratchDir)) {
+			const cleanupLine = cleanupDeadShard(ctx.repoRoot, end.scratchDir, ctx.keep, (l) => console.log(l));
+			if (cleanupLine) notes.push(`[${end.k}/${n}] ${cleanupLine}`);
+		}
 
 		const total = { red: 0, exact: 0, namedGreen: 0, unnamedRed: 0, survived: 0, anchorMiss: 0, syntax: 0, runnable: 0 };
 		const survivors = [];
 		const pairLines = new Map();
-		const notes = [];
 		let shardFailed = false;
 		for (const end of ends) {
 			const lines = end.partFile && fs.existsSync(end.partFile) ? fs.readFileSync(end.partFile, "utf8").split("\n").filter(Boolean) : [];

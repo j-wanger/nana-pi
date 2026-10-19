@@ -128,7 +128,7 @@ function buildFixtureRepo(root, initialProbeMode = "plain") {
 		importLine("{ PROBE_KEY, PROBE_PARTNER_KEY, PROBE_MODE, PROBE_SLEEP_MS }", "../lib/probe-config.mjs"),
 		importLine("* as fs", "node:fs"),
 		importLine("* as path", "node:path"),
-		importLine("{ spawn }", "node:child_process"),
+		importLine("{ spawn, spawnSync }", "node:child_process"),
 		'const marks = process.env.NANA_TEST_MARKS || null;',
 		"const waitLimitMs = Number(process.env.NANA_TEST_WAIT_MS || 4000);",
 		'function mark(name, content = "") { if (marks) fs.writeFileSync(path.join(marks, name), content); }',
@@ -143,10 +143,8 @@ function buildFixtureRepo(root, initialProbeMode = "plain") {
 		"}",
 		`mark(\`start-\${PROBE_KEY}\`, String(Date.now()));`,
 		`mark(\`pid-\${PROBE_KEY}\`, String(process.pid));`,
-		"const here = path.dirname(fileURLToPathLike(import.meta.url));",
-		"const worktreeRoot = path.resolve(here, \"..\", \"..\");",
+		"const worktreeRoot = path.resolve(process.cwd(), \"..\");",
 		`mark(\`wt-\${PROBE_KEY}\`, worktreeRoot);`,
-		"function fileURLToPathLike(u) { return new URL(u).pathname; }",
 		'if (PROBE_MODE === "rendezvous") {',
 		"  const met = await waitFor(`start-${PROBE_PARTNER_KEY}`, waitLimitMs);",
 		'  console.log(met ? "PASS" : "FAIL", "fixture: probe met its rendezvous partner");',
@@ -162,6 +160,14 @@ function buildFixtureRepo(root, initialProbeMode = "plain") {
 		'} else if (PROBE_MODE === "selfkill") {',
 		'  try { process.kill(process.ppid, "SIGKILL"); } catch {}',
 		"  await sleep(99999999);",
+		'} else if (["drop-dotgit", "drop-dotgit-selfkill", "lock-self", "lock-self-selfkill"].includes(PROBE_MODE)) {',
+		'  if (PROBE_MODE.startsWith("drop-dotgit")) fs.rmSync(path.join(worktreeRoot, ".git"), { force: true });',
+		'  else spawnSync("git", ["-C", worktreeRoot, "worktree", "lock", worktreeRoot]);',
+		'  if (PROBE_MODE.endsWith("selfkill")) {',
+		'    try { process.kill(process.ppid, "SIGKILL"); } catch {}',
+		"    await sleep(99999999);",
+		"  }",
+		'  console.log("PASS", "fixture: probe ran");',
 		'} else if (PROBE_MODE === "stray-pipe") {',
 		"  const sl = spawn(process.execPath, [\"-e\", `setTimeout(()=>{}, ${PROBE_SLEEP_MS || 15000})`], { stdio: \"inherit\", detached: true });",
 		"  sl.unref();", // the test file itself must exit right away; only the detached grandchild holds the pipe
@@ -308,6 +314,8 @@ const PAIR_LINE_RE = /^(?:RED|GREEN|ANCHOR-MISS|SYNTAX|DRY ok) \S+ /m;
 const leftoverScratch = (fx) => fs.readdirSync(fx.runTmp).filter((d) => d !== "node-compile-cache");
 /** git status, ignoring the table harness scripts WE placed at the fixture repo's root (never the runner's). */
 const repoStatus = (fx) => sh("git", ["-C", fx.root, "status", "--porcelain"]).stdout.split("\n").filter((l) => l && !/^\?\? [^/]+\.mjs$/.test(l)).join("\n");
+const worktreePaths = (fx) => sh("git", ["-C", fx.root, "worktree", "list", "--porcelain"]).stdout.split(/\r?\n/).filter((l) => l.startsWith("worktree ")).map((l) => l.slice("worktree ".length).replace(/[ \t]+$/, ""));
+const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [...probeKeyEdit(key), probeModeEdit(mode)], tests: [T2], expectRed: [] });
 
 // ── R-1230: scratch worktrees ────────────────────────────────────────────────────────────────────
 {
@@ -385,6 +393,96 @@ const repoStatus = (fx) => sh("git", ["-C", fx.root, "status", "--porcelain"]).s
 
 	// req: R-1231
 	check("mutation runner: after a run at one shard and at three, and after one whose shard is killed outright, no running test file, scratch folder or git worktree entry is left, and with SEAT_MUTATE_KEEP=1 every scratch worktree is left and its path printed", reasons.length === 0, reasons.join("; "));
+}
+
+// ── R-1770 to R-1774: cleanup after git refuses its first removal ───────────────────────────────
+{
+	const reasons = [];
+	for (const shards of [1, CFG.WORKTREE_REMOVE_RETRIES]) {
+		const fx = newFixture(`cleanup-retry-${shards}`);
+		const pairs = Array.from({ length: shards }, (_, i) => cleanupFaultPair(i + 1, `drop-${i}`, "drop-dotgit"));
+		const r = await run(fx, "t.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: String(shards), [CFG.ENV_NAMES.STAGGER_SECS]: "0" });
+		const paths = worktreePaths(fx);
+		if (r.result !== 0) reasons.push(`shards=${shards}: exit ${r.result}`);
+		if (paths.length !== 1 || safely(() => fs.realpathSync.native(paths[0]) === fs.realpathSync.native(fx.root), false) !== true) reasons.push(`shards=${shards}: worktrees ${JSON.stringify(paths)}`);
+		if (leftoverScratch(fx).length) reasons.push(`shards=${shards}: leftover ${JSON.stringify(leftoverScratch(fx))}`);
+	}
+	// req: R-1770
+	check("mutation runner: when git's first remove of a scratch worktree fails at a shard's end, at one shard and at three, git worktree list names only the lane repository and no scratch folder is left", reasons.length === 0, reasons.join("; "));
+}
+
+{
+	const fx = newFixture("cleanup-dead-retry");
+	const r = await run(fx, "t.mjs", table(fx, [cleanupFaultPair("1", "drop-dead", "drop-dotgit-selfkill")]), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1", [CFG.ENV_NAMES.STAGGER_SECS]: "0" });
+	const paths = worktreePaths(fx);
+	const onlyLaneRepo = paths.length === 1 && safely(() => fs.realpathSync.native(paths[0]) === fs.realpathSync.native(fx.root), false) === true;
+	const ok = r.result !== 0 && onlyLaneRepo && leftoverScratch(fx).length === 0;
+	// req: R-1771
+	check("mutation runner: when git's first remove of a dead shard's scratch worktree fails, the parent leaves git worktree list naming only the lane repository and no scratch folder", ok, JSON.stringify({ exitCode: r.result, paths, leftover: leftoverScratch(fx), text: r.text }));
+}
+
+{
+	const fx = newFixture("cleanup-decoys");
+	const live = path.join(fx.td, "live-decoy");
+	const missing = path.join(fx.td, "missing-decoy");
+	sh("git", ["-C", fx.root, "worktree", "add", "-q", "--detach", live, fx.tipSha]);
+	sh("git", ["-C", fx.root, "worktree", "add", "-q", "--detach", missing, fx.tipSha]);
+	fs.rmSync(missing, { recursive: true, force: true });
+	const r = await run(fx, "t.mjs", table(fx, [cleanupFaultPair("1", "drop-own", "drop-dotgit")]), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1", [CFG.ENV_NAMES.STAGGER_SECS]: "0" });
+	const paths = worktreePaths(fx);
+	const listedSuffixes = paths.map((p) => p.replace(/\\/g, "/"));
+	const ok = r.result === 0 && listedSuffixes.some((p) => p.endsWith("/live-decoy")) && listedSuffixes.some((p) => p.endsWith("/missing-decoy"));
+	// req: R-1772
+	check("mutation runner: a worktree entry the runner did not create, live or with its folder missing, is still listed after a run whose own first remove failed", ok, JSON.stringify({ exitCode: r.result, live, missing, paths, text: r.text }));
+}
+
+let lockedCleanupRun = null;
+{
+	const traceTimes = (traceFile) => fs.readFileSync(traceFile, "utf8").split(/\r?\n/).filter((l) => l.includes("trace: built-in: git worktree remove")).map((l) => {
+		const m = /(\d{2}):(\d{2}):(\d{2})\.(\d{6})/.exec(l);
+		return m ? (((Number(m[1]) * 60 + Number(m[2])) * 60 + Number(m[3])) * 1000 + Number(m[4]) / 1000) : null;
+	}).filter((v) => v !== null);
+	const gaps = (times) => times.slice(1).map((t, i) => { const raw = t - times[i]; return raw < 0 ? raw + 24 * 60 * 60 * 1000 : raw; });
+
+	const lockFx = newFixture("cleanup-lock-trace");
+	const lockTrace = outFile(lockFx, "git.trace");
+	const lockResult = await run(lockFx, "t.mjs", table(lockFx, [cleanupFaultPair("1", "lock", "lock-self")]), { GIT_TRACE: lockTrace, [CFG.ENV_NAMES.OUT]: outFile(lockFx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1", [CFG.ENV_NAMES.STAGGER_SECS]: "0" });
+	const lockTimes = traceTimes(lockTrace);
+	const lockGaps = gaps(lockTimes);
+	lockedCleanupRun = { fx: lockFx, r: lockResult, record: readOut(lockFx, "r.txt") };
+
+	const dropFx = newFixture("cleanup-drop-trace");
+	const dropTrace = outFile(dropFx, "git.trace");
+	const dropResult = await run(dropFx, "t.mjs", table(dropFx, [cleanupFaultPair("1", "drop-trace", "drop-dotgit")]), { GIT_TRACE: dropTrace, [CFG.ENV_NAMES.OUT]: outFile(dropFx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1", [CFG.ENV_NAMES.STAGGER_SECS]: "0" });
+	const dropTimes = traceTimes(dropTrace);
+	const ok = lockTimes.length === 1 + CFG.WORKTREE_REMOVE_RETRIES && lockGaps.length === CFG.WORKTREE_REMOVE_RETRIES && lockGaps.every((gap) => gap >= CFG.WORKTREE_REMOVE_RETRY_MS) && dropResult.result === 0 && dropTimes.length === 2;
+	// req: R-1773
+	check("mutation runner: a scratch worktree entry git keeps refusing to remove is removed again exactly the configured retry count of times, at least the configured delay apart, and one the first retry removes is not removed again", ok, JSON.stringify({ lockExit: lockResult.result, lockTimes, lockGaps, dropExit: dropResult.result, dropTimes, lockText: lockResult.text, dropText: dropResult.text }));
+}
+
+{
+	const cases = [];
+	if (lockedCleanupRun) cases.push({ label: "shard", ...lockedCleanupRun, wt: readMark(lockedCleanupRun.fx, "wt-lock") });
+	const deadFx = newFixture("cleanup-dead-lock");
+	const deadResult = await run(deadFx, "t.mjs", table(deadFx, [cleanupFaultPair("1", "dead-lock", "lock-self-selfkill")]), { [CFG.ENV_NAMES.OUT]: outFile(deadFx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "1", [CFG.ENV_NAMES.STAGGER_SECS]: "0" });
+	cases.push({ label: "dead", fx: deadFx, r: deadResult, record: readOut(deadFx, "r.txt"), wt: readMark(deadFx, "wt-dead-lock") });
+	const reasons = [];
+	for (const c of cases) {
+		const suffix = `/${path.basename(path.dirname(c.wt ?? ""))}/wt is still listed after ${CFG.WORKTREE_REMOVE_RETRIES} retries`;
+		const outputLines = c.r.text.split(/\r?\n/).filter((l) => l.includes("seat-mutate: git worktree entry ") && l.replace(/\\/g, "/").endsWith(suffix));
+		const recordLines = c.record.split(/\r?\n/).filter((l) => l.includes("seat-mutate: git worktree entry ") && l.replace(/\\/g, "/").endsWith(suffix));
+		if (!c.wt) reasons.push(`${c.label}: no worktree mark`);
+		if (outputLines.length !== 1) reasons.push(`${c.label}: output count ${outputLines.length} in ${c.r.text}`);
+		if (recordLines.length !== 1) reasons.push(`${c.label}: record count ${recordLines.length} in ${c.record}`);
+	}
+	// req: R-1774
+	check("mutation runner: a scratch worktree entry still listed after the last retry, at a shard's end and after a dead shard, is named with its retry count once in the output and once in the record", reasons.length === 0, reasons.join("; "));
+}
+
+{
+	const ok = CFG.WORKTREE_REMOVE_RETRIES === 3 && CFG.WORKTREE_REMOVE_RETRY_MS === 250;
+	// req: R-1773
+	check("mutation runner: sealed cleanup values: the retry count and the retry delay", ok, JSON.stringify({ retries: CFG.WORKTREE_REMOVE_RETRIES, retryMs: CFG.WORKTREE_REMOVE_RETRY_MS }));
 }
 
 if (!posix) {
