@@ -3,7 +3,7 @@
  * @purpose Run the configured format, lint and test checks after a successful edit or write, feeding only
  *  failures back to the model.
  * @inputs pi `tool_result` events for edit/write (input.path, isError), postEdit.commands config, pi's
- *  PYTHONUTF8 environment value and file-mutation queue, and ctx (cwd, signal, hasUI, ui)
+ *  file-mutation queue, and ctx (cwd, signal, hasUI, ui)
  * @outputs one bounded failure line per failing check appended to the tool result, a post-edit UI status
  *  naming the worst outcome, and `postedit_file_queue_unavailable` journal lines
  * @effects process (spawns each check in a shell under its timeoutMs, then SIGTERM and SIGKILL over its
@@ -36,9 +36,6 @@ import { promptPath, promptText, uiPath } from "../lib/display.mjs";
 
 /** Cap on captured checker output (matches the previous exec maxBuffer). */
 const MAX_OUTPUT = 1024 * 1024;
-/** Contract value (R-1740, R-1741): Python's UTF-8 mode switch from PEP 540. */
-const PYTHON_UTF8_ENV = "PYTHONUTF8";
-const PYTHON_UTF8_VALUE = "1";
 /** Grace between the deadline's SIGTERM and the unignorable SIGKILL + settlement. */
 const KILL_GRACE_MS = 2000;
 
@@ -353,9 +350,7 @@ export default function (pi: ExtensionAPI) {
 			// `a$&b.ts`) would be rewritten into the command. A function's return
 			// value is inserted literally.
 			const cmd = c.run.replaceAll("{file}", () => replacement);
-			const env = { ...process.env };
-			if (!process.env[PYTHON_UTF8_ENV]) env[PYTHON_UTF8_ENV] = PYTHON_UTF8_VALUE;
-			if (win) env.NANA_PI_FILE = abs;
+			const env = win ? { ...process.env, NANA_PI_FILE: abs } : undefined;
 
 			const guarded = async (): Promise<RunResult> => run(cmd, ctx.cwd, timeoutMs, ctx.signal, env);
 
