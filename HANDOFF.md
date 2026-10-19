@@ -64,6 +64,7 @@
 - 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, per the 2026-10-10 ruling. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
 - 2026-10-19: the product report lists the tests behind each requirement. Under every row, each cited test shows its title and its file. The file links to its GitHub page at the report's commit. Beside it sits the file's PASS, FAIL or SKIP from this clone's last measured run. A mark shows when that file, or code it ran, has changed since. A row that cites no test says so. The report's six new checks pass on macOS, Linux and Windows. The real page shows five implemented rows whose every test file skipped on this Mac — `docs/sessions/2026-10.md`.
 - 2026-10-19: a bench study now stops when it cannot write a graded run's evidence. It first writes that run's spend to the results file. The error names the evidence folder and the cause. No further paid run starts. Before, the study recorded a grader error and kept spending. A failed asset copy after the run now stops the study the same way. A grader error whose evidence is on disk still lets the study go on. CI's Windows leg passes the six new checks and reads 0 failing of 154 files — `docs/sessions/2026-10.md`.
+- 2026-10-19: the install check on macOS now runs the README's fresh-machine checklist as written, in a new temporary home. It fails unless every step exits 0 and the last step prints all good. So a README install step that drifts turns CI's blocking macOS install check red. The checklist's last step now changes into the clone before trust and doctor. On a fresh hosted Mac, the whole checklist passed and doctor printed all good. CI's macOS, Linux and Windows legs read 0 failing of 157 files — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -87,7 +88,7 @@
 - Install check: it proves install and hooks in a temporary home, not a live Claude Code session. Linux runs no install check.
 - Review standard: projects other than nana-pi take the new working-pattern text only when `nana-setup project` runs there. `review-ledger run` gets no standard. Nothing stages a pi-review change before it reaches every caller.
 - Fresh install: the desk's two install hints in its code and the study README still name no cutoff, since Jake froze the desk. We tested PowerShell 7; PowerShell 5.1 and cmd should pass the unquoted cutoff unchanged, but nobody has run them.
-- Process lane reviews left three requirements whose tests check less than their rows say. They are an unreadable standard file, each preamble rule on its own line, and step 8's trust target.
+- Process lane reviews left two requirements whose tests check less than their rows say: an unreadable standard file, and each preamble rule on its own line. A third, step 8's trust target, is now checked by the readme-install lane's last-step test.
 - CI pin: the install gate checks the workflow text, not the resolved packages; a check that imports pi after install is the hardening step. The cutoff does not freeze deprecations or retags. The suite's template acceptance test needs the network, and a network hiccup refused one land run.
 - Claude Code hooks on Windows: uninstall still refuses there, and its leftover-entry report would miss the new form (the Windows install-shape lane). Doctor's four hook-file rows read "skipped (win32)" just above the five ✓ settings rows. On the Windows CI leg, three file-mode checks and one test that deletes its own working folder stay red (test portability). Nothing here proves how Claude Code itself starts the hooks, routes PowerShell, or how long they take. Reviewers found the PowerShell lexer's gaps one character at a time over three rounds. The hardening step: a Windows-leg test compares its comment and string spans with PowerShell's own tokenizer over generated commands.
 - Windows pi launch: nana runs the first `pi.com`, `.exe`, `.bat` or `.cmd` on PATH — not PowerShell's `pi.ps1`, an alias or a function, and never a `pi.cmd` in the working folder. A `.cmd` pi whose path or package folder holds `%`, `!` or a double quote needs a manual `pi install`. Post-edit calls a missing tool a failed check when it hides behind a non-simple first word or later in a compound command. A failing command led by an internal command outside the sealed list reads as "could not run".
@@ -174,6 +175,13 @@
 - Study stop: the error names the run's spend, but no check pins that part of it. No check catches a stop that comes before the runner releases the in-flight run; the runner exits at once, so this does no harm.
 - Study stop, found on main too: a judge call whose ledger write fails stops the study but loses that call's record.
 - Study stop (review): when a run's asset copy fails, the stop message says its evidence could not be written, though the asset source was missing. Node's own message, appended, names the real path.
+- readme-install: the trust command crashes with a stack trace when npm's global folder holds no pi. The rehearsal avoids that case with its own npm folder.
+- readme-install: every macOS install check now installs pi over the network for step 2. A network failure there turns the blocking macOS job red (inferred).
+- readme-install: the rehearsal clones the checkout's last commit but reads the README from the working files. A local run with uncommitted changes tests a mix of the two.
+- readme-install: the rehearsal answers yes to the trust prompt, so no check covers the prompt itself.
+- readme-install: each step runs in a login shell from the new home, so a step that needs the interactive shell setup fails there. A clone address ending in .git also fails falsely.
+- readme-install: the rehearsal redirects only the home, temp, npm and git. A future machine-wide checklist command, such as brew or sudo, would change a local seat's machine. Only a comment above the checklist warns editors.
+- readme-install: the rehearsal covers macOS only. The README has no Windows or Linux checklist.
 
 ## Where things stand
 
@@ -181,7 +189,7 @@
 
 ## Next
 
-1. **Hardening program: complete, 2026-10-09.** The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
+1. **Hardening program: complete, 2026-10-09.** The install check now rehearses the fresh-machine checklist (plan 5.4) on CI's macOS runner. Steps 1 and 7 stay by hand, and no clean macOS account has run it yet. Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
 2. **Writing trial verdict, 2026-10-18** (a 20-report proxy is unverified). The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML pages no longer wait for it: Jake lifted that hold on 2026-10-10.
 3. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The desk usage tally no longer decides anything: Jake ruled the desk on 2026-10-10. The pull reading drops sessions named for pi-worker or pi-review; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
