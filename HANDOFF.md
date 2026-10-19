@@ -49,6 +49,7 @@
 - 2026-10-18: the template and test-runner tools' tests run on Windows: templates-update, template-acceptance, template-release and test-runner. The template update legs ran there for the first time, and three of the four files pass with no skip. CI's Windows failing count fell from 28 of 150 files to 25 — `docs/sessions/2026-10.md`.
 - 2026-10-18: a Python project made from the template passes its own tests on Windows. Its trace tests now run their pytest children with UTF-8 output, and its code-map and readme-check helpers read and write UTF-8 on both sides. What a user sees is unchanged. CI's Windows failing count fell to 24 of 150 files — `docs/sessions/2026-10.md`.
 - 2026-10-18: the code map's impact view finds a module on Windows. Both generators now turn the relative path to forward slashes before they look it up, so a module named with backslashes reads as mapped. The runtime-map tests pass there for the first time. CI's Windows failing count fell from 24 of 150 files to 23 — `docs/sessions/2026-10.md`.
+- 2026-10-19: a lane's brief, review and land now show how the requirements tree moved. A new report lists, under each feature, every row a branch added, removed, re-statused, reworded or moved. Briefs name their feature, and the review brief and the land report carry the report. Nothing in the land or review tools changed — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -100,6 +101,7 @@
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
+- Tree report: nothing checks that a lane stays inside its named feature. A lane that changes rows in several features still lands; the report names them all. The report reads the ledger text, so a row moved by hand without a tree regeneration shows as moved.
 
 ## Where things stand
 
