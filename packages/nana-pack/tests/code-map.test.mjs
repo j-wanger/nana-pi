@@ -255,6 +255,13 @@ try {
 	const run = (...args) => spawnSync(process.execPath, [gen, ...args], { cwd: scratch, encoding: "utf-8" });
 	const written = run("--write");
 	check("the scratch copy renders a map of the same size", (written.stdout ?? "").includes(`${graph.order.length} modules`), `${written.stdout ?? ""}${written.stderr ?? ""}`);
+	const nativeImpact = run("--impact", path.join("packages", "nana-pack", "lib", "agent-dir.mjs"));
+	const nativeImpactFirstLine = (nativeImpact.stdout ?? "").split(/\r?\n/, 1)[0];
+	// req: R-1361
+	check("--impact maps a module named with the platform's native separator",
+		nativeImpactFirstLine === "packages/nana-pack/lib/agent-dir.mjs",
+		`${nativeImpact.status}: ${nativeImpact.stdout ?? ""}${nativeImpact.stderr ?? ""}`,
+	);
 	const before = run("--check").stdout ?? "";
 
 	const MUT = "packages/nana-stage/tests/blocks.test.mjs";

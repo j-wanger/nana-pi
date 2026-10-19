@@ -476,6 +476,7 @@ check("R-1278: run from a linked worktree with no override, the real measure com
 		&& mm9Impact.status === 0
 		&& mm9ImpactOut.includes("measured tests for packages/probe/moduleMM9.mjs (1):")
 		&& mm9ImpactOut.includes("packages/probe/tests/a.test.mjs"),
+	`measure status: ${mm9Run.status}; measure output: ${(mm9Run.stdout ?? "") + (mm9Run.stderr ?? "")}; impact output: ${mm9ImpactOut}`,
 );
 
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");
