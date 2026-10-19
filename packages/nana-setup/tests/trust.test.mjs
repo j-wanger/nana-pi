@@ -108,21 +108,33 @@ const freshTrustEnv = (label) => {
 	delete probeEnv.HOME;
 	delete probeEnv.USERPROFILE;
 	const probedRoot = spawnNpmRoot({ env: probeEnv });
-	const modulePath = path.join(probedRoot.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js");
-	return { env, freshAgentDir, modulePath };
+	const probedRootPath = probedRoot.stdout.trim();
+	const modulePath = path.join(probedRootPath, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js");
+	const rel = path.relative(root, modulePath);
+	const insideRoot = path.isAbsolute(modulePath) && rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+	const reason = `probed npm root "${probedRootPath}" (npm status ${probedRoot.status}) resolved module path "${modulePath}" outside the test's temp root "${root}"`;
+	return { env, freshAgentDir, modulePath, insideRoot, reason };
 };
 const oneNonEmptyLine = (stderr) => stderr.split(/\r?\n/).filter((line) => line.length > 0);
 const noPi = freshTrustEnv("no-pi");
-const noPiResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noPi.env });
-const noPiLines = oneNonEmptyLine(noPiResult.stderr);
+let noPiResult = null;
+let noPiLines = [];
+if (noPi.insideRoot) {
+	noPiResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noPi.env });
+	noPiLines = oneNonEmptyLine(noPiResult.stderr);
+}
 // req: R-1800
-check("no pi under npm's global folder exits 2 with one line naming the module path and the install command", noPiResult.status === 2 && noPiLines.length === 1 && noPiLines[0].includes(noPi.modulePath) && noPiLines[0].includes(PI_INSTALL_HINT) && !fs.existsSync(path.join(noPi.freshAgentDir, "trust.json")), `${noPiResult.status} ${JSON.stringify(noPiLines)}`);
+check("no pi under npm's global folder exits 2 with one line naming the module path and the install command", noPi.insideRoot && noPiResult.status === 2 && noPiLines.length === 1 && noPiLines[0].includes(noPi.modulePath) && noPiLines[0].includes(PI_INSTALL_HINT) && !fs.existsSync(path.join(noPi.freshAgentDir, "trust.json")), noPi.insideRoot ? `${noPiResult.status} ${JSON.stringify(noPiLines)}` : noPi.reason);
 const noCtor = freshTrustEnv("no-ctor");
-fs.mkdirSync(path.dirname(noCtor.modulePath), { recursive: true });
-fs.writeFileSync(noCtor.modulePath, "module.exports = {};\n");
-const noCtorResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noCtor.env });
-const noCtorLines = oneNonEmptyLine(noCtorResult.stderr);
+let noCtorResult = null;
+let noCtorLines = [];
+if (noCtor.insideRoot) {
+	fs.mkdirSync(path.dirname(noCtor.modulePath), { recursive: true });
+	fs.writeFileSync(noCtor.modulePath, "module.exports = {};\n");
+	noCtorResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noCtor.env });
+	noCtorLines = oneNonEmptyLine(noCtorResult.stderr);
+}
 // req: R-1801
-check("a pi trust module without ProjectTrustStore exits 2 with one line naming the module path and the install command", noCtorResult.status === 2 && noCtorLines.length === 1 && noCtorLines[0].includes(noCtor.modulePath) && noCtorLines[0].includes(PI_INSTALL_HINT), `${noCtorResult.status} ${JSON.stringify(noCtorLines)}`);
+check("a pi trust module without ProjectTrustStore exits 2 with one line naming the module path and the install command", noCtor.insideRoot && noCtorResult.status === 2 && noCtorLines.length === 1 && noCtorLines[0].includes(noCtor.modulePath) && noCtorLines[0].includes(PI_INSTALL_HINT), noCtor.insideRoot ? `${noCtorResult.status} ${JSON.stringify(noCtorLines)}` : noCtor.reason);
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);
