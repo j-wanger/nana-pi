@@ -178,6 +178,15 @@ First two steps:
 9. **Commit the adoption as one commit** (including `.copier-answers.yml` —
    the update relationship needs it git-tracked), then prove the
    relationship: `uvx copier update --pretend --defaults` runs clean.
+10. **Close on the project check.** Run `nana-setup project <dir> --check`;
+    where `nana-setup` is not on PATH, as on Windows, run `node
+    "$HOME/nana-pi/packages/nana-setup/bin/nana-setup.mjs" project <dir>
+    --check`. It writes nothing. Call the adoption ready only when it exits 0.
+    Otherwise report every ✗ and ! line with the repair the check names: a
+    fresh adoption reads ✗ for the month log until `nana-setup project <dir>`
+    runs, and ! for trust until the owner runs `nana-setup trust <dir>`. Run a
+    repair only with the owner's yes, and commit any file it writes by its own
+    path.
 
 ## Notes
 
