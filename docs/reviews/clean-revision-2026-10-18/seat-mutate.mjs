@@ -12,7 +12,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
-const TIP = "77289a0";
+const TIP = "68a6327";
 const BASE = "1103da1"; // the merge of win-review-paths into this branch: today's raw workingState
 const RL = "packages/nana-pack/tests/review-ledger.test.mjs";
 const IR = "packages/nana-pack/tests/immutable-review.test.mjs";
