@@ -44,8 +44,29 @@ export const SAMPLE_INPUTS = {
   verifier: { bashHit: "npm test | tail -1 && git commit -m done", bashMiss: "git status", powershellHit: "npm test | Select-Object -Last 5; git commit -m x" },
   maxOutput: 10000,
 };
+// Probe 2026-10-19: a live offline faux turn observed these prompt sections, knowledge pointer,
+// tool result and extension-error spelling. Provider/model names are chosen fixture-only names.
+export const PI_TURN = {
+  item: "pi turn",
+  fixture: "packages/nana-setup/lib/install-check-turn.mjs",
+  provider: "nana-install-check-fixture",
+  model: "nana-install-check-turn",
+  args: ["--offline", "-e", "packages/nana-setup/lib/install-check-turn.mjs", "--provider", "nana-install-check-fixture", "--model", "nana-install-check-turn", "--no-session", "-p"],
+  tool: "bash",
+  record: ".nana-install-check-turn.json",
+  noteFile: "install-check.md",
+  rulingsHeading: "## Standing rulings (nana)",
+  writingTag: "<nana-writing>",
+  knowledgeMarker: "[nana:knowledge]",
+  gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
+  extensionErrorPrefix: "Extension error (",
+};
+// Probe 2026-10-19: RPC output with pi-subagents was 21,699 bytes and placed a widget after
+// byte 20,970. The unavailable word is chosen to cover nana's explicit degraded-state notices.
+export const PI_SESSION = { unavailableWord: "unavailable", maxOutput: 100000 };
 // Chosen 2026-10-12: bound network and doctor subprocesses within the 20-minute CI job.
-export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, hook: 5000, doctor: 120000, git: 30000 };
+// Probe 2026-10-19: the offline faux turn took 0.66 s; 60 s leaves cold Windows runner headroom.
+export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, hook: 5000, doctor: 120000, git: 30000 };
 // Contract values: the macOS fresh-machine checklist's rehearsal grammar and sandbox shape (R-1540 to R-1546),
 // each chosen 2026-10-19 to run the root README's checklist as written, in a second temporary home.
 export const README_REHEARSAL = {
