@@ -1,0 +1,34 @@
+# Review — review-timeline (one read-only command prints a lane's review rounds, with each sent-back review's MUST findings), 2026-10-19 (Opus, the lane's one final reviewer)
+
+Feature: FEAT-007 · Review a specific revision independently (SUB-010 · Protect and inspect review records)
+
+Review `git diff b8616fb..HEAD` on `feat/review-timeline` (`git merge-base HEAD main` is `b8616fb`; main was at
+`6b3e432` when this brief was written, two lands later, and the lane has not merged it — that merge gets its own
+confirmation round). The plan of record is `docs/reviews/review-timeline-2026-10-19/must-meet.md` (rows R-1560 to
+R-1565), with the adversary's amendments in `plan-attack.md` and the build in `build-brief-1.md`. The seat's record
+`seat-verify-4f6694f.md` holds CI, the Windows log beside it.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`): 6 rows in 1 feature, FEAT-007 — R-1560,
+R-1561, R-1562, R-1563, R-1564 and R-1565 new (implemented).
+
+Judge whether `node packages/nana-pack/bin/review-timeline.mjs --item <slug>` lists every review the ledger recorded for that item in the current
+repository and no other, in rounds numbered by each revision's first appearance in the tally, each with its short
+revision, role, model, verdict and duration; whether it finds each review's file only through the path the audit log
+recorded for it; whether, under a sent-back review whose file's last `VERDICT:` line agrees, it lists exactly the MUST
+titles in the five declared layouts and no SHOULD, NOTE, label or detail line; whether it states, in place of findings,
+a missing record, a gone file, a disagreeing verdict or no readable MUST; whether it marks unverified, over-cap,
+no-verdict and older lines; and whether it prints no absolute path and writes nothing. Judge too whether the six
+must-meet checks would fail with that behaviour removed.
+
+Threat model: honest variation in our tools' output and the OS in scope (version 1 and 2 tally lines, lines with no
+end time, unverified and over-cap reviews, empty verdicts, a verdict on the first line only, the MUST layouts reviewers
+actually wrote, CRLF files, POSIX and Windows paths); deliberate forgery out (a hand-edited tally or audit line, a
+planted review file). The verdict cross-check guards honesty, not security. Lane class: ordinary — a new read-only
+command beside the review tools; it changes none of review-round, review-ledger, pi-review, nana-land, pi-watchdog or
+review-shape, and imports four exported read-only functions from review-round.
+
+Check: (1) the six must-meet checks are not vacuous: each first asserts exit 0 and a listed review; (2) every spawn in
+the test gets a temp HOME and USERPROFILE, and no test reads or writes the real ledger or writes outside its temp
+folders; (3) the command creates, removes or rewrites no file in the ledger folder or any review folder; (4) the lane
+changes none of the named review and land tools, and among existing tests only the R-291 leaf total; (5) the README
+paragraph's usage, layouts and known limits match the code; (6) HANDOFF and the session entry are true; (7) any MUST.

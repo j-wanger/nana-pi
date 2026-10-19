@@ -63,6 +63,7 @@
 - 2026-10-19: every new session now starts with nana's standing rulings, in both seats. Builders and reviewers get them too. The rulings live in one dated file in nana-pi that names no owner and no model. Install links the file into the Claude rules folder and the pi agent folder. On Windows it copies the file instead. A pi session whose copy is unusable shows a one-line notice in their place. Doctor flags a missing or stale copy. All 29 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 154 files. On Windows the lane's own checks pass — `docs/sessions/2026-10.md`.
 - 2026-10-19: the export rule now says a pi extension's default export counts as its named entry point, per the 2026-10-10 ruling. The coding standards, the requirements skill and the shared engineering rows say it in the same words. A new check fails, naming the copy, when any of the three loses them. On the lane's CI run, Windows passed 132 of 153 files with 0 failing, a first. macOS also read 0 failing — `docs/sessions/2026-10.md`.
 - 2026-10-19: the product report lists the tests behind each requirement. Under every row, each cited test shows its title and its file. The file links to its GitHub page at the report's commit. Beside it sits the file's PASS, FAIL or SKIP from this clone's last measured run. A mark shows when that file, or code it ran, has changed since. A row that cites no test says so. The report's six new checks pass on macOS, Linux and Windows. The real page shows five implemented rows whose every test file skipped on this Mac — `docs/sessions/2026-10.md`.
+- 2026-10-19: one command now prints a lane's review timeline. It groups the lane's reviews into rounds in the order the ledger recorded them. Each review shows its revision, role, model, verdict and duration. Under each sent-back review, it lists the MUST findings that review's own file states. When it cannot read them, it says why. It reads only the review ledger and those files, and writes nothing. The new test file passes 11 of 11 checks on macOS, Linux and Windows. CI reads 0 failing files on all three legs — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -166,6 +167,12 @@
 - g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
 - g005-carveout: on Windows, the rule and skill copies take the new wording only at the next install.
 - g005-carveout: the product report's assessment of the engineering-standards feature stays out of date until the queued report refresh.
+- Review timeline (review-timeline): a review shows no recorded file when its tally line has no end time. The same holds when the log naming its file has rotated away, or names it by a relative path.
+- Review timeline (review-timeline): a review file moved or deleted after its run shows as gone. Review files often sit in a session's scratch folder. So the seat runs the timeline at land, from the session that ran the reviews.
+- Review timeline (review-timeline): the MUST reader knows five layouts. Another layout shows as no readable MUST, or may list a detail line as a finding. A sent-back round that lists closed MUSTs as fixed would list them again; none has been seen.
+- Review timeline (review-timeline): it prints markdown only. It tracks no closed MUST, shows no review still running and reads no line under the older repository key. The queued review-timeline diagram stays open; it should reuse the blast-radius lane's drawing code.
+- Review timeline (review-timeline): its MUST reader repeats part of the bench's finding extractor on purpose. The code map forbids a package importing an app, and that extractor serves an older set of review files.
+- Review timeline (review-timeline): nothing runs it automatically. Its six new requirements leave the review feature's product-report assessment out of date until the queued report refresh.
 
 ## Where things stand
 
