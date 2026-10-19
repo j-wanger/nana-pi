@@ -27,3 +27,17 @@
   not in the templates, a stale committed page caught only by a rerun, no layout library for large radii, unpinned
   refusal paths, and the map's string and comment edges.
 - Main moved to a1d07f6 (audit-open-questions) after e63242f's merge of 713d6aa. This tip does not hold it.
+
+## Seat checks after the chain merge (added before the final review)
+
+- The seat merged `f9cd9fd`, adopt-closes-check's reviewed tip, which becomes main before this lane lands.
+- The committed page was stale: it named merge base `b8616fb` and counted 167 test modules. The seat reran step 7
+  in a temporary clone where `main` points at `f9cd9fd`, the main this lane lands on. The page now names
+  `main @ f9cd9fd` and counts 12 of 171 test modules with no mapped import. The drawn set is unchanged: tests 2,
+  upstream 1, changed 5, downstream 6, unmapped 0. A rerun of step 7 on the land tip, with main at `f9cd9fd`,
+  must give this page byte for byte.
+- Browser check (Chrome, a 1272-pixel-wide window, the page served from a local folder): the page renders with no
+  script, four labelled columns in four colours, and every edge drawn. Two known bugs, neither blocking:
+  1. The downstream column ends past 1272 pixels, so the window needs a sideways scroll to read it.
+  2. Edges between two modules in the same column run straight across other labels in that column, and a few
+     cross the labels of the changed column. On this 14-module page every label stays readable.
