@@ -18,8 +18,8 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 | Skill | What it does |
 |---|---|
 | `scaffold-py` / `scaffold-ts` | Generate a project via copier from <https://github.com/j-wanger/nana-pi> (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
-| `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship. |
-| `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, a postEdit-only starter `.pi/nana-pack.json`, and the three frontier seeds (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md`) copied from `templates/_shared` **only when absent**. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). |
+| `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship, then closes on `nana-setup project <dir> --check`. |
+| `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, a postEdit-only starter `.pi/nana-pack.json`, and the three frontier seeds (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md`) copied from `templates/_shared` **only when absent**. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). Closes on `nana-setup project <dir> --check`. |
 | `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
@@ -192,6 +192,27 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 `review-ledger report [--item <slug>] [--repo <path>]` prints one read-only line per recorded verdict:
 item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
 launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
+
+`node bin/review-timeline.mjs --item <slug> [--repo <path>]` prints one lane's review timeline as
+markdown: every round the ledger recorded for that item in the selected repository (the current
+folder by default), in ledger order, each review with its short revision, role, model, verdict and
+duration. It reads only the review ledger (the tally, and the audit log plus its one rotated
+generation, to find each review's recorded output path) and the review files that path names; it
+writes nothing. Under a sent-back review whose recorded file's last `VERDICT:` line still reads
+`SEND-BACK`, it lists that file's MUST findings by title — a heading reading `MUST — <title>`; a bare
+`MUST` heading or `**MUST**` line opening a section whose findings are every sibling of the first
+item form seen in it (a deeper heading, a numbered item, a bullet, or a bold-led paragraph whose bold
+text is not a label ending in `:`); or a line that, after an optional list marker and emphasis marks,
+starts with `MUST —`. No SHOULD or NOTE item is ever listed. A sent-back review with no recorded file,
+a gone file, a disagreeing last verdict, or no readable MUST states which of those holds instead of
+findings. An unverified, over-cap, no-verdict or older (version 1) review line is marked rather than
+guessed. Every field collapses whitespace to one space, and every review file is named by its file
+name alone — never an absolute path. Known limits: a relative recorded path, a rotated-away audit
+generation, or an older tally line with no end time reads as no file recorded; a review file moved or
+deleted after its run reads as gone; the timeline searches no folder but the one the ledger recorded,
+so run it while that folder still exists (the seat runs it at land, from the session that ran the
+reviews); a MUST layout outside the five above may read as unreadable or list a detail line; markdown
+only, no diagram.
 
 ### Land helper: `bin/nana-land.mjs`
 
@@ -548,7 +569,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
 - Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
 - Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
-- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, and reaches builders and reviewers.
+- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, reaches builders and reviewers, and adds a separate stale-install section when the injected rulings text is not this checkout's current file.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into
