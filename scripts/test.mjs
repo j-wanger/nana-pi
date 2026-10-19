@@ -4,8 +4,9 @@
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
  * @inputs argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS and
- *  NANA_COVERAGE_DIR (runtime-map's coverage knob), and the test files directly under each package's tests/
- *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded)
+ *  NANA_COVERAGE_DIR (runtime-map's coverage knob), the test files directly under each package's tests/
+ *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), and on win32 the
+ *  declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
  *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; while
  *  NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds
@@ -61,6 +62,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
@@ -373,7 +375,7 @@ try {
 		const name = display(file);
 		const covFolder = coverageDir ? path.join(coverageDir, String(coveragePosition).padStart(4, "0")) : null;
 		coveragePosition += 1;
-		const skipReason = SKIPS[rel(file)]?.();
+		const skipReason = SKIPS[rel(file)]?.() ?? (process.platform === "win32" && Object.hasOwn(WINDOWS_SKIPS, rel(file)) ? WINDOWS_SKIPS[rel(file)] : null);
 		if (skipReason) {
 			tally.SKIP++;
 			console.log(`SKIP  ${name.padEnd(width)}  ${skipReason}`);

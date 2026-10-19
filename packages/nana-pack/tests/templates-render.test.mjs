@@ -129,6 +129,76 @@ function runCp1252(dest, deselect = []) {
 	return { available: true, ok: r.status === 0, tail: out(r).slice(-800) };
 }
 
+/** Python's `backslashreplace` escape for one code point (R-1440 to R-1442's comparator):
+ *  lowercase hex, `\xHH` up to U+00FF, `\uHHHH` up to U+FFFF, else `\UHHHHHHHH`. */
+function pyBackslashEscape(codePoint) {
+	if (codePoint <= 0xff) return `\\x${codePoint.toString(16).padStart(2, "0")}`;
+	if (codePoint <= 0xffff) return `\\u${codePoint.toString(16).padStart(4, "0")}`;
+	return `\\U${codePoint.toString(16).padStart(8, "0")}`;
+}
+
+/** The code points `TextDecoder("windows-1252")` decodes bytes 0x00–0xFF to — the cp1252
+ *  "has" set the must-meet's comparator defines "lacks" against. */
+const CP1252_CODE_POINTS = new Set(
+	[...new TextDecoder("windows-1252").decode(Uint8Array.from({ length: 256 }, (_, i) => i))].map((ch) => ch.codePointAt(0)),
+);
+
+/** Whether an encoding lacks a code point, per the must-meet's comparator: ascii lacks
+ *  0x80 and above; cp1252 lacks whatever `CP1252_CODE_POINTS` does not hold. */
+const ENCODING_LACKS = {
+	ascii: (codePoint) => codePoint >= 0x80,
+	cp1252: (codePoint) => !CP1252_CODE_POINTS.has(codePoint),
+};
+
+/** Decode one encoding's raw stdout bytes the way the must-meet's comparator does: ascii's
+ *  backslashreplace output is pure ASCII bytes, so UTF-8 decodes it unchanged; cp1252's
+ *  output mixes ASCII escapes with raw cp1252 bytes, so it needs the windows-1252 decoder. */
+const ENCODING_DECODE = {
+	ascii: (buf) => buf.toString("utf-8"),
+	cp1252: (buf) => new TextDecoder("windows-1252").decode(buf),
+};
+
+/** The UTF-8 stdout rewritten with each character `encoding` lacks written as its Python
+ *  escape — the expected stdout for that encoding's run (R-1440 to R-1442's comparator). */
+function expectedUnderEncoding(utf8Text, encoding) {
+	const lacks = ENCODING_LACKS[encoding];
+	return [...utf8Text].map((ch) => {
+		const codePoint = ch.codePointAt(0);
+		return lacks(codePoint) ? pyBackslashEscape(codePoint) : ch;
+	}).join("");
+}
+
+/** One command's raw stdout as a Buffer under one `PYTHONIOENCODING`, with NO `encoding`
+ *  option — `run()`'s own `encoding: "utf-8"` would mangle cp1252 bytes before the
+ *  comparator ever saw them (R-1440 to R-1443's fixture). */
+function runRawStdout(cmd, args, cwd, pythonIoEncoding) {
+	return spawnSync(cmd, args, { cwd, timeout: 60_000, env: { ...process.env, PYTHONIOENCODING: pythonIoEncoding } });
+}
+
+/** One command's comparator across ascii and cp1252 against its own UTF-8 run (R-1440 to
+ *  R-1442): the exit equals the UTF-8 exit, and the decoded stdout equals the UTF-8 stdout
+ *  with each character the encoding lacks written as its Python escape. Returns `{ ok, why,
+ *  utf8Stdout }` so the caller can also pin R-1443 off the same UTF-8 run. On FAIL, `why`
+ *  names the encoding, both exits and the stderr tail. */
+function compareAcrossEncodings(cmd, args, cwd) {
+	const utf8 = runRawStdout(cmd, args, cwd, "utf-8");
+	const utf8Stdout = (utf8.stdout ?? Buffer.alloc(0)).toString("utf-8");
+	let ok = true;
+	const why = [];
+	for (const encoding of ["ascii", "cp1252"]) {
+		const r = runRawStdout(cmd, args, cwd, encoding);
+		const decoded = ENCODING_DECODE[encoding](r.stdout ?? Buffer.alloc(0));
+		const expected = expectedUnderEncoding(utf8Stdout, encoding);
+		const exitOk = r.status === utf8.status;
+		const textOk = decoded === expected;
+		if (!exitOk || !textOk) {
+			ok = false;
+			why.push(`${encoding}: exit ${r.status} vs utf-8 exit ${utf8.status}; stderr tail: ${(r.stderr ?? Buffer.alloc(0)).toString("utf-8").slice(-400)}`);
+		}
+	}
+	return { ok, why: why.join(" | "), utf8Stdout };
+}
+
 /** Call the rendered project's own trace-rail `check()` directly, with no test framework
  *  installed: TypeScript's `tests/requirements-trace.ts` has no dependency of its own (dynamic
  *  `import()` under this runner's `--experimental-strip-types`); Python's `tests/conftest.py`
@@ -1035,6 +1105,48 @@ if (!version) {
 	}
 	// req: R-1321
 	check("R-1321: each template's code-map, readme-check and trace scripts pass on a rendered project rewritten to CRLF", crlfOk, crlfWhy.join(" | "));
+
+	// -------------------------------------------- R-1440 to R-1443: cp1252/ascii output
+	// Python only: an extra scaffold render carrying a non-ASCII fixture (a README path
+	// claim and a module path neither ASCII nor cp1252 holds), removed in `finally`.
+	const encFixture = render("python", { ...LANGS.python.answers, adopt: "false" });
+	try {
+		if (!encFixture.ok) {
+			// req: R-1440
+			check("python: the readme check prints every line under ASCII and cp1252 output", false, encFixture.out.slice(-800));
+			// req: R-1441
+			check("python: the code map check prints every line under ASCII and cp1252 output", false, encFixture.out.slice(-800));
+			// req: R-1442
+			check("python: the code map impact view prints every line under ASCII and cp1252 output", false, encFixture.out.slice(-800));
+			// req: R-1443
+			check("python: the readme check and code map print a non-ASCII path unescaped under UTF-8 output", false, encFixture.out.slice(-800));
+		} else {
+			const readmeFile = path.join(encFixture.dest, "README.md");
+			fs.appendFileSync(readmeFile, "\nSee `docs/λ-notes.md` and `docs/gone.md`.\n");
+			fs.writeFileSync(path.join(encFixture.dest, "src/tpl_py/modλ.py"), '"""no header"""\n');
+
+			const py = LANGS.python.checkCmd[0];
+			const readmeCheckCmp = compareAcrossEncodings(py, ["scripts/readme_check.py"], encFixture.dest);
+			const readmeListCmp = compareAcrossEncodings(py, ["scripts/readme_check.py", "--list"], encFixture.dest);
+			// req: R-1440
+			check("python: the readme check prints every line under ASCII and cp1252 output", readmeCheckCmp.ok && readmeListCmp.ok, [readmeCheckCmp.why, readmeListCmp.why].filter(Boolean).join(" || "));
+
+			const mapCheckCmp = compareAcrossEncodings(py, ["scripts/code_map.py", "--check"], encFixture.dest);
+			// req: R-1441
+			check("python: the code map check prints every line under ASCII and cp1252 output", mapCheckCmp.ok, mapCheckCmp.why);
+
+			// Literal string, not path.join: the fixture names a forward-slash path.
+			const mapImpactCmp = compareAcrossEncodings(py, ["scripts/code_map.py", "--impact", "src/tpl_py/modλ.py"], encFixture.dest);
+			// req: R-1442
+			check("python: the code map impact view prints every line under ASCII and cp1252 output", mapImpactCmp.ok, mapImpactCmp.why);
+
+			const utf8Runs = [readmeCheckCmp, readmeListCmp, mapCheckCmp, mapImpactCmp];
+			// req: R-1443
+			check("python: the readme check and code map print a non-ASCII path unescaped under UTF-8 output", utf8Runs.every((r) => r.utf8Stdout.includes("λ")), utf8Runs.map((r) => r.utf8Stdout.includes("λ")).join(","));
+		}
+	} finally {
+		fs.rmSync(encFixture.dest, { recursive: true, force: true });
+	}
 }
 
 const updateGuide = fs.readFileSync(path.join(REPO, "README.md"), "utf8").match(/- \*\*Generated project\*\*([\s\S]*?)(?=\n- \*\*)/)?.[1] ?? "";
