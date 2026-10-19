@@ -1,0 +1,52 @@
+# Review — post-edit-win-survivors (the post-edit kill tests see a surviving check process on Windows too), 2026-10-19 (Opus, the lane's one final reviewer)
+
+Feature: FEAT-030 · Get trustworthy feedback after edits
+
+Review `git diff 22ccd849..HEAD` on `feat/post-edit-win-survivors` (`git merge-base HEAD main` is `22ccd849`; main was
+`f497c5ad` when this brief was written, three lands later — review-ledger-run-reviewer, adopt-structure-markers and
+stale-copies-hooks — and the lane has not merged them; that merge gets its own chain note and confirmation round). The
+plan of record is `docs/reviews/post-edit-win-survivors-2026-10-19/must-meet.md`: one new row, R-1820 (R-1821 to
+R-1829 stay unused); R-093 retires as superseded by R-787, and R-096 as superseded by R-1820 and R-788; R-787 keeps
+its text and its evidence gains (a)'s gone check. `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is
+the build. The seat's record is `seat-verify-2be1e76.md`: CI run 39333881920 on all three legs (the Windows log
+`ci-windows-run-1.log` beside it) and the seat's Windows wrong-code run (`seat-mutate-win.mjs`, `win-pairs.mjs`,
+`seat-mutate-win-output-2be1e76.txt`: one pair, 13 pass and the 4 named checks FAIL, no EBUSY). No independent check:
+an ordinary lane.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement 22ccd84..bdfc5cd: 3 rows in 1 features
+FEAT-030 · Get trustworthy feedback after edits
+  R-093 implemented -> retired
+  R-096 implemented -> retired
+  R-1820 new (implemented)
+```
+
+The code under review: `packages/nana-pack/tests/post-edit-hardening.test.mjs` ((a) and (c) rewritten to find their
+processes by recorded pid; `writeTreeFixture`'s `ignoreSigterm` and `child` options; `survivors()` throws off POSIX;
+the header and comments), one marker in `packages/nana-pack/tests/post-edit-status.test.mjs`, the FEAT-030 rows in
+REQUIREMENTS.md, one pack README clause, and the regenerated tree and code map. `nana-post-edit.ts` and
+`scripts/test.mjs` do not change. The review folder's `seat-mutate-win.mjs` and `win-pairs.mjs` are seat helpers kept
+as the record; no suite runs them.
+
+Judge whether, on every platform, (a) proves that a timed-out checker which ignores SIGTERM is gone after the run
+settles (R-787), and (c) proves that an aborted turn ends the check's process and that process's still-running child
+(R-1820), both by the pids the fixture recorded. Judge too whether each check would fail with that behaviour removed:
+the builder's four tries cover macOS; on Windows, the seat's run shows (a)'s gone check, the tree check, the win32
+check and (c)'s new check failing by name under a kill without `/T` and no fallbacks, with the file running to its end
+instead of throwing in cleanup.
+
+Threat model: honest variation in our tools' output and the OS is in scope (sh execing a simple command on POSIX while
+cmd.exe stays the parent on Windows, taskkill as the Windows kill, process start-up time, process tables that lag a
+kill, a busy folder on Windows); deliberate forgery is out (a hand-made fixture, and a checker that escapes on
+purpose, which stays R-094's case f). Lane class: ordinary — tests, rows, one pack README clause and two generated
+docs; the extension does not change (precedent post-edit-win-pin).
+
+Check: (1) the must-meet checks are not vacuous: (c) first sees both pids alive before its abort and fails when it did
+not; (a) reads its checker's pid after the run settles — judge the plan's known limit that a missing pid reads as
+gone; (2) (a) and (c) reap their processes by pid and remove their fixtures in `finally`, record survivors before the
+reap, and no test writes outside its temp folders; (3) the extension and the test runner are unchanged, and (b), (f),
+the tree check and the win32 check keep their behaviour; (4) the two retirements, the new row and R-787's evidence
+match `must-meet.md`, and the README clause and the test header match the tests; (5) HANDOFF and the session entry are
+true, including the removed post-edit-win-pin residual and the three new residuals for this lane; (6) any MUST.
