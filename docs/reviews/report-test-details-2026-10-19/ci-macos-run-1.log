@@ -1,0 +1,485 @@
+﻿2026-10-19T14:33:57.3994030Z Current runner version: '2.337.0'
+2026-10-19T14:33:57.4010290Z ##[group]Runner Image Provisioner
+2026-10-19T14:33:57.4010920Z Hosted Compute Agent
+2026-10-19T14:33:57.4011750Z Version: 20261012.601
+2026-10-19T14:33:57.4012610Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-19T14:33:57.4013700Z Build Date: 2026-10-12T17:48:21Z
+2026-10-19T14:33:57.4014380Z Worker ID: {1d80e9ae-1ee8-46c1-8f41-d855baa2d024}
+2026-10-19T14:33:57.4014960Z Region: westus
+2026-10-19T14:33:57.4015330Z Cloud: MacCloud
+2026-10-19T14:33:57.4015730Z ##[endgroup]
+2026-10-19T14:33:57.4022100Z ##[group]Operating System
+2026-10-19T14:33:57.4023190Z macOS
+2026-10-19T14:33:57.4024100Z 26.6.2
+2026-10-19T14:33:57.4024720Z 25G83
+2026-10-19T14:33:57.4025640Z ##[endgroup]
+2026-10-19T14:33:57.4026470Z ##[group]Runner Image
+2026-10-19T14:33:57.4026950Z Image: macos-26-arm64
+2026-10-19T14:33:57.4027410Z Version: 20261013.0424.1
+2026-10-19T14:33:57.4028490Z Included Software: https://github.com/actions/runner-images/blob/macos-26-arm64/20261013.0424/images/macos/macos-26-arm64-Readme.md
+2026-10-19T14:33:57.4029630Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-26-arm64%2F20261013.0424
+2026-10-19T14:33:57.4030490Z ##[endgroup]
+2026-10-19T14:33:57.4031510Z ##[group]GITHUB_TOKEN Permissions
+2026-10-19T14:33:57.4033310Z Contents: read
+2026-10-19T14:33:57.4033760Z Metadata: read
+2026-10-19T14:33:57.4034280Z ##[endgroup]
+2026-10-19T14:33:57.4035930Z Secret source: Actions
+2026-10-19T14:33:57.4036790Z Cache mode: write
+2026-10-19T14:33:57.4037370Z Prepare workflow directory
+2026-10-19T14:33:57.4366800Z Prepare all required actions
+2026-10-19T14:33:57.4422820Z Getting action download info
+2026-10-19T14:33:57.6294270Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-19T14:33:58.0098780Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-19T14:33:58.1118260Z Download action repository 'astral-sh/setup-uv@v5' (SHA:d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86)
+2026-10-19T14:33:59.2233240Z Download action repository 'pnpm/action-setup@v4' (SHA:b906affcce14559ad1aafd4ab0e942779e9f58b1)
+2026-10-19T14:34:00.1628410Z Complete job name: suite (macos-latest)
+2026-10-19T14:34:00.2422780Z ##[group]Run actions/checkout@v4
+2026-10-19T14:34:00.2424010Z with:
+2026-10-19T14:34:00.2424710Z   fetch-depth: 0
+2026-10-19T14:34:00.2425480Z   repository: j-wanger/nana-pi
+2026-10-19T14:34:00.2433190Z   token: ***
+2026-10-19T14:34:00.2433790Z   ssh-strict: true
+2026-10-19T14:34:00.2434390Z   ssh-user: git
+2026-10-19T14:34:00.2435160Z   persist-credentials: true
+2026-10-19T14:34:00.2435970Z   clean: true
+2026-10-19T14:34:00.2436700Z   sparse-checkout-cone-mode: true
+2026-10-19T14:34:00.2437570Z   fetch-tags: false
+2026-10-19T14:34:00.2438170Z   show-progress: true
+2026-10-19T14:34:00.2439200Z   lfs: false
+2026-10-19T14:34:00.2439910Z   submodules: false
+2026-10-19T14:34:00.2440900Z   set-safe-directory: true
+2026-10-19T14:34:00.2441720Z   allow-unsafe-pr-checkout: false
+2026-10-19T14:34:00.2443370Z env:
+2026-10-19T14:34:00.2444000Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:00.2444880Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:00.2445750Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:00.2464840Z ##[endgroup]
+2026-10-19T14:34:00.7133720Z Syncing repository: j-wanger/nana-pi
+2026-10-19T14:34:00.7136040Z ##[group]Getting Git version info
+2026-10-19T14:34:00.7137240Z Working directory is '/Users/runner/work/nana-pi/nana-pi'
+2026-10-19T14:34:00.7138860Z [command]/opt/homebrew/bin/git version
+2026-10-19T14:34:00.7391980Z git version 2.56.0
+2026-10-19T14:34:00.7407040Z ##[endgroup]
+2026-10-19T14:34:00.7413970Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/9391895e-465c-4195-a115-2aca447a43d9/.gitconfig'
+2026-10-19T14:34:00.7421330Z Temporarily overriding HOME='/Users/runner/work/_temp/9391895e-465c-4195-a115-2aca447a43d9' before making global git config changes
+2026-10-19T14:34:00.7423350Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-19T14:34:00.7425810Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/nana-pi/nana-pi
+2026-10-19T14:34:00.7535830Z Deleting the contents of '/Users/runner/work/nana-pi/nana-pi'
+2026-10-19T14:34:00.7538870Z ##[group]Initializing the repository
+2026-10-19T14:34:00.7543510Z [command]/opt/homebrew/bin/git init /Users/runner/work/nana-pi/nana-pi
+2026-10-19T14:34:00.7759690Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-19T14:34:00.7761410Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-19T14:34:00.7763030Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-19T14:34:00.7764450Z hint: call:
+2026-10-19T14:34:00.7765130Z hint:
+2026-10-19T14:34:00.7765960Z hint: 	git config --global init.defaultBranch <name>
+2026-10-19T14:34:00.7766960Z hint:
+2026-10-19T14:34:00.7767900Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-19T14:34:00.7769340Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-19T14:34:00.7770570Z hint:
+2026-10-19T14:34:00.7771270Z hint: 	git branch -m <name>
+2026-10-19T14:34:00.7772130Z hint:
+2026-10-19T14:34:00.7773170Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-19T14:34:00.7774880Z Initialized empty Git repository in /Users/runner/work/nana-pi/nana-pi/.git/
+2026-10-19T14:34:00.7777550Z [command]/opt/homebrew/bin/git remote add origin https://github.com/j-wanger/nana-pi
+2026-10-19T14:34:00.7877820Z ##[endgroup]
+2026-10-19T14:34:00.7879090Z ##[group]Disabling automatic garbage collection
+2026-10-19T14:34:00.7880560Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-10-19T14:34:00.7952030Z ##[endgroup]
+2026-10-19T14:34:00.7953030Z ##[group]Setting up auth
+2026-10-19T14:34:00.7955810Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-19T14:34:00.8014920Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-19T14:34:00.9387910Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-19T14:34:00.9457130Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-19T14:34:01.0341530Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-19T14:34:01.0412740Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-19T14:34:01.1451840Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-19T14:34:01.1534980Z ##[endgroup]
+2026-10-19T14:34:01.1536300Z ##[group]Fetching the repository
+2026-10-19T14:34:01.1543880Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +38b8ddb8b58848a626be69f99bf41ba86883c93d:refs/remotes/pull/44/merge
+2026-10-19T14:34:03.7551450Z From https://github.com/j-wanger/nana-pi
+2026-10-19T14:34:03.7552800Z  * [new branch]      feat/bench-win                           -> origin/feat/bench-win
+2026-10-19T14:34:03.7553910Z  * [new branch]      feat/cc-hooks-windows                    -> origin/feat/cc-hooks-windows
+2026-10-19T14:34:03.7554660Z  * [new branch]      feat/ci-pi-pin                           -> origin/feat/ci-pi-pin
+2026-10-19T14:34:03.7555360Z  * [new branch]      feat/clean-revision                      -> origin/feat/clean-revision
+2026-10-19T14:34:03.7556140Z  * [new branch]      feat/feature-first                       -> origin/feat/feature-first
+2026-10-19T14:34:03.7557820Z  * [new branch]      feat/fresh-install                       -> origin/feat/fresh-install
+2026-10-19T14:34:03.7558490Z  * [new branch]      feat/g005-carveout                       -> origin/feat/g005-carveout
+2026-10-19T14:34:03.7559310Z  * [new branch]      feat/gate-rm-workdir                     -> origin/feat/gate-rm-workdir
+2026-10-19T14:34:03.7561500Z  * [new branch]      feat/install-check                       -> origin/feat/install-check
+2026-10-19T14:34:03.7562920Z  * [new branch]      feat/lift                                -> origin/feat/lift
+2026-10-19T14:34:03.7564530Z  * [new branch]      feat/linux-lane-guard                    -> origin/feat/linux-lane-guard
+2026-10-19T14:34:03.7566240Z  * [new branch]      feat/linux-path-spelling                 -> origin/feat/linux-path-spelling
+2026-10-19T14:34:03.7568060Z  * [new branch]      feat/mutate-runner                       -> origin/feat/mutate-runner
+2026-10-19T14:34:03.7569910Z  * [new branch]      feat/pi-cmd-launch                       -> origin/feat/pi-cmd-launch
+2026-10-19T14:34:03.7571500Z  * [new branch]      feat/process                             -> origin/feat/process
+2026-10-19T14:34:03.7573760Z  * [new branch]      feat/readme-check-cp1252                 -> origin/feat/readme-check-cp1252
+2026-10-19T14:34:03.7575280Z  * [new branch]      feat/regroup                             -> origin/feat/regroup
+2026-10-19T14:34:03.7576770Z  * [new branch]      feat/regroup-shares                      -> origin/feat/regroup-shares
+2026-10-19T14:34:03.7577570Z  * [new branch]      feat/report-test-details                 -> origin/feat/report-test-details
+2026-10-19T14:34:03.7578450Z  * [new branch]      feat/roster                              -> origin/feat/roster
+2026-10-19T14:34:03.7579300Z  * [new branch]      feat/roster-notice                       -> origin/feat/roster-notice
+2026-10-19T14:34:03.7579970Z  * [new branch]      feat/roster-set                          -> origin/feat/roster-set
+2026-10-19T14:34:03.7580680Z  * [new branch]      feat/rulings-file                        -> origin/feat/rulings-file
+2026-10-19T14:34:03.7581370Z  * [new branch]      feat/runtime-map                         -> origin/feat/runtime-map
+2026-10-19T14:34:03.7582750Z  * [new branch]      feat/seat-guide                          -> origin/feat/seat-guide
+2026-10-19T14:34:03.7583400Z  * [new branch]      feat/seat-rule                           -> origin/feat/seat-rule
+2026-10-19T14:34:03.7584130Z  * [new branch]      feat/study-stop                          -> origin/feat/study-stop
+2026-10-19T14:34:03.7584720Z  * [new branch]      feat/tree                                -> origin/feat/tree
+2026-10-19T14:34:03.7585300Z  * [new branch]      feat/tree-briefs                         -> origin/feat/tree-briefs
+2026-10-19T14:34:03.7587000Z  * [new branch]      feat/watchdog-exit                       -> origin/feat/watchdog-exit
+2026-10-19T14:34:03.7589810Z  * [new branch]      feat/win-claude-hooks                    -> origin/feat/win-claude-hooks
+2026-10-19T14:34:03.7590710Z  * [new branch]      feat/win-gate-tmp                        -> origin/feat/win-gate-tmp
+2026-10-19T14:34:03.7591520Z  * [new branch]      feat/win-impact-paths                    -> origin/feat/win-impact-paths
+2026-10-19T14:34:03.7592270Z  * [new branch]      feat/win-install-shape                   -> origin/feat/win-install-shape
+2026-10-19T14:34:03.7592950Z  * [new branch]      feat/win-leg-blocking                    -> origin/feat/win-leg-blocking
+2026-10-19T14:34:03.7594190Z  * [new branch]      feat/win-line-endings                    -> origin/feat/win-line-endings
+2026-10-19T14:34:03.7594900Z  * [new branch]      feat/win-objective-golden                -> origin/feat/win-objective-golden
+2026-10-19T14:34:03.7595500Z  * [new branch]      feat/win-pi-gate                         -> origin/feat/win-pi-gate
+2026-10-19T14:34:03.7596940Z  * [new branch]      feat/win-pi-handoff                      -> origin/feat/win-pi-handoff
+2026-10-19T14:34:03.7598000Z  * [new branch]      feat/win-project-files                   -> origin/feat/win-project-files
+2026-10-19T14:34:03.7599610Z  * [new branch]      feat/win-python-template                 -> origin/feat/win-python-template
+2026-10-19T14:34:03.7600400Z  * [new branch]      feat/win-review-paths                    -> origin/feat/win-review-paths
+2026-10-19T14:34:03.7601020Z  * [new branch]      feat/win-review-tests                    -> origin/feat/win-review-tests
+2026-10-19T14:34:03.7601730Z  * [new branch]      feat/win-session-start                   -> origin/feat/win-session-start
+2026-10-19T14:34:03.7602330Z  * [new branch]      feat/win-setup-tools                     -> origin/feat/win-setup-tools
+2026-10-19T14:34:03.7603050Z  * [new branch]      feat/win-skill-occupied                  -> origin/feat/win-skill-occupied
+2026-10-19T14:34:03.7603960Z  * [new branch]      feat/win-template-tests                  -> origin/feat/win-template-tests
+2026-10-19T14:34:03.7604570Z  * [new branch]      main                                     -> origin/main
+2026-10-19T14:34:03.7605140Z  * [new tag]         v0.3.0                                   -> v0.3.0
+2026-10-19T14:34:03.7605690Z  * [new tag]         v0.4.0                                   -> v0.4.0
+2026-10-19T14:34:03.7606260Z  * [new tag]         v0.5.0                                   -> v0.5.0
+2026-10-19T14:34:03.7606740Z  * [new tag]         v0.6.0                                   -> v0.6.0
+2026-10-19T14:34:03.7607250Z  * [new tag]         v0.6.1                                   -> v0.6.1
+2026-10-19T14:34:03.7607730Z  * [new tag]         v0.6.10                                  -> v0.6.10
+2026-10-19T14:34:03.7608280Z  * [new tag]         v0.6.11                                  -> v0.6.11
+2026-10-19T14:34:03.7608910Z  * [new tag]         v0.6.12                                  -> v0.6.12
+2026-10-19T14:34:03.7609350Z  * [new tag]         v0.6.13                                  -> v0.6.13
+2026-10-19T14:34:03.7609830Z  * [new tag]         v0.6.14                                  -> v0.6.14
+2026-10-19T14:34:03.7610290Z  * [new tag]         v0.6.15                                  -> v0.6.15
+2026-10-19T14:34:03.7611010Z  * [new tag]         v0.6.16                                  -> v0.6.16
+2026-10-19T14:34:03.7611500Z  * [new tag]         v0.6.17                                  -> v0.6.17
+2026-10-19T14:34:03.7612000Z  * [new tag]         v0.6.18                                  -> v0.6.18
+2026-10-19T14:34:03.7612440Z  * [new tag]         v0.6.19                                  -> v0.6.19
+2026-10-19T14:34:03.7612910Z  * [new tag]         v0.6.2                                   -> v0.6.2
+2026-10-19T14:34:03.7613350Z  * [new tag]         v0.6.20                                  -> v0.6.20
+2026-10-19T14:34:03.7613760Z  * [new tag]         v0.6.21                                  -> v0.6.21
+2026-10-19T14:34:03.7614180Z  * [new tag]         v0.6.3                                   -> v0.6.3
+2026-10-19T14:34:03.7614670Z  * [new tag]         v0.6.4                                   -> v0.6.4
+2026-10-19T14:34:03.7615100Z  * [new tag]         v0.6.5                                   -> v0.6.5
+2026-10-19T14:34:03.7615550Z  * [new tag]         v0.6.6                                   -> v0.6.6
+2026-10-19T14:34:03.7615960Z  * [new tag]         v0.6.7                                   -> v0.6.7
+2026-10-19T14:34:03.7616530Z  * [new tag]         v0.6.8                                   -> v0.6.8
+2026-10-19T14:34:03.7617100Z  * [new tag]         v0.6.9                                   -> v0.6.9
+2026-10-19T14:34:03.7617590Z  * [new ref]         38b8ddb8b58848a626be69f99bf41ba86883c93d -> pull/44/merge
+2026-10-19T14:34:03.7619580Z ##[endgroup]
+2026-10-19T14:34:03.7620150Z ##[group]Determining the checkout info
+2026-10-19T14:34:03.7620740Z ##[endgroup]
+2026-10-19T14:34:03.7621070Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-10-19T14:34:03.7700190Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-19T14:34:03.7779260Z ##[group]Checking out the ref
+2026-10-19T14:34:03.7782960Z [command]/opt/homebrew/bin/git checkout --progress --force refs/remotes/pull/44/merge
+2026-10-19T14:34:04.2467630Z HEAD is now at 38b8ddb Merge 4c975f761d75e5d11990768b2cda083b3056eea6 into 06a874a92cb737a1c7a6fffe64d9aed9ca80038b
+2026-10-19T14:34:04.2566340Z ##[endgroup]
+2026-10-19T14:34:04.2704440Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-10-19T14:34:04.2804900Z 38b8ddb8b58848a626be69f99bf41ba86883c93d
+2026-10-19T14:34:04.3309100Z ##[group]Run actions/setup-node@v4
+2026-10-19T14:34:04.3309320Z with:
+2026-10-19T14:34:04.3309570Z   node-version: 22
+2026-10-19T14:34:04.3309720Z   always-auth: false
+2026-10-19T14:34:04.3309920Z   check-latest: false
+2026-10-19T14:34:04.3311900Z   token: ***
+2026-10-19T14:34:04.3312040Z env:
+2026-10-19T14:34:04.3312160Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:04.3312430Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:04.3312620Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:04.3312790Z ##[endgroup]
+2026-10-19T14:34:04.6028760Z (node:1191) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-19T14:34:04.6062550Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-19T14:34:04.6069440Z Found in cache @ /Users/runner/hostedtoolcache/node/22.23.3/arm64
+2026-10-19T14:34:04.6071660Z ##[group]Environment details
+2026-10-19T14:34:05.2921140Z node: v22.23.3
+2026-10-19T14:34:05.2980560Z npm: 10.9.9
+2026-10-19T14:34:05.2981360Z yarn: 1.22.22
+2026-10-19T14:34:05.2982380Z ##[endgroup]
+2026-10-19T14:34:05.3226420Z ##[group]Run astral-sh/setup-uv@v5
+2026-10-19T14:34:05.3226720Z with:
+2026-10-19T14:34:05.3228750Z   github-token: ***
+2026-10-19T14:34:05.3228940Z   enable-cache: auto
+2026-10-19T14:34:05.3229170Z   cache-dependency-glob: **/uv.lock
+**/requirements*.txt
+
+2026-10-19T14:34:05.3229480Z   prune-cache: true
+2026-10-19T14:34:05.3229790Z   ignore-nothing-to-cache: false
+2026-10-19T14:34:05.3230070Z   ignore-empty-workdir: false
+2026-10-19T14:34:05.3230370Z env:
+2026-10-19T14:34:05.3230510Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:05.3230870Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:05.3231150Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:05.3231410Z ##[endgroup]
+2026-10-19T14:34:05.5970930Z (node:1206) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-19T14:34:05.5971940Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-19T14:34:06.1307030Z Downloading uv from "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-aarch64-apple-darwin.tar.gz" ...
+2026-10-19T14:34:06.6010550Z [command]/usr/bin/tar xz -C /Users/runner/work/_temp/7877e3c1-e173-4c00-addc-87782cfc1f25 -f /Users/runner/work/_temp/ff8547bc-13ed-47f5-8a5d-6d429b5e4e98
+2026-10-19T14:34:06.7855700Z Added /Users/runner/.local/bin to the path
+2026-10-19T14:34:06.7895700Z Added /Users/runner/hostedtoolcache/uv/0.13.1/aarch64 to the path
+2026-10-19T14:34:06.7952770Z Set UV_CACHE_DIR to /Users/runner/work/_temp/setup-uv-cache
+2026-10-19T14:34:06.7953290Z Successfully installed uv version 0.13.1
+2026-10-19T14:34:06.7953950Z Searching files using cache dependency glob: **/uv.lock,**/requirements*.txt
+2026-10-19T14:34:06.9763510Z No matches found for glob
+2026-10-19T14:34:06.9785460Z ##[warning]No file matched to [**/uv.lock,**/requirements*.txt]. The cache will never get invalidated. Make sure you have checked out the target repository and configured the cache-dependency-glob input correctly.
+2026-10-19T14:34:07.2517170Z Trying to restore uv cache from GitHub Actions cache with key: setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob
+2026-10-19T14:34:07.3292170Z Cache hit for: setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob
+2026-10-19T14:34:07.3367040Z (node:1206) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-19T14:34:07.5427420Z Received 3607636 of 3607636 (100.0%), 20.9 MBs/sec
+2026-10-19T14:34:07.5431980Z Cache Size: ~3 MB (3607636 B)
+2026-10-19T14:34:07.5616160Z [command]/opt/homebrew/bin/gtar -xf /Users/runner/work/_temp/46686ea5-dbec-4161-b549-569f59b82fbe/cache.tzst -P -C /Users/runner/work/nana-pi/nana-pi --delay-directory-restore --use-compress-program unzstd
+2026-10-19T14:34:07.6179350Z Cache restored successfully
+2026-10-19T14:34:07.6185430Z uv cache restored from GitHub Actions cache with key: setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob
+2026-10-19T14:34:07.6333350Z ##[group]Run pnpm/action-setup@v4
+2026-10-19T14:34:07.6333640Z with:
+2026-10-19T14:34:07.6333940Z   version: 11
+2026-10-19T14:34:07.6334160Z   dest: ~/setup-pnpm
+2026-10-19T14:34:07.6334430Z   run_install: null
+2026-10-19T14:34:07.6334690Z   cache: false
+2026-10-19T14:34:07.6334910Z   cache_dependency_path: pnpm-lock.yaml
+2026-10-19T14:34:07.6335250Z   package_json_file: package.json
+2026-10-19T14:34:07.6335530Z   standalone: false
+2026-10-19T14:34:07.6335760Z env:
+2026-10-19T14:34:07.6349540Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:07.6349920Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:07.6350270Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:07.6350600Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+2026-10-19T14:34:07.6350960Z ##[endgroup]
+2026-10-19T14:34:07.8610170Z ##[group]Running self-installer...
+2026-10-19T14:34:08.1991340Z (node:1219) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-19T14:34:08.2013460Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-19T14:34:08.3717780Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-10-19T14:34:08.3851680Z Packages: +1
+2026-10-19T14:34:08.3875690Z +
+2026-10-19T14:34:09.0506780Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+2026-10-19T14:34:09.0986980Z 
+2026-10-19T14:34:09.0988640Z dependencies:
+2026-10-19T14:34:09.0989900Z + pnpm 11.28.6 (12.14.0 is available)
+2026-10-19T14:34:09.0990430Z 
+2026-10-19T14:34:09.1028450Z Done in 1s
+2026-10-19T14:34:09.1235230Z ##[endgroup]
+2026-10-19T14:34:09.1236260Z Installation Completed!
+2026-10-19T14:34:09.1409300Z ##[group]Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+2026-10-19T14:34:09.1409910Z [36;1mnpm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+2026-10-19T14:34:09.1464460Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-19T14:34:09.1464750Z env:
+2026-10-19T14:34:09.1464910Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:09.1465100Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:09.1465310Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:09.1465560Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+2026-10-19T14:34:09.1465890Z   PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+2026-10-19T14:34:09.1466150Z ##[endgroup]
+2026-10-19T14:34:16.0460130Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-19T14:34:19.4731360Z 
+2026-10-19T14:34:19.4732220Z added 121 packages in 10s
+2026-10-19T14:34:19.4732580Z 
+2026-10-19T14:34:19.4733490Z 9 packages are looking for funding
+2026-10-19T14:34:19.4734380Z   run `npm fund` for details
+2026-10-19T14:34:19.5693470Z ##[group]Run test "$(pi --version)" = "${PI_VERSION}"
+2026-10-19T14:34:19.5694130Z [36;1mtest "$(pi --version)" = "${PI_VERSION}"[0m
+2026-10-19T14:34:19.5732960Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-19T14:34:19.5733290Z env:
+2026-10-19T14:34:19.5733820Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:19.5734080Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:19.5734440Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:19.5734820Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+2026-10-19T14:34:19.5735140Z   PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+2026-10-19T14:34:19.5740390Z ##[endgroup]
+2026-10-19T14:34:20.0206080Z ##[group]Run npm test
+2026-10-19T14:34:20.0206480Z [36;1mnpm test[0m
+2026-10-19T14:34:20.0239900Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-19T14:34:20.0240230Z env:
+2026-10-19T14:34:20.0240510Z   PI_VERSION: 1.0.2
+2026-10-19T14:34:20.0240780Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-19T14:34:20.0241030Z   NANA_TEST_REQUIRE_COPIER: 1
+2026-10-19T14:34:20.0241370Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+2026-10-19T14:34:20.0241770Z   PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+2026-10-19T14:34:20.0242040Z ##[endgroup]
+2026-10-19T14:34:20.2784920Z 
+2026-10-19T14:34:20.2785640Z > nana-pi@0.5.0 test
+2026-10-19T14:34:20.2786290Z > node scripts/test.mjs
+2026-10-19T14:34:20.2786500Z 
+2026-10-19T14:34:21.6583100Z PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.4s
+2026-10-19T14:34:23.2190680Z PASS  packages/nana-knowledge/tests/extension.test.mjs                35 pass  1.6s
+2026-10-19T14:34:28.2092050Z PASS  packages/nana-knowledge/tests/hook.test.mjs                     94 pass  5.0s
+2026-10-19T14:34:28.3528870Z PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        27 pass  0.1s
+2026-10-19T14:34:28.4236450Z PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+2026-10-19T14:34:28.5227510Z PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.1s
+2026-10-19T14:34:28.5966470Z PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+2026-10-19T14:34:28.9583590Z PASS  packages/nana-pack/tests/adoption-producer.test.mjs             61 pass  0.4s
+2026-10-19T14:34:30.2175240Z PASS  packages/nana-pack/tests/adoption-reader.test.mjs               43 pass  1.3s
+2026-10-19T14:34:30.4775210Z PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              98 pass  0.3s
+2026-10-19T14:34:37.5403920Z PASS  packages/nana-pack/tests/agent-dir-hostile.test.mjs             28 pass  7.1s
+2026-10-19T14:34:42.2054110Z PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs              55 pass  4.7s
+2026-10-19T14:34:42.4087980Z PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.2s
+2026-10-19T14:34:42.5571600Z PASS  packages/nana-pack/tests/bounded-read.test.mjs                  4 pass  0.1s
+2026-10-19T14:34:42.6108280Z PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   12 pass  0.1s
+2026-10-19T14:34:43.3519160Z PASS  packages/nana-pack/tests/code-map.test.mjs                      48 pass  0.7s
+2026-10-19T14:34:43.4607900Z PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.1s
+2026-10-19T14:34:44.3774360Z PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          38 pass  0.9s
+2026-10-19T14:34:44.7467730Z PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     98 pass  0.4s
+2026-10-19T14:34:45.2828300Z PASS  packages/nana-pack/tests/config-normalize.test.mjs              23 pass  0.5s
+2026-10-19T14:34:55.2967880Z PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  27 pass  10.0s
+2026-10-19T14:34:56.2314050Z PASS  packages/nana-pack/tests/config-trust.test.mjs                  27 pass  0.9s
+2026-10-19T14:34:56.6901420Z PASS  packages/nana-pack/tests/display-surfaces.test.mjs              181 pass  0.5s
+2026-10-19T14:34:58.6240720Z PASS  packages/nana-pack/tests/frontier.test.mjs                      45 pass  1.9s
+2026-10-19T14:34:58.7775220Z PASS  packages/nana-pack/tests/gate-config-robustness.test.mjs        4 pass  0.2s
+2026-10-19T14:35:11.4455070Z PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  12.7s
+2026-10-19T14:35:13.1053180Z PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  1.7s
+2026-10-19T14:35:13.4450020Z PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.3s
+2026-10-19T14:35:13.7655850Z PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.3s
+2026-10-19T14:35:14.4945440Z PASS  packages/nana-pack/tests/gate-survives-mutation.test.mjs        38 pass  0.7s
+2026-10-19T14:35:14.6961000Z PASS  packages/nana-pack/tests/handoff-artifact.test.mjs              7 pass  0.2s
+2026-10-19T14:35:14.7614490Z PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.1s
+2026-10-19T14:35:15.5007770Z PASS  packages/nana-pack/tests/handoff-staleness.test.mjs             78 pass  0.7s
+2026-10-19T14:35:16.0339450Z PASS  packages/nana-pack/tests/handoff-store.test.mjs                 52 pass  0.5s
+2026-10-19T14:35:16.2381800Z PASS  packages/nana-pack/tests/handoff-symlink.test.mjs               14 pass  0.2s
+2026-10-19T14:35:16.4246890Z PASS  packages/nana-pack/tests/handoff-trust.test.mjs                 51 pass  0.2s
+2026-10-19T14:35:22.2449490Z PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           7 pass  5.8s
+2026-10-19T14:35:36.1360880Z PASS  packages/nana-pack/tests/immutable-review.test.mjs              17 pass  13.9s
+2026-10-19T14:35:58.1232600Z PASS  packages/nana-pack/tests/land.test.mjs                          51 pass  22.0s
+2026-10-19T14:35:58.3377840Z PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              9 pass  0.2s
+2026-10-19T14:35:58.4882910Z PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.2s
+2026-10-19T14:35:59.4949530Z PASS  packages/nana-pack/tests/line-endings.test.mjs                  1 pass  1.0s
+2026-10-19T14:36:24.0577120Z PASS  packages/nana-pack/tests/mutation-runner.test.mjs               27 pass  24.6s
+2026-10-19T14:36:25.9795720Z PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               8 pass  1.9s
+2026-10-19T14:36:26.4603670Z PASS  packages/nana-pack/tests/nana-roster.test.mjs                   17 pass  0.5s
+2026-10-19T14:36:35.5349080Z PASS  packages/nana-pack/tests/notify-fallback.test.mjs               28 pass  9.1s
+2026-10-19T14:37:12.6812590Z PASS  packages/nana-pack/tests/objective-golden.test.mjs              1236 pass  37.1s
+2026-10-19T14:37:12.8458480Z PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.2s
+2026-10-19T14:37:33.3476820Z PASS  packages/nana-pack/tests/path-spelling.test.mjs                 11 pass  20.5s
+2026-10-19T14:37:33.4435370Z PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.1s
+2026-10-19T14:37:33.7882780Z PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    84 pass  0.3s
+2026-10-19T14:37:36.8792810Z PASS  packages/nana-pack/tests/post-edit-file-queue.test.mjs          5 pass  3.1s
+2026-10-19T14:37:47.2349230Z PASS  packages/nana-pack/tests/post-edit-hardening.test.mjs           21 pass  10.3s
+2026-10-19T14:37:49.7374990Z PASS  packages/nana-pack/tests/post-edit-status.test.mjs              30 pass, 1 skip  2.5s
+2026-10-19T14:38:24.0185210Z PASS  packages/nana-pack/tests/product-report.test.mjs                63 pass  34.3s
+2026-10-19T14:38:24.5955060Z PASS  packages/nana-pack/tests/readme-check.test.mjs                  11 pass  0.6s
+2026-10-19T14:38:27.2345710Z PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  2.6s
+2026-10-19T14:38:28.0904800Z PASS  packages/nana-pack/tests/requirement-rows.test.mjs              5 pass  0.9s
+2026-10-19T14:39:20.2697540Z PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  52.2s
+2026-10-19T14:39:20.5817920Z PASS  packages/nana-pack/tests/requirements-moved.test.mjs            4 pass  0.3s
+2026-10-19T14:39:57.3509650Z PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          63 pass  36.8s
+2026-10-19T14:40:05.0087540Z PASS  packages/nana-pack/tests/requirements-trace.test.mjs            61 pass  7.7s
+2026-10-19T14:40:05.8024590Z FAIL  packages/nana-pack/tests/requirements-tree.test.mjs             88 pass, 1 fail  0.8s  — exit 1
+2026-10-19T14:40:05.8025510Z       | FAIL R-291: every real heading's committed IDs survive expansion and leaf counts total 1,248 committed IDs differ or leaf total is not 1,248
+2026-10-19T14:41:39.2310470Z PASS  packages/nana-pack/tests/review-ledger.test.mjs                 155 pass  93.4s
+2026-10-19T14:41:39.2789450Z PASS  packages/nana-pack/tests/review-round.test.mjs                  33 pass  0.0s
+2026-10-19T14:41:40.1174300Z PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  0.8s
+2026-10-19T14:41:40.5558700Z PASS  packages/nana-pack/tests/roster-notice.test.mjs                 16 pass  0.4s
+2026-10-19T14:41:45.1769610Z PASS  packages/nana-pack/tests/runtime-map.test.mjs                   8 pass  4.6s
+2026-10-19T14:41:45.3298120Z PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.1s
+2026-10-19T14:41:51.4424330Z PASS  packages/nana-pack/tests/template-acceptance.test.mjs           12 pass  6.1s
+2026-10-19T14:41:54.4350530Z PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  3.0s
+2026-10-19T14:42:29.0184130Z PASS  packages/nana-pack/tests/templates-render.test.mjs              168 pass  34.6s
+2026-10-19T14:43:12.4156480Z PASS  packages/nana-pack/tests/templates-update.test.mjs              34 pass  43.3s
+2026-10-19T14:43:16.9929170Z PASS  packages/nana-pack/tests/test-locked.test.mjs                   16 pass  4.6s
+2026-10-19T14:43:35.3726530Z PASS  packages/nana-pack/tests/test-runner.test.mjs                   43 pass  18.4s
+2026-10-19T14:43:37.0750450Z PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  1.7s
+2026-10-19T14:43:52.1231790Z PASS  packages/nana-pack/tests/watchdog-exit.test.mjs                 6 pass  15.0s
+2026-10-19T14:43:52.1660770Z PASS  packages/nana-pack/tests/win-command.test.mjs                   47 pass, 1 skip  0.0s
+2026-10-19T14:43:52.2797570Z PASS  packages/nana-pack/tests/win32-launch.test.mjs                  5 pass, 6 skip  0.1s
+2026-10-19T14:44:10.3520500Z PASS  packages/nana-pack/tests/worker-lane.test.mjs                   52 pass  18.1s
+2026-10-19T14:44:10.9947990Z PASS  packages/nana-pack/tests/writing-check.test.mjs                 46 pass  0.6s
+2026-10-19T14:44:11.8932750Z PASS  packages/nana-pack/tests/writing-injection.test.mjs             27 pass  0.9s
+2026-10-19T14:44:12.1036330Z PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs       12 pass  0.2s
+2026-10-19T14:44:13.2618780Z PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          13 pass  1.2s
+2026-10-19T14:44:21.7319910Z PASS  packages/nana-setup/tests/desk-service.test.mjs                 46 pass  8.5s
+2026-10-19T14:44:26.2880430Z PASS  packages/nana-setup/tests/doctor-detail.test.mjs                66 pass  4.6s
+2026-10-19T14:44:26.4898000Z PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             3 pass  0.2s
+2026-10-19T14:44:27.5014360Z PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  1.0s
+2026-10-19T14:44:27.7093130Z PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        8 pass  0.2s
+2026-10-19T14:44:28.1592430Z PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  0.5s
+2026-10-19T14:44:29.3338630Z PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  1.2s
+2026-10-19T14:44:29.4883870Z PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.2s
+2026-10-19T14:44:29.6151140Z PASS  packages/nana-setup/tests/entry-guidance.test.mjs               13 pass  0.1s
+2026-10-19T14:44:29.6669210Z PASS  packages/nana-setup/tests/fresh-machine.test.mjs                4 pass  0.1s
+2026-10-19T14:44:29.7081960Z PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+2026-10-19T14:44:29.8612650Z PASS  packages/nana-setup/tests/hook-producers.test.mjs               10 pass  0.2s
+2026-10-19T14:44:29.8620010Z SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs             runs only on the Windows leg (process.platform !== "win32")
+2026-10-19T14:44:30.1479980Z PASS  packages/nana-setup/tests/install-check.test.mjs                105 pass  0.3s
+2026-10-19T14:44:34.7067800Z PASS  packages/nana-setup/tests/install.test.mjs                      101 pass  4.6s
+2026-10-19T14:44:34.7417920Z PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+2026-10-19T14:44:34.8065410Z PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               8 pass  0.1s
+2026-10-19T14:44:37.0663170Z PASS  packages/nana-setup/tests/pi-registration.test.mjs              64 pass, 3 skip  2.3s
+2026-10-19T14:44:37.7054240Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.6s
+2026-10-19T14:44:37.7618840Z PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.1s
+2026-10-19T14:44:37.9590310Z PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.2s
+2026-10-19T14:44:51.8584210Z PASS  packages/nana-setup/tests/project.test.mjs                      121 pass  13.9s
+2026-10-19T14:44:52.6126450Z PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           29 pass  0.7s
+2026-10-19T14:44:53.9968570Z PASS  packages/nana-setup/tests/restore.test.mjs                      14 pass  1.4s
+2026-10-19T14:44:56.6592760Z PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            47 pass  2.7s
+2026-10-19T14:44:57.6575120Z PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  1.0s
+2026-10-19T14:44:57.7090710Z PASS  packages/nana-setup/tests/seat-rule.test.mjs                    13 pass  0.1s
+2026-10-19T14:45:01.2132780Z PASS  packages/nana-setup/tests/settings-merge.test.mjs               216 pass  3.5s
+2026-10-19T14:45:01.2529560Z PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.0s
+2026-10-19T14:45:01.9765170Z PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.7s
+2026-10-19T14:45:02.0611010Z PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+2026-10-19T14:45:05.5560190Z PASS  packages/nana-setup/tests/skills-and-standards.test.mjs         74 pass  3.5s
+2026-10-19T14:45:06.6140320Z PASS  packages/nana-setup/tests/state-manifest.test.mjs               20 pass  1.1s
+2026-10-19T14:45:07.5864890Z PASS  packages/nana-setup/tests/trust.test.mjs                        11 pass  1.0s
+2026-10-19T14:45:09.8934960Z PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  2.3s
+2026-10-19T14:45:10.8897950Z PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                29 pass  1.0s
+2026-10-19T14:45:14.5911290Z PASS  packages/nana-setup/tests/win32-degrade.test.mjs                98 pass  3.7s
+2026-10-19T14:45:14.6352950Z PASS  packages/nana-setup/tests/writing-rule.test.mjs                 3 pass  0.0s
+2026-10-19T14:45:14.6983300Z PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+2026-10-19T14:45:22.1216180Z PASS  apps/desk/test/app-listener.test.mjs                            76 pass  7.4s
+2026-10-19T14:45:30.7107900Z PASS  apps/desk/test/buffer-caps.test.mjs                             30 pass  8.6s
+2026-10-19T14:45:33.2329670Z PASS  apps/desk/test/changes-endpoint.test.mjs                        88 pass  2.5s
+2026-10-19T14:45:36.8512110Z PASS  apps/desk/test/crash-paths.test.mjs                             42 pass  3.6s
+2026-10-19T14:45:38.1686060Z PASS  apps/desk/test/host-rule.test.mjs                               30 pass  1.3s
+2026-10-19T14:45:38.2767850Z PASS  apps/desk/test/knowledge-home-isolation.test.mjs                1 pass  0.1s
+2026-10-19T14:45:38.3215730Z PASS  apps/desk/test/live-feel.test.mjs                               64 pass  0.0s
+2026-10-19T14:45:38.9704700Z PASS  apps/desk/test/origin-rule.test.mjs                             11 pass  0.6s
+2026-10-19T14:45:40.0031410Z PASS  apps/desk/test/pi-087-entries.test.mjs                          11 pass  1.0s
+2026-10-19T14:45:40.9642080Z PASS  apps/desk/test/pi-resolution.test.mjs                           43 pass  1.0s
+2026-10-19T14:45:41.4081820Z PASS  apps/desk/test/pi-rpc-contract.test.mjs                         10 pass  0.4s
+2026-10-19T14:45:42.7560290Z PASS  apps/desk/test/pi-session-parity.test.mjs                       42 pass  1.3s
+2026-10-19T14:46:02.6262000Z PASS  apps/desk/test/prompt-detach.test.mjs                           24 pass  19.9s
+2026-10-19T14:46:05.7467780Z PASS  apps/desk/test/spawn-and-persist.test.mjs                       122 pass  3.1s
+2026-10-19T14:46:22.0209490Z PASS  apps/desk/test/stage-key-persistence.test.mjs                   82 pass  16.3s
+2026-10-19T14:46:28.0815220Z PASS  apps/desk/test/teardown-invariants.test.mjs                     18 pass  6.1s
+2026-10-19T14:46:31.3486610Z PASS  apps/desk/test/usage-line.test.mjs                              6 pass  3.3s
+2026-10-19T14:46:31.4132650Z PASS  apps/bench/test/agentdir.test.mjs                               26 pass  0.1s
+2026-10-19T14:46:31.4722900Z PASS  apps/bench/test/aggregate.test.mjs                              62 pass  0.1s
+2026-10-19T14:46:31.5197360Z PASS  apps/bench/test/argv.test.mjs                                   32 pass, 1 skip  0.0s
+2026-10-19T14:46:32.5861160Z PASS  apps/bench/test/catch-ledger.test.mjs                           75 pass  1.1s
+2026-10-19T14:46:36.4631110Z PASS  apps/bench/test/checkers.test.mjs                               92 pass  3.9s
+2026-10-19T14:46:39.0834510Z PASS  apps/bench/test/evaluator-hardening.test.mjs                    68 pass  2.6s
+2026-10-19T14:46:41.2297470Z PASS  apps/bench/test/integration.test.mjs                            48 pass  2.1s
+2026-10-19T14:46:41.2737130Z PASS  apps/bench/test/nested.test.mjs                                 59 pass  0.0s
+2026-10-19T14:46:41.6045070Z PASS  apps/bench/test/ops.test.mjs                                    48 pass  0.3s
+2026-10-19T14:46:49.1484370Z PASS  apps/bench/test/orchestration-paths.test.mjs                    85 pass  7.5s
+2026-10-19T14:46:49.2347910Z PASS  apps/bench/test/plan.test.mjs                                   57 pass  0.1s
+2026-10-19T14:46:49.2349190Z SKIP  apps/bench/test/study-tasks.test.mjs                            needs apps/bench/.ext/pi-web-access (not present)
+2026-10-19T14:46:50.9054650Z PASS  apps/bench/test/timeout.test.mjs                                12 pass  1.7s
+2026-10-19T14:46:50.9533280Z PASS  apps/bench/test/usage.test.mjs                                  90 pass  0.0s
+2026-10-19T14:46:51.4608550Z 
+2026-10-19T14:46:51.4613800Z 154 files: 151 PASS, 1 FAIL, 2 SKIP, 0 WARN · checks: 7502 pass, 1 fail, 14 skip · 750.2s
+2026-10-19T14:46:51.4614520Z failed: packages/nana-pack/tests/requirements-tree.test.mjs
+2026-10-19T14:46:51.5115960Z ##[error]Process completed with exit code 1.
+2026-10-19T14:46:51.5375250Z Post job cleanup.
+2026-10-19T14:46:52.1653190Z Pruning is unnecessary.
+2026-10-19T14:46:52.1851450Z Post job cleanup.
+2026-10-19T14:46:52.3081350Z [command]/opt/homebrew/bin/git version
+2026-10-19T14:46:52.3175250Z git version 2.56.0
+2026-10-19T14:46:52.3199160Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/cbc032ec-d90d-40cb-9e3b-aa44937273e7/.gitconfig'
+2026-10-19T14:46:52.3213130Z Temporarily overriding HOME='/Users/runner/work/_temp/cbc032ec-d90d-40cb-9e3b-aa44937273e7' before making global git config changes
+2026-10-19T14:46:52.3215170Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-19T14:46:52.3216210Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/nana-pi/nana-pi
+2026-10-19T14:46:52.3299060Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-19T14:46:52.3382820Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-19T14:46:52.4397400Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-19T14:46:52.4494010Z http.https://github.com/.extraheader
+2026-10-19T14:46:52.4511630Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-19T14:46:52.4628860Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-19T14:46:52.5364640Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-19T14:46:52.5420400Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-19T14:46:52.6174290Z Cleaning up orphan processes
+2026-10-19T14:46:54.8493990Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, astral-sh/setup-uv@v5, pnpm/action-setup@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
