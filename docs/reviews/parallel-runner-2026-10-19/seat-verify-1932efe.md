@@ -70,3 +70,14 @@
 - Still owed before nana-land: main is 6b3e432 (study-stop and gate-rm-workdir landed) and the lane's merge-base is
   b8616fb, so the lane needs main merged again (REQUIREMENTS.md and the R-291 leaf total both move) and a review
   covering that tip; then the locked full suite on the final tip.
+
+## Seat evidence on the merged tip 23c95f2 (added after the main merge)
+
+- Plan item (1), three parallel runs against a serial run. The seat ran `npm run test:locked` (four jobs) on
+  1932efe once and on 23c95f2 twice; all three exit 0. On 23c95f2: 158 files, 156 PASS, 2 SKIP, 7,562 checks
+  passing, suite time 276.1 s and 403.7 s (wall 506 s and 1,274 s, with up to eight builders and reviewers running).
+- The serial run is CI's macOS leg on 23c95f2 (run 39293046161, one file at a time, all jobs green). Each file's
+  status, path and check counts, sorted and with times dropped, match that serial run exactly for both parallel runs
+  on 23c95f2: 158 lines, 0 differences. The 1932efe run predates the main merge; its 22 differing lines are the
+  merged lanes' new files and checks.
+- No file was red only in parallel, so the run-alone list did not change.

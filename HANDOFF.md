@@ -197,7 +197,7 @@
 - Clean revision: each derivation takes about a third of a second longer on nana-pi.
 - Clean revision: no test or wrong-code pair covers the scratch folder's removal or the refusal of a path holding a newline. Neither covers an untracked nested repository with commits. No pair runs on Windows, so only the Windows CI check pins the alternates file's form there.
 - Parallel suite (parallel-runner): an argument after the locked suite command counts as a filter, so that run skips the machine-wide lock. A job count passed that way runs the whole suite in parallel without the lock. Main does the same for the verbose flag.
-- Parallel suite (parallel-runner): the pool has run the full suite once, on this Mac, where the plan asked for three runs. CI runs the suite one file at a time, so Linux and Windows have run only the pool's own checks.
+- Parallel suite (parallel-runner): the pool ran the full suite three times on this Mac. The seat compared two runs on the merged tip with CI's serial macOS run: every file matched. CI runs one file at a time, so Linux and Windows have run only the pool's own checks.
 - Parallel suite (parallel-runner): per-file seconds from a parallel run are seconds under load. The runtime map's measure runs through the locked suite, so its seconds now come from a parallel run too.
 - Parallel suite (parallel-runner): outside load still reaches files off the run-alone list, such as a builder's single test file or a mutation run's parts. The seat rule against splitting a run beside a full suite stands.
 - Parallel suite (parallel-runner): desk tests pick their ports with a free-port probe, so two running at once could race for one port. Nobody has seen it.
