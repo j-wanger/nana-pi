@@ -7,12 +7,12 @@
  *  and the pi args), the user-scope review ledger, the reviewed tree's git revision, and
  *  prompts/review-standard.md
  * @outputs the review text written to --out, a round recorded in the ledger, and the admission note,
- *  warnings and a SUCCESS / FAILED line on stderr
+ *  warnings and a SUCCESS, FAILED or unread-verdict line on stderr
  * @effects disk (writes --out plus the ledger's reservation, tally and audit files), process (the
  *  watchdog's `pi` child, the reservation heartbeat, the exit code)
  * @errors exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args, a missing,
- *  non-regular or blank review standard), when every attempt stalled or failed, or when the round could not
- *  be recorded; exit 0 otherwise
+ *  non-regular or blank review standard), when every attempt stalled or failed, when the round could not
+ *  be recorded, or when its recorded verdict is empty; exit 0 otherwise
  */
 // pi-review.mjs — run a `pi` (Codex) REVIEW under the liveness watchdog (pi-watchdog.mjs), with
 // the per-item review round cap (review-round.mjs, T2b). Every launch here is a review: there is
@@ -21,8 +21,8 @@
 // Usage:
 //   node pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role sol] [--revision <id>]
 //                      [--stall-secs 75] [--retries 2] [--poll 15] [--over-cap <why>] -- <pi args...>
-// Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
-// retries stalled, bad args, or the verdict could not be recorded.
+// Exit: 0 = a review was produced (written to --out) and its non-empty verdict recorded; 1 = refused,
+// all retries stalled, bad args, an empty recorded verdict, or the verdict could not be recorded.
 
 import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -219,6 +219,7 @@ try {
     writeFileSync(w.outPath, r.text);
     const c = complete(adm.res, w.outPath, { attempts: r.attempt }); // complete derives in the immutable checkout
     if (!c.ok) throw new Error(`review written to ${w.outPath}, but ${c.message}`);
+    if (c.unread) throw new Error(c.unread);
     process.stderr.write(`[pi-review] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath}; round ${c.round})\n`);
     process.exitCode = 0;
   } else {

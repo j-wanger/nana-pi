@@ -10,8 +10,9 @@
  *  NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
- *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
- *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
+ *  merged into <claudeHome>/settings.json; install takes the O_EXCL .settings.json.nana-setup.lock
+ *  before its first write and holds it through the settings write, whose fsync'd temp-file rename
+ *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
  *  win32), <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
@@ -22,8 +23,9 @@
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
- *  edit; the settings lock already held; settings.json changed on disk during the run; a plist
- *  placeholder with no value. Every other failure is a row: PROBLEM for a non-regular
+ *  edit; install cannot take its settings lock before its first write and hold it through the
+ *  settings write; settings.json changed on disk during the run; a plist placeholder with no
+ *  value. Every other failure is a row: PROBLEM for a non-regular
  *  nana-personal.md, or anything already sitting where the skill symlink
  *  belongs, SKIPPED for win32, a failed knowledge build or missing pi, and PROBLEM for a failed
  *  per-package `pi install` or launchctl bootstrap/kickstart
@@ -332,6 +334,10 @@ export function stepRetiredArtifacts(layout, o) {
 		}
 		const st = lstatSafe(source);
 		if (!st) continue;
+		if (st.isSymbolicLink() && NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`)) {
+			// stepSkills (R-665) reports every link at these managed names.
+			continue;
+		}
 		if (!matchesRetiredArtifact(entry, st, source)) {
 			out.push({ label: `retired ${entry.relative}`, status: SKIPPED, detail: `unrecognized kind or provenance at ${source} — left untouched` });
 			continue;
@@ -562,7 +568,7 @@ function retiredHookCommands(settings) {
 	return findings;
 }
 
-export function stepSettings(layout, o, state) {
+export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 	const platformValue = win() ? "win32" : undefined;
 	// On win32 every entry applies, written in exec form from the checkout (R-1050, R-1051); on
 	// every other platform desiredHooks() with no platform stays byte-identical to `main`.
@@ -595,7 +601,7 @@ export function stepSettings(layout, o, state) {
 		const settings = structuredClone(state.settings);
 		return report(merge(settings).added, settings);
 	}
-	return withSettingsLock(layout.claudeSettings, () => {
+	const write = () => {
 		// Re-read INSIDE the lock: the preflight decided this install could run at all, this
 		// decides what is written, and the two must agree or nothing is written.
 		const fresh = readClaudeSettings(layout);
@@ -608,7 +614,8 @@ export function stepSettings(layout, o, state) {
 		const { added } = merge(fresh.settings);
 		if (added.length) writeSettingsAtomic(layout.claudeSettings, serialize(fresh.settings), fresh.snapshot, o);
 		return report(added, fresh.settings);
-	});
+	};
+	return lockHeld ? write() : withSettingsLock(layout.claudeSettings, write);
 }
 
 /* ------------------------------------------------------------------------- shared memory */
@@ -1079,11 +1086,15 @@ export function install(layout, opts = {}) {
 	// Pre-flight: the one thing that can abort. Parse before any write.
 	const settingsState = readClaudeSettings(layout);
 	const results = [];
-	results.push(...stepRetiredArtifacts(layout, o));
-	results.push(...stepHooks(layout, o));
-	results.push(...stepRules(layout, o));
-	results.push(...stepSkills(layout, o));
-	results.push(...stepSettings(layout, o, settingsState));
+	const claudeSteps = (lockHeld) => {
+		results.push(...stepRetiredArtifacts(layout, o));
+		results.push(...stepHooks(layout, o));
+		results.push(...stepRules(layout, o));
+		results.push(...stepSkills(layout, o));
+		results.push(...stepSettings(layout, o, settingsState, { lockHeld }));
+	};
+	if (o.dryRun) claudeSteps(false);
+	else withSettingsLock(layout.claudeSettings, () => claudeSteps(true));
 	results.push(...stepSharedMemory(layout, o));
 	results.push(...stepPiConfig(layout, o));
 	results.push(...stepSubagentConfig(layout, o));

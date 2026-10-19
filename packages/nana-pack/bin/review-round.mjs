@@ -6,7 +6,8 @@
  *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
  *  file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
- *  tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, and the projected round number
+ *  tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and
+ *  completion results carrying the recorded verdict plus an unread-verdict note when it is empty
  * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally
  *  and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the
  *  working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing
@@ -64,7 +65,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
-import { VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
+import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
@@ -476,14 +477,16 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
   return rows.filter((r) => (repo === undefined || r.repo === repo) && (item === undefined || r.item === item));
 }
 
-/** Read a verdict from the selected final or plain first line; detection folds but acceptance stays raw. */
-function verdictWord(out) {
+/** Read the selected final or plain first line; detection folds but acceptance stays raw. */
+function readVerdict(out) {
   let text = String(out ?? '');
   try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
   if (text.startsWith('\uFEFF')) text = text.slice(1);
   const lines = text.split(/\r?\n/);
-  const nonblank = lines.filter((line) => line.trim() !== '');
-  if (nonblank.length === 0) return null;
+  const nonblank = lines.map((line, index) => ({ number: index + 1, text: line })).filter((line) => line.text.trim() !== '');
+  if (nonblank.length === 0) {
+    return { verdict: null, selected: null, condition: UNREAD_VERDICT_CONDITIONS.EMPTY_OUTPUT, trigger: null };
+  }
   const first = nonblank[0];
   const final = nonblank.at(-1);
   const fold = (line) => [...line].map((char) => VERDICT_LOOKALIKE_FOLD[char] ?? char).join('');
@@ -495,19 +498,29 @@ function verdictWord(out) {
   const finalGrammar = new RegExp(`^[\\s#>_*\\x60-]*VERDICT:${marks}\\s+${marks}([A-Z]+(?:-[A-Z]+)*)${marks}${score}[.,;:]?${marks}\\s*$`);
   const firstGrammar = /^VERDICT: ([A-Z]+(?:-[A-Z]+)*)(?: \(\d+\/\d+\)| — \d+\/\d+| \d+\/\d+)?\.?\s*$/;
 
-  if (carries(final)) {
-    const selected = finalGrammar.exec(final)?.[1] ?? null;
-    if (!selected) return null;
-    if (nonblank.length > 1 && carries(first)) {
-      const firstWord = firstGrammar.exec(first)?.[1] ?? null;
-      if (firstWord !== selected) return null;
+  if (carries(final.text)) {
+    const verdict = finalGrammar.exec(final.text)?.[1] ?? null;
+    if (!verdict) {
+      return { verdict: null, selected: final, condition: UNREAD_VERDICT_CONDITIONS.FINAL_LINE_GRAMMAR, trigger: null };
     }
-    return selected;
+    if (nonblank.length > 1 && carries(first.text)) {
+      const firstWord = firstGrammar.exec(first.text)?.[1] ?? null;
+      if (firstWord !== verdict) {
+        return { verdict: null, selected: final, condition: UNREAD_VERDICT_CONDITIONS.FIRST_LINE_CONFLICT, trigger: first };
+      }
+    }
+    return { verdict, selected: final, condition: null, trigger: null };
   }
 
-  const selected = firstGrammar.exec(first)?.[1] ?? null;
-  if (!selected || nonblank.slice(1).some((line) => canon(line).includes('verdict'))) return null;
-  return selected;
+  const verdict = firstGrammar.exec(first.text)?.[1] ?? null;
+  if (!verdict) {
+    return { verdict: null, selected: first, condition: UNREAD_VERDICT_CONDITIONS.FIRST_LINE_GRAMMAR, trigger: null };
+  }
+  const trigger = nonblank.slice(1).find((line) => canon(line.text).includes('verdict')) ?? null;
+  if (trigger) {
+    return { verdict: null, selected: first, condition: UNREAD_VERDICT_CONDITIONS.LATER_MENTION, trigger };
+  }
+  return { verdict, selected: first, condition: null, trigger: null };
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
@@ -698,7 +711,7 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
  *     edited mid-review was read in no single state, so no state can honestly own the verdict; and
  *     over counting nothing: then editing during a review would make every review free.
  *  The revision is re-derived UNDER the lock, just before recording (sol r3 TOCTOU).
- *  Never throws: {ok:true, round} | {ok:false, message}. `r` = admit(...).res */
+ *  Never throws: {ok:true, round, verdict, unread} | {ok:false, message}. `r` = admit(...).res */
 export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1 } = {}) {
   const p = ledgerPaths(home);
   try {
@@ -724,15 +737,23 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
       const endedAt = new Date().toISOString();
       const metadata = { provider: held.provider ?? null, model: held.model ?? null, startedAt: held.startedAt ?? null, endedAt, attempts, durationMs: held.startedAt ? Math.max(0, Date.parse(endedAt) - Date.parse(held.startedAt)) : null };
       const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
-      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
-      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
+      const parsed = readVerdict(out);
+      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift });
+      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift });
       unlinkSync(f);
       if (!stable) {
         return { ok: false, round, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
           `now ${why ? `underivable: ${why}` : shortRev(now)}) — the verdict is NOT recorded as valid for either state; round ${round} ` +
           `was consumed for the admitted revision. Re-review the current state (output kept at ${out ?? held.out})` };
       }
-      return { ok: true, round };
+      const used = decide(p, held, held.revision, undefined, false).used;
+      const selected = parsed.selected ?? { number: 1, text: '' };
+      const trigger = parsed.trigger ? `; line ${parsed.trigger.number} ${JSON.stringify(parsed.trigger.text)}` : '';
+      const unread = parsed.verdict === null ? `verdict unread for item ${held.item} at ${shortRev(held.revision)} (round ${round}): ` +
+        `selected line ${selected.number} ${JSON.stringify(selected.text)} — ${parsed.condition}${trigger}; ` +
+        `nana-land will refuse this revision for good — make a new commit and review it; ` +
+        `${Math.max(0, REVIEW_ROUND_CAP - used)} of ${REVIEW_ROUND_CAP} rounds remain for the item; review kept at ${out ?? held.out}` : null;
+      return { ok: true, round, verdict: parsed.verdict, unread };
     });
   } catch (e) {
     return { ok: false, message: failMessage(e) };
