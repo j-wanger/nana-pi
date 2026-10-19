@@ -37,7 +37,7 @@ const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-map-tes
 const posix = process.platform !== "win32";
 
 let fails = 0;
-const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why); if (!ok) fails++; };
 const skip = (n, why) => console.log("SKIP", n, "—", why);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const gone = (pid) => { try { process.kill(pid, 0); return false; } catch { return true; } };
@@ -476,6 +476,7 @@ check("R-1278: run from a linked worktree with no override, the real measure com
 		&& mm9Impact.status === 0
 		&& mm9ImpactOut.includes("measured tests for packages/probe/moduleMM9.mjs (1):")
 		&& mm9ImpactOut.includes("packages/probe/tests/a.test.mjs"),
+	`measure status: ${mm9Run.status}; measure output: ${(mm9Run.stdout ?? "") + (mm9Run.stderr ?? "")}; impact output: ${mm9ImpactOut}`,
 );
 
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");

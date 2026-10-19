@@ -13,7 +13,7 @@
 // checkout does not keep one.
 import { existsSync, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, posix, relative, resolve } from "node:path";
+import { dirname, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -53,7 +53,7 @@ export function repoGraph() {
 function resolveImpactPaths(args, root) {
 	const graph = repoGraph();
 	return args.map((a) => {
-		const rel = relative(root, resolve(a));
+		const rel = relative(root, resolve(a)).split(sep).join("/");
 		return posix.normalize(existsSync(resolve(a)) || graph.modules.has(rel) ? rel : a);
 	});
 }
