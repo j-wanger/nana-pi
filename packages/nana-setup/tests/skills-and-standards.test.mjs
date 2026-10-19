@@ -95,6 +95,19 @@ try {
 			SKILL_NORM.includes("In an install, hook or gate lane the seat also breaks the code and watches the cited test go") &&
 			GONE.every((phrase) => !RULE_NORM.includes(phrase) && !SKILL_NORM.includes(phrase)),
 			`RULE:${RULE_TEXT}\n---\nSKILL:${SKILL_TEXT}`);
+		const GENERAL_SRC = path.join(repo, "templates", "_shared", "requirements-general.md");
+		const GENERAL_TEXT = fs.readFileSync(GENERAL_SRC, "utf8");
+		const g005Cell = GENERAL_TEXT.match(/^\|\s*G-005\s*\|([^|]+)\|/m);
+		const GENERAL_G005_NORM = norm(g005Cell ? g005Cell[1] : "");
+		const CARVEOUT = "a pi extension's default export counts as its named entry point";
+		const carveoutMissing = [];
+		if (!RULE_NORM.includes(CARVEOUT)) carveoutMissing.push("the coding standards rule");
+		if (!SKILL_NORM.includes(CARVEOUT)) carveoutMissing.push("the requirements skill");
+		if (!GENERAL_G005_NORM.includes(CARVEOUT)) carveoutMissing.push("the shared G-005 row");
+		// req: R-1480
+		check("R-1480: the coding standards rule, the requirements skill and the shared G-005 row each say a pi extension's default export counts as its named entry point",
+			carveoutMissing.length === 0,
+			`missing in: ${carveoutMissing.join(", ")}`);
 	}
 
 	/* --- 1. a fresh machine: both land as symlinks into the repo (copies on win32) ------- */
