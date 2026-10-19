@@ -56,6 +56,7 @@
 - 2026-10-19: one command now changes one slot of a machine's roster. You paste the slot and the words a plain roster run prints for it. The command rewrites only that slot and keeps every other setting. It saves the old file as a backup beside it. It refuses inside a pi model's own shell, on bad input and on a bad file, and then changes nothing. Its eight new checks pass on macOS, Linux and Windows. CI's macOS leg reads 0 failing of 151 files — `docs/sessions/2026-10.md`.
 - 2026-10-19: a Python project's readme check and code map print their whole report under any output encoding. Before, the first character the encoding lacked stopped the report with a crash. Python's default pipe encoding on Windows lacks many such characters, such as Greek letters. Now each one prints as its Python backslash escape. The exit status matches a UTF-8 run. CI's Windows leg passes the four new checks. Its failing count stays at 23 of 150 files, all of them main's — `docs/sessions/2026-10.md`.
 - 2026-10-19: the Windows test run skips the 20 desk and bench files that cannot pass there, and prints each one's declared reason. Every other desk and bench file still runs on Windows. macOS and Linux still run all of them. On the lane's CI run, Windows failed 3 of 150 files, all land and review files that main has since fixed. So CI's Windows failing count should fall from 20 of 150 files to 0 once this lands. Main's first run after the land will show it. A later lane makes the Windows leg block main — `docs/sessions/2026-10.md`.
+- 2026-10-19: the product report lists the tests behind each requirement. Under every row, each cited test shows its title and its file. The file links to its GitHub page at the report's commit. Beside it sits the file's PASS, FAIL or SKIP from this clone's last measured run. A mark shows when that file, or code it ran, has changed since. A row that cites no test says so. The report's six new checks pass on macOS, Linux and Windows. The real page shows five implemented rows whose every test file skipped on this Mac — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -120,6 +121,14 @@
 - Bench tests on Windows (win-leg-blocking): the four skipped bench tests stay unfixed. Two expect POSIX paths, and one starts stub judges Windows cannot run. The judge's fixed temp working folder may be a real bench bug (inferred). The folder-mode check cannot hold on Windows.
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
+- Test details in the report (report-test-details): a test skipped for its platform shows only as this clone's SKIP for its whole file. The page reads no skip reason, no CI Linux or Windows result and no SKIP line inside a file.
+- Test details in the report (report-test-details): the label belongs to the whole file, so a PASS file may have skipped the cited check. The page legend says so.
+- Test details in the report (report-test-details): the "changed since" mark misses code run from a temporary copy or by a killed child. The page legend says so.
+- Test details in the report (report-test-details): a test that carries a row's marker but is not cited in the row's evidence is not listed.
+- Test details in the report (report-test-details): no cited test shows its line number.
+- Test details in the report (report-test-details): links go to GitHub only. A link to a commit nobody has pushed opens a not-found page.
+- Test details in the report (report-test-details): a project with no runtime data, Python projects included, shows every test as having no recorded run.
+- Test details in the report (report-test-details): nobody has opened a test link inside the hosted page. The links open a new tab because of a guess that a plain link fails there.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 - Tree report: nothing checks that a lane stays inside its named feature. A lane that changes rows in several features still lands; the report names them all. The report reads the ledger text, so a row moved by hand without a tree regeneration shows as moved.
 
@@ -138,7 +147,7 @@
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
    - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg blocks main after two green runs (both Jake's 2026-10-17 calls).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: the rulings file every seat reads at startup (one copy in nana-pi, installed to the user-level pi folder, with no owner name). Test details in the product report follow, then an adoption refresh of basketball-geek and aml-desk.
+   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: the rulings file every seat reads at startup (one copy in nana-pi, installed to the user-level pi folder, with no owner name). An adoption refresh of basketball-geek and aml-desk follows.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
