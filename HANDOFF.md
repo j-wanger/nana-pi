@@ -52,6 +52,7 @@
 - 2026-10-19: the objective's four path-payload checks pin its escaping again. They build the expected path text by hand on every platform, so a change to how the objective block escapes a path now fails them. The fix was in the test only. The file passes on macOS and Windows with its checks unchanged — `docs/sessions/2026-10.md`.
 - 2026-10-19: the land and review tools treat two spellings of one folder as one folder. A second spelling now keeps one repository key and one ledger item. It can be a case change, a link, a Windows short name, a long-path prefix or a Unicode form. Before, nana-land merged when a reviewer's no sat under another spelling; now it refuses. Windows CI now passes every land and review test file. Its failing count fell from 23 of 150 files to 20, all desk and bench — `docs/sessions/2026-10.md`.
 - 2026-10-19: a lane's brief, review and land now show how the requirements tree moved. A new report lists, under each feature, every row a branch added, removed, re-statused, reworded or moved. Briefs name their feature, and the review brief and the land report carry the report. Nothing in the land or review tools changed — `docs/sessions/2026-10.md`.
+- 2026-10-19: every new session now starts with nana's standing rulings, in both seats. Builders and reviewers get them too. The rulings live in one dated file in nana-pi that names no owner and no model. Install links the file into the Claude rules folder and the pi agent folder. On Windows it copies the file instead. A pi session whose copy is unusable shows a one-line notice in their place. Doctor flags a missing or stale copy. All 29 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 154 files. On Windows the lane's own checks pass — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -104,6 +105,15 @@
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 - Tree report: nothing checks that a lane stays inside its named feature. A lane that changes rows in several features still lands; the report names them all. The report reads the ledger text, so a row moved by hand without a tree regeneration shows as moved.
+- Rulings file: no test proves that a live Claude Code or pi session loads the rulings. The tests stop at the installed file and the prompt section.
+- Rulings file: each machine gets the rulings only after one install run after the pull. Until then pi shows the notice, and Claude Code shows nothing.
+- Rulings file: a Windows copy stays stale until the next install. Doctor flags it meanwhile.
+- Rulings file: on Windows, each install that refreshes a changed file leaves a dated backup beside both copies, so backups pile up. Claude Code should not load them as rules; nobody has tested that.
+- Rulings file: every session, builder and reviewer now carries about 600 more tokens.
+- Rulings file: no test pins how a model reads the scope sentence. A builder or reviewer may still act on a seat-only ruling, such as pushing its branch.
+- Rulings file: the owner and model word lists are short lists, not proofs. Each ruling's wording and scope are the seat's reading of its memory.
+- Rulings file: the seat's memory still states the rulings itself. After the land, the seat points its memory at the file.
+- Rulings file: on macOS and Linux the pi agent folder holds a link into the checkout. An edit through that link changes the checkout.
 
 ## Where things stand
 
@@ -120,7 +130,7 @@
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
    - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg blocks main after two green runs (both Jake's 2026-10-17 calls). Then a one-command lineup change (`nana-roster set`).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: the rulings file every seat reads at startup (one copy in nana-pi, installed to the user-level pi folder, with no owner name). Test details in the product report follow, then an adoption refresh of basketball-geek and aml-desk.
+   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: test details in the product report, then an adoption refresh of basketball-geek and aml-desk.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
