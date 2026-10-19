@@ -122,6 +122,8 @@ The experience has **two halves**, and both are installed from this repo:
 
 ### Fresh machine (macOS), in order
 
+<!-- The install check runs the commands after Run and then in a new temporary home, and checks for the text after expect. -->
+
 1. Install Node ≥ 22.19 with a global npm prefix you can write without sudo (Homebrew, nvm/fnm, or a user prefix), and install git (`xcode-select --install` if it is missing).
 2. Run `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z`, then `pi --version`. Do not use pi's managed installer or `pi update`; see the setup README's “Update nana-pi” section.
 3. Run `git clone https://github.com/j-wanger/nana-pi ~/nana-pi`; keep the clone.
@@ -129,7 +131,7 @@ The experience has **two halves**, and both are installed from this repo:
 5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
 6. Run `pi install npm:pi-subagents@0.75.0`.
 7. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
-8. Run `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor` from `~/nana-pi`; expect `all good`.
+8. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 `uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
 

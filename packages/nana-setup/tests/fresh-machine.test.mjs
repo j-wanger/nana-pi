@@ -12,6 +12,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DESK_NODE_FLOOR, PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
+import { parseChecklist, rehearsalPlan } from "../lib/readme-rehearsal.mjs";
 
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
@@ -36,4 +37,14 @@ const step8Commands = [...step8.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter(
 const step8Kinds = step8Commands.map((c) => c.split(/\s+/)[1]);
 // req: R-1111
 check("fresh-machine step 8 trusts the clone before doctor", step8Kinds.includes("trust") && step8Kinds.includes("doctor") && step8Kinds.indexOf("trust") < step8Kinds.indexOf("doctor"), step8);
+const rehearsalSteps = rehearsalPlan(parseChecklist(readme));
+const lastRehearsalStep = rehearsalSteps.at(-1);
+// req: R-1546
+check("last step runs cd ~/nana-pi, trust and doctor as commands and expects all good",
+  lastRehearsalStep?.commands.length === 3 &&
+  lastRehearsalStep.commands[0] === "cd ~/nana-pi" &&
+  lastRehearsalStep.commands[1] === "nana-setup trust ~/nana-pi --yes" &&
+  lastRehearsalStep.commands[2] === "nana-setup doctor" &&
+  lastRehearsalStep.expect === "all good",
+  JSON.stringify(lastRehearsalStep));
 if (fails) process.exitCode = 1;
