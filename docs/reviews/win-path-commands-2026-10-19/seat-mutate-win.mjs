@@ -14,7 +14,7 @@ const DECLARED = [
 	"(a) Windows leg only: on macOS and Linux every pair below skips with the test file's 'Windows leg only' line",
 ];
 
-const PAIRS = [
+export const PAIRS = [
 	{ n: "W1", name: "dp0 set without quotes", edits: [
 		one(SH, String.raw`'SET "dp0=%~dp0"',`, String.raw`'SET dp0=%~dp0',`),
 	], tests: [WS], expectRed: [R1612] },
@@ -32,4 +32,4 @@ const PAIRS = [
 	], tests: [WS], expectRed: [R1612] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-path-commands", self: import.meta.url, tip: "f7c5db53", declared: DECLARED, pairs: PAIRS });
+if (!process.env.SEAT_PAIRS_IMPORT) process.exitCode = await runMutations({ lane: "win-path-commands", self: import.meta.url, tip: "f7c5db53", declared: DECLARED, pairs: PAIRS });
