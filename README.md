@@ -8,8 +8,8 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, writing, roster notice), plus scaffold +
+- `packages/` — our pi packages, chiefly the nana extension pack: nine extensions (gate,
+  post-edit, lifecycle, notify, handoff, objective, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships the extensions of `nana-pack` and
   `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
@@ -168,7 +168,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all eight extensions, the knowledge pull + every skill (the root package.json
+# 1. the nana-pack — all nine extensions, the knowledge pull + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 
@@ -245,7 +245,7 @@ Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm
 
 ## Product report
 
-The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets, and on any nana project with the tree: `node "$HOME/nana-pi/scripts/product-report.mjs" --root .`. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input. The suite's historical stamp check needs full git history; `npm run report` itself does not.
+The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets, and on any nana project with the tree: `node "$HOME/nana-pi/scripts/product-report.mjs" --root .`. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input. The suite's historical stamp check needs full git history; `npm run report` itself does not. Under each row, every test its evidence cites in this repository lists its own title and file, linked to that file's GitHub page when the origin remote is a GitHub repository, beside each test file's label from the clone's last `npm run map:measure` — marked "changed since" when the file or a file it ran moved since that run, or "No recorded run" with no label when the runtime data has none. A row citing no test in this repository says so.
 
 ## Tests
 

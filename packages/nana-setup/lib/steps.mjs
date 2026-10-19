@@ -5,18 +5,20 @@
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
  *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
  *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
- *  packages/nana-pack/rules (the writing rule); the
+ *  packages/nana-pack/rules (the writing rule and the rulings file); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
- *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
+ *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
+ *  win32), <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
- *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES,
+ *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
+ *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -28,6 +30,7 @@
  */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -38,21 +41,24 @@ import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacy
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
+import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
 
 export class SetupError extends Error {}
 
 export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"];
 const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
- *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
-export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md"];
-/** nana-writing.md ships with the pack, not with this package, because the pi half (the
- *  nana-writing.ts extension) reads the SAME file — one source for both runtimes, the way
- *  PACK_SKILLS_DIR already shares the requirements skill (design-ruling.md Amendment 1, §A1). */
+ *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;
+ *  Amendment 1, §A1; rulings-file lane, 2026-10-19). */
+export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE];
+/** nana-writing.md and RULINGS_FILE ship with the pack, not with this package, because pi reads
+ *  a copy of the SAME file — one source for both runtimes, the way PACK_SKILLS_DIR already
+ *  shares the requirements skill (design-ruling.md Amendment 1, §A1). */
 export const PACK_RULES_DIR = path.join(repoRoot, "packages", "nana-pack", "rules");
 /** Where a CLAUDE_RULES entry's content actually lives. */
 export function ruleSource(rule) {
-	return rule === "nana-writing.md" ? path.join(PACK_RULES_DIR, rule) : path.join(pkgRoot, "claude", "rules", rule);
+	return rule === "nana-writing.md" || rule === RULINGS_FILE ? path.join(PACK_RULES_DIR, rule) : path.join(pkgRoot, "claude", "rules", rule);
 }
 /** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
 export const CLAUDE_SKILLS = ["requirements", "spec", "py-lint", "py-review", "py-test"];
@@ -155,6 +161,46 @@ export function skillFiles(root) {
 	return out;
 }
 
+/** The win32 mirror's ownership marker: a regular file whose presence alone marks a directory as
+ *  nana-setup's own copy. chosen: presence marks a win32 mirror nana-setup made; sealed by R-1425. */
+export const SKILL_COPY_MARKER = ".nana-setup-copy";
+/** Constant content: no path, no timestamp — a different checkout or a later day must never
+ *  rewrite it (plan-attack.md amendment 2). */
+const SKILL_COPY_MARKER_CONTENT = "nana-setup wrote this skill copy\n";
+
+/**
+ * True when the real directory at `target` is a win32 mirror nana-setup made or can safely keep
+ * refreshing, decided with `lstat` alone — never following a link:
+ *  1. it holds a regular file named SKILL_COPY_MARKER;
+ *  2. every file `skillFiles(source)` lists is byte-equal to the pack (doctor's own ✓ test);
+ *  3. its regular-file SKILL.md, read with CRLF turned into LF, hashes to a version this pack
+ *     shipped before the marker existed (`skill-copy-history.json`).
+ * Any other real directory there is one nana-setup did not make.
+ */
+export function ownSkillCopy(target, source) {
+	if (lstatSafe(path.join(target, SKILL_COPY_MARKER))?.isFile()) return true;
+	const files = skillFiles(source);
+	if (
+		files.length &&
+		files.every((f) => {
+			try {
+				return fs.readFileSync(path.join(target, f)).equals(fs.readFileSync(path.join(source, f)));
+			} catch {
+				return false;
+			}
+		})
+	)
+		return true;
+	if (!lstatSafe(path.join(target, "SKILL.md"))?.isFile()) return false;
+	try {
+		const text = fs.readFileSync(path.join(target, "SKILL.md"), "utf8").replace(/\r\n/g, "\n");
+		const hash = createHash("sha256").update(text).digest("hex");
+		return hash in skillCopyHistory;
+	} catch {
+		return false;
+	}
+}
+
 /**
  * Every directory the win32 mirror would write into, root first: the skill root plus one entry per
  * subdirectory the source ships. Sorted, so an ancestor is always judged before its children.
@@ -213,19 +259,34 @@ export function mirrorDirsProblem(target, files) {
  * (sol r1, CRITICAL): `linkFile` only ever sees the leaf, so a directory symlink/junction at
  * `~/.claude/skills/requirements` used to be traversed silently — the mirror backed up and
  * overwrote the SKILL.md of whatever tree that link pointed at, a write outside `~/.claude`.
+ *
+ * win32 also refuses, the same as posix, a real directory it did not make: a directory there
+ * that fails `ownSkillCopy` is reported ✗ and left untouched before any write, dry run included
+ * (R-1420-R-1422). A mirror it wrote (or can keep refreshing) gets the `SKILL_COPY_MARKER` file
+ * after a successful copy, so the next run's ownership check needs no file-by-file compare.
  */
 export function linkSkill(target, source, o = {}) {
 	if (win()) {
 		const files = skillFiles(source);
 		const dirProblem = mirrorDirsProblem(target, files);
 		if (dirProblem) return dirProblem;
+		// A real directory nana-setup did not make is refused before any write, dry run
+		// included — never backed up, never opened as a second skill (R-1420, R-1421, R-1422).
+		if (lstatSafe(target)?.isDirectory() && !ownSkillCopy(target, source)) {
+			return {
+				status: PROBLEM,
+				detail: `a directory is already at ${target} — left untouched; move or remove it, then re-run`,
+			};
+		}
 		const results = files.map((f) => linkFile(path.join(target, f), path.join(source, f), { ...o, copyInstead: true }));
 		const problem = results.find((r) => r.status === PROBLEM);
 		if (problem) return problem;
-		const changed = results.filter((r) => r.status !== UNCHANGED);
+		const marker = writeIfChanged(path.join(target, SKILL_COPY_MARKER), SKILL_COPY_MARKER_CONTENT, o);
+		const all = [...results, marker];
+		const changed = all.filter((r) => r.status !== UNCHANGED);
 		const detail = `${files.length} file${files.length === 1 ? "" : "s"} copied (no symlink on this platform)`;
 		if (!changed.length) return { status: UNCHANGED, detail };
-		return { status: changed.length === files.length && !results.some((r) => r.status === UPDATED) ? CREATED : UPDATED, detail };
+		return { status: changed.length === all.length && !all.some((r) => r.status === UPDATED) ? CREATED : UPDATED, detail };
 	}
 	const st = lstatSafe(target);
 	const resolved = path.resolve(source);
@@ -598,6 +659,10 @@ export function stepPiConfig(layout, o) {
 	} else {
 		out.push({ label: "pi nana-objective.md", status: UNCHANGED, detail: `not needed — objective.path already points at ${target}` });
 	}
+	// The owner's install ruling ("install to user level .pi folder", rulings-file lane,
+	// 2026-10-19): a symlink on POSIX, a byte-equal copy on win32 — the nana-rulings extension
+	// reads THIS copy, never the pack file directly (unlike nana-writing's extension default).
+	out.push({ label: "pi nana-rulings.md", ...linkFile(layout.piRulings, ruleSource(RULINGS_FILE), { ...o, copyInstead: win() }) });
 	return out;
 }
 

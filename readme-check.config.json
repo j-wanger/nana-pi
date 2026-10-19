@@ -52,6 +52,10 @@
       "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
     },
     {
+      "path": "nana-rulings.md",
+      "reason": "the bare name, as nana-setup/README.md uses it, names the INSTALLED copy in pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) or in `~/.claude/rules/`; the repo's own file is `packages/nana-pack/rules/nana-rulings.md`, a separate claim this check still verifies"
+    },
+    {
       "path": "handoffs",
       "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
     },

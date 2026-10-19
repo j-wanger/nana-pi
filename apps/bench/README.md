@@ -39,10 +39,8 @@ npm test -- apps/bench                        # every bench test, from the repo 
 `--go` is mandatory for real spend: with no flag the runner only prints. `--keep` leaves each run's
 temp workspace in place (evidence is saved either way).
 
-On win32, four bench test files are not supported and declared Windows skips
-(`packages/nana-pack/lib/windows-skips-config.mjs`): `agentdir` (asserts a `0700` directory, which
-Windows has no POSIX mode bits to hold), `argv` and `usage` (expected values are written as POSIX
-paths), and `catch-ledger` (its stub judges are extensionless shebang files Windows cannot start).
+Every bench test runs on win32; `agentdir`'s folder-mode check prints SKIP there, since Windows has
+no POSIX mode bits to hold a `0700` directory.
 
 **Interrupting:** Ctrl-C signals the current child (and its process group), then — before exiting
 130 — drains what the child had already written with a bounded wait, confirms the whole group is

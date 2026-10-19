@@ -583,6 +583,11 @@ check("R-1382: win32 still runs each desk and bench file off the declared Window
 check("R-1383: the declared Windows skip list names only collected desk and bench test files", listedPaths.length > 0 && listedPaths.every((p) =>
 	/^apps\/(desk|bench)\/test\/[^/]+\.test\.mjs$/.test(p) && fs.existsSync(path.join(REPO, p))));
 
+const benchSkips = Object.keys(WINDOWS_SKIPS).filter((p) => p.startsWith("apps/bench/"));
+if (benchSkips.length > 0) console.log("R-1521 offenders:", benchSkips.join(", "));
+// req: R-1521
+check("R-1521: the declared Windows skip list names no bench test file", benchSkips.length === 0);
+
 fs.rmSync(TD, { recursive: true, force: true });
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");
 process.exit(fails ? 1 : 0);
