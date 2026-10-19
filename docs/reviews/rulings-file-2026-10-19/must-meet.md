@@ -72,7 +72,7 @@ Seal: RT::seal: RULINGS_READ_CAP is 8192 (req R-1411).
 4. Every child and subagent carries about 600 more tokens.
 5. No test pins how a model reads the scope sentence.
 6. The word lists are short lists, not proofs. The wording and scope of each ruling are the seat's reading of memory.
-7. The AGENTS runtime table and its template are left to a later lane.
+7. Done in build 2: the AGENTS runtime table (`templates/_shared/working-under-nana-pi.md`, mirrored in `AGENTS.md`) names `nana-rulings.md` / the `nana-rulings` extension in the Writing rule / rulings column, closing R-680/R-985's existing-check demand rather than deferring it.
 8. After the land, the seat points memory at the file.
 9. Uninstall still refuses on Windows.
 10. On POSIX the agent-dir link points into the checkout, so an edit through it changes the checkout.

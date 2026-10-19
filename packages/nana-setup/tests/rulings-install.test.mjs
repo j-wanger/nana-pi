@@ -17,6 +17,10 @@
 // goes into throwaway --home/--pi-home roots; nothing touches the real machine. Checks match
 // ONLY the rulings-named rows (must-meet.md: "Match only the rulings rows, not the exit code") —
 // other rows (pi executable, project trust, pi-pack config, …) are left unseeded and unchecked.
+// The POSIX-link probes (R-1412/R-1413 first block, and R-1414's posix-copy sub-check) run only
+// on a host whose OWN platform is not win32 — forcing them there would need a real symlink, which
+// Windows gates behind a privilege this suite cannot assume; a real win32 host still runs the
+// win32-copy and doctor probes natively (CI run 39250052854 found this gap, 2026-10-19).
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
@@ -72,7 +76,7 @@ const lstatSafe = (p) => {
  * R-1412 — install places nana-rulings.md in pi's active agent dir: a symlink on POSIX, a
  * byte-equal copy on win32.
  * ======================================================================================== */
-{
+if (process.platform !== "win32") {
 	const { H, P } = freshRoots();
 	run(["install", "--home", H, "--pi-home", P]);
 	const target = path.join(P, RULINGS_FILE);
@@ -83,6 +87,8 @@ const lstatSafe = (p) => {
 		ok,
 		JSON.stringify({ exists: Boolean(st), isSymlink: st?.isSymbolicLink() ?? null }),
 	);
+} else {
+	console.log("SKIP pi-agent-dir POSIX-link probe (win32: a real symlink needs a privilege this host may lack; the byte-equal-copy probe right below covers win32's own contract)");
 }
 {
 	const { H, P } = freshRoots();
@@ -101,7 +107,7 @@ const lstatSafe = (p) => {
  * R-1413 — install places nana-rulings.md in Claude Code's rules folder: a symlink on POSIX,
  * a byte-equal copy on win32.
  * ======================================================================================== */
-{
+if (process.platform !== "win32") {
 	const { H, P } = freshRoots();
 	run(["install", "--home", H, "--pi-home", P]);
 	const target = path.join(H, ".claude", "rules", RULINGS_FILE);
@@ -112,6 +118,8 @@ const lstatSafe = (p) => {
 		ok,
 		JSON.stringify({ exists: Boolean(st), isSymlink: st?.isSymbolicLink() ?? null }),
 	);
+} else {
+	console.log("SKIP Claude-rules-folder POSIX-link probe (win32: a real symlink needs a privilege this host may lack; the byte-equal-copy probe right below covers win32's own contract)");
 }
 {
 	const { H, P } = freshRoots();
@@ -147,16 +155,20 @@ const lstatSafe = (p) => {
 		afterInstall.stdout,
 	);
 
-	// a plain, byte-equal COPY in place of the link (the posix shape doctor must refuse)
-	const target = path.join(P, RULINGS_FILE);
-	fs.unlinkSync(target);
-	fs.writeFileSync(target, fs.readFileSync(SRC));
-	const posixCopy = run(["doctor", "--home", H, "--pi-home", P]);
-	// req: R-1414
-	check("doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install",
-		/✗ pi nana-rulings\.md/.test(posixCopy.stdout),
-		posixCopy.stdout,
-	);
+	if (process.platform !== "win32") {
+		// a plain, byte-equal COPY in place of the link (the posix shape doctor must refuse)
+		const target = path.join(P, RULINGS_FILE);
+		fs.unlinkSync(target);
+		fs.writeFileSync(target, fs.readFileSync(SRC));
+		const posixCopy = run(["doctor", "--home", H, "--pi-home", P]);
+		// req: R-1414
+		check("doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install",
+			/✗ pi nana-rulings\.md/.test(posixCopy.stdout),
+			posixCopy.stdout,
+		);
+	} else {
+		console.log("SKIP posix-copy-reads-✗ probe (win32: a byte-equal copy IS the correct win32 shape there, not a wrong one — the stale-win32-copy case right below covers win32's own ✗ shape)");
+	}
 }
 {
 	// win32: a STALE copy (content no longer matches the pack source) reads ✗

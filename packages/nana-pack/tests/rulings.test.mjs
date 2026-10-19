@@ -124,7 +124,10 @@ check("seal: RULINGS_READ_CAP is 8192", RULINGS_READ_CAP === 8192);
  * fixture (the `{ agentDir }` test seam — never the shipped file). One line, never a throw.
  * ======================================================================================== */
 {
-	const oneLineMarker = (block) => typeof block === "string" && !block.includes("\n") && block.startsWith(RULINGS_UNAVAILABLE);
+	// req R-1411's clause that the marker "names the file and `nana-setup install`": a one-line
+	// marker that merely starts with RULINGS_UNAVAILABLE is not enough — it must also name the
+	// rulings file (its basename, RULINGS_FILE) and the exact repair command, nana-setup install.
+	const oneLineMarker = (block) => typeof block === "string" && !block.includes("\n") && block.startsWith(RULINGS_UNAVAILABLE) && block.includes(RULINGS_FILE) && block.includes("nana-setup install");
 	const fixtures = [
 		{ name: "missing", make: () => {} },
 		{ name: "empty", make: (p) => fs.writeFileSync(p, "") },
