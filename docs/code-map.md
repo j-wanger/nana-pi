@@ -1738,8 +1738,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pins the opt-in lane write boundary across traversal, symlink, missing-target, and unset-root cases.
 - **inputs** — nana-gate, temporary worktree and outside directories
-- **outputs** — named PASS/FAIL checks
-- **effects** — disk (OS temp fixtures), process (environment)
+- **outputs** — named PASS/FAIL/SKIP checks
+- **effects** — disk (fixtures under home, OS temp or /var/tmp), process (environment)
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
