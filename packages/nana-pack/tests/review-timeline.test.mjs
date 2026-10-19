@@ -139,8 +139,7 @@ function snapshotDir(dir) {
 	const round1Rev = /## Round 1 — ([0-9a-f]{12})\b/.exec(out)?.[1];
 	const round2Rev = /## Round 2 — ([0-9a-f]{12})\b/.exec(out)?.[1];
 	// req: R-1560
-	check(
-		"RT1: one item's reviews in one repository, grouped into rounds in ledger order with revision, role, model, verdict and duration",
+	check("RT1: one item's reviews in one repository, grouped into rounds in ledger order with revision, role, model, verdict and duration",
 		t.status === 0 &&
 			roundHeadingCount === 2 &&
 			round1 >= 0 &&
@@ -213,8 +212,7 @@ function snapshotDir(dir) {
 	const noLeak = !/Smallest fix|Files:|SHOULD|NOTE|changelog|regression test|retry count|retry loop|Rename the helper|Rationale|cite:/.test(out);
 	const titleCount = (out.match(/- MUST — /g) || []).length;
 	// req: R-1561
-	check(
-		"RT2: a sent-back review lists the MUST findings its recorded file states in each declared layout, and no SHOULD, NOTE, label or detail line",
+	check("RT2: a sent-back review lists the MUST findings its recorded file states in each declared layout, and no SHOULD, NOTE, label or detail line",
 		t.status === 0 && allTitlesPresent && noLeak && titleCount === expectTitles.length,
 		JSON.stringify({ status: t.status, stderr: t.stderr, out, expectTitles, allTitlesPresent, titleCount }),
 	);
@@ -256,8 +254,7 @@ function snapshotDir(dir) {
 	const t = runTimeline(home, ["--item", "rt3", "--repo", repo]);
 	const out = t.stdout;
 	// req: R-1562
-	check(
-		"RT3: no recorded file, a gone file, a disagreeing file or no readable MUST is stated for that review and no finding is listed",
+	check("RT3: no recorded file, a gone file, a disagreeing file or no readable MUST is stated for that review and no finding is listed",
 		t.status === 0 &&
 			out.includes("model-a") && out.includes("review file gone") &&
 			out.includes("model-b") && out.includes("disagrees with the ledger") &&
@@ -287,8 +284,7 @@ function snapshotDir(dir) {
 	const noverdictLine = /^- role: role-noverdict.*$/m.exec(out)?.[0] ?? "";
 	const legacyLine = /^- role: role-legacy.*$/m.exec(out)?.[0] ?? "";
 	// req: R-1563
-	check(
-		"RT4: unverified, over-cap, no-verdict and older ledger lines carry their marks",
+	check("RT4: unverified, over-cap, no-verdict and older ledger lines carry their marks",
 		t.status === 0 &&
 			/duration: \d+m \d{2}s \([^)]*\bunverified\b[^)]*\)/.test(driftLine) &&
 			/duration: \d+m \d{2}s \(over cap: ran over cap because of urgency\)/.test(overcapLine) &&
@@ -312,8 +308,7 @@ function snapshotDir(dir) {
 	const out = t.stdout;
 	const rootName = path.basename(root);
 	// req: R-1564
-	check(
-		"RT5: the timeline prints no absolute path and names each review file by its file name",
+	check("RT5: the timeline prints no absolute path and names each review file by its file name",
 		t.status === 0 && !out.includes(rootName) && !out.includes(home) && !out.includes(outs) && out.includes("opus-r1.md"),
 		JSON.stringify({ status: t.status, stderr: t.stderr, out, rootName, home, outs }),
 	);
@@ -335,8 +330,7 @@ function snapshotDir(dir) {
 	const t = runTimeline(home, ["--item", "rt6", "--repo", repo]);
 	const after = { ledger: snapshotDir(ledgerDir), outs: snapshotDir(outs) };
 	// req: R-1565
-	check(
-		"RT6: the timeline leaves the ledger folder and the review folders byte-for-byte unchanged",
+	check("RT6: the timeline leaves the ledger folder and the review folders byte-for-byte unchanged",
 		t.status === 0 &&
 			JSON.stringify(before.ledger) === JSON.stringify(after.ledger) &&
 			JSON.stringify(before.outs) === JSON.stringify(after.outs) &&
