@@ -7,15 +7,16 @@
  *  orderedRoster(roster) -> the roster with every slot in SLOT_PRINT_ORDER; the CLI prints one
  *  line per slot and a source line on stdout, or with --json one JSON object {roster: ...}, or
  *  the refusal on stderr
- * @effects disk (reads the user-scope nana-pack.json)
- * @errors resolveRoster never throws; the CLI exits 1 on a refused roster
+ * @effects disk (reads the user-scope nana-pack.json; the CLI's `set` subcommand, dynamically
+ *  loaded, replaces it and may write nana-pack.json.bak)
+ * @errors resolveRoster never throws; the CLI exits 1 on a refused roster or a refused `set`
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
-import { ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS } from './worker-config.mjs';
+import { ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
 
 const ENTRY_FIELDS = Object.freeze(['provider', 'model', 'thinking']);
 
@@ -152,9 +153,9 @@ export function resolveRoster(agentDir) {
 export function formatRosterLines(roster, source) {
   const lines = SLOT_PRINT_ORDER.map((slot) => {
     const value = roster[slot];
-    if (value === null) return `${slot}: ${slot === 'land' ? 'seat' : 'none'}`;
+    if (value === null) return `${slot}: ${SLOT_NULL_TOKENS[slot]}`;
     if (value.runtime === CLAUDE_CODE_RUNTIME) return `${slot}: ${CLAUDE_CODE_RUNTIME} ${value.model}`;
-    return `${slot}: ${value.provider} ${value.model} ${value.thinking ?? 'default'}`;
+    return `${slot}: ${value.provider} ${value.model} ${value.thinking ?? DEFAULT_THINKING_TOKEN}`;
   });
   lines.push(`source: ${source}`);
   return lines;
@@ -165,7 +166,20 @@ export function orderedRoster(roster) {
   return Object.fromEntries(SLOT_PRINT_ORDER.map((slot) => [slot, roster[slot]]));
 }
 
-function main() {
+async function main() {
+  if (process.argv[2] === 'set') {
+    const { setRosterSlot } = await import('../lib/roster-set.mjs');
+    const setArgs = process.argv.slice(3);
+    const result = setRosterSlot(piAgentDir(), setArgs);
+    if (!result.ok) {
+      process.stderr.write(`nana-roster: set refused: ${result.problem}\n`);
+      process.exit(1);
+    }
+    for (const line of formatRosterLines(result.roster, result.file)) process.stdout.write(`${line}\n`);
+    const slot = (setArgs[0] ?? '').replace(/:$/, '');
+    process.stderr.write(`nana-roster: ${slot} was: ${result.previousTokens}\n`);
+    process.exit(0);
+  }
   const json = process.argv.includes('--json');
   const result = resolveRoster(piAgentDir());
   if (!result.ok) {
