@@ -148,11 +148,16 @@ const PASS_1471 = [
 	'console.log("PASS ran");',
 	"",
 ].join("\n");
+// chosen: 1200ms so this EARLIER-collected failing file (red.test.mjs) always finishes AFTER
+// signal.test.mjs and silent.test.mjs (500ms each, LATER in collection order) — forcing the pool
+// to complete the run's failing files out of collection order every time (must-meet.md item 2,
+// build-brief-2: M15, pushing WARN/failed in completion order, survived because nothing forced
+// that divergence before).
 const RED_1471 = [
 	'import * as fs from "node:fs";',
 	'import * as path from "node:path";',
 	"const start = Date.now();",
-	"await new Promise((resolve) => setTimeout(resolve, 500));",
+	"await new Promise((resolve) => setTimeout(resolve, 1200));",
 	'fs.writeFileSync(path.join(process.env.PROBE_OUT, "red.json"), JSON.stringify({ start, end: Date.now() }));',
 	'console.log("not ok - diagnostic assertion");',
 	...Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`),
@@ -229,11 +234,17 @@ const selfTestLine1471 = lineStartingWith(serial1471.out, "self-test");
 const selfTestMatch1471 = selfTestLine1471 !== null
 	&& selfTestLine1471 === lineStartingWith(parallel1471.out, "self-test")
 	&& selfTestLine1471 === "self-test: every fixture got its expected verdict";
+// must-meet.md item 1 (build-brief-2): the pool must remove every finished file's temp root —
+// nothing checked that before, so M17 (keep the root instead) survived the seat's wrong-code pairs.
+const leftoverTempRoots1471 = fs.existsSync(parallel1471.tmp)
+	? fs.readdirSync(parallel1471.tmp).filter((d) => d.startsWith("nana-test-"))
+	: ["<tmp folder missing>"];
 // req: R-1471
 check("R-1471: a parallel run that overlaps reports every label, count, excerpt, warning, failed name, self-test verdict, total and exit code exactly as a serial run",
 	serial1471.code !== 0 && serial1471.code === parallel1471.code
-		&& overlapped1471 && totalsMatch1471 && warnsMatch1471 && failedMatch1471 && selfTestMatch1471 && blocksMatch1471,
-	JSON.stringify({ serialTotals1471, parallelTotals1471, overlapped1471, warnsMatch1471, failedMatch1471, selfTestMatch1471, blocksMatch1471, serialCode: serial1471.code, parallelCode: parallel1471.code }),
+		&& overlapped1471 && totalsMatch1471 && warnsMatch1471 && failedMatch1471 && selfTestMatch1471 && blocksMatch1471
+		&& leftoverTempRoots1471.length === 0,
+	JSON.stringify({ serialTotals1471, parallelTotals1471, overlapped1471, warnsMatch1471, failedMatch1471, selfTestMatch1471, blocksMatch1471, leftoverTempRoots1471, serialCode: serial1471.code, parallelCode: parallel1471.code }),
 );
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -304,6 +315,70 @@ check("R-1472: files that ran at the same time print their verbose output, or th
 	verboseRun1472.code === 0 && plainRun1472.code === 1 && vOverlap1472 === 2 && rOverlap1472 === 2
 		&& isContiguousPair(vSeq1472) && isContiguousPair(plainSeq1472),
 	JSON.stringify({ vSeq1472, plainSeq1472, vOverlap1472, rOverlap1472 }),
+);
+
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// R-1471 (must-meet.md item 3, build-brief-2): the independent review found scripts/test.mjs
+// writing its last file block and calling process.exit() right after; a real pipe reader that
+// has not drained anything yet can lose that write entirely (probed: a 2 MB console.log before
+// process.exit() delivered ZERO bytes to a reader attached after the child had exited).
+// spawnSync (the run() helper above) drains continuously as part of its own synchronous loop and
+// never reproduces this, so this case spawns the copied runner directly and leaves its stdout and
+// stderr UNREAD for a while — the way a slow real pipe reader would — before draining them.
+// ════════════════════════════════════════════════════════════════════════════════════════════
+const BIG_BLOCK_BYTES = 2_000_000; // chosen: comfortably exceeds any default OS pipe buffer (commonly 64 KB)
+const rootPipe1471 = mkRoot("r1471-pipe", {
+	"packages/probe/tests/small.test.mjs": [
+		"await new Promise((resolve) => setTimeout(resolve, 50));",
+		'console.log("PASS small file ran");',
+		"",
+	].join("\n"),
+	"packages/probe/tests/big.test.mjs": [
+		"await new Promise((resolve) => setTimeout(resolve, 150));", // finishes after small.test.mjs
+		`console.log("FAIL " + "x".repeat(${BIG_BLOCK_BYTES}));`,
+		// exitCode, not process.exit(): this fixture's OWN big write must reach the runner's
+		// capture intact, or the runner's aggregated block (what this case actually probes) would
+		// be corrupted at the source rather than by the bug under test.
+		"process.exitCode = 1;",
+		"",
+	].join("\n"),
+});
+/** Spawn the copied runner but leave its stdout/stderr UNREAD for `drainAfterMs`, so a real OS
+ *  pipe buffer — never spawnSync's own synchronous drain — actually fills while the runner still
+ *  has output queued. `safetyMs` force-kills the child so a hang here cannot hang the suite. */
+function runLateDrain(root, args, drainAfterMs, safetyMs = 15000) {
+	return new Promise((resolve) => {
+		const tmp = tmpDir(path.join(TD, "tmpdir-"));
+		const out_dir = tmpDir(path.join(TD, "probeout-"));
+		const env = { ...process.env, TMPDIR: tmp, TEMP: tmp, TMP: tmp, PROBE_OUT: out_dir };
+		const child = spawn(process.execPath, [path.join(root, "scripts", "test.mjs"), ...args], {
+			cwd: root, env, stdio: ["ignore", "pipe", "pipe"],
+		});
+		let out = "";
+		let code = null;
+		let settled = false;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(safety);
+			resolve({ code, out, out_dir, tmp });
+		};
+		child.on("exit", (c) => { code = c; });
+		child.on("close", finish);
+		const safety = setTimeout(() => { try { child.kill("SIGKILL"); } catch {} finish(); }, safetyMs);
+		setTimeout(() => {
+			child.stdout.on("data", (c) => { out += c.toString(); });
+			child.stderr.on("data", (c) => { out += c.toString(); });
+		}, drainAfterMs);
+	});
+}
+const pipeRun1471 = await runLateDrain(rootPipe1471, ["--jobs=2"], 1500);
+const pipeTotals1471 = totals(pipeRun1471.out);
+const pipeFailedLine1471 = lineStartingWith(pipeRun1471.out, "failed: ");
+// req: R-1471
+check("R-1471: a last file block over the OS pipe buffer still ends with the totals line and the failed: list, read through a real pipe",
+	pipeRun1471.code === 1 && pipeTotals1471 !== null && pipeFailedLine1471 !== null && pipeFailedLine1471.includes("big.test.mjs"),
+	JSON.stringify({ code: pipeRun1471.code, pipeTotals1471, pipeFailedLine1471, outLength: pipeRun1471.out.length }),
 );
 
 // ════════════════════════════════════════════════════════════════════════════════════════════

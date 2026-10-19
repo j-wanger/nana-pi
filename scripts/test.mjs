@@ -581,4 +581,10 @@ console.log(
 for (const w of warns) console.log(w);
 if (failed.length) console.log(`failed: ${failed.join(", ")}`);
 if (selfTest) console.log(selfTestMismatch.length ? `self-test MISMATCH: ${selfTestMismatch.join(", ")}` : "self-test: every fixture got its expected verdict");
-process.exit(tally.FAIL || selfTestMismatch.length ? 1 : 0);
+// Not process.exit(): on a pipe, a write queued just before an immediate process.exit() can be
+// dropped entirely rather than truncated (confirmed: a 2 MB console.log before process.exit() on
+// darwin delivered ZERO bytes to a reader that attached after the child had already exited).
+// Setting exitCode and letting the event loop drain on its own lets every queued write flush
+// before the process exits — registered SIGINT/SIGTERM/message handlers do not keep it alive once
+// there is nothing left to do (must-meet.md item 3, build-brief-2).
+process.exitCode = tally.FAIL || selfTestMismatch.length ? 1 : 0;
