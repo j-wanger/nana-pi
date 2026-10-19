@@ -138,4 +138,4 @@ const PAIRS = [
 	], tests: [SM, UN], expectRed: [SM_LAYOUT, SM_INSTALL, UN_DRY, UN_ROUND, UN_CONTEXT] },
 ];
 
-process.exitCode = await runMutations({ lane: "rulings-file", self: import.meta.url, tip: "743c568", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "rulings-file", self: import.meta.url, tip: "9c993df", declared: DECLARED, pairs: PAIRS });
