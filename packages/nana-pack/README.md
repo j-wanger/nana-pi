@@ -25,7 +25,7 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
-Eight extensions giving pi the hook coverage we require (Claude Code parity classes):
+Nine extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -37,6 +37,7 @@ Eight extensions giving pi the hook coverage we require (Claude Code parity clas
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
+| `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
 **Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
 
@@ -85,7 +86,9 @@ An independent review is run by a `pi` (Codex) call, and that endpoint intermitt
 `pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
 liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
 the whole process group and retries with a fresh session (`--retries N` = re-attempts after the
-first; default 2). SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
+first; default 2). The watchdog ends an attempt as soon as pi exits, rather than waiting for the
+next poll tick, and treats a pi killed by a signal the watchdog did not send as a failed attempt
+that is retried. SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
 non-empty *and* contains a case-sensitive line-start `VERDICT` word (the predicate lives
 in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
 exit 0 means the review is in `--out`, exit 1 means every attempt failed.
@@ -237,7 +240,11 @@ A roster replaces every slot, whole — there is no merge and no fallback to the
 
 A seat passes the roster's reviewer and land models to `pi-review` itself, as `pi-review … -- --provider <provider> --model <model> [--thinking <thinking>]`; `pi-review` reads no roster and prints no builder line. `pi-worker`'s lane mode reads `--lane-size <small|larger>` to pick `builder` or `largerBuilder` — see Lane builder above.
 
-To change one slot without hand-editing the whole file: pull before you add `largerBuilder` — an older checkout refuses a file holding it, naming it — then run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" --json`, which prints this machine's resolved roster as `{"roster": …}`. Set the file's `roster` member to that printed `roster` value, adding the member if the file has none or replacing the one already there, keep every other key (the installer's file already holds `objective`), then change the one slot you meant to change — pasting the whole command output beside the file's existing object makes invalid JSON.
+To change one slot without hand-editing the whole file, run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set <slot>[:] <tokens>`, pasting the slot and the tokens a plain run of the command above prints for the entry you want — `set builder example-gateway gpt-6-luna high`, `set largerBuilder claude-code sonnet`, `set land seat`, `set scout none`; a printed line's own trailing colon on the slot is accepted. It writes only that slot, prints the resulting roster the same way a plain run does, and writes `nana-roster: <slot> was: <previous tokens>` to stderr. It keeps every other top-level member (`objective`, `gate`, `postEdit` and an unrecognised key included) and, before replacing an existing file, copies its previous bytes to `nana-pack.json.bak` in the agent dir — copy that file back over `nana-pack.json` to undo a `set`. `set` must be the first argument: `nana-roster --json set …` prints the roster and sets nothing, and only one `.bak` is kept (the next `set`, or an edit by the desk, replaces it).
+
+`set` refuses, naming what is wrong, and changes no byte, in three cases: run inside a pi model shell (pi sets `PI_SESSION_ID` there for its own bash and powershell tool calls; a terminal, pi's `!`, and a Claude Code shell are all fine); malformed `set` input (no slot, an unknown slot, or tokens that do not form a valid entry for that slot); and a `nana-pack.json` the roster resolver itself refuses (invalid JSON, a directory, over the 1 MiB cap, and the like) — the path is left exactly as it was, never replaced with the default roster.
+
+Known limits: no lock, so a writer racing `set` (the desk, the installer, an editor) loses its write; the file is always re-serialized (two-space JSON, LF, BOM dropped, duplicate keys collapsed to the last) with values unchanged, while `nana-pack.json.bak` keeps the original bytes; a file with no roster gets the whole sealed default written into it, so a later change to that default stops reaching this machine until the `.bak` is copied back; the pi-model-shell guard is advisory — a model that unsets `PI_SESSION_ID`, an MCP or SDK shell that never sets it, and pi older than 0.82.0 all pass it, the same scope as the gate; and a relative `PI_CODING_AGENT_DIR` writes under the current folder exactly as a plain run reads it, with a missing agent dir refused and nothing created.
 
 #### Windows
 
@@ -541,6 +548,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
 - Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
 - Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
+- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, and reaches builders and reviewers.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into
@@ -570,7 +578,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
   outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
   Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,
-  `r''m`) or `--force`, `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
+  `r''m`) or `--force` (except the plain in-directory form below), `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
   `git reset --hard`, `git clean -f`/`--force`, `git checkout -- .`, `git restore .`,
   `git branch -D`, `git stash drop|clear`, `find -delete`/`-exec rm`, `rsync --delete`,
   `truncate`, `shred`, `python -c`/`node -e` deleting files, `chmod 777`, `dd of=/dev/`,
@@ -581,6 +589,29 @@ is user-scope only** — project config never contributes to it, trusted or not.
   checked in commands AND edit/write targets. rm-text checks scan every command segment,
   including quoted arguments and text-only mentions. Interpreter deletion scans inspect the
   complete interpreter command string.
+- **The plain in-directory `rm` exemption** (L2, 2026-10-19, Jake's ruling): a bash-tool command
+  that is EXACTLY `rm`, flags drawn only from `-r`/`-R`/`-f`/`-v` (alone or combined) or
+  `--recursive`/`--force`/`--verbose`, and one or more literal relative targets made of ASCII
+  letters, digits, `.`, `_`, `@`, `-` and `/` that each lie strictly inside the session working
+  directory, runs with no prompt and no headless block. Every other form still asks: an absolute
+  target, the working directory itself, or a path outside it; a target with a dot-named part
+  (`..`, `.git`, `.pi`), one that directly holds a `.git` entry, or one overlapping the active pi
+  agent folder in either direction; a symbolic link or junction anywhere on the way; a glob,
+  variable, substitution, quote, backslash, `~`, `--`, another flag, a prefix (`sudo`, `command`,
+  `/bin/rm`, `VAR=value`), a second command, leading/trailing whitespace, or the powershell tool;
+  and a home, home-ancestor, root or dot-named working directory. A configured `extraPatterns` or
+  `protectedPaths` match and a named policy file still stop it — this exemption clears only the
+  non-floor "rm recursive/forced" danger, never the floor or those later checks. Known limits:
+  plain `rm` and `rm -f` still pass anywhere outside the working directory, as before — making
+  those ask too is a separate lane; absolute and dot-named targets and compounds (`rm -rf build
+  && npm test`) still ask; the exemption assumes the command runs as typed in the session cwd, so
+  a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids it; a bare
+  repository as the cwd (`repo.git`, no dot-named part) is not recognised, so `rm -rf objects
+  refs` runs unasked there; a target that holds a git repository two or more levels down is not
+  recognised either — the `.git` check looks only one level under the target, so `rm -rf vendor`
+  runs unasked when the repository actually sits a level deeper inside it; nor is a target that
+  is itself a bare repository (`rm -rf origin.git`, which has no `.git` entry inside it to catch);
+  PowerShell keeps asking for every form.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,

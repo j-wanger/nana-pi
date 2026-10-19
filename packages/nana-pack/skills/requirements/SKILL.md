@@ -87,11 +87,12 @@ Every module opens with the six-tag contract header:
 @errors  the typed errors or statuses it can produce
 ```
 
-Standing rules: named exports only (no reaching into another module's internals, private
-helpers or mutable state) · resources with identity or side effects (db handles, clocks,
-random sources, fetchers, file roots) injected at the boundary so the module is exercisable
-without the real resource · imports follow the declared layer direction, and a reverse or
-layer-skipping import fails the check · one purpose per module.
+Standing rules: named exports only, where a pi extension's default export counts as its
+named entry point (no reaching into another module's internals, private helpers or mutable
+state) · resources with identity or side effects (db handles, clocks, random sources,
+fetchers, file roots) injected at the boundary so the module is exercisable without the real
+resource · imports follow the declared layer direction, and a reverse or layer-skipping
+import fails the check · one purpose per module.
 
 The map is generated from the import graph plus those headers, and the check is in the suite:
 

@@ -2,13 +2,14 @@
  * @module apps/bench/lib/catch-judge.mjs
  * @purpose The only place the catch ledger uses a model: the label and match prompts, their JSON
  *  schemas, the judge invocation and the validation of what comes back.
- * @inputs {model, system, prompt, schema, budgetUsd} per call; env CATCH_JUDGE_BIN (default
- *  `claude`); row/report/fix-brief texts for prompt building
+ * @inputs {model, system, prompt, schema, budgetUsd, spawn} per call (spawn optional, default
+ *  node:child_process spawnSync); env CATCH_JUDGE_BIN (default `claude`); row/report/fix-brief
+ *  texts for prompt building
  * @outputs exports MODELS and the label vocabularies
  *  (TOP/SUB/DISP/ORIGIN/RELATION/SURFACE/VALIDITY), GUIDE/MATCH_GUIDE, labelSchema/matchSchema,
  *  sha, callJudge, labelPrompt, validateLabels; callJudge returns {out, cost}
- * @effects process (spawnSync of the judge CLI with cwd /tmp, 15 min timeout), network (the model
- *  call that child makes)
+ * @effects process (spawns the judge CLI with cwd the OS temp folder, 15 min timeout), network
+ *  (the model call that child makes)
  * @errors throws Error on judge unavailable, non-zero exit, non-JSON output, missing structured
  *  output, or a model other than the one requested; validateLabels throws on a bad or incomplete
  *  label set
@@ -17,6 +18,7 @@
 // semantic matching. Fail-closed: no mock, no fallback. Any judge failure throws; the CLI exits 1.
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
+import os from "node:os";
 
 export const MODELS = { a: "claude-opus-5-5", b: "claude-sonnet-5", c: "claude-sonnet-5" };
 export const TOP = ["functional", "evolvability", "false_positive", "not_a_finding"];
@@ -110,10 +112,10 @@ Rules: an id must never appear in both same_as and covers for the same row. If t
 export const sha = (s) => crypto.createHash("sha256").update(s).digest("hex").slice(0, 16);
 
 /** One judge call. Throws on ANY failure: no mock, no fallback. */
-export function callJudge({ model, system, prompt, schema, budgetUsd = 2 }) {
+export function callJudge({ model, system, prompt, schema, budgetUsd = 2, spawn = spawnSync }) {
 	const bin = process.env.CATCH_JUDGE_BIN || "claude";
 	const args = ["-p", "--model", model, "--output-format", "json", "--json-schema", JSON.stringify(schema), "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--setting-sources", "", "--system-prompt", system, "--max-budget-usd", String(budgetUsd)];
-	const r = spawnSync(bin, args, { input: prompt, encoding: "utf8", maxBuffer: 64 << 20, timeout: 15 * 60 * 1000, cwd: "/tmp" });
+	const r = spawn(bin, args, { input: prompt, encoding: "utf8", maxBuffer: 64 << 20, timeout: 15 * 60 * 1000, cwd: os.tmpdir() });
 	if (r.error) throw new Error(`judge unavailable: ${r.error.code || r.error.message}`);
 	if (r.status !== 0) throw new Error(`judge exited ${r.status}: ${(r.stderr || r.stdout || "").slice(0, 300)}`);
 	let j;
