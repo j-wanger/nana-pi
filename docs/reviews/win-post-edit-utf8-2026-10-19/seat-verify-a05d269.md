@@ -28,7 +28,12 @@
   - install-check: macOS and Windows success. None of main's known failures showed.
 - The plan's Windows scratch run (the lane's test file against main's extension, where R-1740 and R-1741 must FAIL on
   the Windows leg; seat scratch pull request #69, branch `seatmut/win-post-edit-utf8`, commit 54850c6f, never merged):
-  pending; the seat adds the result before the review starts.
+  CI run 39320005358. Windows leg: `post-edit-utf8.test.mjs 2 pass, 2 fail`, the two FAILs exactly R-1740 ("a failing
+  Python check with PYTHONUTF8 unset or empty shows the model its non-ASCII output as printed") and R-1741 ("a failing
+  Python check shows the model its own Python child's non-ASCII output as printed"); R-1742 and R-1743 PASS. The only
+  other failing file on every leg is code-map (2 checks: the map is stale because the scratch branch reverted the
+  extension without regenerating it). macOS and Ubuntu: post-edit-utf8 2 pass, 2 skip, as on the lane. So on Windows
+  the new checks fail against main's extension and pass on the lane, as the plan requires. PR #69 is closed.
 - The seat's wrong-code pairs (`seat-mutate.mjs`, `seat-mutate-output-a05d269.txt`, committed in d0f8d384): 9 of 9 red,
   each by exactly its named titles, 0 survived; one shard on a05d269, macOS, Node 22.22.2, Python 3.14.6 under the
   test's forced Latin-1 locale; baseline post-edit-utf8 4 PASS. P1 (main's env), S1 to S6 (the must-meet's wrong forms

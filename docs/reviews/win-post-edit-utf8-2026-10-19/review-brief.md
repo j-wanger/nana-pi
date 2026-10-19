@@ -9,8 +9,8 @@ AMEND; `build-brief-1.md` is the build. The seat's record is `seat-verify-a05d26
 legs (the Windows log `ci-windows-run-1.log` beside it), the wrong-code pairs (`seat-mutate.mjs`,
 `seat-mutate-output-a05d269.txt`: 9 of 9 red, 0 survived, four declared gaps), the independent check
 (`independent-check-a05d269.md`: HOLDS, no MUST, one finding recorded as a HANDOFF residual) and the plan's Windows
-scratch run of the new test against main's extension (pending when this brief was written; the seat adds its result
-to the record before this review starts).
+scratch run of the new test against main's extension (pending when this brief was written; the seat's commit after the chain
+note records it: R-1740 and R-1741 FAIL on Windows against main's extension).
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
 
