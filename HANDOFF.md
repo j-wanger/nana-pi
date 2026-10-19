@@ -67,6 +67,7 @@
 - 2026-10-19: in pi, a recursive or forced rm of plain relative names inside the working folder now runs without asking. A headless builder can now clear its build folder. The command must be exactly rm, its known flags and the names. Every other rm form keeps today's verdict. Plain rm without those flags still passes anywhere, as before. The gate still asks for a dot-named target, a link, a folder holding git, the pi agent folder or a home working folder. Each of the seat's 34 wrong versions of the code fails a check. All three CI legs pass the seven new checks. Windows and Linux read 0 failing files. macOS failed one desk timing check, which passed three later runs alone — `docs/sessions/2026-10.md`.
 - 2026-10-19: a checkout that git calls clean now reviews as its plain commit, so nana-land can land it. Before, a lost execute bit or line endings git converts gave the review a snapshot, and nana-land refused. The review tools now ask git which tree it would record, using a throwaway index and object folder. Deriving it adds and removes nothing in the real git folder and runs no hook; git may refresh the timestamps of objects it re-hashes. All 19 of the seat's wrong-code pairs turn a check red. CI's macOS leg reads 0 failing of 152 files. On Windows all nine of the lane's checks pass, including the one the plan most doubted. Only main's 20 desk and bench files still fail there — `docs/sessions/2026-10.md`.
 - 2026-10-19: the lane write guard judges each edit and write at the path pi writes, in each folder's spelling on disk. Before, it allowed a home, at-sign or file URL path that pi wrote outside the lane, on every system. Now it refuses one. It now allows a temp or lane folder typed in another letter case or short name; links were already allowed. On Windows it no longer counts the drive's tmp folder as a temp folder. CI on the final build reads 0 failing files on macOS. Windows CI now runs the tmp check and passes it. Ubuntu CI now passes the lane write guard's test file. Every file that fails on Windows or Ubuntu also failed on main when the lane last merged it — `docs/sessions/2026-10.md`.
+- 2026-10-19: the product report's Decisions tab now lists every open question in the requirements ledger. Each shows its number and its full text, in file order. A ledger with none still gets its page, and the page says so. The ledger gained eleven open questions from the 2026-10-09 audit, and one stale question closed. The two new checks pass on macOS, Linux and Windows. CI reads 0 failing files on all three — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -195,6 +196,10 @@
 - Clean revision (review): an ignored file force-added and staged, not committed, now reviews as the plain commit, but the reviewer's copy still shows it. nana-land refuses while it stays staged. Unstaged afterwards, the land goes ahead on a review that saw one extra file.
 - Clean revision: each derivation takes about a third of a second longer on nana-pi.
 - Clean revision: no test or wrong-code pair covers the scratch folder's removal or the refusal of a path holding a newline. Neither covers an untracked nested repository with commits. No pair runs on Windows, so only the Windows CI check pins the alternates file's form there.
+- Open questions in the report (audit-open-questions): closed questions still list, each with its own closed note. The page has no filter for them.
+- Open questions in the report (audit-open-questions): only a dash bullet or a numbered line starts a question. A star bullet joins the question above it.
+- Open questions in the report (audit-open-questions): a new project's placeholder question lists as question 1, with its underscores shown.
+- Open questions in the report (audit-open-questions): the 2026-10-09 verification found issues beyond the audit, in two rows, one pack README line and misfiled rows. No open question records them.
 
 ## Where things stand
 
@@ -215,7 +220,7 @@
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
-   - The three small fixes have landed: the G-005 carve-out, rm inside the working directory and the study stop. Then the seat moves the confirmed audit issues to open questions and regenerates the product report.
+   - The three small fixes have landed: the G-005 carve-out, rm inside the working directory and the study stop. The confirmed audit issues are now open questions. Then the seat regenerates the product report and republishes its page. Open questions 14 and 16–23 are the seat's own calls.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
@@ -231,7 +236,7 @@
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
-- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Five rows read violated, all desk rows declared during the desk freeze; the study-stop lane fixed R-542.
+- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 6, 6b, 10–12 (the code-map three), 15 and 13's template half wait for you. Question 9 closed with four-digit IDs, and question 3 closed as stale. Five rows read violated, all desk rows declared during the desk freeze; the study-stop lane fixed R-542.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.
