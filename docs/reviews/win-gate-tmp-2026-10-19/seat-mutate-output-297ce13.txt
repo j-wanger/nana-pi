@@ -1,0 +1,26 @@
+seat-mutate: lane win-gate-tmp, tip 297ce134753225136af1f54b4860b186feb308f4, table 6e0e3d253b9402a648779c3bb357e941c067cb776eb783d7e76206b03027f85f, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 6 pairs in 5 shards (2+1+1+1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-19T12:04:23.858Z
+DECLARED (a) every pair runs on macOS; the 8.3 halves of R-1431 and R-1432 and the Windows half of R-1430 exist only on the Windows leg
+DECLARED (b) main's temp-root form (/tmp on every platform) is red only on the Windows leg, so M5 inverts the platform test instead: on macOS it drops /tmp (the POSIX half goes red), on Windows it keeps \tmp (the Windows half goes red)
+DECLARED (c) real()'s native-to-plain fallback has no test (must-meet known limit): dropping it changes nothing where native works, so M6 tries the fail-open fallback (the typed path) instead
+[1/5] seat-mutate: lane win-gate-tmp, shard 1/5, tip 297ce134753225136af1f54b4860b186feb308f4, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 2 pairs, darwin, node v22.22.2, 2026-10-19T12:04:24.540Z
+[1/5] BASELINE ok   packages/nana-pack/tests/lane-write-guard.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[1/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane win-gate-tmp, shard 2/5, tip 297ce134753225136af1f54b4860b186feb308f4, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T12:04:28.345Z
+[2/5] BASELINE ok   packages/nana-pack/tests/lane-write-guard.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[2/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane win-gate-tmp, shard 3/5, tip 297ce134753225136af1f54b4860b186feb308f4, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T12:04:32.471Z
+[3/5] BASELINE ok   packages/nana-pack/tests/lane-write-guard.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[3/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane win-gate-tmp, shard 4/5, tip 297ce134753225136af1f54b4860b186feb308f4, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T12:04:36.538Z
+[4/5] BASELINE ok   packages/nana-pack/tests/lane-write-guard.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[4/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane win-gate-tmp, shard 5/5, tip 297ce134753225136af1f54b4860b186feb308f4, merge-base b3f6ec2ea53b2286ce58f0ff84efea7947bfd7fa, 1 pairs, darwin, node v22.22.2, 2026-10-19T12:04:40.482Z
+[5/5] BASELINE ok   packages/nana-pack/tests/lane-write-guard.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[5/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 realOut judges the typed target instead of where pi's tools write it — 1/1 named: home, at-sign and file URL targets are judged where pi writes them; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 realOut resolves the target's deepest existing ancestor by plain JS realpath — 2/2 named: a temp file named through another spelling of the temp folder is allowed | a lane file named through another spelling of the lane folder is allowed; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 the lane root resolves by plain JS realpath — 1/1 named: a lane file named through another spelling of the lane folder is allowed; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 the temp roots resolve by plain JS realpath — 1/1 named: a temp file named through another spelling of the temp folder is allowed; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 the /tmp root's platform test is inverted (kept on Windows, dropped elsewhere) — 1/1 named: /tmp is a temporary root on macOS and Linux and not on Windows; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M6 real() falls back to the typed path when both realpaths throw (fail-open) — 2/2 named: dangling in-lane symlink to missing outside target is blocked | symlink loop is blocked; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 6/6 red (6 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards
