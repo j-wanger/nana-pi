@@ -18,6 +18,7 @@ env:
 
 jobs:
   install-check:
+    if: false  # SEAT SCRATCH: only the Windows pair table runs on this branch
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]  # SEAT SCRATCH
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
@@ -69,8 +70,12 @@ jobs:
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: npm test
         if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
+      - name: SEAT SCRATCH — Windows-only pair for post-edit-win-survivors
         if: matrix.os == 'windows-latest'
+        run: |
+          export npm_execpath="$(node -p "require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')")"
+          echo "npm_execpath=$npm_execpath"; test -f "$npm_execpath"
+          node docs/reviews/post-edit-win-survivors-2026-10-19/win-pairs.mjs docs/reviews/post-edit-win-survivors-2026-10-19/seat-mutate-win.mjs
 
   release:
     needs: [suite, install-check]
