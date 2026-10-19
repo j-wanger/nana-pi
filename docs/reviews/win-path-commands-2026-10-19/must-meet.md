@@ -44,7 +44,7 @@ Unchanged: templates/_shared's "Where pi-worker and pi-review are not on PATH (W
 ## Known limits
 - PowerShell 5.1 drops an empty argument and breaks a spaced one ending in `\`. cmd.exe changes an argument with no space but one of `& | < > ^ ( )`, an embedded double quote, or a defined `%NAME%`. Both hold for every .cmd, npm's `pi.cmd` included; use Git Bash or the node form.
 - Git Bash rewrites a `/`-shaped argument as a path for any native program, `node <bin>` typed directly included.
-- An absolute bin path containing a non-ASCII letter worked on the hosted Windows runner; the relative form is retained so a same-drive checkout and its shims can move together. A UTF-8 batch caller did misread the same letter in the console code page, so generated batch callers remain unsupported.
+- The shim names a same-drive bin relative to `%dp0%` because cmd.exe reads a `.cmd` file in the console code page. On the hosted Windows runner under code page 437, a same-drive absolute bin path containing `é` misread that letter and failed to start the bin. A bin on another drive still needs the absolute form and is therefore inferred to fail when its path contains characters outside the active console code page; doctor still reads the rendered shim ✓.
 - A bare `node` searches the caller's folder before PATH; the renderer's explicit `node.exe` PATH lookup avoids a caller-local `node.cmd`.
 - `~/.local/bin` is not on a Windows PATH by default, so doctor reads ✗ on the real home until the owner adds it.
 - A changed shim text backs up the old shim, as win32 rule copies do. The install PATH-check line is not pinned. Windows uninstall stays unsupported and leaves the shims.
