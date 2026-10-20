@@ -55,3 +55,5 @@ extension, and the background build both start.
 
 Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
 (4) HANDOFF and the session entry are true; (5) any MUST.
+
+**Seat addition after the notes (2026-10-20):** the change also adds one line to the standing rulings file, the owner's 2026-10-20 ruling that the seat lands on every reviewer's LAND with no separate owner Land, as the 2026-10-16 ruling requires (rulings live in that file and land in the reviewed change that records them). Rulings, copy-record and template-render checks pass alone (10, 8, 168).

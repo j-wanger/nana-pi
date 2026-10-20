@@ -59,3 +59,5 @@ still seeds, R-207's root-removal purge and R-2376's empty-list purge still run,
 build's totals line, and the hook still fails open within its budget; (4) the tests write only inside the temp homes
 and folders they own; (5) HANDOFF and the session entry are true, including the rulings line, the Next line, the four
 dropped asks, the removed scratch-branches line and the seven new knowledge residuals; (6) any MUST.
+
+**Seat addition after the notes (2026-10-20):** the change also adds one line to the standing rulings file, the owner's 2026-10-20 ruling that the seat lands on every reviewer's LAND with no separate owner Land, as the 2026-10-16 ruling requires (rulings live in that file and land in the reviewed change that records them). Rulings, copy-record and template-render checks pass alone (10, 8, 168).
