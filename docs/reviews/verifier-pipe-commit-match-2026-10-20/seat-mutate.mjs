@@ -128,7 +128,7 @@ const BASH_ESCAPE = String.raw`escapedLineBreakEnd(source, i, "\\")`;
 const PS_ESCAPE = 'escapedLineBreakEnd(source, i, "`")';
 const WAIT_NOW = String.raw`const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;`;
 const WAIT_BUILD2 = String.raw`const BASH_BACKGROUND_WAIT = /^\s*wait(?:\s+--)?\s+(?:\$!|\$\{!\})(?=\s|[;&|]|$)/iu;`;
-const ERREXIT_PREFIX = String.raw`(?:^|[;&{}\r\n]|\b(?:then|do)\b)\s*set`;
+const ERREXIT_PREFIX = String.raw`(?:^|[;&{}(\r\n]|\b(?:then|do)\b)\s*set`;
 const COMMENT_END = '\t\tif (comment) {\n\t\t\tif (ch === "\\n") { comment = false;';
 const COMMENT_BUILD2 = `\t\tif (comment) {\n\t\t\tconst continued = ${BASH_ESCAPE};\n\t\t\tif (continued >= 0) {\n\t\t\t\tconst width = continued - i;\n\t\t\t\ttext += " ".repeat(width);\n\t\t\t\tline += " ".repeat(width);\n\t\t\t\ti = continued - 1;\n\t\t\t} else if (ch === "\\n") { comment = false;`;
 const QUOTED_TEXT = '\t\t\ttext += " ";\n\t\t\tline += ch;\n\t\t\tcontinue;';
@@ -141,6 +141,7 @@ const GUARD_NOW = "only when a masked pipeline's exit status can reach the commi
 const GUARD_MAIN = "that pipelines output before `git commit` without earlier active `pipefail`";
 
 const DECLARED = [
+	"(build 4, c2d0dcb4) K2 and K5 are removed: build 4 deleted the two quoted-continuation branches they broke (dead since build 3). E5 and E6 are re-anchored on build 4's errexit prefix, which adds (. E7, B2 and B3 pin build 4's fixes: errexit after (, the escape rule that keeps an escaped letter visible (B3), and the raw line that keeps the backslash, which is what finds a backslash heredoc delimiter (B2 puts build 3's whole rule back)",
 	"(build 3, ad08d901) every pair runs on macOS with no pwsh: the span oracle and hooks-win32-exec skip here, so no pair names their checks. install-check.test.mjs picks hook calls by the hook script's file name (build 2), so it passes from the lane worktree and from the runner's scratch worktrees",
 	"(closed by build 3) of build 2's seven survivors, X6 and S24 now each name a new R-2351 case and are expected red; K3's site is gone (build 3 removed the comment continuation), so K3 now puts build 2's comment form back and names the new `bash comment ends despite a line-final backslash` case. K2, K5 and K8 each got the case the build-2 record asked for, but each is now an equivalent mutant on build 3 (declared in (b)); C1 still turns red only on the Windows live install check. Build 3 moved the anchors of S1 (the reader takes the bracket map), S11 (the reader now skips a lone closer) and S19 (the wait match); each is re-anchored on ad08d901 with the same wrong form. K1 and K4 keep their sites, but build 3's bash escape rule and its always-space `hidden` make an escaped LF a space without them: K4 now names only its CRLF case and K1 now survives (declared in (b)). New pairs: Q1 and Q2 (M1, a quoted line break per dialect), K9 (M2, a line break after a later pipe), K10 (a later `|&`), S25 (`wait %N` and `wait $var`), E5 and E6 (errexit set inside braces, after then or do), B1 (the escaped `\\&`)",
 	"(a) names only must-meet titles (R-2350 to R-2357) in expectRed; older rows' checks that a pair also turns red are declared as alsoRed. A shorter title that begins a longer one (`bash background`, `bash pipe ampersand`, `bash braced question mark`) is named together with the longer one. S4 runs pipe-guard.test.mjs alone: verifier-pipe.test.mjs's first check parses the hook's stdout, so a hook that stops asking throws there and the rest of that file never runs",
@@ -285,18 +286,12 @@ const PAIRS = [
 	{ n: "K1", name: "a bash backslash-newline outside quotes is not whitespace (build 1's form)", edits: [
 		one(PG, `\n\t\tconst continued = ${BASH_ESCAPE};`, "\n\t\tconst continued = -1;"),
 	], tests: [T], expectRed: [] },
-	{ n: "K2", name: "a bash backslash-newline inside double quotes is not whitespace (build 1's form)", edits: [
-		one(PG, `const continued = quote === '"' ? ${BASH_ESCAPE} : -1;`, "const continued = -1;"),
-	], tests: [T], expectRed: [] },
 	{ n: "K3", name: "a backslash-newline continues a bash comment (build 2's comment form)", edits: [
 		one(PG, COMMENT_END, COMMENT_BUILD2),
 	], tests: [T], expectRed: [COMMENT_BACKSLASH] },
 	{ n: "K4", name: "a PowerShell backtick-newline outside strings is not whitespace (build 1's form)", edits: [
 		one(PG, "if (ch === \"`\") {\n\t\t\tconst continued = " + PS_ESCAPE + ";", "if (ch === \"`\") {\n\t\t\tconst continued = -1;"),
 	], tests: [T], expectRed: [CS("PowerShell backtick-CRLF continuation")] },
-	{ n: "K5", name: "a PowerShell backtick-newline inside a double-quoted string is not whitespace (build 1's form)", edits: [
-		one(PG, "if (kind === \"double\" && ch === \"`\") {\n\t\t\tconst continued = " + PS_ESCAPE + ";", "if (kind === \"double\" && ch === \"`\") {\n\t\t\tconst continued = -1;"),
-	], tests: [T], expectRed: [] },
 	{ n: "K6", name: "a line break straight after the first pipe ends the pipeline (no start skip in the reader)", edits: [
 		one(PG, READER_START_SKIP, "void isWhitespace;"),
 	], tests: [T], expectRed: [...BASH_BREAK, ...PS_BREAK, ...FIRST_BREAK_NEW], alsoRed: [R1062_COMMENT_PIPE] },
@@ -352,6 +347,15 @@ const PAIRS = [
 	{ n: "E6", name: "errexit set right after then or do does not count (build 2's prefix without the words)", edits: [
 		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&{}\r\n])\s*set`),
 	], tests: [T], expectRed: [NESTED_ERREXIT[1], NESTED_ERREXIT[2]] },
+	{ n: "E7", name: "errexit set right after ( does not count (build 3's prefix)", edits: [
+		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&{}\r\n]|\b(?:then|do)\b)\s*set`),
+	], tests: [T], expectRed: [CS("bash errexit set inside subshell")] },
+	{ n: "B2", name: "build 3's escape rule: an unquoted backslash blanks itself and any next character in both the scanned text and the raw line", edits: [
+		one(PG, 'text += " ";\n\t\t\tline += ch;\n\t\t\tif (BASH_ESCAPED_HIDDEN.test(source[i + 1])) {\n\t\t\t\ttext += " ";\n\t\t\t\tline += source[i + 1];', 'text += " ";\n\t\t\tline += " ";\n\t\t\tif (true) {\n\t\t\t\ttext += " ";\n\t\t\t\tline += " ";'),
+	], tests: [T], expectRed: [CS("bash escaped letter in git"), CS("bash backslash-quoted heredoc body is hidden"), DS("bash backslash-quoted heredoc body is inactive")] },
+	{ n: "B3", name: "an escaped letter is hidden in the scanned text (the raw line keeps it)", edits: [
+		one(PG, "if (BASH_ESCAPED_HIDDEN.test(source[i + 1])) {", "if (true) {"),
+	], tests: [T], expectRed: [CS("bash escaped letter in git")] },
 	{ n: "V1", name: "(14) no leading pipefail exemption", edits: [
 		one(PG, "if (initialPipefail) return null;", "void initialPipefail;"),
 	], tests: [T, VP], expectRed: [PT("pipefail enabled as the exact first command"), PT("combined pipefail enabled first"), PT("set eo pipefail first")], alsoRed: [R1054_BASH] },
@@ -373,4 +377,4 @@ const PAIRS = [
 	], tests: [IC], expectRed: [] },
 ];
 
-process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "ad08d901", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "c2d0dcb4", declared: DECLARED, pairs: PAIRS });
