@@ -155,7 +155,7 @@ export function tokens(text: string, preserveQuotedWords = false): string[] {
 	return out;
 }
 
-const base = (tok: string) =>
+export const base = (tok: string) =>
 	(tok.split(/[/\\]/).pop() ?? "").toLowerCase().replace(/\.exe$/, "");
 
 const WRAPPERS = new Set(
@@ -169,7 +169,7 @@ const PRIV_VALUE = /^-[ugCDhprtUT]$/; // sudo/doas options whose value is the ne
 
 /** Index of the command word: skips `A=b` assignments, wrappers and their flags/numbers
  *  (with `priv`, also sudo/doas/pkexec/runas and their `-u user`-style options). */
-function commandIndex(t: string[], priv = false): number {
+export function commandIndex(t: string[], priv = false): number {
 	let i = 0;
 	let afterWrapper = false;
 	while (i < t.length) {
@@ -211,7 +211,7 @@ const SUBCOMMAND_HOSTS = new Set("git docker podman npm pnpm yarn bun cargo kube
 // over-matching (python's valueless -O / -I) only turns a script operand into "stdin" — stricter
 const VALUE_OPT = /^(-[WXrICoO]|--(require|import|rcfile|init-file))$/;
 const PIPE_PREFIX = new Set("sudo doas env command exec nohup time nice stdbuf".split(" "));
-const PS_REMOVE = new Set(["remove-item", "ri", "rm", "del", "erase", "rd", "rmdir"]);
+export const PS_REMOVE = new Set(["remove-item", "ri", "rm", "del", "erase", "rd", "rmdir"]);
 const PS_REMOVE_FLAG = /^-(r|re|rec|recu|recur|recurs|recurse|fo|for|forc|force)$/i;
 
 function rmDanger(after: string[]): Danger | null {

@@ -647,8 +647,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
   worktree that `git worktree add` made inside that folder keeps the exemption. A configured
   `extraPatterns` or `protectedPaths` match and a named policy file still stop it — this exemption
   clears only the non-floor "rm recursive/forced" danger, never the floor or those later checks.
-  Known limits: plain `rm` and `rm -f` still pass anywhere outside the working directory, as
-  before — making those ask too is a separate lane; absolute and dot-named targets and compounds
+  Known limits: the outside-target rule in the next bullet covers plain `rm` and `rm -f`;
+  absolute and dot-named targets and compounds
   (`rm -rf build && npm test`) still ask; the exemption assumes the command runs as typed in the
   session cwd, so a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids
   it; a target that holds a git repository two or more levels down is not recognised — the `.git`
@@ -662,7 +662,23 @@ is user-scope only** — project config never contributes to it, trusted or not.
   not, as git also stops there, and the walk ignores ceiling folders, filesystem boundaries and
   the `GIT_DIR`/`GIT_OBJECT_DIRECTORY` settings and always runs to the filesystem root, which can
   only over-ask; mount points and inner links keep their existing residuals; PowerShell keeps
-  asking for every form.
+  asking for every recursive or forced form.
+- **Plain `rm` outside the working folder asks first** (pi only; Claude Code has no nana command
+  gate): bash `rm x` and `rm -f x`, plus PowerShell `Remove-Item` and its `ri`/`rm`/`del`/`erase`/
+  `rd`/`rmdir` aliases with positional, `-Path` or `-LiteralPath` targets, ask when a readable
+  target lies outside both the session working folder and every accepted temp folder. The prompt
+  and headless block name its full path. Absolute, `..`, `~`/`$HOME`, glob and brace, multiple-
+  target, later-command, wrapper and linked-folder spellings are read; a preceding `cd`, `pushd`
+  or PowerShell location command moves relative targets. Targets strictly inside the working
+  folder or an accepted temp folder still pass, and a link as the target's last part is judged
+  where that link sits. Recursive and long `--force` forms keep their existing verdict. Targets
+  led by another variable, a command substitution or `~user`, and relative targets after an
+  unreadable location change, stay unjudged. Known limits: temp folders are shared; a session in
+  home or a filesystem root has no outside child; dynamic folder parts, failed location changes,
+  pipelines, subshells and groups can over- or under-approximate execution; only rm command
+  position is covered; heredoc command-looking lines can be judged; Git Bash drive paths ask;
+  and PowerShell colon-bound parameters, pipeline input, filter/include scope and backtick escapes
+  are not read. This text gate remains advisory and does not cover deliberate path hiding or races.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,

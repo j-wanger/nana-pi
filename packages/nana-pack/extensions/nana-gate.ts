@@ -19,7 +19,8 @@
  * paths. Interactive sessions confirm via UI (Block is the default choice); headless runs
  * BLOCK fail-closed. Handler errors also block (pi's tool_call is fail-safe upstream). A
  * running `gate ✓ N checked · M gated` status shows the gate is live even when it is letting
- * everything through.
+ * everything through. A readable non-recursive rm target outside the working and accepted temp
+ * folders asks first and names its full path.
  *
  * Policy (L2, 2026-09-28): the gate policy adopted at `session_start` (startup / new / resume /
  * fork / reload — lazily on the first tool_call if none fired) is the session's baseline. A
@@ -52,6 +53,7 @@ import { displayPath, displayText } from "../lib/objective.ts";
 import { verifierPipeReason } from "../lib/pipe-guard.mjs";
 import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit, resolveToolPath } from "../lib/gate-paths.ts";
 import { rmInsideCwd } from "../lib/gate-rm-inside.ts";
+import { rmOutsideTargets } from "../lib/gate-rm-outside.ts";
 import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
@@ -127,10 +129,23 @@ function commandHit(command: string, gate: Policy, cwd: string, tool: string): H
 	const split = splitCommand(command);
 	const segments = split.segments;
 	const segmentable = split.segmentable && command.length <= MAX_SUBJECT;
-	const det = segmentable ? segments : [...segments, ...detectionSegments(command)];
+	const detection = segmentable ? [] : detectionSegments(command);
+	const det = [...segments, ...detection];
 	const dangers = new Map(det.map((s) => [s, segmentDanger(s)] as [typeof s, Danger | null]));
 	for (const d of dangers.values()) if (d?.floor) return { label: "dangerous command", reason: d.reason };
 	if (tool === "bash" && segmentable && det.length === 1 && rmInsideCwd(command, cwd)) dangers.set(det[0], null);
+	const outsideOptions = {
+		home: os.homedir(),
+		tempRoots: acceptedTempRoots({ platform: process.platform, env: process.env, home: os.homedir(), tmpdir: os.tmpdir() }),
+		segmentable,
+	};
+	const markOutside = (outside: Map<(typeof det)[number], string>) => {
+		for (const [segment, target] of outside) {
+			if (dangers.get(segment) === null) dangers.set(segment, { reason: `rm outside the working folder: ${target}`, floor: false });
+		}
+	};
+	markOutside(rmOutsideTargets(segments, cwd, tool, outsideOptions));
+	if (!segmentable) markOutside(rmOutsideTargets(detection, cwd, tool, outsideOptions));
 	const allow = compileRegexes(gate.allowPatterns);
 	const extra = compileRegexes(gate.extraPatterns);
 	const prot = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)];
