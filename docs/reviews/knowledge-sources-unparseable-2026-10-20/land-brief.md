@@ -8,7 +8,7 @@ written; `git merge-base HEAD main` is `9552afb1`). The plan of record is
 `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is build 1 (51d65cf8). The seat's record is
 `seat-verify-c87c69d5.md`: CI on draft pull request #143 at 51d65cf8, the macOS wrong-code pairs (`seat-mutate.mjs`;
 24 of 24 red, 0 survived, on 51d65cf8) and the independent check (`independent-check-c87c69d5.md`: HOLDS, no MUST,
-twelve probes, run on 51d65cf8). The final reviewer's brief is `review-brief.md`. CI-PENDING. The land runs the locked
+twelve probes, run on 51d65cf8). The final reviewer's brief is `review-brief.md`. CI run 39496158186 at 51d65cf8 reads 0 failing on all three legs: macOS 193 PASS, 0 FAIL, 2 SKIP of 195 files (8,007 checks pass, 35 skip); Ubuntu 192 PASS, 0 FAIL, 3 SKIP of 195 files (7,946 checks pass, 55 skip); Windows 177 PASS, 0 FAIL, 18 SKIP of 195 files (6,935 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-51d65cf8.log in this folder. The land runs the locked
 suite on the reviewed tip, and the local macOS install check runs before the land.
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`, which reads from the merge base; run at

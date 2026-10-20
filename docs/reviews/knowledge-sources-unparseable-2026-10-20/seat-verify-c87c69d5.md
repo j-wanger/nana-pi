@@ -4,7 +4,7 @@
   with the plan at e6a63af5 (`must-meet.md`, `plan-attack.md`: one adversary, AMEND; `build-brief-1.md`). c87c69d5
   adds only the seat's pairs table and record. Rows R-2370 to R-2376 read implemented; `requirements-moved --base
   9552afb1` lists all seven as new and implemented, in FEAT-003.
-- CI runs on draft pull request #143 at 51d65cf8 (c87c69d5 is not pushed; it changes no code). CI-PENDING.
+- CI runs on draft pull request #143 at 51d65cf8 (c87c69d5 is not pushed; it changes no code). CI run 39496158186 at 51d65cf8 reads 0 failing on all three legs: macOS 193 PASS, 0 FAIL, 2 SKIP of 195 files (8,007 checks pass, 35 skip); Ubuntu 192 PASS, 0 FAIL, 3 SKIP of 195 files (7,946 checks pass, 55 skip); Windows 177 PASS, 0 FAIL, 18 SKIP of 195 files (6,935 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-51d65cf8.log in this folder.
 - The seat's wrong-code pairs (`seat-mutate.mjs`, the shared mutation runner, macOS, Node 22.22.2, one shard, merge
   base 9552afb1) on 51d65cf8 (`seat-mutate-output-51d65cf8.txt`): 24 of 24 red, 0 survived. Baselines:
   sources-file 7 PASS, discovery 37 PASS, 0 FAIL each.
