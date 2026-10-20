@@ -1,0 +1,195 @@
+install-check (windows-latest)	Set up job	﻿2026-10-20T00:28:32.7493714Z Current runner version: '2.337.0'
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7563662Z ##[group]Runner Image Provisioner
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7564962Z Hosted Compute Agent
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7565932Z Version: 20261002.596
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7566968Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7568426Z Build Date: 2026-10-02T22:28:27Z
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7570534Z Worker ID: {b26d7427-4e04-4a76-ae95-57546f238bdf}
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7572142Z Region: eastus
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7573186Z Cloud: Azure
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7574234Z ##[endgroup]
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7576485Z ##[group]Operating System
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7577609Z Microsoft Windows Server 2025
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7578602Z 10.0.26100
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7579445Z Datacenter
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7580264Z ##[endgroup]
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7581279Z ##[group]Runner Image
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7582320Z Image: windows-2025-vs2026
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7583371Z Version: 20261007.264.1
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7585641Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261007.264/images/windows/Windows2025-VS2026-Readme.md
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7589855Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261007.264
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7591688Z ##[endgroup]
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7593687Z ##[group]GITHUB_TOKEN Permissions
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7596149Z Contents: read
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7596870Z Metadata: read
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7597606Z ##[endgroup]
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7599924Z Secret source: Actions
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7600931Z Cache mode: write
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.7601618Z Prepare workflow directory
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.8021756Z Prepare all required actions
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.8073017Z Getting action download info
+install-check (windows-latest)	Set up job	2026-10-20T00:28:32.9423922Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+install-check (windows-latest)	Set up job	2026-10-20T00:28:33.0833237Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+install-check (windows-latest)	Set up job	2026-10-20T00:28:33.3819686Z Complete job name: install-check (windows-latest)
+install-check (windows-latest)	Run actions/checkout@v4	﻿2026-10-20T00:28:33.5294345Z ##[group]Run actions/checkout@v4
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5295729Z with:
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5296254Z   repository: j-wanger/nana-pi
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5302590Z   token: ***
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5303121Z   ssh-strict: true
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5303627Z   ssh-user: git
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5304146Z   persist-credentials: true
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5304726Z   clean: true
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5305242Z   sparse-checkout-cone-mode: true
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5305863Z   fetch-depth: 1
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5306366Z   fetch-tags: false
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5306883Z   show-progress: true
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5307401Z   lfs: false
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5307883Z   submodules: false
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5308400Z   set-safe-directory: true
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5308991Z   allow-unsafe-pr-checkout: false
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5309896Z env:
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5310335Z   PI_VERSION: 1.0.2
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5310790Z   PI_BEFORE: 2026-10-04T06:57:57Z
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.5311308Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.6864669Z Syncing repository: j-wanger/nana-pi
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.6868023Z ##[group]Getting Git version info
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.6869147Z Working directory is 'D:\a\nana-pi\nana-pi'
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:33.8066729Z [command]"C:\Program Files\Git\bin\git.exe" version
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.1293764Z git version 2.56.0.windows.2
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.1355713Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.1380942Z Temporarily overriding HOME='D:\a\_temp\f750b738-84db-4dd5-aee4-c8fa3eef8195' before making global git config changes
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.1383541Z Adding repository directory to the temporary git global config as a safe directory
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.1392730Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.2111414Z Deleting the contents of 'D:\a\nana-pi\nana-pi'
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.2118491Z ##[group]Initializing the repository
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.2128016Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\nana-pi\nana-pi
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.3056395Z Initialized empty Git repository in D:/a/nana-pi/nana-pi/.git/
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.3108527Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/j-wanger/nana-pi
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.3819062Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.3820459Z ##[group]Disabling automatic garbage collection
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.3829381Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.4232804Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.4234058Z ##[group]Setting up auth
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.4246130Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:34.4646376Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:35.8805730Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:35.9237294Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:36.5053104Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:36.5472908Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:37.1475658Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:37.1905217Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:37.1906174Z ##[group]Fetching the repository
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:37.1925364Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +968264222b85043ee6f9875d4a3f20fc4546c959:refs/remotes/pull/85/merge
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.7613266Z From https://github.com/j-wanger/nana-pi
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.7614260Z  * [new ref]         968264222b85043ee6f9875d4a3f20fc4546c959 -> pull/85/merge
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.7663005Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.7663902Z ##[group]Determining the checkout info
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.7666681Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.7682448Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.8253508Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.8687753Z ##[group]Checking out the ref
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:39.8697666Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/85/merge
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9118465Z Note: switching to 'refs/remotes/pull/85/merge'.
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9118846Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9119386Z You are in 'detached HEAD' state. You can look around, make experimental
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9120297Z changes and commit them, and you can discard any commits you make in this
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9121013Z state without impacting any branches by switching back to a branch.
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9121419Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9121700Z If you want to create a new branch to retain commits you create, you may
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9122768Z do so (now or later) by using -c with the switch command. Example:
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9123285Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9123508Z   git switch -c <new-branch-name>
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9123829Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9123996Z Or undo this operation with:
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9124177Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9124259Z   git switch -
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9124388Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9124649Z Turn off this advice by setting config variable advice.detachedHead to false
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9124975Z 
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9125409Z HEAD is now at 9682642 Merge 5fa19acd43e4f792fae35ffce70239cac857feed into f0d6da2487a8dc5fd378b1dc8cd679afc6913718
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9284876Z ##[endgroup]
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:40.9836449Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+install-check (windows-latest)	Run actions/checkout@v4	2026-10-20T00:28:41.0219340Z 968264222b85043ee6f9875d4a3f20fc4546c959
+install-check (windows-latest)	Run actions/setup-node@v4	﻿2026-10-20T00:28:41.0764288Z ##[group]Run actions/setup-node@v4
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0764695Z with:
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0764885Z   node-version: 22
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0765097Z   always-auth: false
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0765296Z   check-latest: false
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0768200Z   token: ***
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0768393Z env:
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0768561Z   PI_VERSION: 1.0.2
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0839085Z   PI_BEFORE: 2026-10-04T06:57:57Z
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.0839583Z ##[endgroup]
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.3238260Z Found in cache @ C:\hostedtoolcache\windows\node\22.23.3\x64
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.3272899Z (node:9228) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.3274299Z (Use `node --trace-deprecation ...` to show where the warning was created)
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:41.3281913Z ##[group]Environment details
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:45.9741149Z node: v22.23.3
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:45.9741529Z npm: 10.9.9
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:45.9741791Z yarn: 1.22.22
+install-check (windows-latest)	Run actions/setup-node@v4	2026-10-20T00:28:45.9743255Z ##[endgroup]
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	﻿2026-10-20T00:28:46.0089768Z ##[group]Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:28:46.0090891Z [36;1mnpm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:28:46.0117933Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:28:46.0118365Z env:
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:28:46.0118796Z   PI_VERSION: 1.0.2
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:28:46.0119019Z   PI_BEFORE: 2026-10-04T06:57:57Z
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:28:46.0119280Z ##[endgroup]
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:29:16.3966249Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:30:45.2474409Z 
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:30:45.2481381Z added 121 packages in 2m
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:30:45.2481783Z 
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:30:45.2482089Z 9 packages are looking for funding
+install-check (windows-latest)	Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T00:30:45.2482564Z   run `npm fund` for details
+install-check (windows-latest)	Verify pi version	﻿2026-10-20T00:30:46.6257783Z ##[group]Run test "$(pi --version)" = "${PI_VERSION}"
+install-check (windows-latest)	Verify pi version	2026-10-20T00:30:46.6258252Z [36;1mtest "$(pi --version)" = "${PI_VERSION}"[0m
+install-check (windows-latest)	Verify pi version	2026-10-20T00:30:46.6277419Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+install-check (windows-latest)	Verify pi version	2026-10-20T00:30:46.6277828Z env:
+install-check (windows-latest)	Verify pi version	2026-10-20T00:30:46.6278010Z   PI_VERSION: 1.0.2
+install-check (windows-latest)	Verify pi version	2026-10-20T00:30:46.6278218Z   PI_BEFORE: 2026-10-04T06:57:57Z
+install-check (windows-latest)	Verify pi version	2026-10-20T00:30:46.6278455Z ##[endgroup]
+install-check (windows-latest)	Install check	﻿2026-10-20T00:30:47.4402404Z ##[group]Run node packages/nana-setup/bin/install-check.mjs
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4402935Z [36;1mnode packages/nana-setup/bin/install-check.mjs[0m
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4419933Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4420347Z env:
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4420521Z   PI_VERSION: 1.0.2
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4420726Z   PI_BEFORE: 2026-10-04T06:57:57Z
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4420967Z   TEMP: D:\a\_temp
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4421146Z   TMP: D:\a\_temp
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.4421323Z ##[endgroup]
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.6837743Z Git Bash: C:\Program Files\Git\bin\bash.exe
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.6840661Z pi: C:\npm\prefix\pi.cmd
+install-check (windows-latest)	Install check	2026-10-20T00:30:47.6841341Z node: C:\hostedtoolcache\windows\node\22.23.3\x64\node.exe
+install-check (windows-latest)	Install check	2026-10-20T00:30:49.2703754Z PASS install
+install-check (windows-latest)	Install check	2026-10-20T00:30:53.0520060Z PASS pi-subagents
+install-check (windows-latest)	Install check	2026-10-20T00:30:53.4261744Z PASS pi list nana-pack
+install-check (windows-latest)	Install check	2026-10-20T00:30:53.4262338Z PASS pi list nana-knowledge
+install-check (windows-latest)	Install check	2026-10-20T00:30:56.7137231Z PASS pi session
+install-check (windows-latest)	Install check	2026-10-20T00:30:56.7151996Z PASS hook set
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.0186462Z PASS hook shared memory
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.1750208Z PASS hook roster notice
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.2051993Z PASS hook knowledge pull
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.2160851Z PASS hook verifier pipe (PowerShell)
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.2195672Z PASS hook verifier pipe (Bash)
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.2344035Z PASS hook adoption
+install-check (windows-latest)	Install check	2026-10-20T00:30:57.2519690Z PASS hook objective
+install-check (windows-latest)	Install check	2026-10-20T00:30:58.0342125Z PASS doctor
+install-check (windows-latest)	Post Run actions/setup-node@v4	﻿2026-10-20T00:30:58.4499447Z Post job cleanup.
+install-check (windows-latest)	Post Run actions/setup-node@v4	2026-10-20T00:30:58.6181468Z (node:8840) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+install-check (windows-latest)	Post Run actions/setup-node@v4	2026-10-20T00:30:58.6183251Z (Use `node --trace-deprecation ...` to show where the warning was created)
+install-check (windows-latest)	Post Run actions/checkout@v4	﻿2026-10-20T00:30:58.6565645Z Post job cleanup.
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:58.8890024Z [command]"C:\Program Files\Git\bin\git.exe" version
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:58.9278153Z git version 2.56.0.windows.2
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:58.9362531Z Temporarily overriding HOME='D:\a\_temp\a897dc5b-1de9-4482-8334-c0e8ec347922' before making global git config changes
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:58.9363957Z Adding repository directory to the temporary git global config as a safe directory
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:58.9376226Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:58.9856771Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:59.0313146Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:59.6629418Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:59.6990320Z http.https://github.com/.extraheader
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:59.7039436Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:30:59.7461849Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:31:00.3529482Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+install-check (windows-latest)	Post Run actions/checkout@v4	2026-10-20T00:31:00.3935218Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+install-check (windows-latest)	Complete job	﻿2026-10-20T00:31:01.0142123Z Cleaning up orphan processes
+install-check (windows-latest)	Complete job	2026-10-20T00:31:01.0337955Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

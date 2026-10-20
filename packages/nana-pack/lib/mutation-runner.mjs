@@ -13,7 +13,7 @@
 // a pair itself, one shard included). With SEAT_MUTATE_SHARD set, this call IS a shard: it owns one scratch
 // worktree, runs its baseline and pairs, and writes its part file.
 import { spawn, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -38,6 +38,11 @@ import {
 	STAGGER_SECS_DEFAULT,
 	TABLE_HASH_ALGO,
 	TASKKILL_ARGS,
+	WORKTREE_REMOVE_RETRIES,
+	WORKTREE_REMOVE_RETRY_MS,
+	WORKTREE_LOCK_WAIT_MS,
+	WORKTREE_LOCK_UNREADABLE_STALE_MS,
+	WORKTREE_LOCK_WAIT_LIMIT_MS,
 	CHILD_NODE_ARGS,
 	TS_CHECK_ARGS,
 	logName,
@@ -211,8 +216,144 @@ function killPid(pid) {
 	} catch { /* already gone */ }
 }
 
+function pidIsAlive(pid) {
+	if (!Number.isInteger(pid) || pid <= 0) return false;
+	try { process.kill(pid, 0); return true; } catch (err) { return err.code === "EPERM"; }
+}
+
+const TRANSIENT_LOCK_CODES = new Set(["EPERM", "EACCES", "EBUSY"]);
+const isTransientLockError = (err) => TRANSIENT_LOCK_CODES.has(err?.code);
+
+function publishWorktreeLock(lockPath, ownerText, io) {
+	const tempPath = path.join(path.dirname(lockPath), `.${path.basename(lockPath)}.${process.pid}.${randomUUID()}.tmp`);
+	try {
+		io.writeFileSync(tempPath, ownerText, { flag: "wx" });
+		try {
+			io.linkSync(tempPath, lockPath);
+			return "acquired";
+		} catch (err) {
+			if (err.code === "EEXIST") return "contended";
+			if (isTransientLockError(err)) return "retry";
+			throw err;
+		}
+	} finally {
+		try { io.rmSync(tempPath, { force: true }); } catch { /* the lock directory's owner may be cleaning it */ }
+	}
+}
+
+function removeWorktreeLockIfOwned(lockPath, ownerText, io) {
+	try {
+		if (io.readFileSync(lockPath, "utf8") !== ownerText) return "not-owned";
+		io.unlinkSync(lockPath);
+		return "removed";
+	} catch (err) {
+		if (err.code === "ENOENT") return "not-owned";
+		if (isTransientLockError(err)) return "retry";
+		throw err;
+	}
+}
+
+/** Run one scratch-worktree add or complete removal while no other shard can run either operation. */
+export function withWorktreeOperationLock(lockPath, operation, options = {}) {
+	const sleeper = new Int32Array(new SharedArrayBuffer(4));
+	const io = {
+		writeFileSync: options.writeFileSync ?? fs.writeFileSync,
+		linkSync: options.linkSync ?? fs.linkSync,
+		rmSync: options.rmSync ?? fs.rmSync,
+		readFileSync: options.readFileSync ?? fs.readFileSync,
+		statSync: options.statSync ?? fs.statSync,
+		unlinkSync: options.unlinkSync ?? fs.unlinkSync,
+	};
+	const now = options.now ?? Date.now;
+	const wait = options.wait ?? ((ms) => Atomics.wait(sleeper, 0, 0, ms));
+	const waitLimitMs = options.waitLimitMs ?? WORKTREE_LOCK_WAIT_LIMIT_MS;
+	const report = options.report ?? ((line) => console.error(line));
+	const ownerText = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: randomUUID() });
+	const waitStarted = now();
+	let holderPid = null;
+	const waitOrFail = () => {
+		if (now() - waitStarted >= waitLimitMs) {
+			const line = `seat-mutate: worktree-operation lock ${lockPath} held by pid ${holderPid ?? "?"} did not release within ${waitLimitMs} milliseconds`;
+			report(line);
+			throw new Error(line);
+		}
+		wait(WORKTREE_LOCK_WAIT_MS);
+	};
+	for (;;) {
+		const publication = publishWorktreeLock(lockPath, ownerText, io);
+		if (publication === "acquired") break;
+		if (publication === "retry") { waitOrFail(); continue; }
+
+		let observed;
+		try { observed = io.readFileSync(lockPath, "utf8"); } catch (err) {
+			if (err.code === "ENOENT") continue;
+			if (isTransientLockError(err)) { waitOrFail(); continue; }
+			throw err;
+		}
+		let holder = null;
+		try { holder = JSON.parse(observed); } catch { /* age decides whether unreadable content is stale */ }
+		const parsedPid = Number(holder?.pid);
+		if (Number.isInteger(parsedPid) && parsedPid > 0) holderPid = parsedPid;
+		let held = pidIsAlive(parsedPid);
+		if (!holder) {
+			try { held = now() - io.statSync(lockPath).mtimeMs <= WORKTREE_LOCK_UNREADABLE_STALE_MS; } catch (err) {
+				if (err.code === "ENOENT") continue;
+				if (isTransientLockError(err)) { waitOrFail(); continue; }
+				throw err;
+			}
+		}
+		if (!held) {
+			const removal = removeWorktreeLockIfOwned(lockPath, observed, io);
+			if (removal === "removed") continue;
+		}
+		waitOrFail();
+	}
+	try {
+		return operation();
+	} finally {
+		const releaseStarted = now();
+		for (;;) {
+			const removal = removeWorktreeLockIfOwned(lockPath, ownerText, io);
+			if (removal !== "retry") break;
+			if (now() - releaseStarted >= waitLimitMs) {
+				report(`seat-mutate: could not release worktree-operation lock ${lockPath} owned by pid ${process.pid} after ${waitLimitMs} milliseconds`);
+				break;
+			}
+			wait(WORKTREE_LOCK_WAIT_MS);
+		}
+	}
+}
+
+/** Remove this runner's scratch worktree entry, retrying a refused removal by its unique suffix. */
+function removeScratchWorktree(repoRoot, scratchDir, operationLockPath, report) {
+	return withWorktreeOperationLock(operationLockPath, () => {
+		const wt = path.join(scratchDir, "wt");
+		const noHooks = path.join(scratchDir, "no-hooks");
+		const suffix = `${path.basename(scratchDir)}/wt`;
+		const remove = (name) => sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "remove", "--force", name]);
+		const isListed = () => {
+			const list = sh("git", ["-C", repoRoot, "worktree", "list", "--porcelain"]);
+			if (list.status !== 0) return true;
+			return list.stdout.split(/\r?\n/).some((line) => {
+				if (!line.startsWith("worktree ")) return false;
+				const listedPath = line.slice("worktree ".length).replace(/[ \t]+$/, "").replace(/\\/g, "/");
+				return listedPath.endsWith(`/${suffix}`);
+			});
+		};
+
+		if (remove(wt).status === 0) return null;
+		for (let retry = 0; retry < WORKTREE_REMOVE_RETRIES; retry++) {
+			if (!isListed()) return null;
+			Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, WORKTREE_REMOVE_RETRY_MS);
+			try { fs.rmSync(wt, { recursive: true, force: true }); } catch { /* ignore */ }
+			if (remove(suffix).status === 0) return null;
+		}
+		return isListed() ? `seat-mutate: git worktree entry ${wt} is still listed after ${WORKTREE_REMOVE_RETRIES} retries` : null;
+	}, { report });
+}
+
 /** Dead-shard cleanup (R-1231): the shard ended but its scratch folder is still there. */
-function cleanupDeadShard(repoRoot, scratchDir, keep, log) {
+function cleanupDeadShard(repoRoot, scratchDir, operationLockPath, keep, log) {
 	const pidFile = path.join(scratchDir, "running.pid");
 	try {
 		const pid = Number(fs.readFileSync(pidFile, "utf8").trim());
@@ -220,15 +361,11 @@ function cleanupDeadShard(repoRoot, scratchDir, keep, log) {
 	} catch { /* no running test file */ }
 	if (keep) {
 		log?.(`seat-mutate: KEEP — scratch left at ${scratchDir}`);
-		return;
+		return null;
 	}
-	const wt = path.join(scratchDir, "wt");
-	const noHooks = path.join(scratchDir, "no-hooks");
-	if (fs.existsSync(wt)) {
-		sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "remove", "--force", wt]);
-		try { fs.rmSync(wt, { recursive: true, force: true }); } catch { /* ignore */ }
-	}
+	const cleanupLine = removeScratchWorktree(repoRoot, scratchDir, operationLockPath, log);
 	try { fs.rmSync(scratchDir, { recursive: true, force: true }); } catch { /* ignore */ }
+	return cleanupLine;
 }
 
 // ── one test file's run (R-1232, R-1233, R-1234) ────────────────────────────────────────────────
@@ -337,6 +474,7 @@ async function runOneShard(pairs, ctx) {
 	const shardTag = env[ENV_NAMES.SHARD] || null;
 	const partFile = env[ENV_NAMES.OUT] || null;
 	const tallyFile = env[ENV_NAMES.TALLY] || null;
+	const operationLockPath = env[ENV_NAMES.WORKTREE_LOCK];
 
 	const lines = [];
 	const log = (l) => lines.push(l);
@@ -350,7 +488,14 @@ async function runOneShard(pairs, ctx) {
 		writePart(); // write before any cleanup removes the folder the part file lives in
 		try { fs.rmSync(runningPidFile, { force: true }); } catch { /* ignore */ }
 		if (!keep) {
-			try { sh("git", ["-c", `core.hooksPath=${noHooks}`, "-C", repoRoot, "worktree", "remove", "--force", wt]); } catch { /* ignore */ }
+			try {
+				const cleanupLine = removeScratchWorktree(repoRoot, scratchDir, operationLockPath, log);
+				if (cleanupLine) log(cleanupLine);
+				writePart();
+			} catch (err) {
+				log(`seat-mutate: scratch worktree cleanup failed for ${scratchDir}: ${err?.message ?? err}`);
+				writePart();
+			}
 			try { fs.rmSync(scratchDir, { recursive: true, force: true }); } catch { /* ignore */ }
 		}
 		return code;
@@ -372,7 +517,7 @@ async function runOneShard(pairs, ctx) {
 		// core.autocrlf=false (R-1322): the new scratch worktree holds the committed bytes
 		// whatever the repository's own autocrlf setting is, so a multi-line anchor that spans
 		// a line break still matches.
-		const add = sh("git", ["-c", `core.hooksPath=${noHooks}`, "-c", "core.autocrlf=false", "-C", repoRoot, "worktree", "add", "--detach", wt, tipSha]);
+		const add = withWorktreeOperationLock(operationLockPath, () => sh("git", ["-c", `core.hooksPath=${noHooks}`, "-c", "core.autocrlf=false", "-C", repoRoot, "worktree", "add", "--detach", wt, tipSha]), { report: log });
 		if (add.status !== 0) { log(`seat-mutate: worktree add ${tipSha} failed: ${short(add.stderr, 300)}`); return finish(EXIT_REFUSED); }
 		const worktreeReal = fs.realpathSync.native(wt);
 
@@ -519,6 +664,7 @@ async function runParent(selected, n, staggerMs, ctx) {
 	// folder, so a shard's own (graceful) cleanup of its scratch folder can never delete the file the
 	// parent is about to read (S14): the parent, not the shard, owns and removes this folder.
 	const partsDir = fs.mkdtempSync(path.join(os.tmpdir(), `${ctx.config.SCRATCH_PREFIX}parts-`));
+	const operationLockPath = path.join(partsDir, "worktree-operation.lock");
 	try {
 		const scratchDirs = [];
 		const runShard = (k, ids) => new Promise((resolve) => {
@@ -536,6 +682,7 @@ async function runParent(selected, n, staggerMs, ctx) {
 				[ENV_NAMES.SCRATCH]: scratchDir,
 				[ENV_NAMES.TIP_COMMIT]: ctx.tipSha,
 				[ENV_NAMES.TABLE_HASH]: ctx.tableHash,
+				[ENV_NAMES.WORKTREE_LOCK]: operationLockPath,
 			};
 			const child = spawn(process.execPath, [ctx.selfPath, ...ids], { env, stdio: ["ignore", "pipe", "pipe"] });
 			kids.add(child);
@@ -545,12 +692,18 @@ async function runParent(selected, n, staggerMs, ctx) {
 		});
 		const ends = await Promise.all(groups.map((ids, i) => new Promise((resolve) => setTimeout(() => resolve(runShard(i + 1, ids)), i * staggerMs))));
 
-		for (const end of ends) if (end.scratchDir && fs.existsSync(end.scratchDir)) cleanupDeadShard(ctx.repoRoot, end.scratchDir, ctx.keep, (l) => console.log(l));
+		const notes = [];
+		for (const end of ends) if (end.scratchDir && fs.existsSync(end.scratchDir)) {
+			const cleanupLine = cleanupDeadShard(ctx.repoRoot, end.scratchDir, operationLockPath, ctx.keep, (l) => {
+				console.log(l);
+				notes.push(`[${end.k}/${n}] ${l}`);
+			});
+			if (cleanupLine) notes.push(`[${end.k}/${n}] ${cleanupLine}`);
+		}
 
 		const total = { red: 0, exact: 0, namedGreen: 0, unnamedRed: 0, survived: 0, anchorMiss: 0, syntax: 0, runnable: 0 };
 		const survivors = [];
 		const pairLines = new Map();
-		const notes = [];
 		let shardFailed = false;
 		for (const end of ends) {
 			const lines = end.partFile && fs.existsSync(end.partFile) ? fs.readFileSync(end.partFile, "utf8").split("\n").filter(Boolean) : [];
@@ -616,6 +769,7 @@ export async function runMutations(table) {
 
 	const isShard = Boolean(env[ENV_NAMES.SHARD]);
 	if (isShard) {
+		if (!env[ENV_NAMES.WORKTREE_LOCK]) { console.error(`seat-mutate: shard requires ${ENV_NAMES.WORKTREE_LOCK}`); return EXIT_REFUSED; }
 		const parentTip = env[ENV_NAMES.TIP_COMMIT];
 		const parentHash = env[ENV_NAMES.TABLE_HASH];
 		if (parentTip && parentTip !== tipInfo.tipSha) { console.error(`seat-mutate: shard tip ${tipInfo.tipSha} differs from the parent's ${parentTip}`); return EXIT_REFUSED; }

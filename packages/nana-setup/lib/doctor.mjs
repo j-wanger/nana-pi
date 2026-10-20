@@ -340,7 +340,7 @@ export function diagnose(layout, opts = {}) {
 	}
 
 	// --- Claude Code half ---
-	for (const row of hookLinkRows(layout)) add(row.skipped ? NOTE : row.ok ? OK : FAIL, row.label, row.detail);
+	for (const row of hookLinkRows(layout)) add(row.ok ? OK : FAIL, row.label, row.detail);
 	for (const rule of CLAUDE_RULES) {
 		const src = ruleSource(rule);
 		add(linkOk(path.join(layout.rulesDir, rule), src) ? OK : FAIL, `rule ${rule}`, `-> ${src}`);

@@ -40,7 +40,7 @@ Nine extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
 | `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
-**Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
+**Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`. Wherever PowerShell is installed (on CI, always the Windows leg), a test compares the PowerShell dialect's comment and string spans with PowerShell's own tokenizer over generated commands. A comment glued to an operator, a redirection or a member access, and nested strings inside a string's `$( … )`, are known gaps.
 
 ## Install
 
@@ -438,7 +438,7 @@ Pairs deal round-robin across `SEAT_MUTATE_SHARDS` shards (five by default), eac
 staggered `SEAT_MUTATE_STAGGER_SECS` after the one before it, and the record is the landed line
 words: `seat-mutate: lane …`, `DECLARED`, `[k/N]` notes, `BASELINE ok`/`FAIL`/`RETRY`/`MISSING`,
 `RED`, `GREEN … SURVIVED`, `ANCHOR-MISS`, `SYNTAX`, `DRY ok`, `MISSING`, `RESULT`,
-`RESULT (DRY)`, and `seat-mutate: KEEP`. Exit 0 means the run completed; its RESULT line counts the survivors. It exits 2 when a pair is missing,
+`RESULT (DRY)`, `seat-mutate: KEEP`, and `seat-mutate: git worktree entry … is still listed after … retries`. Exit 0 means the run completed; its RESULT line counts the survivors. It exits 2 when a pair is missing,
 a shard fails, the run is interrupted, or an input is refused, and 3 when any pair is ANCHOR-MISS
 (a bad anchor, a missing or escaping edit file) or SYNTAX (a mutated `.mjs`, `.js` or `.ts` file
 that fails to parse).
@@ -455,10 +455,15 @@ config module; every other key is refused by name before any worktree.
 seat guide's rule). A parent killed outright writes no record, leaves its shards to end on
 their own, and leaves its lock for the next run on that record to replace. On Windows a stop
 ends each shard outright rather than delivering a signal it can catch, and npm's config values
-are not read there. A table names a check's longer title when a shorter named title begins it,
-since a PASS or FAIL line matching the shorter one would otherwise read as that title too. A
-lane that needs a feature this runner does not have — stay-green pairs, case labels, skip
-reasons, script or pattern edits — keeps its own local runner.
+are not read there. Shards share one operation lock, so a scratch-worktree add never overlaps
+another shard's complete removal and its retries. After a scratch-worktree removal fails, the runner
+checks whether its entry is still listed, waits, deletes the scratch folder, and retries the removal by the unique
+`<scratch folder base name>/wt` suffix. It never runs `git worktree prune`, because pruning can
+remove entries the runner did not create. A locked scratch entry therefore stays listed after
+the retries and the record names it. A table names a check's longer title when a shorter named
+title begins it, since a PASS or FAIL line matching the shorter one would otherwise read as that
+title too. A lane that needs a feature this runner does not have — stay-green pairs, case labels,
+skip reasons, script or pattern edits — keeps its own local runner.
 
 ## What you will see
 

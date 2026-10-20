@@ -9,11 +9,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SESSION, PI_TURN, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
 import { runReadmeRehearsal } from "./readme-rehearsal.mjs";
+import { STALE_PREFIX, STALE_UNAVAILABLE_PREFIX } from "./stale-copies-config.mjs";
 
 export function buildEnvironment(source, home, platformName = process.platform) {
   const env = {};
@@ -188,6 +189,50 @@ export function journalHasUnadopted(text, project, platformName = process.platfo
   });
 }
 
+function linesOf(text) {
+  return String(text ?? "").split("\n").map((line) => line.trimEnd());
+}
+
+export function readPiSessionEvents(stdout) {
+  const unavailable = PI_SESSION.unavailableWord.toLowerCase();
+  for (const line of linesOf(stdout)) {
+    let event;
+    try { event = JSON.parse(line); } catch { continue; }
+    if (event?.type === "extension_error") {
+      return { code: "extension-error", detail: `extension_error: ${event.error ?? event.extensionPath ?? "unknown extension error"}` };
+    }
+    if (event?.type !== "extension_ui_request") continue;
+    const texts = event.method === "notify" ? [event.message]
+      : event.method === "setWidget" ? event.widgetLines
+      : event.method === "setStatus" ? [event.statusText]
+      : [];
+    const hit = (Array.isArray(texts) ? texts : []).find((text) => typeof text === "string" && text.toLowerCase().includes(unavailable));
+    if (hit) return { code: "unavailable", detail: `extension UI ${event.method}: ${hit}` };
+  }
+  return null;
+}
+
+export function judgePiTurn({ record, stderr, status, token }) {
+  if (status !== 0) {
+    const lastStderr = String(stderr ?? "").trim().split(/\r?\n/).at(-1);
+    return { passed: false, code: "exit", detail: `exit status ${status ?? "unknown"}${lastStderr ? `; last stderr: ${lastStderr}` : ""}` };
+  }
+  if (!record || typeof record !== "object") return { passed: false, code: "missing-record", detail: `no readable ${PI_TURN.record} record` };
+  const extensionError = linesOf(stderr).find((line) => line.startsWith(PI_TURN.extensionErrorPrefix));
+  if (extensionError) return { passed: false, code: "extension-error", detail: extensionError };
+  const system = typeof record.system === "string" ? record.system : "";
+  const stale = linesOf(system).find((line) => line.startsWith(STALE_PREFIX) || line.startsWith(STALE_UNAVAILABLE_PREFIX));
+  if (stale) return { passed: false, code: "stale", detail: stale };
+  if (!system.includes(token)) return { passed: false, code: "missing-token", detail: "system prompt does not hold the run token" };
+  if (!system.includes(PI_TURN.rulingsHeading)) return { passed: false, code: "missing-rulings", detail: `system prompt does not hold ${PI_TURN.rulingsHeading}` };
+  if (!system.includes(PI_TURN.writingTag)) return { passed: false, code: "missing-writing", detail: `system prompt does not hold ${PI_TURN.writingTag}` };
+  const knowledge = Array.isArray(record.userMessages) && record.userMessages.some((message) => typeof message === "string" && message.startsWith(PI_TURN.knowledgeMarker) && message.includes(PI_TURN.noteFile));
+  if (!knowledge) return { passed: false, code: "missing-knowledge", detail: `no ${PI_TURN.knowledgeMarker} user message names ${PI_TURN.noteFile}` };
+  const gate = Array.isArray(record.toolResults) && record.toolResults.some((result) => result?.toolName === PI_TURN.tool && result.isError === true && typeof result.text === "string" && result.text.startsWith(PI_TURN.gateBlockPrefix));
+  if (!gate) return { passed: false, code: "missing-gate-block", detail: `no errored ${PI_TURN.tool} result starts with the gate block text` };
+  return { passed: true, code: null, detail: "" };
+}
+
 export async function runInstallCheck({ root, home, platformName, env, spawn, exists, now = () => new Date(), out = () => {} }) {
   const lines = [];
   const emitLine = (line) => { lines.push(line); out(line); };
@@ -215,7 +260,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   const gitInit1 = await git(notes);
   const gitInit2 = await git(project);
   const gitRootOkay = gitInit1.status === 0 && gitInit2.status === 0;
-  fs.writeFileSync(path.join(notes, "docs", "install-check.md"), `# ${token}\nfixture evidence\n`);
+  fs.writeFileSync(path.join(notes, "docs", PI_TURN.noteFile), `# ${token}\nfixture evidence\n`);
   const nodePath = process.execPath;
   let pi = platformName === "win32" ? (findPi({ env: childEnv, cwd: root, exists }) ?? "pi") : resolveOnPath("pi");
   let bash = null;
@@ -242,10 +287,10 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     const memory = path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md");
     fs.appendFileSync(memory, `\n- [${token}] install-check fixture memory.\n`);
   }
-  const piRun = async (args, timeout = SPAWN_TIMEOUT_MS.pi) => {
-    if (platformName !== "win32") return invoke(pi, args, { cwd: project, timeout });
-    const launch = winCommand(pi, args, { comspec: childEnv.ComSpec });
-    return launch.refused ? { status: 1, stderr: launch.refused } : invoke(launch.command, launch.args, { ...launch.options, cwd: project, timeout });
+  const piRun = async (args, timeout = SPAWN_TIMEOUT_MS.pi, options = {}, preparedLaunch = null) => {
+    if (platformName !== "win32") return invoke(pi, args, { ...options, cwd: project, timeout });
+    const launch = preparedLaunch ?? winCommand(pi, args, { comspec: childEnv.ComSpec });
+    return launch.refused ? { status: 1, stderr: launch.refused } : invoke(launch.command, launch.args, { ...launch.options, ...options, cwd: project, timeout });
   };
   const sub = await piRun(["install", `npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`]);
   report("pi-subagents", sub.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(sub), okay(sub) ? "" : reason(sub));
@@ -254,14 +299,22 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   report("pi list nana-pack", "missing-entry", okay(listed) && parsed.pack);
   report("pi list nana-knowledge", "missing-entry", okay(listed) && parsed.knowledge);
   const sessionArgs = ["--mode", "rpc", "--no-session"];
-  const sessionLaunch = platformName === "win32" ? winCommand(pi, sessionArgs, { comspec: childEnv.ComSpec }) : { command: pi, args: sessionArgs, options: {} };
+  const sessionLaunch = platformName === "win32" ? winCommand(pi, sessionArgs, { comspec: childEnv.ComSpec }) : null;
   const sessionEnv = { ...childEnv, NANA_TEST_TEMP_ROOTS: "" };
-  const session = sessionLaunch.refused ? { status: 1, stderr: sessionLaunch.refused } : await invoke(sessionLaunch.command, sessionLaunch.args, { ...sessionLaunch.options, cwd: project, timeout: SPAWN_TIMEOUT_MS.session, input: '{"type":"get_commands"}\n', env: sessionEnv });
+  const session = await piRun(sessionArgs, SPAWN_TIMEOUT_MS.session, { input: '{"type":"get_commands"}\n', env: sessionEnv, maxOutput: PI_SESSION.maxOutput }, sessionLaunch);
   let journal = "";
   try { journal = fs.readFileSync(path.join(home, ".pi/agent/nana-journal.jsonl"), "utf8"); } catch {}
   const sessionOutput = `${session.stdout ?? ""}${session.stderr ?? ""}`;
-  const sessionOkay = okay(session) && sessionOutput.includes("reload-runtime") && journalHasUnadopted(journal, project, platformName);
-  report("pi session", session.error?.code === "ETIMEDOUT" ? "timeout" : "no-output", sessionOkay, !okay(session) ? reason(session) : !sessionOutput.includes("reload-runtime") ? "reload-runtime not in get_commands output" : !journalHasUnadopted(journal, project, platformName) ? `journal has no directory_unadopted for ${project}` : "");
+  const sessionFinding = readPiSessionEvents(session.stdout ?? "");
+  const sessionOkay = okay(session) && sessionOutput.includes("reload-runtime") && journalHasUnadopted(journal, project, platformName) && !sessionFinding;
+  const sessionDetail = !okay(session) ? reason(session) : sessionFinding?.detail ?? (!sessionOutput.includes("reload-runtime") ? "reload-runtime not in get_commands output" : !journalHasUnadopted(journal, project, platformName) ? `journal has no directory_unadopted for ${project}` : "");
+  report("pi session", session.error?.code === "ETIMEDOUT" ? "timeout" : sessionFinding?.code ?? "no-output", sessionOkay, sessionDetail);
+  const turnArgs = [...PI_TURN.args.map((arg) => arg === PI_TURN.fixture ? path.join(root, arg) : arg), `${SAMPLE_INPUTS.prompt} ${token}`];
+  const turn = await piRun(turnArgs, SPAWN_TIMEOUT_MS.turn);
+  let turnRecord = null;
+  try { turnRecord = JSON.parse(fs.readFileSync(path.join(home, PI_TURN.record), "utf8")); } catch {}
+  const turnJudgment = judgePiTurn({ record: turnRecord, stderr: turn.stderr ?? "", status: turn.status, token });
+  report(PI_TURN.item, turn.error?.code === "ETIMEDOUT" ? "timeout" : turnJudgment.code, turnJudgment.passed, turn.error ? reason(turn) : turnJudgment.detail);
   const settingsPath = path.join(home, ".claude", "settings.json");
   let settings = {}; try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf8")); } catch {}
   const groups = Object.entries(settings.hooks ?? {}).flatMap(([event, rows]) => rows.map((group) => ({ event, group })));
@@ -289,14 +342,14 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     const stdout = result.stdout ?? "";
     let passed = !structural && okay(result) && stdout.length <= SAMPLE_INPUTS.maxOutput;
     if (expected.shortLabel === "objective") passed &&= stdout.startsWith("[nana:objective]") && stdout.includes(token) && !stdout.includes("OBJECTIVE UNAVAILABLE");
-    if (expected.shortLabel === "adoption") passed &&= stdout.includes(project) && !stdout.includes("ADOPTION UNAVAILABLE");
+    if (expected.shortLabel === "adoption") passed &&= stdout.includes(project) && !stdout.includes("ADOPTION UNAVAILABLE") && !linesOf(stdout).some((line) => line.startsWith(STALE_PREFIX) || line.startsWith(STALE_UNAVAILABLE_PREFIX));
     if (expected.shortLabel === "shared memory") {
       const link = path.join(sessionDir, "memory/shared"); let target = null; try { target = fs.realpathSync(link); } catch {}
       let memoryTarget = null; try { memoryTarget = fs.realpathSync(path.join(home, ".claude/nana-memory/shared")); } catch {}
       passed &&= stdout.includes("[nana:shared-memory]") && stdout.includes(`- [${token}]`) && target === memoryTarget;
     }
     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
-    if (expected.shortLabel === "knowledge pull") passed &&= stdout.includes("[nana:knowledge]") && stdout.includes("install-check.md");
+    if (expected.shortLabel === "knowledge pull") passed &&= stdout.includes("[nana:knowledge]") && stdout.includes(PI_TURN.noteFile);
     let miss = null;
     if (expected.shortLabel === "verifier pipe") {
       const missInput = { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? "git status" : SAMPLE_INPUTS.verifier.bashMiss } };

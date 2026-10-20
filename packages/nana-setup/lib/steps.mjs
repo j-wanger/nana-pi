@@ -110,7 +110,7 @@ export function directoryAncestorsAreSafe(root, targetDirectory, allowMissing = 
 /* ---------------------------------------------------------------- claude hooks and rules */
 
 export function stepHooks(layout, o) {
-	if (win()) return HOOKS.map((h) => skip(`hook ${h}`));
+	if (win()) return [];
 	return HOOKS.map((h) => {
 		const r = linkFile(path.join(layout.hooksDir, h), path.join(pkgRoot, "claude", "hooks", h), o);
 		return { label: `hook ${h}`, ...r };
