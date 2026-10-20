@@ -681,6 +681,9 @@
 - Pi launch limits (pi-probe-timeout, plan): a pi that moves a process out of its group, or detaches one on Windows, escapes the kill. The threat model leaves that out.
 - Pi launch limits (pi-probe-timeout, wrong-code pairs): no check sends a second Ctrl-C during the one-second grace. The seat's wrong version that ignores it survived.
 - Pi launch limits (pi-probe-timeout, wrong-code pairs): no check reads what the relay reports when pi closes during the grace. The seat's wrong version that reports an ordinary result there survived.
+- Pi launch limits (pi-probe-timeout, review): pi now runs in its own session on macOS and Linux. A kill of install's whole process group, such as a supervisor's SIGKILL, ends install and the relay but not pi. A hung pi then runs until it ends by itself, with no limit.
+- Pi launch limits (pi-probe-timeout, review): on Windows the launch check file prints PASS for its two skipped signal checks. Its summary reads nine passes where seven checks ran.
+- Pi launch limits (pi-probe-timeout, review): on Windows, if the relay itself overruns its limit by five seconds, the outer stop ends only the relay. Command Prompt and pi keep running. That needs a stuck relay.
 
 ## Where things stand
 
