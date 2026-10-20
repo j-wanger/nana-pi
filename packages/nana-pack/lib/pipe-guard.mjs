@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/pipe-guard.mjs
- * @purpose Detect pipeline exit masking before a git commit when pipefail is not active.
+ * @purpose Detect when a later git commit reads a masking pipeline's exit status.
  * @inputs a shell command string from bash, PowerShell, or another shell-like tool.
  * @outputs verifierPipeReason and PowerShell comment/string spans.
  * @effects none
@@ -12,11 +12,37 @@ import {
 	POWERSHELL_TOKEN_ENDERS,
 } from "./pwsh-lexer-config.mjs";
 
+const QUOTED_GIT_PATH = /^(?:git(?:\.exe)?|.+[\\/]git(?:\.exe)?)$/iu;
+const QUOTED_WORD_BOUNDARY = /[\s;&|(){}]/u;
+const COMMIT_LEFT_NEIGHBOURS = /[\s;&|(){}\\/`]/u;
+const COMMIT_COMMAND = /git(?:\.exe)?\s+(?:(?:-[\w-]+(?:=[^\s;&|()]+)?)(?:\s+[^\s;&|()]+)?\s+)*commit\b/iyu;
+const BRACKET_OPENERS = new Set(["(", "{"]);
+const BRACKET_CLOSERS = new Set([")", "}"]);
+const STATUS_SEPARATORS = new Set([";", "\n", "\r"]);
+const REDIRECTION_NEIGHBOURS = new Set(["<", ">"]);
+// contract: R-2351 — shell words and spellings whose grammar consumes pipeline status.
+const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);
+const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
+const BASH_ERREXIT_CHANGES = /(?:^|[;&\r\n])\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
+
+function quotedGitExposure(content) {
+	if (content.includes("$(") || content.includes("`") || /[\r\n]/u.test(content)) return "";
+	const value = content.match(QUOTED_GIT_PATH)?.[0] ?? "";
+	return value.match(/git(?:\.exe)?$/iu)?.[0] ?? "";
+}
+
+function isQuotedWord(source, start, end) {
+	const left = start === 0 || QUOTED_WORD_BOUNDARY.test(source[start - 1]);
+	const right = end >= source.length || QUOTED_WORD_BOUNDARY.test(source[end]);
+	return left && right;
+}
+
 function liveText(command, dialect = "bash") {
 	if (dialect === "powershell") return scanPowerShell(String(command ?? "")).live;
 	const source = String(command ?? "");
 	let text = "";
 	let quote = "";
+	let quoteStart = -1;
 	let comment = false;
 	let heredoc = null;
 	let line = "";
@@ -36,6 +62,12 @@ function liveText(command, dialect = "bash") {
 			continue;
 		}
 		if (quote) {
+			if (quote === '"' && ch === "$" && source[i + 1] === "?") {
+				text += "$?";
+				line += "$?";
+				i++;
+				continue;
+			}
 			if (quote === '"' && ch === '`') {
 				let end = i + 1;
 				while (end < source.length && (source[end] !== '`' || source[end - 1] === "\\")) end++;
@@ -66,13 +98,17 @@ function liveText(command, dialect = "bash") {
 				}
 			}
 			if (quote === "'" && ch === "'" && source[i + 1] === "'") { text += "  "; line += "  "; i++; continue; }
-			if (ch === quote && (quote !== '"' || source[i - 1] !== "\\")) quote = "";
+			if (ch === quote && (quote !== '"' || source[i - 1] !== "\\")) {
+				const exposure = isQuotedWord(source, quoteStart, i + 1) ? quotedGitExposure(source.slice(quoteStart + 1, i)) : "";
+				quote = "";
+				if (exposure) text += ` ${exposure} `;
+			}
 			text += ch === "\n" ? "\n" : " ";
 			line += ch;
 			continue;
 		}
 		if ((ch === "'" || ch === '"') && source[i - 1] !== "\\") {
-			quote = ch; text += " "; line += ch; continue;
+			quote = ch; quoteStart = i; text += " "; line += ch; continue;
 		}
 		if (ch === "#" && (i === 0 || /[\s;&|]/.test(source[i - 1]))) {
 			comment = true; text += " "; line += " "; continue;
@@ -251,6 +287,10 @@ function scanPowerShellString(source, start, kind, spans, report) {
 		i++;
 	}
 	if (report) spans.push({ kind: "string", start, end: i });
+	if (report && closed) {
+		const exposure = quotedGitExposure(source.slice(start + 1, i - 1));
+		if (exposure) live += ` ${exposure} `;
+	}
 	return { live, end: i, closed };
 }
 
@@ -287,20 +327,113 @@ export function powerShellSpans(command) {
 	return scanPowerShell(String(command ?? "")).spans;
 }
 
-/** Return a reason if an unprotected pipeline occurs before a commit command. */
+function commitIndexes(live) {
+	const commits = [];
+	for (const match of live.matchAll(/git(?:\.exe)?/giu)) {
+		const at = match.index ?? 0;
+		if (at > 0 && !COMMIT_LEFT_NEIGHBOURS.test(live[at - 1])) continue;
+		COMMIT_COMMAND.lastIndex = at;
+		if (COMMIT_COMMAND.test(live)) commits.push(at);
+	}
+	return commits;
+}
+
+function pipelineStarts(live) {
+	const starts = [];
+	let pipelineOpen = false;
+	for (let i = 0; i < live.length; i++) {
+		const ch = live[i];
+		if (ch === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") {
+			if (!pipelineOpen) starts.push(i);
+			pipelineOpen = true;
+			if (live[i + 1] === "&") i++;
+			continue;
+		}
+		if (STATUS_SEPARATORS.has(ch) || (ch === "&" && live[i + 1] === "&") || (ch === "|" && live[i + 1] === "|")) {
+			pipelineOpen = false;
+			if ((ch === "&" || ch === "|") && live[i + 1] === ch) i++;
+		} else if (ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) pipelineOpen = false;
+	}
+	return starts;
+}
+
+function bashErrexitStates(live, pipes) {
+	const changes = [...live.matchAll(BASH_ERREXIT_CHANGES)];
+	const states = [];
+	let active = false;
+	let change = 0;
+	for (const pipe of pipes) {
+		while (change < changes.length && (changes[change].index ?? 0) + changes[change][0].length <= pipe) {
+			active = (changes[change][1] ?? changes[change][3]) === "-";
+			change++;
+		}
+		states.push(active);
+	}
+	return states;
+}
+
+function wordAt(text, at) {
+	const match = text.slice(at).match(/^[a-z]+\b/iu);
+	return match?.[0].toLowerCase() ?? "";
+}
+
+function nextCommandReadsStatus(live, start) {
+	let depth = 0;
+	for (let i = start; i < live.length; i++) {
+		const ch = live[i];
+		if (ch === "$" && live[i + 1] === "?") return true;
+		if (BRACKET_OPENERS.has(ch)) { depth++; continue; }
+		if (BRACKET_CLOSERS.has(ch)) { if (depth > 0) depth--; continue; }
+		if (depth > 0) continue;
+		if ((ch === "&" && live[i + 1] === "&") || (ch === "|" && live[i + 1] === "|") || STATUS_SEPARATORS.has(ch)) break;
+	}
+	return false;
+}
+
+function statusReadAfterPipeline(live, pipe, dialect, errexitActive) {
+	if (dialect !== "powershell" && errexitActive) return pipe;
+	let depth = 0;
+	for (let i = pipe + (live[pipe + 1] === "&" ? 2 : 1); i < live.length; i++) {
+		const ch = live[i];
+		if (BRACKET_OPENERS.has(ch)) { depth++; continue; }
+		if (BRACKET_CLOSERS.has(ch)) {
+			if (depth > 0) depth--;
+			continue;
+		}
+		if (depth > 0) continue;
+		if ((ch === "&" && live[i + 1] === "&") || (ch === "|" && live[i + 1] === "|")) return i;
+		if (dialect !== "powershell" && ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) return -1;
+		if (!STATUS_SEPARATORS.has(ch)) continue;
+
+		let next = i;
+		while (next < live.length && (STATUS_SEPARATORS.has(live[next]) || live[next] === " " || live[next] === "\t")) next++;
+		if ((live[next] === "&" && live[next + 1] === "&") || (live[next] === "|" && live[next + 1] === "|")) return next;
+		const word = wordAt(live, next);
+		if (dialect !== "powershell" && BASH_STATUS_READER_WORDS.has(word)) return next;
+		if (BRACKET_CLOSERS.has(live[next]) || (dialect !== "powershell" && BASH_STATUS_CLOSER_WORDS.has(word))) {
+			i = next + (word ? word.length : 1) - 1;
+			continue;
+		}
+		return nextCommandReadsStatus(live, next) ? next : -1;
+	}
+	return -1;
+}
+
+/** Return a reason if a later commit reads an unprotected pipeline's status. */
 export function verifierPipeReason(command, dialect = "bash") {
 	const live = liveText(command, dialect);
-	const commits = [...live.matchAll(/\bgit\s+(?:(?:-[\w-]+(?:=[^\s;&|()]+)?)(?:\s+[^\s;&|()]+)?\s+)*commit\b/gi)].map((m) => m.index ?? 0);
+	const commits = commitIndexes(live);
 	if (commits.length === 0) return null;
-	const events = [];
-	for (let i = 0; i < live.length; i++) {
-		if (live[i] === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") events.push({ at: i, kind: "pipe" });
-	}
 	const initialPipefail = dialect !== "powershell"
 		&& /^\s*set\s+-(?:o|[a-z]*o)\s+pipefail(?:;|&&|\n)/i.test(live)
 		&& !/\bset\s+\+o\s+pipefail\b/i.test(live);
-	for (const commit of commits) {
-		if (events.some((event) => event.kind === "pipe" && event.at < commit) && !initialPipefail) {
+	if (initialPipefail) return null;
+	const pipes = pipelineStarts(live);
+	const errexitStates = dialect === "powershell" ? [] : bashErrexitStates(live, pipes);
+	for (let i = 0; i < pipes.length; i++) {
+		const pipe = pipes[i];
+		const read = statusReadAfterPipeline(live, pipe, dialect, errexitStates[i] ?? false);
+		if (read >= 0 && commits[commits.length - 1] > read) {
 			return "A pipeline runs before git commit without active pipefail; rerun the verifier without a masking pipe or enable pipefail first.";
 		}
 	}

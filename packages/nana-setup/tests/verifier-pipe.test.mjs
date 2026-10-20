@@ -56,13 +56,20 @@ const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", 
 // req: R-985
 // req: R-984
 check("installed hook asks on a verifier-pipe hit", install.status === 0 && installedHookMatches && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
+const discarded = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status | wc -l; git commit -m x" } }));
+const gitExeHit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -5 && git.exe commit -m x" } }));
+const gitExeLines = gitExeHit.stdout.split("\n").filter((line) => line.length > 0);
+let gitExeAsk = null;
+try { gitExeAsk = gitExeLines.length === 1 ? JSON.parse(gitExeLines[0]) : null; } catch {}
+// req: R-2355
+check("installed hook abstains on a discarded pipeline status and asks on git.exe commit", discarded.status === 0 && discarded.stdout === "" && discarded.stderr === "" && gitExeHit.status === 0 && gitExeHit.stderr === "" && gitExeAsk?.hookSpecificOutput?.permissionDecision === "ask");
 const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
 // req: R-984
 check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");
 const invalid = invokeInstalledHook("{");
 // req: R-984
 check("installed symlink abstains on malformed JSON with stderr note", invalid.status === 0 && invalid.stdout === "" && /nana verifier-pipe:/.test(invalid.stderr));
-const malformedShape = invokeInstalledHook(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }));
+const malformedShape = invokeInstalledHook(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git log | head && git commit" } }));
 // req: R-984
 check("installed hook reports malformed JSON shape on stderr", malformedShape.status === 0 && malformedShape.stdout === "" && /nana verifier-pipe:.*malformed/.test(malformedShape.stderr));
 let protocolStdout = "";
@@ -87,7 +94,7 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 
 {
 	const { decideHook } = await import(new URL("../lib/verifier-hook.mjs", import.meta.url).href);
-	const prefixed = "set -o pipefail; npm test | Select-Object -Last 1; git commit -m x";
+	const prefixed = "set -o pipefail; npm test | Select-Object -Last 1 && git commit -m x";
 	const psHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: prefixed } });
 	// req: R-1054
 	check("decideHook judges a PowerShell event with the PowerShell dialect (bash pipefail syntax stays inactive)", psHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHit));
@@ -96,14 +103,14 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 	check("decideHook keeps the Bash dialect for a Bash event (the same pipefail prefix is exempted there)", bashNoHit.response === null, JSON.stringify(bashNoHit));
 	// final review r1 MUST 1: the embedded-# fix (R-1062) pinned through decideHook, not only the
 	// bare predicate.
-	const embeddedHash = "npm test | Select-Object -Last 5; Write-Output issue#123; git commit -m x";
+	const embeddedHash = "npm test | Select-Object -Last 5 && Write-Output issue#123; git commit -m x";
 	const psHashHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedHash } });
 	// req: R-1054
 	// req: R-1062
 	check("decideHook: an embedded # inside a PowerShell word does not mask a live pipe before commit", psHashHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHashHit));
 	// final review r2 MUST 1: the embedded-<# fix (R-1062, sol r2 repro) pinned through
 	// decideHook too, not only the bare predicate (pipe-guard.test.mjs).
-	const embeddedBlock = "npm test | Select-Object -Last 1; Write-Output issue<#123; git commit -m x";
+	const embeddedBlock = "npm test | Select-Object -Last 1 && Write-Output issue<#123; git commit -m x";
 	const psBlockHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedBlock } });
 	// req: R-1054
 	// req: R-1062
@@ -112,7 +119,7 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 	// quote named by §2.2.3/§2.3.3, so a ")" right after it could close a $(...) subexpression
 	// early and hide the live pipe that follows — pinned through decideHook, not only the bare
 	// predicate (pipe-guard.test.mjs).
-	const solRepro = "\"$(Write-Output 'hi'# )\nnpm test | Select-Object -Last 1\n)\"; git commit -m x";
+	const solRepro = "\"$(Write-Output 'hi'# )\nnpm test | Select-Object -Last 1 && true\n)\"; git commit -m x";
 	const solReproHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: solRepro } });
 	// req: R-1054
 	// req: R-1062
@@ -195,8 +202,10 @@ const setupDeclaration = setupReadme.split("\n").find((line) => line.includes("V
 check("both READMEs declare the user-scope live verifier-pipe change", /user-scope/.test(packDeclaration) && /every session/.test(packDeclaration) && /user-scope/.test(setupDeclaration) && /every session/.test(setupDeclaration));
 // req: R-985, R-1053
 check("pack README declares the Claude win32 verifier coverage", /Claude Code hook is wired on native Windows too/.test(packDeclaration) && /Bash\|PowerShell/.test(packDeclaration));
-// req: R-982
+// req: R-2354
 check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
+// req: R-2356
+check("both READMEs declare which pipelines the verifier-pipe guard asks on", [packDeclaration, setupDeclaration].every((line) => /a `;` or a newline/.test(line) && /does not prompt/.test(line) && /`git\.exe`/.test(line) && /path/.test(line)));
 // final review r2 (sol SHOULD 2, astra SHOULD 3): the migration sentence now opens "On POSIX" —
 // Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
 // req: R-985

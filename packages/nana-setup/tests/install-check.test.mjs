@@ -283,7 +283,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
     if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: `${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}` };
     if (joined.includes("verifier-pipe.mjs")) {
       const input = JSON.parse(options.input);
-      return { status: 0, stdout: input.tool_input.command === (input.tool_name === "PowerShell" ? "npm test | Select-Object -Last 5; git commit -m x" : "npm test | tail -1 && git commit -m done") ? `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n` : "" };
+      return { status: 0, stdout: input.tool_input.command === (input.tool_name === "PowerShell" ? installConfig.SAMPLE_INPUTS.verifier.powershellHit : "npm test | tail -1 && git commit -m done") ? `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n` : "" };
     }
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };

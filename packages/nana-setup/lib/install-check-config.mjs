@@ -41,7 +41,11 @@ export const DOCTOR_NOTES = {
 export const SAMPLE_INPUTS = {
   session: { source: "startup", transcript_path: "", cwd: "" },
   prompt: "How does nana install-check validate this fixture?",
-  verifier: { bashHit: "npm test | tail -1 && git commit -m done", bashMiss: "git status", powershellHit: "npm test | Select-Object -Last 5; git commit -m x" },
+  verifier: {
+    bashHit: "npm test | tail -1 && git commit -m done",
+    bashMiss: "git status",
+    powershellHit: "npm test | Select-Object -Last 5 && git commit -m x", // Chosen 2026-10-20: a `;` no longer asks (R-2350).
+  },
   maxOutput: 10000,
 };
 // Probe 2026-10-19: a live offline faux turn observed these prompt sections, knowledge pointer,

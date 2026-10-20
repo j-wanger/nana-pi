@@ -1386,7 +1386,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/pipe-guard.mjs`
 
-- **purpose** — Detect pipeline exit masking before a git commit when pipefail is not active.
+- **purpose** — Detect when a later git commit reads a masking pipeline's exit status.
 - **inputs** — a shell command string from bash, PowerShell, or another shell-like tool.
 - **outputs** — verifierPipeReason and PowerShell comment/string spans.
 - **effects** — none

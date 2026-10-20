@@ -172,16 +172,16 @@ try {
 				return parsed?.hookSpecificOutput?.hookEventName === "PreToolUse" && parsed?.hookSpecificOutput?.permissionDecision === "ask" ? parsed : null;
 			} catch { return null; }
 		};
-		const bashAsk = spawnEntry(v, ev("Bash", "npm test | tail -5; git commit -m x"));
+		const bashAsk = spawnEntry(v, ev("Bash", "npm test | tail -5 && git commit -m x"));
 		// req: R-1058
 		check("verifier: exit 0 within its own timeout, no module-resolution error", moduleOk(bashAsk), detail(bashAsk));
-		// req: R-1064
+		// req-candidate: R-1064 (Windows only; becomes req: when the Windows CI leg passes it)
 		check("verifier: Bash masked pipe gives exactly one ask line (hookEventName PreToolUse)", Boolean(askLine(bashAsk)), bashAsk.stdout + bashAsk.stderr);
-		const psAsk = spawnEntry(v, ev("PowerShell", "set -o pipefail; npm test | Select-Object -Last 5; git commit -m x"));
-		// req: R-1064
+		const psAsk = spawnEntry(v, ev("PowerShell", "set -o pipefail; npm test | Select-Object -Last 5 && git commit -m x"));
+		// req-candidate: R-1064 (Windows only; becomes req: when the Windows CI leg passes it)
 		check("verifier: PowerShell masked pipe gives exactly one ask line (hookEventName PreToolUse), Bash pipefail syntax stays inactive there", Boolean(askLine(psAsk)), psAsk.stdout + psAsk.stderr);
 		const noMatch = spawnEntry(v, ev("Bash", "git status"));
-		// req: R-1064
+		// req-candidate: R-1064 (Windows only; becomes req: when the Windows CI leg passes it)
 		check("verifier: a non-matching command gives empty stdout", noMatch.status === 0 && (noMatch.stdout || "") === "", JSON.stringify(noMatch.stdout));
 	}
 	{

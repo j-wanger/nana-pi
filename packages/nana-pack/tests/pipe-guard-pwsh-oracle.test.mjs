@@ -99,47 +99,47 @@ const tokenStartCases = [
 	["standalone string starts a comment", "'a'#c", false],
 ];
 for (const [name, value, expected] of tokenStartCases) {
-	const command = `Write-Output ${value} | Select-Object -Last 1; git commit -m x`;
+	const command = `Write-Output ${value} | Select-Object -Last 1 && git commit -m x`;
 	// req: R-1733
 	await check(`token start: ${name}`, () => Boolean(verifierPipeReason(command, "powershell")) === expected);
 }
 for (const [name, command] of [
-	["single-quote here marker inside a word", "Write-Output a@'\nb'; npm test | Select-Object -Last 1; git commit -m x"],
-	["double-quote here marker inside a word", 'Write-Output a@"\nb"; npm test | Select-Object -Last 1; git commit -m x'],
+	["single-quote here marker inside a word", "Write-Output a@'\nb'; npm test | Select-Object -Last 1 && git commit -m x"],
+	["double-quote here marker inside a word", 'Write-Output a@"\nb"; npm test | Select-Object -Last 1 && git commit -m x'],
 ]) {
 	// req: R-1733
 	await check(`token start: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
 }
 
 for (const [name, command, expected] of [
-	["typographic single opener", "Write-Output ‘a'; npm test | Select-Object -Last 1; git commit -m x", true],
-	["typographic double closer", 'Write-Output "a”; npm test | Select-Object -Last 1; git commit -m x', true],
-	["typographic double-quoted pipe", "Write-Output “a | b”; git commit -m x", false],
+	["typographic single opener", "Write-Output ‘a'; npm test | Select-Object -Last 1 && git commit -m x", true],
+	["typographic double closer", 'Write-Output "a”; npm test | Select-Object -Last 1 && git commit -m x', true],
+	["typographic double-quoted pipe", "Write-Output “a | b && true”; git commit -m x", false],
 ]) {
 	// req: R-1734
 	await check(`typographic quotes: ${name}`, () => Boolean(verifierPipeReason(command, "powershell")) === expected);
 }
 
 // req: R-1735
-await check("line end: a carriage return ends a line comment", () => verifierPipeReason("Write-Output x # note\rnpm test | Select-Object -Last 1; git commit -m x", "powershell") !== null);
+await check("line end: a carriage return ends a line comment", () => verifierPipeReason("Write-Output x # note\rnpm test | Select-Object -Last 1 && git commit -m x", "powershell") !== null);
 
 for (const [name, command] of [
-	["single-quoted here-string", "@'\nx\n'@#it's\nnpm test | Select-Object -Last 1; git commit -m x"],
-	["expandable here-string", '@"\nx\n"@#it\'s\nnpm test | Select-Object -Last 1; git commit -m x'],
-	["block comment", "<#a#>#it's\nnpm test | Select-Object -Last 1; git commit -m x"],
+	["single-quoted here-string", "@'\nx\n'@#it's\nnpm test | Select-Object -Last 1 && git commit -m x"],
+	["expandable here-string", '@"\nx\n"@#it\'s\nnpm test | Select-Object -Last 1 && git commit -m x'],
+	["block comment", "<#a#>#it's\nnpm test | Select-Object -Last 1 && git commit -m x"],
 ]) {
 	// req: R-1736
 	await check(`token start after a close: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
 }
 
 const assignmentHereStringCases = [
-	["single-quoted assignment", "$msg=@'\nfix: don't drop rows\n'@\nnpm test 2>&1 | Select-Object -Last 20; git commit -m $msg"],
-	["single-quoted assignment with CRLF", "$msg=@'\r\nfix: don't drop rows\r\n'@\r\nnpm test 2>&1 | Select-Object -Last 20; git commit -m $msg"],
-	["pipeline before single-quoted assignment", "npm test | Select-Object -Last 1\n$msg=@'\nfix: don't drop rows\n'@\ngit commit -m $msg"],
-	["plus-equals assignment", "$m+=@'\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1; git commit -m $m"],
-	["expandable assignment with an odd body quote", '$msg=@"\nfix: 5" pipe\n"@\nnpm test | Select-Object -Last 1; git commit -m $msg'],
-	["assignment opener with a trailing tab", "$msg=@'\t\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1; git commit -m $msg"],
-	["spaced assignment mirror", "$msg = @'\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1; git commit -m $msg"],
+	["single-quoted assignment", "$msg=@'\nfix: don't drop rows\n'@\nnpm test 2>&1 | Select-Object -Last 20 && git commit -m $msg"],
+	["single-quoted assignment with CRLF", "$msg=@'\r\nfix: don't drop rows\r\n'@\r\nnpm test 2>&1 | Select-Object -Last 20 && git commit -m $msg"],
+	["pipeline before single-quoted assignment", "npm test | Select-Object -Last 1 &&\n$msg=@'\nfix: don't drop rows\n'@\ngit commit -m $msg"],
+	["plus-equals assignment", "$m+=@'\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1 && git commit -m $m"],
+	["expandable assignment with an odd body quote", '$msg=@"\nfix: 5" pipe\n"@\nnpm test | Select-Object -Last 1 && git commit -m $msg'],
+	["assignment opener with a trailing tab", "$msg=@'\t\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1 && git commit -m $msg"],
+	["spaced assignment mirror", "$msg = @'\nfix: don't drop rows\n'@\nnpm test | Select-Object -Last 1 && git commit -m $msg"],
 ];
 for (const [name, command] of assignmentHereStringCases) {
 	// req: R-1737
@@ -152,7 +152,7 @@ for (const [name, expression] of [
 	["nested variable index", "$a[$b[0]]"],
 	["third index", "$a[0]['k'][1]"],
 ]) {
-	const command = `${expression}#it's\nnpm test | Select-Object -Last 1; git commit -m x`;
+	const command = `${expression}#it's\nnpm test | Select-Object -Last 1 && git commit -m x`;
 	// req: R-1738
 	await check(`comment after an index: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
 }
@@ -162,7 +162,7 @@ for (const [name, expression] of [
 	["empty array subexpression", "@()"],
 	["member call with arguments", "$a.b($c)"],
 ]) {
-	const command = `${expression}#it's\nnpm test | Select-Object -Last 1; git commit -m x`;
+	const command = `${expression}#it's\nnpm test | Select-Object -Last 1 && git commit -m x`;
 	// req: R-1739
 	await check(`comment after a parenthesized expression: ${name}`, () => verifierPipeReason(command, "powershell") !== null);
 }
