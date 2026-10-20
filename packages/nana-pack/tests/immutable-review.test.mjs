@@ -8,6 +8,7 @@
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
+import { awaitLaunchRecord } from "./launch-wait.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -21,19 +22,16 @@ const root = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "immutable-review-tes
 const fakeBin = path.join(root, "fake-bin");
 fs.mkdirSync(fakeBin);
 const STALL_FAKE_LIFETIME_MS = 180_000; // chosen: 180 seconds lets a loaded Windows runner reach the watchdog stall decision.
-const STALL_FAKE_LIFETIME_SECS = STALL_FAKE_LIFETIME_MS / 1000;
 const STALL_CHECK_GUARD_MS = 120_000; // chosen: 120 seconds bounds the stall check below the fake's own lifetime.
-// The observed argv ("$*"/argv) may itself carry embedded newlines once an appended system
-// prompt is multi-line text (R-1105): write it as the file's tail, after exactly three header
-// lines, so a reader can split the header and rejoin the remainder, rather than one blind
-// split("\n"). win32 has no pi-the-sh-script (findPi only accepts .com/.exe/.bat/.cmd, and the
-// npm package it then expects sits beside it, R-1125): lay out that npm shape instead, through
-// the shared helper, with a Node port of the same body. POSIX keeps this sh script unchanged.
-if (process.platform === "win32") {
-  writeFakePi(fakeBin, `const fs = require("node:fs");
+const TEMP_REMOVE_MAX_RETRIES = 5; // chosen: gives transient Windows folder handles several chances to close.
+const TEMP_REMOVE_RETRY_DELAY_MS = 100; // chosen: bounds cleanup retries to half a second before reporting the failure.
+// The observed argv may itself carry embedded newlines once an appended system prompt is
+// multi-line text (R-1105). One Node body writes all four fields atomically on every platform.
+const fakeBody = `const fs = require("node:fs");
 if (process.env.OBSERVE_PID) fs.writeFileSync(process.env.OBSERVE_PID, String(process.pid) + "\\n");
-fs.writeFileSync(process.env.OBSERVE, process.cwd() + "\\n" + process.env.NANA_REVIEW_ROOT + "\\n" + process.env.NANA_ROLE + "\\n");
-fs.appendFileSync(process.env.OBSERVE, process.argv.slice(2).join(" "));
+const recordPart = process.env.OBSERVE + ".part";
+fs.writeFileSync(recordPart, process.cwd() + "\\n" + process.env.NANA_REVIEW_ROOT + "\\n" + process.env.NANA_ROLE + "\\n" + process.argv.slice(2).join(" "));
+fs.renameSync(recordPart, process.env.OBSERVE);
 const waitFor = process.env.WAIT_FOR;
 function finish() {
   if (process.env.MODE === "fail") process.exit(1);
@@ -45,27 +43,21 @@ function poll() {
   finish();
 }
 poll();
-`);
+`;
+if (process.platform === "win32") {
+  writeFakePi(fakeBin, fakeBody);
 } else {
+  const fakeBodyFile = path.join(fakeBin, "pi-body.cjs");
+  fs.writeFileSync(fakeBodyFile, fakeBody);
   const fakePi = path.join(fakeBin, "pi");
-  fs.writeFileSync(fakePi, `#!/bin/sh
-printf '%s\\n' "$$" > "$OBSERVE_PID"
-printf '%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" > "$OBSERVE"
-printf '%s' "$*" >> "$OBSERVE"
-while [ -n "$WAIT_FOR" ] && [ ! -e "$WAIT_FOR" ]; do sleep 0.05; done
-case "$MODE" in fail) exit 1;; stall) exec sleep ${STALL_FAKE_LIFETIME_SECS};; *) echo 'VERDICT: LAND';; esac
-`);
+  fs.writeFileSync(fakePi, `#!/bin/sh\nexec '${process.execPath}' '${fakeBodyFile}' "$@"\n`);
   fs.chmodSync(fakePi, 0o755);
 }
 const home = path.join(root, "home");
 const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`, ...extra });
-// canonPath/includesWorktree compare a worktree path git prints (porcelain, always its own long
-// canonical form) against a path this test built from the OS temp root, which on a Windows CI
-// runner keeps the 8.3 short form (RUNNER~1) — kept deliberately (the hard rule below) so lane
-// W7c's product fix has a failing check to turn green. win32: native real path, which is the
-// product's own fsReal/R-1125 choice, falling back to a resolve+case-fold when the path is
-// already gone (a reclaimed or removed checkout). POSIX: plain (non-native) realpath, falling
-// back to path.resolve for the same already-gone case (detail below).
+// canonPath/includesWorktree compare git's canonical worktree paths with paths this test built
+// from the OS temp root. win32 uses the native real path so short and long forms agree, then
+// falls back to a resolved case-folded path after cleanup. POSIX follows the same shape.
 function canonPath(p) {
   if (process.platform === "win32") {
     try { return fs.realpathSync.native(p).replace(/^\\\\\?\\/, ""); }
@@ -84,10 +76,8 @@ function includesWorktree(porcelain, target) {
   const want = canonPath(target);
   return worktreePaths(porcelain).some((p) => canonPath(p) === want);
 }
-// Printed in the detail of every check the plan names as blocked, until W7c's product fix, by
-// the SAME short-vs-long mismatch (R-724/R-967/R-705): the tree root git reports (long) against
-// this process's own JS realpathSync of its short TEMP (RUNNER~1) — WR1's "short and long paths
-// it compared".
+// Printed in failure details to expose both path forms if a future platform normalization
+// regression makes a review checkout or output path compare unequal.
 const pathForms = (p) => {
   let short = p, long = p;
   try { short = fs.realpathSync(p); } catch { /* keep the raw path */ }
@@ -148,13 +138,11 @@ const args = [piReview, "--item", "immutable", "--role", "sol", "--revision", "m
 const observePid = path.join(root, "observe-pid");
 const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, OBSERVE_PID: observePid, WAIT_FOR: release }) });
 const childClosed = new Promise((resolve) => child.on("close", (code) => resolve(code)));
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const OBSERVE_WAIT_ITERATIONS = 200; // chosen: five seconds lets the child record launch state on loaded CI.
-for (let i = 0; i < OBSERVE_WAIT_ITERATIONS && !fs.existsSync(observe); i++) await delay(25);
-const launched = fs.existsSync(observe);
+const launchRecord = await awaitLaunchRecord(observe, { closed: childClosed });
+const launched = launchRecord !== null;
 // Header is exactly three lines (cwd, NANA_REVIEW_ROOT, NANA_ROLE); the remainder is the raw
 // argv tail, rejoined verbatim even when it carries its own embedded newlines (R-1105).
-const observedParts = launched ? fs.readFileSync(observe, "utf8").split("\n") : [];
+const observedParts = launched ? launchRecord.split("\n") : [];
 let observed = launched ? [observedParts[0], observedParts[1], observedParts[2], observedParts.slice(3).join("\n")] : [];
 const checkout = observed[0];
 // Canonicalized NOW, while the checkout still exists: by the time check 7 (below) looks at it,
@@ -226,9 +214,9 @@ if (process.platform !== "win32") {
     cwd: repo, env: env({ OBSERVE: signalObserve, OBSERVE_PID: path.join(root, "signal-pid"), WAIT_FOR: path.join(root, "never-release") }),
   });
   const signalClosed = new Promise((resolve) => signaled.on("close", (code) => resolve(code)));
-  for (let i = 0; i < 200 && !fs.existsSync(signalObserve); i++) await delay(25);
-  const signalCheckout = fs.existsSync(signalObserve) ? fs.readFileSync(signalObserve, "utf8").split("\n")[0] : "";
-  signaled.kill("SIGTERM");
+  const signalRecord = await awaitLaunchRecord(signalObserve, { closed: signalClosed });
+  const signalCheckout = signalRecord?.split("\n")[0] ?? "";
+  if (signaled.exitCode === null && signaled.signalCode === null) signaled.kill("SIGTERM");
   const signalCode = await signalClosed;
   const afterSignal = git(repo, "worktree", "list", "--porcelain");
   // req: R-967
@@ -243,8 +231,8 @@ const killedReview = spawn(process.execPath, [piReview, "--item", "killed", "--o
   cwd: repo, env: env({ OBSERVE: killedObserve, OBSERVE_PID: killedPidFile, WAIT_FOR: path.join(root, "never-release") }),
 });
 const killedClosed = new Promise((resolve) => killedReview.on("close", (code, signal) => resolve({ code, signal })));
-for (let i = 0; i < 200 && !fs.existsSync(killedObserve); i++) await delay(25);
-const killedCheckout = fs.existsSync(killedObserve) ? fs.readFileSync(killedObserve, "utf8").split("\n")[0] : "";
+const killedRecord = await awaitLaunchRecord(killedObserve, { closed: killedClosed });
+const killedCheckout = killedRecord?.split("\n")[0] ?? "";
 // Canonicalized now, while the checkout still exists — the SIGKILL below never lets pi-review
 // clean it up itself, but the recovery run's own reclaim (the thing this check pins) may remove
 // it before a canonicalize-at-use would get the chance to resolve it.
@@ -263,11 +251,8 @@ const afterRecovery = git(repo, "worktree", "list", "--porcelain");
 check("next launch reclaims a SIGKILLed dead-owner checkout but leaves live-owner worktrees alone", recovery.status === 0 &&
   includesWorktree(staleBeforeRecovery, killedCheckoutCanon) && !fs.existsSync(killedCheckout) && !includesWorktree(afterRecovery, killedCheckoutCanon),
   `${JSON.stringify({ status: recovery.status, stderr: recovery.stderr, killedCheckout, staleBeforeRecovery, afterRecovery })} compared: ${pathForms(killedCheckout)}`);
-// Until W7c's product fix, reclaim leaves this SIGKILLed checkout registered on Windows (the
-// short-vs-long mismatch that check 11 above already pins). Clear it here so the later refusal
-// checks (unreproducible snapshot, nested repository) observe their own worktree list, not a
-// leftover "nana-review-" entry caused only by check 11's known failure. No-op on POSIX, where
-// check 11 already reclaims it.
+// If reclaim fails, clear the checkout defensively so later refusal checks observe only their
+// own worktree state. This is a no-op after the pinned reclaim check succeeds.
 if (fs.existsSync(killedCheckout)) {
   git(repo, "worktree", "remove", "--force", killedCheckout);
   git(repo, "worktree", "prune");
@@ -401,5 +386,9 @@ check("nested repository is refused before admission and consumes no round", ref
     JSON.stringify({ status: mm5Run.status, stderr: mm5Run.stderr, row: mm5Row }));
 }
 
-fs.rmSync(root, { recursive: true, force: true });
+try {
+  fs.rmSync(root, { recursive: true, force: true, maxRetries: TEMP_REMOVE_MAX_RETRIES, retryDelay: TEMP_REMOVE_RETRY_DELAY_MS });
+} catch (e) {
+  check("the test's temporary folder is removed at the end", false, `${e.code} ${e.path ?? root}`);
+}
 process.exit(failures);

@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/mutation-runner.test.mjs
  * @purpose Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain,
  *  edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table
- *  identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1779) against a disposable git fixture.
+ *  identity and config-merge contracts (R-1230 to R-1244, R-1770 to R-1779 and R-1960) against a disposable git fixture.
  * @inputs ../lib/mutation-runner.mjs, ../lib/mutation-runner-config.mjs, and a throwaway git repository this
  *  file builds under the OS temp directory for every run
  * @outputs PASS/FAIL lines for each marked check and a non-zero exit when any fails
@@ -293,6 +293,11 @@ function writeTable(fx, name, def) {
 const T1 = path.posix.join("pkg", "tests", "one.test.mjs");
 const T2 = path.posix.join("pkg", "tests", "probe.test.mjs");
 const CLEANUP_THREE_SHARDS = 3;
+// measured: 12 hosted Windows runs at 0ad43c1d reached 1,927 to 2,350 of 2,400 acquisitions in 30 s
+// (run 39364310814). Chosen as four times that measured window so hosted-runner variance keeps the full-strength check.
+const CONTENTION_BUDGET_MS = 120_000;
+// chosen: five seconds lets workers finish their current millisecond-scale critical section before forced cleanup.
+const CONTENTION_STOP_GRACE_MS = 5_000;
 
 /** Build a minimal table def; `self` is filled by writeTable. */
 function table(fx, pairs, extra = {}) {
@@ -471,6 +476,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	const acquiredPath = path.join(td, "acquired.txt");
 	const badContentPath = path.join(td, "bad-content.txt");
 	const stopObserverPath = path.join(td, "stop-observer");
+	const stopWorkersPath = path.join(td, "stop-workers");
 	const workerPath = path.join(td, "worker.mjs");
 	const observerPath = path.join(td, "observer.mjs");
 	const ownershipPath = path.join(td, "ownership.mjs");
@@ -484,22 +490,25 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	fs.writeFileSync(workerPath, [
 		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
 		importLine("* as fs", "node:fs"),
-		"const [id, lockPath, markerPath, readyPath, startPath, overlapPath, acquiredPath, countRaw] = process.argv.slice(2);",
+		"const [id, lockPath, markerPath, readyPath, startPath, overlapPath, acquiredPath, stopPath, countRaw] = process.argv.slice(2);",
 		"const sleeper = new Int32Array(new SharedArrayBuffer(4));",
 		'fs.appendFileSync(readyPath, `${id}\\n`);',
 		"const until = Date.now() + 10000;",
 		"while (!fs.existsSync(startPath) && Date.now() < until) Atomics.wait(sleeper, 0, 0, 2);",
 		'if (!fs.existsSync(startPath)) throw new Error("start did not arrive");',
-		"for (let i = 0; i < Number(countRaw); i++) withWorktreeOperationLock(lockPath, () => {",
-		"  let mine = false;",
-		'  try { fs.writeFileSync(markerPath, `${id}:${i}`, { flag: "wx" }); mine = true; } catch (err) {',
-		'    if (err.code !== "EEXIST") throw err;',
-		'    fs.appendFileSync(overlapPath, `${id}:${i}\\n`);',
-		"  }",
-		'  fs.appendFileSync(acquiredPath, `${id}:${i}\\n`);',
-		"  Atomics.wait(sleeper, 0, 0, 1);",
-		"  if (mine) fs.rmSync(markerPath);",
-		"});",
+		"for (let i = 0; i < Number(countRaw); i++) {",
+		"  if (fs.existsSync(stopPath)) break;",
+		"  withWorktreeOperationLock(lockPath, () => {",
+		"    let mine = false;",
+		'    try { fs.writeFileSync(markerPath, `${id}:${i}`, { flag: "wx" }); mine = true; } catch (err) {',
+		'      if (err.code !== "EEXIST") throw err;',
+		'      fs.appendFileSync(overlapPath, `${id}:${i}\\n`);',
+		"    }",
+		'    fs.appendFileSync(acquiredPath, `${id}:${i}\\n`);',
+		"    Atomics.wait(sleeper, 0, 0, 1);",
+		"    if (mine) fs.rmSync(markerPath);",
+		"  });",
+		"}",
 		"",
 	].join("\n"));
 	fs.writeFileSync(observerPath, [
@@ -529,7 +538,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	].join("\n"));
 	const starts = [];
 	const childRuns = [];
-	const startChild = (args) => {
+	const startChild = (args, safetyLimitMs) => {
 		const proc = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "pipe"] });
 		starts.push(proc);
 		childRuns.push(new Promise((resolve) => {
@@ -537,7 +546,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 			let settled = false;
 			proc.stdout.on("data", (d) => { output += d; });
 			proc.stderr.on("data", (d) => { output += d; });
-			const timer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch { /* already gone */ } }, 30000);
+			const timer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch { /* already gone */ } }, safetyLimitMs);
 			const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
 			proc.on("error", (err) => done(null, err.message));
 			proc.on("close", done);
@@ -545,7 +554,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	};
 
 	fs.rmSync(lockPath);
-	startChild([ownershipPath, lockPath, ownershipEnteredPath, ownershipReleasePath]);
+	startChild([ownershipPath, lockPath, ownershipEnteredPath, ownershipReleasePath], 15_000);
 	const ownershipEntered = await waitUntil(() => fs.existsSync(ownershipEnteredPath), 5000);
 	const replacementOwner = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: "replacement-owner" });
 	if (ownershipEntered) {
@@ -560,27 +569,45 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	childRuns.length = 0;
 
 	fs.writeFileSync(lockPath, malformedGate);
-	startChild([observerPath, lockPath, badContentPath, stopObserverPath, malformedGate]);
-	for (let i = 0; i < workers; i++) startChild([workerPath, String(i), lockPath, markerPath, readyPath, startPath, overlapPath, acquiredPath, String(acquisitions)]);
+	const safetyLimitMs = CONTENTION_BUDGET_MS + CONTENTION_STOP_GRACE_MS + 5_000;
+	startChild([observerPath, lockPath, badContentPath, stopObserverPath, malformedGate], safetyLimitMs);
+	for (let i = 0; i < workers; i++) startChild([workerPath, String(i), lockPath, markerPath, readyPath, startPath, overlapPath, acquiredPath, stopWorkersPath, String(acquisitions)], safetyLimitMs);
+	const workerProcesses = starts.slice(1).map((proc, id) => ({ id, proc }));
 	const allReady = await waitUntil(() => { try { return fs.readFileSync(readyPath, "utf8").trim().split(/\r?\n/).length === workers; } catch { return false; } }, 5000);
 	fs.writeFileSync(startPath, "start");
 	await sleep(CFG.WORKTREE_LOCK_WAIT_MS * 4);
 	const enteredFreshUnreadable = fs.existsSync(acquiredPath);
 	if (fs.existsSync(lockPath) && fs.readFileSync(lockPath, "utf8") === malformedGate) fs.rmSync(lockPath);
 	fs.rmSync(markerPath, { force: true });
-	const workerResults = await Promise.all(childRuns.slice(1));
+	const workerRuns = Promise.all(childRuns.slice(1));
+	let budgetTimer;
+	const budgetEnded = new Promise((resolve) => { budgetTimer = setTimeout(() => resolve("budget"), CONTENTION_BUDGET_MS); });
+	const firstEnd = await Promise.race([workerRuns.then(() => "workers"), budgetEnded]);
+	clearTimeout(budgetTimer);
+	const timedOut = firstEnd === "budget";
+	const killedWorkers = [];
+	if (timedOut) {
+		fs.writeFileSync(stopWorkersPath, "stop");
+		await Promise.race([workerRuns, sleep(CONTENTION_STOP_GRACE_MS)]);
+		for (const { id, proc } of workerProcesses) if (proc.exitCode === null && proc.signalCode === null) {
+			killedWorkers.push(id);
+			try { proc.kill("SIGKILL"); } catch { /* already gone */ }
+		}
+	}
+	const workerResults = await workerRuns;
 	fs.writeFileSync(stopObserverPath, "stop");
 	const observerResult = await childRuns[0];
 	const overlapText = fs.existsSync(overlapPath) ? fs.readFileSync(overlapPath, "utf8") : "";
 	const badContent = fs.existsSync(badContentPath) ? fs.readFileSync(badContentPath, "utf8") : "";
 	const acquired = fs.existsSync(acquiredPath) ? fs.readFileSync(acquiredPath, "utf8").trim().split(/\r?\n/).filter(Boolean).length : 0;
 	const ok = ownershipEntered && ownershipResult.code === 0 && keptReplacementOwner
-		&& allReady && !enteredFreshUnreadable && overlapText === "" && badContent === ""
+		&& allReady && !enteredFreshUnreadable && !timedOut && overlapText === "" && badContent === ""
 		&& acquired === workers * acquisitions && workerResults.every((r) => r.code === 0)
 		&& observerResult.code === 0 && !fs.existsSync(lockPath) && !fs.existsSync(markerPath);
+	const overlapRecord = timedOut ? { text: overlapText, recordedAfterKill: true, lockFailure: false } : overlapText;
 	// req: R-1776
 	// req: R-1777
-	check("mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections", ok, JSON.stringify({ ownershipEntered, ownershipResult, keptReplacementOwner, allReady, enteredFreshUnreadable, overlapText, badContent, acquired, workerResults, observerResult, lockLeft: fs.existsSync(lockPath), markerLeft: fs.existsSync(markerPath) }));
+	check("mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections", ok, JSON.stringify({ ownershipEntered, ownershipResult, keptReplacementOwner, allReady, enteredFreshUnreadable, timedOut, killedWorkers, overlapText: overlapRecord, badContent, acquired, workerResults, observerResult, lockLeft: fs.existsSync(lockPath), markerLeft: fs.existsSync(markerPath) }));
 }
 
 {
@@ -613,26 +640,69 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		}
 		fs.rmSync(td, { recursive: true, force: true });
 	}
-	for (const code of transientCodes) {
-		const td = tmpDir(path.join(os.tmpdir(), `mutrun-lock-release-${code.toLowerCase()}-`));
-		const lockPath = path.join(td, "operation.lock");
-		const reports = [];
-		let clock = 0;
-		let reads = 0;
-		const result = await attempt(() => withWorktreeOperationLock(lockPath, () => "released-operation", {
-			waitLimitMs: 3,
-			now: () => clock,
-			wait: (ms) => { clock += ms; },
-			readFileSync: () => { reads++; throw fault(code); },
-			report: (line) => reports.push(line),
-		}));
-		if (!result.ok || result.value !== "released-operation" || reads < 2 || reports.length !== 1 || !reports[0].includes(lockPath) || !fs.existsSync(lockPath)) {
-			reasons.push(`release/${code}: ${JSON.stringify({ ok: result.ok, value: result.value, reads, reports, lockLeft: fs.existsSync(lockPath), error: result.error })}`);
-		}
-		fs.rmSync(td, { recursive: true, force: true });
-	}
 	// req: R-1778
-	check("mutation runner: transient lock read, stat, link and release errors retry, and an inaccessible release is recorded", reasons.length === 0, reasons.join("; "));
+	check("mutation runner: transient lock read, stat and link errors retry", reasons.length === 0, reasons.join("; "));
+}
+
+{
+	const td = tmpDir(path.join(os.tmpdir(), "mutrun-lock-release-delete-pending-"));
+	const lockPath = path.join(td, "operation.lock");
+	const fault = Object.assign(new Error("injected EPERM"), { code: "EPERM" });
+	const transientFailures = Math.ceil(CFG.WORKTREE_LOCK_WAIT_LIMIT_MS / CFG.WORKTREE_LOCK_WAIT_MS) + 1;
+	let clock = 0;
+	let waits = 0;
+	let unlinks = 0;
+	const finite = await attempt(() => withWorktreeOperationLock(lockPath, () => "released-operation", {
+		now: () => clock,
+		wait: (ms) => { waits++; clock += ms; },
+		unlinkSync: (...args) => {
+			unlinks++;
+			if (unlinks <= transientFailures) throw fault;
+			return fs.unlinkSync(...args);
+		},
+	}));
+	const finiteOk = finite.ok && finite.value === "released-operation" && unlinks === transientFailures + 1
+		&& waits === transientFailures && clock > CFG.WORKTREE_LOCK_WAIT_LIMIT_MS && !fs.existsSync(lockPath);
+
+	const resultPath = path.join(td, "bounded-result.json");
+	const childPath = path.join(td, "bounded-release.mjs");
+	const injectedReleaseLimitMs = 75;
+	fs.writeFileSync(childPath, [
+		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
+		importLine("* as fs", "node:fs"),
+		"const [lockPath, resultPath, limitRaw] = process.argv.slice(2);",
+		'const fault = Object.assign(new Error("injected EPERM"), { code: "EPERM" });',
+		"let clock = 0; let waits = 0; let unlinks = 0; const reports = []; let error = null;",
+		"try { withWorktreeOperationLock(lockPath, () => undefined, {",
+		"  releaseWaitLimitMs: Number(limitRaw),",
+		"  now: () => clock,",
+		"  wait: (ms) => { waits++; clock += ms; },",
+		"  unlinkSync: () => { unlinks++; throw fault; },",
+		"  report: (line) => reports.push(line),",
+		"}); } catch (err) { error = err?.message ?? String(err); }",
+		"fs.writeFileSync(resultPath, JSON.stringify({ clock, waits, unlinks, reports, error }));",
+		"",
+	].join("\n"));
+	const child = spawn(process.execPath, [childPath, lockPath, resultPath, String(injectedReleaseLimitMs)], { stdio: ["ignore", "pipe", "pipe"] });
+	const childResult = await new Promise((resolve) => {
+		let output = "";
+		let settled = false;
+		child.stdout.on("data", (d) => { output += d; });
+		child.stderr.on("data", (d) => { output += d; });
+		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 1500);
+		const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
+		child.on("error", (err) => done(null, err.message));
+		child.on("close", done);
+	});
+	let bounded = {};
+	try { bounded = JSON.parse(fs.readFileSync(resultPath, "utf8")); } catch { /* a missing result makes the check red */ }
+	const boundedOk = childResult.code === 0 && bounded.clock === injectedReleaseLimitMs
+		&& bounded.reports?.length === 1 && bounded.reports[0].includes(lockPath)
+		&& bounded.reports[0].includes(`${injectedReleaseLimitMs} milliseconds`)
+		&& typeof bounded.error === "string" && fs.existsSync(lockPath);
+	const ok = finiteOk && boundedOk;
+	// req: R-1960
+	check("R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit", ok, JSON.stringify({ finite, finiteOk, bounded, boundedOk, transientFailures, childResult, lockLeft: fs.existsSync(lockPath) }));
 }
 
 {
@@ -683,12 +753,14 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 }
 
 {
-	const ok = CFG.WORKTREE_LOCK_WAIT_MS === 25 && CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS === 30000 && CFG.WORKTREE_LOCK_WAIT_LIMIT_MS === 30000;
+	const ok = CFG.WORKTREE_LOCK_WAIT_MS === 25 && CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS === 30000
+		&& CFG.WORKTREE_LOCK_WAIT_LIMIT_MS === 30000 && CFG.WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS === 300000;
 	// req: R-1775
 	// req: R-1777
 	// req: R-1778
 	// req: R-1779
-	check("mutation runner: sealed worktree-operation lock values", ok, JSON.stringify({ waitMs: CFG.WORKTREE_LOCK_WAIT_MS, unreadableStaleMs: CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS, waitLimitMs: CFG.WORKTREE_LOCK_WAIT_LIMIT_MS }));
+	// req: R-1960
+	check("mutation runner: sealed worktree-operation lock values", ok, JSON.stringify({ waitMs: CFG.WORKTREE_LOCK_WAIT_MS, unreadableStaleMs: CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS, waitLimitMs: CFG.WORKTREE_LOCK_WAIT_LIMIT_MS, releaseWaitLimitMs: CFG.WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS }));
 }
 
 {
