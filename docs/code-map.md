@@ -2621,7 +2621,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths — base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
 - **effects** — none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
 - **errors** — none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
-- **callers** — `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **callers** — `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/rulings-config.mjs`
 
 ### `packages/nana-setup/lib/pi-pin.mjs`
@@ -2656,13 +2656,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/readme-rehearsal.mjs`
 
-- **purpose** — Rehearses the root README's macOS fresh-machine checklist as written, in a second temporary home.
-- **inputs** — The root README text, the repo root's package.json repository field, a rehearsal home, a base environment and an injected spawn function.
+- **purpose** — Rehearses the root README's platform checklist as written, in a second temporary home.
+- **inputs** — A platform name, the root README text, the repo root's package.json repository field, a rehearsal home, a base environment and an injected spawn function.
 - **outputs** — One readme-checklist judgment: { item, code, passed, detail }.
 - **effects** — disk (creates the rehearsal home's folders, reads the root README and package.json), process (spawns the checklist's own commands through the injected spawn)
 - **errors** — Never throws; a step that cannot run or match is reported as a failed judgment.
 - **callers** — `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`
-- **callees** — `packages/nana-setup/lib/install-check-config.mjs`
+- **callees** — `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/paths.mjs`
 
 ### `packages/nana-setup/lib/retired.mjs`
 
@@ -3022,7 +3022,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS-temp fixture roots and homes).
 - **errors** — A failed assertion exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/relative-agent-dir.test.mjs`
 
