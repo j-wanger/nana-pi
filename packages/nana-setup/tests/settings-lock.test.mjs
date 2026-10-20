@@ -12,7 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
-import { SETTINGS_LOCK_NAME } from "../lib/settings-lock.mjs";
+import { removalCommands, SETTINGS_LOCK_NAME } from "../lib/settings-lock.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
@@ -134,7 +134,7 @@ if (process.platform !== "win32") {
 		prefix: "del ",
 		spawn: (line, cwd) => spawnSync(comspec, ["/d", "/v:off", "/s", "/c", `"${line}"`], { cwd, encoding: "utf8", windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS }),
 	});
-	// req-candidate: R-2082 (Windows only; becomes req: when the Windows CI leg passes it)
+	// req: R-2082
 	check("R-2082: on Windows, the Command Prompt line install prints for a held lock, run by cmd.exe, removes the lock under an awkward home path and changes no other file", result.pass, result.detail);
 }
 
@@ -146,7 +146,7 @@ if (process.platform !== "win32") {
 		prefix: "Remove-Item ",
 		spawn: (line, cwd) => spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(line, "utf16le").toString("base64")], { cwd, encoding: "utf8", timeout: CASE_TIMEOUT_MS }),
 	});
-	// req-candidate: R-2083 (Windows only; becomes req: when the Windows CI leg passes it)
+	// req: R-2083
 	check("R-2083: on Windows, the PowerShell line install prints for a held lock, run by Windows PowerShell, removes the lock under an awkward home path and changes no other file", result.pass, result.detail);
 }
 
@@ -167,15 +167,49 @@ function doctorLockResult(mode, index) {
 		const trimmed = line.trimStart();
 		return trimmed.startsWith("rm ") || trimmed.startsWith("del ") || trimmed.startsWith("Remove-Item ");
 	}).map((line) => line.trim());
+	const platformName = mode.env.NANA_SETUP_PLATFORM ?? process.platform;
 	return {
-		pass: installed.status === 0 && held.status === 2 && doctor.status === 1 && Boolean(row) && row.includes(lockPath(home)) && row.includes("pid 4242") && /\b\d+s ago\b/.test(row) && commands.length === (mode.env.NANA_SETUP_PLATFORM === "win32" || process.platform === "win32" ? 2 : 1) && commands.every((command) => row.includes(command)),
+		pass: installed.status === 0 && held.status === 2 && doctor.status === 1 && Boolean(row) && row.includes(lockPath(home)) && row.includes("pid 4242") && /\b\d+s ago\b/.test(row) && commands.length === (platformName === "win32" ? 2 : 1) && commands.every((command) => row.includes(command)),
 		detail: `${mode.name}\ninstall ${installed.status}\nheld ${held.status}\n${held.stderr}\ndoctor ${doctor.status}\n${doctor.stdout}\n${doctor.stderr}`,
+		platformName,
+		repairs: removalCommands(lockPath(home), platformName),
+		row,
 	};
 }
 
 const doctorRows = platformModes().map(doctorLockResult);
 // req: R-2084
 check("R-2084: while the settings lock exists, doctor marks a settings lock row ✗ naming the lock, its pid and age, and every removal command install prints", doctorRows.every((result) => result.pass), doctorRows.map((result) => result.detail).join("\n---\n"));
+
+const DOCTOR_LOCK_CAVEAT = "install will not run until it is removed; if no nana-setup is running";
+function doctorCaveatResult(mode, index) {
+	const freshHome = fixtureHome(`doctor-caveat-fresh-${index}`);
+	writeLock(freshHome);
+	const freshDoctor = run(["doctor", "--home", freshHome], { home: freshHome, extraEnv: mode.env });
+	const installedHome = fixtureHome(`doctor-caveat-installed-${index}`);
+	const installed = run(["install", "--home", installedHome], { home: installedHome, extraEnv: mode.env });
+	writeLock(installedHome);
+	const installedDoctor = run(["doctor", "--home", installedHome], { home: installedHome, extraEnv: mode.env });
+	const row = (result) => result.stdout.split(/\r?\n/).find((line) => line.trimStart().startsWith("✗ settings lock"));
+	const rows = [row(freshDoctor), row(installedDoctor)];
+	return {
+		pass: installed.status === 0 && freshDoctor.status === 1 && installedDoctor.status === 1 && rows.every((line) => line?.includes(DOCTOR_LOCK_CAVEAT)),
+		detail: `${mode.name}\nfresh doctor ${freshDoctor.status}\n${freshDoctor.stdout}\ninstalled ${installed.status}, doctor ${installedDoctor.status}\n${installedDoctor.stdout}`,
+	};
+}
+
+const doctorCaveats = platformModes().map(doctorCaveatResult);
+// req: R-2084
+check("R-2084: doctor's settings lock row, on a fresh and an installed home, says to remove the lock only if no nana-setup is running", doctorCaveats.every((result) => result.pass), doctorCaveats.map((result) => result.detail).join("\n---\n"));
+
+const win32DoctorRows = doctorRows.filter((result) => result.platformName === "win32");
+const doctorRepairsAreOrdered = ({ repairs, row }) => Boolean(row) && repairs.every(({ shell, command }) => {
+	const labelIndex = row.indexOf(`in ${shell}:`);
+	const commandIndex = row.indexOf(command);
+	return labelIndex >= 0 && commandIndex > labelIndex;
+}) && row.trimEnd().endsWith(repairs.at(-1).command);
+// req: R-2084
+check("R-2084: on win32 doctor's settings lock row puts each shell label before its command and ends on a command", win32DoctorRows.length === 1 && win32DoctorRows.every(doctorRepairsAreOrdered), win32DoctorRows.map((result) => result.detail).join("\n---\n"));
 
 function summaryLockResult(mode, index) {
 	const freshHome = fixtureHome(`doctor-summary-fresh-${index}`);
