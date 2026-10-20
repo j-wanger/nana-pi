@@ -41,7 +41,7 @@ const DECLARED = [
 	"(b) no pair for the win32 read expression (W1: TotalProcessorTime.Ticks back to .CPU): only M1 reaches it, and M1 runs Windows PowerShell 5.1, which exists only on Windows; the seat runs W1 on the lane's Windows CI leg",
 	"(c) no pair for the immutable-review stall fold (a test fixture, not product code) or for the pack README's two sentences",
 	"(d) no pair for parseCpuSample's typeof guard or its two Number.isFinite checks: cpuSeconds always passes execSync's utf8 string, and the two patterns admit only digit text short of Infinity in practice, so a mutant there is equivalent on every input a reader prints (inferred, not run)",
-	"(e) H1 is expected to survive: every ps case in M2 carries a zero hours field (00:01:05, 1-00:00:01), so a parser that drops the hours reads them all right",
+	"(e) H1 survived on 62627846 (every ps case then carried a zero hours field); build 2 added 01:00:00 and 1-02:03:04 to M2, so H1 is expected red from 3e998bf",
 ];
 
 const PAIRS = [
@@ -101,4 +101,4 @@ const PAIRS = [
 	], tests: [CT], expectRed: [M3] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-watchdog-cpu-read", self: import.meta.url, tip: "62627846", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-watchdog-cpu-read", self: import.meta.url, tip: "3e998bf", declared: DECLARED, pairs: PAIRS });
