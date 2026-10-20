@@ -60,3 +60,5 @@ main; (4) the verifier hook's ask decision and stderr diagnostic are unchanged w
 stderr closed; (5) the tests write only inside the temp folders and temp homes they own, leave no stub process
 behind, and clean up; (6) HANDOFF and the session entry are true, including the narrowed stale-copies residual, the
 two removed closed-output residuals, the lane's new residuals and the other lanes' items; (7) any MUST.
+
+Merge note (the seat, before round 1): `ff4218c7` merges main `6f07daee`, which holds the doctor-fix-line land (`8466795b`) and the setup-checkout-spelling land (`6f07daee`). Neither touches the lane's hook files. The merge helper resolved HANDOFF and the session file (both sides kept); the seat then dropped one doubled HANDOFF Landed line (review-test-waits' present-tense copy; main's past-tense line stays). Review `git diff 6f07daee..HEAD` for the lane's own change and `git show --remerge-diff ff4218c7` for the merge. The seat re-ran the local macOS install check on the merged tip before this round.

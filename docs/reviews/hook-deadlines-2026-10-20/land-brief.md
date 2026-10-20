@@ -57,3 +57,5 @@ gate — the Claude Code hook launcher and the verifier hook.
 
 Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
 (4) HANDOFF and the session entry are true; (5) any MUST.
+
+Merge note (the seat, before round 1): `ff4218c7` merges main `6f07daee`, which holds the doctor-fix-line land (`8466795b`) and the setup-checkout-spelling land (`6f07daee`). Neither touches the lane's hook files. The merge helper resolved HANDOFF and the session file (both sides kept); the seat then dropped one doubled HANDOFF Landed line (review-test-waits' present-tense copy; main's past-tense line stays). Review `git diff 6f07daee..HEAD` for the lane's own change and `git show --remerge-diff ff4218c7` for the merge. The seat re-ran the local macOS install check on the merged tip before this round.
