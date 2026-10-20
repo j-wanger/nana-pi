@@ -7,7 +7,7 @@
  *  hasUI, ui, sessionManager)
  * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, legacy receipts) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
- *  allow/extra/protected regexes, and the user-scope objective block alone, carrying a safe configFailure place when its JSON does not parse
+ *  allow/extra/protected regexes, and safe shared parse-failure detail in a gate stop or the user-scope objective block
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
  *  journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions
  *  and last-valid gate on globalThis)
@@ -54,7 +54,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { readBounded } from "./bounded-read.mjs";
 import { piAgentDir } from "./gate-paths.ts";
-import { jsonParseFailure, parseJsonBytes } from "./json-text.mjs";
+import { CONFIG_FAILURE_PREFIX, configFailureDetail, jsonParseFailure, parseJsonBytes } from "./json-text.mjs";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
@@ -348,6 +348,9 @@ const gateLeaves = (b: Block | undefined): GateLeaves => ({
 export const gateStopReason = (file: string, problem: string, scope: "user" | "project" = "user") =>
 	`${scope} nana-pack.json gate block is malformed — repair it (${displayPath(file)}:${displayText(problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, ""))})`;
 
+const gateParseStopReason = (file: string, failure: NonNullable<FileRead["jsonFailure"]>, scope: "user" | "project" = "user") =>
+	`${scope} nana-pack.json does not parse: ${configFailureDetail(displayPath(file), failure).slice(CONFIG_FAILURE_PREFIX.length).replace(/\.$/, "")}`;
+
 // ---------------------------------------------------------------- nana-trust
 
 interface PiTrustApi {
@@ -513,7 +516,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this process"]);
 			} else {
 				const problem = user.problems.find((m) => m.startsWith("gate") && !ALLOW_CAP.test(m)) ?? user.problems[0] ?? "malformed";
-				gate = { ...gateLeaves(undefined), stopReason: gateStopReason(userFile, problem) };
+				gate = { ...gateLeaves(undefined), stopReason: user.jsonFailure ? gateParseStopReason(userFile, user.jsonFailure) : gateStopReason(userFile, problem) };
 				notes.push(["config_gate_fallback", userFile, "gate policy invalid and no valid policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 			}
 		}
@@ -539,7 +542,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 						notes.push(["config_gate_fallback", projectFile, "gate policy invalid — enforcing the last valid project policy loaded in this process"]);
 					} else {
 						const problem = pr.problems.find((m) => m.startsWith("gate") && !ALLOW_CAP.test(m)) ?? pr.problems[0] ?? "malformed";
-						projectStop = gateStopReason(projectFile, problem, "project");
+						projectStop = pr.jsonFailure ? gateParseStopReason(projectFile, pr.jsonFailure, "project") : gateStopReason(projectFile, problem, "project");
 						notes.push(["config_gate_fallback", projectFile, "project gate policy invalid and no valid project policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 					}
 				}
