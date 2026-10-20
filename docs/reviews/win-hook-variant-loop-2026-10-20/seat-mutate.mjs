@@ -10,13 +10,14 @@ import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mj
 const T = "packages/nana-setup/tests/win32-hook-repair.test.mjs";
 const HH = "packages/nana-setup/lib/hook-health.mjs";
 const R2410 = "win32 doctor: after install, a ✗ settings row names each dead entry install leaves and its hand repair";
-const R2411 = "win32 doctor: a ✗ settings row never names an entry install repairs as a hand repair";
-const R2412 = "win32 doctor: a settings shape install refuses still prints all six settings rows as ✗";
+const R2411 = "win32 doctor: a ✗ settings row names an entry install leaves but never one install repairs";
+const R2412 = "win32 doctor: only an accepted settings shape gets dead-entry advice without inspection crashes";
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const GUARD = "if (!healthy && validateShape(settings) === null) {";
-const MERGE = "const merged = mergeRepoHooks(stepSettings, { repoRoot, wanted: [w], platform: platformValue });";
+const MERGE = "const merged = mergeRepoHooks(stepSettings, { repoRoot: checkoutRoot, wanted: [w], platform: platformValue });";
 
 const DECLARED = [
+	"(build 5, 96c17719) round 1's land reviewer MUST: R-2411 and R-2412 passed with the feature removed. Build 5 adds a positive assertion to each, so H1 (main's form) now names all three rows. H12 and H13 are re-anchored on the quoting helper; H15 and H16 pin round 1's final reviewer S2 (quote a part holding a space). No pair for the test-only checkout-root override in hookSettingsRows: doctor's call site passes none, so it changes nothing there",
 	"(build 2, a20a37ce) H2 to H4 and H9 are re-anchored on build 2's text; H11 to H14 pin its F1 to F3 fixes. H10 (no shape guard) was red on build 1 because the merge threw out of doctor; build 2's try/catch keeps the base row whenever the merge throws, so H10 is red only for a refused shape the merge walks without throwing",
 	"(build 2) H12 can turn a check red only on Windows: off Windows the hook command and its script path hold no backslash, so converting them changes nothing; it stays for the Windows CI leg",
 	"(a) every pair runs on macOS: the test file's own run() forces NANA_SETUP_PLATFORM=win32 on each install and doctor it spawns, so the win32 branch runs on every leg",
@@ -26,9 +27,9 @@ const DECLARED = [
 
 const PAIRS = [
 	// the appended hand repair text (R-2410)
-	{ n: "H1", name: "main's form: the new block never runs, so no ✗ line names an entry or a fix", edits: [
+	{ n: "H1", name: "main's form: the new block never runs, so no ✗ line names an entry or a fix (build 5: all three rows' checks, round 1's land reviewer MUST)", edits: [
 		one(HH, GUARD, "if (false) {"),
-	], tests: [T], expectRed: [R2410] },
+	], tests: [T], expectRed: [R2410, R2411, R2412] },
 	{ n: "H2", name: "(unnamed detail) the hand repair names no dead path", edits: [
 		one(HH, 'install leaves ${leftAsWritten.map(slash).join(", ")} as written', "install leaves an entry as written"),
 	], tests: [T], expectRed: [R2410] },
@@ -47,7 +48,7 @@ const PAIRS = [
 		one(HH, "hookTargets(stepSettings, w.event, w.spec, platformValue)", "hookTargets(settings, w.event, w.spec, platformValue)"),
 	], tests: [T], expectRed: [R2411] },
 	{ n: "H7", name: "the merge on the copy runs with no platform, so it repairs by POSIX rules", edits: [
-		one(HH, MERGE, "const merged = mergeRepoHooks(stepSettings, { repoRoot, wanted: [w] });"),
+		one(HH, MERGE, "const merged = mergeRepoHooks(stepSettings, { repoRoot: checkoutRoot, wanted: [w] });"),
 	], tests: [T], expectRed: [R2411] },
 	{ n: "H8", name: "(repair on every unhealthy row) the hand repair is appended even when install leaves nothing", edits: [
 		one(HH, "if (leftAsWritten.length > 0) {", "if (true) {"),
@@ -66,15 +67,22 @@ const PAIRS = [
 		one(HH, 'install leaves ${leftAsWritten.map(slash).join(", ")} as written', 'install leaves ${leftAsWritten.join(", ")} as written'),
 	], tests: [T], expectRed: [R2410] },
 	{ n: "H12", name: "(F2) the edit command keeps its backslashes", edits: [
-		one(HH, "[w.entry.command, ...(w.entry.args ?? [])].map(slash).join(\" \")", "[w.entry.command, ...(w.entry.args ?? [])].join(\" \")"),
+		one(HH, "const normalized = slash(value);", "const normalized = String(value);"),
 	], tests: [T], expectRed: [R2410] },
 	{ n: "H13", name: "(F3, build 1's form) the edit advice names only the script, dropping the command and the hook argument", edits: [
-		one(HH, "[w.entry.command, ...(w.entry.args ?? [])].map(slash)", "[w.entry.args[0]].map(slash)"),
+		one(HH, "[w.entry.command, ...(w.entry.args ?? [])].map(shellPart)", "[w.entry.args[0]].map(shellPart)"),
 	], tests: [T], expectRed: [R2410] },
 	{ n: "H14", name: "(F1) no try: a settings shape the merge cannot walk throws out of doctor", edits: [
 		one(HH, "\t\t\t\ttry {\n\t\t\t\t\tconst stepSettings", "\t\t\t\t{\n\t\t\t\t\tconst stepSettings"),
 		one(HH, "} catch { /* Keep the base row and detail when the dry-run simulation cannot inspect this shape. */ }", "}"),
 	], tests: [T], expectRed: [R2412] },
+	// build 5 (96c17719): round 1's final reviewer S2, an edit command whose parts hold a space
+	{ n: "H15", name: "(S2, build 4's form) the edit command's parts are joined unquoted, so a checkout path with a space splits", edits: [
+		one(HH, "[w.entry.command, ...(w.entry.args ?? [])].map(shellPart)", "[w.entry.command, ...(w.entry.args ?? [])].map(slash)"),
+	], tests: [T], expectRed: [R2410] },
+	{ n: "H16", name: "(S2) only a part holding a double quote is quoted, so a spaced path still splits", edits: [
+		one(HH, "normalized.includes(\" \") || normalized.includes('\"')", "normalized.includes('\"')"),
+	], tests: [T], expectRed: [R2410] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-hook-variant-loop", self: import.meta.url, tip: "eb6910ed", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-hook-variant-loop", self: import.meta.url, tip: "96c17719", declared: DECLARED, pairs: PAIRS });
