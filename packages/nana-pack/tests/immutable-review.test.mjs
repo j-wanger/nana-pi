@@ -20,6 +20,9 @@ const reviewRound = await import(pathToFileURL(path.join(bin, "review-round.mjs"
 const root = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "immutable-review-test-")));
 const fakeBin = path.join(root, "fake-bin");
 fs.mkdirSync(fakeBin);
+const STALL_FAKE_LIFETIME_MS = 180_000; // chosen: 180 seconds lets a loaded Windows runner reach the watchdog stall decision.
+const STALL_FAKE_LIFETIME_SECS = STALL_FAKE_LIFETIME_MS / 1000;
+const STALL_CHECK_GUARD_MS = 120_000; // chosen: 120 seconds bounds the stall check below the fake's own lifetime.
 // The observed argv ("$*"/argv) may itself carry embedded newlines once an appended system
 // prompt is multi-line text (R-1105): write it as the file's tail, after exactly three header
 // lines, so a reader can split the header and rejoin the remainder, rather than one blind
@@ -34,7 +37,7 @@ fs.appendFileSync(process.env.OBSERVE, process.argv.slice(2).join(" "));
 const waitFor = process.env.WAIT_FOR;
 function finish() {
   if (process.env.MODE === "fail") process.exit(1);
-  if (process.env.MODE === "stall") { setTimeout(() => {}, 30000); return; }
+  if (process.env.MODE === "stall") { setTimeout(() => {}, ${STALL_FAKE_LIFETIME_MS}); return; }
   console.log("VERDICT: LAND");
 }
 function poll() {
@@ -50,7 +53,7 @@ printf '%s\\n' "$$" > "$OBSERVE_PID"
 printf '%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" > "$OBSERVE"
 printf '%s' "$*" >> "$OBSERVE"
 while [ -n "$WAIT_FOR" ] && [ ! -e "$WAIT_FOR" ]; do sleep 0.05; done
-case "$MODE" in fail) exit 1;; stall) exec sleep 30;; *) echo 'VERDICT: LAND';; esac
+case "$MODE" in fail) exit 1;; stall) exec sleep ${STALL_FAKE_LIFETIME_SECS};; *) echo 'VERDICT: LAND';; esac
 `);
   fs.chmodSync(fakePi, 0o755);
 }
@@ -209,7 +212,7 @@ const afterFailure = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
 check("temporary worktree registration is removed after child failure", fail.status === 1 && !afterFailure.includes("nana-review-"), fail.stderr);
 const stall = spawnSync(process.execPath, [piReview, "--item", "stall", "--out", path.join(root, "stall.md"), "--poll", "0.1", "--stall-secs", "0.2", "--retries", "0", "--", "-p", "review"], {
-  cwd: repo, env: env({ OBSERVE: path.join(root, "stall-observe"), MODE: "stall" }), encoding: "utf8", timeout: 30000,
+  cwd: repo, env: env({ OBSERVE: path.join(root, "stall-observe"), MODE: "stall" }), encoding: "utf8", timeout: STALL_CHECK_GUARD_MS,
 });
 const afterStall = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
