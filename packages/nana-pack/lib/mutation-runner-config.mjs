@@ -4,7 +4,8 @@
  * @inputs none
  * @outputs SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, WORKTREE_REMOVE_RETRIES,
  *  WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, WORKTREE_LOCK_UNREADABLE_STALE_MS,
- *  WORKTREE_LOCK_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO,
+ *  WORKTREE_LOCK_WAIT_LIMIT_MS, WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH,
+ *  ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO,
  *  OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT,
  *  SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
  * @effects none
@@ -47,9 +48,13 @@ export const WORKTREE_LOCK_WAIT_MS = 25;
 // recovery from an old lock whose owner record was damaged before this atomic protocol (R-1777).
 export const WORKTREE_LOCK_UNREADABLE_STALE_MS = 30_000;
 
-// chosen: 30 seconds is longer than a normal add and the bounded removal operation; every lock wait and
-// release must still end if a live pid is reused or Windows keeps the lock path inaccessible (R-1778, R-1779).
+// chosen: 30 seconds is longer than a normal add and the bounded worktree removal operation; acquisition
+// must still end if a live pid is reused or Windows keeps the lock path inaccessible (R-1778, R-1779).
 export const WORKTREE_LOCK_WAIT_LIMIT_MS = 30_000;
+
+// chosen: five minutes gives Windows' delete-pending state ten acquisition windows to clear while still
+// bounding a seat whose owned lock path stays inaccessible (R-1960).
+export const WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS = 300_000;
 
 // contract R-1234: the suite runner's drain (scripts/test.mjs :58), so a file ends as under `npm test`.
 // Defined twice until the parallel suite lane (CHANGE.md §3.5, residual 1): a declared violation.
