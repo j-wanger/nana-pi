@@ -5,7 +5,7 @@
  * @inputs sources.json at paths.sources (`roots` plus an optional `discover` block), os.homedir(), and the
  *  directory entries of every configured parent
  * @outputs the de-nested, de-duplicated root list (explicit roots first, then discovered ones) with the
- *  extra skip names, plus DEFAULT_DISCOVER and SKIP_DIRS
+ *  extra skip names, plus DEFAULT_DISCOVER, SKIP_DIRS and the path-boundary contains predicate
  * @effects disk (reads sources.json, readdirs each parent and stats each candidate subdir; writes a seeded
  *  sources.json when the file is absent)
  * @errors none — bad JSON yields no roots, and a missing parent, missing subdir or unwritable home is
@@ -165,7 +165,7 @@ export function loadSources(): Sources {
 
 /** Is `p` inside `root`, or the same path? Compared with a separator boundary, so
  *  `…/repoF/doc` does not contain `…/repoF/docs`. */
-function contains(root: string, p: string): boolean {
+export function contains(root: string, p: string): boolean {
 	return p === root || p.startsWith(root.endsWith(path.sep) ? root : root + path.sep);
 }
 
