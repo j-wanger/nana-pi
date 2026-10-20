@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 364 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 366 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -2708,11 +2708,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Print the shared-memory index and self-heal the current Claude project memory link.
 - **inputs** — Claude Code environment, bounded hook JSON stdin, and the shared MEMORY.md file.
-- **outputs** — the shared-memory header, optional note, and index entries on stdout.
+- **outputs** — a bounded shared-memory header, optional note, index entries, and a fold line when entries are shortened or omitted.
 - **effects** — disk, process (reads stdin, creates directories and a link, writes stdout).
 - **errors** — all failures, including a stdout error such as a reader that closed it, are ignored and the hook exits 0.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-input.mjs`
+- **callees** — `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/lib/shared-memory-input.mjs`
 
 ### `packages/nana-setup/claude/hooks/verifier-pipe.mjs`
 
@@ -2933,6 +2933,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — none thrown — validateShape returns the reason the shape cannot be extended, and any command that is unparseable or carries a shell operator reads as NOT installed
 - **callers** — `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/settings-lock.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — `packages/nana-pack/lib/real-path.mjs`
+
+### `packages/nana-setup/lib/shared-memory-config.mjs`
+
+- **purpose** — Define the sealed output controls for the shared-memory hook.
+- **inputs** — none
+- **outputs** — The shared-memory output budget and trim mark.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`
+- **callees** — —
 
 ### `packages/nana-setup/lib/shared-memory-input.mjs`
 
@@ -3474,6 +3484,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
+### `packages/nana-setup/tests/shared-memory-budget.test.mjs`
+
+- **purpose** — Pin the shared-memory hook's bounded, structure-preserving index output.
+- **inputs** — The shared-memory hook, its sealed output configuration, and generated throwaway indexes.
+- **outputs** — PASS/FAIL lines for seven requirement checks and exit 1 when any check fails.
+- **effects** — disk (temporary homes and indexes), process (runs the Node hook).
+- **errors** — A failed check prints FAIL; unexpected fixture or process errors propagate.
+- **callers** — —
+- **callees** — `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+
 ### `packages/nana-setup/tests/shared-memory-hook.test.mjs`
 
 - **purpose** — Pins that the shared-memory SessionStart hook self-heals and is fail-open, since it runs in every session in every repository
@@ -3541,7 +3561,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/copy-record.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-fix-line.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-quiet.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/realpath-fallback.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/settings-lock.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
+- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/copy-record.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-fix-line.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-quiet.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/realpath-fallback.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/settings-lock.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/tests/trust.test.mjs`
