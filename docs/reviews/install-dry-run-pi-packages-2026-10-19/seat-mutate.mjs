@@ -53,7 +53,7 @@ const PAIRS = [
 		one(ST, HOME_LINE, HOME_LINE.replace("if (!layout.isRealHome)", "if (!layout.isRealHome && o.dryRun)")),
 	], tests: [PRT], expectRed: [R391, R358] },
 	{ n: "W8", name: "under --home spawn pi install, then report skipped", edits: [
-		one(ST, HOME_LINE, `if (!layout.isRealHome) { spawn("pi", ["install", ...state.packageRoots], { encoding: "utf8", env: { ...env, PI_CODING_AGENT_DIR: layout.piHome } }); return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }]; }`),
+		one(ST, HOME_LINE, `if (!layout.isRealHome) { spawn(String("pi"), ["install", ...state.packageRoots], { encoding: "utf8", env: { ...env, PI_CODING_AGENT_DIR: layout.piHome } }); return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }]; }`),
 	], tests: [PRT], expectRed: [R358] },
 	{ n: "W9", name: "the launch guard on o.dryRun alone, so the dry run spawns nothing", edits: [
 		one(ST, GUARD, "if (o.dryRun) return { status: 0 };"),
