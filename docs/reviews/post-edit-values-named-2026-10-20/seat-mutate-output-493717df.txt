@@ -1,0 +1,30 @@
+seat-mutate: lane post-edit-values-named, tip 493717df014776200f7b36c1376e182221ebc8d8, table 598856534daf9467503d9492e558f5aaa5d7eaebf3225acaa6fe1b3fb0b995eb, merge-base c7f582ad677fe2ef39177206bc467563996a1db2, 20 pairs in 1 shards (20, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T10:40:23.557Z
+DECLARED (a) G2 is an expected survivor: the forced-settle message is shown only when the kill fails, which no check reaches with a retuned grace; at the sealed 2000 the literal reads the same
+DECLARED (b) F5 is an expected survivor: the ⏎ widening keeps the failure body at most three times the failure cap, so the literal 2000 * 3 ceiling equals the named one for any retune at or below 2000, the copy's 37 included
+DECLARED (c) the hardening settle bound (SETTLE_BOUND_MS) is a test change and tables edit only product code, so no pair; the README sentence and the module header carry no behaviour, so no pair
+DECLARED (d) every pair runs on macOS; R-2210's exact timer list on Windows, where taskkill does the kill, is proven only by the Windows CI leg
+[1/1] seat-mutate: lane post-edit-values-named, shard 1/1, tip 493717df014776200f7b36c1376e182221ebc8d8, merge-base c7f582ad677fe2ef39177206bc467563996a1db2, 20 pairs, darwin, node v22.22.2, 2026-10-20T10:40:24.384Z
+[1/1] BASELINE ok   packages/nana-pack/tests/post-edit-values-named.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-pack/tests/display-surfaces.test.mjs (exit 0, 181 PASS, 0 FAIL, )
+[1/1] RESULT: 18/20 red (18 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 2 survived [G2, F5]
+RED G1 the forced-kill timer is armed at a literal 2000 ms — 1/1 named: a timed-out post-edit check arms its forced kill at the named kill grace, retuned in a copy; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN G2 the forced-settle message states a literal 2000 ms — SURVIVED
+RED O1 the overflow test compares against a literal 1 MiB — 1/1 named: a post-edit check that prints past the named output cap could not run and keeps only that many firs…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O2 the overflow cut keeps a literal 1 MiB — 1/1 named: a post-edit check that prints past the named output cap could not run and keeps only that many firs…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O3 the overflow cut counts code points instead of UTF-16 units — 1/1 named: a post-edit check that prints past the named output cap could not run and keeps only that many firs…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F1 the failure-output cut test compares against a literal 2000 — 1/1 named: a failing post-edit check shows the model the last units up to the named failure cap, retuned in a …; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F2 the failure-output tail keeps a literal 2000 — 1/1 named: a failing post-edit check shows the model the last units up to the named failure cap, retuned in a …; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F3 the stated output cut names a literal 2000 — 1/1 named: a failing post-edit check shows the model the last units up to the named failure cap, retuned in a …; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F4 the failure output cut is never stated or applied (whole output shown) — 1/1 named: a failing post-edit check shows the model the last units up to the named failure cap, retuned in a …; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN F5 the failure body ceiling is a literal 2000 * 3 — SURVIVED
+RED C1 the shown command is cut at a literal 400 — 1/1 named: a failing post-edit check shows the model its command up to the named command cap, retuned in a copy; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED C2 the command cut test compares against a literal 400 — 1/1 named: a failing post-edit check shows the model its command up to the named command cap, retuned in a copy; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED C3 the stated command cut names a literal 400 — 1/1 named: a failing post-edit check shows the model its command up to the named command cap, retuned in a copy; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED L1 the lock refusal is cut at a literal 300 — 1/1 named: a refused post-edit file lock shows the model the refusal up to the named lock message cap, retuned…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED L2 the lock refusal is passed with no cap of its own (promptText's default) — 1/1 named: a refused post-edit file lock shows the model the refusal up to the named lock message cap, retuned…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S1 the config's kill grace is retuned to 2500 — 1/1 named: seal: the post-edit kill grace is 2000 ms, the output cap 1048576, the command cap 400 and the lock…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S2 the config's output cap is retuned to 1000 * 1000 — 1/1 named: seal: the post-edit kill grace is 2000 ms, the output cap 1048576, the command cap 400 and the lock…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S3 the config's command cap is retuned to 401 — 1/1 named: seal: the post-edit kill grace is 2000 ms, the output cap 1048576, the command cap 400 and the lock…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S4 the config's lock message cap is retuned to 299 — 1/1 named: seal: the post-edit kill grace is 2000 ms, the output cap 1048576, the command cap 400 and the lock…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S5 the config's failure cap (contract R-087) is retuned to 1999 — 1/1 named: post-edit: a truncated failure says so, and keeps the TAIL; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 18/20 red (18 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 2 survived [G2, F5], across 1 shards
