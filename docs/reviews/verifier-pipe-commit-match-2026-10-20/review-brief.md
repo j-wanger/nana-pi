@@ -76,3 +76,5 @@ pipefail as inactive, quoted heredoc bodies, the reason text, gate precedence, t
 hook, timing on 64 KB input, and all three CI legs; (4) R-1064 reads implemented on the Windows run's evidence, and
 every README sentence the lane changed is true; (5) HANDOFF and the session entry are true, including the Landed line
 with its relief figures, the reworded pwsh-lexer-oracle line and the eleven new lane residuals; (6) any MUST.
+
+**Seat addition after the notes:** HANDOFF also gains one optional ask for the owner, whether to narrow the check by the pipe's last program (the plan names that as the owner's decision); the seat recommends leaving it as it is.

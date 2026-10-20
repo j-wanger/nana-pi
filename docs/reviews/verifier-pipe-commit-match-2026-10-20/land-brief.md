@@ -71,3 +71,5 @@ predicate behind the Claude Code PreToolUse hook and pi's nana-gate, plus the in
 
 Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
 (4) HANDOFF and the session entry are true; (5) any MUST.
+
+**Seat addition after the notes:** HANDOFF also gains one optional ask for the owner, whether to narrow the check by the pipe's last program (the plan names that as the owner's decision); the seat recommends leaving it as it is.

@@ -970,6 +970,7 @@
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
+- **[optional, since 2026-10-20] A narrower pipe check.** The pipe check now asks about 70 percent less often. In the plan's count, 118 commands still ask by design. About 76 pipe into head and about 25 pipe an archive into tar, each before && and a commit. The check could skip a pipe whose last program cannot hide a failure that matters. That would ask less, but it guesses at what each program does. The seat recommends leaving it as it is. It is your call, because it trades fewer prompts for a guess in the gate.
 - **[optional, since 2026-10-19] Byte-order-mark rows (bom-pack-config, pi-settings-bom, pack-config-utf16).** All three lanes file their rows under diagnosing the active environment, install behaviour included. pack-config-utf16 adds gate, objective and roster rows there too. Should the install, project, gate and roster features share them? It is your call.
 - **[optional, since 2026-10-19] Stale labels in the not-passed list (report-not-passed).** Should a test label marked changed since still decide the report's not-passed list? Today it does, so a stale skip keeps its row listed. Reversing it changes one rule and one requirement. It is your call.
 - **[optional, since 2026-10-19] A leftover temp folder (knowledge-refresh-pin).** That lane's plan adversary left a folder of about 46 MB in the macOS temp folder. It holds an index of your knowledge stores. It sits outside the working folder, so the seat deletes it only with your word.
