@@ -136,6 +136,19 @@ The experience has **two halves**, and both are installed from this repo:
 
 `uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
 
+### Fresh machine (Windows), in order
+
+<!-- The install check runs the commands after Run and then in a new temporary home, and checks for the text after expect. -->
+
+1. Install Node ≥ 22.19 and Git for Windows, then open Command Prompt.
+2. Run `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z`, then `pi --version`. Do not use pi's managed installer or `pi update`; see the setup README's “Update nana-pi” section.
+3. Run `git clone https://github.com/j-wanger/nana-pi "%USERPROFILE%\nana-pi"`; keep the clone.
+4. Run `cd /d "%USERPROFILE%\nana-pi"`, then `node packages/nana-setup/bin/nana-setup.mjs install`.
+5. Add `%USERPROFILE%\.local\bin` to the user Path in Environment Variables, then open a new Command Prompt.
+6. Run `pi install npm:pi-subagents@0.75.0`.
+7. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
+8. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+
 ### A blank folder → a nana project
 
 `install` sets up the machine; it does not give a folder the three files the session-start
@@ -156,12 +169,12 @@ needed, and refreshes the knowledge index. Nothing existing is ever overwritten;
 `project --check` prints one ✓/✗ per file. Scaffolded and adopted projects get the same three
 seeds from the same `templates/_shared` source (copier template, `adopt-structure` skill).
 
-Prerequisites (standard tooling only, nothing nana-specific): follow the [macOS fresh-machine checklist](#fresh-machine-macos-in-order); `uv` for BOTH templates — it is the Python
+Prerequisites (standard tooling only, nothing nana-specific): follow the [macOS fresh-machine checklist](#fresh-machine-macos-in-order) or the [Windows fresh-machine checklist](#fresh-machine-windows-in-order); `uv` for BOTH templates — it is the Python
 toolchain, and copier runs as `uvx copier` with `uvx` shipping inside uv, so the
 TypeScript path needs uv as well (copier itself is nothing extra to install); plus
-`pnpm` for the TypeScript template. On Windows add
+`pnpm` for the TypeScript template. On Windows use
 Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
-the documented pack and project commands are written to run in PowerShell or cmd (untested there); no WSL needed). If pi errors
+the Windows checklist's Command Prompt commands are rehearsed, while other documented pack and project commands are written to run in PowerShell or cmd (untested there); no WSL needed). If pi errors
 `No bash shell found`: install Git for Windows to its default location (pi probes
 `%ProgramFiles%\Git\bin\bash.exe`, no PATH change needed), or for scoop/portable Git
 set `{ "shellPath": "C:\\...\\bin\\bash.exe" }` in `~/.pi/agent/settings.json`. Don't

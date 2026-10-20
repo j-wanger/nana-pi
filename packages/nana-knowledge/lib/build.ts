@@ -5,12 +5,12 @@
  * @inputs the roots from sources.json, the `.md` files under them (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS
  *  skipped), the existing `files` table as the stat/hash cache, and the `rebuild` option
  * @outputs BuildStats (per-root files/rows/skipped, reindexed, unchanged, removed, preserved, missingRoots,
- *  ms, dbBytes), the index's meta rows, the index age in ms, and a doc count
+ *  unreadable paths, ms, dbBytes), the index's meta rows, the index age in ms, and a doc count
  * @effects disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes
  *  the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row
  *  transactions, a WAL truncate checkpoint)
  * @errors BuildLockedError when another live builder holds the lock; node:sqlite's own throws on an
- *  unusable database; an unreadable source file or missing root is skipped, never purged
+ *  unusable database; an unreadable source file, root or folder is skipped and its indexed rows are kept
  */
 // Incremental index build. Read-only on every source: we stat, read, hash. Nothing is
 // ever written back into a knowledge store.
@@ -20,7 +20,7 @@ import * as path from "node:path";
 import { openDb, setMeta, type Db } from "./db.ts";
 import { parseArticle, parseLedger, type Row } from "./parse.ts";
 import { paths } from "./paths.ts";
-import { loadSources, skipNames, type Root } from "./sources.ts";
+import { contains, loadSources, skipNames, type Root } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
 const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -151,17 +151,18 @@ export interface BuildStats {
 	reindexed: number;
 	unchanged: number;
 	removed: number;
-	/** Rows kept because their root is configured but missing right now (not deleted). */
+	/** Rows kept because their configured root or an ancestor folder was not scanned (not deleted). */
 	preserved: number;
 	skippedLarge: number;
 	missingRoots: string[];
+	unreadable: string[];
 	ms: number;
 	dbBytes: number;
 }
 
-function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<string>): void {
+function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<string>, unreadable: string[]): void {
 	let st: fs.Stats;
-	try { st = fs.statSync(root); } catch { return; }
+	try { st = fs.statSync(root); } catch { unreadable.push(root); return; }
 	if (st.isFile()) {
 		out.push({ path: root, root, kind, size: st.size, mtime: Math.floor(st.mtimeMs) });
 		return;
@@ -169,8 +170,15 @@ function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<stri
 	const stack = [root];
 	while (stack.length) {
 		const dir = stack.pop()!;
+		if (dir !== root) {
+			try { fs.statSync(dir); } catch { unreadable.push(dir); continue; }
+		}
 		let entries: fs.Dirent[];
-		try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+		try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+		catch {
+			unreadable.push(dir);
+			continue;
+		}
 		for (const e of entries) {
 			const p = path.join(dir, e.name);
 			if (e.isSymbolicLink()) continue;
@@ -237,14 +245,14 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	const db = await openDb(paths.db, { create: true });
 	const stats: BuildStats = {
 		roots: [], files: 0, rows: 0, reindexed: 0, unchanged: 0, removed: 0, preserved: 0,
-		skippedLarge: 0, missingRoots: [], ms: 0, dbBytes: 0,
+		skippedLarge: 0, missingRoots: [], unreadable: [], ms: 0, dbBytes: 0,
 	};
 
 	const candidates: Candidate[] = [];
 	for (const r of roots) {
 		if (!fs.existsSync(r.path)) { stats.missingRoots.push(r.path); continue; }
 		const before = candidates.length;
-		walk(r.path, r.kind, candidates, skip);
+		walk(r.path, r.kind, candidates, skip, stats.unreadable);
 		stats.roots.push({ root: r.path, kind: r.kind, files: candidates.length - before, rows: 0, skipped: 0 });
 	}
 	const rootStat = new Map(stats.roots.map((s) => [s.root, s]));
@@ -294,14 +302,15 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	}
 	// Anything left in `existing` was NOT seen this pass. That means one of two things, and
 	// only one of them is evidence of deletion:
-	//   - its root WAS scanned, or its root is no longer in sources.json  -> really gone, purge
-	//   - its root is still configured but MISSING right now (unmounted volume, repo renamed
-	//     mid-build, a laptop off the VPN) -> keep it. An absent directory is not evidence
-	//     that the knowledge is gone, and purging would erase the whole root's index until
-	//     some later build happens to run while the mount is back.
+	//   - its root WAS scanned and no unreadable ancestor hid it, or its root is no longer in
+	//     sources.json -> really gone, purge
+	//   - its root is still configured but MISSING or UNREADABLE, or an ancestor folder was
+	//     unreadable -> keep it. An unscanned directory is not evidence that the knowledge is
+	//     gone, and purging would erase its index until a later build can read it again.
 	const delFile = db.prepare("DELETE FROM files WHERE path = ?");
 	for (const [gone, prev] of existing) {
-		if (!scannedRoots.has(prev.root) && configuredRoots.has(prev.root)) {
+		if (configuredRoots.has(prev.root) &&
+			(!scannedRoots.has(prev.root) || stats.unreadable.some((u) => contains(u, gone)))) {
 			// still counted: these rows are still IN the index, so the meta counts below
 			// and `status` must reflect them.
 			stats.preserved++; stats.files++; stats.rows += prev.rows;
