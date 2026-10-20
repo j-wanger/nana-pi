@@ -17,7 +17,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const { commandInvokes, desiredHooks, entryInvokes, hookTargets } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, entryInvokes, hookTargets, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
@@ -508,6 +508,85 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	fs.renameSync(elsewhere, personal);
 	check("private rule as a regular file: doctor exits 0", run(["doctor", "--home", home]).status === 0);
 	check("private rule as a regular file: a clean install exits 0 again", run(["install", "--home", home]).status === 0);
+}
+
+/* --- R-922 / R-318: a hook command carrying an operator, a redirection, a substitution or
+   broken quoting reads as not installed, and install adds the real hook beside a look-alike --- */
+{
+	const plat = process.platform === "win32" ? "win32" : undefined;
+	const shellForm = (w) => (plat === "win32" ? [w.entry.command, ...w.entry.args.map((a) => shq(a))].join(" ") : w.entry.command);
+
+	{
+		const h = freshHome();
+		const wanted = desiredHooks({ hooksDir: path.join(h, ".claude", "hooks"), repoRoot: repo, platform: plat });
+		const sessionStart = wanted.filter((w) => w.event === "SessionStart");
+		const file = path.join(h, ".claude", "settings.json");
+
+		const firstInstall = run(["install", "--home", h]);
+		const firstDoctor = run(["doctor", "--home", h]);
+		const controlOk = firstInstall.status === 0 &&
+			sessionStart.every((w) => firstDoctor.stdout.includes(`✓ settings ${w.label}`)) &&
+			sessionStart.every((w) => commandInvokes(shellForm(w), w.spec));
+
+		const mutate = {
+			"SessionStart objective": (cmd) => `${cmd} || true`,
+			"SessionStart adoption": (cmd) => `${cmd} 2> nana.log`,
+			"SessionStart shared-memory": (cmd) => `${cmd} $(true)`,
+			"SessionStart roster notice": (cmd) => cmd.slice(0, -1),
+		};
+		const settingsAfterFirst = JSON.parse(fs.readFileSync(file, "utf8"));
+		for (const w of sessionStart) {
+			for (const group of settingsAfterFirst.hooks.SessionStart) {
+				for (const entry of group.hooks ?? []) {
+					if (entryInvokes(entry, w.spec, plat)) {
+						entry.command = mutate[w.label](shellForm(w));
+						delete entry.args;
+					}
+				}
+			}
+		}
+		fs.writeFileSync(file, JSON.stringify(settingsAfterFirst, null, 2) + "\n");
+
+		const brokenDoctor = run(["doctor", "--home", h]);
+		const rewrittenAllRed = sessionStart.every((w) => brokenDoctor.stdout.includes(`✗ settings ${w.label}`));
+
+		const secondInstall = run(["install", "--home", h]);
+		const settingsAfterSecond = JSON.parse(fs.readFileSync(file, "utf8"));
+		const allEntries = Object.values(settingsAfterSecond.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks ?? []));
+		const rewrittenKept = sessionStart.every((w) => allEntries.some((entry) => entry.command === mutate[w.label](shellForm(w)) && !("args" in entry)));
+		const installerAdded = sessionStart.every((w) => allEntries.some((entry) => JSON.stringify(entry) === JSON.stringify(w.entry)));
+
+		// req: R-922
+		check("R-922: doctor and install read a nana hook command carrying an operator, a redirection, a substitution or broken quoting as not installed",
+			controlOk && rewrittenAllRed && secondInstall.status === 0 && rewrittenKept && installerAdded,
+			`control=${controlOk} rewrittenAllRed=${rewrittenAllRed} secondInstallStatus=${secondInstall.status} rewrittenKept=${rewrittenKept} installerAdded=${installerAdded}\n${firstDoctor.stdout}\n---\n${brokenDoctor.stdout}`);
+	}
+
+	{
+		const h = freshHome();
+		const wanted = desiredHooks({ hooksDir: path.join(h, ".claude", "hooks"), repoRoot: repo, platform: plat });
+		const objective = wanted.find((w) => w.label === "SessionStart objective");
+		const adoption = wanted.find((w) => w.label === "SessionStart adoption");
+		const file = path.join(h, ".claude", "settings.json");
+		fs.mkdirSync(path.dirname(file), { recursive: true });
+		const lookAlikes = [
+			{ type: "command", command: `echo ${shellForm(objective)}` },
+			{ type: "command", command: `${shellForm(adoption)} || true` },
+		];
+		fs.writeFileSync(file, JSON.stringify({ hooks: { SessionStart: [{ hooks: lookAlikes }] } }, null, 2) + "\n");
+		const before = JSON.parse(JSON.stringify(lookAlikes));
+
+		const r = run(["install", "--home", h]);
+		const after = JSON.parse(fs.readFileSync(file, "utf8"));
+		const sessionStartEntries = after.hooks.SessionStart.flatMap((g) => g.hooks ?? []);
+		const lookAlikesKept = before.every((entry) => sessionStartEntries.some((e) => JSON.stringify(e) === JSON.stringify(entry)));
+		const installerEntriesAdded = [objective, adoption].every((w) => sessionStartEntries.some((e) => JSON.stringify(e) === JSON.stringify(w.entry)));
+
+		// req: R-318
+		check("R-318: install beside two look-alike commands of nana hooks keeps both look-alikes and adds each real hook",
+			r.status === 0 && lookAlikesKept && installerEntriesAdded,
+			`${r.status}\n${JSON.stringify(sessionStartEntries)}`);
+	}
 }
 
 function walk(dir) {

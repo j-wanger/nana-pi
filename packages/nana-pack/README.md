@@ -438,7 +438,7 @@ Pairs deal round-robin across `SEAT_MUTATE_SHARDS` shards (five by default), eac
 staggered `SEAT_MUTATE_STAGGER_SECS` after the one before it, and the record is the landed line
 words: `seat-mutate: lane …`, `DECLARED`, `[k/N]` notes, `BASELINE ok`/`FAIL`/`RETRY`/`MISSING`,
 `RED`, `GREEN … SURVIVED`, `ANCHOR-MISS`, `SYNTAX`, `DRY ok`, `MISSING`, `RESULT`,
-`RESULT (DRY)`, and `seat-mutate: KEEP`. Exit 0 means the run completed; its RESULT line counts the survivors. It exits 2 when a pair is missing,
+`RESULT (DRY)`, `seat-mutate: KEEP`, and `seat-mutate: git worktree entry … is still listed after … retries`. Exit 0 means the run completed; its RESULT line counts the survivors. It exits 2 when a pair is missing,
 a shard fails, the run is interrupted, or an input is refused, and 3 when any pair is ANCHOR-MISS
 (a bad anchor, a missing or escaping edit file) or SYNTAX (a mutated `.mjs`, `.js` or `.ts` file
 that fails to parse).
@@ -455,10 +455,15 @@ config module; every other key is refused by name before any worktree.
 seat guide's rule). A parent killed outright writes no record, leaves its shards to end on
 their own, and leaves its lock for the next run on that record to replace. On Windows a stop
 ends each shard outright rather than delivering a signal it can catch, and npm's config values
-are not read there. A table names a check's longer title when a shorter named title begins it,
-since a PASS or FAIL line matching the shorter one would otherwise read as that title too. A
-lane that needs a feature this runner does not have — stay-green pairs, case labels, skip
-reasons, script or pattern edits — keeps its own local runner.
+are not read there. Shards share one operation lock, so a scratch-worktree add never overlaps
+another shard's complete removal and its retries. After a scratch-worktree removal fails, the runner
+checks whether its entry is still listed, waits, deletes the scratch folder, and retries the removal by the unique
+`<scratch folder base name>/wt` suffix. It never runs `git worktree prune`, because pruning can
+remove entries the runner did not create. A locked scratch entry therefore stays listed after
+the retries and the record names it. A table names a check's longer title when a shorter named
+title begins it, since a PASS or FAIL line matching the shorter one would otherwise read as that
+title too. A lane that needs a feature this runner does not have — stay-green pairs, case labels,
+skip reasons, script or pattern edits — keeps its own local runner.
 
 ## What you will see
 

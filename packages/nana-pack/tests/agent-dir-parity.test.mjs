@@ -167,6 +167,21 @@ for (const [name, value] of FORMS) {
 	const seeded = path.join(tmpHome, ".pi", "agent", "nana-pack.json");
 	check("--home install seeds <home>/.pi/agent/nana-pack.json", fs.existsSync(seeded));
 	check("--home install writes nothing into the ambient agent dir", !fs.existsSync(ambient));
+	{
+		const newHome = path.join(HOME, "r827-home");
+		const newPiFolder = path.join(HOME, "r827-pi-folder");
+		fs.mkdirSync(newHome);
+		fs.mkdirSync(path.join(newPiFolder, "nana-knowledge"), { recursive: true });
+		fs.writeFileSync(path.join(newPiFolder, "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+		const r827 = spawnSync(process.execPath, [SETUP_BIN, "install", "--home", newHome, "--pi-home", newPiFolder], { cwd: HOME, env: { ...process.env, HOME: newHome, USERPROFILE: newHome, PI_CODING_AGENT_DIR: ambient }, encoding: "utf-8" });
+		// req: R-827
+		check("R-827: install with --pi-home, --home and an ambient PI_CODING_AGENT_DIR seeds the --pi-home dir only and writes nothing into the ambient dir",
+			r827.status === 0 &&
+				fs.existsSync(path.join(newPiFolder, "nana-pack.json")) &&
+				!fs.existsSync(path.join(newHome, ".pi", "agent", "nana-pack.json")) &&
+				!fs.existsSync(ambient),
+			r827.stdout + r827.stderr);
+	}
 	const seed = JSON.parse(fs.readFileSync(seeded, "utf-8"));
 	check("seed pins no objective.path (the pack's active-dir default applies)", seed.objective && !("path" in seed.objective), JSON.stringify(seed));
 	const savedPath = process.env.PATH;
