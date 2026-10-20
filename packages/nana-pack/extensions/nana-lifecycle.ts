@@ -47,18 +47,18 @@ export default function (pi: ExtensionAPI) {
 		if (ctx.hasUI) ctx.ui.setStatus("nana-pack", ctx.ui.theme.fg("dim", "nana-pack ✓"));
 	});
 
-	pi.on("session_before_compact", async (_event, ctx) => {
-		log(ctx, "session_before_compact");
+	pi.on("session_before_compact", async (event, ctx) => {
+		log(ctx, "session_before_compact", { reason: (event as any).reason });
 		return undefined;
 	});
 
-	pi.on("session_compact", async (_event, ctx) => {
-		log(ctx, "session_compact");
+	pi.on("session_compact", async (event, ctx) => {
+		log(ctx, "session_compact", { reason: (event as any).reason });
 		if (ctx.hasUI) ctx.ui.notify("context compacted", "info");
 	});
 
-	pi.on("session_compact_failed", async (_event, ctx) => {
-		log(ctx, "session_compact_failed");
+	pi.on("session_compact_failed", async (event, ctx) => {
+		log(ctx, "session_compact_failed", { reason: (event as any).reason });
 		if (ctx.hasUI) ctx.ui.notify("compaction FAILED", "error");
 	});
 

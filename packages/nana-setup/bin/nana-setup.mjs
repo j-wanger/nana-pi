@@ -8,13 +8,13 @@
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
  *  <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for
- *  doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs
- *  all, lists every by-hand label, combines those two remedies, names install's refusal, or reports
- *  that an error code prevented repair prediction before giving the run-install fallback; stderr:
+ *  doctor), a closing summary and the "next:" hint; doctor and project --check use their command's
+ *  dry run to say which missing rows it repairs, list every other label by hand, or combine those
+ *  remedies; doctor's summary also names install's refusal or a failed repair prediction; stderr:
  *  the usage text and error messages; the stderr of doctor and project --check carries no muted warning;
  *  process.exitCode.
- * @effects disk (through install / setupProject / dismissProject; doctor's install dry run writes
- *  nothing), process (the child processes those steps spawn; doctor's dry run may start `pi
+ * @effects disk (through install / setupProject / dismissProject; doctor and project --check dry
+ *  runs write nothing), process (the child processes those steps spawn; doctor's dry run may start `pi
  *  --version`; replaces the warning listeners for doctor and project --check; sets process.exitCode)
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
  *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
@@ -397,6 +397,14 @@ async function runProject(opts) {
 		// same refusal as `install` (sol r3).
 		const checkLayout = resolveLayout(opts);
 		refuseCwdRelativePiHome(checkLayout, "this check");
+		let projectRows;
+		try {
+			// Keep this dry: stepKnowledgeRefresh returns before spawning, so --check writes nothing.
+			projectRows = await setupProject(dir, checkLayout, { dryRun: true });
+		} catch (err) {
+			if (!(err instanceof SetupError)) throw err;
+			// A dismissed folder keeps the existing project remedy in the summary.
+		}
 		const checks = await checkProject(dir, checkLayout);
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
@@ -404,7 +412,17 @@ async function runProject(opts) {
 		const warnings = checks.filter((c) => !c.ok && (c.note || c.label === "post-edit commands" || c.label === "project trust"));
 		const missing = checks.filter((c) => !c.ok && !warnings.includes(c));
 		const summary = [];
-		if (missing.length) summary.push(`${missing.length} missing — run: nana-setup project ${dir}`);
+		if (missing.length) {
+			if (!projectRows) summary.push(`${missing.length} missing — run: nana-setup project ${dir}`);
+			else {
+				const projectLabels = new Set(projectRows.filter((row) => row.status === "created" || row.status === "updated").map((row) => row.label));
+				const projectCount = missing.filter((row) => projectLabels.has(row.projectLabel ?? row.label)).length;
+				const byHandLabels = [...new Set(missing.filter((row) => !projectLabels.has(row.projectLabel ?? row.label)).map((row) => row.label))];
+				if (projectCount === missing.length) summary.push(`${missing.length} missing — run: nana-setup project ${dir}`);
+				else if (projectCount === 0) summary.push(`${missing.length} missing — fix by hand as each ✗ line says: ${byHandLabels.join(", ")}`);
+				else summary.push(`${missing.length} missing — fix by hand as each ✗ line says: ${byHandLabels.join(", ")}; then run: nana-setup project ${dir} for the other ${projectCount}`);
+			}
+		}
 		if (warnings.length) summary.push(`effective-state warnings:\n${warnings.map((c) => `    ${c.label}: ${c.detail}`).join("\n")}`);
 		console.log(summary.length ? `\n  ${summary.join("\n  ")}` : "\n  all good.");
 		return missing.length || warnings.length ? 1 : 0;
@@ -439,12 +457,15 @@ async function runProject(opts) {
 	}
 	const changed = results.filter((r) => r.status === "created" || r.status === "updated").length;
 	const problems = results.filter((r) => r.status === "problem").length;
+	const byHandLabels = [...new Set(results.filter((r) => r.byHand).map((r) => r.label))];
 	console.log(
-		problems
-			? `\n  ${changed ? `${changed} ${opts.dryRun ? "would change" : "changed"}; ` : "nothing changed; "}${problems} ✗ needs your attention (above).`
-			: changed === 0
-				? "\n  nothing to do — everything was already in place."
-				: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`,
+		byHandLabels.length
+			? `\n  ${changed ? `${changed} ${opts.dryRun ? "would change" : "changed"}` : "nothing changed"}; ${byHandLabels.length} left alone — fix by hand as each – line says: ${byHandLabels.join(", ")}${problems ? `; ${problems} ✗ needs your attention (above)` : ""}.`
+			: problems
+				? `\n  ${changed ? `${changed} ${opts.dryRun ? "would change" : "changed"}; ` : "nothing changed; "}${problems} ✗ needs your attention (above).`
+				: changed === 0
+					? "\n  nothing to do — everything was already in place."
+					: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`,
 	);
 	if (!opts.dryRun) {
 		console.log(`  next: 1. ratify the two DRAFT lines in OBJECTIVE.md; they are yours to decide.\n        2. trust this folder: nana-setup trust <dir>`);

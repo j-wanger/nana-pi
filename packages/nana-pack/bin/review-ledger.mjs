@@ -77,7 +77,6 @@ const childOption = (name) => {
   const i = child.indexOf(name);
   return i >= 0 ? child[i + 1] : null;
 };
-const launch = reviewLaunch(child);
 const adm = admit(own, { launcher: 'review-ledger run', provider: childOption('--provider'), model: childOption('--model'), attempts: 1 });
 if (!adm.ok) die(adm.message);
 process.stderr.write(`review-ledger: ${adm.note}\n`);
@@ -89,6 +88,7 @@ const cannotStart = (reason) => {
   try { writeFileSync(out, `${line}\n`); } catch { /* best effort; stderr remains authoritative */ }
   die(line);
 };
+const launch = reviewLaunch(child, { cwd: adm.res.cwd });
 if (launch.refused) cannotStart(launch.refused);
 // async spawn so the heartbeat keeps renewing the reservation while the review runs (sol r2 #15)
 const stopHeartbeat = startHeartbeat(adm.res);

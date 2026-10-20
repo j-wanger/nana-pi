@@ -3,11 +3,11 @@
  * @purpose Resolve a review command to its direct, Windows cmd.exe, or pi-specific launch.
  * @inputs a child argv and injected platform, environment, cwd, file probes, text reader, and Node executable.
  * @outputs a spawn command, arguments and optional options, or a named refusal.
- * @effects disk through default Windows command and pi lookup probes.
- * @errors lookup and unsafe Windows arguments return refusals; injected readers may throw.
+ * @effects disk (default Windows command, path existence and pi lookup probes).
+ * @errors lookup, absent Windows batch paths and unsafe Windows arguments return refusals; injected readers may throw.
  */
 import * as path from "node:path";
-import { findOnPath, winCommand } from "../lib/win-command.mjs";
+import { defaultExists, findOnPath, winCommand } from "../lib/win-command.mjs";
 import { PI_EXTENSIONS } from "../lib/win-command-config.mjs";
 import { piLaunch } from "./pi-watchdog.mjs";
 import { PI_BIN_NAME } from "./worker-config.mjs";
@@ -16,7 +16,7 @@ export function reviewLaunch(child, {
 	platform = process.platform,
 	env = process.env,
 	cwd = process.cwd(),
-	exists,
+	exists = defaultExists,
 	isFile,
 	readText,
 	execPath = process.execPath,
@@ -35,6 +35,8 @@ export function reviewLaunch(child, {
 	const comspec = Object.entries(env).find(([key]) => /^comspec$/i.test(key))?.[1];
 	if (/[\\/:]/.test(word)) {
 		const extension = path.win32.extname(word).toLowerCase();
+		const resolved = path.win32.resolve(cwd, word);
+		if (PI_EXTENSIONS.slice(-2).includes(extension) && !exists(resolved)) return { refused: `no file at ${resolved}` };
 		return PI_EXTENSIONS.slice(-2).includes(extension) ? winCommand(word, args, { comspec }) : { command: word, args };
 	}
 

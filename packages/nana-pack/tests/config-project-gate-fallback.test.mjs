@@ -13,6 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { findPiRoot } from "./pi-install.mjs";
+import { FORWARD_SLASH_ADVICE, jsonErrorPlace } from "../lib/json-text.mjs";
 // L1 invariant 6 for PROJECT scope (astra land ruling, MUST 1): a nana-trusted
 // project's gate block that becomes malformed must never widen the gate relative to
 // the last effective policy. Mid-session the last valid project gate loaded in this
@@ -77,6 +78,8 @@ function run(cwd, calls, { trusted = true, corrupt = null } = {}) {
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const PSTOP = (file) => new RegExp(`^nana-gate: project nana-pack\\.json gate block is malformed — repair it \\(${esc(file)}:.+\\)(?:\\. Recovery:.*)?$`, "s");
+const PARSE_PSTOP = (file) => new RegExp(`^nana-gate: project nana-pack\\.json does not parse: ${esc(file)}(?: at line \\d+, column \\d+)?\\. .+\\. Recovery: .+$`, "s");
+const USER_PARSE_STOP = /^nana-gate: user nana-pack\.json does not parse: /;
 const blocked = (r) => r?.block === true;
 const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\b"], }, }';
 
@@ -107,14 +110,14 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	const after = run(P.td, [["tf", "bash", { command: "terraform destroy" }], ...ALL("ls -la", "src/a.ts")]);
 	// req: R-067
 	check("1: corrupted + fresh process — terraform destroy still BLOCKED", blocked(after.tf), JSON.stringify(after.tf));
-	check("1: stop reason names the project file and the repair", PSTOP(P.file).test(after.tf?.reason ?? ""), after.tf?.reason);
+	check("1: stop reason names the project file and the repair", PARSE_PSTOP(P.file).test(after.tf?.reason ?? ""), after.tf?.reason);
 	for (const k of ["bash", "powershell", "edit", "write"])
-		check(`1: project stop blocks every gated class — ${k}`, blocked(after[k]) && PSTOP(P.file).test(after[k].reason), JSON.stringify(after[k]));
+		check(`1: project stop blocks every gated class — ${k}`, blocked(after[k]) && PARSE_PSTOP(P.file).test(after[k].reason), JSON.stringify(after[k]));
 	// mid-session corruption keeps the last valid project gate (not a stop)
 	fs.writeFileSync(P.file, JSON.stringify({ gate: { extraPatterns: ["\\bterraform\\s+destroy\\b"] } }));
 	const mid = run(P.td, [["tf0", "bash", { command: "terraform destroy" }], ["__corrupt__"], ["tf", "bash", { command: "terraform destroy" }], ["ls", "bash", { command: "ls -la" }]], { corrupt: [P.file, TRAILING] });
 	// req: R-067
-	check("1: corrupted mid-session — last valid project deny still enforced", blocked(mid.tf0) && blocked(mid.tf) && !PSTOP(P.file).test(mid.tf?.reason ?? ""), JSON.stringify(mid));
+	check("1: corrupted mid-session — last valid project deny still enforced", blocked(mid.tf0) && blocked(mid.tf) && !PARSE_PSTOP(P.file).test(mid.tf?.reason ?? ""), JSON.stringify(mid));
 	check("1: corrupted mid-session — benign command allowed (last-good, not a stop)", mid.ls === null, JSON.stringify(mid.ls));
 	// repair clears the stop
 	fs.writeFileSync(P.file, JSON.stringify({ gate: { extraPatterns: ["\\bterraform\\s+destroy\\b"] } }));
@@ -134,7 +137,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	const after = run(P.td, [["rm", "bash", { command: "rm -rf /tmp/x" }]]);
 // req: R-773
 	check("2: corrupted + fresh process — user exception does NOT resurrect (BLOCKED)", blocked(after.rm), JSON.stringify(after.rm));
-	check("2: blocked by the project stop", PSTOP(P.file).test(after.rm?.reason ?? ""), after.rm?.reason);
+	check("2: blocked by the project stop", PARSE_PSTOP(P.file).test(after.rm?.reason ?? ""), after.rm?.reason);
 	// control: without a project file the user exception applies (missing ≠ stop)
 	const none = project(null);
 	const ctl = run(none.td, [["rm", "bash", { command: "rm -rf /tmp/x" }], ["ls", "bash", { command: "ls -la" }]]);
@@ -151,7 +154,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	const after = run(P.td, [["w", "write", { path: "secrets/key.txt" }], ["e", "edit", { path: "secrets/key.txt" }]]);
 	check("3: corrupted + fresh process — write secrets/key.txt still BLOCKED", blocked(after.w), JSON.stringify(after.w));
 	check("3: corrupted + fresh process — edit secrets/key.txt still BLOCKED", blocked(after.e), JSON.stringify(after.e));
-	check("3: blocked by the project stop", PSTOP(P.file).test(after.w?.reason ?? ""), after.w?.reason);
+	check("3: blocked by the project stop", PARSE_PSTOP(P.file).test(after.w?.reason ?? ""), after.w?.reason);
 }
 
 // ── contract controls ──
@@ -184,7 +187,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	const B = project(TRAILING);
 	const b = run(B.td, [["ls", "bash", { command: "ls -la" }]]);
 	// req: R-068
-	check("control: both malformed → the user stop wins", blocked(b.ls) && /^nana-gate: user nana-pack\.json gate block is malformed/.test(b.ls.reason), JSON.stringify(b));
+	check("control: both malformed → the user stop wins", blocked(b.ls) && USER_PARSE_STOP.test(b.ls.reason), JSON.stringify(b));
 	fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} }));
 }
 
@@ -203,6 +206,23 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 		// req: R-196
 		check("U2-B: dangling project nana-pack.json symlink in a trusted project → stop (not defaults)", blocked(r.ls) && PSTOP(D.file).test(r.ls.reason) && /dangling symlink/.test(r.ls.reason), JSON.stringify(r));
 	}
+}
+
+// JSON parse failures at project scope use that file's safe shared detail
+{
+	fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} }));
+	const text = String.raw`{"handoff":{"path":"C:\Users\demo\HANDOFF.md"}}`;
+	const P = project(text);
+	let place = null;
+	try { JSON.parse(text); } catch (error) { place = jsonErrorPlace(error); }
+	const out = run(P.td, [["ls", "bash", { command: "ls -la" }]]);
+	const reason = out.ls?.reason ?? "";
+	// req: R-2364
+	check("project backslash parse stop carries project scope, safe place and forward-slash recovery", blocked(out.ls)
+		&& reason.startsWith("nana-gate: project nana-pack.json does not parse")
+		&& reason.includes(P.file)
+		&& place?.line === 1 && reason.includes(`line 1, column ${place.column}`)
+		&& reason.includes(`${FORWARD_SLASH_ADVICE} Recovery:`), reason);
 }
 
 process.exit(fails);
