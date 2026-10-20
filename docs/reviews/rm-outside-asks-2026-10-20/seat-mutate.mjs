@@ -29,6 +29,7 @@ const PARENT_REAL = "return { full, compared: path.join(realPath(path.dirname(fu
 const CD_FOLDER = 'return args.find((word) => !word.startsWith("-")) ?? home;';
 
 const DECLARED = [
+	"(build 3, 22a49d27) the table moved again: build 3 changed only the three handler fixtures and gateTempRoots' platform test (every platform but win32 now gets /tmp); no anchor moved",
 	"(build 2, b19438f5) the table moved from 3d8e2d22: G2, G5 and G6 now name the handler cases build 2 added (R-2330, R-2331, R-2335); G4 re-anchored on gateTempRoots(); G7 added for the /tmp root. No pair adds /tmp on win32: that branch changes nothing off Windows, and R-2338 prints SKIP there",
 	"(a) every pair runs on macOS, where the test's temp folder is the unresolved /var spelling; M4, M5 and M6 bite only where a folder's typed spelling differs from its real path (macOS /var, Windows 8.3)",
 	"(b) no pair: gate-shell's three new exports (interface only; a reverted export fails the import, not a check); markOutside's `=== null` guard (it keeps only the recursive/forced reason text, which no row pins: known limit 6); strictWithin's `child !== parent` (no check targets the working or a temp folder itself); PowerShell parameter prefixes, comma lists and -Filter/-Include/-Exclude values; popd and a cd to a variable-led folder (known limit 1); the re-anchoring of an absolute target or absolute cd to the cwd after an unreadable cd; placedTarget's glob/variable-part branch (no test spelling separates it from the parent realPath); the catch fallbacks (no input reaches them)",
@@ -142,4 +143,4 @@ const PAIRS = [
 	], tests: [T, LWG], expectRed: [R2338, R1430] },
 ];
 
-process.exitCode = await runMutations({ lane: "rm-outside-asks", self: import.meta.url, tip: "b19438f5", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "rm-outside-asks", self: import.meta.url, tip: "22a49d27", declared: DECLARED, pairs: PAIRS });
