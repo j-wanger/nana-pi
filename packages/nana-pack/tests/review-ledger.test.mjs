@@ -765,19 +765,39 @@ if (process.platform !== "win32") {
 		fs.mkdirSync(agent, { recursive: true });
 		const isWin = process.platform === "win32";
 		let blocked = false;
+		let skipReason = null;
 		try {
-			if (isWin) spawnSync("icacls", [agent, "/deny", "*S-1-1-0:(WD)"]);
-			else fs.chmodSync(agent, 0o555);
+			if (isWin) {
+				// CI on d023b052 (Windows leg) found a bare deny on the generic Everyone SID
+				// (*S-1-1-0) did not hold there: the runner's account is an administrator and
+				// the probe write below still succeeded, so the review was admitted. Strip
+				// inherited ACEs first (no stray inherited allow left to out-rank the deny),
+				// then deny the CURRENT user's own SID — not a group — the write-type rights
+				// directly, granting back only read/traverse so the review process can still
+				// stat the folder.
+				const who = spawnSync("whoami", ["/user", "/fo", "csv", "/nh"], { encoding: "utf8" });
+				const sidRaw = (who.stdout ?? "").trim().split(",").pop()?.replace(/"/g, "").trim();
+				const sid = /^S-1-\d+(-\d+)+$/.test(sidRaw ?? "") ? sidRaw : null;
+				spawnSync("icacls", [agent, "/inheritance:r"]);
+				const denyTo = sid ?? "*S-1-1-0";
+				if (sid) spawnSync("icacls", [agent, "/grant", `${sid}:(RX)`]);
+				spawnSync("icacls", [agent, "/deny", `${denyTo}:(OI)(CI)(W,AD,WD)`]);
+			} else fs.chmodSync(agent, 0o555);
 			try { fs.writeFileSync(path.join(agent, "probe.txt"), "x"); } catch { blocked = true; }
-			const t0 = Date.now();
-			const ro = reviewAt("ro", 0);
-			const ms = Date.now() - t0;
-			// req: R-1842
-			check("an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack",
-				blocked && ro.status === 1 && /must be writable/.test(ro.stderr) && !/admitted/.test(ro.stderr) && noStack(ro) && ms < AT_ONCE_MS,
-				blocked ? ro.stderr : `the folder stayed writable; ${ro.stderr}`);
+			if (isWin && !blocked) skipReason = "the hosted runner's account still writes through a per-user deny after /inheritance:r";
+			if (skipReason) {
+				console.log(`SKIP an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack — ${skipReason}`);
+			} else {
+				const t0 = Date.now();
+				const ro = reviewAt("ro", 0);
+				const ms = Date.now() - t0;
+				// req: R-1842
+				check("an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack",
+					blocked && ro.status === 1 && /must be writable/.test(ro.stderr) && !/admitted/.test(ro.stderr) && noStack(ro) && ms < AT_ONCE_MS,
+					blocked ? ro.stderr : `the folder stayed writable; ${ro.stderr}`);
+			}
 		} finally {
-			if (isWin) spawnSync("icacls", [agent, "/remove:d", "*S-1-1-0"]);
+			if (isWin) spawnSync("icacls", [agent, "/reset"]);
 			else fs.chmodSync(agent, 0o755);
 		}
 	}
