@@ -21,7 +21,7 @@ const SPAWN_CATCH = "} catch (e) {\n  stopHeartbeat();\n  cannotStart(e.code ?? 
 
 const DECLARED = [
 	"(a) Windows-only wrong code stays out of this macOS table; the seat runs it on the Windows leg: W10 spawn without launch.options -> R-2254; W11 review-ledger ignores reviewLaunch (main's piLaunch-or-name form) -> R-2254 and R-1722; the resolver's `pi launch refused:` prefix dropped -> the R-1723 R-2250 check in win32-launch.test.mjs; review-ledger's refusal as a die before admission (main's order) or without release -> the same check and R-2250 on Windows, where both of its runs refuse `not on PATH`. On macOS the resolver never refuses and launch.options is always absent, so each would survive here",
-	"(b) M1 is an expected survivor and a test gap: no macOS or Linux check runs review-ledger with a bare non-pi command that PATH finds (every ledger run names process.execPath, an absolute path, or pi), so the win32 route on every platform would refuse a bare claude or codex there as `not on PATH` and no check sees it",
+	"(b) On 6ec2cf0e M1 survived (no macOS or Linux check ran review-ledger with a bare non-pi name PATH finds). Build 2 added R-2255 for that case, so on 3e90e4d7 M1 is expected red",
 	"(c) M15 is an expected survivor: cannotStart ends in die(), which calls process.exit before the heartbeat interval can fire, so a running heartbeat in the spawn catch is behaviour-equivalent",
 	"(d) findOnPath without searchCwd (no lookup in the launcher's folder, unlike libuv) and the lookup running from the launcher's folder rather than --tree are plan known limits with no test and no pair",
 ];
@@ -86,4 +86,4 @@ const PAIRS = [
 	], tests: [RLT], expectRed: [R2250] },
 ];
 
-process.exitCode = await runMutations({ lane: "review-ledger-run-win-launch", self: import.meta.url, tip: "6ec2cf0e", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "review-ledger-run-win-launch", self: import.meta.url, tip: "3e90e4d7", declared: DECLARED, pairs: PAIRS });
