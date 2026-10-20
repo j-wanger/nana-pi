@@ -98,3 +98,26 @@
 - Main was f497c5ad when CI ran, the lane's merge base. Main has since moved to 9d09376e, through the pi-settings-bom
   land (3903015b) and the post-edit-win-survivors land, and this lane has not merged it. A merge of main before the
   land needs its own accepted review coverage.
+
+## Round 1 and build 3 (the seat, after the final reviewers' first round on b92f3185)
+
+- Opus round 1: SEND-BACK, one MUST (M1): a here-string glued to an assignment (`$msg=@'`, `$m+=@'`) hid a later pipe
+  that main and PowerShell's own tokens flag; a commit message with an apostrophe in the body is the realistic input.
+  S1: a nested variable index glued to a comment with a quote kept a word where PowerShell starts a comment.
+- Fable round 1: LAND 8/10 with one SHOULD (F1): a `#` glued to a second index, an array subexpression or a method call
+  with arguments, followed by an odd quote, hid a pipe main flags (seeded fuzz over three seeds, 118 to 132 such cases
+  each); F2: the nesting depth that overflows the stack is machine-dependent (3,000 on this Mac, not 5,000); F3: R-1730's
+  evidence cell named build 1's run.
+- Build 3 (`build-brief-3.md`, commit 3327c1cd, a pi gpt-5.6-sol builder): a line-final here-string opener glued to a
+  whitespace-free variable assignment opens a here-string (command-mode `a=@'` stays a word, as PowerShell has it);
+  a second or nested index's `]` and any closed `( … )` end the token, so a glued `#` starts a comment. New rows R-1737,
+  R-1738 and R-1739; every new case was red on b92f3185 and its expected value came from pwsh 7.6.7's tokens; the corpus
+  gained one command for each class; the local oracle passed. The seat checked one more shape against pwsh 7.6.7: in
+  `Write-Output a(b)#c | x` PowerShell reads `RParen` then `Comment`, so treating any closed `( … )` as a token end
+  matches PowerShell and opens no new gap.
+- The seat's macOS pairs on build 3's merged tip 37d2e67: 25/25 red (19 exactly their named titles, 6 with an extra
+  unnamed red), 0 survived; new pairs M23 to M25 put back build 2's rules for R-1737 to R-1739 and each turns its new
+  cases red; M5's and M18's anchors follow build 3's code (commit f9959fa8, `seat-mutate-output-37d2e67.txt`). The
+  oracle-only CI pairs (W1 to W3) ran on c78c6e7; build 3 did not change quote handling, so they were not rerun.
+- HANDOFF: the member-access residual now names only bare member access (and hash table and type literals); the stack
+  depth reads "a few thousand (3,000 on this Mac)"; the Landed line names round 1's four misses and build 3.
