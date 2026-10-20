@@ -429,6 +429,8 @@
 - Install check turn (pi-seat-live-turn): the knowledge pull has a 2-second budget. A slow pull on a cold runner would fail the turn line with nothing broken (inferred). On the lane's CI run, the turn passed on Windows.
 - Install check turn (pi-seat-live-turn): the check finds the writing rule by the tag pi 1.0.2 prints. If a later pi prints it another way, the turn line fails until someone updates the check.
 - Install check session (pi-seat-live-turn): any notice holding the word unavailable fails the pi session line. That includes a notice from another package, not only from nana.
+- Install check turn (pi-seat-live-turn): if the gate ever fails to block, the turn runs the scripted pipe command in the temporary fixture project. The harm stays in that temporary folder.
+- Review tools on Windows (seen on pi-seat-live-turn's CI): two checks failed once on the Windows leg, in a lane that does not touch them. They cover worktree cleanup after a watchdog stall and the reclaim of a killed run's checkout. That run took 88 seconds against the usual 20 to 30. About 50 earlier Windows runs passed them. The Windows leg blocks a release, so a repeat would block one.
 
 ## Where things stand
 
