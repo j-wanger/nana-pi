@@ -2219,7 +2219,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Pins the per-item review ledger through REAL processes against real git repositories and worktrees, with each known bypass recorded here as a refusal
 - **inputs** — bin/pi-review.mjs, bin/pi-worker.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi and git)
+- **effects** — disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi, git, and icacls on Windows)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/verdict-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
