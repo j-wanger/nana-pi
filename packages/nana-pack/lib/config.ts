@@ -7,7 +7,7 @@
  *  hasUI, ui, sessionManager)
  * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, legacy receipts) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
- *  allow/extra/protected regexes, and the user-scope objective block alone
+ *  allow/extra/protected regexes, and the user-scope objective block alone, carrying a safe configFailure place when its JSON does not parse
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
  *  journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions
  *  and last-valid gate on globalThis)
@@ -54,6 +54,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { readBounded } from "./bounded-read.mjs";
 import { piAgentDir } from "./gate-paths.ts";
+import { jsonParseFailure, parseJsonText } from "./json-text.mjs";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
@@ -96,7 +97,7 @@ export interface NanaPackConfig {
 	 * (no opt-in). `projectFile` only renames that file: a bare filename, owner-set at
 	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
-	objective: { enabled: boolean; path: string | null; projectFile: string | null };
+	objective: { enabled: boolean; path: string | null; projectFile: string | null; configFailure?: { file: string; line?: number; column?: number; repair: "forward-slash" | "manual" } };
 	/** Deprecated compatibility keys; accepted and ignored for one release after decision D5, 2026-10-06. */
 	receipts: { enabled: boolean; dir: string | null };
 }
@@ -251,6 +252,8 @@ interface FileRead {
 	/** valid leaves only, by block */
 	blocks: Blocks;
 	problems: string[];
+	/** Present only when parsing failed; carries no parser message or file text. */
+	jsonFailure?: { line?: number; column?: number; repair: "forward-slash" | "manual" };
 	/** true when the gate block is known-good (absent file, or no gate problem) */
 	gateValid: boolean;
 }
@@ -313,9 +316,9 @@ function readConfigFile(p: string): FileRead {
 	}
 	let raw: unknown;
 	try {
-		raw = JSON.parse(text.replace(/^﻿/, ""));
+		raw = parseJsonText(text);
 	} catch (e: any) {
-		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], gateValid: false };
+		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], jsonFailure: jsonParseFailure(e), gateValid: false };
 	}
 	const { blocks, problems } = normalizeRaw(raw);
 	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate") && !ALLOW_CAP.test(m));
@@ -571,7 +574,10 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			// so trusted projects are excluded too. projectFile is the same: it only RENAMES the
 			// file the (unconditional) walk-up looks for — no opt-in, never "off" — and a
 			// repo must not be able to rename it for itself.
-			objective: merge("objective", u.objective),
+			objective: {
+				...merge("objective", u.objective),
+				...("jsonFailure" in user ? { configFailure: { file: userFile, ...(user.jsonFailure ?? {}) } } : {}),
+			},
 			receipts: merge("receipts", u.receipts, project.receipts),
 		};
 	} catch (e) {
@@ -594,7 +600,12 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
  */
 export function loadUserObjective(): NanaPackConfig["objective"] {
 	try {
-		return merge("objective", readConfigFile(userConfigPath()).blocks.objective);
+		const file = userConfigPath();
+		const user = readConfigFile(file);
+		return {
+			...merge("objective", user.blocks.objective),
+			...("jsonFailure" in user ? { configFailure: { file, ...(user.jsonFailure ?? {}) } } : {}),
+		};
 	} catch {
 		return structuredClone(DEFAULTS.objective);
 	}

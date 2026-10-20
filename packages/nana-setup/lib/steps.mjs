@@ -36,6 +36,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
@@ -296,9 +297,9 @@ export function linkSkill(target, source, o = {}) {
 	if (st?.isSymbolicLink()) {
 		let current = path.resolve(path.dirname(target), fs.readlinkSync(target));
 		if (o.preserveForeignLink) {
-			try { current = fs.realpathSync(target); } catch { /* broken foreign link */ }
+			try { current = realPath(target, { mustExist: true }); } catch { /* broken foreign link */ }
 			let canonicalSource = resolved;
-			try { canonicalSource = fs.realpathSync(source); } catch { /* missing pack source */ }
+			try { canonicalSource = realPath(source, { mustExist: true }); } catch { /* missing pack source */ }
 			if (current === canonicalSource) return { status: UNCHANGED, detail: null };
 			return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
 		}
@@ -372,7 +373,7 @@ export function stepRetiredArtifacts(layout, o) {
 			try {
 				const target = path.resolve(path.dirname(link), fs.readlinkSync(link));
 				const targetParent = path.dirname(target);
-				owned = path.basename(target) === old && fs.realpathSync(targetParent) === fs.realpathSync(path.join(pkgRoot, "claude", "hooks"));
+				owned = path.basename(target) === old && realPath(targetParent, { mustExist: true }) === realPath(path.join(pkgRoot, "claude", "hooks"), { mustExist: true });
 			} catch { owned = false; }
 		}
 		if (owned) {
@@ -386,8 +387,8 @@ export function stepRetiredArtifacts(layout, o) {
 	if (!hookAncestorsSafe) out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
 	if (hookStat?.isSymbolicLink()) {
 		let target = null;
-		try { target = fs.realpathSync(legacyHook); } catch { /* dangling */ }
-		const root = fs.realpathSync(repoRoot);
+		try { target = realPath(legacyHook, { mustExist: true }); } catch { /* dangling */ }
+		const root = realPath(repoRoot, { mustExist: true });
 		if (target && (target === root || target.startsWith(root + path.sep))) {
 			if (!o.dryRun) fs.unlinkSync(legacyHook);
 			out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
@@ -800,7 +801,7 @@ function pathVisibleNode(nodeExecutable) {
 	const expected = realpathSafe(nodeExecutable);
 	for (const dir of (process.env.PATH || "").split(path.delimiter).filter(Boolean)) {
 		const candidate = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
-		try { if (fs.realpathSync(candidate) === expected) return candidate; } catch { /* next PATH entry */ }
+		try { if (realPath(candidate, { mustExist: true }) === expected) return candidate; } catch { /* next PATH entry */ }
 	}
 	return nodeExecutable;
 }
@@ -909,18 +910,7 @@ export const PI_INSTALL_HINT = pinPiInstall(PI_INSTALL_BASE, readPiPin(repoRoot)
 
 /** realpath, falling back to the nearest existing ancestor so a non-existent path still resolves. */
 export function realpathSafe(p) {
-	let cur = path.resolve(p);
-	const tail = [];
-	for (;;) {
-		try {
-			return path.join(fs.realpathSync(cur), ...tail);
-		} catch {
-			const parent = path.dirname(cur);
-			if (parent === cur) return path.resolve(p);
-			tail.unshift(path.basename(cur));
-			cur = parent;
-		}
-	}
+	return realPath(p);
 }
 
 const gitDirCache = new Map();

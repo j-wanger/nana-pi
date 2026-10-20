@@ -1,0 +1,220 @@
+﻿2026-10-20T06:00:01.1418217Z Current runner version: '2.337.0'
+2026-10-20T06:00:01.1449923Z ##[group]Runner Image Provisioner
+2026-10-20T06:00:01.1450867Z Hosted Compute Agent
+2026-10-20T06:00:01.1451539Z Version: 20261002.596
+2026-10-20T06:00:01.1452261Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-20T06:00:01.1453097Z Build Date: 2026-10-02T22:28:27Z
+2026-10-20T06:00:01.1453787Z Worker ID: {0503f782-08ab-425b-bc29-879386d15959}
+2026-10-20T06:00:01.1454506Z Region: centralus
+2026-10-20T06:00:01.1455114Z Cloud: Azure
+2026-10-20T06:00:01.1455689Z ##[endgroup]
+2026-10-20T06:00:01.1457254Z ##[group]Operating System
+2026-10-20T06:00:01.1458002Z Microsoft Windows Server 2025
+2026-10-20T06:00:01.1458688Z 10.0.26100
+2026-10-20T06:00:01.1459274Z Datacenter
+2026-10-20T06:00:01.1459866Z ##[endgroup]
+2026-10-20T06:00:01.1460729Z ##[group]Runner Image
+2026-10-20T06:00:01.1461715Z Image: windows-2025-vs2026
+2026-10-20T06:00:01.1462553Z Version: 20261007.264.1
+2026-10-20T06:00:01.1464315Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261007.264/images/windows/Windows2025-VS2026-Readme.md
+2026-10-20T06:00:01.1466085Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261007.264
+2026-10-20T06:00:01.1467134Z ##[endgroup]
+2026-10-20T06:00:01.1468263Z ##[group]GITHUB_TOKEN Permissions
+2026-10-20T06:00:01.1470493Z Contents: read
+2026-10-20T06:00:01.1471186Z Metadata: read
+2026-10-20T06:00:01.1471802Z ##[endgroup]
+2026-10-20T06:00:01.1474082Z Secret source: Actions
+2026-10-20T06:00:01.1475123Z Cache mode: write
+2026-10-20T06:00:01.1475939Z Prepare workflow directory
+2026-10-20T06:00:01.1992750Z Prepare all required actions
+2026-10-20T06:00:01.2042982Z Getting action download info
+2026-10-20T06:00:01.4246412Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-20T06:00:01.5660603Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-20T06:00:01.8622220Z Complete job name: install-check (windows-latest)
+2026-10-20T06:00:02.0121008Z ##[group]Run actions/checkout@v4
+2026-10-20T06:00:02.0122207Z with:
+2026-10-20T06:00:02.0122643Z   repository: j-wanger/nana-pi
+2026-10-20T06:00:02.0127157Z   token: ***
+2026-10-20T06:00:02.0127569Z   ssh-strict: true
+2026-10-20T06:00:02.0128427Z   ssh-user: git
+2026-10-20T06:00:02.0128860Z   persist-credentials: true
+2026-10-20T06:00:02.0129330Z   clean: true
+2026-10-20T06:00:02.0129757Z   sparse-checkout-cone-mode: true
+2026-10-20T06:00:02.0130262Z   fetch-depth: 1
+2026-10-20T06:00:02.0130676Z   fetch-tags: false
+2026-10-20T06:00:02.0131102Z   show-progress: true
+2026-10-20T06:00:02.0131528Z   lfs: false
+2026-10-20T06:00:02.0131922Z   submodules: false
+2026-10-20T06:00:02.0132350Z   set-safe-directory: true
+2026-10-20T06:00:02.0132837Z   allow-unsafe-pr-checkout: false
+2026-10-20T06:00:02.0133637Z env:
+2026-10-20T06:00:02.0134031Z   PI_VERSION: 1.0.2
+2026-10-20T06:00:02.0134469Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-20T06:00:02.0134985Z ##[endgroup]
+2026-10-20T06:00:02.1882586Z Syncing repository: j-wanger/nana-pi
+2026-10-20T06:00:02.1885865Z ##[group]Getting Git version info
+2026-10-20T06:00:02.1887783Z Working directory is 'D:\a\nana-pi\nana-pi'
+2026-10-20T06:00:02.3274453Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-20T06:00:02.6627014Z git version 2.56.0.windows.2
+2026-10-20T06:00:02.6682660Z ##[endgroup]
+2026-10-20T06:00:02.6707533Z Temporarily overriding HOME='D:\a\_temp\eb120329-36e0-4b8d-a8ff-563c0ee8c9c5' before making global git config changes
+2026-10-20T06:00:02.6709967Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-20T06:00:02.6720025Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+2026-10-20T06:00:02.7588235Z Deleting the contents of 'D:\a\nana-pi\nana-pi'
+2026-10-20T06:00:02.7595534Z ##[group]Initializing the repository
+2026-10-20T06:00:02.7604053Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\nana-pi\nana-pi
+2026-10-20T06:00:02.8578400Z Initialized empty Git repository in D:/a/nana-pi/nana-pi/.git/
+2026-10-20T06:00:02.8630135Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/j-wanger/nana-pi
+2026-10-20T06:00:02.9346081Z ##[endgroup]
+2026-10-20T06:00:02.9347321Z ##[group]Disabling automatic garbage collection
+2026-10-20T06:00:02.9356448Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-20T06:00:02.9765263Z ##[endgroup]
+2026-10-20T06:00:02.9767082Z ##[group]Setting up auth
+2026-10-20T06:00:02.9780537Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-20T06:00:03.0196353Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-20T06:00:04.6123250Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-20T06:00:04.6559834Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-20T06:00:05.2468127Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-20T06:00:05.2892023Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-20T06:00:05.9315797Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-20T06:00:05.9747099Z ##[endgroup]
+2026-10-20T06:00:05.9748449Z ##[group]Fetching the repository
+2026-10-20T06:00:05.9765399Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +6ef519b82a8ee95e3b0a2d960872285305744835:refs/remotes/pull/106/merge
+2026-10-20T06:00:10.4284926Z From https://github.com/j-wanger/nana-pi
+2026-10-20T06:00:10.4285734Z  * [new ref]         6ef519b82a8ee95e3b0a2d960872285305744835 -> pull/106/merge
+2026-10-20T06:00:10.4329776Z ##[endgroup]
+2026-10-20T06:00:10.4330441Z ##[group]Determining the checkout info
+2026-10-20T06:00:10.4333561Z ##[endgroup]
+2026-10-20T06:00:10.4344088Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-20T06:00:10.4916364Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-20T06:00:10.5332269Z ##[group]Checking out the ref
+2026-10-20T06:00:10.5342746Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/106/merge
+2026-10-20T06:00:11.5991365Z Updating files:  81% (2403/2949)
+2026-10-20T06:00:11.6082971Z Updating files:  82% (2419/2949)
+2026-10-20T06:00:11.6259179Z Updating files:  83% (2448/2949)
+2026-10-20T06:00:11.6352916Z Updating files:  84% (2478/2949)
+2026-10-20T06:00:11.6461606Z Updating files:  85% (2507/2949)
+2026-10-20T06:00:11.6552645Z Updating files:  86% (2537/2949)
+2026-10-20T06:00:11.6632524Z Updating files:  87% (2566/2949)
+2026-10-20T06:00:11.6730243Z Updating files:  88% (2596/2949)
+2026-10-20T06:00:11.6820651Z Updating files:  89% (2625/2949)
+2026-10-20T06:00:11.6915360Z Updating files:  90% (2655/2949)
+2026-10-20T06:00:11.7025193Z Updating files:  91% (2684/2949)
+2026-10-20T06:00:11.7133013Z Updating files:  92% (2714/2949)
+2026-10-20T06:00:11.7221414Z Updating files:  93% (2743/2949)
+2026-10-20T06:00:11.7309755Z Updating files:  94% (2773/2949)
+2026-10-20T06:00:11.7407727Z Updating files:  95% (2802/2949)
+2026-10-20T06:00:11.7506733Z Updating files:  96% (2832/2949)
+2026-10-20T06:00:11.7680726Z Updating files:  97% (2861/2949)
+2026-10-20T06:00:11.7773086Z Updating files:  98% (2891/2949)
+2026-10-20T06:00:11.7857145Z Updating files:  99% (2920/2949)
+2026-10-20T06:00:11.7857763Z Updating files: 100% (2949/2949)
+2026-10-20T06:00:11.7858093Z Updating files: 100% (2949/2949), done.
+2026-10-20T06:00:11.7988989Z Note: switching to 'refs/remotes/pull/106/merge'.
+2026-10-20T06:00:11.7989309Z 
+2026-10-20T06:00:11.7989524Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-20T06:00:11.7990016Z changes and commit them, and you can discard any commits you make in this
+2026-10-20T06:00:11.7990484Z state without impacting any branches by switching back to a branch.
+2026-10-20T06:00:11.7990819Z 
+2026-10-20T06:00:11.7991024Z If you want to create a new branch to retain commits you create, you may
+2026-10-20T06:00:11.7991575Z do so (now or later) by using -c with the switch command. Example:
+2026-10-20T06:00:11.7992043Z 
+2026-10-20T06:00:11.7992272Z   git switch -c <new-branch-name>
+2026-10-20T06:00:11.7992584Z 
+2026-10-20T06:00:11.7992732Z Or undo this operation with:
+2026-10-20T06:00:11.7993098Z 
+2026-10-20T06:00:11.7993221Z   git switch -
+2026-10-20T06:00:11.7993338Z 
+2026-10-20T06:00:11.7993662Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-20T06:00:11.7994103Z 
+2026-10-20T06:00:11.7994501Z HEAD is now at 6ef519b Merge c21273a8e10d328acee400df22679186eb22a8aa into cdf4b098eb7f2db2cabeb4f12c021cee2a6686df
+2026-10-20T06:00:11.8159468Z ##[endgroup]
+2026-10-20T06:00:11.8706147Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-20T06:00:11.9080528Z 6ef519b82a8ee95e3b0a2d960872285305744835
+2026-10-20T06:00:11.9665603Z ##[group]Run actions/setup-node@v4
+2026-10-20T06:00:11.9665987Z with:
+2026-10-20T06:00:11.9666181Z   node-version: 22
+2026-10-20T06:00:11.9666384Z   always-auth: false
+2026-10-20T06:00:11.9666589Z   check-latest: false
+2026-10-20T06:00:11.9669750Z   token: ***
+2026-10-20T06:00:11.9669954Z env:
+2026-10-20T06:00:11.9670127Z   PI_VERSION: 1.0.2
+2026-10-20T06:00:11.9670340Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-20T06:00:11.9670603Z ##[endgroup]
+2026-10-20T06:00:12.1676653Z Found in cache @ C:\hostedtoolcache\windows\node\22.23.3\x64
+2026-10-20T06:00:12.1684720Z (node:2028) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-20T06:00:12.1685864Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-20T06:00:12.1689674Z ##[group]Environment details
+2026-10-20T06:00:17.1173237Z node: v22.23.3
+2026-10-20T06:00:17.1173550Z npm: 10.9.9
+2026-10-20T06:00:17.1173820Z yarn: 1.22.22
+2026-10-20T06:00:17.1174822Z ##[endgroup]
+2026-10-20T06:00:17.1532663Z ##[group]Run npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+2026-10-20T06:00:17.1533539Z [36;1mnpm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+2026-10-20T06:00:17.1558401Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-20T06:00:17.1558836Z env:
+2026-10-20T06:00:17.1559019Z   PI_VERSION: 1.0.2
+2026-10-20T06:00:17.1559224Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-20T06:00:17.1559699Z ##[endgroup]
+2026-10-20T06:00:49.2772203Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-20T06:02:25.1822946Z 
+2026-10-20T06:02:25.1825032Z added 121 packages in 2m
+2026-10-20T06:02:25.1825366Z 
+2026-10-20T06:02:25.1825633Z 9 packages are looking for funding
+2026-10-20T06:02:25.1826022Z   run `npm fund` for details
+2026-10-20T06:02:27.0883802Z ##[group]Run test "$(pi --version)" = "${PI_VERSION}"
+2026-10-20T06:02:27.0884284Z [36;1mtest "$(pi --version)" = "${PI_VERSION}"[0m
+2026-10-20T06:02:27.0901489Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-20T06:02:27.0901910Z env:
+2026-10-20T06:02:27.0902097Z   PI_VERSION: 1.0.2
+2026-10-20T06:02:27.0902310Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-20T06:02:27.0902560Z ##[endgroup]
+2026-10-20T06:02:27.8720680Z ##[group]Run node packages/nana-setup/bin/install-check.mjs
+2026-10-20T06:02:27.8721205Z [36;1mnode packages/nana-setup/bin/install-check.mjs[0m
+2026-10-20T06:02:27.8737790Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-20T06:02:27.8738185Z env:
+2026-10-20T06:02:27.8738362Z   PI_VERSION: 1.0.2
+2026-10-20T06:02:27.8738581Z   PI_BEFORE: 2026-10-04T06:57:57Z
+2026-10-20T06:02:27.8738806Z   TEMP: D:\a\_temp
+2026-10-20T06:02:27.8738987Z   TMP: D:\a\_temp
+2026-10-20T06:02:27.8739165Z ##[endgroup]
+2026-10-20T06:02:28.1282488Z Git Bash: C:\Program Files\Git\bin\bash.exe
+2026-10-20T06:02:28.1286642Z pi: C:\npm\prefix\pi.cmd
+2026-10-20T06:02:28.1287319Z node: C:\hostedtoolcache\windows\node\22.23.3\x64\node.exe
+2026-10-20T06:02:29.7183886Z PASS install
+2026-10-20T06:02:33.5890422Z PASS pi-subagents
+2026-10-20T06:02:33.9674594Z PASS pi list nana-pack
+2026-10-20T06:02:33.9675192Z PASS pi list nana-knowledge
+2026-10-20T06:02:37.2291891Z PASS pi session
+2026-10-20T06:02:39.0118475Z PASS pi turn
+2026-10-20T06:02:39.0123727Z PASS pi post-edit
+2026-10-20T06:02:39.0125886Z PASS pi powershell gate
+2026-10-20T06:02:39.0135647Z PASS hook set
+2026-10-20T06:02:39.2584256Z PASS hook roster notice
+2026-10-20T06:02:39.2646389Z PASS hook shared memory
+2026-10-20T06:02:39.3947065Z PASS hook knowledge pull
+2026-10-20T06:02:39.4538708Z PASS hook verifier pipe (PowerShell)
+2026-10-20T06:02:39.4596735Z PASS hook verifier pipe (Bash)
+2026-10-20T06:02:39.4742693Z PASS hook adoption
+2026-10-20T06:02:39.4982004Z PASS hook objective
+2026-10-20T06:02:40.2581956Z PASS doctor
+2026-10-20T06:03:07.8529285Z PASS readme checklist
+2026-10-20T06:03:11.5806562Z Post job cleanup.
+2026-10-20T06:03:11.7422938Z (node:6160) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-20T06:03:11.7425101Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-20T06:03:11.7797346Z Post job cleanup.
+2026-10-20T06:03:12.1289566Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-20T06:03:12.1697795Z git version 2.56.0.windows.2
+2026-10-20T06:03:12.1784819Z Temporarily overriding HOME='D:\a\_temp\33cb5338-95ce-427f-9a13-bc04343f37b1' before making global git config changes
+2026-10-20T06:03:12.1786311Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-20T06:03:12.1796113Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+2026-10-20T06:03:12.2224141Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-20T06:03:12.2652999Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-20T06:03:12.8853541Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-20T06:03:12.9211975Z http.https://github.com/.extraheader
+2026-10-20T06:03:12.9266663Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-20T06:03:12.9688082Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-20T06:03:13.5531458Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-20T06:03:13.5947467Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-20T06:03:14.2215302Z Cleaning up orphan processes
+2026-10-20T06:03:14.2579097Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
