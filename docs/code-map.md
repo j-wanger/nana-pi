@@ -2587,7 +2587,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/bounded-spawn-child.mjs`
 
 - **purpose** — Relay one bounded child launch and end its process tree at the deadline or on termination.
-- **inputs** — one JSON launch specification on stdin; TASKKILL_ARGS; RELAY_SETTLE_MS; process.env and process.platform
+- **inputs** — one JSON launch specification on stdin; TASKKILL_ARGS; relay settle and signal-grace limits; process.env and process.platform
 - **outputs** — one JSON result line on stdout
 - **effects** — process (spawns a detached POSIX group or Windows child, kills its tree when required, then exits)
 - **errors** — launch and timeout failures are serialized as result.error; malformed specifications become coded relay errors
@@ -2598,7 +2598,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Run a synchronous child launch through a relay that can end the launched process tree at its deadline.
 - **inputs** — command, args and spawn options; bounded-spawn-child.mjs; process.env
-- **outputs** — boundedSpawnSync result shaped like child_process.spawnSync; RELAY_SETTLE_MS and RELAY_BACKSTOP_MS
+- **outputs** — boundedSpawnSync result shaped like child_process.spawnSync; relay settle, signal-grace and backstop limits
 - **effects** — process (synchronously starts the relay and sends its launch specification on stdin)
 - **errors** — launch, relay and timeout failures are returned in result.error with a code and never thrown
 - **callers** — `packages/nana-setup/lib/bounded-spawn-child.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`
@@ -3058,7 +3058,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove install, its dry run and doctor bound pi launches and end every process those launches start.
 - **inputs** — steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
-- **outputs** — PASS/FAIL lines for seven requirement checks and exit 1 when any check fails
+- **outputs** — PASS/FAIL lines for nine requirement checks and exit 1 when any check fails
 - **effects** — disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
 - **errors** — a failed or over-time check prints FAIL and makes the file exit nonzero
 - **callers** — —

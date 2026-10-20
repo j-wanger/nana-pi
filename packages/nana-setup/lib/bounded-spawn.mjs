@@ -2,7 +2,7 @@
  * @module packages/nana-setup/lib/bounded-spawn.mjs
  * @purpose Run a synchronous child launch through a relay that can end the launched process tree at its deadline.
  * @inputs command, args and spawn options; bounded-spawn-child.mjs; process.env
- * @outputs boundedSpawnSync result shaped like child_process.spawnSync; RELAY_SETTLE_MS and RELAY_BACKSTOP_MS
+ * @outputs boundedSpawnSync result shaped like child_process.spawnSync; relay settle, signal-grace and backstop limits
  * @effects process (synchronously starts the relay and sends its launch specification on stdin)
  * @errors launch, relay and timeout failures are returned in result.error with a code and never thrown
  */
@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 
 // chosen 2026-10-20: allow closed child pipes one second to settle before the relay reports its timeout.
 export const RELAY_SETTLE_MS = 1_000;
+// chosen 2026-10-20: give pi's signal handlers one second to remove locks and close before forced tree cleanup.
+export const RELAY_SIGNAL_GRACE_MS = 1_000;
 // chosen 2026-10-20: give the relay five seconds beyond its own deadline to report or fail closed.
 export const RELAY_BACKSTOP_MS = 5_000;
 

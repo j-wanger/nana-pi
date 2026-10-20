@@ -3,7 +3,7 @@
  * @module packages/nana-setup/tests/pi-launch-limits.test.mjs
  * @purpose Prove install, its dry run and doctor bound pi launches and end every process those launches start.
  * @inputs steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
- * @outputs PASS/FAIL lines for seven requirement checks and exit 1 when any check fails
+ * @outputs PASS/FAIL lines for nine requirement checks and exit 1 when any check fails
  * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
  * @errors a failed or over-time check prints FAIL and makes the file exit nonzero
  */
@@ -15,12 +15,17 @@ import { pathToFileURL } from "node:url";
 import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout, repoRoot } from "../lib/paths.mjs";
 import { installExitCode, PI_LAUNCH_LIMITS_MS, stepPiRegister } from "../lib/steps.mjs";
-import { RELAY_BACKSTOP_MS, RELAY_SETTLE_MS } from "../lib/bounded-spawn.mjs";
+import * as boundedSpawn from "../lib/bounded-spawn.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
+const { RELAY_BACKSTOP_MS, RELAY_SETTLE_MS } = boundedSpawn;
 const LIMIT_MS = 3_000;
 const HANG_MS = 12_000;
-const BOUND_MS = 9_000;
+const SIGNAL_CASE_BOUND_MS = 9_000;
+// Test-only margin for scheduler delay on shared CI after the relay's one-second settle window.
+const RELAY_ELAPSED_MARGIN_MS = 1_000;
+const RELAY_ELAPSED_BOUND_MS = LIMIT_MS + RELAY_SETTLE_MS + RELAY_ELAPSED_MARGIN_MS;
+const CASE_LIMIT_MS = SIGNAL_CASE_BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS;
 const PID_POLL_MS = 2_000;
 const limits = Object.freeze({ version: LIMIT_MS, install: LIMIT_MS });
 const expectedPack = path.join(repoRoot, "packages", "nana-pack");
@@ -102,8 +107,31 @@ function makeFixture(target, { registerKnowledge = false } = {}) {
 	};
 }
 
+function makeSignalCleanupFixture() {
+	const fixture = makeFixture("none", { registerKnowledge: true });
+	const lock = path.join(fixture.home, "pi-install.lock");
+	const ready = path.join(fixture.home, "pi-install.ready");
+	const pi = path.join(fixture.bin, process.platform === "win32" ? "pi.cmd" : "pi");
+	const cleanup = path.join(fixture.bin, "signal-cleanup.cjs");
+	fs.writeFileSync(
+		cleanup,
+		`const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nconst args = process.argv.slice(2);\nif (args[0] === "--version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nfs.mkdirSync(process.env.LOCK_DIR);\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid }) + "\\n");\nspawn(process.execPath, ["-e", "require('node:fs').appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid }) + '\\\\n'); setTimeout(() => {}, 60_000)"], { stdio: "ignore", env: process.env });\nprocess.on("SIGINT", () => { fs.rmSync(process.env.LOCK_DIR, { recursive: true }); process.exit(0); });\nfs.writeFileSync(process.env.READY_FILE, "ready\\n");\nsetTimeout(() => {}, 60_000);\n`,
+	);
+	if (process.platform === "win32") {
+		fs.writeFileSync(pi, `@"${process.execPath}" "%~dp0signal-cleanup.cjs" %*\r\n`);
+	} else {
+		fs.writeFileSync(pi, `#!/bin/sh\nexec "${process.execPath}" "${cleanup}" "$@"\n`);
+		fs.chmodSync(pi, 0o755);
+	}
+	fixture.lock = lock;
+	fixture.ready = ready;
+	fixture.env.LOCK_DIR = lock;
+	fixture.env.READY_FILE = ready;
+	return fixture;
+}
+
 function withFixtureEnv(fixture, run) {
-	const names = ["PATH", "PIDS_FILE", "HANG_TARGET", "HANG_MS"];
+	const names = ["PATH", "PIDS_FILE", "HANG_TARGET", "HANG_MS", "LOCK_DIR", "READY_FILE"];
 	const saved = Object.fromEntries(names.map((name) => [name, process.env[name]]));
 	for (const name of names) process.env[name] = fixture.env[name];
 	try {
@@ -139,7 +167,7 @@ check("R-2020: a pi that hangs on --version makes install and install --dry-run 
 	const install = timedStep("version");
 	const dryRun = timedStep("version", true);
 	return {
-		ok: [install, dryRun].every((run) => run.elapsed >= LIMIT_MS && run.elapsed < BOUND_MS && run.row?.status === "problem" && stoppedVersion(run.row) && installExitCode(run.rows) === 1),
+		ok: [install, dryRun].every((run) => run.elapsed >= LIMIT_MS && run.elapsed < RELAY_ELAPSED_BOUND_MS && run.row?.status === "problem" && stoppedVersion(run.row) && installExitCode(run.rows) === 1),
 		detail: JSON.stringify({ install: { elapsed: install.elapsed, row: install.row }, dryRun: { elapsed: dryRun.elapsed, row: dryRun.row } }),
 	};
 });
@@ -147,14 +175,14 @@ check("R-2020: a pi that hangs on --version makes install and install --dry-run 
 // req: R-2021
 check("R-2021: a pi that hangs on --version makes doctor stop at the limit and report pi executable ✗ naming pi --version and the limit", () => {
 	const run = timedDoctor();
-	return { ok: run.elapsed >= LIMIT_MS && run.elapsed < BOUND_MS && run.row?.status === "fail" && stoppedVersion(run.row), detail: JSON.stringify({ elapsed: run.elapsed, row: run.row }) };
+	return { ok: run.elapsed >= LIMIT_MS && run.elapsed < RELAY_ELAPSED_BOUND_MS && run.row?.status === "fail" && stoppedVersion(run.row), detail: JSON.stringify({ elapsed: run.elapsed, row: run.row }) };
 });
 
 // req: R-2022
 check("R-2022: a pi install that hangs makes install stop at the limit, report pi packages ✗ naming pi install, the package folder and the limit, and exit 1", () => {
 	const run = timedStep("install");
 	const detail = run.row?.detail ?? "";
-	return { ok: run.elapsed >= LIMIT_MS && run.elapsed < BOUND_MS && run.row?.status === "problem" && detail.includes(`pi install ${expectedPack}`) && detail.includes(`${LIMIT_MS / 1_000} s`) && detail.includes("stopped") && installExitCode(run.rows) === 1, detail: JSON.stringify({ elapsed: run.elapsed, row: run.row }) };
+	return { ok: run.elapsed >= LIMIT_MS && run.elapsed < RELAY_ELAPSED_BOUND_MS && run.row?.status === "problem" && detail.includes(`pi install ${expectedPack}`) && detail.includes(`${LIMIT_MS / 1_000} s`) && detail.includes("stopped") && installExitCode(run.rows) === 1, detail: JSON.stringify({ elapsed: run.elapsed, row: run.row }) };
 });
 
 // req: R-2023
@@ -187,6 +215,12 @@ check("R-2024: with no limit injected, install, the dry run and doctor give pi -
 		detail: JSON.stringify({ limits: PI_LAUNCH_LIMITS_MS, calls: calls.map(({ args, options }) => ({ args, timeout: options.timeout })) }),
 	};
 });
+
+// req: R-2027
+check("R-2027: the relay gives a signalled pi launch 1000 ms to clean up before ending its process tree", () => ({
+	ok: boundedSpawn.RELAY_SIGNAL_GRACE_MS === 1_000,
+	detail: `RELAY_SIGNAL_GRACE_MS=${boundedSpawn.RELAY_SIGNAL_GRACE_MS}`,
+}));
 
 // req: R-2025
 check("R-2025: pi install started under the limit receives the agent folder install chose as PI_CODING_AGENT_DIR", () => {
@@ -222,7 +256,7 @@ check("R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group e
 		const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
 		const started = await waitFor(() => readPids(fixture.pids).length >= 3);
 		if (started) process.kill(-child.pid, signal);
-		const exited = await Promise.race([exit, sleep(BOUND_MS).then(() => false)]);
+		const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
 		const pids = readPids(fixture.pids);
 		const dead = await waitFor(() => pids.length >= 3 && pids.every((pid) => !processAlive(pid)));
 		if (!dead) {
@@ -233,12 +267,35 @@ check("R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group e
 	return { ok: observations.every(({ started, exited, dead }) => started && exited && dead), detail: JSON.stringify(observations) };
 });
 
+// req: R-2027
+check("R-2027: SIGINT lets pi install remove its lock before install ends its launch processes", async () => {
+	if (process.platform === "win32") {
+		console.log("SKIP R-2027: win32 delivers console Ctrl-C to the attached pi process and has no process-group SIGINT equivalent");
+		return { ok: true };
+	}
+	const fixture = makeSignalCleanupFixture();
+	const wrapper = path.join(fixture.home, "wrapper.mjs");
+	const stepsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "steps.mjs")).href;
+	const pathsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "paths.mjs")).href;
+	fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
+	const child = spawn(process.execPath, [wrapper], { detached: true, stdio: "ignore", env: { ...fixture.env, FIXTURE_HOME: fixture.home, LIMIT_MS: String(HANG_MS) } });
+	const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
+	const started = await waitFor(() => fs.existsSync(fixture.lock) && fs.existsSync(fixture.ready) && readPids(fixture.pids).length >= 3);
+	if (started) process.kill(-child.pid, "SIGINT");
+	const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
+	const cleaned = await waitFor(() => !fs.existsSync(fixture.lock));
+	const pids = readPids(fixture.pids);
+	const dead = await waitFor(() => pids.length >= 3 && pids.every((pid) => !processAlive(pid)));
+	if (!dead) for (const pid of pids) try { process.kill(pid, "SIGKILL"); } catch {}
+	return { ok: Boolean(started && exited && cleaned && dead), detail: JSON.stringify({ started: Boolean(started), exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) }) };
+});
+
 for (const testCase of cases) {
 	let timer;
 	try {
 		const result = await Promise.race([
 			Promise.resolve().then(testCase.run),
-			new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, detail: `case exceeded ${BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS} ms` }), BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS); }),
+			new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, detail: `case exceeded ${CASE_LIMIT_MS} ms` }), CASE_LIMIT_MS); }),
 		]);
 		console.log(result?.ok ? "PASS" : "FAIL", testCase.title, result?.ok ? "" : result?.detail ?? "");
 		if (!result?.ok) fails++;

@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-setup/lib/bounded-spawn-child.mjs
  * @purpose Relay one bounded child launch and end its process tree at the deadline or on termination.
- * @inputs one JSON launch specification on stdin; TASKKILL_ARGS; RELAY_SETTLE_MS; process.env and process.platform
+ * @inputs one JSON launch specification on stdin; TASKKILL_ARGS; relay settle and signal-grace limits; process.env and process.platform
  * @outputs one JSON result line on stdout
  * @effects process (spawns a detached POSIX group or Windows child, kills its tree when required, then exits)
  * @errors launch and timeout failures are serialized as result.error; malformed specifications become coded relay errors
@@ -10,7 +10,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { TASKKILL_ARGS } from "../../nana-pack/lib/mutation-runner-config.mjs";
-import { RELAY_SETTLE_MS } from "./bounded-spawn.mjs";
+import { RELAY_SETTLE_MS, RELAY_SIGNAL_GRACE_MS } from "./bounded-spawn.mjs";
 
 let child;
 let finished = false;
@@ -20,6 +20,9 @@ let stderr = "";
 let launchError = null;
 let settleTimer;
 let deadlineTimer;
+let signalGraceTimer;
+let terminatingSignal = null;
+let terminationDone = false;
 
 function errorRecord(error) {
 	if (!error) return undefined;
@@ -34,6 +37,7 @@ function relay(result, exitCode = 0) {
 	finished = true;
 	clearTimeout(deadlineTimer);
 	clearTimeout(settleTimer);
+	clearTimeout(signalGraceTimer);
 	const line = `${JSON.stringify(result)}\n`;
 	let exited = false;
 	const exit = () => {
@@ -74,10 +78,42 @@ function timeoutResult() {
 	};
 }
 
-function terminate(signal) {
+function finishTermination(signal) {
+	if (terminationDone) return;
+	terminationDone = true;
+	clearTimeout(deadlineTimer);
+	clearTimeout(settleTimer);
+	clearTimeout(signalGraceTimer);
 	killTree();
 	const exits = { SIGHUP: 129, SIGINT: 130, SIGTERM: 143 };
 	process.exit(exits[signal]);
+}
+
+function passSignal(signal) {
+	if (process.platform === "win32" || !child?.pid) return;
+	let sent = false;
+	try {
+		process.kill(-child.pid, signal);
+		sent = true;
+	} catch {}
+	if (!sent) {
+		try { child.kill(signal); } catch {}
+	}
+}
+
+function terminate(signal) {
+	if (terminatingSignal) {
+		finishTermination(signal);
+		return;
+	}
+	terminatingSignal = signal;
+	clearTimeout(deadlineTimer);
+	if (!child?.pid) {
+		finishTermination(signal);
+		return;
+	}
+	passSignal(signal);
+	signalGraceTimer = setTimeout(() => finishTermination(signal), RELAY_SIGNAL_GRACE_MS);
 }
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => terminate(signal));
@@ -105,7 +141,8 @@ if (!finished) {
 		child.stderr.on("data", (chunk) => { stderr += chunk; });
 		child.on("error", (error) => { launchError = error; });
 		child.on("close", (status, signal) => {
-			if (timedOut) relay(timeoutResult());
+			if (terminatingSignal) finishTermination(terminatingSignal);
+			else if (timedOut) relay(timeoutResult());
 			else relay({ status: launchError ? null : status, signal, stdout, stderr, ...(launchError ? { error: errorRecord(launchError) } : {}) });
 		});
 		const timeout = Number(spec.options?.timeout);
