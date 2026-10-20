@@ -187,4 +187,27 @@ check("suite checkout fetches full history for historical-commit tests", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
   assert.match(suite, /uses: actions\/checkout@v4\n        with:\n          fetch-depth: 0/);
 });
+// contract: GitHub Actions' default for jobs.<job_id>.timeout-minutes when a job sets none.
+const GITHUB_DEFAULT_JOB_TIMEOUT_MINUTES = 360;
+// req: R-2060
+check("R-2060: the suite job sets one job-level time limit below GitHub's six-hour default for every leg", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const limitLines = suite.split("\n").filter((line) => /^ {4}timeout-minutes:/.test(line));
+  assert.equal(limitLines.length, 1, `the suite job must hold exactly one job-level timeout-minutes line ${limitLines.length} !== 1`);
+  const match = limitLines[0].match(/^ {4}timeout-minutes: (\d+)$/);
+  assert(match, `job-level timeout-minutes must be a plain integer: ${JSON.stringify(limitLines[0])}`);
+  const value = Number(match[1]);
+  assert(value > 0 && value < GITHUB_DEFAULT_JOB_TIMEOUT_MINUTES, `timeout-minutes must be above 0 and below GitHub's ${GITHUB_DEFAULT_JOB_TIMEOUT_MINUTES}-minute default: ${value}`);
+});
+// req: R-2061
+check("R-2061: the suite job's time limit is sealed at 90 minutes with a chosen comment directly above it", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const lines = suite.split("\n");
+  const limitIndex = lines.findIndex((line) => /^ {4}timeout-minutes:/.test(line));
+  const firstLine = limitIndex >= 0 ? lines[limitIndex] : undefined;
+  assert.equal(firstLine, "    timeout-minutes: 90");
+  const commentLines = [];
+  for (let i = limitIndex - 1; i >= 0 && /^ {4}#/.test(lines[i]); i--) commentLines.unshift(lines[i]);
+  assert(commentLines.some((line) => /\bchosen\b/.test(line)), "a chosen comment must sit directly above the sealed limit, with the word chosen");
+});
 if (failures) process.exitCode = 1;
