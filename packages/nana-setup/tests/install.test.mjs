@@ -101,8 +101,7 @@ const link = (p) => {
 };
 // win32 has no usable symlink (R-1050/declared shape): hooks are never written at all
 // (stepHooks skips every entry — the exec-form settings entries are checked separately, below,
-// through entryInvokes), rules and the `requirements` skill mirror as byte-equal copies, and the
-// four pi-only skills are skipped exactly like the hooks.
+// through entryInvokes), rules and all five runtime-neutral skills as byte-equal copies.
 const winFileCopy = (target, source) => {
 	try {
 		return fs.lstatSync(target).isFile() && !fs.lstatSync(target).isSymbolicLink() && fs.readFileSync(target).equals(fs.readFileSync(source));
@@ -161,8 +160,8 @@ for (const name of ["spec", "py-lint", "py-review", "py-test"]) {
 		// req: R-665
 		check(`skill ${name} is a symlink to the pack skill`, link(path.join(home, ".claude", "skills", name)) === path.join(repo, "packages", "nana-pack", "skills", name));
 	} else {
-		// req: R-665
-		check(`skill ${name} is not installed on win32 (pi-only)`, !fs.existsSync(path.join(home, ".claude", "skills", name)));
+		// req: R-351
+		check(`skill ${name} is a byte-equal mirror on win32`, winFileCopy(path.join(home, ".claude", "skills", name, "SKILL.md"), path.join(repo, "packages", "nana-pack", "skills", name, "SKILL.md")));
 	}
 }
 // req: R-301

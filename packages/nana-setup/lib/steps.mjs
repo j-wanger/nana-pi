@@ -82,7 +82,6 @@ export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
-const skip = (label) => ({ label, status: SKIPPED, detail: "skipped (win32)" });
 
 /** lstat that never throws — the link itself, never what it points at. */
 export function lstatSafe(p) {
@@ -255,9 +254,8 @@ export function mirrorDirsProblem(target, files) {
  * is, never backed up into `~/.claude/skills/` (a `requirements.bak-<date>` directory there would
  * be loaded as a SECOND skill claiming the same name) and never written through.
  *
- * win32 has no usable symlink, so the `requirements` source files are mirrored through the same
- * copy path the rules use. The four newer runtime-neutral skills are skipped by stepSkills; no
- * mirror is attempted for an unrecognized directory at those names.
+ * win32 has no usable symlink, so every runtime-neutral skill's source files are mirrored through
+ * the same copy path the rules use. An unrecognized directory at any managed name is refused.
  *
  * The win32 mirror checks the DIRECTORIES it is about to write into before it touches a file
  * (sol r1, CRITICAL): `linkFile` only ever sees the leaf, so a directory symlink/junction at
@@ -325,7 +323,6 @@ export function stepRetiredArtifacts(layout, o) {
 	const out = [];
 	const date = new Date().toISOString().slice(0, 10);
 	for (const entry of retiredArtifacts(layout.base)) {
-		if (win() && NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`)) continue;
 		const root = entry.relative.startsWith(".agents/") ? ".agents" : ".claude";
 		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
 		const relativeTail = entry.relative.slice(root.length + 1);
@@ -402,7 +399,6 @@ export function stepSkills(layout, o) {
 	return CLAUDE_SKILLS.map((name) => {
 		const target = path.join(layout.skillsDir, name);
 		const source = path.join(PACK_SKILLS_DIR, name);
-		if (win() && NEW_CLAUDE_SKILLS.includes(name)) return skip(`skill ${name}`);
 		if (!directoryAncestorsAreSafe(layout.claudeHome, layout.skillsDir, true))
 			return { label: `skill ${name}`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; skill left untouched` };
 		const legacy = retiredArtifacts(layout.base).find((entry) => entry.relative === `.claude/skills/${name}`);

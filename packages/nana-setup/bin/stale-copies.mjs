@@ -11,9 +11,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { skillLinkState } from "../lib/doctor.mjs";
 import { hookLinkRows, hookSettingsRows } from "../lib/hook-health.mjs";
-import { platform, resolveLayout } from "../lib/paths.mjs";
+import { resolveLayout } from "../lib/paths.mjs";
 import { hasAdoptionInstallRecord, linkOk, staleNotice } from "../lib/stale-copies.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, PACK_SKILLS_DIR, ruleSource, stepSkills } from "../lib/steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, ruleSource, stepSkills } from "../lib/steps.mjs";
 
 const layout = resolveLayout();
 
@@ -55,7 +55,6 @@ if (hasAdoptionInstallRecord(layout, settings)) {
 	}
 	const failedSkills = new Set();
 	for (const name of CLAUDE_SKILLS) {
-		if (platform() === "win32" && NEW_CLAUDE_SKILLS.includes(name)) continue;
 		if (!skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name)).ok) {
 			labels.push(`skill ${name}`);
 			failedSkills.add(name);

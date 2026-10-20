@@ -27,7 +27,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
@@ -77,6 +77,8 @@ export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite"
 export function skillLinkState(target, source) {
 	const st = lstatSafe(target);
 	if (!st) return { ok: false, detail: `missing — run \`nana-setup install\`` };
+	if (platform() === "win32" && st.isSymbolicLink())
+		return { ok: false, detail: `a symlink or junction is there instead of nana-setup's copy of ${source} — move it, then re-run \`nana-setup install\`` };
 	if (st.isSymbolicLink()) {
 		let current = null;
 		try { current = fs.realpathSync(target); } catch { /* dangling link */ }
@@ -85,6 +87,8 @@ export function skillLinkState(target, source) {
 		return current === canonicalSource ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
 	}
 	if (platform() !== "win32") return { ok: false, detail: `${st.isDirectory() ? "a directory" : "a regular file"} is there instead of a symlink to ${source} — move it, then re-run \`nana-setup install\`` };
+	if (!st.isDirectory())
+		return { ok: false, detail: `a regular file is there instead of nana-setup's copy of ${source} — move it, then re-run \`nana-setup install\`` };
 	// win32: a directory nana-setup did not make is refused, same as posix (R-1423)
 	if (st.isDirectory() && !ownSkillCopy(target, source))
 		return { ok: false, detail: `a directory is there instead of nana-setup's copy of ${source} — move it, then re-run \`nana-setup install\`` };
@@ -362,10 +366,6 @@ export function diagnose(layout, opts = {}) {
 	);
 
 	for (const name of CLAUDE_SKILLS) {
-		if (win && NEW_CLAUDE_SKILLS.includes(name)) {
-			add(NOTE, `skill ${name}`, "skipped (win32; pi-only)");
-			continue;
-		}
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
 		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
 	}

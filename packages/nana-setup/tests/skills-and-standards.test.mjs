@@ -65,6 +65,12 @@ const lstatSafe = (p) => {
 		return null;
 	}
 };
+const filesUnder = (root) => fs.readdirSync(root, { recursive: true, withFileTypes: true })
+	.filter((entry) => entry.isFile())
+	.map((entry) => path.relative(root, path.join(entry.parentPath ?? entry.path, entry.name)))
+	.sort();
+const byteEqualTree = (target, source) => filesUnder(source).every((file) =>
+	lstatSafe(path.join(target, file))?.isFile() && fs.readFileSync(path.join(target, file)).equals(fs.readFileSync(path.join(source, file))));
 
 try {
 	/* --- 0. the sources exist and are what the installer claims ------------------------- */
@@ -316,9 +322,70 @@ try {
 		check("win32: install refreshes the stale copy", fix.status === 0 && fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		const baks = fs.readdirSync(target).filter((f) => f.includes(".bak-"));
 		check("win32: the hand-written file was backed up, not destroyed", baks.length === 1 && fs.readFileSync(path.join(target, baks[0]), "utf8").includes("HAND-WRITTEN"), baks.join(","));
-		// req: R-665
-		check("win32: requirements backup is a FILE inside the skill dir; new skills stay pi-only", fs.readdirSync(path.join(w, ".claude", "skills")).length === 1 && !fs.readdirSync(path.join(w, ".claude", "skills")).some((name) => name.includes(".bak-")));
 		check("win32: doctor is green again", run(["doctor", "--home", w], env).status === 0);
+	}
+
+	/* --- 6b. win32: all five Claude Code skills are managed copies ------------------------- */
+	{
+		const env = process.platform === "win32" ? {} : { NANA_SETUP_PLATFORM: "win32" };
+		const five = ["requirements", "spec", "py-lint", "py-review", "py-test"];
+		const four = five.filter((name) => name !== "requirements");
+		const source = (name) => path.join(repo, "packages", "nana-pack", "skills", name);
+		const target = (home, name) => path.join(home, ".claude", "skills", name);
+
+		const fresh = freshHome();
+		const installed = run(["install", "--home", fresh], env);
+		// req: R-351
+		check("R-351: on win32 install mirrors every shipped file of all five Claude Code skills byte-for-byte",
+			installed.status === 0 && five.every((name) => lstatSafe(target(fresh, name))?.isDirectory() && !lstatSafe(target(fresh, name))?.isSymbolicLink() && byteEqualTree(target(fresh, name), source(name))),
+			installed.stdout);
+		const healthy = run(["doctor", "--home", fresh], env);
+		// req: R-1900
+		check("R-1900: on win32 doctor marks all four newly managed skill copies healthy and names the copy form",
+			healthy.status === 0 && four.every((name) => new RegExp(`✓ skill ${name}\\s+copied from .* \\(no symlink on this platform\\)`).test(healthy.stdout)),
+			healthy.stdout);
+
+		const stale = freshHome();
+		const first = run(["install", "--home", stale], env);
+		const ownerText = new Map();
+		const initialMarkers = new Map();
+		for (const name of five) {
+			const dir = target(stale, name);
+			ownerText.set(name, `# HAND-WRITTEN ${name}`);
+			initialMarkers.set(name, lstatSafe(path.join(dir, ".nana-setup-copy"))?.isFile() === true);
+			fs.mkdirSync(dir, { recursive: true });
+			fs.writeFileSync(path.join(dir, "SKILL.md"), ownerText.get(name));
+			fs.writeFileSync(path.join(dir, "owner-notes.md"), `owner notes for ${name}\n`);
+		}
+		const staleDoctor = run(["doctor", "--home", stale], env);
+		const refreshed = run(["install", "--home", stale], env);
+		// req: R-938
+		check("R-938: on win32 doctor names every stale SKILL.md and install refreshes all five copies",
+			first.status === 0 && five.every((name) => initialMarkers.get(name)) && staleDoctor.status === 1 && five.every((name) => new RegExp(`✗ skill ${name}\\s+copy is stale or incomplete \\(SKILL\\.md\\)`).test(staleDoctor.stdout)) &&
+				refreshed.status === 0 && five.every((name) => fs.readFileSync(path.join(target(stale, name), "SKILL.md")).equals(fs.readFileSync(path.join(source(name), "SKILL.md")))),
+			staleDoctor.stdout);
+		// req: R-388
+		check("R-388: on win32 each overwritten SKILL.md has one regular in-folder backup and no skill-name backup entry",
+			five.every((name) => {
+				const backups = fs.readdirSync(target(stale, name)).filter((entry) => entry.startsWith("SKILL.md.bak-"));
+				return backups.length === 1 && lstatSafe(path.join(target(stale, name), backups[0]))?.isFile() && fs.readFileSync(path.join(target(stale, name), backups[0]), "utf8") === ownerText.get(name);
+			}) && !fs.readdirSync(path.join(stale, ".claude", "skills")).some((entry) => entry.includes(".bak-")));
+		// req: R-359
+		check("R-359: on win32 refresh preserves every owner note and every copy marker",
+			five.every((name) => lstatSafe(path.join(target(stale, name), "owner-notes.md"))?.isFile() && fs.readFileSync(path.join(target(stale, name), "owner-notes.md"), "utf8") === `owner notes for ${name}\n` && lstatSafe(path.join(target(stale, name), ".nana-setup-copy"))?.isFile()));
+
+		const obstructed = freshHome();
+		const skills = path.join(obstructed, ".claude", "skills");
+		fs.mkdirSync(skills, { recursive: true });
+		for (const name of ["requirements", "py-test"]) fs.writeFileSync(path.join(skills, name), `owner file ${name}\n`);
+		fs.symlinkSync(source("spec"), path.join(skills, "spec"), process.platform === "win32" ? "junction" : "dir");
+		const obstructedDoctor = run(["doctor", "--home", obstructed], env);
+		const ending = "— move it, then re-run `nana-setup install`";
+		// req: R-1903
+		check("R-1903: on win32 doctor identifies regular files and a skill link or junction with the move-then-install fix",
+			obstructedDoctor.status === 1 && ["requirements", "py-test"].every((name) => new RegExp(`✗ skill ${name}\\s+a regular file is there instead of nana-setup's copy .*${ending.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(obstructedDoctor.stdout)) &&
+				new RegExp(`✗ skill spec\\s+a symlink or junction is there instead of nana-setup's copy .*${ending.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(obstructedDoctor.stdout),
+			obstructedDoctor.stdout);
 	}
 
 	/* --- 7. a LINK in the way is never written THROUGH ------------------------------------ */

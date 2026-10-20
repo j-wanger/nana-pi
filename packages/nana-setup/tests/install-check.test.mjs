@@ -838,7 +838,7 @@ check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor"],
   });
 });
 // req: R-1073

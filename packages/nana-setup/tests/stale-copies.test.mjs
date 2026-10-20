@@ -161,6 +161,9 @@ function breakLegacyWin32(fixture) {
 	fs.writeFileSync(path.join(fixture.layout.rulesDir, "nana-standards.md"), "changed standards\n");
 	fs.rmSync(path.join(fixture.layout.rulesDir, "nana-seat.md"), { force: true });
 	fs.writeFileSync(path.join(fixture.layout.skillsDir, "requirements", "SKILL.md"), "changed requirements\n");
+	const pyLint = path.join(fixture.layout.skillsDir, "py-lint");
+	fs.mkdirSync(pyLint, { recursive: true });
+	fs.writeFileSync(path.join(pyLint, "SKILL.md"), "changed py-lint\n");
 	fs.writeFileSync(fixture.layout.piRulings, "changed rulings\n");
 }
 
@@ -199,6 +202,10 @@ function breakWin32Occupied(fixture) {
 	fs.rmSync(requirements, { recursive: true, force: true });
 	fs.mkdirSync(requirements);
 	fs.writeFileSync(path.join(requirements, "SKILL.md"), "owner requirements\n");
+	const spec = path.join(fixture.layout.skillsDir, "spec");
+	fs.rmSync(spec, { recursive: true, force: true });
+	fs.mkdirSync(spec);
+	fs.writeFileSync(path.join(spec, "SKILL.md"), "owner spec\n");
 	editSettings(fixture, (hooks) => { delete hooks.UserPromptSubmit; });
 }
 
