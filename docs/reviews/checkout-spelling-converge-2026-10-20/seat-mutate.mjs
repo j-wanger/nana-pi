@@ -16,6 +16,7 @@ const R2201 = "R-2201: install preserves skill links to another checkout copy as
 const R2202 = "R-2202: install converges the knowledge command to the on-disk spelling";
 const R2203 = "R-2203: uninstall removes a respelled knowledge entry without a variant row";
 const R2204 = "R-2204: uninstall preserves foreign and customized respelled knowledge entries";
+const R2205 = "R-2205: install leaves a customized respelled knowledge entry unchanged";
 const HEALTHY = "every group is scanned regardless of matcher: a healthy knowledge entry under matcher \"*\" is found and left alone, no twin";
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const FOREIGN = "return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };";
@@ -81,15 +82,16 @@ const PAIRS = [
 	{ n: "P11", name: "(W4) mergeRepoHooks keeps a healthy entry that names the same file through another command (main)", edits: [
 		one(SE, "if (item.healthy && (!win32 || item.form === \"win32-exec\") && !item.sameFile) continue;", "if (item.healthy && (!win32 || item.form === \"win32-exec\")) continue;"),
 	], tests: [CC], expectRed: [R2202] },
-	{ n: "P12", name: "mergeRepoHooks' same-file test compares the typed target text, not real paths", edits: [
-		one(SE, "sameFile = wantedTarget !== null && realPath(match.target, { mustExist: true }) === realPath(wantedTarget, { mustExist: true });", "sameFile = wantedTarget !== null && match.target === wantedTarget;"),
-	], tests: [CC], expectRed: [R2202] },
-	{ n: "P13", name: "mergeRepoHooks' same-file test also takes the installer's exact command, so a normal install rewrites its own healthy entry", edits: [
-		one(SE, "if (match.form === \"posix\" && hook.command !== w.entry.command) {", "if (match.form === \"posix\") {"),
-	], tests: [SM], expectRed: [HEALTHY] },
+	{ n: "P12", name: "(build 2, round-1 MUST) mergeRepoHooks rewrites any same-file POSIX entry with another command, ignoring its other keys", edits: [
+		one(SE, "const sameFile = match.form === \"posix\" && respelledKnowledgeEntry(hook, w);", "const sameFile = match.form === \"posix\" && hook.command !== w.entry.command;"),
+	], tests: [CC], expectRed: [R2205] },
+	{ n: "P13", name: "(build 2) on POSIX the health test uses the JS lookup again, which keeps a typed letter case", edits: [
+		one(SE, "const real = win32 ? fs.realpathSync(match.target) : realPath(match.target, { mustExist: true });", "const real = fs.realpathSync(match.target);"),
+		one(SE, "const root = win32 ? fs.realpathSync(repoRoot) : realPath(repoRoot, { mustExist: true });", "const root = fs.realpathSync(repoRoot);"),
+	], tests: [CC], expectRed: [R2205] },
 	{ n: "P14", name: "(W8) settingsVariants reads the settings before removal", edits: [
 		one(UN, "const variants = settingsVariants(previewSettings, layout);", "const variants = settingsVariants(initial.settings, layout);"),
 	], tests: [CC], expectRed: [R2203] },
 ];
 
-process.exitCode = await runMutations({ lane: "checkout-spelling-converge", self: import.meta.url, tip: "d901a045", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "checkout-spelling-converge", self: import.meta.url, tip: "1ed4819e", declared: DECLARED, pairs: PAIRS });
