@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-knowledge/tests/unreadable-root.test.mjs
- * @purpose Pin that unreadable roots and folders retain indexed rows and are reported by build and status.
- * @inputs Temporary article roots, POSIX modes or Windows deny ACLs, and the knowledge build and CLI modules.
+ * @purpose Pin status and build reporting for readable-file, missing and unreadable roots, including rebuild row loss.
+ * @inputs Temporary article and file roots, POSIX modes or Windows deny ACLs, and the knowledge build and CLI modules.
  * @outputs PASS/FAIL/SKIP lines for unreadable and missing path behavior, with exit 1 when a check fails.
  * @effects disk (temporary roots and index), database (temporary SQLite index), process (spawns the CLI and sets test homes).
  * @errors A failed check prints FAIL; unsupported permission denial prints declared SKIPs; unexpected errors fail the run.
@@ -21,6 +21,7 @@ const rootB = path.join(td, "b");
 const locked = path.join(rootB, "locked");
 const keep = path.join(rootB, "keep");
 const missing = path.join(td, "missing");
+const fileRoot = path.join(td, "ledger.md");
 fs.mkdirSync(profile, { recursive: true });
 fs.mkdirSync(rootA, { recursive: true });
 fs.mkdirSync(locked, { recursive: true });
@@ -33,6 +34,7 @@ fs.mkdirSync(home, { recursive: true });
 fs.writeFileSync(path.join(rootA, "one.md"), "# Root kept\nrootkeepsignal\n");
 fs.writeFileSync(path.join(keep, "two.md"), "# Visible kept\nvisiblekeepsignal\n");
 fs.writeFileSync(path.join(locked, "three.md"), "# Folder kept\nfolderkeepsignal\n");
+fs.writeFileSync(fileRoot, "- [uses:1] readable file root. src: `test`\n");
 const gone = path.join(rootB, "gone.md");
 fs.writeFileSync(gone, "# Deleted\ndeletedpurgesignal\n");
 fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({
@@ -40,6 +42,7 @@ fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({
 		{ path: rootA, kind: "articles" },
 		{ path: rootB, kind: "articles" },
 		{ path: missing, kind: "articles" },
+		{ path: fileRoot, kind: "ledger" },
 	],
 }));
 
@@ -87,6 +90,7 @@ function restore(dir) {
 }
 
 let buildRun;
+let rebuildRun;
 let statusRun;
 let denialReason = null;
 try {
@@ -103,13 +107,18 @@ try {
 	const folderRowsKept = search(db, "folderkeepsignal", 5).length === 1;
 	const deletedRowPurged = search(db, "deletedpurgesignal", 5).length === 0;
 	db.close();
+	rebuildRun = spawnSync(process.execPath, [cli, "build", "--rebuild"], options);
 	const buildLines = buildRun.stdout.split(/\r?\n/);
+	const rebuildLines = rebuildRun.stdout.split(/\r?\n/);
 	const statusLines = statusRun.stdout.split(/\r?\n/);
 	const rootBuildLine = buildLines.find((line) => line.includes(rootA) && line.includes("UNREADABLE"));
 	const folderBuildLine = buildLines.find((line) => line.includes(locked) && line.includes("UNREADABLE"));
 	const rootStatusLine = statusLines.find((line) => line.endsWith(rootA));
+	const fileStatusLine = statusLines.find((line) => line.endsWith(fileRoot));
 	const missingBuildLine = buildLines.find((line) => line.includes(missing) && line.includes("MISSING"));
 	const missingStatusLine = statusLines.find((line) => line.endsWith(missing));
+	const rebuildRootLine = rebuildLines.find((line) => line.includes(rootA) && line.includes("UNREADABLE"));
+	const rebuildMissingLine = rebuildLines.find((line) => line.includes(missing) && line.includes("MISSING"));
 
 	let fails = 0;
 	const check = (name, ok, skipReason = null) => {
@@ -125,9 +134,13 @@ try {
 	// req: R-1912
 	check("R-1912: build names an unlistable root and an unlistable folder UNREADABLE and exits 0", buildRun.status === 0 && rootBuildLine === `  ${rootA}  UNREADABLE (skipped, rows kept)` && folderBuildLine === `  ${locked}  UNREADABLE (skipped, rows kept)`, denialReason);
 	// req: R-1913
-	check("R-1913: status marks a root that cannot be listed UNREADABLE, not ok", statusRun.status === 0 && rootStatusLine?.includes("UNREADABLE") && !rootStatusLine?.includes("ok"), denialReason);
+	check("R-1913: status marks a root that cannot be listed UNREADABLE, not ok", statusRun.status === 0 && /^\s+UNREADABLE /.test(rootStatusLine ?? ""), denialReason);
 	// req: R-883
-	check("R-883: build names a missing root MISSING and status marks it MISS, both exiting 0", buildRun.status === 0 && statusRun.status === 0 && missingBuildLine === `  ${missing}  MISSING (skipped, rows kept)` && missingStatusLine?.includes("MISS") && !missingStatusLine?.includes("ok"));
+	check("R-883: build names a missing root MISSING and status marks it MISS, both exiting 0", buildRun.status === 0 && statusRun.status === 0 && missingBuildLine === `  ${missing}  MISSING (skipped, rows kept)` && /^\s+MISS /.test(missingStatusLine ?? ""));
+	// req: R-1914
+	check("R-1914: status marks a readable single-file root ok", statusRun.status === 0 && /^\s+ok\s+ledger /.test(fileStatusLine ?? ""));
+	// req: R-1915
+	check("R-1915: rebuild reports that missing and unreadable roots lost their rows", rebuildRun.status === 0 && rebuildRootLine === `  ${rootA}  UNREADABLE (skipped; the rebuild dropped its rows)` && rebuildMissingLine === `  ${missing}  MISSING (skipped; the rebuild dropped its rows)`, denialReason);
 
 	process.exitCode = fails;
 } finally {

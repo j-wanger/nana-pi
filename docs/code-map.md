@@ -956,8 +956,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 
-- **purpose** — Pin that unreadable roots and folders retain indexed rows and are reported by build and status.
-- **inputs** — Temporary article roots, POSIX modes or Windows deny ACLs, and the knowledge build and CLI modules.
+- **purpose** — Pin status and build reporting for readable-file, missing and unreadable roots, including rebuild row loss.
+- **inputs** — Temporary article and file roots, POSIX modes or Windows deny ACLs, and the knowledge build and CLI modules.
 - **outputs** — PASS/FAIL/SKIP lines for unreadable and missing path behavior, with exit 1 when a check fails.
 - **effects** — disk (temporary roots and index), database (temporary SQLite index), process (spawns the CLI and sets test homes).
 - **errors** — A failed check prints FAIL; unsupported permission denial prints declared SKIPs; unexpected errors fail the run.

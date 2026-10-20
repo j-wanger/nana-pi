@@ -40,8 +40,9 @@ async function cmdBuild(argv: string[]): Promise<number> {
 		for (const r of s.roots) {
 			console.log(`  ${r.root.padEnd(pad)}  ${String(r.files).padStart(6)} files  ${String(r.rows).padStart(7)} rows  ${r.kind}${r.skipped ? `  (${r.skipped} >1MB skipped)` : ""}`);
 		}
-		for (const m of s.missingRoots) console.log(`  ${m}  MISSING (skipped, rows kept)`);
-		for (const u of s.unreadable) console.log(`  ${u}  UNREADABLE (skipped, rows kept)`);
+		const skipped = rebuild ? "(skipped; the rebuild dropped its rows)" : "(skipped, rows kept)";
+		for (const m of s.missingRoots) console.log(`  ${m}  MISSING ${skipped}`);
+		for (const u of s.unreadable) console.log(`  ${u}  UNREADABLE ${skipped}`);
 		console.log(`\n  files ${s.files} · rows ${s.rows} · reindexed ${s.reindexed} · unchanged ${s.unchanged} · removed ${s.removed} · preserved ${s.preserved} · skipped>1MB ${s.skippedLarge}`);
 		console.log(`  ${(s.ms / 1000).toFixed(1)}s · db ${mb(s.dbBytes)} · ${paths.db}`);
 		return 0;

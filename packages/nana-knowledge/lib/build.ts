@@ -160,12 +160,12 @@ export interface BuildStats {
 	dbBytes: number;
 }
 
-function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<string>, unreadable: string[]): boolean {
+function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<string>, unreadable: string[]): void {
 	let st: fs.Stats;
-	try { st = fs.statSync(root); } catch { unreadable.push(root); return false; }
+	try { st = fs.statSync(root); } catch { unreadable.push(root); return; }
 	if (st.isFile()) {
 		out.push({ path: root, root, kind, size: st.size, mtime: Math.floor(st.mtimeMs) });
-		return true;
+		return;
 	}
 	const stack = [root];
 	while (stack.length) {
@@ -177,7 +177,6 @@ function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<stri
 		try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
 		catch {
 			unreadable.push(dir);
-			if (dir === root) return false;
 			continue;
 		}
 		for (const e of entries) {
@@ -193,7 +192,6 @@ function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<stri
 			out.push({ path: p, root, kind, size: fst.size, mtime: Math.floor(fst.mtimeMs) });
 		}
 	}
-	return true;
 }
 
 function hash(content: string): string {
@@ -254,7 +252,7 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	for (const r of roots) {
 		if (!fs.existsSync(r.path)) { stats.missingRoots.push(r.path); continue; }
 		const before = candidates.length;
-		if (!walk(r.path, r.kind, candidates, skip, stats.unreadable)) continue;
+		walk(r.path, r.kind, candidates, skip, stats.unreadable);
 		stats.roots.push({ root: r.path, kind: r.kind, files: candidates.length - before, rows: 0, skipped: 0 });
 	}
 	const rootStat = new Map(stats.roots.map((s) => [s.root, s]));
