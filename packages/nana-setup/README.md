@@ -261,6 +261,8 @@ literal 9 bytes `AGENTS.md` — also reads ✗; re-running `project` replaces it
 
 `project --check` compares only the marker-owned section; text outside it does not affect that row. A differing section names `nana-setup project <dir>` as its fix, and absent or malformed markers read `!`.
 
+`project --check` mutes the same two Node warnings doctor mutes and prints every other Node warning.
+
 Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and the current project's tier (`~/.claude/projects/<key>/memory`). It resolves `[[name]]` by each target's frontmatter `name:` rather than filename. Shared memories may link only to shared names; project memories may link to shared or same-project names. Dangling links are informational and add only a count; they do not fail doctor. Cross-tier and ambiguous links read `!`; doctor never edits memory. The row prints at most 30 named issues, followed by a count when more remain.
 
 Doctor's `pi executable` row checks `pi --version` and names the shared install hint on failure; `PATH resolves pi-review` checks the first executable match on PATH. `pi package source` compares registered package trees with the checkout supplying hooks and rules. Doctor mutes exactly the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning and prints every other Node warning.
@@ -460,7 +462,7 @@ loudly and counted, never silent.
 | `tests/fresh-machine.test.mjs` | ordered README checklist and sourced Node, pi and pi-subagents versions |
 | `tests/readme-rehearsal.test.mjs` | the checklist's `Run`/`then`/`expect` parse grammar, the sealed answer rule, the rehearsal home's environment (no ZDOTDIR, the home npm prefix ahead of PATH, only the clone redirect added), the spawn adapter's configurable output cap, and the stop-at-first-failure verdict (all steps ok, a nonzero exit, a timeout, missing expected text, and no expected text anywhere) |
 | `tests/doctor-runtime.test.mjs` | pi executable diagnostics and first executable pi-review PATH resolution |
-| `tests/doctor-quiet.test.mjs` | doctor mutes its SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning while preserving unrelated Node warnings |
+| `tests/doctor-quiet.test.mjs` | doctor and `project --check` mute the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning while preserving unrelated Node warnings |
 | `tests/doctor-fix-line.test.mjs` | doctor's final line gives install only the ✗ rows its dry run repairs, lists the rest by hand, reports a refusal, preserves ! counts, and writes nothing |
 | `tests/win32-degrade.test.mjs` | every still-posix-only step reporting `skipped (win32)`; install and doctor printing no hook-file row; all eight PATH shim files, install idempotence and collision backup; doctor requiring both shim renderings; the six win32 settings entries wired in exec form with matcher `Bash\|PowerShell`; and the copy path backing up / never writing through a symlink |
 | `tests/win32-hook-repair.test.mjs` | Windows repair of carried POSIX shell-form hooks and the first unquoted knowledge form; verifier relocation and deduplication; second-install and doctor health; owner look-alikes preserved byte-identically |
