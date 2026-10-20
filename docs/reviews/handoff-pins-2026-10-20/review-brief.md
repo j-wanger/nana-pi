@@ -47,3 +47,5 @@ FEAT-002 · Resume decisions and next actions
   R-830 untested -> implemented
   R-880 untested -> implemented
 ```
+
+Seat note after the chain merge (records only): the seat folded round-1 review notes from lanes landing ahead of this one into HANDOFF: it corrected win-lock-fix-command's folder-lock line (Command Prompt's del asks to confirm and then deletes the folder's files, it does not simply fail), and added one line each from that lane, config-advice-fixes, install-cli-pins and pack-config-agent-dir-pins. Check them for truth against those lanes' reviews in their review folders; they change no code.

@@ -705,13 +705,20 @@
 - Lock removal on Windows (win-lock-fix-command, plan): Command Prompt expands a defined percent variable even inside double quotes. A home path holding one breaks the Command Prompt line. The PowerShell line still works there.
 - Lock removal on Windows (win-lock-fix-command, plan): Git Bash gets no removal command of its own. Neither does Claude Code's Bash tool there.
 - Lock removal on Windows (win-lock-fix-command, plan): a hidden or read-only lock defeats both Windows lines. Our tools never make such a lock.
-- Lock removal (win-lock-fix-command, plan and independent check): a lock left as a folder makes the printed rm and del lines fail. Doctor still reports it without a crash. Our tools never make a folder lock.
+- Lock removal (win-lock-fix-command, plan, independent check and review): for a lock left as a folder, the printed rm line fails. The Command Prompt del line asks to confirm and, on yes, deletes the files inside that folder. Doctor still reports it without a crash. Our tools never make a folder lock.
+- Doctor's lock row on Windows (win-lock-fix-command, review): doctor's row puts both Windows commands on one line. The user must select one command, not paste the line. Install's message keeps each command alone on its line.
 - Product report (win-lock-fix-command, independent check, found before the lane): the stored assessments still list the retired install-lock requirement as untested. The report's staleness view already flags that assessment.
 - Lock removal checks (win-lock-fix-command): the independent check ran on the second build only. The third build changed only tests and requirement statuses. Nobody re-ran the check on it. The seat's wrong-code pairs ran on macOS only. Nobody ran a wrong PowerShell quote doubling on Windows.
 - Seat briefs (win-lock-fix-command): the first build brief asked for requirement markers on two rows it also kept untested. The trace rejects that, so the builder reported blocked. The second brief used candidate markers instead, as win-watchdog-cpu-read did. The third build made them full markers after the Windows CI pass.
 - Independent check (win-lock-fix-command): its probe home used a name shaped like the owner's. The seat's saved copy swapped in a made-up name before commit. A later check could repeat it unless its brief asks for made-up names.
 - Handoff summary cap (handoff-pins plan): the cut at 8000 units can split a character that takes two units. A lone half then reaches the prompt. The requirement allows it. The fix belongs to the handoff extension's next lane.
 - Handoff summary cap (handoff-pins plan): the cap's value has no note of its source beside it, as the coding standards ask. The new check pins the requirement's own number. The handoff extension's next lane adds the note.
+- Config line (config-advice-fixes, land review): the objective producer now accepts no settings at all, but passes them on to a function typed to require them. Nothing fails today, because the suite runs no type check.
+- Install pins (install-cli-pins, review): no refused settings body has a hook group that is itself a list. Dropping only that test from the group check would stay green.
+- Install pins (install-cli-pins, review): the check that install never asks a question matches only two prompt shapes. Its exit code, next line and seeded config carry the check.
+- Agent folder config (pack-config-agent-dir-pins, review): the left-behind file note counts only when its text names the agent folder. A rewording would make that half count none, quietly. The journal half matches the event name.
+- Agent folder config (pack-config-agent-dir-pins, review): the no-read check records paths as text, so a file URL or a byte path would slip past it. No pack reader passes either today.
+- Agent folder config (pack-config-agent-dir-pins, review): the no-read check does not run the worker config command or the roster setter.
 
 ## Where things stand
 
