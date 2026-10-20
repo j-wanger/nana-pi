@@ -1,7 +1,7 @@
 # win-pi-launch-orphan: build brief 1 (BRANCH 1)
 
 Feature: FEAT-013 · Install and connect harness runtimes. Class: install, hook or gate. Builder: pi-worker. Threat model and rows: must-meet.md.
-Probe answer: BRANCH <n>, CI run <id> (the seat fills this in). This brief holds only for BRANCH 1; for another branch the seat writes a new one. If the probe said the relay kill leaves pi, drop R-2303 and its test.
+Probe answer: BRANCH 1, CI run 39437686060 (`win-orphan-probe-output.txt`): today's Command Prompt route leaves pi and its child alive 5 s after install or the relay is killed; the direct Node route ends relay, pi and child within about 50 ms in every phase. R-2303 holds. This brief holds only for BRANCH 1; for another branch the seat writes a new one. If the probe said the relay kill leaves pi, drop R-2303 and its test.
 
 ## Change
 1. New `packages/nana-setup/lib/pi-invocation.mjs` with the six-tag header. Export `piInvocation(pi, args, { win32, env, cwd, exists, isFile, readText })`, which returns `{ command, args, options }` or `{ refused }`.
