@@ -120,7 +120,7 @@ const READER_WORDS = 'const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);'
 const CLOSER_WORDS = 'const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);';
 const QUOTED_STATUS = `if (quote === '"' && ch === "$" && BASH_STATUS_EXPANSION.test(source.slice(i))) {`;
 const BASH_READER = 'if (dialect !== "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;';
-const PS_READER = 'if (dialect === "powershell" && ch === "$" && live[i + 1] === "?") return true;';
+const PS_READER = 'if (dialect === "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;';
 const STATUS_EXPANSION = String.raw`const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;`;
 const CMDLET_NAME = String.raw`const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;`;
 const READER_START_SKIP = "while (start < live.length && isWhitespace(live[start])) start++;";
@@ -337,10 +337,10 @@ const PAIRS = [
 		one(PG, String.raw`|([+-])o\s+errexit)\b/giu;`, String.raw`)\b/giu;`),
 	], tests: [T], expectRed: [CS("bash set -o errexit")] },
 	{ n: "E3", name: "errexit set after the pipe counts", edits: [
-		one(PG, "(changes[change].index ?? 0) + changes[change][0].length <= pipe", "true"),
+		one(PG, "changes[change].end <= cursor + 1", "true"),
 	], tests: [T], expectRed: [DS("bash set -e after pipeline")] },
 	{ n: "E4", name: "set +e does not turn errexit off", edits: [
-		one(PG, 'if (!afterSubshellOpener || sign === "-") active = sign === "-";', 'if (sign === "-") active = true;'),
+		one(PG, 'active = changes[change].sign === "-";', 'if (changes[change].sign === "-") active = true;'),
 	], tests: [T], expectRed: [DS("bash set +e disables errexit before pipeline")] },
 	{ n: "E5", name: "errexit set right after { does not count (build 2's prefix without braces)", edits: [
 		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&\r\n]|\b(?:then|do)\b|(\$?\())\s*set`),
@@ -351,9 +351,28 @@ const PAIRS = [
 	{ n: "E7", name: "errexit set right after ( does not count (build 3's prefix)", edits: [
 		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&{}\r\n]|\b(?:then|do)\b|(\$?\((?!)))\s*set`),
 	], tests: [T], expectRed: [CS("bash errexit set inside subshell")] },
-	{ n: "E8", name: "set +e or +o errexit inside a subshell turns errexit off for the outer command (build 4's form)", edits: [
-		one(PG, 'if (!afterSubshellOpener || sign === "-") active = sign === "-";', 'void afterSubshellOpener; active = sign === "-";'),
-	], tests: [T], expectRed: ["bash outer errexit survives set +e inside a subshell", "bash outer errexit survives set +e inside command substitution", "bash outer errexit survives set +o errexit inside a subshell"].map(CS) },
+	{ n: "E8", name: "set +e or +o errexit inside a subshell turns errexit off for the outer command (build 4's form; build 6: no scope restore at the closer)", edits: [
+		one(PG, "active = scopes.pop().active;", "scopes.pop();"),
+	], tests: [T], expectRed: ["bash outer errexit survives set +e inside a subshell", "bash outer errexit survives set +e inside command substitution", "bash outer errexit survives set +o errexit inside a subshell", "bash outer errexit survives a later set +e inside a subshell", "bash outer errexit survives a later set +e inside a command substitution", "bash outer errexit survives a later set +o errexit inside a subshell"].map(CS) },
+	// build 6 (9f155fd2): round 1's land reviewer MUSTs
+	{ n: "E9", name: "(round 1 MUST 1) an unquoted bash backtick substitution is not a scope (build 5's text)", edits: [
+		one(PG, "if (ch === \"`\") {\n\t\t\tlet end = i + 1;", "if (false) {\n\t\t\tlet end = i + 1;"),
+	], tests: [T], expectRed: [] },
+	{ n: "X20", name: "(round 1 MUST 2) a status read in a PowerShell double-quoted string is blanked (build 5's form)", edits: [
+		one(PG, "\t\t\t\tlive += status;\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;", "\t\t\t\tlive += \" \".repeat(status.length);\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;"),
+	], tests: [T], expectRed: [CS("PowerShell double-quoted question mark")] },
+	{ n: "X21", name: "(round 1 MUST 2) a status read in a PowerShell expandable here-string is blanked", edits: [
+		one(PG, "\t\t\t\tlive += status;\n\t\t\t\ti += status.length;\n\t\t\t\tlineStart = false;", "\t\t\t\tlive += \" \".repeat(status.length);\n\t\t\t\ti += status.length;\n\t\t\t\tlineStart = false;"),
+	], tests: [T], expectRed: [CS("PowerShell question mark in an expandable here-string")] },
+	{ n: "X22", name: "a status read in a PowerShell single-quoted string is live too (no double-quote test)", edits: [
+		one(PG, "i = nested.end;\n\t\t\tcontinue;\n\t\t}\n\t\tif (kind === \"double\" && ch === \"$\") {", "i = nested.end;\n\t\t\tcontinue;\n\t\t}\n\t\tif (ch === \"$\") {"),
+	], tests: [T], expectRed: [DS("PowerShell single-quoted question mark stays literal")] },
+	{ n: "X23", name: "a backtick in a PowerShell expandable here-string escapes nothing (build 5's here-string)", edits: [
+		one(PG, "if (kind === \"double\" && ch === \"`\" && i + 1 < source.length) {", "if (false) {"),
+	], tests: [T], expectRed: [] },
+	{ n: "S26", name: "PowerShell ${?} is not a status spelling (build 5's reader)", edits: [
+		one(PG, 'if (dialect === "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;', 'if (dialect === "powershell" && ch === "$" && live[i + 1] === "?") return true;'),
+	], tests: [T], expectRed: [] },
 	{ n: "Q3", name: "a double quote closes unless the one character before it is a backslash (builds 3 and 4)", edits: [
 		one(PG, `if (ch === quote && (quote !== '"' || !escapedByOddBackslashes(source, i))) {`, `if (ch === quote && (quote !== '"' || source[i - 1] !== "\\\\")) {`),
 	], tests: [T], expectRed: [CS("bash even backslashes close double quotes")] },
@@ -384,4 +403,4 @@ const PAIRS = [
 	], tests: [IC], expectRed: [] },
 ];
 
-process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "e5b0483e", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "9f155fd2", declared: DECLARED, pairs: PAIRS });
