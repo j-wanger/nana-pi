@@ -1,0 +1,10 @@
+seat-mutate: lane win-lock-fix-command, tip cdccc2504d79a920c1a021fe31afa8d94597178c, table f56ead2f56c6f9bbe49e817db95393fcac95837ffb2094c0cafd16eb2efce082, merge-base 385c633fc27ac1d1e9b3fc10e300be71c13ad3ce, 2 pairs in 1 shards (2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T08:24:16.238Z
+DECLARED (a) every pair runs on macOS; the forced-win32 halves of R-2080 and R-2084 stand in for the Windows output shape, and R-2082 and R-2083 print SKIP here, so no pair names them
+DECLARED (b) the PowerShell line's typographic-quote doubling (build-brief-1 wrong code 16: double only U+0027) has no pair: only R-2083 reads it, and R-2083 runs only on the Windows leg
+DECLARED (c) M22 (doctor's label after its command) and M23 (doctor's row drops the 'if no nana-setup is running' caveat) change wording R-2084 does not read; each names R-2084 and is expected to survive, which says no must-meet check pins that claim
+[1/1] seat-mutate: lane win-lock-fix-command, shard 1/1, tip cdccc2504d79a920c1a021fe31afa8d94597178c, merge-base 385c633fc27ac1d1e9b3fc10e300be71c13ad3ce, 2 pairs, darwin, node v22.22.2, 2026-10-20T08:24:22.879Z
+[1/1] BASELINE ok   packages/nana-setup/tests/settings-lock.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/1] RESULT: 2/2 red (0 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+RED M22 doctor's win32 row puts each label after its command (plan-attack amendment 2) — 1/1 named: R-2084: on win32 doctor's settings lock row puts each shell label before its command and ends on a …; UNNAMED red: [settings-lock.test.mjs] summary: 1 failures; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M23 doctor's row calls the lock safe to delete, dropping the live-install caveat — 1/1 named: R-2084: doctor's settings lock row, on a fresh and an installed home, says to remove the lock only …; UNNAMED red: [settings-lock.test.mjs] summary: 1 failures; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 2/2 red (0 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 1 shards

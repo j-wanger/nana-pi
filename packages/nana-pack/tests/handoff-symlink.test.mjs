@@ -141,4 +141,37 @@ function workspace() {
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
+// (g) a refused symlinked handoff.path journals handoff_symlink_refused at BOTH the read
+// site and the write site, and warns in the UI at both — naming it a symlink.
+{
+	const journalPath = path.join(NANA_HOME, "journal-symlink.jsonl");
+	const td = tmpDir(path.join(os.tmpdir(), "handoff-link-g-"));
+	const ws = path.join(td, "ws");
+	const outside = path.join(td, "outside");
+	fs.mkdirSync(ws);
+	fs.mkdirSync(outside);
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: journalPath }, handoff: { path: path.join(ws, "state", "handoff.md") } }));
+	fs.symlinkSync(outside, path.join(ws, "state"), process.platform === "win32" ? "junction" : "dir");
+	const handlers = {};
+	ext({ on: (name, fn) => { handlers[name] = fn; } });
+	const notes = [];
+	const ctx = { cwd: ws, hasUI: true, ui: { notify: (m, level) => notes.push({ m, level }) }, isProjectTrusted: () => true };
+	try {
+		await handlers.session_start({ reason: "startup" }, ctx);
+		await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx);
+		const entries = fs.readFileSync(journalPath, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+		const warnings = notes.filter((n) => n.level === "warning").map((n) => n.m);
+		// req: R-245
+		check("g: a handoff.path reached through a linked folder journals handoff_symlink_refused and warns in the UI at pickup and at compaction",
+			entries.some((e) => e.event === "handoff_symlink_refused" && e.op === "read") &&
+				entries.some((e) => e.event === "handoff_symlink_refused" && e.op === "write") &&
+				warnings.some((m) => /ignored/i.test(m) && /symlink/i.test(m)) &&
+				warnings.some((m) => /NOT written/.test(m) && /symlink/i.test(m)),
+		);
+	} finally {
+		fs.unlinkSync(path.join(ws, "state"));
+	}
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
 process.exit(fails);

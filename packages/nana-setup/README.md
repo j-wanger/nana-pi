@@ -273,6 +273,8 @@ Doctor's `release status` row is informational (·). It counts template commits 
 
 ## Known limits
 
+- A defined `%NAME%` in a Windows home path is expanded by Command Prompt even inside double quotes, so the Command Prompt lock-removal form can target the wrong path; use the PowerShell form instead.
+- Git Bash on Windows has no settings-lock removal form of its own.
 - `state --paths` archives only the default, non-overlapping layout and refuses custom homes that alias or nest; configured home roots cannot contain glob characters.
 - No mechanical check keeps a future doctor-calling test inside `withPiStub`; an unwrapped call runs the ambient `pi --version` (read-only), and reviewers check it.
 - `project` still prints the typeless warning.
@@ -313,8 +315,10 @@ Doctor's `release status` row is informational (·). It counts template commits 
   removed on any abort. `--dry-run` never takes the lock.
 
   **A leftover lock is yours to clear.** If the lock exists, the run aborts before anything is
-  written and prints the lock path, the pid and age the lock recorded, and the `rm` command to
-  remove it — no age threshold,
+  written and prints the lock path, the pid and age the lock recorded. On macOS and Linux it prints
+  a POSIX sh `rm` command; on Windows it prints separate Command Prompt `del` and PowerShell
+  `Remove-Item -LiteralPath` forms, with every command alone on its line. Doctor's `settings lock`
+  row reports the same forms. There is no age threshold,
   no pid liveness check, and it never unlinks a lock it did not create. Automatic reclamation is
   deliberately absent: two runs can both judge one lock stale, and the loser's `unlink` then
   deletes the winner's *fresh* lock, putting both inside the critical section. Doing it safely
@@ -453,7 +457,8 @@ loudly and counted, never silent.
 | `tests/state-manifest.test.mjs` | classified inventory, layout coverage, ledger parity, secret classification, and read-only listing with inaccessible secret fixtures |
 | `tests/restore.test.mjs` | documented command lines, durable-store absence, inventory listing and restore ordering |
 | `tests/install.test.mjs` | a fresh machine, the second run changing nothing, printing no retired skill-link row and adding no skipped rows, backup on collision, what is never overwritten (incl. a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
-| `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching, in-place migration of exact retired hook entries, and doctor detection of retired commands, shape validation making the install a no-op, the lock (none left after a normal run, a held lock stopping install before its first write with the full home unchanged, path + pid + age + the `rm` command reported, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
+| `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching, in-place migration of exact retired hook entries, and doctor detection of retired commands, shape validation making the install a no-op, the lock (none left after a normal run, a held lock stopping install before its first write with the full home unchanged, path + pid + age + the platform's removal commands reported, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
+| `tests/settings-lock.test.mjs` | the printed sh, Command Prompt and PowerShell lock-removal lines run as printed from an unrelated folder without changing other files; doctor's leftover-lock row repeats the commands and its summary lists the lock to fix by hand |
 | `tests/project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
 | `tests/shared-memory-hook.test.mjs` | the real Node hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, and non-ASCII key derivation |
 | `tests/shared-memory-input.test.mjs` | the shared-memory hook's TTY guard and 65536-byte stdin cap |
