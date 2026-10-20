@@ -42,6 +42,7 @@ import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
@@ -460,26 +461,23 @@ export function readClaudeSettings(layout) {
  * message below tells the human exactly how to remove it.
  */
 export function withSettingsLock(file, fn) {
-	const lock = path.join(path.dirname(file), ".settings.json.nana-setup.lock");
+	const lock = settingsLockPath(file);
 	fs.mkdirSync(path.dirname(file), { recursive: true });
 	let fd;
 	try {
 		fd = fs.openSync(lock, "wx");
 	} catch (err) {
 		if (err.code !== "EEXIST") throw err;
-		let held = null;
-		try {
-			held = JSON.parse(fs.readFileSync(lock, "utf8"));
-		} catch {
-			/* unreadable or corrupt */
-		}
-		const age = Number.isFinite(held?.at) ? `${Math.round((Date.now() - held.at) / 1000)}s ago` : "at an unrecorded time";
+		const commands = removalCommands(lock, platform());
+		const removal = commands.length === 1
+			? `  ${commands[0].command}`
+			: commands.map(({ shell, command }) => `  in ${shell}:\n    ${command}`).join("\n");
 		throw new SetupError(
 			`${file} is locked by another nana-setup run.\n` +
 				`  lock:    ${lock}\n` +
-				`  written: ${held?.pid ? `pid ${held.pid}` : "an unrecorded pid"}, ${age}\n` +
+				`  written: ${lockHolder(lock)}\n` +
 				"Nothing was written. If no nana-setup is running (this lock is left over from an interrupted run), clear it:\n" +
-				`  rm ${lock}`,
+				removal,
 		);
 	}
 	fs.writeSync(fd, JSON.stringify({ pid: process.pid, at: Date.now() }));

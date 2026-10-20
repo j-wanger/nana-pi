@@ -676,18 +676,44 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("lock: the message prints the lock path", r.stderr.includes(lockOf(home)), r.stderr);
 	check("lock: the message prints the recorded pid", r.stderr.includes("pid 4242"), r.stderr);
 	check("lock: the message prints the recorded age", /\b9\ds ago\b/.test(r.stderr), r.stderr);
-	check("lock: the message prints the exact rm command", r.stderr.includes(`rm ${lockOf(home)}`), r.stderr);
 	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
 // req: R-925
 	check("lock: the other run's lock is left exactly as it was", fs.readFileSync(lockOf(home), "utf8") === JSON.stringify(held));
-	// req: R-322
-	check("R-322: a held settings lock stops install printing the lock path, the recorded pid, its age and the exact rm command",
+	const lock = lockOf(home);
+	check("lock fixture: the path holds no quote character", !/["']/.test(lock), lock);
+	const win32Lines = [
+		"  in Command Prompt:",
+		`    del "${lock}"`,
+		"  in PowerShell:",
+		`    Remove-Item -LiteralPath '${lock}'`,
+	];
+	const expectedLines = process.platform === "win32" ? win32Lines : [`  rm '${lock}'`];
+	const printedLines = r.stderr.split(/\r?\n/);
+	const start = printedLines.findIndex((line) => line === expectedLines[0]);
+	let forcedWin32 = null;
+	if (process.platform !== "win32") {
+		forcedWin32 = spawnSync(process.execPath, [cli, "install", "--home", home], {
+			encoding: "utf8",
+			env: { ...process.env, NANA_SETUP_PLATFORM: "win32" },
+		});
+	}
+	const forcedLines = forcedWin32?.stderr.split(/\r?\n/) ?? [];
+	const forcedStart = forcedLines.findIndex((line) => line === win32Lines[0]);
+	// req: R-2080
+	check("R-2080: a held settings lock stops install printing the lock path, the recorded pid, its age and each removal command alone on its line under its shell",
 		r.status === 2 &&
-			r.stderr.includes(lockOf(home)) &&
+			r.stderr.includes(lock) &&
 			r.stderr.includes("pid 4242") &&
 			/\b9\ds ago\b/.test(r.stderr) &&
-			r.stderr.includes(`rm ${lockOf(home)}`),
-		r.stderr);
+			start >= 0 &&
+			JSON.stringify(printedLines.slice(start, start + expectedLines.length)) === JSON.stringify(expectedLines) &&
+			(process.platform !== "win32" || !printedLines.some((line) => line.startsWith("  rm "))) &&
+			(!forcedWin32 ||
+				forcedWin32.status === 2 &&
+				forcedStart >= 0 &&
+				JSON.stringify(forcedLines.slice(forcedStart, forcedStart + win32Lines.length)) === JSON.stringify(win32Lines) &&
+				!forcedLines.some((line) => line.startsWith("  rm "))),
+		`${r.stderr}${forcedWin32 ? `\nforced win32:\n${forcedWin32.stderr}` : ""}`);
 }
 {
 	// an old lock is NOT reclaimed — no age threshold, no pid liveness check
