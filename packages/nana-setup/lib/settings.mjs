@@ -470,14 +470,16 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 			for (let gi = groups.length - 1; gi >= 0; gi--) {
 				const group = groups[gi];
 				if (group?.matcher !== POSIX_VERIFIER_MATCHER || !Array.isArray(group.hooks)) continue;
+				let removedFromGroup = false;
 				for (let i = group.hooks.length - 1; i >= 0; i--) {
 					const hook = group.hooks[i];
 					if (hook?.timeout !== 5 || !installerTarget(hook, w, platform)) continue;
 					const [removed] = group.hooks.splice(i, 1);
 					moved ??= removed;
 					movedVerifier = true;
+					removedFromGroup = true;
 				}
-				if (group.hooks.length === 0) groups.splice(gi, 1);
+				if (removedFromGroup && group.hooks.length === 0) groups.splice(gi, 1);
 			}
 			if (movedVerifier && !alreadyAtWinMatcher) {
 				let targetGroup = groups.find((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks));

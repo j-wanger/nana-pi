@@ -112,6 +112,55 @@ const f1BashPreserved = f1Bash?.matcher === "Bash" && byteEqual(f1Bash.hooks, [f
 // req: R-1882
 check("win32 install: the Bash group keeps its matcher and other entries when the verifier moves", f1BashPreserved, JSON.stringify(f1After.hooks.PreToolUse));
 
+const f5Home = freshHome();
+const f5OwnerEmpty = { matcher: "Bash", owner: "keep-empty", hooks: [] };
+seed(f5Home, { hooks: { PreToolUse: [
+	clone(f5OwnerEmpty),
+	{ matcher: "Bash", hooks: [clone(carriedVerifier)] },
+] } });
+const f5Install = run(["install", "--home", f5Home]);
+const f5After = JSON.parse(fs.readFileSync(settingsPath(f5Home), "utf8"));
+const f5BashGroups = f5After.hooks.PreToolUse.filter((group) => group.matcher === "Bash");
+// req: R-1886
+check("win32 install: preserves an owner-empty Bash group but drops the group its verifier move empties", f5Install.status === 0 && f5BashGroups.length === 1 && byteEqual(f5BashGroups[0], f5OwnerEmpty), `${f5Install.stdout}\n${JSON.stringify(f5After.hooks.PreToolUse)}`);
+
+const f6Home = freshHome();
+seed(f6Home, { hooks: {
+	SessionStart: [{ hooks: sessionLabels.map((label) => clone(byLabel(winWanted, label).entry)) }],
+	PreToolUse: [
+		{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f1VerifierExpected)] },
+		{ matcher: "Bash", hooks: [clone(carriedVerifier)] },
+	],
+	UserPromptSubmit: [{ hooks: [clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry)] }],
+} });
+const f6Before = fs.readFileSync(settingsPath(f6Home));
+const f6Install = run(["install", "--home", f6Home]);
+const f6AfterBytes = fs.readFileSync(settingsPath(f6Home));
+const f6After = JSON.parse(f6AfterBytes);
+const f6VerifierEntries = f6After.hooks.PreToolUse.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+const f6MovedAndWritten = f6Install.status === 0 && !f6AfterBytes.equals(f6Before) && f6VerifierEntries.length === 1 && f6VerifierEntries[0].group.matcher === WIN_VERIFIER_MATCHER && !f6After.hooks.PreToolUse.some((group) => group.matcher === "Bash" && group.hooks.some((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")));
+// req: R-1887
+check("win32 install: a move-only verifier repair is written", f6MovedAndWritten, `${f6Install.stdout}\n${JSON.stringify(f6After.hooks.PreToolUse)}`);
+
+const f7Home = freshHome();
+const f7OwnerLookalike = { ...clone(f1VerifierExpected), timeout: 10 };
+const f7Carried = { ...clone(carriedVerifier), ownerKey: { keep: "this value" } };
+seed(f7Home, { hooks: {
+	SessionStart: [{ hooks: sessionLabels.map((label) => clone(byLabel(winWanted, label).entry)) }],
+	PreToolUse: [
+		{ matcher: "Bash", hooks: [clone(f7Carried)] },
+		{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f7OwnerLookalike)] },
+	],
+	UserPromptSubmit: [{ hooks: [clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry)] }],
+} });
+const f7Install = run(["install", "--home", f7Home]);
+const f7After = JSON.parse(fs.readFileSync(settingsPath(f7Home), "utf8"));
+const f7WinGroup = f7After.hooks.PreToolUse.find((group) => group.matcher === WIN_VERIFIER_MATCHER);
+const f7ExpectedMoved = { ...f7Carried, command: f1VerifierExpected.command, args: f1VerifierExpected.args };
+// req: R-1888
+// req: R-1889
+check("win32 install: an owner verifier look-alike stays before nana's moved verifier with its extra key", f7Install.status === 0 && f7WinGroup?.hooks.length === 2 && byteEqual(f7WinGroup.hooks[0], f7OwnerLookalike) && byteEqual(f7WinGroup.hooks[1], f7ExpectedMoved), `${f7Install.stdout}\n${JSON.stringify(f7After.hooks.PreToolUse)}`);
+
 const f1Doctor = run(["doctor", "--home", f1Home]);
 const f1BeforeSecond = fs.readFileSync(settingsPath(f1Home));
 const f1Second = run(["install", "--home", f1Home]);
@@ -158,5 +207,5 @@ const f4Preserved = f4Install.status === 0 && byteEqual(f4After.hooks.SessionSta
 // req: R-653
 check("win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical", f4Preserved, `${f4Install.stdout}\n${JSON.stringify(f4After.hooks)}`);
 
-console.log(`SUMMARY  PASS=${8 - fails} FAIL=${fails} SKIP=0`);
+console.log(`SUMMARY  PASS=${11 - fails} FAIL=${fails} SKIP=0`);
 process.exit(fails);
