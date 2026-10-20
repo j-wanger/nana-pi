@@ -3,7 +3,7 @@
  * @purpose Pins that `doctor`'s detail text for each per-piece check agrees with the tick, cross or
  *  warning it prints — the private rule file, objective.projectFile, the Node floor, and the pi 1.0
  *  subagent/MCP checks (subagent config, reviewer agent marker, pi-subagents version, mcp.json)
- * @inputs lib/doctor.mjs, lib/paths.mjs, lib/steps.mjs, and throwaway home layouts
+ * @inputs lib/doctor.mjs, lib/paths.mjs, lib/steps.mjs, valid and malformed nana-pack JSON fixtures, and throwaway home layouts
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts, regular files, symlinks and directories)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -20,6 +20,7 @@ const { diagnose, PI_SUBAGENTS_FLOOR, DESK_NODE_FLOOR, parsePlistValues } = awai
 const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
 const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 const { REVIEWER_MARKER, renderPlist, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { CONFIG_FAILURE_PREFIX, displayPath } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -198,6 +199,49 @@ try {
 		}
 		// req: R-1586
 		check("two leading marks, a mark inside the object or malformed text after one mark stay unparseable for doctor and adoption", observations.every(({ doctorRow, settings, expectedJournal }) => doctorRow?.status === "fail" && settings.journal === expectedJournal && settings.objectiveFile === "OBJECTIVE.md"), JSON.stringify(observations));
+	}
+
+	const forwardSlashAdvice = "Write objective.path with forward slashes because JSON reads a single backslash as an escape.";
+	const manualJsonAdvice = "Repair the JSON by hand.";
+	const malformedConfigFixtures = [
+		[String.raw`{
+  "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
+}
+`, forwardSlashAdvice, "line 2, column 48"],
+		[`\uFEFF${String.raw`{
+  "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
+}
+`.replace(/\n/g, "\r\n")}`, forwardSlashAdvice, "line 2, column 48"],
+		[`{ "objective": { "path": "control-zq7
+character" } }`, forwardSlashAdvice, true],
+		[`{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, manualJsonAdvice, false],
+		[`{ "objective": { "path": "trailing-zq7", } }`, manualJsonAdvice, true],
+	];
+	const malformedConfigRows = malformedConfigFixtures.map(([fixture, advice, place]) => {
+		const layout = layoutWith("file");
+		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
+		fs.writeFileSync(layout.piPackConfig, fixture);
+		const row = diagnoseWithPi(layout, { projectDir: layout.base }).find((candidate) => candidate.label === "pi nana-pack.json");
+		const placeOk = typeof place === "string"
+			? row?.detail.includes(place)
+			: place
+				? / at line \d+, column \d+\./.test(row?.detail ?? "")
+				: !/line \d/.test(row?.detail ?? "");
+		const otherAdvice = advice === forwardSlashAdvice ? manualJsonAdvice : forwardSlashAdvice;
+		return row?.status === "fail" && row.detail.startsWith(CONFIG_FAILURE_PREFIX) && row.detail.includes(displayPath(layout.piPackConfig)) && row.detail.includes(advice) && !row.detail.includes(otherAdvice) && placeOk && !row.detail.includes("zq7") && !row.detail.includes("Bad escaped") && !row.detail.includes("Bad control") && !row.detail.includes("Unexpected token");
+	});
+	// req: R-1972
+	check("doctor names an unparseable nana-pack.json's file and the error-kind repair, never the file's text", malformedConfigRows.every(Boolean), JSON.stringify(malformedConfigRows));
+
+	{
+		const rows = ["missing", "folder"].map((shape) => {
+			const layout = layoutWith("file");
+			if (shape === "folder") fs.mkdirSync(layout.piPackConfig, { recursive: true });
+			const row = diagnoseWithPi(layout, { projectDir: layout.base }).find((candidate) => candidate.label === "pi nana-pack.json");
+			return { row, detail: `missing or unparseable: ${layout.piPackConfig}` };
+		});
+		// req: R-1974
+		check("doctor keeps missing-or-unparseable detail for a missing or unreadable nana-pack.json", rows.every(({ row, detail }) => row?.status === "fail" && row.detail === detail), JSON.stringify(rows));
 	}
 
 	// objective.projectFile: default / rename / INVALID are three distinct verdicts (T2a astra land MUST 2).
