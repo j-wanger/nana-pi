@@ -2,7 +2,9 @@
 // Seat wrong-code pairs for lane win-hook-settings-repair (install lane), written by the seat 2026-10-19 on build 1's
 // tip after the merge of main (805d225a), on the shared runner. Each pair reverts one product site the lane changed in
 // settings.mjs to its main form or to the obvious wrong implementation (must-meet.md design 1-4; the builder's
-// wrong-code tries). M10-M13 name no title and run over the related setup files to show whether any check pins them.
+// wrong-code tries). M10-M13 ran titleless over the related setup files on 805d225a and survived; build 2 (dc56f0d8)
+// pinned them (R-1887, R-1886, R-1889, R-1888), so each now names its title and keeps the related files. M14 is the
+// independent check's F1: build 1's empty-group splice, which also dropped an owner's already-empty Bash group.
 // Run from the worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/win-hook-settings-repair-2026-10-19/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -26,17 +28,22 @@ const R1883 = "win32 install: a second install over the repaired home reports al
 const R1884 = "win32 doctor: all six settings rows read ✓ after one install over the carried home";
 const R1885 = "win32 install: the first installer's unquoted knowledge entry becomes exec form in place";
 const R653 = "win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical";
+const R1886 = "win32 install: preserves an owner-empty Bash group but drops the group its verifier move empties";
+const R1887 = "win32 install: a move-only verifier repair is written";
+// R-1888 and R-1889 share one check.
+const R1888 = "win32 install: an owner verifier look-alike stays before nana's moved verifier with its extra key";
+const R1889 = R1888;
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const SHELL_TEST = "if (path.win32.isAbsolute(target) && target.endsWith(`${POSIX_INSTALLER_HOOKS_SUFFIX}${wanted.spec.script}`) && hook.command === `node ${shq(target)}`) {";
 const UNQUOTED_TEST = 'if (path.win32.isAbsolute(target) && target.endsWith("/packages/nana-knowledge/bin/nana-knowledge.ts") && hook.command === `NODE_NO_WARNINGS=1 node ${target} hook`) {';
 const SCAN_GATE = "if (hook?.timeout !== 5 || !installerTarget(hook, w, platform)) continue;";
 const APPEND = "targetGroup.hooks.push({ ...moved, command: w.entry.command, args: w.entry.args });";
 const COUNT = "let replaced = movedVerifier;";
-const DROP_EMPTY = "if (group.hooks.length === 0) groups.splice(gi, 1);";
+const DROP_EMPTY = "if (removedFromGroup && group.hooks.length === 0) groups.splice(gi, 1);";
 
 const DECLARED = [
 	"(a) every pair runs on macOS; the lane's file forces NANA_SETUP_PLATFORM=win32 on every leg, and the native Windows run is CI's Windows leg",
-	"(b) M10-M13 name no title and run over the lane file plus win32-degrade, settings-merge, verifier-pipe, stale-copies, uninstall and install: M11 (an emptied Bash group is kept) is the plan's known-limit survivor; M10, M12 and M13 probe lane sites no must-meet check names",
+	"(b) M10-M13 survived titleless on 805d225a; build 2 pins them (R-1887, R-1886, R-1889, R-1888) and they still run over the lane file plus win32-degrade, settings-merge, verifier-pipe, stale-copies, uninstall and install",
 	"(c) no pair for the absolute-path and knowledge-suffix tests of the two new forms: a look-alike that copies nana's status message, timeout, quoting and folder is forgery, outside the threat model",
 	"(d) no pair for POSIX_VERIFIER_MATCHER replacing the inline \"Bash\" in desiredHooks, or for reusing an existing verifier-matcher group: neither changes behaviour a check or the review standard names",
 ];
@@ -71,16 +78,19 @@ const PAIRS = [
 	], tests: [T], expectRed: [R1883] },
 	{ n: "M10", name: "the move is not counted as a repair (main's replaced = false)", edits: [
 		one(S, COUNT, "let replaced = false;"),
-	], tests: RELATED, expectRed: [] },
+	], tests: RELATED, expectRed: [R1887] },
 	{ n: "M11", name: "a Bash group the move empties is kept", edits: [
 		one(S, DROP_EMPTY, "if (false) groups.splice(gi, 1);"),
-	], tests: RELATED, expectRed: [] },
+	], tests: RELATED, expectRed: [R1886] },
 	{ n: "M12", name: "the moved verifier keeps none of its own keys", edits: [
 		one(S, APPEND, "targetGroup.hooks.push({ ...w.entry });"),
-	], tests: RELATED, expectRed: [] },
+	], tests: RELATED, expectRed: [R1889] },
 	{ n: "M13", name: "the already-moved test drops its timeout gate", edits: [
 		one(S, "group.hooks.some((hook) => hook?.timeout === 5 && installerTarget(hook, w, platform)));", "group.hooks.some((hook) => installerTarget(hook, w, platform)));"),
-	], tests: RELATED, expectRed: [] },
+	], tests: RELATED, expectRed: [R1888] },
+	{ n: "M14", name: "F1: any empty Bash group is dropped, not only one this pass emptied (build 1's form)", edits: [
+		one(S, DROP_EMPTY, "if (group.hooks.length === 0) groups.splice(gi, 1);"),
+	], tests: [T], expectRed: [R1886] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-hook-settings-repair", self: import.meta.url, tip: "805d225a", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-hook-settings-repair", self: import.meta.url, tip: "dc56f0d8", declared: DECLARED, pairs: PAIRS });
