@@ -31,43 +31,42 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { resolveToolPath } from "../lib/gate-paths.ts";
-import { POST_EDIT_DEFAULT_TIMEOUT_MS } from "../lib/post-edit-config.mjs";
+import {
+	POST_EDIT_COMMAND_CAP,
+	POST_EDIT_DEFAULT_TIMEOUT_MS,
+	POST_EDIT_FAILURE_CAP,
+	POST_EDIT_KILL_GRACE_MS,
+	POST_EDIT_LOCK_MESSAGE_CAP,
+	POST_EDIT_OUTPUT_CAP,
+} from "../lib/post-edit-config.mjs";
 import { cmdCouldNotRun } from "../lib/win-command.mjs";
 import { promptPath, promptText, uiPath } from "../lib/display.mjs";
 
-/** Cap on captured checker output (matches the previous exec maxBuffer). */
-const MAX_OUTPUT = 1024 * 1024;
 /** Contract value (R-1740, R-1741): Python's UTF-8 mode switch from PEP 540. */
 const PYTHON_UTF8_ENV = "PYTHONUTF8";
 const PYTHON_UTF8_VALUE = "1";
-/** Grace between the deadline's SIGTERM and the unignorable SIGKILL + settlement. */
-const KILL_GRACE_MS = 2000;
 
 function quote(file: string): string {
 	return `"${file.replace(/(["\\$`])/g, "\\$1")}"`;
 }
 
-/** Cap on one failure's checker output as fed to the model (its TAIL is kept: errors print last). */
-const FAILURE_CAP = 2000;
-const CMD_CAP = 400; // the repo-configured command, shown to the model; its truncation is stated
-
 /**
  * One failure as ONE line of model-visible text (lib/display.mjs promptText): the command and the
  * checker's output are repo-controlled, so neither may start a line, a heading or a fence of its
- * own. Output line breaks are shown as " ⏎ " so the lines stay legible; the tail FAILURE_CAP chars
+ * own. Output line breaks are shown as " ⏎ " so the lines stay legible; the tail POST_EDIT_FAILURE_CAP chars
  * are kept, and BOTH truncations — command and output — are stated.
  */
 function failureLine(cmd: string, what: string, out?: string): string {
 	// The COMMAND is repo-configured too, so its truncation is stated like the output's (sol r1 #1):
 	// a silently cut command leaves the model reading something the project never configured.
-	const shownCmd = promptText(cmd, CMD_CAP);
-	const cmdCut = String(cmd).length > CMD_CAP;
-	const head = `- check ${shownCmd}${cmdCut ? ` (command truncated: first ${CMD_CAP} of ${String(cmd).length} chars shown)` : ""} ${what}`;
+	const shownCmd = promptText(cmd, POST_EDIT_COMMAND_CAP);
+	const cmdCut = String(cmd).length > POST_EDIT_COMMAND_CAP;
+	const head = `- check ${shownCmd}${cmdCut ? ` (command truncated: first ${POST_EDIT_COMMAND_CAP} of ${String(cmd).length} chars shown)` : ""} ${what}`;
 	if (out === undefined) return head;
 	const o = String(out);
-	const cut = o.length > FAILURE_CAP;
-	const body = promptText((cut ? o.slice(-FAILURE_CAP) : o).replace(/\r\n|[\n\r\u0085\u2028\u2029]/g, " ⏎ "), FAILURE_CAP * 3);
-	return `${head}${cut ? ` (output truncated: last ${FAILURE_CAP} of ${o.length} chars shown)` : ""}: ${body}`;
+	const cut = o.length > POST_EDIT_FAILURE_CAP;
+	const body = promptText((cut ? o.slice(-POST_EDIT_FAILURE_CAP) : o).replace(/\r\n|[\n\r\u0085\u2028\u2029]/g, " ⏎ "), POST_EDIT_FAILURE_CAP * 3);
+	return `${head}${cut ? ` (output truncated: last ${POST_EDIT_FAILURE_CAP} of ${o.length} chars shown)` : ""}: ${body}`;
 }
 
 /** Per-check outcome for the status line: pi's own statuses plus the lock refusal. */
@@ -218,8 +217,8 @@ function run(
 				child.stdout?.destroy();
 				child.stderr?.destroy();
 				child.unref();
-				finish({ killed: true, message: `checker did not exit within ${KILL_GRACE_MS}ms of the kill signal` });
-			}, KILL_GRACE_MS);
+				finish({ killed: true, message: `checker did not exit within ${POST_EDIT_KILL_GRACE_MS}ms of the kill signal` });
+			}, POST_EDIT_KILL_GRACE_MS);
 		};
 		function onAbort() {
 			if (!settled) terminate(child);
@@ -243,9 +242,9 @@ function run(
 		const onData = (chunk: string) => {
 			if (overflow) return;
 			out += chunk;
-			if (out.length > MAX_OUTPUT) {
+			if (out.length > POST_EDIT_OUTPUT_CAP) {
 				overflow = true;
-				out = out.slice(0, MAX_OUTPUT);
+				out = out.slice(0, POST_EDIT_OUTPUT_CAP);
 				killTree(child, true);
 			}
 		};
@@ -377,7 +376,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			if (!res) {
-				failures.push(failureLine(cmd, `did not run — could not lock ${promptPath(abs)} for checking: ${promptText(lockError, 300)}`));
+				failures.push(failureLine(cmd, `did not run — could not lock ${promptPath(abs)} for checking: ${promptText(lockError, POST_EDIT_LOCK_MESSAGE_CAP)}`));
 				outcomes.push("lock");
 				continue;
 			}
