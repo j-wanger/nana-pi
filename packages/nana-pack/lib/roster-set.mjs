@@ -9,6 +9,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readBounded, BOUNDED_READ_CAP } from './bounded-read.mjs';
+import { parseJsonBytes } from './json-text.mjs';
 import { resolveRoster, validateRosterShape, orderedRoster, formatRosterLines } from '../bin/nana-roster.mjs';
 import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CODE_RUNTIME, SLOT_PRINT_ORDER } from '../bin/worker-config.mjs';
 
@@ -82,7 +83,7 @@ export function setRosterSlot(agentDir, args, {
     existed = true;
     mode = fs.statSync(targetPath).mode & 0o777;
     const buf = readBounded(targetPath, BOUNDED_READ_CAP);
-    raw = JSON.parse(buf.toString('utf8').replace(/^﻿/, ''));
+    raw = parseJsonBytes(buf);
   } catch (err) {
     if (err?.code !== 'ENOENT') return { ok: false, problem: `${file}: ${String(err?.message ?? err)}` };
     raw = {};

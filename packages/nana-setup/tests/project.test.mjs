@@ -204,6 +204,30 @@ function walk(dir) {
 	check("--check counts post-edit commands from a .pi/nana-pack.json saved with a byte-order mark", /✓ post-edit commands\s+1 effective checker command\(s\)/.test(result.stdout), result.stdout);
 }
 
+{
+	const configRows = (stdout) => stdout.split("\n").filter((line) => /^\s*[✓✗!]\s+(?:\.pi\/nana-pack\.json|post-edit commands)\s/.test(line));
+	const runCase = (args, home) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, ".pi", "agent") } });
+	const projectCase = freshProject("utf16-project-config");
+	runCase(["project", projectCase.dir, "--home", projectCase.home], projectCase.home);
+	const projectConfig = path.join(projectCase.dir, ".pi", "nana-pack.json");
+	const text = JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } });
+	fs.writeFileSync(projectConfig, text);
+	const projectUtf8 = configRows(runCase(["project", projectCase.dir, "--check", "--home", projectCase.home], projectCase.home).stdout);
+	fs.writeFileSync(projectConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
+	const projectUtf16 = configRows(runCase(["project", projectCase.dir, "--check", "--home", projectCase.home], projectCase.home).stdout);
+	const userCase = freshProject("utf16-user-config");
+	runCase(["project", userCase.dir, "--home", userCase.home], userCase.home);
+	fs.rmSync(path.join(userCase.dir, ".pi", "nana-pack.json"));
+	const userConfig = path.join(userCase.home, ".pi", "agent", "nana-pack.json");
+	fs.mkdirSync(path.dirname(userConfig), { recursive: true });
+	fs.writeFileSync(userConfig, text);
+	const userUtf8 = configRows(runCase(["project", userCase.dir, "--check", "--home", userCase.home], userCase.home).stdout);
+	fs.writeFileSync(userConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
+	const userUtf16 = configRows(runCase(["project", userCase.dir, "--check", "--home", userCase.home], userCase.home).stdout);
+	// req: R-2234
+	check("--check counts post-edit commands from a UTF-16LE project or user nana-pack.json as from UTF-8", projectUtf8.length === 2 && userUtf8.length === 2 && JSON.stringify(projectUtf16) === JSON.stringify(projectUtf8) && JSON.stringify(userUtf16) === JSON.stringify(userUtf8), JSON.stringify({ projectUtf8, projectUtf16, userUtf8, userUtf16 }));
+}
+
 /* --- 6. dry run writes nothing -------------------------------------------------------- */
 {
 	const { dir, home } = freshProject();

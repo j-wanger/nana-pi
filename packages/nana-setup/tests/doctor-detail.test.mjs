@@ -176,6 +176,22 @@ try {
 	}
 
 	{
+		const layout = layoutWith("file");
+		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
+		const target = path.join(layout.base, "utf16-objective.md");
+		fs.writeFileSync(target, "**Objective:** configured\n");
+		const text = JSON.stringify({ objective: { path: target, projectFile: "GOALS.md" } }, null, 2).replace(/\n/g, "\r\n");
+		const labels = ["pi nana-pack.json", "pi objective.projectFile", "pi objective file"];
+		const result = (rows) => rows.filter((row) => labels.includes(row.label)).map(({ label, status, detail }) => ({ label, status, detail }));
+		fs.writeFileSync(layout.piPackConfig, text);
+		const utf8Rows = result(diagnoseWithPi(layout, { projectDir: layout.base }));
+		fs.writeFileSync(layout.piPackConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
+		const utf16Rows = result(diagnoseWithPi(layout, { projectDir: layout.base }));
+		// req: R-2233
+		check("doctor reads a UTF-16LE nana-pack.json as it reads the same JSON saved as UTF-8", utf8Rows.find((row) => row.label === "pi nana-pack.json")?.status === "ok" && JSON.stringify(utf16Rows) === JSON.stringify(utf8Rows), `${layout.piPackConfig}: ${JSON.stringify({ utf8Rows, utf16Rows })}`);
+	}
+
+	{
 		const { adoptionSettings } = await import(new URL("../../nana-pack/lib/adoption.mjs", import.meta.url).href);
 		const savedAgentDir = process.env.PI_CODING_AGENT_DIR;
 		const observations = [];

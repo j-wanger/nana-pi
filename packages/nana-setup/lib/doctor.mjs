@@ -22,7 +22,7 @@
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
-import { configFailureDetail, jsonParseFailure, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { configFailureDetail, jsonParseFailure, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
@@ -306,14 +306,14 @@ export function winShimState(name, source, binDir) {
 }
 
 function piPackConfigState(file) {
-	let text;
+	let bytes;
 	try {
-		text = fs.readFileSync(file, "utf8");
+		bytes = fs.readFileSync(file);
 	} catch {
 		return { cfg: null, parseDetail: null };
 	}
 	try {
-		return { cfg: parseJsonText(text), parseDetail: null };
+		return { cfg: parseJsonBytes(bytes), parseDetail: null };
 	} catch (error) {
 		return { cfg: null, parseDetail: configFailureDetail(file, jsonParseFailure(error)) };
 	}
