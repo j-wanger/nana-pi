@@ -1,6 +1,6 @@
 # Seat checks — project-odd-seeds build 1, tip 7c698ae2 (2026-10-20)
 
-- CI: draft pull request #147 runs at 7c698ae2 on macOS, Ubuntu and Windows. CI-PENDING.
+- CI: draft pull request #147 runs at 7c698ae2 on macOS, Ubuntu and Windows. CI run 39496709624 at 7c698ae2 reads 0 failing on all three legs: macOS 193 PASS, 0 FAIL, 2 SKIP of 195 files (8,008 checks pass, 35 skip); Ubuntu 192 PASS, 0 FAIL, 3 SKIP of 195 files (7,947 checks pass, 55 skip); Windows 177 PASS, 0 FAIL, 18 SKIP of 195 files (6,936 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-7c698ae2.log in this folder.
   Reading the run: a pull request run's R-291 leaf-total failure is a merge artifact of GitHub's merge commit, and
   Windows main reads 0 failing since 4be0b79 (desk files are declared skips); a failure in that set is main's, not the
   lane's. The Windows leg settles the plan's one macOS-only limit: the dangling `.pi` link where a folder belongs is a

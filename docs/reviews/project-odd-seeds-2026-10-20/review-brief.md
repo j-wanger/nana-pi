@@ -5,7 +5,7 @@ Feature: FEAT-014 · Create or adopt a project workspace
 Review `git diff 9552afb1..HEAD` on `feat/project-odd-seeds` (main was `9552afb1` when this brief was written; `git
 merge-base HEAD main` is `9552afb1`). The plan of record is `docs/reviews/project-odd-seeds-2026-10-20/must-meet.md`
 (rows R-2420 to R-2423 new; R-385, R-335, R-338 and R-931 pinned), with the adversary's `plan-attack.md` and
-`build-brief-1.md` beside it. The seat's record is `seat-verify-7c698ae2.md`. CI-PENDING.
+`build-brief-1.md` beside it. The seat's record is `seat-verify-7c698ae2.md`. CI run 39496709624 at 7c698ae2 reads 0 failing on all three legs: macOS 193 PASS, 0 FAIL, 2 SKIP of 195 files (8,008 checks pass, 35 skip); Ubuntu 192 PASS, 0 FAIL, 3 SKIP of 195 files (7,947 checks pass, 55 skip); Windows 177 PASS, 0 FAIL, 18 SKIP of 195 files (6,936 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-7c698ae2.log in this folder.
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main` on the build tip; the notes commit adds no
 row):
