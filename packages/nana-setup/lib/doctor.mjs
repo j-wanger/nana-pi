@@ -3,7 +3,7 @@
  * @purpose Judge one machine and return an ordered check list covering its setup surfaces and memory links.
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM
  *  and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md and nana-rulings.md), skills, settings.json,
- *  nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
+ *  the settings lock, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
@@ -14,7 +14,7 @@
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
- * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
+ * @effects disk (reads only), process (spawns node, a bounded pi --version process tree and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
  */
@@ -31,10 +31,13 @@ import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
+import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { PI_LAUNCH_LIMITS_MS } from "./steps.mjs";
+import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
@@ -340,7 +343,8 @@ export function diagnose(layout, opts = {}) {
 		const piOpts = opts.pi ?? {};
 		const piPlatform = piOpts.platform ?? platform;
 		const piEnv = piOpts.env ?? process.env;
-		const piSpawn = piOpts.spawn ?? spawnSync;
+		const piSpawn = piOpts.spawn ?? boundedSpawnSync;
+		const piLimits = piOpts.limits ?? PI_LAUNCH_LIMITS_MS;
 		const piExists = piOpts.exists;
 		const isWin = (typeof piPlatform === "function" ? piPlatform() : piPlatform) === "win32";
 		const executable = isWin ? findPi({ env: piEnv, cwd: process.cwd(), exists: piExists }) : "pi";
@@ -351,11 +355,11 @@ export function diagnose(layout, opts = {}) {
 			const comspecKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "comspec");
 			const invocation = isWin ? winCommand(executable, ["--version"], { comspec: comspecKey ? piEnv[comspecKey] : undefined }) : { command: executable, args: ["--version"], options: {} };
 			refusal = invocation.refused;
-			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8" });
+			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8", timeout: piLimits.version });
 		}
 		const version = !refusal && probe?.status === 0 ? (probe.stdout || "").split(/\r?\n/)[0] : "";
 		const valid = /^v?\d+\.\d+\.\d+/.test(version);
-		const detail = valid ? version : refusal ? `pi launch refused: ${refusal} — install: ${PI_INSTALL_HINT}` : probe?.error ? `pi not found or could not start — install: ${PI_INSTALL_HINT}` : probe?.status !== 0 ? `pi --version exited ${probe?.status} — install: ${PI_INSTALL_HINT}` : `pi --version printed no version — install: ${PI_INSTALL_HINT}`;
+		const detail = valid ? version : refusal ? `pi launch refused: ${refusal} — install: ${PI_INSTALL_HINT}` : probe?.error?.code === "ETIMEDOUT" ? `pi --version gave no answer within ${piLimits.version / 1_000} s and was stopped — install: ${PI_INSTALL_HINT}` : probe?.error ? `pi not found or could not start — install: ${PI_INSTALL_HINT}` : probe?.status !== 0 ? `pi --version exited ${probe?.status} — install: ${PI_INSTALL_HINT}` : `pi --version printed no version — install: ${PI_INSTALL_HINT}`;
 		add(valid ? OK : layout.isRealHome ? FAIL : NOTE, "pi executable", detail);
 	}
 
@@ -408,6 +412,16 @@ export function diagnose(layout, opts = {}) {
 	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
 	// problem pi-cmd-launch solved for pi, which is not worth it for a floor Jake already exceeds.
 	if (win) add(NOTE, "Claude Code hooks floor", `need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later (not checked here — \`claude --version\` is never run)`);
+	const settingsLock = settingsLockPath(layout.claudeSettings);
+	const settingsLockStat = lstatSafe(settingsLock);
+	if (!settingsLockStat) add(OK, "settings lock", "no leftover lock");
+	else {
+		const commands = removalCommands(settingsLock, platform());
+		const fix = commands.length === 1
+			? commands[0].command
+			: `in ${commands[0].shell}: ${commands[0].command} — or in ${commands[1].shell}: ${commands[1].command}`;
+		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
+	}
 	for (const { event, command } of retiredSettingsCommands(settings))
 		add(FAIL, `settings ${event} retired hook`, `retired bash hook still wired: ${command}`);
 
