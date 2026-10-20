@@ -44,4 +44,4 @@ const PAIRS = [
 	], tests: [RPT, RFT], expectRed: [R2180, R2182, R2183, R2184] },
 ];
 
-process.exitCode = await runMutations({ lane: "realpath-strict-fallback", self: import.meta.url, tip: "9c16aca1", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "realpath-strict-fallback", self: import.meta.url, tip: "f38af41b", declared: DECLARED, pairs: PAIRS });
