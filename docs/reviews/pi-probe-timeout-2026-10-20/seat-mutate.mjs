@@ -3,7 +3,9 @@
 // written by the seat 2026-10-20 on the build tip 4c67ba2c, on the shared runner. Each pair reverts one product site the
 // lane changed (steps.mjs, doctor.mjs, bounded-spawn.mjs, bounded-spawn-child.mjs) to main's form or to the obvious wrong
 // implementation, and names the must-meet checks (pi-launch-limits.test.mjs) or the existing doctor-runtime checks it
-// must turn red. Run from the worktree root:
+// must turn red. Re-run 2026-10-20 on 4d04b56 (build 2's signal grace, merged with main 385c633f): C8 re-anchored on the
+// new terminate(), C2 and C5 re-judged, S1 to S5 added for the grace. Run from the worktree root (SEAT_MUTATE_DRY=1 checks
+// anchors only):
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/pi-probe-timeout-2026-10-20/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
@@ -20,6 +22,8 @@ const R2023 = "R-2023: every process a timed-out pi --version or pi install star
 const R2024 = "R-2024: with no limit injected, install, the dry run and doctor give pi --version 30 s and each pi install 120 s";
 const R2025 = "R-2025: pi install started under the limit receives the agent folder install chose as PI_CODING_AGENT_DIR";
 const R2026 = "R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group end the pi launch it waits on";
+const R2027PIN = "R-2027: the relay gives a signalled pi launch 1000 ms to clean up before ending its process tree";
+const R2027INT = "R-2027: SIGINT lets pi install remove its lock before install ends its launch processes";
 const DOTTED = "pi executable reports a dotted version";
 const STUB = "pi stub is limited to the doctor probe and restored before later child processes";
 const MISSING = "install missing-pi detail imports the same hint and never reaches install";
@@ -27,9 +31,12 @@ const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 
 const SIGNALS = 'for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"])';
 
 const DECLARED = [
-	"(a) every pair below runs on macOS; W1 (taskkill replaced by the child alone) and W2 (windowsVerbatimArguments dropped) join the table only when it runs on win32, where the relay's win32 branch runs, so this macOS record does not judge them; on win32, C1, C2 and C5 to C8 change nothing that runs (detached is already false there, and R-2026 prints SKIP)",
+	"(a) every pair below runs on macOS; W1 (taskkill replaced by the child alone) and W2 (windowsVerbatimArguments dropped) join the table only when it runs on win32, where the relay's win32 branch runs, so this macOS record does not judge them; on win32, C1, C2 and C5 to C8 change nothing that runs (detached is already false there, and R-2026 prints SKIP), and S1, S2, S4 and S5 change nothing a check observes (passSignal returns at once there, and the R-2027 SIGINT check prints SKIP)",
 	"(b) no pair for the relay's process.exit after it reports, its settle timer, the outer backstop or the POSIX fallback to the child alone: each acts only when pi's pipes outlive the group kill (a pi in uninterruptible sleep) or the group kill fails, and no check holds such a pi",
 	"(c) R-2025 is green on main; its pair B2 drops the lane's own env pass-through into the relay",
+	"(d) since build 2 the relay passes a signal to pi's group before any tree kill, and every fixture process dies on that signal, so C2 (the tree kill ends pi's direct child only) no longer names R-2026; it stays red on R-2023, the deadline kill. C8 is re-anchored on the new terminate(): it exits at once, neither passing the signal nor killing the tree",
+	"(e) S4 (a second signal during the grace is ignored) survives: every check sends one signal, and pi's group, where the relay passes it, does not hold the relay",
+	"(f) S5 (a child that closes during the grace is reported as an ordinary result) survives: the signal reaches install's whole group, so install has ended before the relay reports and no check reads that result or the relay's exit code, and every fixture process has died on the passed signal, so the tree kill finishTermination adds finds nothing left",
 ];
 
 const PAIRS = [
@@ -80,7 +87,7 @@ const PAIRS = [
 	], tests: [LL], expectRed: [R2023] },
 	{ n: "C2", name: "the tree kill (at the deadline and on a signal) ends pi's direct child instead of its group", edits: [
 		one(BC, 'process.kill(-child.pid, "SIGKILL");', 'process.kill(child.pid, "SIGKILL");'),
-	], tests: [LL], expectRed: [R2023, R2026] },
+	], tests: [LL], expectRed: [R2023] },
 	{ n: "C3", name: "the relay reports the timeout without killing anything", edits: [
 		one(BC, "timedOut = true;\n\t\t\t\tkillTree();", "timedOut = true;"),
 	], tests: [LL], expectRed: [R2023] },
@@ -89,7 +96,7 @@ const PAIRS = [
 	], tests: [LL], expectRed: [R2020, R2021, R2022, R2023] },
 	{ n: "C5", name: "the relay has no SIGINT handler (Ctrl-C)", edits: [
 		one(BC, SIGNALS, 'for (const signal of ["SIGTERM", "SIGHUP"])'),
-	], tests: [LL], expectRed: [R2026] },
+	], tests: [LL], expectRed: [R2026, R2027INT] },
 	{ n: "C6", name: "the relay has no SIGTERM handler", edits: [
 		one(BC, SIGNALS, 'for (const signal of ["SIGINT", "SIGHUP"])'),
 	], tests: [LL], expectRed: [R2026] },
@@ -97,14 +104,29 @@ const PAIRS = [
 		one(BC, SIGNALS, 'for (const signal of ["SIGINT", "SIGTERM"])'),
 	], tests: [LL], expectRed: [R2026] },
 	{ n: "C8", name: "the relay's signal handlers exit without ending pi's tree", edits: [
-		one(BC, "function terminate(signal) {\n\tkillTree();", "function terminate(signal) {"),
-	], tests: [LL], expectRed: [R2026] },
+		one(BC, "\tpassSignal(signal);\n\tsignalGraceTimer = setTimeout(() => finishTermination(signal), RELAY_SIGNAL_GRACE_MS);", "\tprocess.exit({ SIGHUP: 129, SIGINT: 130, SIGTERM: 143 }[signal]);"),
+	], tests: [LL], expectRed: [R2026, R2027INT] },
 	{ n: "C9", name: "the relay drops pi's stdout", edits: [
 		one(BC, 'child.stdout.on("data", (chunk) => { stdout += chunk; });', 'child.stdout.on("data", () => {});'),
 	], tests: [DR], expectRed: [STUB, DOTTED] },
 	{ n: "C10", name: "the relay drops pi's launch error", edits: [
 		one(BC, ", ...(launchError ? { error: errorRecord(launchError) } : {})", ""),
 	], tests: [DR], expectRed: [MISSING] },
+	{ n: "S1", name: "the relay kills at once on a signal (build 1's form)", edits: [
+		one(BC, "\tpassSignal(signal);\n\tsignalGraceTimer = setTimeout(() => finishTermination(signal), RELAY_SIGNAL_GRACE_MS);", "\tfinishTermination(signal);"),
+	], tests: [LL], expectRed: [R2027INT] },
+	{ n: "S2", name: "the relay never passes the signal to pi", edits: [
+		one(BC, 'if (process.platform === "win32" || !child?.pid) return;', "return;"),
+	], tests: [LL], expectRed: [R2027INT] },
+	{ n: "S3", name: "the signal grace is retuned to 5 s", edits: [
+		one(BS, "RELAY_SIGNAL_GRACE_MS = 1_000", "RELAY_SIGNAL_GRACE_MS = 5_000"),
+	], tests: [LL], expectRed: [R2027PIN] },
+	{ n: "S4", name: "a second signal during the grace is ignored", edits: [
+		one(BC, "\tif (terminatingSignal) {\n\t\tfinishTermination(signal);\n\t\treturn;\n\t}", "\tif (terminatingSignal) {\n\t\treturn;\n\t}"),
+	], tests: [LL], expectRed: [] },
+	{ n: "S5", name: "a child that closes during the grace is reported as an ordinary result", edits: [
+		one(BC, "if (terminatingSignal) finishTermination(terminatingSignal);", "if (false) finishTermination(terminatingSignal);"),
+	], tests: [LL], expectRed: [] },
 	...(process.platform === "win32" ? [
 		{ n: "W1", name: "win32: the deadline kill ends cmd.exe alone instead of running taskkill on its tree", edits: [
 			one(BC, 'const result = spawnSync("taskkill", [...TASKKILL_ARGS, String(child.pid)], { stdio: "ignore", windowsHide: true });', "const result = { status: 1 };"),
@@ -115,4 +137,4 @@ const PAIRS = [
 	] : []),
 ];
 
-process.exitCode = await runMutations({ lane: "pi-probe-timeout", self: import.meta.url, tip: "4c67ba2c", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "pi-probe-timeout", self: import.meta.url, tip: "4d04b56", declared: DECLARED, pairs: PAIRS });
