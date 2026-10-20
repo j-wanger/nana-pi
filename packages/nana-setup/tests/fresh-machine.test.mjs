@@ -37,7 +37,7 @@ const step8Commands = [...step8.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter(
 const step8Kinds = step8Commands.map((c) => c.split(/\s+/)[1]);
 // req: R-1111
 check("fresh-machine step 8 trusts the clone before doctor", step8Kinds.includes("trust") && step8Kinds.includes("doctor") && step8Kinds.indexOf("trust") < step8Kinds.indexOf("doctor"), step8);
-const rehearsalSteps = rehearsalPlan(parseChecklist(readme));
+const rehearsalSteps = rehearsalPlan(parseChecklist(readme, "darwin"));
 const lastRehearsalStep = rehearsalSteps.at(-1);
 // req: R-1546
 check("last step runs cd ~/nana-pi, trust and doctor as commands and expects all good",
@@ -47,4 +47,35 @@ check("last step runs cd ~/nana-pi, trust and doctor as commands and expects all
   lastRehearsalStep.commands[2] === "nana-setup doctor" &&
   lastRehearsalStep.expect === "all good",
   JSON.stringify(lastRehearsalStep));
+
+const windowsHeading = "### Fresh machine (Windows), in order";
+const windowsStart = readme.indexOf(windowsHeading);
+const windowsChecklist = windowsStart < 0 ? "" : readme.slice(windowsStart + windowsHeading.length).split(/\n### /)[0];
+const windowsEntries = [...windowsChecklist.matchAll(/^\s*(\d+)\.\s+(.+)$/gm)].map((m) => `${m[1]}. ${m[2]}`);
+const windowsSteps = rehearsalPlan(parseChecklist(readme, "win32"));
+const windowsFlat = windowsSteps.flatMap((step) => step.commands).join(" ");
+const windowsLayoutHome = path.join(path.parse(repo).root, "fixture-home");
+const windowsLayout = resolveLayout({ home: windowsLayoutHome });
+const windowsBin = `%USERPROFILE%\\${path.relative(windowsLayoutHome, windowsLayout.binDir).split(path.sep).join("\\")}`;
+const windowsObjectiveNames = [path.basename(windowsLayout.piObjective), path.basename(windowsLayout.piPackConfig)];
+const windowsExpectedAnchors = [
+  [`Node ≥ ${DESK_NODE_FLOOR}`, "Git for Windows", "Command Prompt"],
+  [`@earendil-works/pi-coding-agent@${ciVersion}`, "pi --version"],
+  ["git clone", '"%USERPROFILE%\\nana-pi"'],
+  ['cd /d "%USERPROFILE%\\nana-pi"', "nana-setup.mjs install"],
+  [windowsBin, "user Path", "Environment Variables", "new Command Prompt"],
+  [`pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`],
+  windowsObjectiveNames,
+  ['cd /d "%USERPROFILE%\\nana-pi"', 'nana-setup trust "%USERPROFILE%\\nana-pi"', "nana-setup doctor"],
+];
+const windowsLastStep = windowsSteps.at(-1);
+const quotedUserPaths = windowsFlat.match(/"%USERPROFILE%\\[^"\r\n]+"/g) ?? [];
+const outsideQuotedUserPaths = windowsFlat.replace(/"%USERPROFILE%\\[^"\r\n]+"/g, "");
+
+// req: R-1850
+check("Windows checklist has eight ordered actions for Command Prompt at the declared versions, with no command in the user Path step", windowsEntries.length === 8 && windowsSteps.length === 8 && windowsExpectedAnchors.every((anchors, index) => anchors.every((anchor) => windowsEntries[index]?.includes(anchor))) && windowsSteps[4]?.commands.length === 0, windowsEntries.join("\n"));
+// req: R-1851
+check("Windows last step runs cd /d to the clone, trust and doctor as commands and expects all good", windowsLastStep?.commands.length === 3 && windowsLastStep.commands[0] === 'cd /d "%USERPROFILE%\\nana-pi"' && windowsLastStep.commands[1] === 'nana-setup trust "%USERPROFILE%\\nana-pi" --yes' && windowsLastStep.commands[2] === "nana-setup doctor" && windowsLastStep.expect === "all good", JSON.stringify(windowsLastStep));
+// req: R-1852
+check("every Windows checklist command names user-folder paths only as double-quoted %USERPROFILE% paths, and at least three exist", !/~|\$HOME/.test(windowsFlat) && !outsideQuotedUserPaths.includes("%USERPROFILE%") && quotedUserPaths.length >= 3, windowsFlat);
 if (fails) process.exitCode = 1;
