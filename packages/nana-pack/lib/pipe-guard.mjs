@@ -26,7 +26,7 @@ const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);
 const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
 const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
 const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
-const BASH_ERREXIT_CHANGES = /(?:^|[;&{}(\r\n]|\b(?:then|do)\b)\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
+const BASH_ERREXIT_CHANGES = /(?:^|[;&{}\r\n]|\b(?:then|do)\b|(\$?\())\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
 const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
 
@@ -47,6 +47,12 @@ function escapedLineBreakEnd(source, index, escape) {
 	if (source[index + 1] === "\n") return index + 2;
 	if (source[index + 1] === "\r" && source[index + 2] === "\n") return index + 3;
 	return -1;
+}
+
+function escapedByOddBackslashes(source, index) {
+	let count = 0;
+	for (let i = index - 1; i >= 0 && source[i] === "\\"; i--) count++;
+	return count % 2 === 1;
 }
 
 function liveText(command, dialect = "bash") {
@@ -96,7 +102,7 @@ function liveText(command, dialect = "bash") {
 				for (; end < source.length && depth > 0; end++) {
 					const nestedChar = source[end];
 					if (nestedQuote) {
-						if (nestedChar === nestedQuote && source[end - 1] !== "\\") nestedQuote = "";
+						if (nestedChar === nestedQuote && (nestedQuote !== '"' || !escapedByOddBackslashes(source, end))) nestedQuote = "";
 						continue;
 					}
 					if (nestedChar === "'" || nestedChar === '"') nestedQuote = nestedChar;
@@ -111,7 +117,7 @@ function liveText(command, dialect = "bash") {
 				}
 			}
 			if (quote === "'" && ch === "'" && source[i + 1] === "'") { text += "  "; line += "  "; i++; continue; }
-			if (ch === quote && (quote !== '"' || source[i - 1] !== "\\")) {
+			if (ch === quote && (quote !== '"' || !escapedByOddBackslashes(source, i))) {
 				const exposure = isQuotedWord(source, quoteStart, i + 1) ? quotedGitExposure(source.slice(quoteStart + 1, i)) : "";
 				quote = "";
 				if (exposure) text += ` ${exposure} `;
@@ -424,7 +430,9 @@ function bashErrexitStates(live, pipes) {
 	let change = 0;
 	for (const pipe of pipes) {
 		while (change < changes.length && (changes[change].index ?? 0) + changes[change][0].length <= pipe) {
-			active = (changes[change][1] ?? changes[change][3]) === "-";
+			const afterSubshellOpener = changes[change][1] !== undefined;
+			const sign = changes[change][2] ?? changes[change][4];
+			if (!afterSubshellOpener || sign === "-") active = sign === "-";
 			change++;
 		}
 		states.push(active);
