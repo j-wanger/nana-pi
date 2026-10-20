@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 326 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 327 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -2490,7 +2490,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — Claude Code project environment and this entry's repository location.
 - **outputs** — adoption and stale-copy output, or each producer's fail-open marker.
 - **effects** — process (runs the adoption and stale-copy CLIs).
-- **errors** — producer failures become unavailable markers; the hook exits successfully.
+- **errors** — producer failures become unavailable markers; a stdout error, such as a reader that closed it, is ignored and the hook exits 0.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 
@@ -2500,7 +2500,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — Claude Code project environment and this entry's repository location.
 - **outputs** — objective producer output or its fail-open marker.
 - **effects** — process (runs the objective CLI).
-- **errors** — producer failures become an unavailable marker; the hook exits successfully.
+- **errors** — producer failures become an unavailable marker; a stdout error, such as a reader that closed it, is ignored and the hook exits 0.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 
@@ -2520,7 +2520,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — Claude Code environment, bounded hook JSON stdin, and the shared MEMORY.md file.
 - **outputs** — the shared-memory header, optional note, and index entries on stdout.
 - **effects** — disk, process (reads stdin, creates directories and a link, writes stdout).
-- **errors** — all failures are swallowed so this SessionStart hook exits successfully.
+- **errors** — all failures, including a stdout error such as a reader that closed it, are ignored and the hook exits 0.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-input.mjs`
 
@@ -2530,7 +2530,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — Claude Code PreToolUse JSON on stdin.
 - **outputs** — a hit decision on stdout; errors produce a stderr diagnostic.
 - **effects** — process (reads stdin and writes stdout/stderr).
-- **errors** — malformed input and internal errors abstain with a stderr diagnostic.
+- **errors** — malformed input and internal errors abstain with a stderr diagnostic; a stdout error, such as a reader that closed it, is ignored and the hook exits 0.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/verifier-hook.mjs`
 
@@ -2914,6 +2914,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 
+### `packages/nana-setup/tests/hooks-closed-output.test.mjs`
+
+- **purpose** — Prove Claude Code hooks fail open when their stdout reader closes.
+- **inputs** — Five canonical hooks, their fixture inputs, and a throwaway home.
+- **outputs** — One PASS or FAIL check per hook and a nonzero exit when any check fails.
+- **effects** — disk (creates throwaway hook state), process (spawns Node hook children).
+- **errors** — A failed check reports both exit codes and the first stderr line.
+- **callers** — —
+- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
+
 ### `packages/nana-setup/tests/hooks-win32-exec.test.mjs`
 
 - **purpose** — Spawn every installed Claude Code hook entry exactly as Windows exec form does — no shell, real `node`, each entry's own args — and read the result.
@@ -3171,7 +3181,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-quiet.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
+- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-quiet.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/tests/trust.test.mjs`
