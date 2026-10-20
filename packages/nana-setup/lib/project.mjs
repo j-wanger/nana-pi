@@ -5,7 +5,7 @@
  *  templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader;
  *  NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS
- * @outputs setupProject() reports rows and checkProject() asynchronously reports rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
+ * @outputs setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`,
  *  every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
  *  exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT,
@@ -13,9 +13,9 @@
  * @effects disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a
  *  parent-side deadline — SIGTERM then SIGKILL after the grace)
  * @errors SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a
- *  path that is not a git repository root; everything else is a row — SKIPPED for a nested-repo
- *  `git init`, a failed `git init`, a missing index, a held build lock, a build failure or the
- *  refresh deadline
+ *  path that is not a git repository root; everything else is a row — SKIPPED for an odd seed
+ *  entry or folder path, a nested-repo `git init`, a failed `git init`, a missing index, a held
+ *  build lock, a build failure or the refresh deadline
  */
 // `nana-setup project` — the last manual step between a blank folder and a nana project.
 //
@@ -49,13 +49,12 @@ export function today(d = new Date()) {
  * `<name>` literal on purpose (copier has no date variable, so the rendered template ships them
  * unfilled and says so); every other `<...>` in them is draft text the owner is meant to replace.
  *
- * `split().join()`, deliberately, NOT `replaceAll` (sol r2): `replaceAll` gives the REPLACEMENT
- * string special meaning — `$&`, `$'`, `$1` — even when the pattern is a plain string, so a
- * project named `$&` would smear the pattern through its own title. split/join is literal. The
- * name never reaches a shell either: it only ever becomes file CONTENT here and in `agentsStub`.
+ * One callback-form replacement fills both placeholders in one pass. The callback's return is
+ * literal replacement text, so `$&`, backticks and shell-looking names keep their bytes. One pass
+ * also means placeholder text inside the name is not interpreted as a second template token.
  */
 export function fillSeed(text, { name, date }) {
-	return text.split("<name>").join(name).split("<date>").join(date);
+	return text.replace(/<name>|<date>/g, (token) => token === "<name>" ? name : date);
 }
 
 function readShared(rel) {
@@ -68,6 +67,50 @@ function lstat(p) {
 	} catch {
 		return null;
 	}
+}
+
+/** Classify a seed without crossing an odd entry. Live links to intermediate folders remain valid. */
+function seedEntry(dir, rel) {
+	const parts = rel.split("/");
+	let current = dir;
+	for (let i = 0; i < parts.length; i++) {
+		current = path.join(current, parts[i]);
+		const st = lstat(current);
+		if (!st) return { kind: "absent" };
+		const last = i === parts.length - 1;
+		if (last) {
+			if (st.isFile() && !st.isSymbolicLink()) return { kind: "file" };
+			if (st.isSymbolicLink()) {
+				let target = "?";
+				try { target = fs.readlinkSync(current); } catch { /* unreadable link */ }
+				return { kind: "odd", found: `a symlink -> ${target}` };
+			}
+			if (st.isDirectory()) return { kind: "odd", found: "a directory" };
+			return { kind: "odd", found: "not a regular file" };
+		}
+		if (st.isDirectory() && !st.isSymbolicLink()) continue;
+		const folder = parts.slice(0, i + 1).join("/");
+		if (st.isSymbolicLink()) {
+			let target = "?";
+			try { target = fs.readlinkSync(current); } catch { /* unreadable link */ }
+			try {
+				if (fs.statSync(current).isDirectory()) continue;
+			} catch { /* dangling or unreadable */ }
+			return { kind: "odd", found: `a symlink -> ${target} at ${folder}` };
+		}
+		if (st.isFile()) return { kind: "odd", found: `a file at ${folder}` };
+		return { kind: "odd", found: `not a directory at ${folder}` };
+	}
+	return { kind: "absent" };
+}
+
+function oddSeedRow(label, entry) {
+	return {
+		label,
+		status: SKIPPED,
+		byHand: true,
+		detail: `${entry.found} is there — left untouched, nothing written through it`,
+	};
 }
 
 /**
@@ -125,12 +168,15 @@ export function monthHeader(name, month) {
 export function stepSeeds(dir, o, { name, date }) {
 	const out = [];
 	for (const rel of ["OBJECTIVE.md", "HANDOFF.md", "docs/sessions/README.md"]) {
-		const r = seedFile(path.join(dir, ...rel.split("/")), fillSeed(readShared(rel), { name, date }), o);
-		out.push({ label: rel, ...r });
+		const entry = seedEntry(dir, rel);
+		if (entry.kind === "odd") out.push(oddSeedRow(rel, entry));
+		else out.push({ label: rel, ...seedFile(path.join(dir, ...rel.split("/")), fillSeed(readShared(rel), { name, date }), o) });
 	}
 	const month = date.slice(0, 7);
 	const rel = `docs/sessions/${month}.md`;
-	out.push({ label: rel, ...seedFile(path.join(dir, "docs", "sessions", `${month}.md`), monthHeader(name, month), o) });
+	const entry = seedEntry(dir, rel);
+	if (entry.kind === "odd") out.push(oddSeedRow(rel, entry));
+	else out.push({ label: rel, ...seedFile(path.join(dir, "docs", "sessions", `${month}.md`), monthHeader(name, month), o) });
 	return out;
 }
 
@@ -322,10 +368,19 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 export function stepAgents(dir, o, { name }) {
 	const agents = path.join(dir, "AGENTS.md");
 	const claude = path.join(dir, "CLAUDE.md");
-	const hasAgents = Boolean(lstat(agents));
-	const hasClaude = Boolean(lstat(claude));
-	if (hasAgents || hasClaude) {
-		return [{ label: "AGENTS.md", status: UNCHANGED, detail: `${hasAgents ? "AGENTS.md" : "CLAUDE.md"} already present, left untouched` }];
+	const agentsEntry = seedEntry(dir, "AGENTS.md");
+	if (agentsEntry.kind === "file") {
+		return [{ label: "AGENTS.md", status: UNCHANGED, detail: "AGENTS.md already present, left untouched" }];
+	}
+	const claudeEntry = seedEntry(dir, "CLAUDE.md");
+	if (agentsEntry.kind === "odd" || claudeEntry.kind === "odd") {
+		const out = [];
+		if (agentsEntry.kind === "odd") out.push(oddSeedRow("AGENTS.md", agentsEntry));
+		if (claudeEntry.kind === "odd") out.push(oddSeedRow("CLAUDE.md", claudeEntry));
+		return out;
+	}
+	if (claudeEntry.kind === "file") {
+		return [{ label: "AGENTS.md", status: UNCHANGED, detail: "CLAUDE.md already present, left untouched" }];
 	}
 	const w = seedFile(agents, agentsStub(name), o);
 	const out = [{ label: "AGENTS.md", ...w, detail: w.detail ?? "stub + the canonical `Working under nana-pi` section" }];
@@ -376,7 +431,9 @@ export const PACK_STARTER = `${JSON.stringify({ postEdit: { commands: [] } }, nu
  */
 export function stepPackConfig(dir, o, layout) {
 	const target = path.join(dir, ".pi", "nana-pack.json");
-	if (lstat(target)) return { label: ".pi/nana-pack.json", status: UNCHANGED, detail: "already present, left untouched" };
+	const entry = seedEntry(dir, ".pi/nana-pack.json");
+	if (entry.kind === "odd") return oddSeedRow(".pi/nana-pack.json", entry);
+	if (entry.kind === "file") return { label: ".pi/nana-pack.json", status: UNCHANGED, detail: "already present, left untouched" };
 	const user = readPiPackConfig(layout);
 	if (Array.isArray(user?.postEdit?.commands) && user.postEdit.commands.length) {
 		return {
@@ -514,10 +571,13 @@ export async function setupProject(dir, layout, opts = {}) {
 	const date = opts.date || today();
 	const results = [stepGit(dir, o)];
 	results.push(...stepSeeds(dir, o, { name, date }));
-	results.push(...stepAgents(dir, o, { name }));
+	const agentRows = stepAgents(dir, o, { name });
+	results.push(...agentRows);
 	const claudeRefresh = stepClaudeImportRefresh(dir, o);
 	if (claudeRefresh) results.push(claudeRefresh);
-	results.push(refreshWorkingRegion(dir, o));
+	if (agentRows.some((row) => row.label === "AGENTS.md" && row.status === CREATED)) {
+		results.push({ label: "AGENTS.md working region", status: UNCHANGED, detail: "comes with the new AGENTS.md stub" });
+	} else results.push(refreshWorkingRegion(dir, o));
 	results.push(stepPackConfig(dir, o, layout));
 	results.push(await stepKnowledgeRefresh(layout, o));
 	return results;
@@ -533,30 +593,18 @@ export async function setupProject(dir, layout, opts = {}) {
 export async function checkProject(dir, layout = {}) {
 	const has = (rel) => Boolean(lstat(path.join(dir, ...rel.split("/"))));
 	/**
-	 * A seed counts only as a REGULAR file. Setup deliberately refuses to write through a
-	 * symlink or into a directory sitting at a seed path — and the thing it refused is exactly
-	 * the thing `--check` must not print ✓ over: the objective still cannot be read (sol r2).
+	 * A seed counts only as a REGULAR file. The same classifier setup uses also catches a file
+	 * or dangling link on the path to the seed, before any read crosses that entry.
 	 */
 	const fileState = (rel) => {
-		const p = path.join(dir, ...rel.split("/"));
-		const st = lstat(p);
-		if (!st) return { ok: false, found: null };
-		if (st.isSymbolicLink()) {
-			let to = "";
-			try {
-				to = ` -> ${fs.readlinkSync(p)}`;
-			} catch {
-				/* unreadable link */
-			}
-			return { ok: false, found: `a symlink${to}` };
-		}
-		if (st.isDirectory()) return { ok: false, found: "a directory" };
-		if (!st.isFile()) return { ok: false, found: "not a regular file" };
-		return { ok: true, found: null };
+		const entry = seedEntry(dir, rel);
+		return entry.kind === "file"
+			? { ok: true, found: null }
+			: { ok: false, found: entry.kind === "odd" ? entry.found : null };
 	};
 	const seed = (rel, meaning, label = rel) => {
 		const s = fileState(rel);
-		return { label, ok: s.ok, detail: s.found ? `${s.found} is there — not a readable ${rel}` : meaning };
+		return { label, ok: s.ok, detail: s.found ? `${s.found} is there — not a readable ${rel}; move or remove it by hand` : meaning };
 	};
 	const monthFiles = (() => {
 		try {
@@ -574,11 +622,22 @@ export async function checkProject(dir, layout = {}) {
 		checks.push({ label: "git repo", ok: Boolean(inside), detail: inside ? `inside ${inside} — no nested repo, by design` : ".git" });
 	}
 
+	const monthRel = `docs/sessions/${today().slice(0, 7)}.md`;
+	const monthState = fileState(monthRel);
 	checks.push(
 		seed("OBJECTIVE.md", "the two lines the session-start hook prints (labelled UNTRUSTED DATA while no usable affirmative trust record is confirmed for this folder; the label names the next step it can see)"),
 		seed("HANDOFF.md", "the frontier"),
 		seed("docs/sessions/README.md", "the narrative's rules"),
-		{ label: "docs/sessions/YYYY-MM.md", ok: monthFiles.length > 0, detail: monthFiles.length ? monthFiles.join(", ") : "no docs/sessions/YYYY-MM.md file" },
+		{
+			label: "docs/sessions/YYYY-MM.md",
+			projectLabel: monthRel,
+			ok: monthFiles.length > 0,
+			detail: monthFiles.length
+				? monthFiles.join(", ")
+				: monthState.found
+					? `${monthState.found} is there — not a readable ${monthRel}; move or remove it by hand`
+					: "no docs/sessions/YYYY-MM.md file",
+		},
 	);
 
 	const agentPath = path.join(dir, "AGENTS.md");
@@ -596,7 +655,7 @@ export async function checkProject(dir, layout = {}) {
 			checks.push({ label: "AGENTS.md working region", ok: actual === expected, detail: actual === expected ? "matches shared section" : `differs — fix: nana-setup project ${dir}` });
 		}
 	} else if (agentState?.isSymbolicLink()) {
-		checks.push({ label: "AGENTS.md working region", ok: false, detail: "AGENTS.md is a symlink — left alone" });
+		checks.push({ label: "AGENTS.md working region", ok: false, detail: "AGENTS.md is a symlink — left alone; move or remove it by hand" });
 	}
 
 	// The navigation file: AGENTS.md as a regular file, or — for a project that already had one
@@ -604,8 +663,16 @@ export async function checkProject(dir, layout = {}) {
 	const agents = fileState("AGENTS.md");
 	const claude = fileState("CLAUDE.md");
 	if (agents.ok) checks.push({ label: "AGENTS.md", ok: true, detail: "the navigation file" });
-	else if (agents.found) checks.push({ label: "AGENTS.md", ok: false, detail: `${agents.found} is there — not a readable AGENTS.md` });
-	else checks.push({ label: "AGENTS.md", ok: claude.ok, detail: claude.ok ? "CLAUDE.md, the project's own — no AGENTS.md by design" : "AGENTS.md (or a CLAUDE.md the project already had)" });
+	else if (agents.found) checks.push({ label: "AGENTS.md", ok: false, detail: `${agents.found} is there — not a readable AGENTS.md; move or remove it by hand` });
+	else checks.push({
+		label: "AGENTS.md",
+		ok: claude.ok,
+		detail: claude.ok
+			? "CLAUDE.md, the project's own — no AGENTS.md by design"
+			: claude.found
+				? `AGENTS.md (or a CLAUDE.md the project already had) — ${claude.found} is at CLAUDE.md; move or remove it by hand`
+				: "AGENTS.md (or a CLAUDE.md the project already had)",
+	});
 
 	// CLAUDE.md is the project's alias for AGENTS.md: `project` writes it as the one-line
 	// import `@AGENTS.md` (R-1311, every platform). An existing macOS project's own relative
@@ -639,7 +706,7 @@ export async function checkProject(dir, layout = {}) {
 			checks.push({
 				label: "CLAUDE.md",
 				ok: linked,
-				detail: linked ? "-> AGENTS.md" : `a symlink -> ${raw ?? "?"} — ${resolved ? "not this project's AGENTS.md" : "dangling"}`,
+				detail: linked ? "-> AGENTS.md" : `a symlink -> ${raw ?? "?"} — ${resolved ? "not this project's AGENTS.md" : "dangling"}; move or remove it by hand`,
 			});
 		} else if (st.isFile()) {
 			const bytes = (() => {
@@ -657,10 +724,10 @@ export async function checkProject(dir, layout = {}) {
 					? "the one-line import @AGENTS.md"
 					: bytes !== null && PLACEHOLDER_RE.test(bytes)
 						? "holds the AGENTS.md placeholder text — a symlink checked out without symlink support; run nana-setup project to replace it"
-						: "not the one-line import @AGENTS.md — run nana-setup project to replace it",
+						: "not the one-line import @AGENTS.md — fold this project's own CLAUDE.md into AGENTS.md and leave only the line @AGENTS.md here by hand",
 			});
 		} else {
-			checks.push({ label: "CLAUDE.md", ok: false, detail: "a directory is there" });
+			checks.push({ label: "CLAUDE.md", ok: false, detail: "a directory is there; move or remove it by hand" });
 		}
 	}
 
@@ -673,7 +740,7 @@ export async function checkProject(dir, layout = {}) {
 		detail: pack.ok
 			? "file present"
 			: pack.found
-				? `${pack.found} is there — not a readable .pi/nana-pack.json`
+				? `${pack.found} is there — not a readable .pi/nana-pack.json; move or remove it by hand`
 				: shadowed
 					? "omitted on purpose — your user-scope postEdit.commands would be shadowed by it"
 					: "post-edit on-ramp",

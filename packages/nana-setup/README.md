@@ -214,7 +214,9 @@ The three seeds have ONE source, `templates/_shared/`, and three consumers: this
 copier templates (both languages `include` them, and `_skip_if_exists` keeps adopt mode from
 overwriting a real one) and the `adopt-structure` skill. So a scaffolded, an adopted and a
 hand-made project read identically. `<date>` is left literal in the rendered template on
-purpose — copier has no date variable — and is filled by this command or by the skill.
+purpose — copier has no date variable — and is filled by this command or by the skill. Project
+names land literally, including `<date>`, `<name>`, replacement tokens, backticks and shell-looking
+text; placeholder-looking text inside a name is not filled again.
 
 **Trust is yours to decide, too.** The seeded `.pi/nana-pack.json` is ignored until you decide this folder's trust. Run
 `nana-setup trust <dir>` and confirm interactively, or pass `--yes` in a script. The command
@@ -235,7 +237,9 @@ names. (The two steps that only ask whether something OTHER than a seed exists �
 index and the desk server file — and `doctor`'s presence rows for the memory index and the objective
 file use `existsSync`; doctor's knowledge row opens the index read-only: nothing is written through those paths.) A symlink of any kind, or a
 directory, at a seed path is reported `skipped` naming what was found, and nothing is written
-through it.
+through it. The command also checks every folder on the way to a seed. A stray file or dangling
+link there skips that seed by name instead of stopping the run; the closing line lists each such
+seed, and every odd seed entry, as a fix by hand.
 
 **The refresh cannot hang the command.** It is spawned asynchronously with a parent-side
 60 s deadline — SIGTERM, then SIGKILL 2 s later — and reported as `timeout`. `spawnSync`'s own
@@ -251,16 +255,18 @@ checker set and missing affirmative trust when project configuration exists; the
 
 **…but a seed must be a REGULAR file to read ✓.** A symlink or a directory sitting at
 `OBJECTIVE.md` is exactly what setup refused to write through, and the objective still cannot
-be read — so `--check` reads ✗ naming what it found, and exits 1. `CLAUDE.md` is the one
-exception to BOTH rules: `project` writes it as the one-line import `@AGENTS.md`, on every
-platform, and an existing project's own relative symlink to `AGENTS.md` still reads ✓ — only
+be read — so `--check` reads ✗ naming what it found, says to move or remove it by hand, and
+exits 1. `CLAUDE.md` is the one exception to BOTH rules: `project` writes it as the one-line import
+`@AGENTS.md`, on every platform, and an existing project's own relative symlink to `AGENTS.md` still reads ✓ — only
 when it **resolves** to this project's own `AGENTS.md`: a dangling link, `-> missing/AGENTS.md`
 or a link to another project's file reads ✗ naming the target, because Claude Code would then
 be reading different instructions from the ones pi reads. The placeholder text a Windows clone
 produces when a committed `CLAUDE.md` symlink is checked out with no symlink support — the
 literal 9 bytes `AGENTS.md` — also reads ✗; re-running `project` replaces it with the import file.
+A project's own regular `CLAUDE.md` beside `AGENTS.md` is not replaced: fold its instructions into
+`AGENTS.md`, then leave only the line `@AGENTS.md` in `CLAUDE.md` by hand.
 
-`project --check` compares only the marker-owned section; text outside it does not affect that row. A differing section names `nana-setup project <dir>` as its fix, and absent or malformed markers read `!`.
+`project --check` compares only the marker-owned section; text outside it does not affect that row. A differing section names `nana-setup project <dir>` as its fix, and absent or malformed markers read `!`. The project's dry run, which writes nothing, decides which ✗ rows the closing summary gives to `nana-setup project`. When project fixes every row the summary says `run: nana-setup project <dir>`; when it fixes none, the summary lists the labels to fix by hand; a mixed result lists those labels first and then names project for the other count. Labels are deduplicated in row order.
 
 `project --check` mutes the same two Node warnings doctor mutes and prints every other Node warning.
 
@@ -498,3 +504,4 @@ loudly and counted, never silent.
 | `tests/realpath-fallback.test.mjs` | install, doctor, the stale-copy producer and POSIX uninstall when native realpath fails inside the checkout and typed realpath succeeds |
 | `tests/skills-and-standards.test.mjs` | the `requirements` skill and the `claude/rules/nana-standards.md` rule: the frontmatter name and every trigger phrase the description must carry, a fresh machine getting both as symlinks into the repo, idempotence, doctor ✓ or ✗ with the fix named, a **regular directory** already at `~/.claude/skills/requirements` reported with install **exit 1** and the owner's file untouched and nothing backed up into the skills dir, a symlink pointing elsewhere relinked, and the forced win32 branch (a real directory of byte-equal copies, a stale copy caught by doctor and refreshed, a hand-written file backed up beside itself); on win32 a folder nana-setup did not make is refused the same way — install and `--dry-run` **exit 1** and leave it byte-identical, doctor reads ✗ — while a `.nana-setup-copy`-marked mirror or a pre-marker shipped SKILL.md (LF or CRLF) keeps refreshing and a fresh mirror gets the marker written |
 | `tests/project.test.mjs` | `project` on a blank folder (every file, `git init`, the one-line `CLAUDE.md` import, the canonical section verbatim), the same import written with `NANA_SETUP_PLATFORM=win32` forced, the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing objective, navigation, or sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. nana-pi's own committed `CLAUDE.md`, a regular file holding the import; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; the CLAUDE.md import reading ✓, and an existing symlink still reading ✓ only when it RESOLVES to this project's AGENTS.md (dangling, `-> missing/AGENTS.md` and a link to another project all ✗, with exit 1); the AGENTS.md placeholder text reading ✗ and a refresh replacing it with the import file without ever writing through a link; `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_TEST_REQUIRE_COPIER=1`) when `uvx` is not installed |
+| `tests/project-odd-seeds.test.mjs` | all seven seed paths as links or folders; files and links on folder paths; by-hand setup and check summaries; the project's own `CLAUDE.md`; literal odd names; and dry-run parity including a missing parent |
