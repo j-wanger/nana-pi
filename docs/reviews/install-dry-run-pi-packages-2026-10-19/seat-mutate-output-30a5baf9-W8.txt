@@ -1,0 +1,8 @@
+seat-mutate: lane install-dry-run-pi-packages, tip 30a5baf9397457b11ca0f2b1a0714a30763b4dc1, table f357eba50ac8b34db65ed07b9781e7c7e327b007a7cad5f84690f38d5c49b1a8, merge-base d4423eff5a68c3ae5137adf1e5ed890f9b2154ed, 1 pairs in 1 shards (1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T03:36:21.146Z
+DECLARED (a) every pair runs on macOS; the win32 cases run injected, and W8 spawns pi by its bare name, a POSIX PATH lookup
+DECLARED (b) the README Idempotence sentence has no pair: the readme check is its test, and it is not product code
+[1/1] seat-mutate: lane install-dry-run-pi-packages, shard 1/1, tip 30a5baf9397457b11ca0f2b1a0714a30763b4dc1, merge-base d4423eff5a68c3ae5137adf1e5ed890f9b2154ed, 1 pairs, darwin, node v22.22.2, 2026-10-20T03:36:21.716Z
+[1/1] BASELINE ok   packages/nana-setup/tests/pi-registration.test.mjs (exit 0, 70 PASS, 0 FAIL, )
+[1/1] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED W8 under --home spawn pi install, then report skipped — 1/1 named: R-358: under --home, install and install --dry-run start no pi install while a working pi is first …; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards
