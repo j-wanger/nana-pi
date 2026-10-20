@@ -1045,7 +1045,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     every session run inside it, and one that could set `enabled: false` could silently
     suppress the owner's objective.
     Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
-  - **An unparseable user `nana-pack.json` is announced without quoting its text.** Both runtimes keep the objective block and add one line after its heading. The line names the config file, includes the parser's line and column when available, and tells the owner to write `objective.path` with forward slashes because JSON treats a single backslash as an escape.
+  - **An unparseable user `nana-pack.json` is announced without quoting its text.** Both runtimes keep the objective block and add one line after its heading. The line names the file and any parser-reported line and column, but shows no file text. It gives forward-slash advice for a backslash error and says "Repair the JSON by hand." for any other parse error.
   - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, not
     valid UTF-8, or refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
     under the same heading and journals `objective_unavailable` with the cause; a file with
