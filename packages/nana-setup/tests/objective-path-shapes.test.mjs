@@ -218,7 +218,6 @@ try {
 	}
 
 	// -------------------------------------------------------------------------------- R-2285 (Windows CI leg only)
-	// req-candidate: R-2285 (Windows only; becomes req: when the Windows CI leg passes it)
 	if (process.platform !== "win32") {
 		console.log("SKIP R-2285: on Windows, the producer and doctor both read a tilde-backslash objective.path from the home folder — win32 only");
 	} else {
@@ -232,6 +231,7 @@ try {
 		const producerResult = runObjective(home);
 		const doctorRow = diagnoseWithPi(layout, { projectDir: NEUTRAL_CWD }).find((c) => c.label === "pi objective file");
 
+		// req: R-2285
 		check("R-2285: on Windows, the producer and doctor both read a tilde-backslash objective.path from the home folder",
 			producerResult.stdout.includes(`governing: ${goalFile}`) && doctorRow?.status === "ok" && doctorRow.detail === goalFile,
 			JSON.stringify({ stdout: producerResult.stdout, doctorRow }));
