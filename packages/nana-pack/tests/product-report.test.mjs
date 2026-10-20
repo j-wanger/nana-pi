@@ -402,6 +402,24 @@ try {
   }
   {
     const { root, git } = fixture("store-invalid-rules");
+    // FEAT-002's own rows are all implemented in the live ledger (handoff-pins flips its last
+    // eight); a "solid rating has an unready own row" check needs a fixture with one, so this
+    // commits a fixture-local downgrade before stamping — built the same way the
+    // planned-own-row block below builds its own, but to "untested" and for FEAT-002.
+    const invalidLedgerPath = path.join(root, "REQUIREMENTS.md");
+    const invalidLedgerText = fs.readFileSync(invalidLedgerPath, "utf8");
+    const invalidParsedLedger = parseLedger(invalidLedgerText);
+    const invalidFeatureHeading = invalidParsedLedger.headings.find((heading) => heading.id === "FEAT-002");
+    const invalidFeatureRows = readRequirementRows(invalidParsedLedger).filter((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === invalidFeatureHeading) return true; return false; });
+    const invalidUntestedRow = invalidFeatureRows[0];
+    let invalidNormalizedLedger = invalidLedgerText;
+    for (const row of invalidFeatureRows) {
+      const oldLine = `| ${row.id} | ${row.requirement} | ${row.status} | ${row.evidence} |`;
+      invalidNormalizedLedger = invalidNormalizedLedger.replace(oldLine, oldLine.replace(`| ${row.status} |`, "| implemented |"));
+    }
+    const oldUntestedRow = `| ${invalidUntestedRow.id} | ${invalidUntestedRow.requirement} | implemented | ${invalidUntestedRow.evidence} |`;
+    fs.writeFileSync(invalidLedgerPath, invalidNormalizedLedger.replace(oldUntestedRow, oldUntestedRow.replace("| implemented |", "| untested |")));
+    git(["add", "REQUIREMENTS.md"]); git(["commit", "-qm", "untested own row"]);
     const commit = git(["rev-parse", "HEAD"]).stdout.trim();
     const invalid = makeAssessment(root, commit, "FEAT-002");
     invalid.maturity = "solid";
