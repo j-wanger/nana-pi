@@ -25,6 +25,7 @@ const timeout = 15_000;
 let fails = 0;
 let passes = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (ok) passes++; else fails++; };
+const skip = (name, why) => console.log("SKIP", name, "—", why);
 const freshHome = (label) => { const home = tmpDir(path.join(os.tmpdir(), `pack-config-utf16-${label}-`)); fs.mkdirSync(home, { recursive: true }); return home; };
 /** Copied from nana-roster-set.test.mjs: fresh user roots and no pi-model-shell marker. */
 const cleanEnv = (home, extra = {}) => { const env = { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: home, ...extra }; delete env[PI_MODEL_SHELL_ENV]; return env; };
@@ -103,10 +104,8 @@ const malformedShapes = [
 // req: R-2236
 check("R-2236: UTF-16 with no mark, two marks or an odd byte count, LE or BE, stays unparseable for the objective producer", malformedShapes.every(({ file, run }) => run.status === 0 && run.stdout.includes(`${CONFIG_FAILURE_PREFIX}${displayPath(file)}`) && run.stdout.includes(MANUAL_JSON_ADVICE)), JSON.stringify(malformedShapes));
 
-let windowsProof = true;
-let windowsDetail = "";
 if (process.platform !== "win32") {
-	console.log("SKIP R-2237: Windows PowerShell 5.1 exists only on Windows");
+	skip("R-2237: on Windows, a nana-pack.json written by Windows PowerShell's Out-File and > turns the objective off", "Windows PowerShell 5.1 exists only on Windows");
 } else {
 	const home = freshHome("windows-powershell");
 	const outFile = path.join(home, "out-file.json");
@@ -120,11 +119,11 @@ if (process.platform !== "win32") {
 		fs.copyFileSync(source, path.join(home, "nana-pack.json"));
 		return { source, marked: bytes[0] === 0xff && bytes[1] === 0xfe, run: runObjective(home) };
 	});
-	windowsProof = produced.status === 0 && produced.stdout === "" && observations.every(({ marked, run }) => marked && run.status === 0 && run.stdout === "");
-	windowsDetail = JSON.stringify({ produced, observations });
+	const windowsProof = produced.status === 0 && produced.stdout === "" && observations.every(({ marked, run }) => marked && run.status === 0 && run.stdout === "");
+	const windowsDetail = JSON.stringify({ produced, observations });
+	// req: R-2237
+	check("R-2237: on Windows, a nana-pack.json written by Windows PowerShell's Out-File and > turns the objective off", windowsProof, windowsDetail);
 }
-// req-candidate: R-2237 (Windows only; becomes req: when the Windows CI leg passes it)
-check("R-2237: on Windows, a nana-pack.json written by Windows PowerShell's Out-File and > turns the objective off", windowsProof, windowsDetail);
 
 console.log(`${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
