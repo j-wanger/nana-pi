@@ -1,0 +1,54 @@
+# Review — win-hook-rows (on Windows, install and doctor list each Claude Code hook only by its settings row), 2026-10-19 (Opus, the final reviewer)
+
+Feature: FEAT-013 · Install and connect harness runtimes
+
+Review `git diff f0d6da24..HEAD` on `feat/win-hook-rows` (main was `f0d6da24` when the lane branched; `git merge-base
+HEAD main` is `f0d6da24`). Main has since moved to `4656f646` (the pwsh-lexer-oracle land), so the land needs a merge
+of main and a confirmation round on the merged tip. The plan of record is
+`docs/reviews/win-hook-rows-2026-10-19/must-meet.md`: two must-meet checks, rows R-1860 and R-1861, plus R-349
+narrowed and R-937's evidence trimmed. `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the build
+(5fa19acd); `test-title-map.json` maps the two removed check titles to the new ones. The seat's record is
+`seat-verify-5fa19acd.md`: CI run 39347845476 on draft pull request #85, 0 failing files on all three legs (the
+Windows suite log `ci-windows-5fa19acd.log` and the Windows install-check log `ci-install-check-windows-5fa19acd.log`
+beside it), the wrong-code pairs (`seat-mutate.mjs`, `seat-mutate-output-5fa19acd.txt`: 7 of 7 red, 0 survived, three
+declared items) and the independent check (`independent-check-5fa19acd.md`: HOLDS, no MUST, ten probes; its two known
+bugs are settled, one by the seat's HANDOFF edit and one as a HANDOFF residual). The local macOS install check runs
+before the land.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement f0d6da2..e1c431f: 3 rows in 1 features
+FEAT-013 · Install and connect harness runtimes
+  R-349 text changed
+  R-1860 new (implemented)
+  R-1861 new (implemented)
+```
+
+R-937's evidence also changed: it drops the per-hook `win32 doctor: ${label} reads skipped (win32)` title. CAP-04
+moves from 376 to 378 rows, FEAT-013 from 126 to 128 and SUB-015 from 35 to 37.
+
+The code under review: `stepHooks` in `packages/nana-setup/lib/steps.mjs` and `hookLinkRows` in
+`packages/nana-setup/lib/hook-health.mjs` return no rows on win32; both hook-health row builders drop the `skipped`
+field; doctor's hook link row in `lib/doctor.mjs` and both loops in `bin/stale-copies.mjs` (the session-start
+stale-copy producer the adoption hook runs) read `ok` only; `DOCTOR_NOTES.win32` in `lib/install-check-config.mjs`
+drops the five `hook <script>` labels, and the R-1081 pin in `tests/install-check.test.mjs` follows. The two new checks
+sit in `packages/nana-setup/tests/win32-degrade.test.mjs`, which loses the untagged install skip-row loop and the R-937
+per-hook doctor loop. The setup README gains one sentence and a wider test-table cell.
+
+Judge whether, on win32, install and doctor print no row whose label holds one of the five hook script file names,
+while all six settings rows still print and doctor still judges each ✓ or ✗ (R-1055); whether POSIX install, doctor
+and the stale-copy line are unchanged, hook links included; and whether the stale-copy line still names a missing hook
+link on POSIX and a broken settings entry on win32 now that it reads `ok` only.
+
+Threat model: honest variation in our tools' output and the OS is in scope (native win32, forced win32 on macOS and
+Linux, the Windows CI legs, homes with or without a Claude hooks folder); deliberate forgery is out. Lane class:
+install, hook or gate — install and doctor in nana-setup, and the stale-copy producer the adoption hook runs.
+
+Check: (1) the two must-meet checks are not vacuous: each fails on main's output, requires exactly five script names
+and all six settings labels in the same output, and would not pass on an empty or reformatted output; (2) no reader
+still depends on the removed `skipped` field, so no failing hook row turns into a silent note; (3) nothing main does
+today stopped working on macOS, Linux or Windows: install, doctor, the stale-copy line, the install check and the
+R-1081 note list; (4) the tests write only inside the temp folders and temp homes they own and clean up; (5) HANDOFF
+and the session entry are true, including the rewritten hooks-on-Windows line, the four new win-hook-rows residuals
+and the other lanes' residuals the seat added; (6) any MUST.
