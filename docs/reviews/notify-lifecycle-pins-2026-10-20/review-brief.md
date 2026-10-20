@@ -48,3 +48,7 @@ items from other lanes, which the seat wrote against main `c7f582ad`'s HANDOFF a
 pi-launch-deadline-grace lane's probe); (10) the seat's one finding: a comment in `lifecycle-journal.test.mjs` says
 only session_start and session_shutdown carry a reason in pi 1.0.2's types, while those types give the three
 compaction events one too — the seat recorded it as a residual; (11) any MUST.
+
+## Base note (the seat, after this brief was written)
+
+Since `179a320d`, the seat merged main `c7f582ad` (the pi-launch-followups land tip) into the lane at `6bd03b29`. Review this lane's own change as `git diff main...HEAD` (three dots: against the merge base). In the merge the seat kept this lane's reworded deadline-grace residual ("probed") and dropped main's older copy of the same line.
