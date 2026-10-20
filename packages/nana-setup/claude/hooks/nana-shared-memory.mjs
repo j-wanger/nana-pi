@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { claudeConfigHome } from "../../lib/claude-config-home.mjs";
 import { projectKey } from "../../lib/project-key.mjs";
 import { readHookInput } from "../../lib/shared-memory-input.mjs";
 
@@ -32,7 +33,7 @@ function hasSymlinkedComponent(root, target) {
 let text;
 let idx;
 try {
-	const claudeHome = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+	const claudeHome = claudeConfigHome(os.homedir());
 	const shared = process.env.NANA_SHARED_MEMORY_DIR || path.join(claudeHome, "nana-memory", "shared");
 	idx = path.join(shared, "MEMORY.md");
 	text = fs.readFileSync(idx, "utf8");

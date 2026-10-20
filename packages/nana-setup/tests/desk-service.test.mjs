@@ -247,7 +247,9 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 			const piStub = path.join(cliStubDir, "pi");
 			fs.writeFileSync(piStub, "#!/bin/sh\nexit 0\n");
 			fs.chmodSync(piStub, 0o755);
-			return spawnSync(process.execPath, [cli, "install", "--desk"], { encoding: "utf8", env: { ...process.env, HOME: homeDir, PI_CODING_AGENT_DIR: path.join(homeDir, ".pi", "agent"), PATH: `${cliStubDir}:${process.env.PATH}` } });
+			const childEnv = { ...process.env, HOME: homeDir, PI_CODING_AGENT_DIR: path.join(homeDir, ".pi", "agent"), PATH: `${cliStubDir}:${process.env.PATH}` };
+			delete childEnv.CLAUDE_CONFIG_DIR;
+			return spawnSync(process.execPath, [cli, "install", "--desk"], { encoding: "utf8", env: childEnv });
 		};
 		const bootstrapHome = freshHome();
 		const bootstrapCli = cliFailure("bootstrap", bootstrapHome);
