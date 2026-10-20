@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, jsonErrorPlace } from "../lib/json-text.mjs";
 // Permission-block exception (L1 invariant 2, astra r2 HIGH): for the gate block,
 // "default" is never the fallback. Mid-session, a malformed user gate block keeps the
 // last valid policy loaded IN THIS PROCESS (memory only). In a FRESH process the gate
@@ -51,6 +52,7 @@ const blocked = (r) => r?.block === true;
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\b"], }, }';
 const STOP = (file) => new RegExp(`^nana-gate: user nana-pack\\.json gate block is malformed — repair it \\(${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:.+\\)(?:\\. Recovery:.*)?$`, "s");
+const PARSE_STOP = (file) => new RegExp(`^nana-gate: user nana-pack\\.json does not parse: ${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?: at line \\d+, column \\d+)?\\. .+\\. Recovery: .+$`, "s");
 
 // Runs the gate in a FRESH node process (no in-memory state) against HOME.
 const CHILD = path.join(tmpDir(path.join(os.tmpdir(), "gatefb-child-")), "child.mjs");
@@ -104,8 +106,8 @@ const A = freshHome();
 	]);
 	for (const k of ["tf", "ls", "ps", "edit", "write"])
 		// req: R-064
-		check(`b: stop after restart — ${k} blocked with the repair reason`, out[k]?.block === true && STOP(A.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
-	check("b: the reason names the problem (invalid JSON)", /invalid JSON/.test(out.ls?.reason ?? ""), out.ls?.reason);
+		check(`b: stop after restart — ${k} blocked with the repair reason`, out[k]?.block === true && PARSE_STOP(A.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
+	check("b: the reason names the problem (invalid JSON)", out.ls?.block === true && PARSE_STOP(A.cfg).test(out.ls?.reason ?? ""), out.ls?.reason);
 	check("b: tools outside the gate's scope untouched (read)", out.read === null);
 }
 
@@ -178,6 +180,54 @@ const A = freshHome();
 	const out = freshProcess(E.home, [["ls", "bash", { command: "ls" }]]);
 	check("e: no user config, fresh process — benign allowed (defaults, no stop)", out.ls === null, JSON.stringify(out));
 	check("e: no user config — no policy file written", !fs.existsSync(path.join(path.dirname(E.cfg), "nana-pack.gate.validated.json")));
+}
+
+// (f) JSON parse failures use the shared safe detail rather than the gate-leaf form
+{
+	const F = freshHome();
+	const text = String.raw`{"objective":{"path":"C:\Users\demo\notes\OBJECTIVE.md"}}`;
+	fs.writeFileSync(F.cfg, text);
+	let place = null;
+	try { JSON.parse(text); } catch (error) { place = jsonErrorPlace(error); }
+	const out = freshProcess(F.home, [["ls", "bash", { command: "ls" }]]);
+	const reason = out.ls?.reason ?? "";
+	// req: R-2360
+	check("f: user backslash parse stop carries safe place and forward-slash recovery", blocked(out.ls)
+		&& reason.startsWith("nana-gate: user nana-pack.json does not parse")
+		&& reason.includes(F.cfg)
+		&& place !== null && reason.includes(`line ${place.line}, column ${place.column}`)
+		&& reason.includes(`${FORWARD_SLASH_ADVICE} Recovery:`)
+		&& !reason.includes("gate block is malformed"), reason);
+}
+{
+	const F = freshHome();
+	fs.writeFileSync(F.cfg, TRAILING);
+	const out = freshProcess(F.home, [["ls", "bash", { command: "ls" }]]);
+	const reason = out.ls?.reason ?? "";
+	// req: R-2361
+	check("f: user trailing-comma parse stop carries manual recovery only", blocked(out.ls)
+		&& reason.includes(MANUAL_JSON_ADVICE)
+		&& !reason.includes(FORWARD_SLASH_ADVICE), reason);
+}
+{
+	const F = freshHome();
+	fs.writeFileSync(F.cfg, Buffer.alloc(0));
+	const out = freshProcess(F.home, [["ls", "bash", { command: "ls" }]]);
+	const reason = out.ls?.reason ?? "";
+	// req: R-2362
+	check("f: empty user config parse stop carries manual recovery without a place", blocked(out.ls)
+		&& reason.includes(MANUAL_JSON_ADVICE)
+		&& !reason.includes(" at line "), reason);
+}
+{
+	const F = freshHome();
+	fs.writeFileSync(F.cfg, '{"gate": zq7oops}');
+	const out = freshProcess(F.home, [["ls", "bash", { command: "ls" }]]);
+	const reason = out.ls?.reason ?? "";
+	// req: R-2363
+	check("f: user parse stop exposes neither parser message nor file text", blocked(out.ls)
+		&& !reason.includes("zq7")
+		&& !reason.includes('{"gate"'), reason);
 }
 
 process.exit(fails);

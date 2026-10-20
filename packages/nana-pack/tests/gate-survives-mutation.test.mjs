@@ -206,7 +206,7 @@ console.log(JSON.stringify(out));`);
 		check("4b: child ran", false, String(e).slice(0, 300));
 	}
 	check("4b: every gated class blocked in a fresh process", rows.length === 5 && rows.every((r) => r.block), JSON.stringify(rows));
-	check("4b: with the repair reason", rows.length === 5 && rows.every((r) => /gate block is malformed — repair it/.test(r.reason)), JSON.stringify(rows.map((r) => r.reason)));
+	check("4b: with the repair reason", rows.length === 5 && rows.every((r) => /^nana-gate: user nana-pack\.json does not parse: .+(?: at line \d+, column \d+)?\. .+\. Recovery: .+$/s.test(r.reason)), JSON.stringify(rows.map((r) => r.reason)));
 	fs.rmSync(HOME3, { recursive: true, force: true });
 }
 
