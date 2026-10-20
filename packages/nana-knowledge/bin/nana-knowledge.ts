@@ -3,14 +3,13 @@
  * @module packages/nana-knowledge/bin/nana-knowledge.ts
  * @purpose The knowledge CLI — build, query, hook, status and prune over the local index.
  * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
- *  JSON on stdin for `hook` (read to at most STDIN_MAX_BYTES), and sources.json plus the index
- * @outputs per-root build counts, MISSING/UNREADABLE paths and totals, query hits or their JSON, the
- *  index/roots MISS/UNREADABLE/ok status, and the hook's pointer block — all on stdout; usage and
- *  query/index failures on stderr
+ *  JSON on stdin (up to STDIN_MAX_BYTES), and sources.json bytes plus the index
+ * @outputs build counts and source/root problem markers, query hits or JSON, index/root status, and the
+ *  hook pointer block on stdout; usage and query/index failures on stderr
  * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
  *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
  * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it,
- *  0 otherwise — including every `hook` failure (fail-open) and a build that lost the lock
+ *  0 otherwise — including source-file problems, every `hook` failure, and a build that lost the lock
  */
 // nana-knowledge — build / query / hook.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
@@ -19,7 +18,7 @@ import { build, pruneShown, BuildLockedError } from "../lib/build.ts";
 import { openDb, getMeta } from "../lib/db.ts";
 import { paths } from "../lib/paths.ts";
 import { search } from "../lib/query.ts";
-import { loadRoots } from "../lib/sources.ts";
+import { formatSourcesProblem, loadSources } from "../lib/sources.ts";
 import { runHook, BUDGET_MS, STDIN_MAX_BYTES } from "../lib/hook.ts";
 
 const USAGE = `nana-knowledge — local BM25 index over the knowledge stores
@@ -40,6 +39,7 @@ async function cmdBuild(argv: string[]): Promise<number> {
 		for (const r of s.roots) {
 			console.log(`  ${r.root.padEnd(pad)}  ${String(r.files).padStart(6)} files  ${String(r.rows).padStart(7)} rows  ${r.kind}${r.skipped ? `  (${r.skipped} >1MB skipped)` : ""}`);
 		}
+		if (s.problem) console.log(`  ${paths.sources}  ${formatSourcesProblem(s.problem)}`);
 		const skipped = rebuild ? "(skipped; the rebuild dropped its rows)" : "(skipped, rows kept)";
 		for (const m of s.missingRoots) console.log(`  ${m}  MISSING ${skipped}`);
 		for (const u of s.unreadable) console.log(`  ${u}  UNREADABLE ${skipped}`);
@@ -116,8 +116,8 @@ function rootStatus(p: string): "MISS" | "UNREADABLE" | "ok  " {
 }
 
 async function cmdStatus(): Promise<number> {
-	const roots = loadRoots();
-	console.log(`sources ${paths.sources}`);
+	const { roots, problem } = loadSources();
+	console.log(`sources ${paths.sources}${problem ? `  ${formatSourcesProblem(problem)}` : ""}`);
 	for (const r of roots) console.log(`  ${rootStatus(r.path)} ${r.kind.padEnd(8)} ${r.path}${r.discovered ? "  (discovered)" : ""}`);
 	if (!fs.existsSync(paths.db)) { console.log(`\nno index at ${paths.db}`); return 0; }
 	const db = await openDb(paths.db, {});
