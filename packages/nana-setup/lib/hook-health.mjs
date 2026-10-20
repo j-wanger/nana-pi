@@ -4,7 +4,7 @@
  * @inputs a nana-setup layout, parsed Claude settings or its read error, the active platform, and checkout hook sources.
  * @outputs hookLinkRows() and hookSettingsRows(), ordered labelled rows with health and actionable detail fields.
  * @effects disk (reads links, hook targets and knowledge-hook targets).
- * @errors filesystem comparison failures become unhealthy rows; a settings read error makes every settings row unhealthy.
+ * @errors filesystem or merge-simulation failures become unhealthy rows; a settings read error makes every settings row unhealthy.
  */
 import * as path from "node:path";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
@@ -45,14 +45,18 @@ export function hookSettingsRows(layout, settings, parseError = null) {
 			const healthy = present && resolves;
 			let detail = healthy ? w.marker : `${w.marker} — target is missing or does not resolve inside ${repoRoot}`;
 			if (!healthy && validateShape(settings) === null) {
-				const stepSettings = structuredClone(settings);
-				const merged = mergeRepoHooks(stepSettings, { repoRoot, wanted: [w], platform: platformValue });
-				if (!merged[w.label]?.found) mergeHooks(stepSettings, [w], platformValue);
-				const leftAsWritten = [...new Set(hookTargets(stepSettings, w.event, w.spec, platformValue)
-					.filter((target) => !resolvesInsideCheckout(target)))];
-				if (leftAsWritten.length > 0) {
-					detail += `; install leaves ${leftAsWritten.join(", ")} as written — edit that entry to run ${w.entry.args[0]} or remove it by hand, then run nana-setup install`;
-				}
+				try {
+					const stepSettings = structuredClone(settings);
+					const merged = mergeRepoHooks(stepSettings, { repoRoot, wanted: [w], platform: platformValue });
+					if (!merged[w.label]?.found) mergeHooks(stepSettings, [w], platformValue);
+					const leftAsWritten = [...new Set(hookTargets(stepSettings, w.event, w.spec, platformValue)
+						.filter((target) => !resolvesInsideCheckout(target)))];
+					if (leftAsWritten.length > 0) {
+						const slash = (value) => String(value).replaceAll("\\", "/");
+						const installCommand = [w.entry.command, ...(w.entry.args ?? [])].map(slash).join(" ");
+						detail += `; install leaves ${leftAsWritten.map(slash).join(", ")} as written — remove that entry by hand, then run nana-setup install; to edit instead, run ${installCommand}`;
+					}
+				} catch { /* Keep the base row and detail when the dry-run simulation cannot inspect this shape. */ }
 			}
 			rows.push({ label: `settings ${w.label}`, ok: healthy, detail });
 			continue;

@@ -2780,7 +2780,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — a nana-setup layout, parsed Claude settings or its read error, the active platform, and checkout hook sources.
 - **outputs** — hookLinkRows() and hookSettingsRows(), ordered labelled rows with health and actionable detail fields.
 - **effects** — disk (reads links, hook targets and knowledge-hook targets).
-- **errors** — filesystem comparison failures become unhealthy rows; a settings read error makes every settings row unhealthy.
+- **errors** — filesystem or merge-simulation failures become unhealthy rows; a settings read error makes every settings row unhealthy.
 - **callers** — `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`
 - **callees** — `packages/nana-pack/lib/real-path.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`
 

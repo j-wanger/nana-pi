@@ -208,14 +208,18 @@ const f4Preserved = f4Install.status === 0 && byteEqual(f4After.hooks.SessionSta
 // req: R-653
 check("win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical", f4Preserved, `${f4Install.stdout}\n${JSON.stringify(f4After.hooks)}`);
 
-const vEntries = [
-	{ ...clone(carriedSession[0]), command: `node "${sourceHooksDir}/nana-objective.mjs"` },
-	{ ...clone(carriedSession[1]), command: `node ${sourceHooksDir}/nana-adoption.mjs` },
-	{ ...clone(carriedSession[2]), command: "node", args: [`${sourceHooksDir}/nana-shared-memory.mjs`] },
-	{ ...clone(carriedSession[3]), command: `node "${sourceRepoRoot}/packages/nana-setup/claude/hooks/nana-roster-notice.mjs"` },
+const adviceDeadRoot = "C:\\Users\\someone/custom";
+const adviceDeadPaths = [
+	`${adviceDeadRoot}/nana-objective.mjs`,
+	`${adviceDeadRoot}/nana-adoption.mjs`,
+	`${adviceDeadRoot}/nana-shared-memory.mjs`,
+	`${adviceDeadRoot}/nana-roster-notice.mjs`,
+	`${adviceDeadRoot}/verifier-pipe.mjs`,
+	`${adviceDeadRoot}/nana-knowledge.ts`,
 ];
-const vVerifier = { ...clone(carriedVerifier), command: "node", args: [`${sourceHooksDir}/verifier-pipe.mjs`] };
-const vKnowledge = { ...clone(carriedKnowledge), command: `NODE_NO_WARNINGS=1 node "${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts" hook` };
+const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
+const vVerifier = { ...clone(byLabel(winWanted, "PreToolUse verifier pipe").entry), args: [adviceDeadPaths[4]] };
+const vKnowledge = { ...clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry), args: [adviceDeadPaths[5], "hook"] };
 const vHome = freshHome();
 seed(vHome, { hooks: {
 	SessionStart: [{ hooks: vEntries }],
@@ -224,17 +228,13 @@ seed(vHome, { hooks: {
 } });
 const vInstall = run(["install", "--home", vHome]);
 const vDoctor = run(["doctor", "--home", vHome]);
-const vDeadPaths = [
-	`${sourceHooksDir}/nana-objective.mjs`,
-	`${sourceHooksDir}/nana-adoption.mjs`,
-	`${sourceHooksDir}/nana-shared-memory.mjs`,
-	`${sourceRepoRoot}/packages/nana-setup/claude/hooks/nana-roster-notice.mjs`,
-	`${sourceHooksDir}/verifier-pipe.mjs`,
-	`${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`,
-];
+const slashPath = (value) => value.replaceAll("\\", "/");
+const installCommand = (wanted) => [wanted.entry.command, ...wanted.entry.args].map(slashPath).join(" ");
+const safeRoute = "remove that entry by hand, then run nana-setup install";
 const vRowsRepairByHand = winWanted.every((wanted, index) => {
 	const line = settingsLine(vDoctor.stdout, wanted.label);
-	return line?.trimStart().startsWith("✗ ") && line.includes(vDeadPaths[index]) && line.includes(wanted.entry.args[0]) && line.includes("by hand");
+	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
+	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);
 });
 const f4Doctor = run(["doctor", "--home", f4Home]);
 const f4ObjectiveLine = settingsLine(f4Doctor.stdout, "SessionStart objective");
@@ -265,8 +265,14 @@ seed(refusedHome, { hooks: {
 } });
 const refusedDoctor = run(["doctor", "--home", refusedHome]);
 const refusedLines = winWanted.map((wanted) => settingsLine(refusedDoctor.stdout, wanted.label));
+const nestedHome = freshHome();
+let nestedValue = "leaf";
+for (let i = 0; i < 3_000; i++) nestedValue = { next: nestedValue };
+seed(nestedHome, { hooks: { SessionStart: [{ hooks: [{ owner: nestedValue }] }] } });
+const nestedDoctor = run(["doctor", "--home", nestedHome]);
+const nestedLines = winWanted.map((wanted) => settingsLine(nestedDoctor.stdout, wanted.label));
 // req: R-2412
-check("win32 doctor: a settings shape install refuses still prints all six settings rows as ✗", refusedLines.every((line) => line?.trimStart().startsWith("✗ ")) && !refusedDoctor.stderr.includes("TypeError"), `${refusedDoctor.stdout}\n${refusedDoctor.stderr}`);
+check("win32 doctor: a settings shape install refuses still prints all six settings rows as ✗", refusedLines.every((line) => line?.trimStart().startsWith("✗ ")) && nestedLines.every((line) => line?.trimStart().startsWith("✗ ")) && !refusedDoctor.stderr.includes("TypeError") && nestedDoctor.status === 1 && !nestedDoctor.stderr.includes("RangeError"), `${refusedDoctor.stdout}\n${refusedDoctor.stderr}\n--- deeply nested ---\n${nestedDoctor.stdout}\n${nestedDoctor.stderr}`);
 
 console.log(`SUMMARY  PASS=${14 - fails} FAIL=${fails} SKIP=0`);
 process.exit(fails);
