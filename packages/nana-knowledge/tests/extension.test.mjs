@@ -3,7 +3,7 @@
  * @purpose Pins that the pi extension is ONE thin wrapper around the hook CLI — fail-open on every child failure, never a reject out of before_agent_start, and no sqlite inside pi's process
  * @inputs extensions/nana-knowledge.ts, bin/nana-knowledge.ts, and a temp NANA_KNOWLEDGE_HOME with a markdown source tree
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
+ * @effects disk (temp home, source tree and index, plus a copied extension tree under td and the stub CLIs it writes), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI and the copied extension's stub CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate: the pi extension is ONE THIN WRAPPER around the hook CLI — fail-open on every
@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const td = tmpDir(path.join(os.tmpdir(), "nk-ext-"));
 const home = path.join(td, "home");
@@ -40,6 +41,7 @@ const { PROMPT_MAX_CHARS } = await import(new URL("../lib/tokenize.ts", import.m
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 const REBUILD_DEADLINE_MS = 20000; // chosen: cold Windows CI slack
+const STUB_LATE_MS = 10000; // chosen: five times the extension's 2 s deadline
 const rebuilt = (h, staleMtimeMs) => {
 	try { return fs.statSync(path.join(h, "index.db")).mtimeMs > staleMtimeMs + 60000 && !fs.existsSync(path.join(h, "build.lock")); }
 	catch { return false; }
@@ -86,19 +88,98 @@ check("1: no systemPrompt mutation", r1 !== undefined && !("systemPrompt" in r1)
 // (2) the pull is logged as a pi pull, under pi's session id
 {
 	const last = logLines().at(-1);
+	// req: R-896
 	check("2: pull.log carries the pi session id", last?.session_id === "pi-s1");
+	// req: R-896
 	check('2: pull.log carries source "pi"', last?.source === "pi");
 	check("2: pull.log carries the cwd the extension was given", last?.cwd === td);
 }
 
 // (3) dedup lives in the CHILD: the same prompt in the same session injects nothing
+// req: R-896
 check("3: same prompt, same session → undefined", (await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s1"))) === undefined);
 
 // (4) ...and a different session id gets the pointers again
 {
 	const r = await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s2"));
+	// req: R-896
 	check("4: a different session id pulls again", r?.message?.content?.startsWith(HEADER) === true);
 	check("4: and it is logged under THAT session id", logLines().at(-1)?.session_id === "pi-s2");
+}
+
+// (4b) R-234/R-895: through the REAL handler, not makePull() called directly (checks 5
+// and 5b below pin the timer; this pins the default export's own wiring, which W10 in
+// the build brief shows those two cannot catch on their own). The default export builds
+// its pull with no options, so this copies the extension and its one runtime import
+// into a fresh temp tree, writes this package's own module type into that tree's
+// package.json (so Node needs no syntax detection on the copied .ts files), and imports
+// the copy exactly once. Each case below rewrites the stub CLI the copy's makePull()
+// spawns; wrong code in the real source reaches this copy because the file is a byte
+// copy, never a reimplementation.
+{
+	const copyRoot = path.join(td, "real-handler");
+	fs.mkdirSync(path.join(copyRoot, "extensions"), { recursive: true });
+	fs.mkdirSync(path.join(copyRoot, "lib"), { recursive: true });
+	fs.mkdirSync(path.join(copyRoot, "bin"), { recursive: true });
+	fs.writeFileSync(path.join(copyRoot, "package.json"), JSON.stringify({ type: "module" }));
+	fs.copyFileSync(fileURLToPath(new URL("../extensions/nana-knowledge.ts", import.meta.url)), path.join(copyRoot, "extensions", "nana-knowledge.ts"));
+	fs.copyFileSync(fileURLToPath(new URL("../lib/tokenize.ts", import.meta.url)), path.join(copyRoot, "lib", "tokenize.ts"));
+	const stubPath = path.join(copyRoot, "bin", "nana-knowledge.ts");
+	const writeStub = (lines) => fs.writeFileSync(stubPath, lines.join("\n") + "\n");
+
+	const { default: realExt } = await import(pathToFileURL(path.join(copyRoot, "extensions", "nana-knowledge.ts")).href);
+	const realHandlers = {};
+	realExt({ on: (name, fn) => { realHandlers[name] = fn; } });
+
+	const runCase = async (sessionId) => {
+		const t0 = Date.now();
+		let threw = false;
+		let r = "unset";
+		try { r = await realHandlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor(sessionId)); }
+		catch { threw = true; }
+		return { ms: Date.now() - t0, threw, r };
+	};
+
+	// Escapes during these cases — including a handler rejection, which surfaces here as
+	// an unhandledRejection — are evidence for R-895, not for a crash of this file: the
+	// listeners come off again right after the last case, before check 5 below runs its
+	// own real execFile.
+	const escapes = [];
+	const onException = (err) => escapes.push(err);
+	const onRejection = (err) => escapes.push(err);
+	process.on("uncaughtException", onException);
+	process.on("unhandledRejection", onRejection);
+
+	// missing: no stub file written yet — node itself exits 1 (cannot find module)
+	const missing = await runCase("real-missing");
+
+	writeStub(["process.stdout.write('[nana:knowledge] fake block\\n- fake pointer');", "process.exit(0);"]);
+	const control = await runCase("real-control");
+
+	writeStub(["process.stdout.write('[nana:knowledge] fake block\\n- fake pointer');", "process.exit(3);"]);
+	const nonzero = await runCase("real-nonzero");
+
+	writeStub(["process.exit(0);"]);
+	const silent = await runCase("real-silent");
+
+	writeStub(["process.stdout.write('   \\n');", "process.exit(0);"]);
+	const whitespace = await runCase("real-whitespace");
+
+	writeStub([`setTimeout(() => { process.stdout.write('[nana:knowledge] fake block\\n- fake pointer'); process.exit(0); }, ${STUB_LATE_MS});`]);
+	const late = await runCase("real-late");
+
+	process.off("uncaughtException", onException);
+	process.off("unhandledRejection", onRejection);
+
+	console.log(`NOTE real-handler cases ms: missing ${missing.ms}, control ${control.ms}, non-zero ${nonzero.ms}, silent ${silent.ms}, whitespace ${whitespace.ms}, late ${late.ms}`);
+
+	// req: R-234
+	check("R-234: a pi pull child that exits non-zero, prints nothing, outlives the deadline or is missing injects nothing",
+		control.r !== undefined && missing.r === undefined && nonzero.r === undefined &&
+		silent.r === undefined && whitespace.r === undefined && late.r === undefined);
+	// req: R-895
+	check("R-895: a pi pull child that exits non-zero, prints nothing, outlives the deadline or is missing throws nothing out of the handler",
+		!missing.threw && !control.threw && !nonzero.threw && !silent.threw && !whitespace.threw && !late.threw && escapes.length === 0);
 }
 
 // (5) a HUNG child is abandoned at the deadline — this is pi's only bound, it has no
@@ -132,6 +213,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 		new Promise((r) => setTimeout(() => r("STILL-HANGING"), 3000)),
 	]);
 	const ms = Date.now() - t0;
+	// req: R-234
 	check("5b: a child whose callback never fires still yields null", out === null);
 	check(`5b: ...near the deadline, on the handler's OWN timer (${ms} ms)`, ms >= 150 && ms < 1000);
 	check("5b: the kill is attempted after resolving, with SIGKILL", kills.length === 1 && kills[0] === "SIGKILL");
