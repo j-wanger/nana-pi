@@ -9,8 +9,8 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail } rows, including a win32-only note row naming the
- *  Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
+ * @outputs an array of { status, label, detail } rows, including a safe place and forward-slash repair for invalid
+ *  nana-pack JSON and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
@@ -21,13 +21,13 @@
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
-import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { CONFIG_FAILURE_PREFIX, jsonErrorPlace, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
@@ -300,6 +300,25 @@ export function winShimState(name, source, binDir) {
 		: { ok: true, detail: `sh and .cmd match this checkout in ${binDir}` };
 }
 
+function piPackConfigState(file) {
+	let text;
+	try {
+		text = fs.readFileSync(file, "utf8");
+	} catch {
+		return { cfg: null, parseDetail: null };
+	}
+	try {
+		return { cfg: parseJsonText(text), parseDetail: null };
+	} catch (error) {
+		const place = jsonErrorPlace(error);
+		const where = place ? ` at line ${place.line}, column ${place.column}` : "";
+		return {
+			cfg: null,
+			parseDetail: `${CONFIG_FAILURE_PREFIX}${file}${where}. Repair it by hand with forward slashes in objective.path because JSON reads a single backslash as an escape.`,
+		};
+	}
+}
+
 export function diagnose(layout, opts = {}) {
 	const win = platform() === "win32";
 	const checks = [];
@@ -420,8 +439,9 @@ export function diagnose(layout, opts = {}) {
 	const stranded = path.join(layout.base, ".pi", "agent", "nana-pack.json");
 	if (layout.piHomeSource === "PI_CODING_AGENT_DIR" && path.resolve(stranded) !== path.resolve(layout.piPackConfig) && fs.existsSync(stranded))
 		add(NOTE, "pi default-dir nana-pack.json", `${stranded} exists but is NOT read (PI_CODING_AGENT_DIR is set)`);
-	const cfg = readPiPackConfig(layout);
-	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : `missing or unparseable: ${layout.piPackConfig}`);
+	const configState = piPackConfigState(layout.piPackConfig);
+	const cfg = configState.cfg;
+	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : configState.parseDetail ?? `missing or unparseable: ${layout.piPackConfig}`);
 	const pf = projectFileState(cfg?.objective?.projectFile);
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);

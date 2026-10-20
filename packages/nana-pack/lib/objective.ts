@@ -2,13 +2,13 @@
  * @module packages/nana-pack/lib/objective.ts
  * @purpose THE objective producer — resolve the governing objective file and render the exact block both
  *  runtimes print.
- * @inputs the session cwd, the user-scope objective settings (path, projectFile), the nearest OBJECTIVE.md
- *  walking up from cwd, and pi's active agent dir with its trust store, that store's folder, permissions
- *  and lock
- * @outputs ObjectiveResult {text, unavailable, events, notices} — the heading, the **Objective and
- *  **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label, the precedence note
- *  and remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends in exactly one
- *  newline
+ * @inputs the session cwd, the user-scope objective settings (path, projectFile and an optional configFailure place),
+ *  the nearest OBJECTIVE.md walking up from cwd, and pi's active agent dir with its trust store, that store's folder,
+ *  permissions and lock
+ * @outputs ObjectiveResult {text, unavailable, events, notices} — the heading, an optional safe config-failure
+ *  line, the **Objective and **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label,
+ *  the precedence note and remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends
+ *  in exactly one newline
  * @effects disk (bounded sync reads of at most FILE_READ_MAX bytes per file, plus lstat / stat / access of
  *  the objective files, the trust store, its folder and its lock)
  * @errors none — produceObjective never throws; an unreadable or symlink-reached file, a missing line,
@@ -56,10 +56,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piTrustStorePath } from "./gate-paths.ts";
 import { BOUNDED_READ_CAP, readBounded } from "./bounded-read.mjs";
+import { CONFIG_FAILURE_PREFIX } from "./json-text.mjs";
 // The display renderers live in lib/display.mjs (lane S1, one implementation for every surface);
 // re-exported here unchanged, so every existing import and the T2c goldens are untouched.
 import { CONTROL, PATH_CAP, displayPath, displayText, head } from "./display.mjs";
-export { PATH_CAP, displayPath, displayText };
+export { CONFIG_FAILURE_PREFIX, PATH_CAP, displayPath, displayText };
 
 /** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
@@ -76,6 +77,8 @@ export interface ObjectiveSettings {
 	path: string | null;
 	/** Filename to walk up for. null / false / "" / absent = DEFAULT_PROJECT_FILE — never "off". */
 	projectFile?: string | false | null;
+	/** A user config that was read but did not parse; never carries parser message or file text. */
+	configFailure?: { file: string; line?: number; column?: number };
 }
 
 /** A bare filename: no separator, not "." / "..". config.ts refuses anything else with a named problem. */
@@ -525,6 +528,15 @@ export const provenanceLabel = (file: string, dir: string, store?: { path: strin
 
 const noLines = (file: string) => `no **Objective or **Current priority line found in ${displayPath(file)}`;
 
+function configFailureLine(o: ObjectiveSettings): string | null {
+	const failure = o.configFailure;
+	if (!failure) return null;
+	const place = Number.isInteger(failure.line) && Number.isInteger(failure.column)
+		? ` at line ${failure.line}, column ${failure.column}`
+		: "";
+	return `${CONFIG_FAILURE_PREFIX}${displayPath(failure.file)}${place}. Write objective.path with forward slashes because JSON reads a single backslash as an escape. Tell the user before spending.`;
+}
+
 function sameFile(a: string, b: string): boolean {
 	const real = (p: string) => {
 		try {
@@ -541,6 +553,7 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 	const notices: string[] = [];
 	const umbrella = objectivePath(o);
 	const pre: string[] = [];
+	const configFailure = configFailureLine(o);
 
 	let governing = umbrella;
 	let found: Read | null = null;
@@ -567,7 +580,7 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 	if (!("text" in found)) {
 		events.push({ event: "objective_unavailable", path: umbrella, cause: found.cause });
 		notices.push(`objective unavailable: ${found.cause} (${displayPath(umbrella)})`);
-		const text = finish([HEADING, ...pre, `${MARKER_PREFIX}${found.cause} (${displayPath(umbrella)}). Tell the user before spending.`].join("\n\n"));
+		const text = finish([HEADING, ...(configFailure ? [configFailure] : []), ...pre, `${MARKER_PREFIX}${found.cause} (${displayPath(umbrella)}). Tell the user before spending.`].join("\n\n"));
 		return { text, unavailable: true, events, notices };
 	}
 
@@ -584,7 +597,7 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 		head = `objective file: ${displayPath(governing)}\n${MARKER_PREFIX}${noLines(governing)}. Tell the user before spending.`;
 	}
 	const truncated = !!g?.truncated;
-	const parts = [HEADING, ...pre];
+	const parts = [HEADING, ...(configFailure ? [configFailure] : []), ...pre];
 	const repoSupplied = source === "project" && !sameFile(governing, umbrella); // the umbrella is never labelled
 	const trust = g && repoSupplied ? trustRecord(path.dirname(governing)) : null;
 	const labelled = !!trust && !trust.vouched;
@@ -631,8 +644,9 @@ export function produceObjective(cwd: string, o: ObjectiveSettings): ObjectiveRe
 		return produce(cwd, o);
 	} catch (err) {
 		const cause = `internal error (${displayText(String(err), 120)})`;
+		const configFailure = configFailureLine(o);
 		return {
-			text: `${HEADING}\n\n${MARKER_PREFIX}${cause}. Tell the user before spending.\n`,
+			text: finish([HEADING, ...(configFailure ? [configFailure] : []), `${MARKER_PREFIX}${cause}. Tell the user before spending.`].join("\n\n")),
 			unavailable: true,
 			events: [{ event: "objective_unavailable", cause }],
 			notices: [`objective unavailable: ${cause}`],
