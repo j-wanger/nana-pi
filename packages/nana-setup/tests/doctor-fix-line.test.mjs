@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/doctor-fix-line.test.mjs
  * @purpose Pin doctor's final repair line to the changes install's dry run can actually make.
  * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
- * @outputs PASS/FAIL lines for M1 through M7 and a final failure-count summary.
+ * @outputs PASS/FAIL lines for R-1990 through R-1997 and a final failure-count summary.
  * @effects disk (temporary fixtures), process (runs install and doctor with sanitized environments).
  * @errors Failed assertions print their observed output and make the test process exit nonzero.
  */
@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -51,8 +51,8 @@ function cleanEnv(home, extra = {}) {
 	return { ...env, ...extra };
 }
 
-function run(args, { home, cwd, extraEnv = {} }) {
-	return withPiStub(() => spawnSync(process.execPath, [cli, ...args], {
+function run(args, { home, cwd, extraEnv = {}, nodeOptions = [] }) {
+	return withPiStub(() => spawnSync(process.execPath, [...nodeOptions, cli, ...args], {
 		cwd,
 		env: cleanEnv(home, extraEnv),
 		encoding: "utf8",
@@ -68,6 +68,24 @@ function failedLabels(result) {
 		const match = /^\s*✗ (.*?)(?: {2}|$)/u.exec(line);
 		return match ? [match[1].trimEnd()] : [];
 	});
+}
+
+function rowLabels(result) {
+	return result.stdout.split(/\r?\n/).flatMap((line) => {
+		const match = /^\s*[✓✗!·] (.*?)(?: {2}|$)/u.exec(line);
+		return match ? [match[1].trimEnd()] : [];
+	});
+}
+
+function walkDifference(before, after) {
+	const length = Math.max(before.length, after.length);
+	for (let i = 0; i < length; i++) {
+		if (JSON.stringify(before[i]) !== JSON.stringify(after[i])) {
+			const item = (entry) => entry ? `${entry[0]} ${entry[1]}` : "absent";
+			return `before ${before.length} entries; after ${after.length} entries; first difference: ${item(before[i])} -> ${item(after[i])}`;
+		}
+	}
+	return `before ${before.length} entries; after ${after.length} entries`;
 }
 
 function walk(home) {
@@ -89,14 +107,14 @@ function walk(home) {
 
 const emptyHome = fixtureHome("empty-home");
 const emptyCwd = freshCwd("empty-cwd");
-const emptyBefore = JSON.stringify(walk(emptyHome));
+const emptyBefore = walk(emptyHome);
 const allInstallable = run(["doctor", "--home", emptyHome], { home: emptyHome, cwd: emptyCwd });
 const allInstallableLabels = failedLabels(allInstallable);
 // req: R-1990
 check("R-1990: when install repairs every ✗ row, the summary reads n missing — run: nana-setup install", allInstallable.status === 1 && allInstallableLabels.length > 0 && summary(allInstallable) === `${allInstallableLabels.length} missing — run: nana-setup install`, `${allInstallable.status}\n${allInstallable.stdout}\n${allInstallable.stderr}`);
-const emptyAfter = JSON.stringify(walk(emptyHome));
+const emptyAfter = walk(emptyHome);
 // req: R-1995
-check("R-1995: doctor on a home install would change leaves every file, folder and link unchanged", allInstallable.status === 1 && emptyAfter === emptyBefore, `${allInstallable.status}\nbefore ${emptyBefore}\nafter ${emptyAfter}\n${allInstallable.stdout}\n${allInstallable.stderr}`);
+check("R-1995: doctor on a home install would change leaves every file, folder and link unchanged", allInstallable.status === 1 && JSON.stringify(emptyAfter) === JSON.stringify(emptyBefore), `${allInstallable.status}\n${walkDifference(emptyBefore, emptyAfter)}\n${allInstallable.stdout}\n${allInstallable.stderr}`);
 
 const handHome = fixtureHome("hand-home", { subagents: false });
 const handCwd = freshCwd("hand-cwd");
@@ -141,5 +159,24 @@ const mixedWarn = run(["doctor", "--home", mixedHome], { home: mixedHome, cwd: m
 // req: R-1996
 check("R-1996: with a ! row, both by-hand summary forms still end with the ! count", handWarn.status === 1 && mixedWarn.status === 1 && summary(handWarn) === "1 missing — fix by hand as each ✗ line says: pi pi-subagents (and see the 1 ! above)" && summary(mixedWarn) === "3 missing — fix by hand as each ✗ line says: skill spec; then run: nana-setup install for the other 2 (and see the 1 ! above)", `hand ${handWarn.status}\n${handWarn.stdout}\n${handWarn.stderr}\nmixed ${mixedWarn.status}\n${mixedWarn.stdout}\n${mixedWarn.stderr}`);
 
+const unexpectedHome = fixtureHome("unexpected-home");
+const unexpectedCwd = freshCwd("unexpected-cwd");
+const unexpectedEnv = { NANA_SETUP_PLATFORM: "win32" };
+const unexpectedInstall = run(["install", "--home", unexpectedHome], { home: unexpectedHome, cwd: unexpectedCwd, extraEnv: unexpectedEnv });
+const unexpectedBaseline = run(["doctor", "--home", unexpectedHome], { home: unexpectedHome, cwd: unexpectedCwd, extraEnv: unexpectedEnv });
+const unreadableRule = path.join(unexpectedHome, ".claude", "rules", "nana-soul.md");
+fs.writeFileSync(unreadableRule, "stale copy\n");
+const preload = path.join(root, "dry-run-read-error.mjs");
+fs.writeFileSync(preload, `import fs from "node:fs";\nimport path from "node:path";\nimport { syncBuiltinESMExports } from "node:module";\nconst original = fs.readFileSync;\nconst target = path.resolve(process.env.NANA_DOCTOR_READ_ERROR_TARGET);\nlet reads = 0;\nfs.readFileSync = function (file, ...args) {\n\tif (path.resolve(String(file)) === target && ++reads === 2) throw Object.assign(new Error("injected dry-run read failure"), { code: "EACCES" });\n\treturn original.call(this, file, ...args);\n};\nsyncBuiltinESMExports();\n`);
+const unexpectedDoctor = run(["doctor", "--home", unexpectedHome], {
+	home: unexpectedHome,
+	cwd: unexpectedCwd,
+	extraEnv: { ...unexpectedEnv, NANA_DOCTOR_READ_ERROR_TARGET: unreadableRule },
+	nodeOptions: ["--import", pathToFileURL(preload).href],
+});
+const unexpectedText = `${unexpectedDoctor.stdout}\n${unexpectedDoctor.stderr}`;
+// req: R-1997
+check("R-1997: a non-refusal dry-run error prints every row and bounded fallback advice without a stack", unexpectedInstall.status === 0 && unexpectedBaseline.status === 0 && unexpectedDoctor.status === 1 && JSON.stringify(rowLabels(unexpectedDoctor)) === JSON.stringify(rowLabels(unexpectedBaseline)) && summary(unexpectedDoctor) === "could not predict nana-setup install repairs (EACCES) — 1 missing — run: nana-setup install" && !unexpectedText.includes("Error:") && !/^\s*at /m.test(unexpectedText), `install ${unexpectedInstall.status}\nbaseline ${unexpectedBaseline.status} rows ${rowLabels(unexpectedBaseline).length}\ndoctor ${unexpectedDoctor.status} rows ${rowLabels(unexpectedDoctor).length}\n${unexpectedDoctor.stdout}\n${unexpectedDoctor.stderr}`);
+
 console.log(`${failures ? "FAIL" : "PASS"} summary: ${failures} failures`);
-process.exit(failures ? 1 : 0);
+process.exitCode = failures ? 1 : 0;

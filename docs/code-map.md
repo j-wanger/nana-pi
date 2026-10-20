@@ -2498,9 +2498,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
 - **inputs** — argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home, --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR, NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
-- **outputs** — stdout: the install root / claude home / pi home banner, a "<mark> <label> <status> <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs all, lists every by-hand label, combines those two remedies, or names install's refusal; stderr: the usage text and error messages; doctor's stderr carries no muted warning; process.exitCode.
+- **outputs** — stdout: the install root / claude home / pi home banner, a "<mark> <label> <status> <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs all, lists every by-hand label, combines those two remedies, names install's refusal, or reports that an error code prevented repair prediction before giving the run-install fallback; stderr: the usage text and error messages; doctor's stderr carries no muted warning; process.exitCode.
 - **effects** — disk (through install / setupProject / dismissProject; doctor's install dry run writes nothing), process (the child processes those steps spawn; doctor's dry run may start `pi --version`; replaces the warning listeners for doctor; sets process.exitCode)
-- **errors** — exit 2 for an unknown option or command, no command, a usage SetupError (including a relative ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1 when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr); exit 0 otherwise
+- **errors** — exit 2 for an unknown option or command, no command, a usage SetupError (including a relative ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1 when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw outside doctor's install dry-run prediction (stack on stderr); exit 0 otherwise
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/trust-decision.mjs`, `packages/nana-setup/lib/uninstall.mjs`
 
@@ -2838,7 +2838,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin doctor's final repair line to the changes install's dry run can actually make.
 - **inputs** — The nana-setup CLI, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
-- **outputs** — PASS/FAIL lines for M1 through M7 and a final failure-count summary.
+- **outputs** — PASS/FAIL lines for R-1990 through R-1997 and a final failure-count summary.
 - **effects** — disk (temporary fixtures), process (runs install and doctor with sanitized environments).
 - **errors** — Failed assertions print their observed output and make the test process exit nonzero.
 - **callers** — —

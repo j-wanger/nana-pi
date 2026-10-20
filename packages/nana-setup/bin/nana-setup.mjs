@@ -9,7 +9,8 @@
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
  *  <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for
  *  doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs
- *  all, lists every by-hand label, combines those two remedies, or names install's refusal; stderr:
+ *  all, lists every by-hand label, combines those two remedies, names install's refusal, or reports
+ *  that an error code prevented repair prediction before giving the run-install fallback; stderr:
  *  the usage text and error messages; doctor's stderr carries no muted warning; process.exitCode.
  * @effects disk (through install / setupProject / dismissProject; doctor's install dry run writes
  *  nothing), process (the child processes those steps spawn; doctor's dry run may start `pi
@@ -17,7 +18,8 @@
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
  *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
  *  store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1
- *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr);
+ *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw outside doctor's
+ *  install dry-run prediction (stack on stderr);
  *  exit 0 otherwise
  */
 // nana-setup — one command that makes this repo own the WHOLE nana experience: the Claude Code
@@ -349,15 +351,22 @@ function runDoctor(opts) {
 	if (bad.length) {
 		let dryRunRows;
 		let refusal;
+		let predictionErrorCode;
 		try {
-			refuseCwdRelativePiHome(layout, "this install");
-			dryRunRows = install(layout, { dryRun: true });
+			try {
+				refuseCwdRelativePiHome(layout, "this install");
+				dryRunRows = install(layout, { dryRun: true });
+			} catch (err) {
+				if (!(err instanceof SetupError)) throw err;
+				refusal = err.message.split(/\r?\n/, 1)[0];
+			}
 		} catch (err) {
-			if (!(err instanceof SetupError)) throw err;
-			refusal = err.message.split(/\r?\n/, 1)[0];
+			predictionErrorCode = typeof err?.code === "string" && /^[A-Za-z0-9_.-]+$/.test(err.code) ? err.code : "UNKNOWN";
 		}
 		if (refusal) {
 			missingSummary = `${bad.length} missing — nana-setup install will not run until this is fixed: ${refusal}`;
+		} else if (predictionErrorCode) {
+			missingSummary = `could not predict nana-setup install repairs (${predictionErrorCode}) — ${bad.length} missing — run: nana-setup install`;
 		} else {
 			const installLabels = new Set(dryRunRows.filter((row) => row.status === "created" || row.status === "updated").map((row) => row.label));
 			const installCount = bad.filter((row) => installLabels.has(row.installLabel ?? row.label)).length;
