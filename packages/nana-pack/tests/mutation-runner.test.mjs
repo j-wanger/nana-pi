@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/mutation-runner.test.mjs
  * @purpose Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain,
  *  edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table
- *  identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1777) against a disposable git fixture.
+ *  identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1779) against a disposable git fixture.
  * @inputs ../lib/mutation-runner.mjs, ../lib/mutation-runner-config.mjs, and a throwaway git repository this
  *  file builds under the OS temp directory for every run
  * @outputs PASS/FAIL lines for each marked check and a non-zero exit when any fails
@@ -22,7 +22,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { judgePair, resetScratch, runMutations, shardCount } from "../lib/mutation-runner.mjs";
+import { judgePair, resetScratch, runMutations, shardCount, withWorktreeOperationLock } from "../lib/mutation-runner.mjs";
 import * as CFG from "../lib/mutation-runner-config.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -509,7 +509,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		"  try {",
 		'    const text = fs.readFileSync(lockPath, "utf8");',
 		"    if (text !== ignored) try { JSON.parse(text); } catch { fs.appendFileSync(badPath, `${JSON.stringify(text)}\\n`); }",
-		"  } catch (err) { if (err.code !== \"ENOENT\") throw err; }",
+		"  } catch (err) { if (![\"ENOENT\", \"EPERM\", \"EACCES\", \"EBUSY\"].includes(err.code)) throw err; }",
 		"  await new Promise((resolve) => setImmediate(resolve));",
 		"}",
 		"",
@@ -584,10 +584,111 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 }
 
 {
-	const ok = CFG.WORKTREE_LOCK_WAIT_MS === 25 && CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS === 30000;
+	const reasons = [];
+	const transientCodes = ["EPERM", "EACCES", "EBUSY"];
+	const fault = (code) => Object.assign(new Error(`injected ${code}`), { code });
+	for (const code of transientCodes) for (const stage of ["readFileSync", "statSync", "linkSync"]) {
+		const td = tmpDir(path.join(os.tmpdir(), `mutrun-lock-${stage}-${code.toLowerCase()}-`));
+		const lockPath = path.join(td, "operation.lock");
+		if (stage === "readFileSync") fs.writeFileSync(lockPath, JSON.stringify({ pid: 2147483647, owner: "gone" }));
+		if (stage === "statSync") {
+			fs.writeFileSync(lockPath, "{");
+			const old = new Date(Date.now() - CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS - 1000);
+			fs.utimesSync(lockPath, old, old);
+		}
+		let calls = 0;
+		let waits = 0;
+		let entered = 0;
+		const options = {
+			[stage]: (...args) => {
+				calls++;
+				if (calls === 1) throw fault(code);
+				return fs[stage](...args);
+			},
+			wait: () => { waits++; },
+		};
+		const result = await attempt(() => withWorktreeOperationLock(lockPath, () => { entered++; return "done"; }, options));
+		if (!result.ok || result.value !== "done" || calls < 1 || waits < 1 || entered !== 1 || fs.existsSync(lockPath)) {
+			reasons.push(`${stage}/${code}: ${JSON.stringify({ ok: result.ok, value: result.value, calls, waits, entered, lockLeft: fs.existsSync(lockPath), error: result.error })}`);
+		}
+		fs.rmSync(td, { recursive: true, force: true });
+	}
+	for (const code of transientCodes) {
+		const td = tmpDir(path.join(os.tmpdir(), `mutrun-lock-release-${code.toLowerCase()}-`));
+		const lockPath = path.join(td, "operation.lock");
+		const reports = [];
+		let clock = 0;
+		let reads = 0;
+		const result = await attempt(() => withWorktreeOperationLock(lockPath, () => "released-operation", {
+			waitLimitMs: 3,
+			now: () => clock,
+			wait: (ms) => { clock += ms; },
+			readFileSync: () => { reads++; throw fault(code); },
+			report: (line) => reports.push(line),
+		}));
+		if (!result.ok || result.value !== "released-operation" || reads < 2 || reports.length !== 1 || !reports[0].includes(lockPath) || !fs.existsSync(lockPath)) {
+			reasons.push(`release/${code}: ${JSON.stringify({ ok: result.ok, value: result.value, reads, reports, lockLeft: fs.existsSync(lockPath), error: result.error })}`);
+		}
+		fs.rmSync(td, { recursive: true, force: true });
+	}
+	// req: R-1778
+	check("mutation runner: transient lock read, stat, link and release errors retry, and an inaccessible release is recorded", reasons.length === 0, reasons.join("; "));
+}
+
+{
+	const td = tmpDir(path.join(os.tmpdir(), "mutrun-lock-bounded-wait-"));
+	const lockPath = path.join(td, "operation.lock");
+	const resultPath = path.join(td, "result.json");
+	const childPath = path.join(td, "waiter.mjs");
+	const holder = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: "live-holder" });
+	fs.writeFileSync(lockPath, holder);
+	fs.writeFileSync(childPath, [
+		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
+		importLine("* as fs", "node:fs"),
+		"const [lockPath, resultPath] = process.argv.slice(2);",
+		"let clock = 0;",
+		"const reports = [];",
+		"let entered = false;",
+		"let error = null;",
+		"try {",
+		"  withWorktreeOperationLock(lockPath, () => { entered = true; }, {",
+		"    waitLimitMs: 3,",
+		"    now: () => clock,",
+		"    wait: (ms) => { clock += ms; },",
+		"    report: (line) => reports.push(line),",
+		"  });",
+		"} catch (err) { error = err?.message ?? String(err); }",
+		"fs.writeFileSync(resultPath, JSON.stringify({ reports, entered, error }));",
+		"",
+	].join("\n"));
+	const child = spawn(process.execPath, [childPath, lockPath, resultPath], { stdio: ["ignore", "pipe", "pipe"] });
+	const childResult = await new Promise((resolve) => {
+		let output = "";
+		let settled = false;
+		child.stdout.on("data", (d) => { output += d; });
+		child.stderr.on("data", (d) => { output += d; });
+		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 1500);
+		const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
+		child.on("error", (err) => done(null, err.message));
+		child.on("close", done);
+	});
+	let result = {};
+	try { result = JSON.parse(fs.readFileSync(resultPath, "utf8")); } catch { /* no result means the bounded wait failed */ }
+	const reports = result.reports ?? [];
+	const ok = childResult.code === 0 && result.entered === false && typeof result.error === "string"
+		&& reports.length === 1 && reports[0].includes(lockPath) && reports[0].includes(`pid ${process.pid}`)
+		&& fs.readFileSync(lockPath, "utf8") === holder;
+	// req: R-1779
+	check("mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned", ok, JSON.stringify({ childResult, result, lockText: fs.readFileSync(lockPath, "utf8") }));
+}
+
+{
+	const ok = CFG.WORKTREE_LOCK_WAIT_MS === 25 && CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS === 30000 && CFG.WORKTREE_LOCK_WAIT_LIMIT_MS === 30000;
 	// req: R-1775
 	// req: R-1777
-	check("mutation runner: sealed worktree-operation lock values", ok, JSON.stringify({ waitMs: CFG.WORKTREE_LOCK_WAIT_MS, unreadableStaleMs: CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS }));
+	// req: R-1778
+	// req: R-1779
+	check("mutation runner: sealed worktree-operation lock values", ok, JSON.stringify({ waitMs: CFG.WORKTREE_LOCK_WAIT_MS, unreadableStaleMs: CFG.WORKTREE_LOCK_UNREADABLE_STALE_MS, waitLimitMs: CFG.WORKTREE_LOCK_WAIT_LIMIT_MS }));
 }
 
 {
