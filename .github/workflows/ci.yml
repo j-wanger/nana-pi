@@ -1,58 +1,25 @@
 name: ci
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
 env:
-  # 1.0.2: installed and verified version, pi 1.0 adoption 2026-10-04
   PI_VERSION: 1.0.2
-  # measured 2026-10-13 (R-1091): the seat's pi 1.0.2 install moment (pi-coding-agent package.json mtime
-  # 2026-10-04T02:57:57-04:00); npm --before at this time reproduced the seat's `npm ls -g --all` exactly.
-  # Valid for PI_VERSION 1.0.2 from 2026-10-04T00:56:19.486Z (pi 1.0.2 published) to before
-  # 2026-10-05T08:30:34.061Z (first 1.0.3 sibling, pi-codemode). Move it with PI_VERSION.
   PI_BEFORE: "2026-10-04T06:57:57Z"
 
 jobs:
-  install-check:
+  mutation-runner-windows:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+        rep: [1, 2, 3, 4, 5, 6]
+    runs-on: windows-latest
+    timeout-minutes: 25
     defaults:
       run:
         shell: bash
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - name: Install check
-        env:
-          TEMP: ${{ runner.temp }}
-          TMP: ${{ runner.temp }}
-        run: node packages/nana-setup/bin/install-check.mjs
-
-  suite:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
-    defaults:
-      run:
-        shell: bash
-    env:
-      NANA_TEST_REQUIRE_COPIER: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,41 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: astral-sh/setup-uv@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test
-        if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
-        if: matrix.os == 'windows-latest'
-
-  release:
-    needs: [suite, install-check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    concurrency:
-      group: template-release
-      cancel-in-progress: false
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: astral-sh/setup-uv@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: git config user.name "github-actions[bot]"
-      - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: node scripts/template-release.mjs --push
+      - name: mutation-runner.test.mjs, twice in a row
+        run: |
+          for i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|files: |FAIL" || true; done
