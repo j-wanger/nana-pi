@@ -20,12 +20,13 @@ const BRACKET_OPENERS = new Set(["(", "{"]);
 const BRACKET_CLOSERS = new Set([")", "}"]);
 const STATUS_SEPARATORS = new Set([";", "\n", "\r"]);
 const REDIRECTION_NEIGHBOURS = new Set(["<", ">"]);
+const BASH_ESCAPED_HIDDEN = /[\s|&;(){}<>$`#'"\\]/u;
 // contract: R-2351 — shell words and spellings whose grammar consumes pipeline status.
 const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);
 const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
 const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
 const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
-const BASH_ERREXIT_CHANGES = /(?:^|[;&{}\r\n]|\b(?:then|do)\b)\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
+const BASH_ERREXIT_CHANGES = /(?:^|[;&{}(\r\n]|\b(?:then|do)\b)\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
 const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
 
@@ -73,14 +74,6 @@ function liveText(command, dialect = "bash") {
 			continue;
 		}
 		if (quote) {
-			const continued = quote === '"' ? escapedLineBreakEnd(source, i, "\\") : -1;
-			if (continued >= 0) {
-				const width = continued - i;
-				text += " ".repeat(width);
-				line += " ".repeat(width);
-				i = continued - 1;
-				continue;
-			}
 			if (quote === '"' && ch === "$" && BASH_STATUS_EXPANSION.test(source.slice(i))) {
 				const expansion = source[i + 1] === "{" ? "${?}" : "$?";
 				text += expansion;
@@ -136,9 +129,13 @@ function liveText(command, dialect = "bash") {
 			continue;
 		}
 		if (ch === "\\" && i + 1 < source.length) {
-			text += "  ";
-			line += "  ";
-			i++;
+			text += " ";
+			line += ch;
+			if (BASH_ESCAPED_HIDDEN.test(source[i + 1])) {
+				text += " ";
+				line += source[i + 1];
+				i++;
+			}
 			continue;
 		}
 		if (ch === "'" || ch === '"') {
@@ -305,12 +302,6 @@ function scanPowerShellString(source, start, kind, spans, report, lastParenClose
 	for (; i < source.length;) {
 		const ch = source[i];
 		if (kind === "double" && ch === "`") {
-			const continued = escapedLineBreakEnd(source, i, "`");
-			if (continued >= 0) {
-				live += " ".repeat(continued - i);
-				i = continued;
-				continue;
-			}
 			if (i + 1 < source.length) {
 				live += hidden(ch) + hidden(source[i + 1]);
 				i += 2;
