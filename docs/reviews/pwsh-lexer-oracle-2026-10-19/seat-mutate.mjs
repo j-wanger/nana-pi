@@ -73,7 +73,7 @@ const PAIRS = [
 		one(PG, 'if (tokenStart && ch === "<" && source[i + 1] === "#") {', 'if (ch === "<" && source[i + 1] === "#") {'),
 	], tests: LEX, expectRed: [TS_QUOTE_BLOCK], alsoRed: [PG_BLOCK_WORD, PG_BLOCK_SUBEXPR] },
 	{ n: "M5", name: "a here-string opens at any line-final `@'` or `@\"` (main's rule)", edits: [
-		one(PG, 'if (tokenStart && ch === "@" && quoteKind', 'if (ch === "@" && quoteKind'),
+		one(PG, 'if (hereStringStart && ch === "@" && quoteKind', 'if (ch === "@" && quoteKind'),
 	], tests: LEX, expectRed: [TS_HERE_SINGLE, TS_HERE_DOUBLE] },
 	{ n: "M6", name: "every closing quote starts a token, a mid-word quoted part too (main's boundary set)", edits: [
 		one(PG, "tokenStart = standalone && result.closed;", "tokenStart = result.closed;"),
@@ -116,7 +116,7 @@ const PAIRS = [
 		one(PG, "if (quotes.has(ch)) {", "if (ch === source[start]) {"),
 	], tests: LEX, expectRed: [TQ_SINGLE, TQ_CLOSER] },
 	{ n: "M18", name: "the `)` of a `( … )` opened at a token start starts no token", edits: [
-		one(PG, "tokenStart = openerAtTokenStart && nested.closed;", "tokenStart = false;"),
+		one(PG, "\t\t\ttokenStart = nested.closed;", "\t\t\ttokenStart = false;"),
 	], tests: LEX, expectRed: [PG_PAREN] },
 	{ n: "M19", name: "a Windows PowerShell that does not start on win32 is a SKIP", edits: [
 		one(OR, 'if (missing && !(shell === "powershell" && platform === "win32")) return', "if (missing) return"),
@@ -127,6 +127,17 @@ const PAIRS = [
 	{ n: "M21", name: "a short result list is accepted", edits: [
 		one(OR, "\t\tif (!results.has(index)) throw new Error(`${shell} missing result for command ${index}: ${shown}`);\n", ""),
 	], tests: [OT], expectRed: [R1732] },
+	// Added after build 3 (3327c1cd): R-1737 to R-1739.
+	{ n: "M23", name: "a here-string opens only at a token start, never glued to an assignment (build 2's rule; Opus r1 M1)", edits: [
+		one(PG, "const hereStringStart = tokenStart || isGluedVariableAssignment(source, i, wordStart);", "const hereStringStart = tokenStart;"),
+	], tests: LEX, expectRed: ["assignment here-string: single-quoted assignment", "assignment here-string: single-quoted assignment with CRLF", "assignment here-string: pipeline before single-quoted assignment", "assignment here-string: plus-equals assignment", "assignment here-string: expandable assignment with an odd body quote", "assignment here-string: assignment opener with a trailing tab"] },
+	{ n: "M24", name: "only a variable's first index counts as an index (build 2's rule; Fable r1 F1 shape 1)", edits: [
+		one(PG, "if (ch === \"[\" && (variableIndexDepth > 0\n\t\t\t|| /^\\$(?:[\\w:]+|\\{[^}]+\\})$/u.test(source.slice(wordStart, i))\n\t\t\t|| (tokenStart && source[i - 1] === \"]\"))) variableIndexDepth++;", "if (ch === \"[\" && /^\\$(?:[\\w:]+|\\{[^}]+\\})$/u.test(source.slice(wordStart, i))) variableIndexDepth++;"),
+	], tests: LEX, expectRed: ["comment after an index: numeric second index", "comment after an index: string-key second index", "comment after an index: nested variable index", "comment after an index: third index"] },
+	{ n: "M25", name: "a closed ( … ) starts a token only when its opener did (build 2's rule; Fable r1 F1 shapes 2 and 3)", edits: [
+		one(PG, "\t\t\tconst nested = scanPowerShellRange(source, i + 1, true, spans);", "\t\t\tconst openerAtTokenStart = tokenStart;\n\t\t\tconst nested = scanPowerShellRange(source, i + 1, true, spans);"),
+		one(PG, "\t\t\ttokenStart = nested.closed;", "\t\t\ttokenStart = openerAtTokenStart && nested.closed;"),
+	], tests: LEX, expectRed: ["comment after a parenthesized expression: nonempty array subexpression", "comment after a parenthesized expression: empty array subexpression", "comment after a parenthesized expression: member call with arguments"] },
 ];
 
-process.exitCode = await runMutations({ lane: "pwsh-lexer-oracle", self: import.meta.url, tip: "c78c6e79", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "pwsh-lexer-oracle", self: import.meta.url, tip: "37d2e671", declared: DECLARED, pairs: PAIRS });
