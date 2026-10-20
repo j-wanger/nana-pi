@@ -6,7 +6,7 @@ Review `git diff 9552afb1..HEAD` on `feat/review-launch-win-paths` (main was `95
 `git merge-base HEAD main` is `9552afb1`). The plan of record is
 `docs/reviews/review-launch-win-paths-2026-10-20/must-meet.md`: three must-meet checks, rows R-2430 to R-2432.
 `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the one build (6136c925). The seat's record is
-`seat-verify-799872c1.md`. CI on draft pull request #145 runs at 6136c925. CI-PENDING. The record also holds the macOS
+`seat-verify-799872c1.md`. CI on draft pull request #145 runs at 6136c925. CI run 39496386067 at 6136c925 reads 0 failing on all three legs: macOS 192 PASS, 0 FAIL, 2 SKIP of 194 files (8,002 checks pass, 36 skip); Ubuntu 191 PASS, 0 FAIL, 3 SKIP of 194 files (7,941 checks pass, 56 skip); Windows 176 PASS, 0 FAIL, 18 SKIP of 194 files (6,931 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-6136c925.log in this folder. The record also holds the macOS
 wrong-code pairs (`seat-mutate.mjs`; 8 of 8 red, 0 survived, record `seat-mutate-output-6136c925.txt`) and the
 independent check (`independent-check-799872c1.md`: FINDINGS, no MUST, run on 6136c925; its one stale HANDOFF line is
 rewritten in the seat's notes commit). The final reviewer's brief is `review-brief.md`. R-2432 runs only on Windows; it

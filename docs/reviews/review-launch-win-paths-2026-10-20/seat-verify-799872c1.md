@@ -9,7 +9,7 @@
   goes through `cannotStart`. `lib/win-command.mjs` exports its existing `defaultExists`, the resolver's default
   probe. R-2252's fixture gains the `.bat` it launches; the pack README's Windows paragraph gains one sentence.
   799872c1 adds the seat's pairs. Per the builder's report, it ran single-file checks only, as its brief asked.
-- CI on draft pull request #145 runs at 6136c925 (799872c1 adds only the seat's pairs). CI-PENDING. The seat fills each
+- CI on draft pull request #145 runs at 6136c925 (799872c1 adds only the seat's pairs). CI run 39496386067 at 6136c925 reads 0 failing on all three legs: macOS 192 PASS, 0 FAIL, 2 SKIP of 194 files (8,002 checks pass, 36 skip); Ubuntu 191 PASS, 0 FAIL, 3 SKIP of 194 files (7,941 checks pass, 56 skip); Windows 176 PASS, 0 FAIL, 18 SKIP of 194 files (6,931 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-6136c925.log in this folder. The seat fills each
   leg's figures before the final review. Main's known failures do not count against the lane: Ubuntu path spelling
   GP1 and GP2 before main ca27d86, and a pull request run's R-291 leaf-total merge artifact; Windows main reads 0 FAIL
   since 4be0b79, with the desk files as declared skips.
