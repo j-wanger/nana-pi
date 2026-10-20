@@ -93,3 +93,5 @@ FEAT-013 · Install and connect harness runtimes
 FEAT-031 · Run checks reliably and without contaminating work
   R-2396 new (implemented)
 ```
+
+The seat re-ran these single files on the merged tip: claude-config-dir 7, shared-memory-hook 43, shared-memory-budget 7, shared-memory-input 3, hooks-closed-output 7, install 109, uninstall 31, copy-record 8, linked-claude-folder 5, objective-path-shapes 5 (1 skip), checkout-spelling 6, project-odd-seeds 8, requirements-tree 93, requirements-trace 61, all passing; map:check and readme:check 0 problems. The shared-memory hook merged with no conflict.
