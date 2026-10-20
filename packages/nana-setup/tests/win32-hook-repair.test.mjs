@@ -239,7 +239,7 @@ const safeRoute = "remove that entry by hand, then run nana-setup install";
 const vRowsRepairByHand = winWanted.every((wanted, index) => {
 	const line = settingsLine(vDoctor.stdout, wanted.label);
 	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
-	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);
+	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.slice(line.indexOf("install leaves")).includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);
 });
 const f4Doctor = run(["doctor", "--home", f4Home]);
 const f4ObjectiveLine = settingsLine(f4Doctor.stdout, "SessionStart objective");
