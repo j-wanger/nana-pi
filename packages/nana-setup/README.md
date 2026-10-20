@@ -455,8 +455,9 @@ On FAIL, the check prints the hooks block and the last knowledge-pull record aft
 
 Zero-dep: `node packages/nana-setup/tests/<file>.test.mjs` (each file exits with its failure
 count). The repository runner scrubs `CLAUDE_CONFIG_DIR` before starting each file. Every run
-installs into `os.tmpdir()` with `--home`, so no test can touch the real `~/.claude`, `~/.pi`,
-`~/.local/bin` or LaunchAgents, and none of them loads a launchd service.
+targets a fresh home under `os.tmpdir()` through its environment and explicit setup flags, so no
+test can touch the real `~/.claude`, `~/.pi`, `~/.local/bin` or LaunchAgents, and none loads a
+launchd service.
 
 Environment switches (tests and CI only):
 
