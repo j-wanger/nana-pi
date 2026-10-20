@@ -20,6 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
+import { DEFAULT_OBJECTIVE_FILE } from "../../nana-pack/lib/objective-path.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
@@ -59,7 +60,7 @@ export function resolveLayout(opts = {}) {
 		piHomeCwdRelative: !opts.piHome && !opts.home && piAgentDirIsCwdRelative() ? safeCwd() : null,
 		piSettings: path.join(piHome, "settings.json"),
 		piPackConfig: path.join(piHome, "nana-pack.json"),
-		piObjective: path.join(piHome, "nana-objective.md"),
+		piObjective: path.join(piHome, DEFAULT_OBJECTIVE_FILE),
 		piRulings: path.join(piHome, RULINGS_FILE),
 		// pi-subagents' own config file (a third-party vendor extension nana-pi only consumes —
 		// architecture-ruling.md 2026-10-04 §2): seed-once, doctor-verifies, never clobber a hand
