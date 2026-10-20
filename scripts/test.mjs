@@ -68,7 +68,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
-import { JOBS_FLAG, RUN_ALONE } from "../packages/nana-pack/lib/test-runner-config.mjs";
+import { checkoutSpellingSkipReason, JOBS_FLAG, RUN_ALONE } from "../packages/nana-pack/lib/test-runner-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
@@ -194,6 +194,7 @@ const onPath = (cmd) => {
 
 /** Declared platform skips: file → () => reason | null. A reason means SKIP, printed. */
 const SKIPS = {
+	"packages/nana-setup/tests/checkout-spelling.test.mjs": checkoutSpellingSkipReason,
 	// On POSIX it proves no child was left running with `pgrep -f`, and reads "pgrep missing" as
 	// "nothing left" — so without pgrep it would pass without proving anything. On win32 it does
 	// not use pgrep (it guards its own POSIX cases), so it always runs there.

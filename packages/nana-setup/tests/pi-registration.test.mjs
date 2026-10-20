@@ -20,6 +20,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findPi } from "../../nana-pack/lib/win-command.mjs";
 import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -229,7 +230,8 @@ function piHomeWith(packages) {
 				const wtCli = path.join(wt, "packages", "nana-setup", "bin", "nana-setup.mjs");
 				const wtSteps = await import(new URL("file://" + path.join(wt, "packages", "nana-setup", "lib", "steps.mjs")).href);
 				const wtPaths = await import(new URL("file://" + path.join(wt, "packages", "nana-setup", "lib", "paths.mjs")).href);
-				check("the throwaway worktree is a linked worktree of the main clone", fs.realpathSync(wtPaths.repoRoot) === fs.realpathSync(wt) && fs.realpathSync(mainCheckout) !== fs.realpathSync(wt), `${wtPaths.repoRoot} vs ${mainCheckout}`);
+				const worktreeRoot = realPath(wt, { mustExist: true });
+				check("the throwaway worktree is a linked worktree of the main clone", realPath(wtPaths.repoRoot, { mustExist: true }) === worktreeRoot && realPath(mainCheckout, { mustExist: true }) !== worktreeRoot, `${wtPaths.repoRoot} vs ${mainCheckout}`);
 				const home = piHomeWith(null);
 				const agent = path.join(home, ".pi", "agent");
 				const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));

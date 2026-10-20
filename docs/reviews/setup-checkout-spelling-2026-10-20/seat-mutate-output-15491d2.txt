@@ -1,0 +1,24 @@
+seat-mutate: lane setup-checkout-spelling, tip 15491d2f4172bc7d605ae5de5eb2f23ccf4d9371, table bf7c2b7e135009f2357d77c58cec14a12548661d5f3ea4b3af0319209cf3b91a, merge-base 8466795b1e34cee5a161cbcfce41baf11e9c96a8, 14 pairs in 1 shards (14, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T06:20:58.723Z
+DECLARED (a) every pair runs on macOS in POSIX form and forced win32 through the case spelling; the lowercase-drive and 8.3 spellings exist only on the Windows leg
+DECLARED (b) R-1981 and R-1983 have no single-site pair (plan-attack amendment 4); M14, main's code, is their pair here, as the tests-first commit 8fa24d53 is
+DECLARED (c) M5, M6 and M7 (the retired-hook compares and pathVisibleNode's candidate) have no must-meet check (must-meet.md Known limits) and are expected to survive
+DECLARED (d) M11 (uninstall's repoReal) is expected to survive: with pkgRoot canonical, repoRoot is already the on-disk spelling, and the check runs uninstall only through it
+DECLARED (e) the case-fold alternative (build-brief-1.md W11) has no pair: it is red only on the Windows 8.3 spelling
+[1/1] seat-mutate: lane setup-checkout-spelling, shard 1/1, tip 15491d2f4172bc7d605ae5de5eb2f23ccf4d9371, merge-base 8466795b1e34cee5a161cbcfce41baf11e9c96a8, 14 pairs, darwin, node v22.22.2, 2026-10-20T06:20:59.366Z
+[1/1] BASELINE ok   packages/nana-setup/tests/checkout-spelling.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/1] RESULT: 10/14 red (10 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 4 survived [M5, M6, M7, M11]
+RED M1 pkgRoot keeps the spelling node was started through — 2/2 named: R-1980: doctor through a second spelling of the checkout gives the same rows as through its on-disk… | R-1982: install through a second spelling of the checkout leaves the home byte-identical; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 linkOk compares JS realpaths — 1/1 named: R-1984: links, hook entries and pi entries written through another spelling of the checkout still r…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 skillLinkState compares JS realpaths — 1/1 named: R-1984: links, hook entries and pi entries written through another spelling of the checkout still r…; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED M4 linkSkill's foreign-link test compares JS realpaths — 1/1 named: R-1984: links, hook entries and pi entries written through another spelling of the checkout still r…; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+GREEN M5 the retired-hook ownership compare uses JS realpaths — SURVIVED
+GREEN M6 the retired context-size-check link compare uses JS realpaths — SURVIVED
+GREEN M7 pathVisibleNode resolves its PATH candidate by JS realpath — SURVIVED
+RED M8 realpathSafe walks to an ancestor with JS realpath — 1/1 named: R-1984: links, hook entries and pi entries written through another spelling of the checkout still r…; 1 FAIL total (1 file changed, 12 insertions(+), 1 deletion(-))
+RED M9 the win32 hook settings rows compare JS realpaths — 1/1 named: R-1984: links, hook entries and pi entries written through another spelling of the checkout still r…; 1 FAIL total (1 file changed, 3 insertions(+), 2 deletions(-))
+RED M10 knowledgeHookHealthy compares JS realpaths — 1/1 named: R-1984: links, hook entries and pi entries written through another spelling of the checkout still r…; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+GREEN M11 uninstall's repoReal is a JS realpath — SURVIVED
+RED M12 uninstall's preflight resolves link targets by JS realpath — 1/1 named: R-1985: uninstall --dry-run would unlink every link written through another spelling of the checkout; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M13 uninstall's per-link removal resolves its target by JS realpath — 1/1 named: R-1985: uninstall --dry-run would unlink every link written through another spelling of the checkout; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M14 every site in main's form (main's code) — 6/6 named: R-1980: doctor through a second spelling of the checkout gives the same rows as through its on-disk… | R-1981: install through a second spelling of the checkout exits 0 and refuses none of its own links | R-1982: install through a second spelling of the checkout leaves the home byte-identical | R-1983: after installs through both spellings the stale-copy producer prints nothing through either | R-1984: links, hook entries and pi entries written through another spelling of the checkout still r… | R-1985: uninstall --dry-run would unlink every link written through another spelling of the checkout; 6 FAIL total (7 files changed, 30 insertions(+), 18 deletions(-))
+RESULT: 10/14 red (10 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 4 survived [M5, M6, M7, M11], across 1 shards

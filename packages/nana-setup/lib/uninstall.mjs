@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { repoRoot, platform } from "./paths.mjs";
 import { stateRows } from "./state-manifest.mjs";
 import { desiredHooks, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
@@ -56,7 +57,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
     }
   }
 
-  const repoReal = fs.realpathSync(repoRoot);
+  const repoReal = realPath(repoRoot, { mustExist: true });
   const inventoryLinks = removable.filter((r) => r.kind === "link");
   let hasLink = false;
   let inRepoLink = false;
@@ -65,7 +66,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
     if (!exists(row.path)?.isSymbolicLink()) continue;
     hasLink = true;
     try {
-      const target = fs.realpathSync(row.path);
+      const target = realPath(row.path, { mustExist: true });
       targets.push(`${row.path} -> ${target}`);
       if (inside(repoReal, target)) inRepoLink = true;
     } catch { targets.push(`${row.path} -> unresolved`); }
@@ -114,7 +115,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
       if (!st) { out.push(result(row.store, "unchanged", "absent")); continue; }
       if (!st.isSymbolicLink()) { out.push(result(row.store, "skipped", `left — found ${st.isDirectory() ? "directory" : "regular file"}: ${row.path}`)); continue; }
       let target;
-      try { target = fs.realpathSync(row.path); } catch { out.push(result(row.store, "skipped", `left — dangling symlink: ${row.path}`)); continue; }
+      try { target = realPath(row.path, { mustExist: true }); } catch { out.push(result(row.store, "skipped", `left — dangling symlink: ${row.path}`)); continue; }
       if (!inside(repoReal, target)) { out.push(result(row.store, "skipped", `left — symlink resolves outside repository: ${target}`)); continue; }
       if (!dryRun) fs.unlinkSync(row.path);
       out.push(result(row.store, dryRun ? "created" : "updated", `${dryRun ? "would unlink" : "unlinked"} ${target}`));
