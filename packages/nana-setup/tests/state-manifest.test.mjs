@@ -54,7 +54,7 @@ const installedRows = stateRows(ownerLayout);
 const installTargets = [
   ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
   path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
-  ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"),
+  ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"), ownerLayout.copyRecord,
   ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
   ...["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE].map((name) => path.join(ownerLayout.rulesDir, name)),
   ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
@@ -62,7 +62,7 @@ const installTargets = [
   ...["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd"].map((name) => path.join(ownerLayout.binDir, name)),
   ownerLayout.piRulings,
 ];
-const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", ...Array(19).fill("link"), ...Array(4).fill("shim"), "link"];
+const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", "file", ...Array(19).fill("link"), ...Array(4).fill("shim"), "link"];
 const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
 // The manifest row for every "link" target exists on every platform (state-manifest.mjs lists
 // every platform-owned path unconditionally) — the coverage check above holds either way. Actual
@@ -72,7 +72,10 @@ const uncoveredInstallTargets = installTargets.filter((target, index) => !instal
 const posixOnlyInstallTargets = new Set([
   ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
 ].map((p) => path.resolve(p)));
-const win32OnlyInstallTargets = new Set(["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd"].map((name) => path.resolve(path.join(ownerLayout.binDir, name))));
+const win32OnlyInstallTargets = new Set([
+  ownerLayout.copyRecord,
+  ...["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd"].map((name) => path.join(ownerLayout.binDir, name)),
+].map((target) => path.resolve(target)));
 const missingInstallTargets = installTargets.filter((target) => {
   if (process.platform === "win32" && posixOnlyInstallTargets.has(path.resolve(target))) return false;
   if (process.platform !== "win32" && win32OnlyInstallTargets.has(path.resolve(target))) return false;
