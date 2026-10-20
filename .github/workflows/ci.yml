@@ -18,6 +18,7 @@ env:
 
 jobs:
   install-check:
+    if: false  # SEAT SCRATCH: only the Windows pair table runs on this branch
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]  # SEAT SCRATCH
     runs-on: ${{ matrix.os }}
     # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops
     # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest
@@ -75,8 +76,14 @@ jobs:
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: npm test
         if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
+      - name: SEAT SCRATCH — Windows-only pair table for review-ledger-run-win-launch
         if: matrix.os == 'windows-latest'
+        run: |
+          git config --global user.email "seat@example.invalid"; git config --global user.name "seat"
+          git branch -f main origin/main  # the runner reads the tip's merge base with main
+          export npm_execpath="$(node -p "require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')")"  # as npm test sets it; the Windows fixture reads it
+          echo "npm_execpath=$npm_execpath"; test -f "$npm_execpath"
+          node docs/reviews/review-ledger-run-win-launch-2026-10-20/win-pairs.mjs docs/reviews/review-ledger-run-win-launch-2026-10-20/seat-mutate-win.mjs
 
   release:
     needs: [suite, install-check]
