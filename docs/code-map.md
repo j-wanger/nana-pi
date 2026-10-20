@@ -1171,7 +1171,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — one widget, keyed WIDGET_KEY, holding the roster notice as its only line
 - **effects** — disk (reads the user-scope nana-pack.json)
 - **errors** — none — the handler swallows everything; it never throws and never notifies
-- **callers** — `packages/nana-pack/tests/roster-notice.test.mjs`
+- **callers** — `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`
 - **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/roster-notice-config.mjs`, `packages/nana-pack/lib/roster-notice.mjs`
 
 ### `packages/nana-pack/extensions/nana-rulings.ts`
@@ -1201,7 +1201,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total
-- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/json-text.mjs`
 
 ### `packages/nana-pack/lib/agent-dir.mjs`
@@ -1576,13 +1576,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/agent-dir-config.test.mjs`
 
-- **purpose** — Pins that nana-pack's user-scope resources follow pi's active agent dir for an absolute, a relative and a tilde PI_CODING_AGENT_DIR, each naming a symlinked dir
-- **inputs** — extensions/nana-gate.ts, lib/config.ts, lib/gate-paths.ts, nana-pack.json at both agent dirs under a temp HOME
+- **purpose** — Pins that nana-pack's user-scope resources follow pi's active agent dir for an absolute, a relative and a tilde PI_CODING_AGENT_DIR, each naming a symlinked dir, that the stranded default file is never opened when no active config exists, and that no mismatch note or journal line fires when the active config is present or none is stranded
+- **inputs** — extensions/nana-gate.ts, extensions/nana-roster-notice.ts, lib/config.ts, lib/adoption.mjs, lib/gate-paths.ts, node:module's createRequire and syncBuiltinESMExports, nana-pack.json at both agent dirs under a temp HOME
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and symlinked agent dirs), process (sets HOME and PI_CODING_AGENT_DIR, changes the process cwd)
+- **effects** — disk (temp HOME and symlinked agent dirs), process (sets HOME and PI_CODING_AGENT_DIR, changes the process cwd, temporarily wraps node:fs's CommonJS read entry points to observe which files are opened)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-hostile.test.mjs`
 
@@ -1676,10 +1676,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/config-handlers-malformed.test.mjs`
 
-- **purpose** — Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks and the problem is journaled once
-- **inputs** — the eight extensions under extensions/, malformed nana-pack.json variants, and a fresh temp HOME and workspace per variant
+- **purpose** — Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks, the problem is journaled once, and post-edit and lifecycle keep working under five unrelated malformed blocks
+- **inputs** — the eight extensions under extensions/, malformed nana-pack.json variants, a configured postEdit check on a.ts, and a fresh temp HOME and workspace per variant
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE)
+- **effects** — disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE, spawns the configured postEdit checker as a child process)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`

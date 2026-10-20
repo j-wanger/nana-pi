@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/config-handlers-malformed.test.mjs
- * @purpose Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks and the problem is journaled once
- * @inputs the eight extensions under extensions/, malformed nana-pack.json variants, and a fresh temp HOME and workspace per variant
+ * @purpose Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks, the problem is journaled once, and post-edit and lifecycle keep working under five unrelated malformed blocks
+ * @inputs the eight extensions under extensions/, malformed nana-pack.json variants, a configured postEdit check on a.ts, and a fresh temp HOME and workspace per variant
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE)
+ * @effects disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE, spawns the configured postEdit checker as a child process)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -83,6 +83,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	check(`${label}: no handler throws`, errors.length === 0, errors.join("; "));
 	check(`${label}: gate still blocks rm -rf /tmp/x headless`, gateOut.some((r) => r?.block === true), JSON.stringify(gateOut));
 	const prompts = Object.values(promptEvent.systemPromptOptions.sections).join("\n");
+	// req: R-781
 	check(`${label}: objective text or OBJECTIVE UNAVAILABLE marker injected`, prompts.includes("OBJ: ship the thing") || prompts.includes("OBJECTIVE UNAVAILABLE"));
 	const journal = path.join(agent, "nana-journal.jsonl");
 	const lines = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -120,6 +121,62 @@ for (const [label, text, expectLines] of VARIANTS) {
 	for (const fn of h.session_start) await fn({ reason: "startup" }, mk("s2"));
 // req: R-780
 	check("UI: a new session warns once more", mine().length === 2);
+}
+
+// R-781: post-edit and lifecycle under five unrelated malformed blocks (each variant also
+// configures a postEdit check on a.ts so post-edit has something to run and fail).
+{
+	const R781_VARIANTS = [
+		["gate = 7", { gate: 7 }],
+		["notify = 7", { notify: 7 }],
+		["handoff = 7", { handoff: 7 }],
+		["objective = 7", { objective: 7 }],
+		["journal.path = 7", { journal: { path: 7 } }],
+	];
+	let r781Pass = true;
+	const r781Detail = [];
+	for (const [label, block] of R781_VARIANTS) {
+		const home = tmpDir(path.join(os.tmpdir(), "hm-r781-home-"));
+		process.env.HOME = home;
+		process.env.USERPROFILE = home;
+		const agent = path.join(home, ".pi", "agent");
+		fs.mkdirSync(agent, { recursive: true });
+		const raw = { ...block, postEdit: { commands: [{ match: "\\.ts$", run: 'node -e "process.exit(1)"' }] } };
+		fs.writeFileSync(path.join(agent, "nana-pack.json"), JSON.stringify(raw));
+		fs.writeFileSync(path.join(agent, "nana-objective.md"), "OBJ: ship the thing\n");
+		const cwd = tmpDir(path.join(os.tmpdir(), "hm-r781-ws-"));
+		fs.writeFileSync(path.join(cwd, "a.ts"), "x\n");
+
+		const h = {};
+		const api = { on: (ev, fn) => (h[ev] ??= []).push(fn), registerCommand() {} };
+		for (const n of EXT) exts[n](api);
+		const ctx = { cwd, hasUI: false, isProjectTrusted: () => true, signal: new AbortController().signal, sessionManager: { getSessionId: () => `r781-${label}` } };
+		const fire = async (ev, event) => {
+			const out = [];
+			for (const fn of h[ev] ?? []) out.push(await fn(event, ctx));
+			return out;
+		};
+
+		await fire("session_start", { reason: "startup" });
+		const editResults = await fire("tool_result", { toolName: "edit", isError: false, input: { path: "a.ts" }, content: [{ type: "text", text: "edited" }] });
+
+		const postEditText = editResults.map((r) => (r?.content ?? []).map((c) => c.text).join("\n")).join("\n");
+		const postEditPass = postEditText.includes("[nana-post-edit] 1 check(s) failed");
+		const journal = path.join(agent, "nana-journal.jsonl");
+		const journalText = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8") : "";
+		const lifecyclePass = journalText.split("\n").some((l) => l.includes('"event":"session_start"'));
+
+		// A stopped gate blocks every edit before post-edit ever runs — so in pi, post-edit's own
+		// feedback is unreachable under gate = 7, and only lifecycle is asserted for that variant.
+		const variantOk = lifecyclePass && (label === "gate = 7" || postEditPass);
+		if (!variantOk) r781Pass = false;
+		r781Detail.push(`${label}: lifecycle=${lifecyclePass} postEdit=${postEditPass}`);
+	}
+	// req: R-781
+	check("with an unrelated block malformed, post-edit still feeds back its check's failure and lifecycle still journals the session start",
+		r781Pass,
+		r781Detail.join(" | "),
+	);
 }
 
 process.exit(fails);
