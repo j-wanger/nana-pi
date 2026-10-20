@@ -1,28 +1,17 @@
 name: ci
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
 env:
-  # 1.0.2: installed and verified version, pi 1.0 adoption 2026-10-04
   PI_VERSION: 1.0.2
-  # measured 2026-10-13 (R-1091): the seat's pi 1.0.2 install moment (pi-coding-agent package.json mtime
-  # 2026-10-04T02:57:57-04:00); npm --before at this time reproduced the seat's `npm ls -g --all` exactly.
-  # Valid for PI_VERSION 1.0.2 from 2026-10-04T00:56:19.486Z (pi 1.0.2 published) to before
-  # 2026-10-05T08:30:34.061Z (first 1.0.3 sibling, pi-codemode). Move it with PI_VERSION.
   PI_BEFORE: "2026-10-04T06:57:57Z"
 
 jobs:
-  install-check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  probe-p1:
+    runs-on: windows-latest
     timeout-minutes: 20
     defaults:
       run:
@@ -32,69 +21,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - name: Install check
-        env:
-          TEMP: ${{ runner.temp }}
-          TMP: ${{ runner.temp }}
-        run: node packages/nana-setup/bin/install-check.mjs
-
-  suite:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
-    defaults:
-      run:
-        shell: bash
-    env:
-      NANA_TEST_REQUIRE_COPIER: "1"
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: astral-sh/setup-uv@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test
-        if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
-        if: matrix.os == 'windows-latest'
-
-  release:
-    needs: [suite, install-check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    concurrency:
-      group: template-release
-      cancel-in-progress: false
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: astral-sh/setup-uv@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: git config user.name "github-actions[bot]"
-      - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: node scripts/template-release.mjs --push
+      - name: P1 step 1 (in-process thread culture de-DE)
+        run: |
+          powershell -NoProfile -Command '& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); [double]1.5 | Out-String; (Get-Process -Id $PID).CPU | Out-String; (Get-Process -Id $PID).TotalProcessorTime.Ticks | Out-String }'
+      - name: P1 step 1b (same in pwsh 7)
+        run: |
+          pwsh -NoProfile -Command '& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); [double]1.5 | Out-String; (Get-Process -Id $PID).CPU | Out-String; (Get-Process -Id $PID).TotalProcessorTime.Ticks | Out-String }'
+      - name: P1 step 0 (user culture before)
+        run: |
+          powershell -NoProfile -Command '(Get-Culture).Name; $PSVersionTable.PSVersion.ToString(); (Get-Process -Id $PID).CPU; (Get-Process -Id $PID).TotalProcessorTime.Ticks'
+      - name: P1 step 2 (Set-Culture de-DE)
+        run: |
+          powershell -NoProfile -Command 'Set-Culture de-DE'
+      - name: P1 step 3 (new process under the user culture)
+        run: |
+          powershell -NoProfile -Command '(Get-Culture).Name; $PSVersionTable.PSVersion.ToString(); (Get-Process -Id $PID).CPU; (Get-Process -Id $PID).TotalProcessorTime.Ticks'
+      - name: P1 step 3b (the exact read pi-watchdog runs today)
+        run: |
+          powershell -NoProfile -Command "(Get-Process -Id $$).CPU" || true
+      - name: P1 step 4 (win32-launch under de-DE, main's watchdog)
+        run: npm test -- packages/nana-pack/tests/win32-launch.test.mjs --verbose || echo "P1 step 4 exit $?"
