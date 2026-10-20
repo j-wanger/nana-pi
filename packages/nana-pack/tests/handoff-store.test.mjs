@@ -3,7 +3,7 @@
  * @purpose Pins the user-scope handoff store — written atomically, keyed per exact canonical directory so nothing borrows an ancestor's, and skipped by resume, fork and reload
  * @inputs extensions/nana-handoff.ts, a nana-pack.json and the handoff store under a temp HOME, and throwaway repositories and worktrees
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, store files, repository fixtures), process (sets HOME, spawns a child session)
+ * @effects disk (temp HOME, store files, repository fixtures), process (sets HOME, PI_CODING_AGENT_DIR for one block, spawns a child session)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -64,6 +64,8 @@ const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-store
 	check("b: nothing written to <cwd>/.pi/handoff.md", !fs.existsSync(path.join(repo, ".pi", "handoff.md")));
 	// req: R-112
 	check("b: no .gitignore written into the repo", !fs.existsSync(path.join(repo, ".pi", ".gitignore")));
+	// req: R-830
+	check("b: no .gitignore written beside the default store file", fs.existsSync(file) && !fs.existsSync(path.join(STORE, ".gitignore")));
 	// req: R-795
 	check("b: the write notice prints the store path", notes.some((m) => m.includes(file)));
 	console.log(`  store path: ${notes.find((m) => m.includes(file))}`);
@@ -297,6 +299,33 @@ else {
 			fs.unlinkSync(STORE);
 			fs.renameSync(aside, STORE);
 		}
+	}
+}
+
+// R-244: PI_CODING_AGENT_DIR selects which CONFIG is live; the store itself stays fixed
+// at ~/.pi/agent/handoffs regardless of where PI_CODING_AGENT_DIR points.
+{
+	const agentDir = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-agentdir-")));
+	fs.copyFileSync(USER_CFG, path.join(agentDir, "nana-pack.json"));
+	const priorAgentDir = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	try {
+		const proj = mk(path.join(base, "agentdir-proj"));
+		await session(proj).compact("AGENTDIR-STATE");
+		// anchored on STORE (not on storePathFor's own dirname), so a storeDir() that
+		// started following piAgentDir() would be caught rather than self-confirmed
+		const file = path.join(STORE, path.basename(mod.storePathFor(proj)));
+		// req: R-244
+		check("agent dir: with PI_CODING_AGENT_DIR set elsewhere, the summary is written to and picked up from ~/.pi/agent/handoffs, and no handoffs folder appears in the agent dir",
+			fs.existsSync(file) &&
+				fs.readFileSync(file, "utf-8").includes("AGENTDIR-STATE") &&
+				(await session(proj).prompt()).includes("AGENTDIR-STATE") &&
+				!fs.existsSync(path.join(agentDir, "handoffs")),
+		);
+	} finally {
+		if (priorAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = priorAgentDir;
+		fs.rmSync(agentDir, { recursive: true, force: true });
 	}
 }
 

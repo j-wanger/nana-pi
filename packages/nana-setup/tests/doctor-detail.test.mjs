@@ -20,7 +20,7 @@ const { diagnose, PI_SUBAGENTS_FLOOR, DESK_NODE_FLOOR, parsePlistValues } = awai
 const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
 const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 const { REVIEWER_MARKER, renderPlist, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
-const { CONFIG_FAILURE_PREFIX, displayPath } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
+const { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, displayPath } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -201,21 +201,19 @@ try {
 		check("two leading marks, a mark inside the object or malformed text after one mark stay unparseable for doctor and adoption", observations.every(({ doctorRow, settings, expectedJournal }) => doctorRow?.status === "fail" && settings.journal === expectedJournal && settings.objectiveFile === "OBJECTIVE.md"), JSON.stringify(observations));
 	}
 
-	const forwardSlashAdvice = "Write objective.path with forward slashes because JSON reads a single backslash as an escape.";
-	const manualJsonAdvice = "Repair the JSON by hand.";
 	const malformedConfigFixtures = [
 		[String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
 }
-`, forwardSlashAdvice, "line 2, column 48"],
+`, FORWARD_SLASH_ADVICE, "line 2, column 48"],
 		[`\uFEFF${String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
 }
-`.replace(/\n/g, "\r\n")}`, forwardSlashAdvice, "line 2, column 48"],
+`.replace(/\n/g, "\r\n")}`, FORWARD_SLASH_ADVICE, "line 2, column 48"],
 		[`{ "objective": { "path": "control-zq7
-character" } }`, forwardSlashAdvice, true],
-		[`{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, manualJsonAdvice, false],
-		[`{ "objective": { "path": "trailing-zq7", } }`, manualJsonAdvice, true],
+character" } }`, FORWARD_SLASH_ADVICE, true],
+		[`{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, MANUAL_JSON_ADVICE, false],
+		[`{ "objective": { "path": "trailing-zq7", } }`, MANUAL_JSON_ADVICE, true],
 	];
 	const malformedConfigRows = malformedConfigFixtures.map(([fixture, advice, place]) => {
 		const layout = layoutWith("file");
@@ -227,11 +225,24 @@ character" } }`, forwardSlashAdvice, true],
 			: place
 				? / at line \d+, column \d+\./.test(row?.detail ?? "")
 				: !/line \d/.test(row?.detail ?? "");
-		const otherAdvice = advice === forwardSlashAdvice ? manualJsonAdvice : forwardSlashAdvice;
+		const otherAdvice = advice === FORWARD_SLASH_ADVICE ? MANUAL_JSON_ADVICE : FORWARD_SLASH_ADVICE;
 		return row?.status === "fail" && row.detail.startsWith(CONFIG_FAILURE_PREFIX) && row.detail.includes(displayPath(layout.piPackConfig)) && row.detail.includes(advice) && !row.detail.includes(otherAdvice) && placeOk && !row.detail.includes("zq7") && !row.detail.includes("Bad escaped") && !row.detail.includes("Bad control") && !row.detail.includes("Unexpected token");
 	});
 	// req: R-1972
 	check("doctor names an unparseable nana-pack.json's file and the error-kind repair, never the file's text", malformedConfigRows.every(Boolean), JSON.stringify(malformedConfigRows));
+
+	const unicodeEscapeRows = [
+		String.raw`{ "objective": { "path": "D:\umbrella-zq7\OBJECTIVE.md" } }`,
+		String.raw`{ "objective": { "path": "c:\users\me\umbrella-zq7\OBJECTIVE.md" } }`,
+	].map((fixture) => {
+		const layout = layoutWith("file");
+		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
+		fs.writeFileSync(layout.piPackConfig, fixture);
+		const row = diagnoseWithPi(layout, { projectDir: layout.base }).find((candidate) => candidate.label === "pi nana-pack.json");
+		return row?.status === "fail" && row.detail.startsWith(CONFIG_FAILURE_PREFIX) && row.detail.includes(displayPath(layout.piPackConfig)) && / at line 1, column \d+\./.test(row.detail) && row.detail.includes(FORWARD_SLASH_ADVICE) && !row.detail.includes(MANUAL_JSON_ADVICE) && !row.detail.includes("zq7") && !row.detail.includes("Bad Unicode");
+	});
+	// req: R-2091
+	check("doctor gives the forward-slash repair for a pasted path with a backslash before u, never the file's text", unicodeEscapeRows.every(Boolean), JSON.stringify(unicodeEscapeRows));
 
 	{
 		const rows = ["missing", "folder"].map((shape) => {

@@ -125,6 +125,68 @@ for (const scope of ["user", "user-elsewhere", "project"]) {
 	fs.rmSync(repo, { recursive: true, force: true });
 	if (cwd !== repo) fs.rmSync(cwd, { recursive: true, force: true });
 }
+
+// R-248, R-880: the legacy-shape refusal from a SEPARATE session cwd, so the symlink
+// refusal (handoff-symlink.test.mjs) cannot stand in for it — reachedThroughSymlink()
+// falls back to checking only the final path component once the cwd is unrelated to the
+// configured path, so the legacy-shape check is the only mechanism left that can refuse.
+async function legacyRefused(target, before) {
+	userCfg({ handoff: { path: target } });
+	const cwd = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-shape-cwd-")));
+	fs.mkdirSync(path.join(cwd, ".pi"));
+	const handlers = {};
+	ext({ on: (name, fn) => { handlers[name] = fn; } });
+	const ctx = { cwd, hasUI: false, isProjectTrusted: () => true, sessionManager: { getSessionFile: () => "/sessions/s1.jsonl" } };
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const event = { systemPromptOptions: { sections: {} } };
+	await handlers.before_agent_start(event, ctx);
+	const sp = `BASE${event.systemPromptOptions.sections["nana-handoff"] ?? ""}`;
+	await handlers.session_compact({ compactionEntry: { summary: "COMPACTED-OVER-LEGACY" }, reason: "manual" }, ctx);
+	const entries = journalEntries();
+	fs.rmSync(cwd, { recursive: true, force: true });
+	return (
+		!sp.includes(INJECT) &&
+		entries.some((e) => e.event === "handoff_legacy_ignored" && e.configured === "handoff.path" && e.path === target) &&
+		entries.some((e) => e.event === "handoff_legacy_write_refused" && e.path === target) &&
+		Buffer.compare(fs.readFileSync(target), before) === 0
+	);
+}
+
+// R-248: the refusal matches .pi/handoff.md case-insensitively.
+{
+	const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-case-")));
+	fs.mkdirSync(path.join(root, ".PI"));
+	const target = path.join(root, ".PI", "HANDOFF.MD");
+	const committed = `# Session handoff (nana)\n\nCwd: ${root}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\n${INJECT}\n`;
+	fs.writeFileSync(target, committed);
+	const before = fs.readFileSync(target);
+	fs.rmSync(JOURNAL, { force: true });
+	// req: R-248
+	check("case: a handoff.path ending .PI/HANDOFF.MD is never injected and never written, journaled as a legacy refusal", await legacyRefused(target, before));
+	fs.rmSync(root, { recursive: true, force: true });
+}
+
+// R-880: the refusal still holds after resolving the parent's real path — `state` is a
+// link to a real `.pi` folder, so the literal basename check alone would miss it.
+{
+	const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-realpath-")));
+	fs.mkdirSync(path.join(root, "real", ".pi"), { recursive: true });
+	const realTarget = path.join(root, "real", ".pi", "handoff.md");
+	const target = path.join(root, "state", "handoff.md");
+	const committed = `# Session handoff (nana)\n\nCwd: ${root}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\n${INJECT}\n`;
+	fs.writeFileSync(realTarget, committed);
+	fs.symlinkSync(path.join(root, "real", ".pi"), path.join(root, "state"), process.platform === "win32" ? "junction" : "dir");
+	try {
+		const before = fs.readFileSync(target);
+		fs.rmSync(JOURNAL, { force: true });
+		// req: R-880
+		check("real path: a handoff.path whose parent is a link to a .pi folder is never injected and never written, journaled as a legacy refusal", await legacyRefused(target, before));
+	} finally {
+		fs.unlinkSync(path.join(root, "state"));
+	}
+	fs.rmSync(root, { recursive: true, force: true });
+}
+
 userCfg({});
 
 process.exit(fails);

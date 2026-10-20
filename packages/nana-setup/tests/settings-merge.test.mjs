@@ -84,6 +84,38 @@ check("six active hook entries are wanted", wanted.length === 6);
 	check("unbalanced quoting reads as NOT installed", !commandInvokes("node '/x/nana-objective.mjs", objective));
 }
 
+{
+	const objective = spec("SessionStart objective");
+	const knowledge = spec("UserPromptSubmit knowledge pull");
+	const script = objective.script;
+	const knowledgePath = "/r/packages/nana-knowledge/bin/nana-knowledge.ts";
+	const cases = [
+		[objective, `node '/a b/${script}'`, true],
+		[objective, `node \"/a b/${script}\"`, true],
+		[objective, `node /a\\ b/${script}`, true],
+		[objective, `NODE_NO_WARNINGS=1 node /x/${script}`, true],
+		[objective, `A=1 B=2 node /x/${script}`, true],
+		[objective, `/usr/bin/node /x/${script}`, true],
+		[knowledge, `NODE_NO_WARNINGS=1 node '${knowledgePath}' hook`, true],
+		[objective, `node '/x/${script}`, false],
+		[objective, `echo node /x/${script}`, false],
+		[objective, `env node /x/${script}`, false],
+		[objective, `echo /x/${script}`, false],
+		[objective, `cat /x/${script}`, false],
+		[objective, `node /x/old-${script}`, false],
+		[objective, `node /x/${script}.disabled`, false],
+		[objective, `node --inspect /x/${script}`, false],
+		[objective, `nodemon /x/${script}`, false],
+		[knowledge, `node ${knowledgePath} build`, false],
+		[knowledge, `node ${knowledgePath}`, false],
+		[knowledge, `node ${knowledgePath} build hook`, false],
+	];
+	const results = cases.map(([hookSpec, command, expected]) => ({ command, expected, actual: commandInvokes(command, hookSpec) }));
+	// req: R-317
+	check("R-317: a hook counts as present only when its command, read with shell quoting and leading VAR=value words dropped, runs the interpreter on a path ending in the script with the expected argument",
+		results.every((result) => result.actual === result.expected), JSON.stringify(results));
+}
+
 /* --- the tokenizer the matcher is built on -------------------------------------------- */
 {
 	const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -467,6 +499,52 @@ const homeSnapshot = (root) => {
 	return JSON.stringify(entries);
 };
 
+{
+	const refusedBodies = [
+		'{"hooks":',
+		"[]",
+		"null",
+		'"x"',
+		'{"hooks":null}',
+		'{"hooks":[]}',
+		'{"hooks":{"Stop":{}}}',
+		'{"hooks":{"Stop":[1]}}',
+		'{"hooks":{"Stop":[null]}}',
+		'{"hooks":{"Stop":[{"hooks":"x"}]}}',
+	];
+	const refused = refusedBodies.map((body) => {
+		const home = freshHome();
+		const file = path.join(home, ".claude", "settings.json");
+		fs.writeFileSync(file, body);
+		const before = homeSnapshot(home);
+		const result = run(["install"], home);
+		return { body, status: result.status, named: result.stderr.includes(file), unchanged: homeSnapshot(home) === before, stderr: result.stderr };
+	});
+	const acceptedBodies = [
+		" \n\t ",
+		'{"theme":"dark"}',
+		'{"hooks":{"Notification":[{"matcher":"x"}]}}',
+	];
+	const objective = desiredHooks({ hooksDir: "/h", repoRoot: "/r" }).find((entry) => entry.label === "SessionStart objective").spec;
+	const accepted = acceptedBodies.map((body) => {
+		const home = freshHome();
+		const file = path.join(home, ".claude", "settings.json");
+		fs.writeFileSync(file, body);
+		const result = run(["install"], home);
+		let parsed = null;
+		let readError = null;
+		try { parsed = JSON.parse(fs.readFileSync(file, "utf8")); }
+		catch (error) { readError = error.message; }
+		const entries = parsed?.hooks?.SessionStart?.flatMap((group) => Array.isArray(group?.hooks) ? group.hooks : []) ?? [];
+		return { body, status: result.status, invokes: entries.some((entry) => entryInvokes(entry, objective, platform())), readError, stderr: result.stderr };
+	});
+	// req: R-320
+	check("R-320: preflight refuses a settings.json that does not parse or breaks any rung of the hooks shape, and accepts a blank file, no hooks key and a foreign group without hooks",
+		refused.every((result) => result.status === 2 && result.named && result.unchanged) &&
+			accepted.every((result) => result.status === 0 && result.invokes && result.readError === null),
+		JSON.stringify({ refused, accepted }));
+}
+
 /* --- end to end: a real settings.json with foreign hooks ------------------------------ */
 {
 	const home = freshHome();
@@ -676,18 +754,44 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("lock: the message prints the lock path", r.stderr.includes(lockOf(home)), r.stderr);
 	check("lock: the message prints the recorded pid", r.stderr.includes("pid 4242"), r.stderr);
 	check("lock: the message prints the recorded age", /\b9\ds ago\b/.test(r.stderr), r.stderr);
-	check("lock: the message prints the exact rm command", r.stderr.includes(`rm ${lockOf(home)}`), r.stderr);
 	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
 // req: R-925
 	check("lock: the other run's lock is left exactly as it was", fs.readFileSync(lockOf(home), "utf8") === JSON.stringify(held));
-	// req: R-322
-	check("R-322: a held settings lock stops install printing the lock path, the recorded pid, its age and the exact rm command",
+	const lock = lockOf(home);
+	check("lock fixture: the path holds no quote character", !/["']/.test(lock), lock);
+	const win32Lines = [
+		"  in Command Prompt:",
+		`    del "${lock}"`,
+		"  in PowerShell:",
+		`    Remove-Item -LiteralPath '${lock}'`,
+	];
+	const expectedLines = process.platform === "win32" ? win32Lines : [`  rm '${lock}'`];
+	const printedLines = r.stderr.split(/\r?\n/);
+	const start = printedLines.findIndex((line) => line === expectedLines[0]);
+	let forcedWin32 = null;
+	if (process.platform !== "win32") {
+		forcedWin32 = spawnSync(process.execPath, [cli, "install", "--home", home], {
+			encoding: "utf8",
+			env: { ...process.env, NANA_SETUP_PLATFORM: "win32" },
+		});
+	}
+	const forcedLines = forcedWin32?.stderr.split(/\r?\n/) ?? [];
+	const forcedStart = forcedLines.findIndex((line) => line === win32Lines[0]);
+	// req: R-2080
+	check("R-2080: a held settings lock stops install printing the lock path, the recorded pid, its age and each removal command alone on its line under its shell",
 		r.status === 2 &&
-			r.stderr.includes(lockOf(home)) &&
+			r.stderr.includes(lock) &&
 			r.stderr.includes("pid 4242") &&
 			/\b9\ds ago\b/.test(r.stderr) &&
-			r.stderr.includes(`rm ${lockOf(home)}`),
-		r.stderr);
+			start >= 0 &&
+			JSON.stringify(printedLines.slice(start, start + expectedLines.length)) === JSON.stringify(expectedLines) &&
+			(process.platform !== "win32" || !printedLines.some((line) => line.startsWith("  rm "))) &&
+			(!forcedWin32 ||
+				forcedWin32.status === 2 &&
+				forcedStart >= 0 &&
+				JSON.stringify(forcedLines.slice(forcedStart, forcedStart + win32Lines.length)) === JSON.stringify(win32Lines) &&
+				!forcedLines.some((line) => line.startsWith("  rm "))),
+		`${r.stderr}${forcedWin32 ? `\nforced win32:\n${forcedWin32.stderr}` : ""}`);
 }
 {
 	// an old lock is NOT reclaimed — no age threshold, no pid liveness check

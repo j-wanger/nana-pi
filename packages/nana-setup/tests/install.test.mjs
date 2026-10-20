@@ -68,9 +68,10 @@ function seedPiSubagents(td, version = PI_SUBAGENTS_FLOOR) {
 }
 
 /** A temp home with a tiny knowledge source, so the real build runs but indexes 1 file. */
-function freshHome() {
-	const td = tmpDir(path.join(os.tmpdir(), "nana-setup-"));
-	tmps.push(td);
+function freshHome(existing) {
+	const td = existing ?? tmpDir(path.join(os.tmpdir(), "nana-setup-"));
+	if (existing) fs.rmSync(td, { recursive: true, force: true, maxRetries: 5 });
+	else tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.mkdirSync(path.join(td, "src"), { recursive: true });
 	fs.writeFileSync(path.join(td, "src", "note.md"), "# Note\nOne tiny knowledge file.\n");
@@ -86,6 +87,59 @@ const NEUTRAL_CWD = tmpDir(path.join(os.tmpdir(), "nana-setup-cwd-"));
 const run = (args, env = process.env) => args[0] === "doctor"
 	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env }))
 	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env });
+
+{
+	const cases = [
+		(home) => ["install", "--home", home],
+		(home) => ["install", "--dry-run", "--home", home],
+		(home) => ["project", path.join(home, "proj"), "--home", home],
+	];
+	const comparisons = cases.map((argsFor) => {
+		const home = freshHome();
+		const args = argsFor(home);
+		const withoutYes = run(args);
+		const withoutTree = JSON.stringify(walk(home));
+		freshHome(home);
+		const withYes = run([...args, "--yes"]);
+		const withTree = JSON.stringify(walk(home));
+		return {
+			args,
+			ok: withoutYes.status === withYes.status &&
+				withoutYes.stdout === withYes.stdout &&
+				withoutYes.stderr === withYes.stderr &&
+				withoutTree === withTree,
+			withoutYes: { status: withoutYes.status, stdout: withoutYes.stdout, stderr: withoutYes.stderr, tree: withoutTree },
+			withYes: { status: withYes.status, stdout: withYes.stdout, stderr: withYes.stderr, tree: withTree },
+		};
+	});
+	// req: R-383
+	check("R-383: install, install --dry-run and project give the same exit, output and home tree with --yes as without it",
+		comparisons.every((result) => result.ok), JSON.stringify(comparisons.map((result) => ({
+			args: result.args,
+			status: [result.withoutYes.status, result.withYes.status],
+			stdoutEqual: result.withoutYes.stdout === result.withYes.stdout,
+			stderrEqual: result.withoutYes.stderr === result.withYes.stderr,
+			treeEqual: result.withoutYes.tree === result.withYes.tree,
+		}))));
+}
+
+{
+	const home = freshHome();
+	const result = spawnSync(process.execPath, [cli, "install", "--home", home], {
+		cwd: NEUTRAL_CWD,
+		encoding: "utf8",
+		input: "n\n",
+		env: process.env,
+	});
+	const output = result.stdout + result.stderr;
+	// req: R-315
+	check("R-315: install without --yes, with no terminal and a no answer waiting on stdin, finishes and seeds the home without asking anything",
+		result.status === 0 &&
+			result.stdout.includes("next: nana-setup doctor") &&
+			fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")) &&
+			!/(?:\[y\/N\]|\(y\/n\))/.test(output),
+		`${result.status}\n${output}`);
+}
 
 /* --- 1. a fresh machine: every piece lands ------------------------------------------- */
 const home = freshHome();

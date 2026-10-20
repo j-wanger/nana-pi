@@ -3,7 +3,7 @@
  * @purpose Judge one machine and return an ordered check list covering its setup surfaces and memory links.
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM
  *  and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md and nana-rulings.md), skills, settings.json,
- *  nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
+ *  the settings lock, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
@@ -31,6 +31,7 @@ import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
+import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
@@ -411,6 +412,16 @@ export function diagnose(layout, opts = {}) {
 	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
 	// problem pi-cmd-launch solved for pi, which is not worth it for a floor Jake already exceeds.
 	if (win) add(NOTE, "Claude Code hooks floor", `need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later (not checked here — \`claude --version\` is never run)`);
+	const settingsLock = settingsLockPath(layout.claudeSettings);
+	const settingsLockStat = lstatSafe(settingsLock);
+	if (!settingsLockStat) add(OK, "settings lock", "no leftover lock");
+	else {
+		const commands = removalCommands(settingsLock, platform());
+		const fix = commands.length === 1
+			? commands[0].command
+			: `in ${commands[0].shell}: ${commands[0].command} — or in ${commands[1].shell}: ${commands[1].command}`;
+		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
+	}
 	for (const { event, command } of retiredSettingsCommands(settings))
 		add(FAIL, `settings ${event} retired hook`, `retired bash hook still wired: ${command}`);
 
