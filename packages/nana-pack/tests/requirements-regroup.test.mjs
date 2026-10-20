@@ -251,7 +251,7 @@ if (process.platform !== "win32") {
   // req: R-1171
   check("R-1171: run through a symlink to the script, the command still writes its page", x.r.status === 0 && !crashed(x.r) && x.text !== null && x.text === pass.text,
     `status=${x.r.status} ` + own(x.r.stderr).slice(0, 3).join(" | "));
-}
+} else console.log("SKIP R-1171: run through a symlink to the script, the command still writes its page — a file symlink needs Developer Mode or admin rights");
 
 // ================================================================== T19
 {
@@ -279,7 +279,7 @@ if (process.platform !== "win32") {
   // req: R-1171
   check("R-1171: an --out that is a symlink to the proposal is refused and leaves the proposal byte-identical", r.status === 1 && !crashed(r) && readFileSync(prop).equals(before),
     `status=${r.status} ` + own(r.stderr).slice(0, 2).join(" | "));
-}
+} else console.log("SKIP R-1171: an --out that is a symlink to the proposal is refused and leaves the proposal byte-identical — a file symlink needs Developer Mode or admin rights");
 
 // ================================================================== R-1171 (--out against every alias, build brief 2 item 2)
 {
@@ -418,7 +418,7 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
   const ok = r.status === 1 && !crashed(r) && own(r.stderr).length > 0;
   // req: R-1171
   check("R-1171: an --out the command cannot write is refused by name, exit 1, with no stack trace", ok, `status=${r.status} crashed=${crashed(r)} ` + own(r.stderr).slice(0, 2).join(" | "));
-}
+} else console.log(`SKIP R-1171: an --out the command cannot write is refused by name, exit 1, with no stack trace — ${process.platform === "win32" ? "NTFS ACLs, not mode bits, decide writability" : "running as root bypasses the permission check"}`);
 
 // ================================================================== R-1171 (item 10: --out /dev/stdout on a terminal must not hang)
 if (process.platform !== "win32") {
@@ -438,7 +438,7 @@ if (process.platform !== "win32") {
     check("R-1171: a failing run reads --out for an earlier page only when it is a regular file, so a FIFO (standing in for a terminal) never hangs", ok,
       `status=${r.status} signal=${r.signal} ` + own(r.stderr ?? "").slice(0, 2).join(" | "));
   }
-}
+} else console.log("SKIP R-1171: a failing run reads --out for an earlier page only when it is a regular file, so a FIFO (standing in for a terminal) never hangs — Windows has no mkfifo");
 
 // ================================================================== R-1179 (item 10: empty target and reported-line sections print "(none)")
 {

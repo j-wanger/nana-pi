@@ -1,0 +1,14 @@
+# Build brief 2 · knowledge-unreadable-root (a pi gpt-5.6-sol builder)
+
+Same worktree and branch (tip 2b7d4e9b; build 1 is 802c8478, merged with main d4423eff at fd0e7ab5). Class: install, hook or gate (the knowledge build both seats' hooks start). Rows: R-1910 to R-1919 only. Follow packages/nana-pack/prompts/builder-preamble.md. Single test files only; do not push; do not edit HANDOFF.md or docs/sessions/.
+
+Seat evidence on fd0e7ab5: CI run 39357305834 is green on all three legs (Windows 152 PASS, 0 FAIL, 17 SKIP); on Windows R-1910 to R-1913 SKIP by their named reason ("readdir unexpectedly succeeded" — the runner's account lists a folder behind the deny), R-883 passes. The seat's wrong-code pairs (seat-mutate-output-fd0e7ab5.txt): 14/19 red; survivors M19, M3, M8, M4, M5. The independent check (HOLDS) found two known bugs. Fix these:
+
+1. **M19 (status opens a file root as a folder) is unpinned.** Without the `isDirectory()` guard in status, a healthy single-file root (a ledger file, a normal setup that incremental-build uses) would read UNREADABLE and no check fails. Add a check (new row in the block, EARS, one shall): status marks a readable single-file root ok. Show it red with the guard removed.
+2. **Bug A: R-1913's and R-883's checks fail on correct code** when the temp path contains "ok" (they assert the status line does not include "ok", but the line ends with the path; a user named brooke always fails). Assert on the status prefix instead (for example `/^\s+UNREADABLE /` and the MISS prefix). Show the old assertion red under `TMPDIR=<a folder whose name holds "ok">`.
+3. **M3 and M8 (walk's root-level `return false` and the caller's `if (!walk(...)) continue`) are redundant:** the purge loop's `stats.unreadable.some(...)` already keeps every row under a recorded root, so they change only an extra per-root "0 files" line no check reads. Apply the subtraction test: remove them if the output stays right, or pin the line they produce; say which and why.
+4. **Bug B: after `build --rebuild`, an unlistable path prints "(skipped, rows kept)"** but the rebuild dropped the index, so no rows are kept. Make the line truthful under --rebuild (for example "(skipped; the rebuild dropped its rows)"), and say the same for the existing MISSING line if it carries the same claim. One check.
+5. M4 and M5 stay residuals (the root stat after existsSync, and a listable-but-unstattable folder, are not reachable in a test). Windows keeps its declared SKIP.
+
+Done: `node packages/nana-knowledge/tests/unreadable-root.test.mjs` and incremental-build green three runs in a row; each new or changed check red on the wrong code it names; trace, `npm run map:check`, `npm run readme:check`, `node scripts/requirements-tree.mjs --check` green; `node packages/nana-setup/bin/install-check.mjs` exit 0.
+Report (≤ 10 lines): VERDICT; commit; each item's change and red-before evidence; what stays a residual.

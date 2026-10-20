@@ -36,7 +36,7 @@ if (process.platform !== "win32") {
   // req: R-634
   check("FIFO is rejected without blocking", fifoError?.code === "ERR_NOT_REGULAR" && Date.now() - start < 1000);
  }
-}
+} else console.log("SKIP FIFO is rejected without blocking — Windows has no mkfifo");
 fs.rmSync(dir, { recursive: true, force: true });
 if (process.platform !== "win32") {
  const home = tmpDir(path.join(os.tmpdir(), "bounded-config-"));
@@ -55,6 +55,6 @@ if (process.platform !== "win32") {
   check("FIFO config stops the gate promptly with a repair reason", result?.block === true && /gate block is malformed/.test(result.reason) && result.reason.includes("Recovery:") && Date.now() - start < 1000);
  }
  fs.rmSync(home, { recursive: true, force: true });
-}
+} else console.log("SKIP FIFO config stops the gate promptly with a repair reason — Windows has no mkfifo");
 console.log(fails ? `FAILED ${fails}` : "all PASS");
 process.exit(fails ? 1 : 0);

@@ -23,7 +23,9 @@ import * as path from "node:path";
 //     as installed (sol r1);
 //   - present means untouched — no rewrite, no reorder, no dedupe of anyone else's entries;
 //   - a missing hook is APPENDED to the first group of that event that has no `matcher`
-//     (foreign matcher-scoped groups are left alone), or a new group is added;
+//     (foreign matcher-scoped groups are left alone), or a new group is added; the win32
+//     exception moves an installer-shaped verifier from the POSIX installer's matcher to the
+//     win32 verifier matcher while preserving that source group's foreign entries;
 //   - on POSIX every path we WRITE is single-quoted, so a home or clone with a space in it still
 //     runs (R-319); on win32 every hook entry is written in EXEC form instead — `command: "node"`
 //     plus an `args` array Claude Code spawns directly with no shell, so no path ever needs
@@ -160,6 +162,8 @@ export function entryInvokes(hook, spec, platform) {
 /** The win32 verifier-pipe matcher. Contract value: hooks#powershell and hooks#matcher-patterns,
  *  read 2026-10-12 — a hit from either the Bash tool or the PowerShell tool must fire it, and the
  *  docs name an exact-name list rather than a regular expression. One test (R-1053) pins it by name. */
+/** Existing POSIX installer contract, pinned by the desiredHooks fixture (R-1061, R-1208). */
+const POSIX_VERIFIER_MATCHER = "Bash";
 export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
 /** The Claude Code version that added hook `args` (exec form), so a win32 hook entry without a
  *  shell works at all. Contract value: the 2.1.139 changelog entry, read 2026-10-12. Doctor's
@@ -219,7 +223,7 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: rosterNotice.spec, entry: rosterNotice.entry },
 		{
 			event: "PreToolUse",
-			matcher: win32 ? WIN_VERIFIER_MATCHER : "Bash",
+			matcher: win32 ? WIN_VERIFIER_MATCHER : POSIX_VERIFIER_MATCHER,
 			label: "PreToolUse verifier pipe",
 			marker: "verifier-pipe.mjs",
 			spec: verifierPipeSpec,
@@ -348,6 +352,9 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } 
  * desiredHooks() item), apart from the checkout path it names? Returns { target, form } or null.
  *
  * Accepted forms:
+ *  - "posix-shell" — win32 only, the five POSIX Node hooks under the POSIX installer's default
+ *    hooks folder, with its exact single-quoted command and no `args`.
+ *  - "posix-unquoted" — win32 only, the first installer's exact unquoted knowledge form.
  *  - "posix" — the POSIX knowledge form, read identically on every platform (R-1061): today's
  *    `NODE_NO_WARNINGS=1 node '<path>' hook`. On win32 this is accepted only when the entry
  *    carries no `args` — an entry with `args` is read as exec form everywhere else, so the
@@ -364,6 +371,9 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } 
  * Every other shape — a hand-edited variant, an extra `args` element, a missing or different
  * status message, a relative path — is rejected (R-1061, R-653, R-923).
  */
+// Contract value: the POSIX installer's default hooks folder (design §1, R-1880).
+const POSIX_INSTALLER_HOOKS_SUFFIX = "/.claude/hooks/";
+
 export function installerTarget(hook, wanted, platform) {
 	if (!hook || typeof hook !== "object" || typeof hook.command !== "string") return null;
 	// An entry is the installer's own only when its statusMessage EQUALS the wanted row's,
@@ -376,6 +386,26 @@ export function installerTarget(hook, wanted, platform) {
 	const win32 = platform === "win32";
 	const hasArgs = "args" in hook && hook.args !== undefined;
 	const isKnowledge = wanted.marker === "nana-knowledge.ts hook";
+
+	if (win32 && !hasArgs && !isKnowledge) {
+		const argv = tokenize(hook.command);
+		if (argv?.length === 2 && argv[0] === "node") {
+			const target = argv[1];
+			if (path.win32.isAbsolute(target) && target.endsWith(`${POSIX_INSTALLER_HOOKS_SUFFIX}${wanted.spec.script}`) && hook.command === `node ${shq(target)}`) {
+				return { target, form: "posix-shell" };
+			}
+		}
+	}
+
+	if (win32 && !hasArgs && isKnowledge) {
+		const argv = tokenize(hook.command);
+		if (argv?.length === 4 && argv[0] === "NODE_NO_WARNINGS=1" && argv[1] === "node" && argv[3] === "hook") {
+			const target = argv[2];
+			if (path.win32.isAbsolute(target) && target.endsWith("/packages/nana-knowledge/bin/nana-knowledge.ts") && hook.command === `NODE_NO_WARNINGS=1 node ${target} hook`) {
+				return { target, form: "posix-unquoted" };
+			}
+		}
+	}
 
 	if (isKnowledge && !(win32 && hasArgs)) {
 		const target = installerKnowledgeTarget(hook.command);
@@ -433,6 +463,33 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 	const result = {};
 	for (const w of repoAnchored) {
 		const groups = settings?.hooks?.[w.event];
+		let movedVerifier = false;
+		if (win32 && w.matcher === WIN_VERIFIER_MATCHER && Array.isArray(groups)) {
+			const alreadyAtWinMatcher = groups.some((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks) && group.hooks.some((hook) => hook?.timeout === 5 && installerTarget(hook, w, platform)));
+			let moved;
+			for (let gi = groups.length - 1; gi >= 0; gi--) {
+				const group = groups[gi];
+				if (group?.matcher !== POSIX_VERIFIER_MATCHER || !Array.isArray(group.hooks)) continue;
+				let removedFromGroup = false;
+				for (let i = group.hooks.length - 1; i >= 0; i--) {
+					const hook = group.hooks[i];
+					if (hook?.timeout !== 5 || !installerTarget(hook, w, platform)) continue;
+					const [removed] = group.hooks.splice(i, 1);
+					moved ??= removed;
+					movedVerifier = true;
+					removedFromGroup = true;
+				}
+				if (removedFromGroup && group.hooks.length === 0) groups.splice(gi, 1);
+			}
+			if (movedVerifier && !alreadyAtWinMatcher) {
+				let targetGroup = groups.find((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks));
+				if (!targetGroup) {
+					targetGroup = { matcher: WIN_VERIFIER_MATCHER, hooks: [] };
+					groups.push(targetGroup);
+				}
+				targetGroup.hooks.push({ ...moved, command: w.entry.command, args: w.entry.args });
+			}
+		}
 		const found = [];
 		if (Array.isArray(groups)) {
 			for (const group of groups) {
@@ -462,7 +519,7 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 				}
 			}
 		}
-		let replaced = false;
+		let replaced = movedVerifier;
 		for (const item of found) {
 			if (item.healthy && (!win32 || item.form === "win32-exec")) continue;
 			const current = item.group.hooks[item.index];

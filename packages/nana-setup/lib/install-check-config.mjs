@@ -31,11 +31,11 @@ export const KNOWN_RED = {
   win32: [],
 };
 // Contract values: doctor.mjs informational rows; win32 hook-file rows removed by R-1861, 2026-10-19; floor from R-1060;
-// PATH rows are checks after R-1610, while the four pi-only skill skips remain notes (R-937).
+// PATH and skill rows are checks after R-1610 and R-1900.
 export const DOCTOR_NOTES = {
   darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
   linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {

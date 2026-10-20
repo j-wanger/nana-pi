@@ -82,7 +82,6 @@ export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
-const skip = (label) => ({ label, status: SKIPPED, detail: "skipped (win32)" });
 
 /** lstat that never throws — the link itself, never what it points at. */
 export function lstatSafe(p) {
@@ -255,9 +254,8 @@ export function mirrorDirsProblem(target, files) {
  * is, never backed up into `~/.claude/skills/` (a `requirements.bak-<date>` directory there would
  * be loaded as a SECOND skill claiming the same name) and never written through.
  *
- * win32 has no usable symlink, so the `requirements` source files are mirrored through the same
- * copy path the rules use. The four newer runtime-neutral skills are skipped by stepSkills; no
- * mirror is attempted for an unrecognized directory at those names.
+ * win32 has no usable symlink, so every runtime-neutral skill's source files are mirrored through
+ * the same copy path the rules use. An unrecognized directory at any managed name is refused.
  *
  * The win32 mirror checks the DIRECTORIES it is about to write into before it touches a file
  * (sol r1, CRITICAL): `linkFile` only ever sees the leaf, so a directory symlink/junction at
@@ -325,7 +323,6 @@ export function stepRetiredArtifacts(layout, o) {
 	const out = [];
 	const date = new Date().toISOString().slice(0, 10);
 	for (const entry of retiredArtifacts(layout.base)) {
-		if (win() && NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`)) continue;
 		const root = entry.relative.startsWith(".agents/") ? ".agents" : ".claude";
 		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
 		const relativeTail = entry.relative.slice(root.length + 1);
@@ -336,8 +333,9 @@ export function stepRetiredArtifacts(layout, o) {
 		}
 		const st = lstatSafe(source);
 		if (!st) continue;
-		if (st.isSymbolicLink() && NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`)) {
-			// stepSkills (R-665) reports every link at these managed names.
+		const newlyManagedSkill = NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`);
+		if (newlyManagedSkill && (st.isSymbolicLink() || (st.isDirectory() && lstatSafe(path.join(source, SKILL_COPY_MARKER))?.isFile()))) {
+			// stepSkills reports every link at these managed names and owns every marked win32 copy.
 			continue;
 		}
 		if (!matchesRetiredArtifact(entry, st, source)) {
@@ -402,7 +400,6 @@ export function stepSkills(layout, o) {
 	return CLAUDE_SKILLS.map((name) => {
 		const target = path.join(layout.skillsDir, name);
 		const source = path.join(PACK_SKILLS_DIR, name);
-		if (win() && NEW_CLAUDE_SKILLS.includes(name)) return skip(`skill ${name}`);
 		if (!directoryAncestorsAreSafe(layout.claudeHome, layout.skillsDir, true))
 			return { label: `skill ${name}`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; skill left untouched` };
 		const legacy = retiredArtifacts(layout.base).find((entry) => entry.relative === `.claude/skills/${name}`);
@@ -1075,7 +1072,6 @@ export function registrationState(layout) {
 export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = spawnSync, exists, manifestRoot = repoRoot } = {}) {
 	const state = packageCoverage(layout, manifestRoot);
 	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `all extension directories registered${state.match ? ` as ${state.match}` : ""}` }];
-	if (o.dryRun) return [{ label: "pi packages", status: CREATED, detail: `would add per-package entries for ${state.missing.join(", ")}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
 	const win32 = (typeof getPlatform === "function" ? getPlatform() : getPlatform) === "win32";
 	const pi = win32 ? findPi({ env, cwd: process.cwd(), exists }) : "pi";
@@ -1084,6 +1080,8 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 		const comspecKey = Object.keys(env).find((key) => key.toLowerCase() === "comspec");
 		const command = win32 ? winCommand(pi, args, { comspec: comspecKey ? env[comspecKey] : undefined }) : { command: pi, args, options: {} };
 		if (command.refused) return { refused: command.refused };
+		// the dry run stops here, before the first pi install, after every check install runs.
+		if (install && o.dryRun) return { status: 0 };
 		return spawn(command.command, command.args, { ...command.options, encoding: "utf8", ...(install ? { env: { ...env, PI_CODING_AGENT_DIR: layout.piHome } } : {}) });
 	};
 	const probe = launch(["--version"]);
@@ -1097,7 +1095,7 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 		if (r.error || r.status !== 0) return [{ label: "pi packages", status: PROBLEM, detail: `pi install ${dir} failed: ${(r.stderr || "").trim().split("\n").pop() || r.error?.message || `exit ${r.status}`}` }];
 		added.push(dir);
 	}
-	return [{ label: "pi packages", status: CREATED, detail: `added per-package entries: ${added.join(", ")}` }];
+	return [{ label: "pi packages", status: CREATED, detail: o.dryRun ? `would add per-package entries for ${state.missing.join(", ")}` : `added per-package entries: ${added.join(", ")}` }];
 }
 
 /* ------------------------------------------------------------------------------- install */

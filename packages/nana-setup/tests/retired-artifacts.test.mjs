@@ -146,15 +146,8 @@ try {
 		// req: R-664
 		check("dry-run leaves flags and Agent Skills source in place", fs.existsSync(emptyFlag) && fs.existsSync(path.join(codex, "SKILL.md")), dry.stdout);
 		const result = install(h);
-		// win32 SKIPs retiring the four pi-only skills unconditionally (steps.mjs
-		// stepRetiredArtifacts), so `spec` is never backed up there; the flag still is.
-		if (process.platform !== "win32") {
-			// req: R-663 R-665
-			check("recognized Claude skill and empty flag move under dated backups", result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.existsSync(backup(h, ".claude", "enforce")), result.stdout);
-		} else {
-			// req: R-663 R-665
-			check("win32: empty flag moves under a dated backup; the pi-only spec skill is left alone", result.status === 0 && fs.existsSync(backup(h, ".claude", "enforce")) && fs.readFileSync(path.join(oldSkill, "SKILL.md"), "utf8") === fs.readFileSync(path.join(fixture, "spec", "SKILL.md"), "utf8") && !fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), result.stdout);
-		}
+		// req: R-663 R-665
+		check("recognized Claude skill and empty flag move under dated backups", result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.existsSync(backup(h, ".claude", "enforce")), result.stdout);
 		// req: R-663
 		check("recognized Codex import moves under the agent backup root", fs.existsSync(backup(h, ".agents", "skills/dev-check/SKILL.md")), result.stdout);
 		// req: R-663
@@ -211,29 +204,18 @@ try {
 		check("install prints a manual marker cleanup reminder", result.stdout.includes("delete .claude/.context-warned files manually"), result.stdout);
 		// req: R-668
 		check("synced Agent Skills content stays in place", fs.readFileSync(path.join(synced, "SKILL.md"), "utf8") === "keep synced skill\n");
-		// win32 never installs the pi-only spec skill at all (declared shape)
-		if (process.platform !== "win32") {
-			// req: R-665
-			check("managed pack skill replaces the backed-up legacy spec", fs.realpathSync(path.join(h, ".claude", "skills", "spec")) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")));
+		if (process.platform === "win32") {
+			// req: R-351
+			check("win32: the legacy spec directory is replaced by the pack's byte-equal SKILL.md copy", fs.readFileSync(path.join(oldSkill, "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "spec", "SKILL.md"))));
 		} else {
 			// req: R-665
-			check("win32: the legacy spec directory is left exactly as it was (pi-only, never replaced)", fs.readFileSync(path.join(oldSkill, "SKILL.md"), "utf8") === fs.readFileSync(path.join(fixture, "spec", "SKILL.md"), "utf8"));
+			check("managed pack skill replaces the backed-up legacy spec", fs.realpathSync(oldSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")));
 		}
-		if (process.platform !== "win32") {
-			// req: R-666
-			check("doctor reads a canonical pack skill link as healthy", run(["doctor", "--home", h]).stdout.includes("✓ skill spec"));
-		} else {
-			// req: R-666
-			check("doctor reads the pi-only spec skip on win32", /skill spec\s+skipped \(win32; pi-only\)/.test(run(["doctor", "--home", h]).stdout));
-		}
+		// req: R-666
+		check("doctor reads a canonical pack skill link as healthy", run(["doctor", "--home", h]).stdout.includes("✓ skill spec"));
 		const rerun = install(h);
-		if (process.platform !== "win32") {
-			// req: R-669
-			check("rerun after completed moves succeeds and keeps the dated backup", rerun.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
-		} else {
-			// req: R-669
-			check("win32: rerun succeeds; the pi-only spec skill is still never backed up", rerun.status === 0 && !fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
-		}
+		// req: R-669
+		check("rerun after completed moves succeeds and keeps the dated backup", rerun.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
 		const interrupted = home();
 		const pending = path.join(interrupted, ".claude", "skills", "nana");
 		copyTree(path.join(fixture, "nana"), pending);
@@ -328,23 +310,11 @@ try {
 		// req: R-667
 		check("doctor warns while active enforcement flags and legacy scaffolders remain", before.stdout.includes("! legacy enforcement flags") && before.stdout.includes("! legacy scaffolders"), before.stdout);
 		const result = install(h);
-		// win32 never examines the pi-only spec name at all (unconditional skip, before any
-		// provenance check), so there is no mismatch to report there.
-		if (process.platform !== "win32") {
-			// req: R-663 R-669
-			check("provenance mismatch remains untouched and is reported", result.status === 1 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n" && result.stdout.includes("unrecognized kind or provenance"), result.stdout);
-		} else {
-			// req: R-663 R-669
-			check("win32: the owner-authored spec directory is left untouched (pi-only, never examined)", result.status === 0 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n", result.stdout);
-		}
+		// req: R-663 R-669
+		check("provenance mismatch remains untouched and is reported", result.status === 1 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n" && result.stdout.includes("unrecognized kind or provenance"), result.stdout);
 		const doc = run(["doctor", "--home", h]);
-		if (process.platform !== "win32") {
-			// req: R-666
-			check("doctor reports a same-name regular skill directory as unhealthy", doc.stdout.includes("✗ skill spec") && doc.status === 1, doc.stdout);
-		} else {
-			// req: R-666
-			check("win32: doctor reports the pi-only spec skip, not a health verdict, over the owner's directory", /skill spec\s+skipped \(win32; pi-only\)/.test(doc.stdout), doc.stdout);
-		}
+		// req: R-666
+		check("doctor reports a same-name regular skill directory as unhealthy", doc.stdout.includes("✗ skill spec") && doc.status === 1, doc.stdout);
 		// req: R-667
 		check("doctor reports absent legacy wiring as healthy", doc.stdout.includes("✓ legacy enforcement flags") && doc.stdout.includes("✓ legacy scaffolders"), doc.stdout);
 	}
@@ -357,18 +327,8 @@ try {
 		copyTree(path.join(fixture, "dev-check"), added);
 		fs.writeFileSync(path.join(added, "owner-notes.md"), "owner file\n");
 		const result = install(h);
-		// On POSIX the status-1 PROBLEM actually comes from stepSkills' own occupied-directory
-		// refusal at `.claude/skills/spec` (linkSkill's non-win32 branch), not from the
-		// retirement mismatch (that is only ever SKIPPED, never PROBLEM). win32 skips BOTH the
-		// retirement step and stepSkills for the pi-only spec name unconditionally, so neither
-		// artifact is ever examined there and install succeeds.
-		if (process.platform !== "win32") {
-			// req: R-669
-			check("edited and extended real legacy artifacts stay active and unbacked", result.status === 1 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
-		} else {
-			// req: R-669
-			check("win32: both the edited spec directory and the extended dev-check import stay active and unbacked", result.status === 0 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
-		}
+		// req: R-669
+		check("edited and extended real legacy artifacts stay active and unbacked", result.status === 1 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
 	}
 	{
 		const h = home();
@@ -393,15 +353,12 @@ try {
 		const target = path.join(skills, "spec");
 		fs.symlinkSync(external, target);
 		const result = install(h);
-		// win32 SKIPs both retiring and installing the pi-only spec name unconditionally,
-		// before any symlink is ever looked at, so the foreign link is left completely alone
-		// without a "foreign link" refusal (there is nothing to refuse).
-		if (process.platform !== "win32") {
-			// req: R-665 R-669
-			check("foreign newly managed skill link survives end-to-end install", result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n" && result.stdout.includes("foreign link"), result.stdout);
+		if (process.platform === "win32") {
+			// req: R-352
+			check("win32: the pi-only foreign skill link is refused and stays intact", result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n" && result.stdout.includes("symlink or junction"), result.stdout);
 		} else {
 			// req: R-665 R-669
-			check("win32: the pi-only foreign skill link at spec is left completely untouched", result.status === 0 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n", result.stdout);
+			check("foreign newly managed skill link survives end-to-end install", result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n" && result.stdout.includes("foreign link"), result.stdout);
 		}
 	}
 	{
@@ -410,23 +367,41 @@ try {
 		const source = path.join(repo, "packages", "nana-pack", "skills", "spec");
 		fs.mkdirSync(path.dirname(target), { recursive: true });
 		fs.symlinkSync(path.relative(path.dirname(target), source), target);
+		const originalLink = fs.readlinkSync(target);
 		const result = install(h);
-		// req: R-665
-		check("newly managed skill canonical realpath link is accepted", result.status === 0 && fs.readlinkSync(target) === path.relative(path.dirname(target), source) && !result.stdout.includes("foreign link"), result.stdout);
+		// req: R-665 R-352
+		check("newly managed skill canonical realpath link is accepted", process.platform === "win32"
+			? result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === originalLink && result.stdout.includes("symlink or junction")
+			: result.status === 0 && fs.readlinkSync(target) === originalLink && !result.stdout.includes("foreign link"), result.stdout);
 	}
 	{
 		const h = home();
-		const edited = path.join(h, ".claude", "skills", "spec");
-		fs.mkdirSync(edited, { recursive: true });
-		fs.writeFileSync(path.join(edited, "SKILL.md"), "owner's unrecognized win32 skill\n");
-		const result = run(["install", "--home", h], { ...process.env, NANA_SETUP_PLATFORM: "win32" });
-		const doctor = run(["doctor", "--home", h], { ...process.env, NANA_SETUP_PLATFORM: "win32" });
-		// req: R-665 R-669
-		check("win32 install leaves the unrecognized skill owner directory unchanged", result.status === 0 && fs.readFileSync(path.join(edited, "SKILL.md"), "utf8") === "owner's unrecognized win32 skill\n", `${result.status} ${result.stdout}`);
-		// req: R-665
-		check("win32 install reports all four new skill rows skipped", ["spec", "py-lint", "py-review", "py-test"].every((name) => result.stdout.includes(`skill ${name}`) && result.stdout.includes("skipped (win32)")), result.stdout);
-		// req: R-665 R-666 R-937
-		check("win32 preserves requirements mirror behavior and doctor skips pi-only skills", fs.readFileSync(path.join(h, ".claude", "skills", "requirements", "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "requirements", "SKILL.md"))) && /✓ skill requirements\s+copied from/.test(doctor.stdout) && ["spec", "py-lint", "py-review", "py-test"].every((name) => new RegExp(`· skill ${name}\\s+skipped \\(win32; pi-only\\)`).test(doctor.stdout)), doctor.stdout);
+		const env = { ...process.env, NANA_SETUP_PLATFORM: "win32" };
+		const names = ["spec", "py-lint", "py-review", "py-test"];
+		const skills = path.join(h, ".claude", "skills");
+		for (const name of names) {
+			const dir = path.join(skills, name);
+			fs.mkdirSync(dir, { recursive: true });
+			fs.writeFileSync(path.join(dir, "SKILL.md"), "mine");
+		}
+		const before = names.map((name) => treeSnapshot(path.join(skills, name)));
+		const result = run(["install", "--home", h], env);
+		const dry = run(["install", "--home", h, "--dry-run"], env);
+		// req: R-1901
+		check("R-1901: forced win32 install and dry-run refuse all four owner skill directories without changing them",
+			result.status === 1 && dry.status === 1 && [result, dry].every((runResult) => names.every((name) => runResult.stdout.includes(`✗ skill ${name}`) && /a directory is already at .*move or remove it/.test(runResult.stdout))) && names.every((name, index) => treeSnapshot(path.join(skills, name)) === before[index]),
+			`${result.stdout}\n--- dry ---\n${dry.stdout}`);
+	}
+	{
+		const h = home();
+		const env = { ...process.env, NANA_SETUP_PLATFORM: "win32" };
+		const spec = path.join(h, ".claude", "skills", "spec");
+		copyTree(path.join(fixture, "spec"), spec);
+		const result = run(["install", "--home", h], env);
+		// req: R-1902
+		check("R-1902: forced win32 install retires the recognized spec fixture and installs the pack copy",
+			result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.existsSync(path.join(spec, "SKILL.md")) && fs.readFileSync(path.join(spec, "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "spec", "SKILL.md"))),
+			result.stdout);
 	}
 	{
 		const h = home();
