@@ -1,0 +1,11 @@
+# Confirmation round 2 — win-config-json-path, 2026-10-20 (Fable, the land reviewer)
+
+Round 1 accepted `559a09d2` (every reviewer LAND, recorded). This round reviews only what changed since then: `git diff 559a09d2..HEAD` on `feat/win-config-json-path`, where HEAD is the commit after `15cf7d1d` that adds this brief.
+
+- `15cf7d1d` merges main `6f07daee`. It brought: setup-checkout-spelling (nana-setup compares checkout paths through the pack's native realPath in doctor.mjs, steps.mjs, settings.mjs, stale-copies.mjs, hook-health.mjs and uninstall.mjs; a new checkout-spelling test; a test-runner skip for a case-sensitive volume). Lanes land by fast-forward, so all of it reaches main before this lane. Review the merge as `git show --remerge-diff 15cf7d1d`. The seat's merge helper resolved HANDOFF and the session file (both sides' lines kept) and regenerated the tree and code map.
+- Code and test files that differ from `559a09d2` (all from main's side unless the remerge diff shows otherwise): packages/nana-pack/lib/test-runner-config.mjs packages/nana-pack/tests/test-runner.test.mjs packages/nana-setup/README.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/hook-health.mjs packages/nana-setup/lib/paths.mjs packages/nana-setup/lib/settings.mjs packages/nana-setup/lib/stale-copies.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/lib/uninstall.mjs packages/nana-setup/tests/checkout-spelling.test.mjs packages/nana-setup/tests/pi-registration.test.mjs scripts/test.mjs . ( 13 files changed, 370 insertions(+), 38 deletions(-))
+- The seat re-ran on the merged tip: map:check, readme:check and requirements-trace (all 0 problems); doctor-detail, checkout-spelling, fresh-machine and objective-golden single files (all pass); the local macOS install check (all PASS).
+
+Threat model and class as round 1. Check: (1) the merge keeps both sides' behaviour, with nothing lost or doubled where they meet; (2) this lane's rows and checks survive unchanged; (3) HANDOFF and the session file keep every line of both sides with no duplicate; (4) any MUST.
+
+This is a confirmation round on the final tip after a merge of current main. Answer with the full review as your final message: MUST / SHOULD / NOTE, a score, and as the last line exactly `VERDICT: LAND` or `VERDICT: SEND-BACK`.
