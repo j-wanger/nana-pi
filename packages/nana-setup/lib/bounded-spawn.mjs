@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-setup/lib/bounded-spawn.mjs
- * @purpose Run a synchronous child launch through a relay that can end the launched process tree at its deadline.
- * @inputs command, args and spawn options; bounded-spawn-child.mjs; process.env
- * @outputs boundedSpawnSync result shaped like child_process.spawnSync; relay settle, signal-grace and backstop limits
- * @effects process (synchronously starts the relay and sends its launch specification on stdin)
+ * @purpose Run a synchronous child launch through an independent POSIX relay that bounds output and ends the launched process tree at its deadline or when its parent dies.
+ * @inputs command, args and spawn options; bounded-spawn-child.mjs; process.env, process.pid and process.platform
+ * @outputs boundedSpawnSync result shaped like child_process.spawnSync; relay parent-poll, result-size, settle, signal-grace and backstop limits
+ * @effects process (synchronously starts the relay, detached on POSIX, and sends its launch specification on stdin)
  * @errors launch, relay and timeout failures are returned in result.error with a code and never thrown
  */
 import { spawnSync } from "node:child_process";
@@ -15,6 +15,10 @@ export const RELAY_SETTLE_MS = 1_000;
 export const RELAY_SIGNAL_GRACE_MS = 1_000;
 // chosen 2026-10-20: give the relay five seconds beyond its own deadline to report or fail closed.
 export const RELAY_BACKSTOP_MS = 5_000;
+// chosen 2026-10-20: pi gets its signal within 0.2 s of install's death.
+export const RELAY_PARENT_POLL_MS = 200;
+// chosen 2026-10-20: two streams at main's 1 MiB need 12 MiB after JSON's worst six-byte escape.
+export const RELAY_RESULT_MAX_BYTES = 16 * 1024 * 1024;
 
 const relay = fileURLToPath(new URL("bounded-spawn-child.mjs", import.meta.url));
 
@@ -37,6 +41,7 @@ export function boundedSpawnSync(command, args, options = {}) {
 			input: JSON.stringify({
 				command,
 				args,
+				parentPid: process.pid,
 				options: {
 					cwd: options.cwd,
 					timeout: Number.isFinite(timeout) && timeout >= 0 ? timeout : undefined,
@@ -45,6 +50,8 @@ export function boundedSpawnSync(command, args, options = {}) {
 			}),
 			encoding: "utf8",
 			env: options.env ?? process.env,
+			maxBuffer: RELAY_RESULT_MAX_BYTES,
+			...(process.platform === "win32" ? {} : { detached: true }),
 			...(Number.isFinite(timeout) && timeout >= 0 ? { timeout: timeout + RELAY_BACKSTOP_MS } : {}),
 		});
 		if (outer.error) return resultError(outer.error.code || "ERELAY", outer.error.message, outer);
