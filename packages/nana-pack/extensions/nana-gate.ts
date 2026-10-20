@@ -126,7 +126,7 @@ function journal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 function gateTempRoots(): string[] {
 	const home = os.homedir();
 	const roots = acceptedTempRoots({ platform: process.platform, env: process.env, home, tmpdir: os.tmpdir() });
-	if (process.platform !== "darwin" && process.platform !== "linux") return roots;
+	if (process.platform === "win32") return roots;
 	try {
 		return [...roots, real("/tmp")];
 	} catch {
