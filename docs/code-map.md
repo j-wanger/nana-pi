@@ -1946,7 +1946,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/mutation-runner.test.mjs`
 
-- **purpose** — Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain, edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1779) against a disposable git fixture.
+- **purpose** — Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain, edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table identity and config-merge contracts (R-1230 to R-1244, R-1770 to R-1779 and R-1960) against a disposable git fixture.
 - **inputs** — ../lib/mutation-runner.mjs, ../lib/mutation-runner-config.mjs, and a throwaway git repository this file builds under the OS temp directory for every run
 - **outputs** — PASS/FAIL lines for each marked check and a non-zero exit when any fails
 - **effects** — disk (a throwaway git repo, scratch worktrees and records under the OS temp directory), process (spawns shard and test-file children; two checks send SIGTERM/SIGKILL to processes this file started)

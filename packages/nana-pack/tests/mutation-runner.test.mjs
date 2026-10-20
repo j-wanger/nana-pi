@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/mutation-runner.test.mjs
  * @purpose Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain,
  *  edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table
- *  identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1779) against a disposable git fixture.
+ *  identity and config-merge contracts (R-1230 to R-1244, R-1770 to R-1779 and R-1960) against a disposable git fixture.
  * @inputs ../lib/mutation-runner.mjs, ../lib/mutation-runner-config.mjs, and a throwaway git repository this
  *  file builds under the OS temp directory for every run
  * @outputs PASS/FAIL lines for each marked check and a non-zero exit when any fails
@@ -613,26 +613,31 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		}
 		fs.rmSync(td, { recursive: true, force: true });
 	}
-	for (const code of transientCodes) {
-		const td = tmpDir(path.join(os.tmpdir(), `mutrun-lock-release-${code.toLowerCase()}-`));
-		const lockPath = path.join(td, "operation.lock");
-		const reports = [];
-		let clock = 0;
-		let reads = 0;
-		const result = await attempt(() => withWorktreeOperationLock(lockPath, () => "released-operation", {
-			waitLimitMs: 3,
-			now: () => clock,
-			wait: (ms) => { clock += ms; },
-			readFileSync: () => { reads++; throw fault(code); },
-			report: (line) => reports.push(line),
-		}));
-		if (!result.ok || result.value !== "released-operation" || reads < 2 || reports.length !== 1 || !reports[0].includes(lockPath) || !fs.existsSync(lockPath)) {
-			reasons.push(`release/${code}: ${JSON.stringify({ ok: result.ok, value: result.value, reads, reports, lockLeft: fs.existsSync(lockPath), error: result.error })}`);
-		}
-		fs.rmSync(td, { recursive: true, force: true });
-	}
 	// req: R-1778
-	check("mutation runner: transient lock read, stat, link and release errors retry, and an inaccessible release is recorded", reasons.length === 0, reasons.join("; "));
+	check("mutation runner: transient lock read, stat and link errors retry", reasons.length === 0, reasons.join("; "));
+}
+
+{
+	const td = tmpDir(path.join(os.tmpdir(), "mutrun-lock-release-delete-pending-"));
+	const lockPath = path.join(td, "operation.lock");
+	const fault = Object.assign(new Error("injected EPERM"), { code: "EPERM" });
+	const transientFailures = Math.ceil(CFG.WORKTREE_LOCK_WAIT_LIMIT_MS / CFG.WORKTREE_LOCK_WAIT_MS) + 1;
+	let clock = 0;
+	let waits = 0;
+	let unlinks = 0;
+	const result = await attempt(() => withWorktreeOperationLock(lockPath, () => "released-operation", {
+		now: () => clock,
+		wait: (ms) => { waits++; clock += ms; },
+		unlinkSync: (...args) => {
+			unlinks++;
+			if (unlinks <= transientFailures) throw fault;
+			return fs.unlinkSync(...args);
+		},
+	}));
+	const ok = result.ok && result.value === "released-operation" && unlinks === transientFailures + 1
+		&& waits === transientFailures && !fs.existsSync(lockPath);
+	// req: R-1960
+	check("R-1960: a release retries delete-pending EPERM past the acquisition wait limit until its owned lock is gone", ok, JSON.stringify({ result, transientFailures, unlinks, waits, clock, lockLeft: fs.existsSync(lockPath) }));
 }
 
 {

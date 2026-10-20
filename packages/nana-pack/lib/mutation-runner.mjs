@@ -311,14 +311,11 @@ export function withWorktreeOperationLock(lockPath, operation, options = {}) {
 	try {
 		return operation();
 	} finally {
-		const releaseStarted = now();
 		for (;;) {
 			const removal = removeWorktreeLockIfOwned(lockPath, ownerText, io);
 			if (removal !== "retry") break;
-			if (now() - releaseStarted >= waitLimitMs) {
-				report(`seat-mutate: could not release worktree-operation lock ${lockPath} owned by pid ${process.pid} after ${waitLimitMs} milliseconds`);
-				break;
-			}
+			// A live owner must not abandon its lock: waiters cannot distinguish that leftover from
+			// a still-running critical section, and Windows can keep an open file delete-pending.
 			wait(WORKTREE_LOCK_WAIT_MS);
 		}
 	}
