@@ -92,8 +92,11 @@ const PAIRS = [
 		one(CLI, "throw new SetupError(\n\t\t`${CLAUDE_CONFIG_ENV} is a relative path", "throw new Error(\n\t\t`${CLAUDE_CONFIG_ENV} is a relative path"),
 	], tests: [T], expectRed: [R2393, R2398] },
 	{ n: "B4", name: "the banner's claude home line omits its source", edits: [
-		one(CLI, '${layout.claudeHomeSource === CLAUDE_CONFIG_ENV ? `  (from ${CLAUDE_CONFIG_ENV})` : ""}', ""),
+		one(CLI, '${layout.claudeHomeSource === "default" ? "" : `  (from ${layout.claudeHomeSource})`}', ""),
 	], tests: [T], expectRed: [R2394] },
+	{ n: "B6", name: "(build 1's form) the banner names a source only for the variable, not for a flag", edits: [
+		one(CLI, '${layout.claudeHomeSource === "default" ? "" : `  (from ${layout.claudeHomeSource})`}', '${layout.claudeHomeSource === "CLAUDE_CONFIG_DIR" ? "  (from CLAUDE_CONFIG_DIR)" : ""}'),
+	], tests: [T], expectRed: [R2392] },
 	{ n: "B5", name: "the Claude refusal is the pi refusal's text copied (names PI_CODING_AGENT_DIR and --pi-home)", edits: [
 		one(CLI, "`${CLAUDE_CONFIG_ENV} is a relative path; here it resolves to ${layout.claudeHome}", "`PI_CODING_AGENT_DIR is a relative path; here it resolves to ${layout.claudeHome}"),
 		one(CLI, "`Pass --claude-home <absolute dir>, or set ${CLAUDE_CONFIG_ENV} to an absolute path, and re-run.`", "`Pass --pi-home <absolute dir>, or set PI_CODING_AGENT_DIR to an absolute path, and re-run.`"),
@@ -110,4 +113,4 @@ const PAIRS = [
 	], tests: [RUNNER_T], expectRed: [R2396] },
 ];
 
-process.exitCode = await runMutations({ lane: "claude-config-dir", self: import.meta.url, tip: "58fe4374", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "claude-config-dir", self: import.meta.url, tip: "5bdb9db6", declared: DECLARED, pairs: PAIRS });
