@@ -665,7 +665,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 
 export function stepSharedMemory(layout, o) {
 	const dir = ensureDir(layout.sharedMemoryDir, o);
-	const header = fs.readFileSync(SHARED_MEMORY_SEED, "utf8").replace("{{sharedMemoryDir}}", () => layout.sharedMemoryDir);
+	const header = fs.readFileSync(SHARED_MEMORY_SEED, "utf8");
 	const idx = seedFile(path.join(layout.sharedMemoryDir, "MEMORY.md"), header, o);
 	return [
 		{ label: "shared memory dir", ...dir },
