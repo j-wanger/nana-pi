@@ -1,0 +1,15 @@
+seat-mutate: lane hook-deadlines, tip fe12b8481cdbb67ab65f2dbdfb5e98c4040d761c, table 3d26e9ff095a28f4371fa7752e5e409594a0b607ed4317f4ce4747dd561a319b, merge-base cdf4b098eb7f2db2cabeb4f12c021cee2a6686df, 5 pairs in 1 shards (5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T06:27:22.869Z
+DECLARED (a) every pair runs on macOS only; R-2014 and R-2015 have no wrong-code run on Windows (must-meet.md Known limits)
+DECLARED (b) M5 edits a site the lane did not change: the knowledge pull hook is a pin (R-2015), so its pair is the plan's wrong code
+DECLARED (c) no test checks that a producer stopped at the limit leaves no child process behind, so no pair covers it
+[1/1] seat-mutate: lane hook-deadlines, shard 1/1, tip fe12b8481cdbb67ab65f2dbdfb5e98c4040d761c, merge-base cdf4b098eb7f2db2cabeb4f12c021cee2a6686df, 5 pairs, darwin, node v22.22.2, 2026-10-20T06:27:23.479Z
+[1/1] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 3 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/hook-producers.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/hooks-closed-output.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/1] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 launcher starts each producer with no time limit (main's form) — 4/4 named: adoption hook prints its marker and the stale-copy output when the adoption producer hangs | adoption hook prints both markers before its installed limit when both producers hang | objective hook prints its marker before its installed limit when its producer hangs | launcher starts the objective, adoption and stale-copy producers with a 1500 ms time limit; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 producer time limit chosen at 3000 ms — 2/2 named: adoption hook prints both markers before its installed limit when both producers hang | launcher starts the objective, adoption and stale-copy producers with a 1500 ms time limit; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 launcher prints the partial stdout of a producer stopped at the limit — 3/3 named: adoption hook prints its marker and the stale-copy output when the adoption producer hangs | adoption hook prints both markers before its installed limit when both producers hang | objective hook prints its marker before its installed limit when its producer hangs; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 verifier hook leaves stderr errors unhandled (main's form) — 1/1 named: verifier hook ignores a closed stderr and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 knowledge CLI ends by setting the exit code instead of exiting — 1/1 named: knowledge pull hook ignores a closed stdout and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards
