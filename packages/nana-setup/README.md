@@ -267,7 +267,7 @@ Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and th
 
 Doctor's `pi executable` row checks `pi --version` and names the shared install hint on failure; `PATH resolves pi-review` checks the first executable match on PATH. `pi package source` compares registered package trees with the checkout supplying hooks and rules. Doctor mutes exactly the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning and prints every other Node warning.
 
-Install's dry run decides which ✗ rows doctor's last line gives to `nana-setup install`, and doctor lists the rest by hand. A row with no install step, such as `PATH resolves pi-review`, is listed by hand. The dry run writes nothing. When install refuses the home, doctor prints `<n> missing — nana-setup install will not run until this is fixed: <first refusal line>`.
+Install's dry run decides which ✗ rows doctor's last line gives to `nana-setup install`, and doctor lists the rest by hand. `PATH resolves pi-review` goes to install when the bin folder is already on PATH and no earlier PATH entry holds a pi-review; otherwise doctor lists it by hand. The dry run writes nothing. When install refuses the home, doctor prints `<n> missing — nana-setup install will not run until this is fixed: <first refusal line>`.
 
 Doctor's `release status` row is informational (·). It counts template commits on main since the highest plain vX.Y.Z tag and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `countTemplateCommits` for later release gates.
 

@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-setup/tests/doctor-fix-line.test.mjs
- * @purpose Pin doctor's final repair line to the changes install's dry run can actually make.
+ * @purpose Pin doctor's final repair line, and the `PATH resolves pi-review` row's own advice, to the changes install's dry run can actually make.
  * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
- * @outputs PASS/FAIL lines for R-1990 through R-1997 and a final failure-count summary.
+ * @outputs PASS/FAIL lines for R-1990 through R-1997 and R-2320 through R-2325, and a final failure-count summary.
  * @effects disk (temporary fixtures), process (runs install and doctor with sanitized environments).
  * @errors Failed assertions print their observed output and make the test process exit nonzero.
  */
@@ -77,6 +77,41 @@ function rowLabels(result) {
 	});
 }
 
+// Set PATH to exactly `entries` (no stub prepended) and run the CLI directly. withPiStub always
+// joins with the HOST's path.delimiter (":" on a POSIX host), which would glue its stub onto a
+// forced win32 Path's first entry — so a forced-win32 run never goes through run() or withPiStub.
+function runOnPath(args, { home, cwd, entries, extraEnv = {} }) {
+	const win = process.platform === "win32" || extraEnv.NANA_SETUP_PLATFORM === "win32";
+	const savedPath = process.env.PATH;
+	process.env.PATH = entries.join(win ? ";" : path.delimiter);
+	try {
+		return spawnSync(process.execPath, [cli, ...args], { cwd, env: cleanEnv(home, extraEnv), encoding: "utf8" });
+	} finally {
+		if (savedPath === undefined) delete process.env.PATH;
+		else process.env.PATH = savedPath;
+	}
+}
+
+function byHandOf(result) {
+	return summary(result).match(/fix by hand as each ✗ line says: (.*?)(?:; then run:| \(and see|$)/)?.[1]?.split(", ") ?? [];
+}
+
+function byHand(result, label) {
+	return failedLabels(result).includes(label) && byHandOf(result).includes(label);
+}
+
+const TO_INSTALL_RE = /^(?:\d+ missing — run: nana-setup install|.*; then run: nana-setup install for the other \d+)(?: \(and see the \d+ ! above\))?$/;
+
+function toInstall(result, label) {
+	return failedLabels(result).includes(label) && !byHandOf(result).includes(label) && TO_INSTALL_RE.test(summary(result));
+}
+
+function pathRowDetail(result) {
+	const label = "PATH resolves pi-review";
+	const line = result.stdout.split(/\r?\n/).find((l) => l.includes(label));
+	return line ? line.slice(line.indexOf(label) + label.length).replace(/^ +/, "") : "";
+}
+
 function walkDifference(before, after) {
 	const length = Math.max(before.length, after.length);
 	for (let i = 0; i < length; i++) {
@@ -103,6 +138,25 @@ function walk(home) {
 	};
 	visit(home);
 	return entries;
+}
+
+// --- shared fixtures for the PATH-row checks (R-2320–R-2325) ---
+const stubDir = withPiStub(() => process.env.PATH.split(path.delimiter)[0]);
+const nodeDir = path.dirname(process.execPath);
+const sysDirs = process.platform === "win32" ? [path.join(process.env.SystemRoot ?? "C:\\Windows", "System32")] : [];
+for (const dir of [nodeDir, ...sysDirs]) {
+	for (const name of ["pi-review", "pi-review.cmd"]) {
+		if (fs.existsSync(path.join(dir, name))) throw new Error(`refusing to run PATH-row fixtures: ${path.join(dir, name)} already exists on this machine`);
+	}
+}
+const otherDir = path.join(root, "other-pi-review");
+fs.mkdirSync(otherDir, { recursive: true });
+if (process.platform === "win32") {
+	fs.writeFileSync(path.join(otherDir, "pi-review.cmd"), "@exit /b 0\r\n");
+} else {
+	const otherFile = path.join(otherDir, "pi-review");
+	fs.writeFileSync(otherFile, "#!/bin/sh\nexit 0\n");
+	fs.chmodSync(otherFile, 0o755);
 }
 
 const emptyHome = fixtureHome("empty-home");
@@ -140,9 +194,65 @@ const winEnv = { NANA_SETUP_PLATFORM: "win32" };
 const winPathEntries = String(process.env.PATH ?? "").split(path.delimiter).map((entry) => path.resolve(entry));
 if (winPathEntries.includes(path.resolve(path.join(winHome, ".local", "bin")))) throw new Error("M4 fixture's home bin unexpectedly appears on PATH");
 const winDoctor = run(["doctor"], { home: winHome, cwd: winCwd, extraEnv: winEnv });
-const winByHand = summary(winDoctor).match(/fix by hand as each ✗ line says: (.*?)(?:; then run:| \(and see|$)/)?.[1]?.split(", ") ?? [];
 // req: R-1993
-check("R-1993: on win32's real home with its bin folder off the Path, the summary lists PATH resolves pi-review as a fix by hand", winDoctor.status === 1 && failedLabels(winDoctor).includes("PATH resolves pi-review") && winByHand.includes("PATH resolves pi-review"), `doctor ${winDoctor.status}\n${winDoctor.stdout}\n${winDoctor.stderr}`);
+check("R-1993: on win32's real home with its bin folder off the Path, the summary lists PATH resolves pi-review as a fix by hand", winDoctor.status === 1 && byHand(winDoctor, "PATH resolves pi-review"), `doctor ${winDoctor.status}\n${winDoctor.stdout}\n${winDoctor.stderr}`);
+
+const pathRowHome = fixtureHome("path-row-home");
+const pathRowCwd = freshCwd("path-row-cwd");
+const pathRowInstall = run(["install", "--home", pathRowHome], { home: pathRowHome, cwd: pathRowCwd });
+const pathRowBin = path.join(pathRowHome, ".local", "bin");
+const pathRowLauncher = path.join(pathRowBin, process.platform === "win32" ? "pi-review.cmd" : "pi-review");
+fs.rmSync(pathRowLauncher, { force: true });
+
+const onResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, pathRowBin, nodeDir, ...sysDirs] });
+const offResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, nodeDir, ...sysDirs] });
+const beforeResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, otherDir, pathRowBin, nodeDir, ...sysDirs] });
+const afterResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, pathRowBin, otherDir, nodeDir, ...sysDirs] });
+
+// req: R-2320
+check(
+	"R-2320: with the bin folder on PATH and its pi-review launcher removed, the PATH resolves pi-review row names nana-setup install instead of the PATH fix",
+	toInstall(onResult, "PATH resolves pi-review") && pathRowDetail(onResult).includes("nana-setup install") && !pathRowDetail(onResult).includes(`add ${pathRowBin} to`),
+	`install ${pathRowInstall.status}\ndoctor ${onResult.status}\n${onResult.stdout}\n${onResult.stderr}`,
+);
+// req: R-2321
+check(
+	"R-2321: with the bin folder on PATH and its pi-review launcher removed, the summary gives PATH resolves pi-review to install",
+	toInstall(onResult, "PATH resolves pi-review"),
+	`doctor ${onResult.status}\n${onResult.stdout}\n${onResult.stderr}`,
+);
+// req: R-2322
+check(
+	"R-2322: with the bin folder off PATH and its pi-review launcher removed, the summary lists PATH resolves pi-review by hand",
+	byHand(offResult, "PATH resolves pi-review") && pathRowDetail(offResult).includes(`add ${pathRowBin} to`),
+	`doctor ${offResult.status}\n${offResult.stdout}\n${offResult.stderr}`,
+);
+// req: R-2324
+check(
+	"R-2324: with another pi-review on PATH before the bin folder and the launcher removed, the summary lists PATH resolves pi-review by hand",
+	byHand(beforeResult, "PATH resolves pi-review"),
+	`doctor ${beforeResult.status}\n${beforeResult.stdout}\n${beforeResult.stderr}`,
+);
+// req: R-2325
+check(
+	"R-2325: with another pi-review on PATH after the bin folder and the launcher removed, the summary gives PATH resolves pi-review to install",
+	toInstall(afterResult, "PATH resolves pi-review"),
+	`doctor ${afterResult.status}\n${afterResult.stdout}\n${afterResult.stderr}`,
+);
+
+const forcedHome = fixtureHome("path-row-forced-home");
+const forcedCwd = freshCwd("path-row-forced-cwd");
+const forcedEnv = { NANA_SETUP_PLATFORM: "win32" };
+const forcedInstall = run(["install", "--home", forcedHome], { home: forcedHome, cwd: forcedCwd, extraEnv: forcedEnv });
+const forcedBin = path.join(forcedHome, ".local", "bin");
+fs.rmSync(path.join(forcedBin, "pi-review.cmd"), { force: true });
+const forcedResult = runOnPath(["doctor"], { home: forcedHome, cwd: forcedCwd, entries: [forcedBin.toUpperCase(), stubDir, nodeDir, ...sysDirs], extraEnv: forcedEnv });
+// req: R-2323
+check(
+	"R-2323: as win32 with the bin folder on the Path in another letter case and its .cmd shim removed, the summary gives PATH resolves pi-review to install",
+	toInstall(forcedResult, "PATH resolves pi-review"),
+	`install ${forcedInstall.status}\ndoctor ${forcedResult.status}\n${forcedResult.stdout}\n${forcedResult.stderr}`,
+);
 
 const refusedHome = fixtureHome("refused-home");
 const refusedCwd = freshCwd("refused-cwd");

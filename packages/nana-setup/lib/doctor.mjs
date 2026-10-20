@@ -621,9 +621,19 @@ export function diagnose(layout, opts = {}) {
 		const found = findOnPath("pi-review");
 		const expected = path.win32.resolve(path.join(layout.binDir, `pi-review${WIN_SHIM_SUFFIXES.cmd}`));
 		const matches = found !== null && path.win32.resolve(found).toLowerCase() === expected.toLowerCase();
+		// Same split findOnPath uses internally: trim each entry and strip a surrounding quote pair.
+		const entries = String(process.env.PATH ?? "").split(";").map((dir) => dir.trim().replace(/^"|"$/g, "")).filter(Boolean);
+		const binAt = entries.findIndex((dir) => path.win32.resolve(dir).toLowerCase() === path.win32.resolve(layout.binDir).toLowerCase());
+		// No spread of process.env: Windows' own "Path" key would outrank this injected PATH in findOnPath's case-insensitive lookup.
+		const installFixes = !matches && binAt >= 0 && findOnPath("pi-review", { env: { PATH: entries.slice(0, binAt).join(";"), PATHEXT: process.env.PATHEXT } }) === null;
 		const remedy = `add ${layout.binDir} to the user Path in Environment Variables, then open a new terminal`;
-		const detail = matches ? `${found} is this checkout's .cmd shim` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
-		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
+		const foundDetail = found ? `pi-review resolves to ${found}` : "pi-review not found on PATH";
+		const detail = matches
+			? `${found} is this checkout's .cmd shim`
+			: installFixes
+				? `${foundDetail}; ${layout.binDir} is on PATH — run \`nana-setup install\` to recreate the launcher`
+				: `${foundDetail}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	} else {
 		const link = path.join(layout.binDir, "pi-review");
 		const worker = path.join(layout.binDir, "pi-worker");
@@ -635,9 +645,17 @@ export function diagnose(layout, opts = {}) {
 		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
 		const found = firstOnPath("pi-review");
 		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
+		const entries = String(process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+		const binAt = entries.findIndex((dir) => path.resolve(dir) === path.resolve(layout.binDir));
+		const installFixes = !matches && binAt >= 0 && firstOnPath("pi-review", entries.slice(0, binAt).join(path.delimiter)) === null;
 		const remedy = `add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
-		const detail = matches ? `${found} resolves to this checkout` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
-		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
+		const foundDetail = found ? `pi-review resolves to ${found}` : "pi-review not found on PATH";
+		const detail = matches
+			? `${found} resolves to this checkout`
+			: installFixes
+				? `${foundDetail}; ${layout.binDir} is on PATH — run \`nana-setup install\` to recreate the launcher`
+				: `${foundDetail}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	}
 
 	// --- pi package registration ---

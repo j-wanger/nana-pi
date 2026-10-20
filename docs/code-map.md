@@ -3016,9 +3016,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/doctor-fix-line.test.mjs`
 
-- **purpose** — Pin doctor's final repair line to the changes install's dry run can actually make.
+- **purpose** — Pin doctor's final repair line, and the `PATH resolves pi-review` row's own advice, to the changes install's dry run can actually make.
 - **inputs** — The nana-setup CLI, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
-- **outputs** — PASS/FAIL lines for R-1990 through R-1997 and a final failure-count summary.
+- **outputs** — PASS/FAIL lines for R-1990 through R-1997 and R-2320 through R-2325, and a final failure-count summary.
 - **effects** — disk (temporary fixtures), process (runs install and doctor with sanitized environments).
 - **errors** — Failed assertions print their observed output and make the test process exit nonzero.
 - **callers** — —
