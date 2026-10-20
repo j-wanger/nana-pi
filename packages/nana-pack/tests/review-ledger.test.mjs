@@ -3,7 +3,7 @@
  * @purpose Pins the per-item review ledger through REAL processes against real git repositories and worktrees, with each known bypass recorded here as a refusal
  * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi and git)
+ * @effects disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi, git, and icacls on Windows)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate: the per-item review ledger (T2b + fix round after sol r1), executed through REAL processes
@@ -709,42 +709,85 @@ if (process.platform !== "win32") {
 	ls[1] = ls[1].slice(0, 25);
 	fs.writeFileSync(tallyFile, ls.join("\n"));
 	const r = reviewAt("mal", 4);
+	// req: R-843
 	check("a corrupted round line refuses admission with file:line", r.status === 1 && /rounds\.jsonl:2: malformed record/.test(r.stderr) && noStack(r), r.stderr);
 	fs.writeFileSync(tallyFile, ls.filter((_, i) => i !== 1).join("\n"));
 	check("…deleting the line is the documented repair (2 rounds left → admitted)", reviewAt("mal", 4).status === 0);
-	fs.writeFileSync(tallyFile, JSON.stringify({ v: 1, kind: "round", item: "x" }) + "\n");
+	fs.writeFileSync(tallyFile, ls[0] + "\n" + JSON.stringify({ v: 1, kind: "round", item: "x" }) + "\n");
+	const inc = reviewAt("mal", 5);
 	// req: R-853
-	check("a record missing repo/revision is malformed too", reviewAt("mal", 5).status === 1);
+	check("a record missing repo/revision is malformed too", inc.status === 1);
+	// req: R-855
+	check("an incomplete round line refuses admission naming file:line", inc.status === 1 && /rounds\.jsonl:2: malformed record/.test(inc.stderr) && noStack(inc), inc.stderr);
 }
 
 // 10. non-regular ledger paths, unwritable dir, lock-as-directory: refused with a message, no stack
 {
-	for (const name of ["review-ledger.jsonl", "review-ledger.rounds.jsonl", "review-ledger.jsonl.1"]) {
-		freshHome(`10-${name}`);
-		fs.mkdirSync(agent, { recursive: true });
-		const target = path.join(tmp, `target-${name}`);
-		fs.writeFileSync(target, "");
-		fs.symlinkSync(target, path.join(agent, name));
-		const r = reviewAt("sym", 0);
-		check(`${name} as a symlink: refused BEFORE the review, target untouched, no stack`,
-			r.status === 1 && /symlink/.test(r.stderr) && fs.readFileSync(target, "utf8") === "" && !/admitted/.test(r.stderr) && noStack(r), r.stderr);
+	// chosen: a fifth of the ledger's 15s lock wait (LOCK_WAIT_MS, review-round.mjs); the 5s orphan
+	// takeover (LOCK_ORPHAN_MS) lands well past it, so AT_ONCE_MS pins "refused before any wait or
+	// takeover", not just "refused eventually".
+	const AT_ONCE_MS = 3000;
+	const LEDGER_NAMES = ["review-ledger.jsonl", "review-ledger.rounds.jsonl", "review-ledger.jsonl.1"];
+	{
+		const failures = [];
+		for (const name of [...LEDGER_NAMES, "review-ledger.lock"]) {
+			freshHome(`10-sym-${name}`);
+			fs.mkdirSync(agent, { recursive: true });
+			const target = path.join(tmp, `target-${name}`);
+			fs.writeFileSync(target, "");
+			fs.symlinkSync(target, path.join(agent, name));
+			const t0 = Date.now();
+			const r = reviewAt("sym", 0);
+			const ms = Date.now() - t0;
+			const ok = r.status === 1 && /symlink/.test(r.stderr) && fs.readFileSync(target, "utf8") === "" &&
+				!/admitted/.test(r.stderr) && noStack(r) && ms < AT_ONCE_MS;
+			if (!ok) failures.push(`${name} (${ms}ms): ${r.stderr}`);
+		}
+		// req: R-1841
+		check("every ledger file as a symlink is refused at once before the review, target untouched, no stack", failures.length === 0, failures.join("; "));
 	}
-	if (process.platform !== "win32") {
+	{
+		const failures = [];
+		for (const name of LEDGER_NAMES) {
+			freshHome(`10-dir-${name}`);
+			fs.mkdirSync(agent, { recursive: true });
+			const target = path.join(agent, name);
+			fs.mkdirSync(target, { recursive: true });
+			const r = reviewAt("dir", 0);
+			const ok = r.status === 1 && r.stderr.includes(`${target} is not a regular file`) && !/admitted/.test(r.stderr) && noStack(r);
+			if (!ok) failures.push(`${name}: ${r.stderr}`);
+		}
+		// req: R-1840
+		check("every ledger data file that is a directory is refused before the review, naming the path, no stack", failures.length === 0, failures.join("; "));
+	}
+	{
 		freshHome("10-ro");
 		fs.mkdirSync(agent, { recursive: true });
-		fs.chmodSync(agent, 0o555);
-		const ro = reviewAt("ro", 0);
-		fs.chmodSync(agent, 0o755);
-		check("read-only ledger directory: refused with a clear message, no stack", ro.status === 1 && /must be writable/.test(ro.stderr) && noStack(ro), ro.stderr);
-	} else {
-		console.log("SKIP read-only ledger directory: refused with a clear message, no stack — NTFS has no directory write bit; chmod only toggles the read-only attribute");
+		const isWin = process.platform === "win32";
+		let blocked = false;
+		try {
+			if (isWin) spawnSync("icacls", [agent, "/deny", "*S-1-1-0:(WD)"]);
+			else fs.chmodSync(agent, 0o555);
+			try { fs.writeFileSync(path.join(agent, "probe.txt"), "x"); } catch { blocked = true; }
+			const t0 = Date.now();
+			const ro = reviewAt("ro", 0);
+			const ms = Date.now() - t0;
+			// req: R-1842
+			check("an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack",
+				blocked && ro.status === 1 && /must be writable/.test(ro.stderr) && !/admitted/.test(ro.stderr) && noStack(ro) && ms < AT_ONCE_MS,
+				blocked ? ro.stderr : `the folder stayed writable; ${ro.stderr}`);
+		} finally {
+			if (isWin) spawnSync("icacls", [agent, "/remove:d", "*S-1-1-0"]);
+			else fs.chmodSync(agent, 0o755);
+		}
 	}
 	freshHome("10-lockdir");
 	fs.mkdirSync(path.join(agent, "review-ledger.lock"), { recursive: true });
 	const t0 = Date.now();
 	const ld = reviewAt("ld", 0);
-	check("lock path is a directory: refused at once (<3s) with a message, no stack",
-		ld.status === 1 && /lock path .* is not a regular file/.test(ld.stderr) && Date.now() - t0 < 3000 && noStack(ld), ld.stderr);
+	// req: R-852
+	check("lock path is a directory: refused at once with a message, no stack",
+		ld.status === 1 && /lock path .* is not a regular file/.test(ld.stderr) && !/admitted/.test(ld.stderr) && Date.now() - t0 < AT_ONCE_MS && noStack(ld), ld.stderr);
 }
 
 // 11. check is a locked, NON-mutating projection (sol r1 #9)
@@ -1199,13 +1242,23 @@ if (process.platform !== "win32") {
 	const headOnly = mod.admit(["--item", "outt", "--out", path.join(O.d, "f")], { launcher: "test", home, cwd: O.d });
 	check("…and a path tracked in HEAD but removed from the index", headOnly.ok === false && /TRACKED/.test(headOnly.message), `${JSON.stringify(headOnly)} compared: ${pathForms(path.join(O.d, "f"))}`);
 	gitIn(O.d, "reset", "-q");
+	// Seeded with the exact text VERDICT_CMD prints, as a leftover from an earlier run of the same
+	// review would read (GP2/R-1351 does the same for the second-spelling case): only with real
+	// content present at admission does excluding it from the snapshot make an observable difference.
+	fs.writeFileSync(path.join(O.d, "new-out.md"), "VERDICT: LAND\n");
 	const untracked = ledgerRun(["--item", "outu"], { cwd: O.d, outFile: path.join(O.d, "new-out.md") });
-	check("an untracked in-tree --out WARNS and the review still runs",
-		untracked.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(untracked.stderr) && roundsOf("outu").length === 1, `${untracked.stderr} compared: ${pathForms(path.join(O.d, "new-out.md"))}`);
+	const untrackedRounds = roundsOf("outu");
+	// req: R-725
+	check("an untracked in-tree --out warns, the review still runs, and the output stays out of its snapshot",
+		untracked.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(untracked.stderr) &&
+		untrackedRounds.length === 1 && !untrackedRounds[0].unverified && untrackedRounds[0].revision === gitIn(O.d, "rev-parse", "HEAD"),
+		`${untracked.stderr} compared: ${pathForms(path.join(O.d, "new-out.md"))} rounds=${JSON.stringify(untrackedRounds)}`);
 	fs.rmSync(path.join(O.d, "new-out.md"));
 	const ignored = ledgerRun(["--item", "outi"], { cwd: O.d, outFile: path.join(O.d, "r.log") });
+	// req: R-845
 	check("an ignored in-tree --out is silent", ignored.status === 0 && !/WARNING/.test(ignored.stderr), ignored.stderr);
 	const outside = ledgerRun(["--item", "outo"], { cwd: O.d });
+	// req: R-845
 	check("an --out outside the tree is silent", outside.status === 0 && !/WARNING/.test(outside.stderr), outside.stderr);
 	const chk = ledgerCheck(["--item", "outt", "--out", path.join(O.d, "f")], O.d);
 	// req: R-724
