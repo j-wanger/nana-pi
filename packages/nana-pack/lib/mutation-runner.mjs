@@ -3,7 +3,7 @@
  * @purpose Run a lane's mutation pair table in scratch worktrees of its tip, split across shard processes, and write one judged record.
  * @inputs a lane table object (lane, self, tip, pairs, optional branch/declared/config), argv pair ids, SEAT_MUTATE_ env vars
  * @outputs a judged record (console and optionally SEAT_MUTATE_OUT), the process exit code
- * @effects disk (scratch git worktrees, the record and lock files, per-pair logs), process (spawns shard children and test-file children, applies signal handlers)
+ * @effects disk (scratch git worktrees, the record, lock and takeover-breaker files, per-pair logs), process (spawns shard children and test-file children, applies signal handlers)
  * @errors refuses before any worktree on a bad id, config key, shard count, stagger or unresolved tip (R-1240, R-1244); reports ANCHOR-MISS/SYNTAX/RED per pair; never throws out of runMutations
  */
 // CHANGE.md §3 (docs/reviews/mutate-runner-2026-10-17/CHANGE.md): a lane's table calls `runMutations(table)`
@@ -44,6 +44,7 @@ import {
 	WORKTREE_LOCK_UNREADABLE_STALE_MS,
 	WORKTREE_LOCK_WAIT_LIMIT_MS,
 	WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS,
+	WORKTREE_LOCK_BREAKER_SUFFIX,
 	CHILD_NODE_ARGS,
 	TS_CHECK_ARGS,
 	logName,
@@ -254,6 +255,44 @@ function removeWorktreeLockIfOwned(lockPath, ownerText, io) {
 	}
 }
 
+function judgeWorktreeLock(lockPath, io, now) {
+	let observed;
+	try { observed = io.readFileSync(lockPath, "utf8"); } catch (err) {
+		if (err.code === "ENOENT") return { state: "missing" };
+		if (isTransientLockError(err)) return { state: "retry" };
+		throw err;
+	}
+	let holder = null;
+	try { holder = JSON.parse(observed); } catch { /* age decides whether unreadable content is stale */ }
+	const parsedPid = Number(holder?.pid);
+	const holderPid = Number.isInteger(parsedPid) && parsedPid > 0 ? parsedPid : null;
+	let held = pidIsAlive(parsedPid);
+	if (!holder) {
+		try { held = now() - io.statSync(lockPath).mtimeMs <= WORKTREE_LOCK_UNREADABLE_STALE_MS; } catch (err) {
+			if (err.code === "ENOENT") return { state: "missing" };
+			if (isTransientLockError(err)) return { state: "retry" };
+			throw err;
+		}
+	}
+	return { state: held ? "held" : "dead", observed, holderPid };
+}
+
+function releaseWorktreeLock(lockPath, ownerText, { io, now, wait, releaseWaitLimitMs, report }) {
+	const releaseStarted = now();
+	for (;;) {
+		const removal = removeWorktreeLockIfOwned(lockPath, ownerText, io);
+		if (removal !== "retry") return;
+		// A live owner must not abandon its lock at the acquisition limit: waiters cannot distinguish
+		// that leftover from a still-running critical section, and Windows can keep a file delete-pending.
+		if (now() - releaseStarted >= releaseWaitLimitMs) {
+			const line = `seat-mutate: owned worktree-operation lock ${lockPath} could not be released within ${releaseWaitLimitMs} milliseconds`;
+			report(line);
+			throw new Error(line);
+		}
+		wait(WORKTREE_LOCK_WAIT_MS);
+	}
+}
+
 /** Run one scratch-worktree add or complete removal while no other shard can run either operation. */
 export function withWorktreeOperationLock(lockPath, operation, options = {}) {
 	const sleeper = new Int32Array(new SharedArrayBuffer(4));
@@ -271,6 +310,9 @@ export function withWorktreeOperationLock(lockPath, operation, options = {}) {
 	const releaseWaitLimitMs = options.releaseWaitLimitMs ?? WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS;
 	const report = options.report ?? ((line) => console.error(line));
 	const ownerText = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: randomUUID() });
+	const breakerPath = `${lockPath}${WORKTREE_LOCK_BREAKER_SUFFIX}`;
+	const breakerText = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: randomUUID() });
+	const releaseOptions = { io, now, wait, releaseWaitLimitMs, report };
 	const waitStarted = now();
 	let holderPid = null;
 	const waitOrFail = () => {
@@ -286,46 +328,43 @@ export function withWorktreeOperationLock(lockPath, operation, options = {}) {
 		if (publication === "acquired") break;
 		if (publication === "retry") { waitOrFail(); continue; }
 
-		let observed;
-		try { observed = io.readFileSync(lockPath, "utf8"); } catch (err) {
-			if (err.code === "ENOENT") continue;
-			if (isTransientLockError(err)) { waitOrFail(); continue; }
-			throw err;
-		}
-		let holder = null;
-		try { holder = JSON.parse(observed); } catch { /* age decides whether unreadable content is stale */ }
-		const parsedPid = Number(holder?.pid);
-		if (Number.isInteger(parsedPid) && parsedPid > 0) holderPid = parsedPid;
-		let held = pidIsAlive(parsedPid);
-		if (!holder) {
-			try { held = now() - io.statSync(lockPath).mtimeMs <= WORKTREE_LOCK_UNREADABLE_STALE_MS; } catch (err) {
-				if (err.code === "ENOENT") continue;
-				if (isTransientLockError(err)) { waitOrFail(); continue; }
-				throw err;
+		const judged = judgeWorktreeLock(lockPath, io, now);
+		if (judged.state === "missing") continue;
+		if (judged.state === "retry") { waitOrFail(); continue; }
+		if (judged.holderPid !== null) holderPid = judged.holderPid;
+		if (judged.state === "held") { waitOrFail(); continue; }
+
+		const breakerPublication = publishWorktreeLock(breakerPath, breakerText, io);
+		if (breakerPublication === "retry") { waitOrFail(); continue; }
+		if (breakerPublication === "acquired") {
+			let reread;
+			let removal = "not-owned";
+			try {
+				// Re-read under the breaker, then compare again at removal: only the exact dead value
+				// judged before publishing the breaker may be removed.
+				reread = judgeWorktreeLock(lockPath, io, now);
+				if (reread.state === "dead" && reread.observed === judged.observed) {
+					removal = removeWorktreeLockIfOwned(lockPath, judged.observed, io);
+				}
+			} finally {
+				releaseWorktreeLock(breakerPath, breakerText, releaseOptions);
 			}
+			if (reread.state === "retry" || removal === "retry") waitOrFail();
+			continue;
 		}
-		if (!held) {
-			const removal = removeWorktreeLockIfOwned(lockPath, observed, io);
-			if (removal === "removed") continue;
-		}
-		waitOrFail();
+
+		const breakerJudged = judgeWorktreeLock(breakerPath, io, now);
+		if (breakerJudged.state === "missing") continue;
+		if (breakerJudged.state === "retry" || breakerJudged.state === "held") { waitOrFail(); continue; }
+		const breakerRemoval = removeWorktreeLockIfOwned(breakerPath, breakerJudged.observed, io);
+		if (breakerRemoval === "retry") waitOrFail();
+		// A removed or replaced dead breaker needs no acquisition delay.
+		continue;
 	}
 	try {
 		return operation();
 	} finally {
-		const releaseStarted = now();
-		for (;;) {
-			const removal = removeWorktreeLockIfOwned(lockPath, ownerText, io);
-			if (removal !== "retry") break;
-			// A live owner must not abandon its lock at the acquisition limit: waiters cannot distinguish
-			// that leftover from a still-running critical section, and Windows can keep a file delete-pending.
-			if (now() - releaseStarted >= releaseWaitLimitMs) {
-				const line = `seat-mutate: owned worktree-operation lock ${lockPath} could not be released within ${releaseWaitLimitMs} milliseconds`;
-				report(line);
-				throw new Error(line);
-			}
-			wait(WORKTREE_LOCK_WAIT_MS);
-		}
+		releaseWorktreeLock(lockPath, ownerText, releaseOptions);
 	}
 }
 

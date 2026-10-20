@@ -1,0 +1,16 @@
+seat-mutate: lane post-edit-timeout-name, tip eba75dca06516ad0a0754cac6865824835266c1a, table f190e5b21b2432df97bc43ae6633122b24affe9457e5c7230642f96671211703, merge-base 15703d8dab7669044337fa0b2ed900c35be83554, 8 pairs in 1 shards (8, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T09:17:28.857Z
+DECLARED (a) W5 and W7 are caught by the existing rows R-1702 and R-095 in post-edit-status, not by this lane's rows; they guard the expression's operand order and nullish form
+DECLARED (b) each pair runs only the file holding its named titles; the plan records that the other post-edit files stay green under W3
+[1/1] seat-mutate: lane post-edit-timeout-name, shard 1/1, tip eba75dca06516ad0a0754cac6865824835266c1a, merge-base 15703d8dab7669044337fa0b2ed900c35be83554, 8 pairs, darwin, node v22.22.2, 2026-10-20T09:17:29.721Z
+[1/1] BASELINE ok   packages/nana-pack/tests/post-edit-default-timeout.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-pack/tests/post-edit-status.test.mjs (exit 0, 32 PASS, 0 FAIL, )
+[1/1] RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED W1 the default is the inline literal again, import kept (main's form) — 1/1 named: a post-edit command with no timeoutMs arms its deadline at the pack's named default, retuned in a c…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W2 no default: a command without timeoutMs takes undefined — 1/1 named: a post-edit command with no timeoutMs arms its deadline at the pack's named default, retuned in a c…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W3 the default is 0, so a command without timeoutMs arms no deadline — 1/1 named: a post-edit command with no timeoutMs arms its deadline at the pack's named default, retuned in a c…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W4 the config module's sealed value is retuned to 20000 — 1/1 named: seal: POST_EDIT_DEFAULT_TIMEOUT_MS is 30000; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W5 the operands are swapped, so the default overrides a configured timeoutMs — 4/4 named: timeoutMs 0 arms no deadline and a slow check passes | c: timed-out check is fed back and classified as not completed | c: timeout chip says timeout | c: timeout is never shown as ✓; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W6 the default is read in seconds, not milliseconds — 1/1 named: a post-edit command with no timeoutMs arms its deadline at the pack's named default, retuned in a c…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W7 || replaces ??, so timeoutMs 0 takes the default — 1/1 named: timeoutMs 0 arms no deadline and a slow check passes; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W8 the extension declares its own copy of the name instead of importing it — 1/1 named: a post-edit command with no timeoutMs arms its deadline at the pack's named default, retuned in a c…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards
