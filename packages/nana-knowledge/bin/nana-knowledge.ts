@@ -4,8 +4,9 @@
  * @purpose The knowledge CLI — build, query, hook, status and prune over the local index.
  * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
  *  JSON on stdin for `hook` (read to at most STDIN_MAX_BYTES), and sources.json plus the index
- * @outputs per-root build counts and totals, query hits or their JSON, the index/roots status, and the
- *  hook's pointer block — all on stdout; usage and query/index failures on stderr
+ * @outputs per-root build counts, MISSING/UNREADABLE paths and totals, query hits or their JSON, the
+ *  index/roots MISS/UNREADABLE/ok status, and the hook's pointer block — all on stdout; usage and
+ *  query/index failures on stderr
  * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
  *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
  * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it,
@@ -40,6 +41,7 @@ async function cmdBuild(argv: string[]): Promise<number> {
 			console.log(`  ${r.root.padEnd(pad)}  ${String(r.files).padStart(6)} files  ${String(r.rows).padStart(7)} rows  ${r.kind}${r.skipped ? `  (${r.skipped} >1MB skipped)` : ""}`);
 		}
 		for (const m of s.missingRoots) console.log(`  ${m}  MISSING (skipped, rows kept)`);
+		for (const u of s.unreadable) console.log(`  ${u}  UNREADABLE (skipped, rows kept)`);
 		console.log(`\n  files ${s.files} · rows ${s.rows} · reindexed ${s.reindexed} · unchanged ${s.unchanged} · removed ${s.removed} · preserved ${s.preserved} · skipped>1MB ${s.skippedLarge}`);
 		console.log(`  ${(s.ms / 1000).toFixed(1)}s · db ${mb(s.dbBytes)} · ${paths.db}`);
 		return 0;
@@ -103,10 +105,19 @@ async function cmdHook(): Promise<number> {
 	return 0;
 }
 
+function rootStatus(p: string): "MISS" | "UNREADABLE" | "ok  " {
+	let st: fs.Stats;
+	try { st = fs.statSync(p); } catch { return "MISS"; }
+	if (st.isDirectory()) {
+		try { fs.opendirSync(p).closeSync(); } catch { return "UNREADABLE"; }
+	}
+	return "ok  ";
+}
+
 async function cmdStatus(): Promise<number> {
 	const roots = loadRoots();
 	console.log(`sources ${paths.sources}`);
-	for (const r of roots) console.log(`  ${fs.existsSync(r.path) ? "ok  " : "MISS"} ${r.kind.padEnd(8)} ${r.path}${r.discovered ? "  (discovered)" : ""}`);
+	for (const r of roots) console.log(`  ${rootStatus(r.path)} ${r.kind.padEnd(8)} ${r.path}${r.discovered ? "  (discovered)" : ""}`);
 	if (!fs.existsSync(paths.db)) { console.log(`\nno index at ${paths.db}`); return 0; }
 	const db = await openDb(paths.db, {});
 	const built = Number(getMeta(db, "built_at") || 0);
