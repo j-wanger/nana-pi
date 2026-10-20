@@ -35,3 +35,17 @@ fails by name on a missing pid record; (4) the stall check is as win-watchdog-cp
 outside the temp folders it owns, and the meta run's preload reaches only its own child; (6) nothing else changed (no
 product file); (7) HANDOFF and the session entry are true, including the residual lines and which load failures the
 seat calls covered; (8) any MUST.
+
+## Merge note (the seat, after this brief was written)
+
+Since `d25ac4f1`, the seat merged main `bdc65eba` (the mutation-runner-win-lock land: the mutation runner lock test budget and bounded release; HANDOFF and session lines) as `28aed8cc`. Review this lane's own change as `git diff bdc65eba...HEAD` and the merge as `git show --remerge-diff 28aed8cc`. Tree movement now (`node scripts/requirements-moved.mjs --root . --base bdc65eba`):
+
+```
+tree movement bdc65eb..28aed8c: 5 rows in 1 features
+FEAT-031 · Run checks reliably and without contaminating work
+  R-1920 new (implemented)
+  R-1921 new (implemented)
+  R-1922 new (implemented)
+  R-1923 new (implemented)
+  R-1924 new (implemented)
+```
