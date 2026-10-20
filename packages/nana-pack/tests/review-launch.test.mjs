@@ -113,7 +113,6 @@ const refusalOk = absent.refused === "not on PATH" && /\.py/i.test(py.refused ??
 check("on win32 a name not on PATH, a .py PATH finds and a .cmd argument with a line feed or % are refused, named", refusalOk, JSON.stringify({ absent, py, lineFeed, percent }));
 
 const windowsTitle = "Windows: review-ledger run starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round";
-// req-candidate: R-2254 (Windows only; becomes req: when the Windows CI leg passes it)
 if (process.platform !== "win32") console.log(`SKIP ${windowsTitle} — Windows leg only`); else {
 	const home = path.join(temp, "windows-home");
 	const repo = makeRepo("windows-repo");
@@ -131,7 +130,30 @@ if (process.platform !== "win32") console.log(`SKIP ${windowsTitle} — Windows 
 	const run = spawnSync(process.execPath, [ledgerBin, "run", "--item", "windows-shim", "--tree", repo, "--out", out, "--", "stub-reviewer", "-p", "review this & that (now)", "--model", "m-1"], { cwd: temp, env, input, encoding: "utf8", timeout: 60000 });
 	const records = rows(record);
 	const rounds = rows(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl")).filter((row) => row.kind === "round" && row.item === "windows-shim");
-	check(windowsTitle, run.status === 0 && records.length === 1 && JSON.stringify(records[0].argv) === JSON.stringify(["-p", "review this & that (now)", "--model", "m-1"]) && records[0].stdin === input && rounds.length === 1, JSON.stringify({ run, records, rounds }));
+	// req: R-2254
+	check("Windows: review-ledger run starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round", run.status === 0 && records.length === 1 && JSON.stringify(records[0].argv) === JSON.stringify(["-p", "review this & that (now)", "--model", "m-1"]) && records[0].stdin === input && rounds.length === 1, JSON.stringify({ run, records, rounds }));
+}
+
+const bareNameTitle = "off win32 review-ledger run starts a bare reviewer name found on PATH and records its LAND round";
+if (process.platform === "win32") console.log(`SKIP ${bareNameTitle} — non-Windows only`); else {
+	const home = path.join(temp, "bare-name-home");
+	const repo = makeRepo("bare-name-repo");
+	const reviewerDir = path.join(temp, "bare reviewer bin");
+	const reviewerName = "nana-made-up-reviewer";
+	const reviewer = path.join(reviewerDir, reviewerName);
+	const out = path.join(temp, "bare-name-out.md");
+	const answer = "Stub review from bare PATH name.\n\nVERDICT: LAND\n";
+	fs.mkdirSync(reviewerDir, { recursive: true });
+	fs.writeFileSync(reviewer, `#!/bin/sh\ninput=$(cat)\n[ "$1" = "--mode" ] || exit 21\n[ "$2" = "bare-name" ] || exit 22\n[ "$input" = "review input" ] || exit 23\nprintf '%s\\n\\n%s\\n' 'Stub review from bare PATH name.' 'VERDICT: LAND'\n`);
+	fs.chmodSync(reviewer, 0o755);
+	fs.mkdirSync(home, { recursive: true });
+	const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: `${reviewerDir}${path.delimiter}${process.env.PATH ?? ""}` };
+	const run = spawnSync(process.execPath, [ledgerBin, "run", "--item", "bare-name", "--tree", repo, "--out", out, "--", reviewerName, "--mode", "bare-name"], { cwd: temp, env, input: "review input\n", encoding: "utf8", timeout: 60000 });
+	let outText = null;
+	try { outText = fs.readFileSync(out, "utf8"); } catch { /* reported below */ }
+	const rounds = rows(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl")).filter((row) => row.kind === "round" && row.item === "bare-name");
+	// req: R-2255
+	check("off win32 review-ledger run starts a bare reviewer name found on PATH and records its LAND round", run.status === 0 && outText === answer && rounds.length === 1 && rounds[0].verdict === "LAND", JSON.stringify({ run, outText, rounds }));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

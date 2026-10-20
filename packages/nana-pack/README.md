@@ -193,7 +193,9 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 On Windows, a `.cmd` reviewer such as npm-installed claude or codex starts through cmd.exe. Cmd.exe cannot carry `"`, `%`, `!`, a line break or a trailing backslash in an argument, and caps its line at 8191 characters. Give such a reviewer its brief on stdin from Command Prompt or Git Bash:
 
 ```bat
-node packages/nana-pack/bin/review-ledger.mjs run --item <slug> --out out.md -- claude -p --model <model> < brief.md
+set "scratch=%TEMP%\nana-review-%RANDOM%"
+mkdir "%scratch%"
+node packages/nana-pack/bin/review-ledger.mjs run --item <slug> --out "%scratch%\out.md" -- claude -p --model <model> < brief.md
 ```
 
 `review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
