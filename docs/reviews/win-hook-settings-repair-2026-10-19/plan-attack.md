@@ -1,0 +1,20 @@
+# win-hook-settings-repair — plan attack (one adversary)
+
+Verdict: AMEND
+
+AMEND. The lane is worth building. Today, on Windows, install prints "already wired" for hooks that point at missing files, so install misreports their state. I probed every claim on main 32d6aa8b in a temp clone, with win32 forced and a temp home. I built the design there (about 42 lines in settings.mjs). All eight amended checks pass on that build. Six of them are red on today's code. These existing single test files stay green: settings-merge 217, win32-degrade 87, stale-copies 13, uninstall 31, verifier-pipe 29, install 104. I tested ten wrong-code variants against the checks.
+
+Amendments:
+1. Cut the second shell-form suffix, `/packages/nana-setup/claude/hooks/`. No installer has ever written that shell form (checked with git log and git grep). The plan's fixture also rewrote the roster notice into it, which made R-1884's "macOS installer's form" wording false. R-1880 now names one suffix, and the fixture is pure POSIX desiredHooks output.
+2. Added R-1885 for the first pre-release installer's unquoted knowledge form, `NODE_NO_WARNINGS=1 node <path> hook`. That form is still live on a long-lived Mac home, which is the most likely source of a carried settings file. With the plan as written, a home carried from such a Mac keeps a dead knowledge entry: install says "already wired" and doctor reads ✗ (probed). On the plan's own build it costs 6 lines. It is red today and green once built.
+3. Narrowed R-1881. Its "in R-1050 exec form" clause covered exec entries outside the checkout, which installerTarget rejects. Its "exactly one verifier in PreToolUse" was false whenever an owner's look-alike is also present. It now names the R-1880 shell form and "exactly one installer-shaped" entry.
+4. Dropped check (b), the exec form under `Bash`. No installer ever wrote exec form under `Bash`: R-1050 and the `Bash|PowerShell` matcher landed together in one commit. The same code still moves such an entry, and the known limits record that nothing pins it.
+5. As planned, R-1883 was green today, and its wrong code ("replace healthy exec entries on every run") is already caught by the existing win32-degrade idempotence check. It now runs on the fixture whose `Bash` group survives with foreign entries. It is the only check that catches "count a scanned Bash group as a repair" (probed).
+6. The R-653 pin gains a timeout-10 verifier under `Bash` and a double-quoted knowledge look-alike. Without them, the new `Bash`-scan timeout gate and the unquoted-form byte check had no catcher (both probed: dropping either one turns the pin red).
+7. R-1882 is red today only through its verifier-gone clause, which R-1881 owns. The matcher-rewrite wrong code is the only thing that pins its own clause, and the brief now says so.
+8. Fixtures are merged: one carried home (F1) serves five checks, so the new file runs six CLI installs and one doctor.
+9. The base moves to main 32d6aa8b, because mutation-runner-win-prune has landed.
+
+Verified: a merge of feat/install-pins over this lane's REQUIREMENTS edits is clean (simulated). Nothing in flight touches settings.mjs or the new test file. The lane class is right (it changes install's settings merge). The roster's largerBuilder is gpt-5.6-sol, so the build goes through pi-worker --lane-size larger. Every probe ran in a temp clone with a temp home, and I removed the folder afterward.
+
+Claim most likely wrong: that Claude Code on Windows fires the moved exec-form verifier once per Bash or PowerShell call and nothing from the old Bash group. The checks read only settings.json and doctor output; nothing runs Claude Code, and the claim rests on R-1053's reading of the matcher docs. Second claim at risk: that R-1885 is acceptable scope. R-660 excluded an unreleased form, but for deletion; this lane only repairs a dead entry in place on win32. If the seat cuts R-1885, it becomes a residual: the knowledge row stays ✗ after install on a home carried from a long-lived Mac.
