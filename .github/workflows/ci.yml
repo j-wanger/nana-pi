@@ -47,6 +47,12 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops
+    # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest
+    # finished Windows leg 34.5 min (run 39298256239), macOS 18.7, Linux 14.5. Windows grew about
+    # 5 minutes a day on 2026-10-19 and 2026-10-20 as tests landed. About 2.6 times the slowest leg,
+    # so suite growth and runner variance do not cancel an honest leg; a false time-out blocks release.
+    timeout-minutes: 90
     continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
       run:

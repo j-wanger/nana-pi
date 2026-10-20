@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 339 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 340 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -2518,8 +2518,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
 - **inputs** — argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home, --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR, NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
-- **outputs** — stdout: the install root / claude home / pi home banner, a "<mark> <label> <status> <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs all, lists every by-hand label, combines those two remedies, names install's refusal, or reports that an error code prevented repair prediction before giving the run-install fallback; stderr: the usage text and error messages; doctor's stderr carries no muted warning; process.exitCode.
-- **effects** — disk (through install / setupProject / dismissProject; doctor's install dry run writes nothing), process (the child processes those steps spawn; doctor's dry run may start `pi --version`; replaces the warning listeners for doctor; sets process.exitCode)
+- **outputs** — stdout: the install root / claude home / pi home banner, a "<mark> <label> <status> <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs all, lists every by-hand label, combines those two remedies, names install's refusal, or reports that an error code prevented repair prediction before giving the run-install fallback; stderr: the usage text and error messages; the stderr of doctor and project --check carries no muted warning; process.exitCode.
+- **effects** — disk (through install / setupProject / dismissProject; doctor's install dry run writes nothing), process (the child processes those steps spawn; doctor's dry run may start `pi --version`; replaces the warning listeners for doctor and project --check; sets process.exitCode)
 - **errors** — exit 2 for an unknown option or command, no command, a usage SetupError (including a relative ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1 when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw outside doctor's install dry-run prediction (stack on stderr); exit 0 otherwise
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/trust-decision.mjs`, `packages/nana-setup/lib/uninstall.mjs`
@@ -2651,8 +2651,18 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Hook, environment, known-red, doctor-note and filesystem-path contracts.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`
+- **callers** — `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`
 - **callees** — —
+
+### `packages/nana-setup/lib/install-check-review.mjs`
+
+- **purpose** — Provide the install check's deterministic offline pi-review response and record its observed review prompt.
+- **inputs** — Pi's extension API, faux model requests and the sealed install-check review contracts.
+- **outputs** — A fixture provider response ending in the sealed verdict line and one JSON record in the temporary home.
+- **effects** — disk
+- **errors** — Provider or record-write errors surface through pi's extension and review diagnostics.
+- **callers** — —
+- **callees** — `packages/nana-setup/lib/install-check-config.mjs`
 
 ### `packages/nana-setup/lib/install-check-turn.mjs`
 
@@ -2926,7 +2936,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/doctor-quiet.test.mjs`
 
-- **purpose** — Pin doctor's selective muting of Node warnings while preserving unrelated warning output.
+- **purpose** — Pin the selective muting of Node warnings in doctor and project --check while preserving unrelated warning output.
 - **inputs** — The nana-setup CLI, scratch homes and projects, a pi stub, and a warning-emitting preload.
 - **outputs** — PASS/FAIL lines and a summary with a nonzero exit when any check fails.
 - **effects** — disk (temporary fixtures), process (spawns the CLI with sanitized environments).
