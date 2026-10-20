@@ -308,11 +308,18 @@ Doctor's `release status` row is informational (·). It counts template commits 
   (`{"hooks":"disabled"}` parses but cannot be extended) — a failure there **aborts before
   anything on disk moves**. After preflight, install takes an exclusive lock file
   (`~/.claude/.settings.json.nana-setup.lock`, taken with `O_EXCL`) before its first write and holds
-  it through the settings write. Retired artifacts, hooks, rules, skills and settings all run while
-  it is held. Inside it, the file is re-read and compared to the preflight bytes; the temp file is
-  written and `fsync`ed; then the file is
-  compared **again**, immediately before the rename. Mode is preserved, and the temp file is
-  removed on any abort. `--dry-run` never takes the lock.
+  it through the PATH entries. Retired artifacts, hooks, rules, skills, settings, shared memory,
+  pi config, subagent config, the reviewer agent and PATH entries all run while it is held. A second
+  install started then exits 2 and writes nothing. Inside the lock, the settings file is re-read and
+  compared to the preflight bytes; the temp file is written and `fsync`ed; then the file is compared
+  **again**, immediately before the rename. Mode is preserved, and the temp file is removed on any
+  abort. `--dry-run` never takes the lock. The knowledge build, desk service and pi registration run
+  after release, so a Ctrl-C there leaves no lock.
+
+  The lock lives in the Claude home. Two installs with different `--claude-home` values over one pi
+  home and bin folder are not kept apart. A second install started after release runs beside the
+  first run's knowledge build, desk step and pi registration; concurrent pi registration still
+  relies on pi's own settings lock.
 
   **A leftover lock is yours to clear.** If the lock exists, the run aborts before anything is
   written and prints the lock path, the pid and age the lock recorded. On macOS and Linux it prints
