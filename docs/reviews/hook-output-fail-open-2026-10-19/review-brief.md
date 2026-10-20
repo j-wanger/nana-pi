@@ -1,0 +1,58 @@
+# Review — hook-output-fail-open (the objective, adoption, shared-memory and verifier Claude Code hooks exit 0 when the reader of their output closes it first; the roster notice hook is pinned), 2026-10-19 (Opus, the final reviewer)
+
+Feature: FEAT-013 · Install and connect harness runtimes
+
+Review `git diff d4423eff..HEAD` on `feat/hook-output-fail-open` (main was `d4423eff` when the lane branched; `git
+merge-base HEAD main` is `d4423eff`). Main has since moved to `8a9ff9a3` (the readme-windows-checklist land), so the
+land needs a merge of main and a confirmation round on the merged tip. The plan of record is
+`docs/reviews/hook-output-fail-open-2026-10-19/must-meet.md`: five must-meet checks, rows R-1940 to R-1944, at the end
+of SUB-012 after R-1207; R-1943, the roster notice, is a pin. `plan-attack.md` holds the adversary's AMEND;
+`build-brief-1.md` is the one build (1ca5420d). The seat's record is `seat-verify-1ca5420d.md`: CI run 39360558690 on
+draft pull request #94, 0 failing files on all three legs (the Windows suite log `ci-windows-1ca5420d.log` beside it),
+the wrong-code pairs (`seat-mutate.mjs`, `seat-mutate-output-1ca5420d.txt`: 5 of 5 red, 0 survived, three declared
+items) and the independent check (`independent-check-1ca5420d.md`: HOLDS, no MUST, eleven probes; its three known
+bugs are HANDOFF residuals). The test titles and the row text differ from the plan's table; the seat's record says
+how. No code or test changed after 1ca5420d. The local macOS install check runs before the land.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main`):
+
+```
+tree movement d4423ef..05c51b0: 5 rows in 1 features
+FEAT-013 · Install and connect harness runtimes
+  R-1940 new (implemented)
+  R-1941 new (implemented)
+  R-1942 new (implemented)
+  R-1943 new (implemented)
+  R-1944 new (implemented)
+```
+
+CAP-04 moves from 387 to 392 rows, FEAT-013 from 130 to 135 and SUB-012 from 28 to 33.
+
+The code under review: one `process.stdout.on("error", () => {})` after the imports, with a comment naming its row, in
+each of `packages/nana-setup/claude/hooks/nana-objective.mjs`, `nana-adoption.mjs`, `nana-shared-memory.mjs` and
+`verifier-pipe.mjs`, and a closed-output clause on each of their `@errors` header lines. `lib/hook-producer.mjs`,
+`lib/verifier-hook.mjs` and `nana-roster-notice.mjs` are unchanged. The new
+`packages/nana-setup/tests/hooks-closed-output.test.mjs` runs each of the five real hooks twice in a throwaway home:
+once reading its output (exit 0 and non-empty stdout), once with the parent's read end destroyed right after spawn
+(exit 0 and empty stderr).
+
+Judge whether each of the five hooks exits 0 with nothing on stderr when the reader of its output closes it before the
+hook writes (R-1940 to R-1944), on macOS, Linux and Windows; whether what each hook prints to an open reader is
+unchanged; and whether the listener hides any diagnostic a user or Claude Code reads today (the verifier's stderr
+note, the producers' unavailable markers, the shared-memory hook's output). Judge too whether each check would fail
+with its behaviour removed: the seat's five pairs cover macOS; on Windows, CI shows all five checks pass natively, but
+no run of main's hooks and no pair ran there.
+
+Threat model: honest variation in our tools' output and the OS is in scope (macOS, Linux and Windows; a reader that
+closes the output early, such as a harness abandoning the hook or a person piping it into `head`; a closed reader
+reported as EPIPE or EOF); deliberate forgery is out. Lane class: install, hook or gate — four Claude Code hook
+entries change.
+
+Check: (1) the five must-meet checks are not vacuous: each open run must print, each closed run must exit 0 with empty
+stderr, and each named pair turns its check red; (2) the rows' text against the test: the rows drop the plan's "write
+nothing to stderr", and their trigger, any stdout error, is wider than the test, which raises only a closed reader's
+error; (3) nothing main does today stopped working: each hook's output with its reader open, the verifier's stderr
+diagnostics, the adoption hook's unavailable markers and stale-copy line, and the existing hook test files on all
+three legs; (4) the test writes only inside the temp folder it owns and cleans up; (5) HANDOFF and the session entry
+are true, including the tranche-5 line, the extended win-stale-copies time-limit line and the six new residuals; (6)
+any MUST.
