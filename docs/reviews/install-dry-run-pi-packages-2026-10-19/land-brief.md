@@ -1,0 +1,45 @@
+# Review — install-dry-run-pi-packages (the install dry run gives pi's package step install's own answer, up to the first pi install), 2026-10-19 (Fable, the land reviewer)
+
+Feature: FEAT-013 · Install and connect harness runtimes (SUB-014 · Preserve files and preview installation changes)
+
+Review `git diff d4423eff..HEAD` on `feat/install-dry-run-pi-packages` (main was `d4423eff` when the lane branched, and
+`git merge-base HEAD main` is `d4423eff`; main has since moved to `8a9ff9a3`, the readme-windows-checklist land, which
+does not touch `steps.mjs` or `pi-registration.test.mjs`, so a merge of main follows before the land). The plan of
+record is `docs/reviews/install-dry-run-pi-packages-2026-10-19/must-meet.md`: R-358 and R-391 pinned (R-391 narrowed in
+place) and R-1930 to R-1932 new. `plan-attack.md` holds the adversary's AMEND and `build-brief-1.md` the one build. The
+seat's record is `seat-verify-30a5baf9.md`: CI run 39360691316 (0 failing files on all three legs; install-check
+passes on macOS and Windows; the Windows suite log `ci-windows-30a5baf9.log` beside it), the wrong-code pairs
+(`seat-mutate.mjs`, `seat-mutate-output-30a5baf9.txt`: 10 of 10 red) and the independent check
+(`independent-check-30a5baf9.md`: HOLDS, two known bugs carried).
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base main` at 497d2807):
+
+```
+tree movement d4423ef..497d280: 5 rows in 1 features
+FEAT-013 · Install and connect harness runtimes
+  R-358 untested -> implemented
+  R-391 untested -> implemented; text changed
+  R-1930 new (implemented)
+  R-1931 new (implemented)
+  R-1932 new (implemented)
+```
+
+The code under review: `stepPiRegister` in `packages/nana-setup/lib/steps.mjs` (three lines) and its two new test
+blocks in `packages/nana-setup/tests/pi-registration.test.mjs`. Judge whether the lane fails open: a dry run that
+starts `pi install`, writes to pi's settings or writes anything in the home; a dry run that says would add, exit 0,
+where install would report ✗ or skipped; a test that writes outside its temp folders or leaves PATH changed. Judge
+whether it leaves a harm the review standard lists: data lost or corrupted, or a broken install or hook. Judge whether
+anything main does today stopped working on macOS, Linux or Windows: install's own rows, spawns and exit codes for the
+pi packages step; doctor; the session-start stale-copies check, which dry-runs only the skills step; and every test
+that dry-runs install under `--home` or `--pi-home`. On the real home with nana unregistered, a dry run now starts
+`pi --version`, which has no timeout; the seat carries that as a residual, not a MUST.
+
+Threat model: honest variation in our tools' output and the OS in scope: macOS, Linux and Windows on Node 22; `--home`
+test homes; pi missing from PATH; a Windows pi shim or checkout path holding a character the launcher refuses; a pi
+whose version check fails or cannot start. Deliberate forgery is out. Lane class: install, hook or gate (nana-setup
+install's pi packages step and its dry run).
+
+Check: (1) the dry run starts no `pi install` on any path, and on the real home it starts only `pi --version`; (2) no
+fail-open: every ✗ or skip install reports before its first `pi install`, the dry run reports too, with exit 1 for ✗;
+(3) install's own behaviour is unchanged on macOS, Linux and Windows; (4) HANDOFF and the session entry are true; (5)
+any MUST.
