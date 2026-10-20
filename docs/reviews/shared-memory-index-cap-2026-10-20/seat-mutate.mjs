@@ -24,7 +24,7 @@ const FINAL_WRITE = "process.stdout.write(fixed + render(selected, limit) + `${F
 
 const DECLARED = [
 	"(build 1, e5b95409) every pair runs the lane's new test file only; the hook's existing test files (hook, input, closed output, install) pin the unchanged parts and no pair here touches those",
-	"(a) R-2340's check runs on fixture A alone, which takes the description-cut path; H7, H16 and H22 break the budget only at the fit-at-zero boundary (H7), on the drop path (H16) or with a self-heal note (H22), and name R-2340 as the row they break",
+	"(a) (build 1) R-2340's check ran on fixture A alone; build 2 (4641a6f2) added the drop path, the fit-at-zero boundary and the self-heal note to it. On build 1 fixture A, which takes the description-cut path; H7, H16 and H22 break the budget only at the fit-at-zero boundary (H7), on the drop path (H16) or with a self-heal note (H22), and name R-2340 as the row they break",
 	"(b) no pair: shorten's `description.length <= limit` against `<` (a description exactly L long gains a mark it does not need; no fixture's L equals a description length, so the fixtures cannot tell them apart); the search's Math.ceil against Math.floor (the loop never ends: a hang, not a wrong output); the `end > 0` guard on the surrogate back-off (at limit 0, description[-1] is undefined and the test is false, so it is equivalent); the new import line and the @outputs header text (a reverted import fails the module load, not one check); SHARED_MEMORY_TRIM_MARK (the tests read it by name, so a changed mark is a retune that must stay green, and this runner has no stay-green pairs)",
 	"(c) the builder's W6 (one proportional cut for every description) replaces the whole search rather than one site; the builder saw it red on R-2341 and no seat pair repeats it",
 ];
@@ -121,4 +121,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R2346] },
 ];
 
-process.exitCode = await runMutations({ lane: "shared-memory-index-cap", self: import.meta.url, tip: "e5b95409", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "shared-memory-index-cap", self: import.meta.url, tip: "4641a6f2", declared: DECLARED, pairs: PAIRS });
