@@ -1,0 +1,533 @@
+suite (macos-latest)	UNKNOWN STEP	﻿2026-10-19T20:57:27.7816660Z Current runner version: '2.337.0'
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7842240Z ##[group]Runner Image Provisioner
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7842920Z Hosted Compute Agent
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7843320Z Version: 20261012.601
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7843790Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7844420Z Build Date: 2026-10-12T17:48:21Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7846040Z Worker ID: {885efc85-ebd2-4a41-8f98-7f6843fd9dd4}
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7847850Z Region: westus
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7848840Z Cloud: MacCloud
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7849800Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7853150Z ##[group]Operating System
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7854250Z macOS
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7855120Z 26.6.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7856430Z 25G83
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7857340Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7858780Z ##[group]Runner Image
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7859570Z Image: macos-26-arm64
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7860090Z Version: 20261013.0424.1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7861330Z Included Software: https://github.com/actions/runner-images/blob/macos-26-arm64/20261013.0424/images/macos/macos-26-arm64-Readme.md
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7862530Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-26-arm64%2F20261013.0424
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7863370Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7864240Z ##[group]GITHUB_TOKEN Permissions
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7866640Z Contents: read
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7867140Z Metadata: read
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7867670Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7869590Z Secret source: Actions
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7870420Z Cache mode: write
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.7871060Z Prepare workflow directory
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.8754800Z Prepare all required actions
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:27.8889500Z Getting action download info
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:28.1345370Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:28.7542960Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:29.0078890Z Download action repository 'astral-sh/setup-uv@v5' (SHA:d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:29.9276460Z Download action repository 'pnpm/action-setup@v4' (SHA:b906affcce14559ad1aafd4ab0e942779e9f58b1)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.8819480Z Complete job name: suite (macos-latest)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9386230Z ##[group]Run actions/checkout@v4
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9386870Z with:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9387120Z   fetch-depth: 0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9387340Z   repository: j-wanger/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9389720Z   token: ***
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9389890Z   ssh-strict: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9390080Z   ssh-user: git
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9390280Z   persist-credentials: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9390500Z   clean: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9390710Z   sparse-checkout-cone-mode: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9390950Z   fetch-tags: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9391170Z   show-progress: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9391360Z   lfs: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9391540Z   submodules: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9391750Z   set-safe-directory: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9391980Z   allow-unsafe-pr-checkout: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9392530Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9392700Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9392900Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9393140Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:30.9393400Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5406890Z Syncing repository: j-wanger/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5409610Z ##[group]Getting Git version info
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5410040Z Working directory is '/Users/runner/work/nana-pi/nana-pi'
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5410550Z [command]/opt/homebrew/bin/git version
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5876540Z git version 2.56.0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5892820Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5903400Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/bcec48dc-d351-440b-bce0-1a433130cfae/.gitconfig'
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5916340Z Temporarily overriding HOME='/Users/runner/work/_temp/bcec48dc-d351-440b-bce0-1a433130cfae' before making global git config changes
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5919100Z Adding repository directory to the temporary git global config as a safe directory
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.5924550Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/nana-pi/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6146310Z Deleting the contents of '/Users/runner/work/nana-pi/nana-pi'
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6175550Z ##[group]Initializing the repository
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6180020Z [command]/opt/homebrew/bin/git init /Users/runner/work/nana-pi/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6523510Z hint: Using 'master' as the name for the initial branch. This default branch name
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6525840Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6527250Z hint: to use in all of your new repositories, which will suppress this warning,
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6528240Z hint: call:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6528750Z hint:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6529610Z hint: 	git config --global init.defaultBranch <name>
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6530880Z hint:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6531280Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6531810Z hint: 'development'. The just-created branch can be renamed via this command:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6532270Z hint:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6532500Z hint: 	git branch -m <name>
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6532760Z hint:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6533100Z hint: Disable this message with "git config set advice.defaultBranchName false"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6537030Z Initialized empty Git repository in /Users/runner/work/nana-pi/nana-pi/.git/
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6549230Z [command]/opt/homebrew/bin/git remote add origin https://github.com/j-wanger/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6683720Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6684910Z ##[group]Disabling automatic garbage collection
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6688860Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6791010Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6792060Z ##[group]Setting up auth
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6797060Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.6873260Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.8266910Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.8359840Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.9631010Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:31.9941610Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:32.1872450Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:32.2188370Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:32.2232210Z ##[group]Fetching the repository
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:32.2242280Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +e52e6fa0280204002300b357a8c03051e415e531:refs/remotes/pull/70/merge
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.1997770Z From https://github.com/j-wanger/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2088200Z  * [new branch]        feat/adopt-closes-check                  -> origin/feat/adopt-closes-check
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2120410Z  * [new branch]        feat/audit-open-questions                -> origin/feat/audit-open-questions
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2195130Z  * [new branch]        feat/bench-win                           -> origin/feat/bench-win
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2301100Z  * [new branch]        feat/blast-radius                        -> origin/feat/blast-radius
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2391160Z  * [new branch]        feat/bom-pack-config                     -> origin/feat/bom-pack-config
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2494740Z  * [new branch]        feat/cc-hooks-windows                    -> origin/feat/cc-hooks-windows
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2524200Z  * [new branch]        feat/ci-pi-pin                           -> origin/feat/ci-pi-pin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2531920Z  * [new branch]        feat/clean-revision                      -> origin/feat/clean-revision
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2557610Z  * [new branch]        feat/doctor-quiet                        -> origin/feat/doctor-quiet
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2615170Z  * [new branch]        feat/feature-first                       -> origin/feat/feature-first
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2682870Z  * [new branch]        feat/fresh-install                       -> origin/feat/fresh-install
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2757010Z  * [new branch]        feat/g005-carveout                       -> origin/feat/g005-carveout
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2791130Z  * [new branch]        feat/gate-rm-workdir                     -> origin/feat/gate-rm-workdir
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2841770Z  * [new branch]        feat/install-check                       -> origin/feat/install-check
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2852080Z  * [new branch]        feat/install-honest-report               -> origin/feat/install-honest-report
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2860860Z  * [new branch]        feat/knowledge-refresh-pin               -> origin/feat/knowledge-refresh-pin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2864660Z  * [new branch]        feat/leaf-total-drop                     -> origin/feat/leaf-total-drop
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2866820Z  * [new branch]        feat/lift                                -> origin/feat/lift
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2869470Z  * [new branch]        feat/linux-lane-guard                    -> origin/feat/linux-lane-guard
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2871700Z  * [new branch]        feat/linux-path-spelling                 -> origin/feat/linux-path-spelling
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2873580Z  * [new branch]        feat/mutate-runner                       -> origin/feat/mutate-runner
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2875490Z  * [new branch]        feat/parallel-runner                     -> origin/feat/parallel-runner
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2877160Z  * [new branch]        feat/pi-cmd-launch                       -> origin/feat/pi-cmd-launch
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2881230Z  * [new branch]        feat/post-edit-win-pin                   -> origin/feat/post-edit-win-pin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2886990Z  * [new branch]        feat/process                             -> origin/feat/process
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2888650Z  * [new branch]        feat/pwsh-lexer-oracle                   -> origin/feat/pwsh-lexer-oracle
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2889860Z  * [new branch]        feat/readme-check-cp1252                 -> origin/feat/readme-check-cp1252
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2892200Z  * [new branch]        feat/readme-install                      -> origin/feat/readme-install
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2900180Z  * [new branch]        feat/regroup                             -> origin/feat/regroup
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2902330Z  * [new branch]        feat/regroup-shares                      -> origin/feat/regroup-shares
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2904300Z  * [new branch]        feat/report-not-passed                   -> origin/feat/report-not-passed
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2906600Z  * [new branch]        feat/report-test-details                 -> origin/feat/report-test-details
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2909870Z  * [new branch]        feat/review-ledger-run-reviewer          -> origin/feat/review-ledger-run-reviewer
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2911970Z  * [new branch]        feat/review-timeline                     -> origin/feat/review-timeline
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2914060Z  * [new branch]        feat/roster                              -> origin/feat/roster
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2916280Z  * [new branch]        feat/roster-notice                       -> origin/feat/roster-notice
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2917670Z  * [new branch]        feat/roster-set                          -> origin/feat/roster-set
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2926130Z  * [new branch]        feat/rulings-file                        -> origin/feat/rulings-file
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2930960Z  * [new branch]        feat/runtime-map                         -> origin/feat/runtime-map
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2934910Z  * [new branch]        feat/seat-guide                          -> origin/feat/seat-guide
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2937590Z  * [new branch]        feat/seat-rule                           -> origin/feat/seat-rule
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2940300Z  * [new branch]        feat/silent-main-guard                   -> origin/feat/silent-main-guard
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2943930Z  * [new branch]        feat/study-stop                          -> origin/feat/study-stop
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2945620Z  * [new branch]        feat/tree                                -> origin/feat/tree
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2946270Z  * [new branch]        feat/tree-briefs                         -> origin/feat/tree-briefs
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2947210Z  * [new branch]        feat/unclaimed-tests                     -> origin/feat/unclaimed-tests
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2948080Z  * [new branch]        feat/unread-verdict-loud                 -> origin/feat/unread-verdict-loud
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2948920Z  * [new branch]        feat/watchdog-exit                       -> origin/feat/watchdog-exit
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2949750Z  * [new branch]        feat/win-claude-hooks                    -> origin/feat/win-claude-hooks
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2950350Z  * [new branch]        feat/win-gate-tmp                        -> origin/feat/win-gate-tmp
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2951020Z  * [new branch]        feat/win-impact-paths                    -> origin/feat/win-impact-paths
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2952130Z  * [new branch]        feat/win-install-shape                   -> origin/feat/win-install-shape
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2954310Z  * [new branch]        feat/win-leg-blocking                    -> origin/feat/win-leg-blocking
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2956020Z  * [new branch]        feat/win-leg-flip                        -> origin/feat/win-leg-flip
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2957520Z  * [new branch]        feat/win-line-endings                    -> origin/feat/win-line-endings
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2959460Z  * [new branch]        feat/win-objective-golden                -> origin/feat/win-objective-golden
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2964070Z  * [new branch]        feat/win-path-commands                   -> origin/feat/win-path-commands
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2965900Z  * [new branch]        feat/win-pi-gate                         -> origin/feat/win-pi-gate
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2967520Z  * [new branch]        feat/win-pi-handoff                      -> origin/feat/win-pi-handoff
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2969230Z  * [new branch]        feat/win-pi-registration-test            -> origin/feat/win-pi-registration-test
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2970860Z  * [new branch]        feat/win-post-edit-utf8                  -> origin/feat/win-post-edit-utf8
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2972750Z  * [new branch]        feat/win-project-files                   -> origin/feat/win-project-files
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2973620Z  * [new branch]        feat/win-python-template                 -> origin/feat/win-python-template
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2977560Z  * [new branch]        feat/win-review-paths                    -> origin/feat/win-review-paths
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2979290Z  * [new branch]        feat/win-review-stubs                    -> origin/feat/win-review-stubs
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2980880Z  * [new branch]        feat/win-review-tests                    -> origin/feat/win-review-tests
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2982360Z  * [new branch]        feat/win-session-start                   -> origin/feat/win-session-start
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2984010Z  * [new branch]        feat/win-setup-tools                     -> origin/feat/win-setup-tools
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2985930Z  * [new branch]        feat/win-skill-occupied                  -> origin/feat/win-skill-occupied
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2987540Z  * [new branch]        feat/win-stale-copies                    -> origin/feat/win-stale-copies
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2989050Z  * [new branch]        feat/win-template-tests                  -> origin/feat/win-template-tests
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2991220Z  * [new branch]        main                                     -> origin/main
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2992580Z  * [new branch]        seatmut/post-edit-win-pin                -> origin/seatmut/post-edit-win-pin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2994590Z  * [new branch]        seatmut/review-ledger-run-reviewer       -> origin/seatmut/review-ledger-run-reviewer
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2996440Z  * [new branch]        seatmut/win-path-commands                -> origin/seatmut/win-path-commands
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.2998320Z  * [new branch]        seatmut/win-post-edit-utf8               -> origin/seatmut/win-post-edit-utf8
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3000280Z  * [new branch]        seatmut2/post-edit-win-pin               -> origin/seatmut2/post-edit-win-pin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3000860Z  * [new tag]           v0.3.0                                   -> v0.3.0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3001360Z  * [new tag]           v0.4.0                                   -> v0.4.0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3001820Z  * [new tag]           v0.5.0                                   -> v0.5.0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3002240Z  * [new tag]           v0.6.0                                   -> v0.6.0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3002720Z  * [new tag]           v0.6.1                                   -> v0.6.1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3003120Z  * [new tag]           v0.6.10                                  -> v0.6.10
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3003660Z  * [new tag]           v0.6.11                                  -> v0.6.11
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3004110Z  * [new tag]           v0.6.12                                  -> v0.6.12
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3004490Z  * [new tag]           v0.6.13                                  -> v0.6.13
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3004880Z  * [new tag]           v0.6.14                                  -> v0.6.14
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3005290Z  * [new tag]           v0.6.15                                  -> v0.6.15
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3005640Z  * [new tag]           v0.6.16                                  -> v0.6.16
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3006030Z  * [new tag]           v0.6.17                                  -> v0.6.17
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3006550Z  * [new tag]           v0.6.18                                  -> v0.6.18
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3007640Z  * [new tag]           v0.6.19                                  -> v0.6.19
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3007990Z  * [new tag]           v0.6.2                                   -> v0.6.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3008410Z  * [new tag]           v0.6.20                                  -> v0.6.20
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3008820Z  * [new tag]           v0.6.21                                  -> v0.6.21
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3009250Z  * [new tag]           v0.6.22                                  -> v0.6.22
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3009770Z  * [new tag]           v0.6.23                                  -> v0.6.23
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3010160Z  * [new tag]           v0.6.24                                  -> v0.6.24
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3010510Z  * [new tag]           v0.6.3                                   -> v0.6.3
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3092450Z  * [new tag]           v0.6.4                                   -> v0.6.4
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3094770Z  * [new tag]           v0.6.5                                   -> v0.6.5
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3097610Z  * [new tag]           v0.6.6                                   -> v0.6.6
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3098840Z  * [new tag]           v0.6.7                                   -> v0.6.7
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3099440Z  * [new tag]           v0.6.8                                   -> v0.6.8
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3100270Z  * [new tag]           v0.6.9                                   -> v0.6.9
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3100910Z  * [new ref]           e52e6fa0280204002300b357a8c03051e415e531 -> pull/70/merge
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3133240Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3133710Z ##[group]Determining the checkout info
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3135560Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3136830Z [command]/opt/homebrew/bin/git sparse-checkout disable
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3139960Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3146540Z ##[group]Checking out the ref
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:35.3147760Z [command]/opt/homebrew/bin/git checkout --progress --force refs/remotes/pull/70/merge
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.2854340Z HEAD is now at e52e6fa0 Merge b4a0ffd061ca86646601159028858aecce4e70f0 into d50000849a551c6c8f4c524172014e0f21499ace
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3019080Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3453170Z [command]/opt/homebrew/bin/git log -1 --format=%H
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3590660Z e52e6fa0280204002300b357a8c03051e415e531
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4336120Z ##[group]Run actions/setup-node@v4
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4336350Z with:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4336480Z   node-version: 22
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4336630Z   always-auth: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4336780Z   check-latest: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4338800Z   token: ***
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4338960Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4339120Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4339310Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4339500Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.4339730Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.7909190Z (node:1201) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.7911480Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.7914750Z Found in cache @ /Users/runner/hostedtoolcache/node/22.23.3/arm64
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:36.7915570Z ##[group]Environment details
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.7744200Z node: v22.23.3
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.7820440Z npm: 10.9.9
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.7829460Z yarn: 1.22.22
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.7865950Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8099430Z ##[group]Run astral-sh/setup-uv@v5
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8099680Z with:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8103290Z   github-token: ***
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8103510Z   enable-cache: auto
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8103740Z   cache-dependency-glob: **/uv.lock
+suite (macos-latest)	UNKNOWN STEP	**/requirements*.txt
+suite (macos-latest)	UNKNOWN STEP	
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8104090Z   prune-cache: true
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8104290Z   ignore-nothing-to-cache: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8104620Z   ignore-empty-workdir: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8104790Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8104990Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8105150Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8105390Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:37.8105570Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:38.1164070Z (node:1219) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:38.1166420Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:38.8267020Z Downloading uv from "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-aarch64-apple-darwin.tar.gz" ...
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.3169750Z [command]/usr/bin/tar xz -C /Users/runner/work/_temp/3158aa32-c973-4ab6-8257-4d54dcfa7e21 -f /Users/runner/work/_temp/dcb23139-3fe1-4ebc-85da-405689aab651
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.4811940Z Added /Users/runner/.local/bin to the path
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.4830580Z Added /Users/runner/hostedtoolcache/uv/0.13.1/aarch64 to the path
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.4856980Z Set UV_CACHE_DIR to /Users/runner/work/_temp/setup-uv-cache
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.4859640Z Successfully installed uv version 0.13.1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.4860520Z Searching files using cache dependency glob: **/uv.lock,**/requirements*.txt
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.7437030Z No matches found for glob
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:39.7559430Z ##[warning]No file matched to [**/uv.lock,**/requirements*.txt]. The cache will never get invalidated. Make sure you have checked out the target repository and configured the cache-dependency-glob input correctly.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.0215120Z Trying to restore uv cache from GitHub Actions cache with key: setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.0910410Z Cache hit for: setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.0997770Z (node:1219) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.2844870Z Received 3607636 of 3607636 (100.0%), 25.5 MBs/sec
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.2854590Z Cache Size: ~3 MB (3607636 B)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.2872380Z [command]/opt/homebrew/bin/gtar -xf /Users/runner/work/_temp/a613224f-852f-40d7-b700-0458a56ce507/cache.tzst -P -C /Users/runner/work/nana-pi/nana-pi --delay-directory-restore --use-compress-program unzstd
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3596700Z Cache restored successfully
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3606550Z uv cache restored from GitHub Actions cache with key: setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3795310Z ##[group]Run pnpm/action-setup@v4
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3795570Z with:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3795720Z   version: 11
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3795910Z   dest: ~/setup-pnpm
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3796100Z   run_install: null
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3796340Z   cache: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3796530Z   cache_dependency_path: pnpm-lock.yaml
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3796780Z   package_json_file: package.json
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3797000Z   standalone: false
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3797150Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3797300Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3797480Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3797710Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3797930Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.3798170Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.6045740Z ##[group]Running self-installer...
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.9987560Z (node:1271) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:40.9989450Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:41.1608090Z Progress: resolved 1, reused 0, downloaded 0, added 0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:41.1677350Z Packages: +1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:41.1696530Z +
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.1764480Z Progress: resolved 1, reused 0, downloaded 1, added 0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.3133340Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.3737700Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.3858590Z dependencies:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.3946640Z + pnpm 11.28.6 (12.14.0 is available)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4048360Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4149880Z Done in 1.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4230040Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4243960Z Installation Completed!
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4343210Z ##[group]Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4343910Z [36;1mnpm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4412960Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4413450Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4413700Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4414050Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4414380Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4414770Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4415190Z   PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:42.4416190Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:51.4353770Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:56.9154230Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:56.9159040Z added 121 packages in 14s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:56.9160180Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:56.9169250Z 9 packages are looking for funding
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:56.9169830Z   run `npm fund` for details
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0820370Z ##[group]Run test "$(pi --version)" = "${PI_VERSION}"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0821950Z [36;1mtest "$(pi --version)" = "${PI_VERSION}"[0m
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0878760Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0879290Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0879830Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0880060Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0880430Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0880900Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0889270Z   PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0889840Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7491880Z ##[group]Run npm test
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7492160Z [36;1mnpm test[0m
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7564630Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7565160Z env:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7565450Z   PI_VERSION: 1.0.2
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7565780Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7566120Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7566470Z   UV_CACHE_DIR: /Users/runner/work/_temp/setup-uv-cache
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7566970Z   PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:57.7567380Z ##[endgroup]
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:58.0465480Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:58.0465930Z > nana-pi@0.5.0 test
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:58.0466270Z > node scripts/test.mjs
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:58.0466430Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:57:59.8376790Z PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:02.1533740Z PASS  packages/nana-knowledge/tests/extension.test.mjs                36 pass  2.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:07.8242450Z PASS  packages/nana-knowledge/tests/hook.test.mjs                     96 pass  5.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:08.0718780Z PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        27 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:08.1985890Z PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:08.5694880Z PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:08.6981970Z PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:09.2335300Z PASS  packages/nana-pack/tests/adoption-producer.test.mjs             62 pass  0.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:11.6307500Z PASS  packages/nana-pack/tests/adoption-reader.test.mjs               44 pass  2.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:12.0952000Z PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              98 pass  0.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:23.7096100Z PASS  packages/nana-pack/tests/agent-dir-hostile.test.mjs             28 pass  11.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:30.1494200Z PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs              55 pass  6.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:30.4592880Z PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:31.5931320Z PASS  packages/nana-pack/tests/blast-radius.test.mjs                  8 pass  1.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:31.8112640Z PASS  packages/nana-pack/tests/bounded-read.test.mjs                  4 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:31.9060240Z PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   13 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:33.4159070Z PASS  packages/nana-pack/tests/code-map.test.mjs                      48 pass  1.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:33.6254710Z PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:34.9736000Z PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          38 pass  1.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:35.5845120Z PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     98 pass  0.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:36.7383210Z PASS  packages/nana-pack/tests/config-normalize.test.mjs              23 pass  1.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:56.5157150Z PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  27 pass  19.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:59.0593070Z PASS  packages/nana-pack/tests/config-trust.test.mjs                  27 pass  2.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:58:59.7788950Z PASS  packages/nana-pack/tests/display-surfaces.test.mjs              181 pass  0.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:02.5201820Z PASS  packages/nana-pack/tests/frontier.test.mjs                      45 pass  2.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:02.7876820Z PASS  packages/nana-pack/tests/gate-config-robustness.test.mjs        4 pass  0.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:17.4088910Z PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  14.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:18.7574560Z PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  1.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:20.3092540Z PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs                7 pass  1.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:20.7035300Z PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:20.9900970Z PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:21.8113870Z PASS  packages/nana-pack/tests/gate-survives-mutation.test.mjs        38 pass  0.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:22.0190630Z PASS  packages/nana-pack/tests/handoff-artifact.test.mjs              7 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:22.0940690Z PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:22.7153550Z PASS  packages/nana-pack/tests/handoff-staleness.test.mjs             78 pass  0.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:23.1633770Z PASS  packages/nana-pack/tests/handoff-store.test.mjs                 52 pass  0.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:23.3683950Z PASS  packages/nana-pack/tests/handoff-symlink.test.mjs               14 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:23.5802010Z PASS  packages/nana-pack/tests/handoff-trust.test.mjs                 51 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:33.2597120Z PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           7 pass  9.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T20:59:47.5408500Z PASS  packages/nana-pack/tests/immutable-review.test.mjs              18 pass  14.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:00:27.2551990Z PASS  packages/nana-pack/tests/land.test.mjs                          52 pass  39.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:00:27.5022840Z PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              13 pass, 1 skip  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:00:27.6694720Z PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:00:29.0559120Z PASS  packages/nana-pack/tests/line-endings.test.mjs                  1 pass  1.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:00:30.8069180Z PASS  packages/nana-pack/tests/linked-launch.test.mjs                 5 pass  1.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:01:04.3102950Z PASS  packages/nana-pack/tests/mutation-runner.test.mjs               27 pass  33.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:01:06.9964980Z PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               8 pass  2.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:01:07.7210420Z PASS  packages/nana-pack/tests/nana-roster.test.mjs                   18 pass  0.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:01:16.8343770Z PASS  packages/nana-pack/tests/notify-fallback.test.mjs               28 pass  9.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:04.5560450Z PASS  packages/nana-pack/tests/objective-golden.test.mjs              1236 pass  47.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:04.8782740Z PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:37.7374960Z PASS  packages/nana-pack/tests/path-spelling.test.mjs                 11 pass  32.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:37.8472460Z PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:40.5740750Z PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs        22 pass, 1 skip  2.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:41.0300980Z PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    84 pass  0.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:45.4290060Z PASS  packages/nana-pack/tests/post-edit-file-queue.test.mjs          5 pass  4.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:02:58.8879670Z PASS  packages/nana-pack/tests/post-edit-hardening.test.mjs           22 pass, 1 skip  13.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:03:03.3070960Z PASS  packages/nana-pack/tests/post-edit-status.test.mjs              32 pass, 1 skip  4.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:03:33.0117240Z PASS  packages/nana-pack/tests/product-report.test.mjs                71 pass  29.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:03:33.5485720Z PASS  packages/nana-pack/tests/readme-check.test.mjs                  11 pass  0.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:03:36.1206590Z PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  2.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:03:36.8637010Z PASS  packages/nana-pack/tests/requirement-rows.test.mjs              5 pass  0.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:04:43.7714180Z PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  66.9s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:04:44.3715370Z PASS  packages/nana-pack/tests/requirements-moved.test.mjs            4 pass  0.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:05:25.5486820Z PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          63 pass  41.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:05:33.3408060Z PASS  packages/nana-pack/tests/requirements-trace.test.mjs            61 pass  7.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:05:34.3873380Z PASS  packages/nana-pack/tests/requirements-tree.test.mjs             93 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:05:37.0438820Z PASS  packages/nana-pack/tests/requirements-unclaimed.test.mjs        6 pass  2.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:29.2825300Z PASS  packages/nana-pack/tests/review-ledger.test.mjs                 163 pass  112.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:29.3347070Z PASS  packages/nana-pack/tests/review-round.test.mjs                  33 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:30.1307100Z PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  0.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:36.3296030Z PASS  packages/nana-pack/tests/review-timeline.test.mjs               11 pass  6.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:36.6961450Z PASS  packages/nana-pack/tests/roster-notice.test.mjs                 16 pass  0.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:36.8536170Z PASS  packages/nana-pack/tests/rulings.test.mjs                       10 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:42.1649320Z PASS  packages/nana-pack/tests/runtime-map.test.mjs                   8 pass  5.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:42.3129170Z PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:50.1047120Z PASS  packages/nana-pack/tests/template-acceptance.test.mjs           12 pass  7.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:07:53.6269320Z PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  3.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:08:34.0387750Z PASS  packages/nana-pack/tests/templates-render.test.mjs              168 pass  40.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:09:24.0342240Z PASS  packages/nana-pack/tests/templates-update.test.mjs              34 pass  49.9s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:09:29.2581700Z PASS  packages/nana-pack/tests/test-locked.test.mjs                   17 pass  5.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:09:58.2922700Z PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          8 pass  29.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:17.5020300Z PASS  packages/nana-pack/tests/test-runner.test.mjs                   44 pass  19.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:19.6027480Z PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  2.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:35.4201770Z PASS  packages/nana-pack/tests/watchdog-exit.test.mjs                 6 pass  15.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:35.4829810Z PASS  packages/nana-pack/tests/win-command.test.mjs                   47 pass, 1 skip  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:35.6512130Z PASS  packages/nana-pack/tests/win32-launch.test.mjs                  5 pass, 6 skip  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:51.1985920Z PASS  packages/nana-pack/tests/worker-lane.test.mjs                   52 pass  15.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:52.0382180Z PASS  packages/nana-pack/tests/writing-check.test.mjs                 46 pass  0.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:53.0698030Z PASS  packages/nana-pack/tests/writing-injection.test.mjs             27 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:53.2289590Z PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs       12 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:10:54.4074710Z PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          13 pass  1.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:03.1179320Z PASS  packages/nana-setup/tests/desk-service.test.mjs                 46 pass  8.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:06.8508810Z PASS  packages/nana-setup/tests/doctor-detail.test.mjs                68 pass  3.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:07.0239360Z PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             3 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:08.0447070Z PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:08.3027450Z PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        8 pass  0.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:08.8536910Z PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  0.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.2928410Z PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  1.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.4468670Z PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.5732830Z PASS  packages/nana-setup/tests/entry-guidance.test.mjs               14 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.6424550Z PASS  packages/nana-setup/tests/fresh-machine.test.mjs                5 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.6813180Z PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.8202830Z PASS  packages/nana-setup/tests/hook-producers.test.mjs               10 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:10.8205560Z SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs             runs only on the Windows leg (process.platform !== "win32")
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:11.1135560Z PASS  packages/nana-setup/tests/install-check.test.mjs                106 pass  0.3s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:16.3586820Z PASS  packages/nana-setup/tests/install.test.mjs                      104 pass  5.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:16.3996090Z PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:16.4599800Z PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               8 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:18.3350530Z PASS  packages/nana-setup/tests/pi-registration.test.mjs              64 pass, 3 skip  1.9s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:18.9150420Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:18.9529380Z PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:19.1756130Z PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:32.3761430Z PASS  packages/nana-setup/tests/project.test.mjs                      123 pass  13.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:32.4434290Z PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs             6 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:33.2592520Z PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           29 pass  0.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:34.7643660Z PASS  packages/nana-setup/tests/restore.test.mjs                      14 pass  1.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:37.8822970Z PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            48 pass  3.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:38.5770310Z PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  0.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:40.0015810Z PASS  packages/nana-setup/tests/rulings-install.test.mjs              8 pass  1.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:40.0369670Z PASS  packages/nana-setup/tests/seat-rule.test.mjs                    13 pass  0.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:43.5784080Z PASS  packages/nana-setup/tests/settings-merge.test.mjs               217 pass  3.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:43.6192370Z PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:44.4275530Z PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:44.5075700Z PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:49.1640930Z PASS  packages/nana-setup/tests/skills-and-standards.test.mjs         81 pass  4.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:50.7805660Z PASS  packages/nana-setup/tests/stale-copies.test.mjs                 8 pass  1.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:51.7772020Z PASS  packages/nana-setup/tests/state-manifest.test.mjs               20 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:52.7540010Z PASS  packages/nana-setup/tests/trust.test.mjs                        11 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:54.8128350Z PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  2.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:11:55.8462620Z PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                29 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:00.2233500Z PASS  packages/nana-setup/tests/win32-degrade.test.mjs                98 pass  4.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:00.2781610Z PASS  packages/nana-setup/tests/writing-rule.test.mjs                 3 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:00.3546240Z PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:08.7444040Z PASS  apps/desk/test/app-listener.test.mjs                            76 pass  8.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:18.1812650Z PASS  apps/desk/test/buffer-caps.test.mjs                             30 pass  9.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:20.8856770Z PASS  apps/desk/test/changes-endpoint.test.mjs                        88 pass  2.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:24.8403580Z PASS  apps/desk/test/crash-paths.test.mjs                             42 pass  4.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:26.7309260Z PASS  apps/desk/test/host-rule.test.mjs                               30 pass  1.9s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:26.9125740Z PASS  apps/desk/test/knowledge-home-isolation.test.mjs                1 pass  0.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:26.9640180Z PASS  apps/desk/test/live-feel.test.mjs                               64 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:28.4514000Z PASS  apps/desk/test/origin-rule.test.mjs                             11 pass  1.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:30.5330280Z PASS  apps/desk/test/pi-087-entries.test.mjs                          11 pass  2.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:31.9786750Z PASS  apps/desk/test/pi-resolution.test.mjs                           43 pass  1.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:33.0172030Z PASS  apps/desk/test/pi-rpc-contract.test.mjs                         10 pass  1.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:34.7492750Z PASS  apps/desk/test/pi-session-parity.test.mjs                       42 pass  1.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:54.9193070Z PASS  apps/desk/test/prompt-detach.test.mjs                           24 pass  20.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:12:57.7895800Z PASS  apps/desk/test/spawn-and-persist.test.mjs                       122 pass  2.9s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:15.4672980Z PASS  apps/desk/test/stage-key-persistence.test.mjs                   82 pass  17.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:21.8336850Z PASS  apps/desk/test/teardown-invariants.test.mjs                     18 pass  6.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:25.0241840Z PASS  apps/desk/test/usage-line.test.mjs                              6 pass  3.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:25.0954780Z PASS  apps/bench/test/agentdir.test.mjs                               26 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:25.1592370Z PASS  apps/bench/test/aggregate.test.mjs                              62 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:25.2046460Z PASS  apps/bench/test/argv.test.mjs                                   32 pass, 1 skip  0.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:26.3374760Z PASS  apps/bench/test/catch-ledger.test.mjs                           76 pass  1.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:30.2971090Z PASS  apps/bench/test/checkers.test.mjs                               92 pass  4.0s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:33.0706260Z PASS  apps/bench/test/evaluator-hardening.test.mjs                    68 pass  2.8s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:35.2458800Z PASS  apps/bench/test/integration.test.mjs                            48 pass  2.2s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:35.3097910Z PASS  apps/bench/test/nested.test.mjs                                 59 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:35.6619840Z PASS  apps/bench/test/ops.test.mjs                                    48 pass  0.4s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:43.3989400Z PASS  apps/bench/test/orchestration-paths.test.mjs                    91 pass  7.7s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:43.4805960Z PASS  apps/bench/test/plan.test.mjs                                   57 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:43.4809200Z SKIP  apps/bench/test/study-tasks.test.mjs                            needs apps/bench/.ext/pi-web-access (not present)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:45.0966590Z PASS  apps/bench/test/timeout.test.mjs                                12 pass  1.6s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:45.1475890Z PASS  apps/bench/test/usage.test.mjs                                  90 pass  0.1s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:45.9103650Z 
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:45.9117840Z 165 files: 163 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7666 pass, 0 fail, 17 skip · 946.5s
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:46.0427720Z Post job cleanup.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:46.8578430Z Pruning is unnecessary.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:46.8754100Z Post job cleanup.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.0200840Z Cache hit occurred on key setup-uv-1-aarch64-apple-darwin-3.15.0-no-dependency-glob, not saving cache.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.0202060Z (node:82920) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.0203360Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.0304520Z Post job cleanup.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.1670300Z (node:82921) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.1672370Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.1835980Z Post job cleanup.
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3066290Z [command]/opt/homebrew/bin/git version
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3167070Z git version 2.56.0
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3188740Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/04d0fcd2-5f21-4f15-9d3a-bddafdf26bd6/.gitconfig'
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3198800Z Temporarily overriding HOME='/Users/runner/work/_temp/04d0fcd2-5f21-4f15-9d3a-bddafdf26bd6' before making global git config changes
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3200920Z Adding repository directory to the temporary git global config as a safe directory
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3202880Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/nana-pi/nana-pi
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3322550Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.3403920Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.4515130Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.4580990Z http.https://github.com/.extraheader
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.4595560Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.4687820Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.5972370Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.6054750Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:47.7463910Z Cleaning up orphan processes
+suite (macos-latest)	UNKNOWN STEP	2026-10-19T21:13:50.5003960Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, astral-sh/setup-uv@v5, pnpm/action-setup@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
