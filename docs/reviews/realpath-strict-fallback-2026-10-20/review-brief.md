@@ -66,3 +66,7 @@ stopped working where the native lookup works: realPath's results, the gate, ins
 and review tools, on any of the three CI legs; (4) the tests write only inside the temp folders they own, restore the
 patched function, and commit no fixture; (5) HANDOFF and the session entry are true, including the removed
 setup-checkout-spelling residual, the kept loose-lookup residual and the seven new residuals; (6) any MUST.
+
+## Base note (the seat, after this brief was written)
+
+Since `c93b3d7e`, the seat merged main `c203f485` (the handoff-cap-surrogate land tip, after notify-lifecycle-pins and mutation-runner-takeover-race) into the lane at `a17813f7`, regenerating the code map and the requirements tree. Review this lane's own change as `git diff main...HEAD` (three dots: against the merge base) and the merge as `git show --remerge-diff a17813f7` if your git supports it. This merge is the one the seat record asks for, so this round covers the merged tip; no separate confirmation round is planned.

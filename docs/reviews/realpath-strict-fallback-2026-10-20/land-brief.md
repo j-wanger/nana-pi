@@ -62,3 +62,7 @@ tools.
 
 Check: (1) no fail-open, the pi-review out-path case judged against the standard; (2) no listed harm; (3) nothing main
 does today stopped working, on any of the three CI legs; (4) HANDOFF and the session entry are true; (5) any MUST.
+
+## Base note (the seat, after this brief was written)
+
+Since `c93b3d7e`, the seat merged main `c203f485` (the handoff-cap-surrogate land tip, after notify-lifecycle-pins and mutation-runner-takeover-race) into the lane at `a17813f7`, regenerating the code map and the requirements tree. Review this lane's own change as `git diff main...HEAD` (three dots: against the merge base) and the merge as `git show --remerge-diff a17813f7` if your git supports it. This merge is the one the seat record asks for, so this round covers the merged tip; no separate confirmation round is planned.
