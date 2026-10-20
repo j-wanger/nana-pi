@@ -204,6 +204,17 @@ function reviewArgument(args, input, name) {
   const match = String(input ?? args.join(" ")).match(new RegExp(`["']${name}["']\\s+["']([^"']+)["']`));
   return match?.[1] ?? null;
 }
+function hookScriptFileName(call) {
+  const launcher = path.posix.basename(String(call.command).replaceAll("\\", "/")).toLowerCase();
+  let script = ["node", "node.exe"].includes(launcher) ? call.args[0] : null;
+  if (script === null && call.args[0] === "-c") {
+    const match = String(call.args[1] ?? "").trim().match(/^node(?:\.exe)?\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*$/iu);
+    script = match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
+  }
+  if (script === null) return null;
+  const name = path.posix.basename(String(script).replaceAll("\\", "/"));
+  return HOOKS.some((hook) => path.basename(hook.script) === name) ? name : null;
+}
 function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null, reviewRecordForms = null } = {}) {
   const home = tempHome();
   const calls = [];
@@ -362,7 +373,7 @@ check("environment: every child gets the base environment plus only its own step
     base.PATH = `${path.join(fixture.home, ".local", "bin")}${path.delimiter}${base.PATH}`;
     for (const call of fixture.calls) {
       const expected = { ...base };
-      const isHook = /nana-(objective|adoption|shared-memory|roster-notice|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`);
+      const isHook = hookScriptFileName(call) !== null;
       const isSession = call.args.includes("--mode") && call.args.includes("rpc");
       if (isHook) expected.CLAUDE_PROJECT_DIR = path.join(fixture.home, "project");
       if (isSession) expected.NANA_TEST_TEMP_ROOTS = "";
@@ -439,7 +450,7 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
     assert.equal(result.exitCode, 0, result.lines.join("\\n"));
     assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
     assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
-    const hooks = fixture.calls.filter((call) => /nana-(objective|adoption|shared-memory|roster-notice|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`));
+    const hooks = fixture.calls.filter((call) => hookScriptFileName(call) !== null);
     assert.ok(hooks.length >= 7);
     assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
@@ -631,7 +642,7 @@ check("dispatch: on win32 Git Bash discovery reads the path variable under any l
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
   const fixture = recordingRun();
-  try { await fixture.run; const hooks = fixture.calls.filter(c => /nana-(objective|adoption|shared-memory|roster-notice|knowledge)|verifier-pipe/.test(c.args.join(" "))); assert.ok(hooks.length >= 7); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 7); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075

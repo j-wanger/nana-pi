@@ -24,6 +24,9 @@ const discardedStatusCases = [
 	["bash LF", "npm test | tail -5 \t\ngit commit -m x"],
 	["bash intervening git add", "npm test | tail -5; git add -A && git commit -m x"],
 	["bash background", "npm test | tail -5 & git commit -m x"],
+	["bash background followed by another command", "npm test | tail -5 & echo started && git commit -m x"],
+	["bash set -e after pipeline", "npm test | tail -5; set -e; git commit -m x"],
+	["bash set +e disables errexit before pipeline", "set -e; set +e; npm test | tail -5; git commit -m x"],
 	["bash command substitution", 'echo "$(git log | head)"; git commit -m x'],
 	["bash question mark after an intervening command", "npm test | tail -5; x; echo $?; git commit -m x"],
 	["bash quoted question mark after an intervening command", 'npm test | tail -5; pnpm check >/dev/null 2>&1; echo "check $?"; git commit -m x'],
@@ -31,6 +34,8 @@ const discardedStatusCases = [
 	["PowerShell semicolon", "npm test | Select-Object -Last 5; git commit -m x", "powershell"],
 	["PowerShell LF", "npm test | Select-Object -Last 5  \ngit commit -m x", "powershell"],
 	["PowerShell CRLF", "npm test | Select-Object -Last 5\r\ngit commit -m x", "powershell"],
+	["PowerShell LASTEXITCODE after Select-Object", "npm test | Select-Object -Last 5; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
+	["PowerShell LASTEXITCODE after case-insensitive Where-Object", "npm test | wHeRe-ObJeCt { $_ }; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
 ];
 for (const [name, command, dialect] of discardedStatusCases) {
 	// req: R-2350
@@ -40,12 +45,21 @@ for (const [name, command, dialect] of discardedStatusCases) {
 const consumedStatusCases = [
 	["bash && after redirected pipeline", "npm test 2>&1 | tail -5 && git commit -m x"],
 	["bash ||", "npm test | tail -5 || exit 1; git commit -m x"],
+	["bash pipeline continued after LF", "npm test 2>&1 |\n  tail -20 && git commit -m x"],
+	["bash pipeline continued after CRLF", "npm test 2>&1 |\r\n  tail -20 && git commit -m x"],
+	["bash pipeline continued after comment", "npm test 2>&1 | # keep reading\n  tail -20 && git commit -m x"],
+	["bash backslash-LF continuations", "npm test 2>&1 | \\\n  tail -30 && \\\n  git add -A && \\\n  git commit -m x"],
+	["bash backslash-CRLF continuation", "npm test 2>&1 | \\\r\n  tail -30 && git commit -m x"],
+	["bash argument continued after backslash-LF", "npm test | tail -n \\\n  20 && git commit -m x"],
+	["bash pipe ampersand continued after backslash-LF", "npm test |& \\\n  tail -5 && git commit -m x"],
 	["bash if then", "if npm test | tail -5; then echo ok; fi; git commit -m x"],
 	["bash while do", "while npm test | tail -5; do break; done; git commit -m x"],
 	["bash until do", "until npm test | tail -5; do break; done; git commit -m x"],
 	["bash set -e", "set -e; npm test | tail -5; git commit -m x"],
 	["bash set -o errexit", "set -o errexit; npm test | tail -5; git commit -m x"],
 	["bash question mark in if", "npm test | tail -5; if [ $? -eq 0 ]; then echo ok; fi; git commit -m x"],
+	["bash braced question mark", "npm test | tail -5; [ ${?} -eq 0 ] && git commit -m x"],
+	["bash wait reads background pipeline status", "npm test | tail -5 & wait $! && git commit -m x"],
 	["bash quoted question mark", 'npm test | tail -5; [ "$?" = 0 ] && echo ok; git commit -m x'],
 	["bash question mark assignment", "npm test | tail -5; rc=$?; git commit -m x"],
 	["bash brace group", "{ npm test | tail -5; } && git commit -m x"],
@@ -55,9 +69,17 @@ const consumedStatusCases = [
 	["bash pipe ampersand", "npm test |& tail -5 && git commit -m x"],
 	["bash loop closer", "for f in a b; do npm test | tail -5; done && git commit -m x"],
 	["bash if closer", "if true; then npm test | tail -5; fi && git commit -m x"],
+	["bash case closer", "case x in x) npm test | tail -5;; esac && git commit -m x"],
 	["PowerShell &&", "npm test | Select-Object -Last 5 && git commit -m x", "powershell"],
+	["PowerShell pipeline continued after LF", "npm test |\n Select-Object -Last 5 && git commit -m x", "powershell"],
+	["PowerShell pipeline continued after CRLF", "npm test |\r\n Select-Object -Last 5 && git commit -m x", "powershell"],
+	["PowerShell backtick-LF continuation", "npm test | Select-Object `\n -Last 5 && git commit -m x", "powershell"],
+	["PowerShell backtick-CRLF continuation", "npm test | Select-Object `\r\n -Last 5 && git commit -m x", "powershell"],
+	["PowerShell call operator in pipeline", "npm test | & tail -5 && git commit -m x", "powershell"],
 	["PowerShell question mark", "npm test | Select-Object -Last 5; if ($?) { Write-Output ok }; git commit -m x", "powershell"],
 	["PowerShell ||", "npm test | Select-Object -Last 5 || exit 1; git commit -m x", "powershell"],
+	["PowerShell LASTEXITCODE after native command", "npm test | findstr PASS; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
+	["PowerShell LASTEXITCODE after native-looking alias", "npm test | select PASS; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
 ];
 for (const [name, command, dialect] of consumedStatusCases) {
 	// req: R-2351
@@ -93,6 +115,7 @@ const notCommitCases = [
 	["echo", "npm test | tail -5 && echo commit"],
 	["git-lfs", "npm test | tail -5 && git-lfs commit -m x"],
 	["quoted git status argument", 'npm test | tail -5 && echo "git status" commit'],
+	["quoted git path glued to other text", 'npm test | tail -5 && x"/usr/bin/git" commit -m x'],
 ];
 for (const [name, command, dialect] of notCommitCases) {
 	// req: R-2353
@@ -121,8 +144,11 @@ const cases = [
 	["pipefail disabled later", "set -o pipefail; set +o pipefail; npm test | tail && git commit -m ok", true],
 	["set eo pipefail first", "set -eo pipefail; npm test | tail && git commit -m ok", false],
 	["pipeline after commit", "git commit -m ok; git log | head", false],
+	["status read after last commit", "git commit -m x && npm test | tail -5 && echo ok", false],
 	["no commit", "npm test | tail", false],
-	["logical OR is not a pipeline", "npm test || true; git commit -m ok", false],
+	["logical OR is not a pipeline before &&", "npm test || true && git commit -m ok", false],
+	["logical OR is not a pipeline before semicolon", "npm test || true; git commit -m ok", false],
+	["second pipeline status reaches commit", "npm test | tail -5; npm run lint | tail -5 && git commit -m ok", true],
 	["quoted pipe and commit text", "echo 'a | git commit' && git commit -m ok", false],
 	["commented pipeline", "echo okay # npm test | tail && git commit\ngit commit -m ok", false],
 	["quoted here-doc text is not executed", "cat <<'END'\nnpm test | tail && git commit\nEND\ngit commit -m ok", false],

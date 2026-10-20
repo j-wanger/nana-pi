@@ -23,7 +23,11 @@ const REDIRECTION_NEIGHBOURS = new Set(["<", ">"]);
 // contract: R-2351 — shell words and spellings whose grammar consumes pipeline status.
 const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);
 const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
+const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
+const BASH_BACKGROUND_WAIT = /^wait(?:\s+--)?\s+(?:\$!|\$\{!\})(?=\s|[;&|]|$)/iu;
 const BASH_ERREXIT_CHANGES = /(?:^|[;&\r\n])\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
+const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
+const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
 
 function quotedGitExposure(content) {
 	if (content.includes("$(") || content.includes("`") || /[\r\n]/u.test(content)) return "";
@@ -35,6 +39,13 @@ function isQuotedWord(source, start, end) {
 	const left = start === 0 || QUOTED_WORD_BOUNDARY.test(source[start - 1]);
 	const right = end >= source.length || QUOTED_WORD_BOUNDARY.test(source[end]);
 	return left && right;
+}
+
+function escapedLineBreakEnd(source, index, escape) {
+	if (source[index] !== escape) return -1;
+	if (source[index + 1] === "\n") return index + 2;
+	if (source[index + 1] === "\r" && source[index + 2] === "\n") return index + 3;
+	return -1;
 }
 
 function liveText(command, dialect = "bash") {
@@ -57,15 +68,30 @@ function liveText(command, dialect = "bash") {
 			continue;
 		}
 		if (comment) {
-			if (ch === "\n") { comment = false; text += ch; line = ""; }
+			const continued = escapedLineBreakEnd(source, i, "\\");
+			if (continued >= 0) {
+				const width = continued - i;
+				text += " ".repeat(width);
+				line += " ".repeat(width);
+				i = continued - 1;
+			} else if (ch === "\n") { comment = false; text += ch; line = ""; }
 			else line += " ";
 			continue;
 		}
 		if (quote) {
-			if (quote === '"' && ch === "$" && source[i + 1] === "?") {
-				text += "$?";
-				line += "$?";
-				i++;
+			const continued = quote === '"' ? escapedLineBreakEnd(source, i, "\\") : -1;
+			if (continued >= 0) {
+				const width = continued - i;
+				text += " ".repeat(width);
+				line += " ".repeat(width);
+				i = continued - 1;
+				continue;
+			}
+			if (quote === '"' && ch === "$" && BASH_STATUS_EXPANSION.test(source.slice(i))) {
+				const expansion = source[i + 1] === "{" ? "${?}" : "$?";
+				text += expansion;
+				line += expansion;
+				i += expansion.length - 1;
 				continue;
 			}
 			if (quote === '"' && ch === '`') {
@@ -105,6 +131,14 @@ function liveText(command, dialect = "bash") {
 			}
 			text += ch === "\n" ? "\n" : " ";
 			line += ch;
+			continue;
+		}
+		const continued = escapedLineBreakEnd(source, i, "\\");
+		if (continued >= 0) {
+			const width = continued - i;
+			text += " ".repeat(width);
+			line += " ".repeat(width);
+			i = continued - 1;
 			continue;
 		}
 		if ((ch === "'" || ch === '"') && source[i - 1] !== "\\") {
@@ -165,11 +199,19 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 			i++;
 			continue;
 		}
-		if (ch === "`" && i + 1 < source.length) {
-			live += hidden(ch) + hidden(source[i + 1]);
-			tokenStart = source[i + 1] === "\n" || source[i + 1] === "\r";
-			i += 2;
-			continue;
+		if (ch === "`") {
+			const continued = escapedLineBreakEnd(source, i, "`");
+			if (continued >= 0) {
+				live += " ".repeat(continued - i);
+				i = continued;
+				continue;
+			}
+			if (i + 1 < source.length) {
+				live += hidden(ch) + hidden(source[i + 1]);
+				tokenStart = source[i + 1] === "\n" || source[i + 1] === "\r";
+				i += 2;
+				continue;
+			}
 		}
 		if (tokenStart && ch === "#") {
 			const end = (() => { let at = i; while (at < source.length && source[at] !== "\r" && source[at] !== "\n") at++; return at; })();
@@ -261,10 +303,18 @@ function scanPowerShellString(source, start, kind, spans, report) {
 	const quotes = quoteSet(kind);
 	for (; i < source.length;) {
 		const ch = source[i];
-		if (kind === "double" && ch === "`" && i + 1 < source.length) {
-			live += hidden(ch) + hidden(source[i + 1]);
-			i += 2;
-			continue;
+		if (kind === "double" && ch === "`") {
+			const continued = escapedLineBreakEnd(source, i, "`");
+			if (continued >= 0) {
+				live += " ".repeat(continued - i);
+				i = continued;
+				continue;
+			}
+			if (i + 1 < source.length) {
+				live += hidden(ch) + hidden(source[i + 1]);
+				i += 2;
+				continue;
+			}
 		}
 		if (kind === "double" && ch === "$" && source[i + 1] === "(") {
 			const nested = scanPowerShellRange(source, i + 2, true, spans);
@@ -341,18 +391,26 @@ function commitIndexes(live) {
 function pipelineStarts(live) {
 	const starts = [];
 	let pipelineOpen = false;
+	let expectingCommand = false;
 	for (let i = 0; i < live.length; i++) {
 		const ch = live[i];
 		if (ch === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") {
 			if (!pipelineOpen) starts.push(i);
 			pipelineOpen = true;
+			expectingCommand = true;
 			if (live[i + 1] === "&") i++;
 			continue;
 		}
+		if ((ch === "\n" || ch === "\r") && expectingCommand) continue;
+		if (ch === " " || ch === "\t") continue;
 		if (STATUS_SEPARATORS.has(ch) || (ch === "&" && live[i + 1] === "&") || (ch === "|" && live[i + 1] === "|")) {
 			pipelineOpen = false;
+			expectingCommand = false;
 			if ((ch === "&" || ch === "|") && live[i + 1] === ch) i++;
-		} else if (ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) pipelineOpen = false;
+		} else if (ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) {
+			pipelineOpen = false;
+			expectingCommand = false;
+		} else if (pipelineOpen) expectingCommand = false;
 	}
 	return starts;
 }
@@ -377,11 +435,13 @@ function wordAt(text, at) {
 	return match?.[0].toLowerCase() ?? "";
 }
 
-function nextCommandReadsStatus(live, start) {
+function nextCommandReadsStatus(live, start, dialect, powershellNativeStatus) {
 	let depth = 0;
 	for (let i = start; i < live.length; i++) {
 		const ch = live[i];
-		if (ch === "$" && live[i + 1] === "?") return true;
+		if (dialect !== "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;
+		if (dialect === "powershell" && ch === "$" && live[i + 1] === "?") return true;
+		if (dialect === "powershell" && powershellNativeStatus && POWERSHELL_LAST_EXIT_CODE.test(live.slice(i))) return true;
 		if (BRACKET_OPENERS.has(ch)) { depth++; continue; }
 		if (BRACKET_CLOSERS.has(ch)) { if (depth > 0) depth--; continue; }
 		if (depth > 0) continue;
@@ -390,10 +450,28 @@ function nextCommandReadsStatus(live, start) {
 	return false;
 }
 
+function powershellPipelineEndsInCmdlet(live, pipe, end) {
+	let command = pipe + (live[pipe + 1] === "&" ? 2 : 1);
+	for (let i = command; i < end; i++) {
+		if (live[i] === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") {
+			command = i + (live[i + 1] === "&" ? 2 : 1);
+		}
+	}
+	while (command < end && isWhitespace(live[command])) command++;
+	if (live[command] === "&") {
+		command++;
+		while (command < end && isWhitespace(live[command])) command++;
+	}
+	const name = live.slice(command, end).match(/^[a-z][\w-]*/iu)?.[0] ?? "";
+	return POWERSHELL_CMDLET_NAME.test(name);
+}
+
 function statusReadAfterPipeline(live, pipe, dialect, errexitActive) {
 	if (dialect !== "powershell" && errexitActive) return pipe;
 	let depth = 0;
-	for (let i = pipe + (live[pipe + 1] === "&" ? 2 : 1); i < live.length; i++) {
+	let start = pipe + (live[pipe + 1] === "&" ? 2 : 1);
+	while (start < live.length && isWhitespace(live[start])) start++;
+	for (let i = start; i < live.length; i++) {
 		const ch = live[i];
 		if (BRACKET_OPENERS.has(ch)) { depth++; continue; }
 		if (BRACKET_CLOSERS.has(ch)) {
@@ -402,7 +480,11 @@ function statusReadAfterPipeline(live, pipe, dialect, errexitActive) {
 		}
 		if (depth > 0) continue;
 		if ((ch === "&" && live[i + 1] === "&") || (ch === "|" && live[i + 1] === "|")) return i;
-		if (dialect !== "powershell" && ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) return -1;
+		if (dialect !== "powershell" && ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) {
+			let next = i + 1;
+			while (next < live.length && isWhitespace(live[next])) next++;
+			return BASH_BACKGROUND_WAIT.test(live.slice(next)) ? next : -1;
+		}
 		if (!STATUS_SEPARATORS.has(ch)) continue;
 
 		let next = i;
@@ -414,7 +496,8 @@ function statusReadAfterPipeline(live, pipe, dialect, errexitActive) {
 			i = next + (word ? word.length : 1) - 1;
 			continue;
 		}
-		return nextCommandReadsStatus(live, next) ? next : -1;
+		const powershellNativeStatus = dialect === "powershell" && !powershellPipelineEndsInCmdlet(live, pipe, i);
+		return nextCommandReadsStatus(live, next, dialect, powershellNativeStatus) ? next : -1;
 	}
 	return -1;
 }
