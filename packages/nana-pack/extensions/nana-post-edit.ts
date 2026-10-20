@@ -31,6 +31,7 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { resolveToolPath } from "../lib/gate-paths.ts";
+import { POST_EDIT_DEFAULT_TIMEOUT_MS } from "../lib/post-edit-config.mjs";
 import { cmdCouldNotRun } from "../lib/win-command.mjs";
 import { promptPath, promptText, uiPath } from "../lib/display.mjs";
 
@@ -333,7 +334,7 @@ export default function (pi: ExtensionAPI) {
 			// `run` must be a usable string, and `timeoutMs` a non-negative INTEGER
 			// (a negative/NaN/fractional deadline is malformed config, not a deadline).
 			if (!c || typeof c.run !== "string") continue;
-			const timeoutMs = c.timeoutMs ?? 30_000;
+			const timeoutMs = c.timeoutMs ?? POST_EDIT_DEFAULT_TIMEOUT_MS;
 			if (typeof timeoutMs !== "number" || !Number.isInteger(timeoutMs) || timeoutMs < 0) continue;
 			let re: RegExp;
 			try {

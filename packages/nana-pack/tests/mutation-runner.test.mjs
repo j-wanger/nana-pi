@@ -486,7 +486,6 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	const workers = 8;
 	const acquisitions = 300;
 	fs.writeFileSync(lockPath, malformedGate);
-	fs.writeFileSync(markerPath, "gate", { flag: "wx" });
 	fs.writeFileSync(workerPath, [
 		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
 		importLine("* as fs", "node:fs"),
@@ -502,7 +501,8 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		"    let mine = false;",
 		'    try { fs.writeFileSync(markerPath, `${id}:${i}`, { flag: "wx" }); mine = true; } catch (err) {',
 		'      if (err.code !== "EEXIST") throw err;',
-		'      fs.appendFileSync(overlapPath, `${id}:${i}\\n`);',
+		'      let holder; try { holder = fs.readFileSync(markerPath, "utf8"); } catch { holder = "?"; }',
+		'      fs.appendFileSync(overlapPath, `${id}:${i} found ${holder}\\n`);',
 		"    }",
 		'    fs.appendFileSync(acquiredPath, `${id}:${i}\\n`);',
 		"    Atomics.wait(sleeper, 0, 0, 1);",
@@ -576,9 +576,9 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	const allReady = await waitUntil(() => { try { return fs.readFileSync(readyPath, "utf8").trim().split(/\r?\n/).length === workers; } catch { return false; } }, 5000);
 	fs.writeFileSync(startPath, "start");
 	await sleep(CFG.WORKTREE_LOCK_WAIT_MS * 4);
+	// no exclusivity marker exists during the gate, because this read catches any entry and a marker would race the lift.
 	const enteredFreshUnreadable = fs.existsSync(acquiredPath);
 	if (fs.existsSync(lockPath) && fs.readFileSync(lockPath, "utf8") === malformedGate) fs.rmSync(lockPath);
-	fs.rmSync(markerPath, { force: true });
 	const workerRuns = Promise.all(childRuns.slice(1));
 	let budgetTimer;
 	const budgetEnded = new Promise((resolve) => { budgetTimer = setTimeout(() => resolve("budget"), CONTENTION_BUDGET_MS); });
