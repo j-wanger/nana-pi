@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
@@ -261,6 +261,32 @@ export function judgePiPowerShell({ record }) {
   return { passed: true, code: null, detail: "" };
 }
 
+export function judgePiReview({ launch, reviewText, tallyText, record, standard, token, item }) {
+  if (launch?.error?.code === "ETIMEDOUT") return { passed: false, code: "timeout", detail: `review timed out after ${launch.ms ?? 0} ms` };
+  if (launch?.error) return { passed: false, code: "launch", detail: launch.error.message ?? launch.error.code ?? "review launcher could not start" };
+  if (launch?.status !== 0) return { passed: false, code: "exit", detail: `exit status ${launch?.status ?? "unknown"}` };
+  if (typeof reviewText !== "string") return { passed: false, code: "missing-review", detail: "review output could not be read" };
+  const reviewLines = reviewText.split(/\r?\n/).filter((line) => line.trim() !== "");
+  if (reviewLines.at(-1) !== PI_REVIEW.verdictLine) return { passed: false, code: "verdict-line", detail: `last non-blank review line is not ${PI_REVIEW.verdictLine}` };
+  const rounds = [];
+  try {
+    for (const line of String(tallyText ?? "").split(/\r?\n/)) if (line.trim()) rounds.push(JSON.parse(line));
+  } catch {
+    return { passed: false, code: "ledger", detail: "review tally has an unreadable line" };
+  }
+  const ownRounds = rounds.filter((round) => round?.kind === "round" && round?.item === item);
+  if (ownRounds.length !== 1 || ownRounds[0]?.verdict !== PI_REVIEW.verdict) return { passed: false, code: "ledger", detail: `review tally does not hold exactly one ${PI_REVIEW.verdict} round for ${item}` };
+  if (!isPlainObject(record)) return { passed: false, code: "missing-record", detail: `no readable ${PI_REVIEW.record} record` };
+  if (typeof standard !== "string" || !standard || typeof record.system !== "string" || !record.system.includes(standard)) return { passed: false, code: "standard", detail: "review system prompt does not hold the whole review standard" };
+  if (!Array.isArray(record.userMessages) || !record.userMessages.some((message) => typeof message === "string" && message.includes(token))) return { passed: false, code: "token", detail: "review user message does not hold the run token" };
+  if (record.role !== PI_REVIEW.role) return { passed: false, code: "role", detail: `review record role is not ${PI_REVIEW.role}` };
+  return { passed: true, code: null, detail: "" };
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", `'\\''`)}'`;
+}
+
 export async function runInstallCheck({ root, home, platformName, env, spawn, exists, now = () => new Date(), out = () => {} }) {
   const lines = [];
   const emitLine = (line) => { lines.push(line); out(line); };
@@ -359,6 +385,49 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   if (PI_TURN_POWERSHELL.platforms.includes(platformName)) {
     const powershellJudgment = judgePiPowerShell({ record: turnRecord });
     report(PI_TURN_POWERSHELL.item, turnTimedOut ? "timeout" : powershellJudgment.code, !turnTimedOut && powershellJudgment.passed, turn.error ? reason(turn) : powershellJudgment.detail);
+  }
+  const reviewRepo = path.join(home, PI_REVIEW.repoFolder);
+  const reviewOut = path.join(home, PI_REVIEW.outFolder);
+  fs.mkdirSync(reviewRepo, { recursive: true });
+  fs.mkdirSync(reviewOut, { recursive: true });
+  const reviewGit = (args) => invoke("git", [...PI_REVIEW.gitOptions, ...args], { cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.git });
+  const reviewGitResults = [];
+  reviewGitResults.push(await reviewGit(["init", "--quiet", "."]));
+  fs.writeFileSync(path.join(reviewRepo, PI_REVIEW.fixtureFile), PI_REVIEW.fixtureText);
+  reviewGitResults.push(await reviewGit(["add", PI_REVIEW.fixtureFile]));
+  reviewGitResults.push(await reviewGit(["commit", "--quiet", "-m", PI_REVIEW.commitMessage]));
+  const reviewGitFailure = reviewGitResults.find((result) => !okay(result));
+  const reviewRuns = platformName === "win32" ? PI_REVIEW.runs.win32 : PI_REVIEW.runs.default;
+  const reviewFixture = path.join(root, PI_REVIEW.fixture);
+  const reviewStandard = path.join(root, PI_REVIEW.standard);
+  const reviewRecordPath = path.join(home, PI_REVIEW.record);
+  const reviewTallyPath = path.join(home, ...PI_REVIEW.tally);
+  for (const run of reviewRuns) {
+    fs.rmSync(reviewRecordPath, { force: true });
+    const output = path.join(reviewOut, `${run.item}.md`);
+    const reviewArgs = ["--out", output, "--item", run.item, ...PI_REVIEW.launcherArgs, "--", ...PI_REVIEW.args.map((arg) => arg === PI_REVIEW.fixture ? reviewFixture : arg), `${PI_REVIEW.prompt} ${token}`];
+    let launched;
+    if (reviewGitFailure) {
+      launched = { status: null, error: Object.assign(new Error(`review repository setup failed: ${reason(reviewGitFailure)}`), { code: "ELAUNCH" }) };
+    } else if (run.form === "path") {
+      launched = await invoke(path.join(home, ".local", "bin", "pi-review"), reviewArgs, { cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review });
+    } else if (run.form === "cmd") {
+      const launch = winCommand(path.join(home, ".local", "bin", "pi-review.cmd"), reviewArgs, { comspec: childEnv.ComSpec });
+      launched = launch.refused
+        ? { status: null, error: Object.assign(new Error(launch.refused), { code: "ELAUNCH" }) }
+        : await invoke(launch.command, launch.args, { ...launch.options, cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review });
+    } else if (!bash) {
+      launched = { status: null, error: Object.assign(new Error("Git Bash was not found"), { code: "ELAUNCH" }) };
+    } else {
+      const commandLine = ["pi-review", ...reviewArgs].map(shellQuote).join(" ");
+      launched = await invoke(bash, [], { cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review, input: `${commandLine}\n` });
+    }
+    let reviewText = null; try { reviewText = fs.readFileSync(output, "utf8"); } catch {}
+    let tallyText = null; try { tallyText = fs.readFileSync(reviewTallyPath, "utf8"); } catch {}
+    let reviewRecord = null; try { reviewRecord = JSON.parse(fs.readFileSync(reviewRecordPath, "utf8")); } catch {}
+    let standard = null; try { standard = fs.readFileSync(reviewStandard, "utf8"); } catch {}
+    const judged = judgePiReview({ launch: launched, reviewText, tallyText, record: reviewRecord, standard, token, item: run.item });
+    report(run.label, judged.code, judged.passed, judged.detail);
   }
   const settingsPath = path.join(home, ".claude", "settings.json");
   let settings = {}; try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf8")); } catch {}

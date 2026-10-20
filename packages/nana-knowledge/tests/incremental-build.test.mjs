@@ -48,6 +48,7 @@ const s1 = await build();
 // req: R-201
 check("first build indexes both articles", s1.files === 3 && s1.reindexed === 3);
 // req: R-201
+// req: R-204
 check("first build rows = 2 articles + 2 ledger entries", s1.rows === 4);
 // req: R-202
 check("node_modules skipped", !JSON.stringify(s1).includes("node_modules"));
@@ -142,6 +143,63 @@ check("root dropped from sources.json: its rows are purged", s9.removed === 1 &&
 db = await openDb(path.join(home, "index.db"), {});
 check("purged rows are no longer searchable", search(db, "kilo lima", 5).length === 0);
 db.close();
+
+{
+	const walkerHome = path.join(td, "walker-home");
+	const walkerRoot = path.join(td, "walker-root");
+	const outside = path.join(td, "walker-outside");
+	fs.mkdirSync(path.join(walkerRoot, ".git"), { recursive: true });
+	fs.mkdirSync(path.join(walkerRoot, "notes", "raw"), { recursive: true });
+	fs.mkdirSync(outside, { recursive: true });
+	fs.mkdirSync(walkerHome, { recursive: true });
+	fs.writeFileSync(path.join(walkerRoot, "keep.md"), "# Keep\nkeeper token\n");
+	fs.writeFileSync(path.join(walkerRoot, ".git", "inside.md"), "# Git\ngit token\n");
+	fs.writeFileSync(path.join(walkerRoot, "notes", "raw", "scrape.md"), "# Raw\nraw token\n");
+	fs.writeFileSync(path.join(outside, "linked.md"), "# Linked\nlinked token\n");
+	fs.symlinkSync(outside, path.join(walkerRoot, "linked"), process.platform === "win32" ? "junction" : "dir");
+	process.env.NANA_KNOWLEDGE_HOME = walkerHome;
+	fs.writeFileSync(path.join(walkerHome, "sources.json"), JSON.stringify({ roots: [{ path: walkerRoot, kind: "articles" }] }));
+	await build();
+	const walkerDb = await openDb(path.join(walkerHome, "index.db"), {});
+	const walked = walkerDb.prepare("SELECT path FROM docs WHERE root = ?").all(walkerRoot)
+		.map((row) => path.relative(walkerRoot, row.path));
+	walkerDb.close();
+	const kept = walked.includes("keep.md");
+	// req: R-235
+	check("the walker skips a .git folder and a nested raw folder under an articles root",
+		kept && !walked.includes(path.join(".git", "inside.md")) && !walked.includes(path.join("notes", "raw", "scrape.md")));
+	// req: R-203
+	check("the walker skips a linked folder under an articles root (a junction on Windows)",
+		kept && !walked.includes(path.join("linked", "linked.md")));
+	process.env.NANA_KNOWLEDGE_HOME = home;
+}
+
+{
+	const fastHome = path.join(td, "fast-home");
+	const fastRoot = path.join(td, "fast-root");
+	const same = path.join(fastRoot, "same.md");
+	const sources = JSON.stringify({ roots: [{ path: fastRoot, kind: "articles" }] });
+	fs.mkdirSync(fastHome, { recursive: true });
+	fs.mkdirSync(fastRoot, { recursive: true });
+	fs.writeFileSync(same, "# Same\noldtoken\n");
+	const wholeSecond = Math.floor(Date.now() / 1000) - 60;
+	fs.utimesSync(same, wholeSecond, wholeSecond);
+	process.env.NANA_KNOWLEDGE_HOME = fastHome;
+	fs.writeFileSync(path.join(fastHome, "sources.json"), sources);
+	await build();
+	fs.writeFileSync(same, "# Same\nnewtoken\n");
+	fs.utimesSync(same, wholeSecond, wholeSecond);
+	fs.writeFileSync(path.join(fastHome, "sources.json"), sources);
+	const fastStats = await build();
+	const fastDb = await openDb(path.join(fastHome, "index.db"), {});
+	const oldFound = search(fastDb, "oldtoken", 5).length === 1;
+	const newFound = search(fastDb, "newtoken", 5).length > 0;
+	fastDb.close();
+	// req: R-236
+	check("a file whose size and mtime are unchanged is not read: same-length new bytes stay unindexed",
+		fastStats.reindexed === 0 && fastStats.unchanged === 1 && oldFound && !newFound);
+	process.env.NANA_KNOWLEDGE_HOME = home;
+}
 
 fs.rmSync(td, { recursive: true, force: true });
 process.exit(fails);

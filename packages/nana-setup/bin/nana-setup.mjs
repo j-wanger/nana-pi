@@ -11,10 +11,11 @@
  *  doctor), a closing summary and the "next:" hint; doctor's missing summary says install repairs
  *  all, lists every by-hand label, combines those two remedies, names install's refusal, or reports
  *  that an error code prevented repair prediction before giving the run-install fallback; stderr:
- *  the usage text and error messages; doctor's stderr carries no muted warning; process.exitCode.
+ *  the usage text and error messages; the stderr of doctor and project --check carries no muted warning;
+ *  process.exitCode.
  * @effects disk (through install / setupProject / dismissProject; doctor's install dry run writes
  *  nothing), process (the child processes those steps spawn; doctor's dry run may start `pi
- *  --version`; replaces the warning listeners for doctor; sets process.exitCode)
+ *  --version`; replaces the warning listeners for doctor and project --check; sets process.exitCode)
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
  *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
  *  store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1
@@ -99,7 +100,7 @@ function parse(argv) {
 
 const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", problem: "✗" };
 
-// Contract values probed 2026-10-19 on Node 22.22.2, rows R-1750 and R-1751;
+// Contract values probed 2026-10-19 on Node 22.22.2, rows R-1750, R-1751 and R-2050;
 // prior art: `loadSqlite` in `packages/nana-knowledge/lib/db.ts`.
 const DOCTOR_MUTED_WARNINGS = Object.freeze([
 	(warning) => warning?.name === "ExperimentalWarning" && /SQLite/.test(warning.message),
@@ -390,6 +391,7 @@ function runDoctor(opts) {
 async function runProject(opts) {
 	const dir = path.resolve(opts._[1] || process.cwd());
 	if (opts.check) {
+		muteDoctorWarnings();
 		// The same layout the setup used: `--check` reads the user-scope pi config so it can
 		// mirror the one decision that depends on it (the pack-config omission) — so it needs the
 		// same refusal as `install` (sol r3).

@@ -85,8 +85,11 @@ const slash = (p) => p.replace(/\\/g, "/");
 // --- discoverRoots, on its own ---
 const d = discoverRoots(DISCOVER);
 const paths_ = d.map((r) => r.path);
+// req: R-211
+// req: R-884
 check("repo with .git DIR contributes each convention subdir it has",
 	has(d, path.join(parent, "repoA", "docs")) && has(d, path.join(parent, "repoA", "research")));
+// req: R-211
 check("a git WORKTREE (.git file) counts as a repo", has(d, path.join(parent, "repoC", "knowledge")));
 check("a directory WITHOUT .git is not a repo", !has(d, path.join(parent, "repoB", "docs")));
 check("a repo without any listed subdir contributes nothing",
@@ -95,6 +98,7 @@ check("a repo without any listed subdir contributes nothing",
 check("an excluded child NAME is skipped even when it is a repo",
 	!paths_.some((p) => p.includes("node_modules")));
 check("a missing parent is skipped silently", d.length === 3); // repoA docs+research, repoC knowledge
+// req: R-884
 check("discovered roots are articles, and marked", d.every((r) => r.kind === "articles" && r.discovered === true));
 
 // --- sources.json integration ---
