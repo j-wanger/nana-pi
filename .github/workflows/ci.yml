@@ -40,5 +40,7 @@ jobs:
       - name: P1 step 3b (the exact read pi-watchdog runs today)
         run: |
           powershell -NoProfile -Command "(Get-Process -Id $$).CPU" || true
-      - name: P1 step 4 (win32-launch under de-DE, main's watchdog)
-        run: npm test -- packages/nana-pack/tests/win32-launch.test.mjs --verbose || echo "P1 step 4 exit $?"
+      - name: P1 step 4 (win32-launch under de-DE, the lane tip's watchdog)
+        run: npm test -- packages/nana-pack/tests/win32-launch.test.mjs --verbose
+      - name: P1 step 5 (watchdog-cpu under de-DE, the lane tip)
+        run: npm test -- packages/nana-pack/tests/watchdog-cpu.test.mjs --verbose
