@@ -207,7 +207,7 @@ if (process.platform !== "win32") {
   check("R-1162: run through a symlink to the script, the dry run still prints its plan",
     r.status === 0 && proof !== null && proof.rows === 2,
     `status=${r.status} proof=${JSON.stringify(proof)} ` + own(r.stderr).join(" | "));
-}
+} else console.log("SKIP R-1162: run through a symlink to the script, the dry run still prints its plan — a file symlink needs Developer Mode or admin rights");
 
 {
   // R-002 sits physically before R-001 in the input, so a leaf sorted by ID (R-1162's identity
@@ -984,7 +984,7 @@ if (process.platform !== "win32") {
   check("R-1164: --write and --verify relate the ledger and mapping to the repository when --root is spelled differently from git's top level",
     emit.status === 0 && w.status === 0 && v.status === 0 && !crashed(emit) && !crashed(w) && !crashed(v),
     `emit=${emit.status} w=${w.status} v=${v.status} ` + own(emit.stderr).concat(own(w.stderr), own(v.stderr)).join(" | "));
-}
+} else console.log("SKIP R-1164: --write and --verify relate the ledger and mapping to the repository when --root is spelled differently from git's top level — the git stand-in is a POSIX shell script");
 
 {
   // Build brief 5 item 2 (MUST 2, G4): a mapping validateMapping accepts (it checks no field's

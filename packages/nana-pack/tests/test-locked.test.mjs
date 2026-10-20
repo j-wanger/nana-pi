@@ -194,6 +194,10 @@ if (process.platform !== "win32") {
       check("SIGHUP releases the full-run lock", !exists());
     }
   }
+} else {
+  console.log("SKIP SIGINT releases the full-run lock — Windows kills a child outright, so its signal handler never runs");
+  console.log("SKIP SIGTERM releases the full-run lock — Windows kills a child outright, so its signal handler never runs");
+  console.log("SKIP SIGHUP releases the full-run lock — Windows kills a child outright, so its signal handler never runs");
 }
 
 if (process.platform !== "win32") {
@@ -214,7 +218,7 @@ if (process.platform !== "win32") {
   // req: R-626
   check("handled signals wait for suite termination before releasing the lock", blocked && firstResult.code === 143 && secondResult.code === 0 && log.filter((event) => event === "start").length === 2 && log.indexOf("term-ignored") >= 0 && log.lastIndexOf("start") > log.indexOf("term-ignored"), JSON.stringify({ blocked, firstResult, secondResult, log }));
 } else {
-  console.log("SKIP signal process-group wait on native Windows");
+  console.log("SKIP handled signals wait for suite termination before releasing the lock — Windows kills a child outright, so its signal handler never runs");
 }
 
 if (failures) process.exitCode = 1;

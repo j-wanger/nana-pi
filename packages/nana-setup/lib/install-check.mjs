@@ -382,7 +382,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   if (README_REHEARSAL.platforms.includes(platformName)) {
     const readmeHome = path.join(home, README_REHEARSAL.home);
     const readmeEnv = buildEnvironment(env, readmeHome, platformName);
-    const rehearsal = await runReadmeRehearsal({ root, home: readmeHome, env: readmeEnv, spawn });
+    const rehearsal = await runReadmeRehearsal({ root, home: readmeHome, env: readmeEnv, spawn, platformName });
     report(rehearsal.item, rehearsal.code, rehearsal.passed, rehearsal.detail);
   }
   if (failed) {
