@@ -62,6 +62,11 @@ function seed(home, settings) {
 	fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
 	fs.writeFileSync(settingsPath(home), JSON.stringify(settings, null, 2) + "\n");
 }
+function seedDeepSettings(home, depth) {
+	fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
+	const nestedValue = '{"next":'.repeat(depth) + '"leaf"' + "}".repeat(depth);
+	fs.writeFileSync(settingsPath(home), `{"hooks":{"SessionStart":[{"hooks":[{"owner":${nestedValue}}]}]}}`);
+}
 const regexEscape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const settingsLine = (output, label) => output.split("\n").find((line) => new RegExp(`[✓✗] settings ${regexEscape(label)}\\s`).test(line));
 
@@ -266,9 +271,7 @@ seed(refusedHome, { hooks: {
 const refusedDoctor = run(["doctor", "--home", refusedHome]);
 const refusedLines = winWanted.map((wanted) => settingsLine(refusedDoctor.stdout, wanted.label));
 const nestedHome = freshHome();
-let nestedValue = "leaf";
-for (let i = 0; i < 3_000; i++) nestedValue = { next: nestedValue };
-seed(nestedHome, { hooks: { SessionStart: [{ hooks: [{ owner: nestedValue }] }] } });
+seedDeepSettings(nestedHome, 3_000);
 const nestedDoctor = run(["doctor", "--home", nestedHome]);
 const nestedLines = winWanted.map((wanted) => settingsLine(nestedDoctor.stdout, wanted.label));
 // req: R-2412
