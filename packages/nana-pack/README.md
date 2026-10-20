@@ -105,7 +105,8 @@ counted in a user-scope ledger — never from the output file name, and the same
   character, or exceeds **128 characters**. The repository is the native real path (the folder's spelling on disk —
   case, long names, a resolved link) of the git **common dir** of the reviewed tree, so two spellings of one folder
   share the item, every worktree of one repository shares an item, while the same slug in an unrelated
-  repository is a different item. (Chosen over the remote URL: it exists for every repository,
+  repository is a different item. If native lookup fails, the fallback uses typed spelling, so these spelling
+  guarantees apply only where native lookup works. (Chosen over the remote URL: it exists for every repository,
   needs no URL normalization, and cannot be changed by `git remote set-url`. Cost: a fresh clone
   at a new path is a new scope.) `--tree <path>` selects the reviewed tree and defaults to the launcher cwd; outside git admission is refused. A scratch launcher must pass `--tree <path inside the reviewed repository>`.
 - **A round is a revision.** Revision = the reviewed tree's git `HEAD`, as a full sha.
