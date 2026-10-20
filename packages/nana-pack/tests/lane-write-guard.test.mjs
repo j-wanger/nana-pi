@@ -311,7 +311,6 @@ const laneFile = path.join(worktree, `lane-ok-${pid}.txt`);
 }
 
 {
-	// req-candidate: R-2273 (Windows only; becomes req: when the Windows CI leg passes it)
 	if (process.platform !== "win32") {
 		check("on Windows a differing TMP counts as a temp folder under the same rule as TEMP", false, "the differing-TMP case is a Windows one: on macOS and Linux Node reads TMPDIR first");
 	} else {
@@ -340,6 +339,7 @@ const laneFile = path.join(worktree, `lane-ok-${pid}.txt`);
 			// (d) TEMP=A, TMP=homeFixture: homeFixture/r2273-home-<pid>/x.txt refused
 			setBoth(folderA, homeFixture);
 			results.push(await refused(path.join(homeFixture, `r2273-home-${pid}`, "x.txt")));
+			// req: R-2273
 			check("on Windows a differing TMP counts as a temp folder under the same rule as TEMP", results.length > 0 && results.every(Boolean));
 		} finally {
 			if (savedTemp === undefined) delete process.env.TEMP; else process.env.TEMP = savedTemp;
