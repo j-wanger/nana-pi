@@ -410,7 +410,10 @@ Linking that per project would mean an installer step per repo, forever. Instead
   from `lib/project-key.mjs`, including non-ASCII paths; when no project directory can be read it
   reports self-heal skipped and still prints the index;
 - then it creates the memory dir and the `shared` symlink if they are missing, and prints the
-  index.
+  index;
+- the budget in `lib/shared-memory-config.mjs` sits below Claude Code's 10,000-character hook
+  output cap. The longest descriptions are cut first, trailing entries drop only when titles
+  overflow, and a fold line follows.
 
 So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` →
 `-Users-jwang-aml-desk`; `/Users/jwang/.nana-worktrees/x` → `-Users-jwang--nana-worktrees-x`.
@@ -485,6 +488,7 @@ loudly and counted, never silent.
 | `tests/project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
 | `tests/shared-memory-hook.test.mjs` | the real Node hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, and non-ASCII key derivation |
 | `tests/shared-memory-input.test.mjs` | the shared-memory hook's TTY guard and 65536-byte stdin cap |
+| `tests/shared-memory-budget.test.mjs` | the shared-memory hook's output budget, longest-description cuts, whole trailing-entry drops, surrogate-safe trim mark and fold counts |
 | `tests/pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `tests/pi-launch-limits.test.mjs` | bounded `pi --version` and `pi install` launches for install, its dry run and doctor; timeout rows, full process-tree cleanup after limits, signals or parent death, default limits, agent-folder environment, POSIX termination grace and near-1 MiB output on each stream |
 | `tests/doctor-package-source.test.mjs` | pi package source diagnosis for remote entries, object-form sources, in-checkout relative entries, external worktree identity, clone-first remedy and unrelated packages |
