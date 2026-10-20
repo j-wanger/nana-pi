@@ -47,6 +47,11 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Run: node --experimental-strip-types <this file>
 const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
 const { loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
+const { POST_EDIT_KILL_GRACE_MS } = await import(new URL("../lib/post-edit-config.mjs", import.meta.url).href);
+// chosen: today's settle bound (deadline + kill grace), read from the named grace so retuning
+// POST_EDIT_KILL_GRACE_MS changes this bound too, rather than the checks going red on a value
+// the extension no longer uses (post-edit-values-named's R-2210 probe).
+const SETTLE_BOUND_MS = POST_EDIT_KILL_GRACE_MS + 4000;
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
@@ -187,7 +192,7 @@ function removeTreeFixture(td) {
 // req: R-787
 	check("a: SIGTERM-ignoring checker does not hang the handler", !hung);
 // req: R-787
-	check(`a: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
+	check(`a: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < SETTLE_BOUND_MS);
 	check("a: timeout fed back to the model",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	// req: R-787
@@ -218,7 +223,7 @@ if (POSIX) {
 	const { hung, ms } = await settle(fire(file));
 	// req: R-094
 	check("b: descendant holding the pipe does not hang the handler", !hung);
-	check(`b: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
+	check(`b: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < SETTLE_BOUND_MS);
 	await sleep(200);
 	const left = survivors(marker);
 	check("b: no orphaned grandchild survives the kill", left === "");
@@ -377,7 +382,7 @@ if (process.platform === "win32") {
 		if (cleanupEnded) removeTreeFixture(td);
 	}
 	check("c: abort does not hang a SIGTERM-ignoring checker", !hung);
-	check(`c: aborted run resolved within the kill grace (${ms}ms)`, !hung && ms < 6000);
+	check(`c: aborted run resolved within the kill grace (${ms}ms)`, !hung && ms < SETTLE_BOUND_MS);
 	// req: R-1820
 	check("c: an aborted turn ends the check's process and that process's still-running child", builtAlive && ended);
 	if (!(builtAlive && ended)) console.log(`c: pids alive before reap: ${aliveBeforeReap.join(", ") || "none"}`);
@@ -412,7 +417,7 @@ if (POSIX) {
 	// req: R-094
 	check("f: unkillable pipe-holder does not hang the handler", !hung);
 	// req: R-094
-	check(`f: settled within deadline + kill grace even though the kill failed (${ms}ms)`, !hung && ms < 6000);
+	check(`f: settled within deadline + kill grace even though the kill failed (${ms}ms)`, !hung && ms < SETTLE_BOUND_MS);
 	check("f: forced settlement is fed back to the model",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	reap(survivors(marker)); // known residual: out of reach of the group kill
