@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/win32-hook-repair.test.mjs
  * @purpose Pin Windows repair of POSIX installer hook settings while preserving owner look-alikes.
  * @inputs nana-setup CLI, desired hook fixtures, the repository layout, and throwaway homes.
- * @outputs PASS/FAIL lines for the eight repair checks and exit 1 when any check fails.
+ * @outputs PASS/FAIL lines for the fourteen repair checks and exit 1 when any check fails.
  * @effects disk (throwaway home layouts), process (spawns install and doctor with forced win32).
  * @errors A failed check prints its observed detail; unexpected setup or filesystem errors propagate.
  */
@@ -63,6 +63,7 @@ function seed(home, settings) {
 	fs.writeFileSync(settingsPath(home), JSON.stringify(settings, null, 2) + "\n");
 }
 const regexEscape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const settingsLine = (output, label) => output.split("\n").find((line) => new RegExp(`[✓✗] settings ${regexEscape(label)}\\s`).test(line));
 
 const foreignSession = { type: "command", command: "echo session-owner", timeout: 17, statusMessage: "owner session" };
 const foreignBeforeVerifier = { type: "command", command: "echo verifier-before", timeout: 10, statusMessage: "owner before" };
@@ -207,5 +208,65 @@ const f4Preserved = f4Install.status === 0 && byteEqual(f4After.hooks.SessionSta
 // req: R-653
 check("win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical", f4Preserved, `${f4Install.stdout}\n${JSON.stringify(f4After.hooks)}`);
 
-console.log(`SUMMARY  PASS=${11 - fails} FAIL=${fails} SKIP=0`);
+const vEntries = [
+	{ ...clone(carriedSession[0]), command: `node "${sourceHooksDir}/nana-objective.mjs"` },
+	{ ...clone(carriedSession[1]), command: `node ${sourceHooksDir}/nana-adoption.mjs` },
+	{ ...clone(carriedSession[2]), command: "node", args: [`${sourceHooksDir}/nana-shared-memory.mjs`] },
+	{ ...clone(carriedSession[3]), command: `node "${sourceRepoRoot}/packages/nana-setup/claude/hooks/nana-roster-notice.mjs"` },
+];
+const vVerifier = { ...clone(carriedVerifier), command: "node", args: [`${sourceHooksDir}/verifier-pipe.mjs`] };
+const vKnowledge = { ...clone(carriedKnowledge), command: `NODE_NO_WARNINGS=1 node "${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts" hook` };
+const vHome = freshHome();
+seed(vHome, { hooks: {
+	SessionStart: [{ hooks: vEntries }],
+	PreToolUse: [{ matcher: WIN_VERIFIER_MATCHER, hooks: [vVerifier] }],
+	UserPromptSubmit: [{ hooks: [vKnowledge] }],
+} });
+const vInstall = run(["install", "--home", vHome]);
+const vDoctor = run(["doctor", "--home", vHome]);
+const vDeadPaths = [
+	`${sourceHooksDir}/nana-objective.mjs`,
+	`${sourceHooksDir}/nana-adoption.mjs`,
+	`${sourceHooksDir}/nana-shared-memory.mjs`,
+	`${sourceRepoRoot}/packages/nana-setup/claude/hooks/nana-roster-notice.mjs`,
+	`${sourceHooksDir}/verifier-pipe.mjs`,
+	`${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`,
+];
+const vRowsRepairByHand = winWanted.every((wanted, index) => {
+	const line = settingsLine(vDoctor.stdout, wanted.label);
+	return line?.trimStart().startsWith("✗ ") && line.includes(vDeadPaths[index]) && line.includes(wanted.entry.args[0]) && line.includes("by hand");
+});
+const f4Doctor = run(["doctor", "--home", f4Home]);
+const f4ObjectiveLine = settingsLine(f4Doctor.stdout, "SessionStart objective");
+// req: R-2410
+check("win32 doctor: after install, a ✗ settings row names each dead entry install leaves and its hand repair", vInstall.status === 0 && vRowsRepairByHand && f4ObjectiveLine?.trimStart().startsWith("✗ ") && f4ObjectiveLine.includes("/Users/someone/custom/nana-objective.mjs") && f4ObjectiveLine.includes("by hand"), `${vInstall.stdout}\n${vDoctor.stdout}\n${f4Doctor.stdout}`);
+
+const guardHome = freshHome();
+const guardObjectiveLookalike = { ...clone(carriedSession[0]), command: "node '/Users/other/custom/nana-objective.mjs'", timeout: 10 };
+seed(guardHome, { hooks: {
+	SessionStart: [{ hooks: [...clone(carriedSession), guardObjectiveLookalike] }],
+	PreToolUse: [{ matcher: "Bash", hooks: [clone(carriedVerifier)] }],
+	UserPromptSubmit: [{ hooks: [clone(carriedKnowledge)] }],
+} });
+const guardDoctor = run(["doctor", "--home", guardHome]);
+const guardLines = winWanted.map((wanted) => settingsLine(guardDoctor.stdout, wanted.label));
+const guardInstallerPaths = [
+	...sessionLabels.map((label) => `${sourceHooksDir}/${byLabel(posixWanted, label).spec.script}`),
+	`${sourceHooksDir}/verifier-pipe.mjs`,
+	`${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`,
+];
+// req: R-2411
+check("win32 doctor: a ✗ settings row never names an entry install repairs as a hand repair", guardLines.every((line, index) => line?.trimStart().startsWith("✗ ") && !line.includes(guardInstallerPaths[index])) && guardLines.slice(1).every((line) => !line.includes("by hand")), guardDoctor.stdout);
+
+const refusedHome = freshHome();
+seed(refusedHome, { hooks: {
+	SessionStart: [{ hooks: [clone(carriedSession[0])] }],
+	UserPromptSubmit: "not a list",
+} });
+const refusedDoctor = run(["doctor", "--home", refusedHome]);
+const refusedLines = winWanted.map((wanted) => settingsLine(refusedDoctor.stdout, wanted.label));
+// req: R-2412
+check("win32 doctor: a settings shape install refuses still prints all six settings rows as ✗", refusedLines.every((line) => line?.trimStart().startsWith("✗ ")) && !refusedDoctor.stderr.includes("TypeError"), `${refusedDoctor.stdout}\n${refusedDoctor.stderr}`);
+
+console.log(`SUMMARY  PASS=${14 - fails} FAIL=${fails} SKIP=0`);
 process.exit(fails);

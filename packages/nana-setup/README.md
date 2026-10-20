@@ -278,6 +278,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - Git Bash on Windows has no settings-lock removal form of its own.
 - `state --paths` archives only the default, non-overlapping layout and refuses custom homes that alias or nest; configured home roots cannot contain glob characters.
 - No mechanical check keeps a future doctor-calling test inside `withPiStub`; an unwrapped call runs the ambient `pi --version` (read-only), and reviewers check it.
+- On Windows, install leaves hand-written or look-alike hook entries as written; doctor's ✗ settings line names each one and tells you to edit it to run this checkout's script or remove it by hand.
 - `project` still prints the typeless warning.
 - A bare `uvx copier copy` project keeps the seeded objective's DRAFT lines until an owner ratifies them through the relevant scaffold or adopt skill; copier alone does not ask for either line.
 - A copier-born project has no month log until `nana-setup project` runs; the distinct entry routes are not collapsed into one setup path.
@@ -488,7 +489,7 @@ loudly and counted, never silent.
 | `tests/doctor-quiet.test.mjs` | doctor and `project --check` mute the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning while preserving unrelated Node warnings |
 | `tests/doctor-fix-line.test.mjs` | doctor's final line gives install only the ✗ rows its dry run repairs, lists the rest by hand, reports a refusal, preserves ! counts, and writes nothing |
 | `tests/win32-degrade.test.mjs` | every still-posix-only step reporting `skipped (win32)`; install and doctor printing no hook-file row; all eight PATH shim files, install idempotence and collision backup; doctor requiring both shim renderings; the six win32 settings entries wired in exec form with matcher `Bash\|PowerShell`; and the copy path backing up / never writing through a symlink |
-| `tests/win32-hook-repair.test.mjs` | Windows repair of carried POSIX shell-form hooks and the first unquoted knowledge form; verifier relocation and deduplication; second-install and doctor health; owner look-alikes preserved byte-identically |
+| `tests/win32-hook-repair.test.mjs` | Windows repair of carried POSIX shell-form hooks and the first unquoted knowledge form; verifier relocation and deduplication; second-install and doctor health; owner look-alikes preserved byte-identically; doctor naming dead entries install leaves, excluding entries install repairs, and tolerating refused settings shapes |
 | `tests/win-shims.test.mjs` | bare-name sh, cmd.exe and Windows PowerShell argument and exit-status handoff; PATH node selection; self-rewrite safety; and Windows PATH-resolution diagnosis |
 | `tests/desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
 | `tests/stale-copies.test.mjs` | Claude Code and pi stale-copy notices on POSIX and win32; exact doctor-label parity across hook links, hook settings, rules and skills; blocked skill paths or their linked parent to move; repair clearing the line; a byte-unchanged home; silence when current; and the checker failure marker |
