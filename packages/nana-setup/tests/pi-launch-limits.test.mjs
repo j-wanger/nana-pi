@@ -3,7 +3,7 @@
  * @module packages/nana-setup/tests/pi-launch-limits.test.mjs
  * @purpose Prove install, its dry run and doctor bound pi launches and end every process those launches start.
  * @inputs steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
- * @outputs PASS/FAIL lines for nine requirement checks and exit 1 when any check fails
+ * @outputs PASS/FAIL/SKIP lines for thirteen requirement checks and exit 1 when any check fails
  * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
  * @errors a failed or over-time check prints FAIL and makes the file exit nonzero
  */
@@ -18,13 +18,17 @@ import { installExitCode, PI_LAUNCH_LIMITS_MS, stepPiRegister } from "../lib/ste
 import * as boundedSpawn from "../lib/bounded-spawn.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
-const { RELAY_BACKSTOP_MS, RELAY_SETTLE_MS } = boundedSpawn;
+const { RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SETTLE_MS, RELAY_SIGNAL_GRACE_MS } = boundedSpawn;
 const LIMIT_MS = 3_000;
 const HANG_MS = 12_000;
+// contract: R-2132 (main's spawnSync default per stream)
+const MAIN_SPAWN_STREAM_BYTES = 1024 * 1024;
 const SIGNAL_CASE_BOUND_MS = 9_000;
 // Test-only margin for scheduler delay on shared CI after the relay's one-second settle window.
 const RELAY_ELAPSED_MARGIN_MS = 1_000;
 const RELAY_ELAPSED_BOUND_MS = LIMIT_MS + RELAY_SETTLE_MS + RELAY_ELAPSED_MARGIN_MS;
+const PARENT_KILL_BOUND_MS = RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + RELAY_ELAPSED_MARGIN_MS;
+const CLEANUP_DELAY_MS = 2 * RELAY_PARENT_POLL_MS;
 const CASE_LIMIT_MS = SIGNAL_CASE_BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS;
 const PID_POLL_MS = 2_000;
 const limits = Object.freeze({ version: LIMIT_MS, install: LIMIT_MS });
@@ -53,10 +57,13 @@ function processAlive(pid) {
 	}
 }
 
-function readPids(file) {
+function readPidRecords(file) {
 	if (!fs.existsSync(file)) return [];
-	const records = fs.readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
-	return [...new Set(records.flatMap(({ pid, ppid }) => [pid, ppid]).filter((pid) => Number.isInteger(pid) && pid > 0))];
+	return fs.readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+}
+
+function readPids(file) {
+	return [...new Set(readPidRecords(file).flatMap(({ pid, ppid }) => [pid, ppid]).filter((pid) => Number.isInteger(pid) && pid > 0))];
 }
 
 function waitDeadSync(pids) {
@@ -83,7 +90,7 @@ function makeFixture(target, { registerKnowledge = false } = {}) {
 	const hang = path.join(bin, "hang.cjs");
 	fs.writeFileSync(
 		hang,
-		`const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid, args: process.argv.slice(2), agentDir: process.env.PI_CODING_AGENT_DIR ?? null }) + "\\n");\nif (process.argv[2] === "child") { setTimeout(() => process.exit(0), Number(process.env.HANG_MS)); return; }\nconst args = process.argv.slice(2);\nconst target = process.env.HANG_TARGET;\nif (args[0] === "--version" && target !== "version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nif (args[0] === "install" && target !== "install") process.exit(0);\nspawn(process.execPath, [__filename, "child"], { stdio: "inherit", env: process.env });\nsetTimeout(() => process.exit(0), Number(process.env.HANG_MS));\n`,
+		`const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid, args: process.argv.slice(2), agentDir: process.env.PI_CODING_AGENT_DIR ?? null }) + "\\n");\nif (process.env.IGNORE_SIGINT) process.on("SIGINT", () => {});\nif (process.argv[2] === "child") { setTimeout(() => process.exit(0), Number(process.env.HANG_MS)); return; }\nconst args = process.argv.slice(2);\nconst target = process.env.HANG_TARGET;\nif (args[0] === "--version" && target !== "version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nif (args[0] === "install" && target !== "install") process.exit(0);\nspawn(process.execPath, [__filename, "child"], { stdio: "inherit", env: process.env });\nsetTimeout(() => process.exit(0), Number(process.env.HANG_MS));\n`,
 	);
 	if (process.platform === "win32") {
 		fs.writeFileSync(path.join(bin, "pi.cmd"), `@"${process.execPath}" "%~dp0hang.cjs" %*\r\n`);
@@ -115,7 +122,7 @@ function makeSignalCleanupFixture() {
 	const cleanup = path.join(fixture.bin, "signal-cleanup.cjs");
 	fs.writeFileSync(
 		cleanup,
-		`const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nconst args = process.argv.slice(2);\nif (args[0] === "--version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nfs.mkdirSync(process.env.LOCK_DIR);\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid }) + "\\n");\nspawn(process.execPath, ["-e", "require('node:fs').appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid }) + '\\\\n'); setTimeout(() => {}, 60_000)"], { stdio: "ignore", env: process.env });\nprocess.on("SIGINT", () => { fs.rmSync(process.env.LOCK_DIR, { recursive: true }); process.exit(0); });\nfs.writeFileSync(process.env.READY_FILE, "ready\\n");\nsetTimeout(() => {}, 60_000);\n`,
+		`const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nconst args = process.argv.slice(2);\nif (args[0] === "--version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nfs.mkdirSync(process.env.LOCK_DIR);\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid }) + "\\n");\nspawn(process.execPath, ["-e", "require('node:fs').appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid }) + '\\\\n'); setTimeout(() => {}, 60_000)"], { stdio: "ignore", env: process.env });\nprocess.on("SIGINT", () => { setTimeout(() => { fs.rmSync(process.env.LOCK_DIR, { recursive: true }); process.exit(0); }, Number(process.env.CLEANUP_DELAY_MS ?? 0)); });\nfs.writeFileSync(process.env.READY_FILE, "ready\\n");\nsetTimeout(() => {}, 60_000);\n`,
 	);
 	if (process.platform === "win32") {
 		fs.writeFileSync(pi, `@"${process.execPath}" "%~dp0signal-cleanup.cjs" %*\r\n`);
@@ -130,8 +137,66 @@ function makeSignalCleanupFixture() {
 	return fixture;
 }
 
+function makeLargeOutputFixture(exitCode) {
+	const fixture = makeFixture("none", { registerKnowledge: true });
+	const output = path.join(fixture.bin, "large-output.cjs");
+	fs.writeFileSync(output, `const args = process.argv.slice(2);\nif (args[0] === "--version") { process.stdout.write("1.0.2\\n"); }\nelse {\n  const text = "\\u0001".repeat(Number(process.env.OUTPUT_BYTES));\n  process.stdout.write(text);\n  process.stderr.write(text);\n  process.stderr.write("\\nboom: last line\\n");\n  process.exitCode = Number(process.env.PI_EXIT_CODE);\n}\n`);
+	const pi = path.join(fixture.bin, process.platform === "win32" ? "pi.cmd" : "pi");
+	if (process.platform === "win32") fs.writeFileSync(pi, `@"${process.execPath}" "%~dp0large-output.cjs" %*\r\n`);
+	else {
+		fs.writeFileSync(pi, `#!/bin/sh\nexec "${process.execPath}" "${output}" "$@"\n`);
+		fs.chmodSync(pi, 0o755);
+	}
+	fixture.env.OUTPUT_BYTES = String(MAIN_SPAWN_STREAM_BYTES - 64);
+	fixture.env.PI_EXIT_CODE = String(exitCode);
+	return fixture;
+}
+
+function makeInstallWrapper(fixture) {
+	const wrapper = path.join(fixture.home, "wrapper.mjs");
+	const stepsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "steps.mjs")).href;
+	const pathsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "paths.mjs")).href;
+	fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
+	return wrapper;
+}
+
+function launchInstallWrapper(fixture, extraEnv = {}) {
+	return spawn(process.execPath, [makeInstallWrapper(fixture)], { detached: true, stdio: "ignore", env: { ...fixture.env, ...extraEnv, FIXTURE_HOME: fixture.home, LIMIT_MS: String(HANG_MS) } });
+}
+
+async function observeParentKill({ group }) {
+	const fixture = makeFixture("version");
+	const child = launchInstallWrapper(fixture, { IGNORE_SIGINT: "1" });
+	const started = await waitFor(() => readPids(fixture.pids).length >= 3);
+	const beforeKill = readPids(fixture.pids);
+	const boundBelowHang = PARENT_KILL_BOUND_MS < HANG_MS;
+	if (started) process.kill(group ? -child.pid : child.pid, "SIGKILL");
+	const killedAt = Date.now();
+	const dead = await waitFor(() => beforeKill.length >= 3 && beforeKill.every((pid) => !processAlive(pid)), PARENT_KILL_BOUND_MS);
+	const elapsed = Date.now() - killedAt;
+	if (!dead) for (const pid of beforeKill) try { process.kill(pid, "SIGKILL"); } catch {}
+	return { started: Boolean(started), pids: beforeKill, dead: Boolean(dead), elapsed, bound: PARENT_KILL_BOUND_MS, boundBelowHang };
+}
+
+async function runCleanupSignalPhase(signalRelay) {
+	const fixture = makeSignalCleanupFixture();
+	const child = launchInstallWrapper(fixture, { CLEANUP_DELAY_MS: String(CLEANUP_DELAY_MS) });
+	const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
+	const started = await waitFor(() => fs.existsSync(fixture.lock) && fs.existsSync(fixture.ready) && readPids(fixture.pids).length >= 3);
+	const records = readPidRecords(fixture.pids);
+	const relayPid = records[0]?.ppid;
+	if (started && signalRelay) process.kill(relayPid, "SIGINT");
+	if (started) process.kill(-child.pid, "SIGINT");
+	const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
+	const cleaned = await waitFor(() => !fs.existsSync(fixture.lock));
+	const pids = readPids(fixture.pids);
+	const dead = await waitFor(() => pids.length >= 3 && pids.every((pid) => !processAlive(pid)));
+	if (!dead) for (const pid of pids) try { process.kill(pid, "SIGKILL"); } catch {}
+	return { signalRelay, started: Boolean(started), relayPid, exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) };
+}
+
 function withFixtureEnv(fixture, run) {
-	const names = ["PATH", "PIDS_FILE", "HANG_TARGET", "HANG_MS", "LOCK_DIR", "READY_FILE"];
+	const names = ["PATH", "PIDS_FILE", "HANG_TARGET", "HANG_MS", "LOCK_DIR", "READY_FILE", "CLEANUP_DELAY_MS", "OUTPUT_BYTES", "PI_EXIT_CODE"];
 	const saved = Object.fromEntries(names.map((name) => [name, process.env[name]]));
 	for (const name of names) process.env[name] = fixture.env[name];
 	try {
@@ -242,17 +307,12 @@ check("R-2025: pi install started under the limit receives the agent folder inst
 // req: R-2026
 check("R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group end the pi launch it waits on", async () => {
 	if (process.platform === "win32") {
-		console.log("SKIP R-2026: win32 has no process-group signal, and process.kill ends a process without running its handlers");
-		return { ok: true };
+		return { skip: "win32 has no process-group signal, and process.kill ends a process without running its handlers" };
 	}
-	const stepsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "steps.mjs")).href;
-	const pathsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "paths.mjs")).href;
 	const observations = [];
 	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
 		const fixture = makeFixture("version");
-		const wrapper = path.join(fixture.home, "wrapper.mjs");
-		fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
-		const child = spawn(process.execPath, [wrapper], { detached: true, stdio: "ignore", env: { ...fixture.env, FIXTURE_HOME: fixture.home, LIMIT_MS: String(HANG_MS) } });
+		const child = launchInstallWrapper(fixture);
 		const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
 		const started = await waitFor(() => readPids(fixture.pids).length >= 3);
 		if (started) process.kill(-child.pid, signal);
@@ -270,15 +330,10 @@ check("R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group e
 // req: R-2027
 check("R-2027: SIGINT lets pi install remove its lock before install ends its launch processes", async () => {
 	if (process.platform === "win32") {
-		console.log("SKIP R-2027: win32 delivers console Ctrl-C to the attached pi process and has no process-group SIGINT equivalent");
-		return { ok: true };
+		return { skip: "win32 delivers console Ctrl-C to the attached pi process and has no process-group SIGINT equivalent" };
 	}
 	const fixture = makeSignalCleanupFixture();
-	const wrapper = path.join(fixture.home, "wrapper.mjs");
-	const stepsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "steps.mjs")).href;
-	const pathsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "paths.mjs")).href;
-	fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
-	const child = spawn(process.execPath, [wrapper], { detached: true, stdio: "ignore", env: { ...fixture.env, FIXTURE_HOME: fixture.home, LIMIT_MS: String(HANG_MS) } });
+	const child = launchInstallWrapper(fixture);
 	const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
 	const started = await waitFor(() => fs.existsSync(fixture.lock) && fs.existsSync(fixture.ready) && readPids(fixture.pids).length >= 3);
 	if (started) process.kill(-child.pid, "SIGINT");
@@ -290,6 +345,39 @@ check("R-2027: SIGINT lets pi install remove its lock before install ends its la
 	return { ok: Boolean(started && exited && cleaned && dead), detail: JSON.stringify({ started: Boolean(started), exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) }) };
 });
 
+// req: R-2130
+check("R-2130: a SIGKILL of install's whole process group ends the pi launch it waits on within the parent check and the signal grace", async () => {
+	if (process.platform === "win32") return { skip: "Windows has no process-group SIGKILL" };
+	const observed = await observeParentKill({ group: true });
+	return { ok: observed.started && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
+});
+
+// req: R-2131
+check("R-2131: a SIGKILL of install alone ends the pi launch it waits on within the parent check and the signal grace", async () => {
+	if (process.platform === "win32") return { skip: "a Windows parent's death leaves process.ppid unchanged" };
+	const observed = await observeParentKill({ group: false });
+	return { ok: observed.started && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
+});
+
+// req: R-2132
+check("R-2132: a pi install that writes just under 1 MiB of control characters to each of stdout and stderr reads created on exit 0 and failed with its last error line on exit 1", () => {
+	const runs = [0, 1].map((exitCode) => {
+		const fixture = makeLargeOutputFixture(exitCode);
+		const rows = withFixtureEnv(fixture, () => stepPiRegister(fixture.layout, {}, { env: fixture.env, limits: { version: HANG_MS, install: HANG_MS }, platform: () => process.platform }));
+		return { exitCode, rows, installExitCode: installExitCode(rows) };
+	});
+	const [success, failure] = runs;
+	return { ok: success.rows[0]?.status === "created" && success.installExitCode === 0 && failure.rows[0]?.status === "problem" && failure.installExitCode === 1 && failure.rows[0]?.detail.endsWith("failed: boom: last line"), detail: JSON.stringify(runs) };
+});
+
+// req: R-2133
+check("R-2133: SIGINT to install's process group, alone or with the relay signalled too, still lets a pi install that cleans up over two parent checks remove its lock before its processes end", async () => {
+	if (process.platform === "win32") return { skip: "Windows has no process-group SIGINT" };
+	const delayBelowGrace = CLEANUP_DELAY_MS < RELAY_SIGNAL_GRACE_MS;
+	const phases = [await runCleanupSignalPhase(false), await runCleanupSignalPhase(true)];
+	return { ok: delayBelowGrace && phases.every(({ started, exited, cleaned, dead }) => started && exited && cleaned && dead), detail: JSON.stringify({ cleanupDelay: CLEANUP_DELAY_MS, signalGrace: RELAY_SIGNAL_GRACE_MS, phases }) };
+});
+
 for (const testCase of cases) {
 	let timer;
 	try {
@@ -297,8 +385,9 @@ for (const testCase of cases) {
 			Promise.resolve().then(testCase.run),
 			new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, detail: `case exceeded ${CASE_LIMIT_MS} ms` }), CASE_LIMIT_MS); }),
 		]);
-		console.log(result?.ok ? "PASS" : "FAIL", testCase.title, result?.ok ? "" : result?.detail ?? "");
-		if (!result?.ok) fails++;
+		if (result?.skip) console.log("SKIP", testCase.title, result.skip);
+		else console.log(result?.ok ? "PASS" : "FAIL", testCase.title, result?.ok ? "" : result?.detail ?? "");
+		if (!result?.ok && !result?.skip) fails++;
 	} catch (error) {
 		console.log("FAIL", testCase.title, error?.stack || error);
 		fails++;
