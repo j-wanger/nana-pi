@@ -12,7 +12,8 @@ two builds (406f3289; 3e90e4d7, tests, rows and README only). The seat's record 
 macOS, Ubuntu and Windows (`ci-windows-9dc58d5e.log` beside it; R-2254 passes on Windows), the macOS wrong-code pairs
 (`seat-mutate.mjs`; 17 of 19 red on 6ec2cf0e and 18 of 19 on build 2 3e90e4d7, records `seat-mutate-output-*.txt`; M15
 a declared equivalent), and the independent check (`independent-check-7b996d0a.md`: HOLDS, no MUST, run on 6ec2cf0e).
-No Windows pairs ran: the Windows-only wrong code rests on the Windows leg's green checks. CI has not run on 7b996d0a;
+The Windows-only wrong code ran as five pairs on a scratch Windows CI job (`seat-mutate-win.mjs`; 5 of 5 red on
+b696bfc8, record `seat-mutate-win-output-b696bfc8.txt`). CI has not run on 7b996d0a;
 the land runs the locked suite on the reviewed tip, and the local macOS install check runs before the land.
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`, which reads from the merge base; run at
@@ -60,8 +61,8 @@ Lane class: install, hook or gate — the land and review tools (review-ledger r
 uses; pi-review is unchanged).
 
 Check: (1) the must-meet checks are not vacuous: each macOS pair turns its named check red (M2 to M14, M16 to M19), M1
-turns R-2255 red, M15 is a true equivalent, R-2254 passes on the Windows leg, and its red half on Windows (W10, W11) is
-inferred, not run — judge whether that leaves a must-meet check unproven; (2) no fail-open: a round is recorded only on
+turns R-2255 red, M15 is a true equivalent, R-2254 passes on the Windows leg, and its red half on Windows (W10, W11, W11b)
+ran on the Windows leg, red — judge whether any must-meet check is still unproven; (2) no fail-open: a round is recorded only on
 exit 0 with review-shaped output, a command that cannot start consumes no round and leaves no reservation, and the
 heartbeat cannot outlive a failed start; (3) every route in the resolver matches R-2251 to R-2253, including ComSpec in
 any key case and the `cmd.exe /d /v:off /s /c` line's quoting; (4) nothing main does today stopped working: an exact

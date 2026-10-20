@@ -81,9 +81,12 @@
     (W10, which R-2254 should catch), review-ledger ignoring `reviewLaunch` (W11, R-2254 and R-1722), the resolver's
     `pi launch refused:` prefix dropped (the R-1723 R-2250 check), and the refusal as a die before admission or
     without release (the same check and R-2250 on Windows). On macOS the resolver never refuses and
-    `launch.options` is always absent, so each would survive there. The plan named a scratch CI job for W10 and W11,
-    as in review-ledger-run-reviewer; none ran. These rest on the Windows leg's green checks alone, and nobody has
-    seen R-2254 fail on Windows on the old launch (its red there is inferred: main's by-name spawn gives ENOENT).
+    `launch.options` is always absent, so each would survive there. After the notes, the seat ran them on a
+    scratch CI branch whose Windows job runs only this table (`seat-mutate-win.mjs`, `win-pairs.mjs`; run
+    39429511056 on b696bfc8): 5 of 5 red, record `seat-mutate-win-output-b696bfc8.txt`. W10 (no launch.options) and
+    W11b (main's form: pi through piLaunch, the rest by name) turn R-2254 red; W11 (every command by name) turns
+    R-2254, R-1722 and R-1723 red; W12 (refusal prefix dropped) and W13 (refusal as a die before admission, no
+    --out) turn R-1723 red. Refusal without release is M16 in the macOS table.
     (b) `findOnPath` not searching the launcher's own folder, unlike libuv, and the lookup running from the
     launcher's folder rather than --tree are plan known limits with no test and no pair.
   - The two merges of main after build 2 (1207b69e, 95870225) touched no file of the lane's code, so the seat did not
@@ -128,7 +131,7 @@
   no longer starts (inferred); the lookup runs from the launcher's folder (the existing line now covers every bare
   name); a refused or failed start prints the admission note first and keeps the over-cap audit line; a .cmd line
   over 8191 characters ends as no verdict; `claude -p` reading stdin is inferred; only the Windows leg proves the
-  Windows wiring, with no Windows pairs run.
+  Windows wiring; its five Windows wrong-code pairs ran there, all red.
 - HANDOFF: one Landed line. The roster line no longer says an npm-installed claude does not start on Windows. Two
   review-ledger-run-reviewer lines go, because the lane fixes them: a refused pi launch wrote nothing to the output
   file, and the refused-launch check did not assert the output file. The refusal now writes its cannot-start line

@@ -10,7 +10,8 @@ and `build-brief-2.md` are the two builds (406f3289; 3e90e4d7, tests, rows and R
 `seat-verify-7b996d0a.md`: CI run 39423062782 at 9dc58d5e, 0 failing files on macOS, Ubuntu and Windows
 (`ci-windows-9dc58d5e.log` beside it; R-2254 passes on Windows), the macOS wrong-code pairs (`seat-mutate.mjs`; 17 of
 19 red on 6ec2cf0e, 18 of 19 on build 2 3e90e4d7, M15 a declared equivalent) and the independent check
-(`independent-check-7b996d0a.md`: HOLDS, no MUST, run on 6ec2cf0e). No Windows pairs ran. The final reviewer's brief is
+(`independent-check-7b996d0a.md`: HOLDS, no MUST, run on 6ec2cf0e). The Windows-only wrong code ran as five pairs on a scratch
+Windows CI job: 5 of 5 red (`seat-mutate-win-output-b696bfc8.txt`). The final reviewer's brief is
 `review-brief.md`. CI has not run on 7b996d0a; the land runs the locked suite on the reviewed tip, and the local macOS
 install check runs before the land.
 
