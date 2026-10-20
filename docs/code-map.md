@@ -2636,10 +2636,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/install-check-turn.mjs`
 
-- **purpose** — Provide the install check's deterministic offline pi turn and record its observed prompt and tool result.
-- **inputs** — Pi's extension API, faux model requests and the sealed install-check turn contract.
-- **outputs** — A fixture provider response and one JSON record in the temporary home.
-- **effects** — disk
+- **purpose** — Provide the install check's deterministic offline pi turn and record its observed prompt and tool results.
+- **inputs** — Pi's extension API and active tools, faux model requests and the sealed install-check turn contracts.
+- **outputs** — A fixture provider response with Bash, write and optional PowerShell calls, plus one JSON record in the temporary home.
+- **effects** — disk, process
 - **errors** — Provider or record-write errors surface through pi's extension and turn diagnostics.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/install-check-config.mjs`
@@ -2989,7 +2989,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Pins install-check configuration, pure matching, environment and reporting contracts.
 - **inputs** — Sealed install-check values and injected process inputs.
 - **outputs** — PASS/FAIL lines and a nonzero exit on failed checks.
-- **effects** — none
+- **effects** — process
 - **errors** — Failed checks set a nonzero exit code.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`

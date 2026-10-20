@@ -61,6 +61,30 @@ export const PI_TURN = {
   gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
   extensionErrorPrefix: "Extension error (",
 };
+// Contract values: nana-post-edit command matching, placeholder substitution and failure-line
+// shape, read 2026-10-20. The fixture name and item are chosen to identify this live check.
+export const PI_TURN_EDIT = (() => {
+  const exitCode = 3; // Chosen 2026-10-20: distinct from could-not-run statuses 1, 126, 127 and 9009 (R-2000).
+  return {
+    item: "pi post-edit", // Contract: install-check result item (R-2002).
+    tool: "write", // Contract: pi's file-writing tool, whose result nana-post-edit extends (R-2002).
+    file: "install-check-post-edit.txt", // Chosen 2026-10-20: dedicated fixture file (R-2000).
+    match: "install-check-post-edit\\.txt$", // Contract: only the dedicated fixture filename matches (R-2000).
+    placeholder: "{file}", // Contract: nana-post-edit file placeholder, read 2026-10-20 (R-2000).
+    failureLead: "- check ", // Contract: nana-post-edit failure-line lead, read 2026-10-20 (R-2002).
+    exitCode,
+    source: `process.stdout.write(require('fs').readFileSync(process.argv[1],'utf8'));process.exitCode=${exitCode}`, // Contract: print the edited file and fail (R-2000).
+    exitText: `exited ${exitCode}`, // Contract: nana-post-edit nonzero-exit wording, read 2026-10-20 (R-2002).
+  };
+})();
+// Contract values: pi 1.0.2 cli.md and windows.md, read 2026-10-20; powershell is off by
+// default and --tools replaces the active selection. The item name identifies this live check.
+export const PI_TURN_POWERSHELL = {
+  item: "pi powershell gate", // Contract: install-check result item (R-2004).
+  tool: "powershell", // Contract: pi's Windows PowerShell tool name (R-2003, R-2004).
+  platforms: ["win32"], // Contract: pi documents the tool as Windows-only (R-2003, R-2004).
+  toolList: ["--tools", "read,bash,edit,write,powershell"], // Contract: preserve defaults and enable powershell (R-2003).
+};
 // Probe 2026-10-19: RPC output with pi-subagents was 21,699 bytes and placed a widget after
 // byte 20,970. The unavailable word is chosen to cover nana's explicit degraded-state notices.
 export const PI_SESSION = { unavailableWord: "unavailable", maxOutput: 100000 };
