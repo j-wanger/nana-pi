@@ -23,8 +23,8 @@ CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's buil
 instead of the objective, and `doctor`'s
 `node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register
 the packages, and only when they are not registered yet). On Windows it finds the first supported
-`pi.com`, `.exe`, `.bat` or `.cmd` on PATH, respecting PATH-folder and PATHEXT order; `.cmd`/`.bat`
-shims run through ComSpec. A missing pi is skipped with the install hint. A found pi whose version
+`pi.com`, `.exe`, `.bat` or `.cmd` on PATH, respecting PATH-folder and PATHEXT order. An npm
+`pi.cmd` starts its package's Node entry; any other `.cmd` or `.bat` runs through ComSpec. A missing pi is skipped with the install hint. A found pi whose version
 probe fails is a problem and makes install exit 1. On macOS/Linux, a `pi` whose interpreter is missing
 still reports “not on PATH” because the OS gives the same error. On POSIX the existing PATH lookup remains.
 Install also calls `node` (to build the knowledge index) and `launchctl` (only with `--desk`, only on
@@ -284,6 +284,13 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - `tests/install.test.mjs` and `tests/win32-degrade.test.mjs` fail when started from an untrusted working folder: their CLI subprocesses inherit that folder's trust state. The suite runs them from the repo, so it stays green.
 - An earlier install made through another spelling of the checkout converges once on the next install. On macOS and Linux, install converges every link and the knowledge hook to the checkout's on-disk spelling, a linked spelling included, and uninstall removes a knowledge entry that differs from install's desired entry only in that spelling. On Windows, a letter-case, drive-letter or short-name spelling gets six hook entries and eight launcher files rewritten with dated backups, while hook entries written through a junction to the checkout stay.
 - When native realpath fails, setup uses typed realpath spelling, so native spelling guarantees do not apply on that path.
+- A `pi.cmd` with no resolvable npm package beside it, including pi.dev, pnpm and Volta layouts, keeps the Command Prompt route. Killing install alone or its relay can leave that pi running.
+- Windows Ctrl-C has no install handler. An npm pi ends with install, which can cut short pi's cleanup. Pi's settings lock is held only around a write and treats a leftover lock as stale after about 10 seconds.
+- The npm pi route uses the Node running install, not a `node.exe` beside the shim.
+- A process pi starts through Command Prompt, such as npm for a registry package, leaves the job chain. A local-folder install starts none.
+- Doctor uses the same npm pi route, but no check kills doctor alone.
+- On macOS and Linux, killing the relay alone can leave pi running.
+- R-2300 and R-2303 stay untested until they pass on the Windows CI leg.
 
 ## What it never does
 
@@ -366,7 +373,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 ## Idempotence
 
 Re-running install is the normal case: the second run prints `nothing to do — everything was already in
-place`. `install --dry-run` reports the same decisions and writes nothing. On the real home the dry run's pi packages step runs install's own pi checks, `pi --version` included, and stops before the first `pi install`, so it cannot foresee a `pi install` failure. Install, its dry run and doctor stop waiting at the limits `PI_LAUNCH_LIMITS_MS` sets in `lib/steps.mjs`, end the pi process tree (taskkill on Windows; without taskkill only cmd.exe ends), and print ✗ naming the command and the limit. On macOS and Linux, install's relay also ends its pi launch when install is killed, even with its whole process group, and still gives pi its grace. `uninstall --dry-run` previews inventory rows without taking the settings lock or writing. Uninstall requires exactly one of `--dry-run` or `--yes`; edited seeds and hand-written pieces are left.
+place`. `install --dry-run` reports the same decisions and writes nothing. On the real home the dry run's pi packages step runs install's own pi checks, `pi --version` included, and stops before the first `pi install`, so it cannot foresee a `pi install` failure. Install, its dry run and doctor stop waiting at the limits `PI_LAUNCH_LIMITS_MS` sets in `lib/steps.mjs`, end the pi process tree (taskkill on Windows; without taskkill only cmd.exe ends), and print ✗ naming the command and the limit. On macOS and Linux, install's relay also ends its pi launch when install is killed, even with its whole process group, and still gives pi its grace. On Windows, an npm pi also ends when install is killed. `uninstall --dry-run` previews inventory rows without taking the settings lock or writing. Uninstall requires exactly one of `--dry-run` or `--yes`; edited seeds and hand-written pieces are left.
 
 **Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — uninstall exits 1 only for a failure such as a loaded desk service or unsafe settings preflight. `uninstall` exits 2 when its confirmation mode is missing or the platform is win32. Left-by-design items are reported but do not fail. `doctor`
 also exits 1 on a `!` row, which says what was checked may not be what pi reads, so it never

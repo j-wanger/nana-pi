@@ -3,7 +3,7 @@
  * @module packages/nana-setup/tests/pi-launch-limits.test.mjs
  * @purpose Prove install, its dry run and doctor bound pi launches and end every process those launches start.
  * @inputs steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
- * @outputs PASS/FAIL/SKIP lines for thirteen requirement checks and exit 1 when any check fails
+ * @outputs PASS/FAIL/SKIP lines for seventeen requirement checks and exit 1 when any check fails
  * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
  * @errors a failed or over-time check prints FAIL and makes the file exit nonzero
  */
@@ -16,6 +16,7 @@ import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout, repoRoot } from "../lib/paths.mjs";
 import { installExitCode, PI_LAUNCH_LIMITS_MS, stepPiRegister } from "../lib/steps.mjs";
 import * as boundedSpawn from "../lib/bounded-spawn.mjs";
+import { PI_BIN_NAME, PI_PACKAGE } from "../../nana-pack/bin/worker-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const { RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SETTLE_MS, RELAY_SIGNAL_GRACE_MS } = boundedSpawn;
@@ -82,18 +83,25 @@ async function waitFor(predicate, limit = PID_POLL_MS) {
 	return predicate();
 }
 
-function makeFixture(target, { registerKnowledge = false } = {}) {
+function makeFixture(target, { registerKnowledge = false, npm = false } = {}) {
 	const home = tmpDir(path.join(os.tmpdir(), "nana-pi-launch-limit-"));
 	const bin = path.join(home, "bin");
 	const pids = path.join(home, "pids.jsonl");
 	fs.mkdirSync(bin);
 	const hang = path.join(bin, "hang.cjs");
-	fs.writeFileSync(
-		hang,
-		`const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid, args: process.argv.slice(2), agentDir: process.env.PI_CODING_AGENT_DIR ?? null }) + "\\n");\nif (process.env.IGNORE_SIGINT) process.on("SIGINT", () => {});\nif (process.argv[2] === "child") { setTimeout(() => process.exit(0), Number(process.env.HANG_MS)); return; }\nconst args = process.argv.slice(2);\nconst target = process.env.HANG_TARGET;\nif (args[0] === "--version" && target !== "version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nif (args[0] === "install" && target !== "install") process.exit(0);\nspawn(process.execPath, [__filename, "child"], { stdio: "inherit", env: process.env });\nsetTimeout(() => process.exit(0), Number(process.env.HANG_MS));\n`,
-	);
+	const hangBody = `const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid, args: process.argv.slice(2), agentDir: process.env.PI_CODING_AGENT_DIR ?? null }) + "\\n");\nif (process.env.IGNORE_SIGINT) process.on("SIGINT", () => {});\nif (process.argv[2] === "child") { setTimeout(() => process.exit(0), Number(process.env.HANG_MS)); return; }\nconst args = process.argv.slice(2);\nconst target = process.env.HANG_TARGET;\nif (args[0] === "--version" && target !== "version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nif (args[0] === "install" && target !== "install") process.exit(0);\nspawn(process.execPath, [__filename, "child"], { stdio: "inherit", env: process.env });\nsetTimeout(() => process.exit(0), Number(process.env.HANG_MS));\n`;
+	fs.writeFileSync(hang, hangBody);
 	if (process.platform === "win32") {
-		fs.writeFileSync(path.join(bin, "pi.cmd"), `@"${process.execPath}" "%~dp0hang.cjs" %*\r\n`);
+		if (npm) {
+			const packageDir = path.join(bin, "node_modules", ...PI_PACKAGE.split("/"));
+			fs.mkdirSync(packageDir, { recursive: true });
+			fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: PI_PACKAGE, bin: { [PI_BIN_NAME]: "cli.js" } }));
+			fs.writeFileSync(path.join(packageDir, "cli.js"), hangBody);
+			const packagePart = PI_PACKAGE.split("/").join("\\");
+			fs.writeFileSync(path.join(bin, "pi.cmd"), `@"${process.execPath}" "%~dp0node_modules\\${packagePart}\\cli.js" %*\r\n`);
+		} else {
+			fs.writeFileSync(path.join(bin, "pi.cmd"), `@"${process.execPath}" "%~dp0hang.cjs" %*\r\n`);
+		}
 	} else {
 		const pi = path.join(bin, "pi");
 		fs.writeFileSync(pi, `#!/bin/sh\n"${process.execPath}" "${hang}" "$@"\nexit $?\n`);
@@ -164,8 +172,8 @@ function launchInstallWrapper(fixture, extraEnv = {}) {
 	return spawn(process.execPath, [makeInstallWrapper(fixture)], { detached: true, stdio: "ignore", env: { ...fixture.env, ...extraEnv, FIXTURE_HOME: fixture.home, LIMIT_MS: String(HANG_MS) } });
 }
 
-async function observeParentKill({ group }) {
-	const fixture = makeFixture("version");
+async function observeParentKill({ group, npm = false }) {
+	const fixture = makeFixture("version", { npm });
 	const child = launchInstallWrapper(fixture, { IGNORE_SIGINT: "1" });
 	const started = await waitFor(() => readPids(fixture.pids).length >= 3);
 	const beforeKill = readPids(fixture.pids);
@@ -281,6 +289,86 @@ check("R-2024: with no limit injected, install, the dry run and doctor give pi -
 	};
 });
 
+// req: R-2301
+check("R-2301: on win32, install, its dry run and doctor start an npm pi.cmd's package entry with the running Node, its limit, install's agent folder and a checkout path holding % and ! unchanged, never through ComSpec", () => {
+	const win = path.win32;
+	const pi = "C:\\npm\\pi.cmd";
+	const packageDir = win.join("C:\\npm", "node_modules", ...PI_PACKAGE.split("/"));
+	const packageJson = win.join(packageDir, "package.json");
+	const entry = win.join(packageDir, "cli.js");
+	const env = { PATH: "C:\\npm", cOmSpEc: "C:\\Windows\\System32\\cmd.exe" };
+	const exists = (candidate) => candidate.toLowerCase() === pi.toLowerCase();
+	const readText = (candidate) => {
+		if (candidate.toLowerCase() !== packageJson.toLowerCase()) throw new Error(`unexpected read ${candidate}`);
+		return JSON.stringify({ name: PI_PACKAGE, bin: { [PI_BIN_NAME]: "cli.js" } });
+	};
+	const isFile = (candidate) => candidate.toLowerCase() === entry.toLowerCase();
+	const calls = [];
+	const recorder = (source, agentDir) => (command, args, options) => {
+		calls.push({ source, agentDir, command, args, options });
+		return { status: 0, signal: null, stdout: args.includes("--version") ? "1.0.2\n" : "", stderr: "" };
+	};
+	const makeLayout = () => ({ ...resolveLayout({ home: tmpDir(path.join(os.tmpdir(), "nana-pi-direct-launch-")) }), isRealHome: true });
+	const installLayout = makeLayout();
+	stepPiRegister(installLayout, {}, { spawn: recorder("install", installLayout.piHome), platform: "win32", env, exists, isFile, readText });
+	const dryLayout = makeLayout();
+	stepPiRegister(dryLayout, { dryRun: true }, { spawn: recorder("dry-run", dryLayout.piHome), platform: "win32", env, exists, isFile, readText });
+	const doctorLayout = makeLayout();
+	diagnose(doctorLayout, { projectDir: os.tmpdir(), pi: { spawn: recorder("doctor", doctorLayout.piHome), platform: "win32", env, exists, isFile, readText } });
+
+	const manifestRoot = tmpDir(path.join(os.tmpdir(), "nana-%!-manifest-"));
+	fs.writeFileSync(path.join(manifestRoot, "package.json"), JSON.stringify({ pi: { extensions: ["extensions"] } }));
+	const specialLayout = makeLayout();
+	const specialRows = stepPiRegister(specialLayout, {}, { spawn: recorder("special", specialLayout.piHome), platform: "win32", env, exists, isFile, readText, manifestRoot });
+	const specialInstall = calls.find(({ source, args }) => source === "special" && args[1] === "install");
+	const versionCalls = calls.filter(({ args }) => args[1] === "--version");
+	const installCalls = calls.filter(({ args }) => args[1] === "install");
+	return {
+		ok: calls.length > 0
+			&& calls.every(({ command, args, options }) => command === process.execPath && args[0] === entry && options.windowsVerbatimArguments === undefined)
+			&& versionCalls.length === 4 && versionCalls.every(({ args, options }) => args.length === 2 && options.timeout === PI_LAUNCH_LIMITS_MS.version)
+			&& installCalls.length >= 2 && installCalls.every(({ agentDir, options }) => options.timeout === PI_LAUNCH_LIMITS_MS.install && options.env?.PI_CODING_AGENT_DIR === agentDir)
+			&& specialRows[0]?.status === "created" && specialInstall?.args[2] === manifestRoot,
+		detail: JSON.stringify({ entry, calls, specialRows, manifestRoot }),
+	};
+});
+
+// req: R-2302
+check("R-2302: on win32, a pi.cmd with no npm package beside it, another package there, or the package's entry missing still runs through ComSpec in install, its dry run and doctor", () => {
+	const win = path.win32;
+	const pi = "C:\\npm\\pi.cmd";
+	const packageDir = win.join("C:\\npm", "node_modules", ...PI_PACKAGE.split("/"));
+	const packageJson = win.join(packageDir, "package.json");
+	const entry = win.join(packageDir, "cli.js");
+	const comspec = "C:\\Windows\\System32\\cmd.exe";
+	const env = { PATH: "C:\\npm", CoMsPeC: comspec };
+	const exists = (candidate) => candidate.toLowerCase() === pi.toLowerCase();
+	const observations = [];
+	for (const kind of ["no package", "another package", "entry missing"]) {
+		const calls = [];
+		const recorder = (command, args, options) => {
+			calls.push({ command, args, options });
+			return { status: 0, signal: null, stdout: args.some((arg) => String(arg).includes("--version")) ? "1.0.2\n" : "", stderr: "" };
+		};
+		const readText = (candidate) => {
+			if (candidate.toLowerCase() !== packageJson.toLowerCase() || kind === "no package") throw new Error("missing");
+			return JSON.stringify({ name: kind === "another package" ? "another-package" : PI_PACKAGE, bin: { [PI_BIN_NAME]: "cli.js" } });
+		};
+		const isFile = (candidate) => kind !== "entry missing" && candidate.toLowerCase() === entry.toLowerCase();
+		const makeLayout = () => ({ ...resolveLayout({ home: tmpDir(path.join(os.tmpdir(), "nana-pi-fallback-launch-")) }), isRealHome: true });
+		stepPiRegister(makeLayout(), {}, { spawn: recorder, platform: "win32", env, exists, isFile, readText });
+		stepPiRegister(makeLayout(), { dryRun: true }, { spawn: recorder, platform: "win32", env, exists, isFile, readText });
+		diagnose(makeLayout(), { projectDir: os.tmpdir(), pi: { spawn: recorder, platform: "win32", env, exists, isFile, readText } });
+		observations.push({ kind, calls });
+	}
+	const calls = observations.flatMap(({ calls }) => calls);
+	return {
+		ok: observations.every(({ calls: caseCalls }) => caseCalls.length >= 5)
+			&& calls.every(({ command, args, options }) => command === comspec && JSON.stringify(args.slice(0, 4)) === JSON.stringify(["/d", "/v:off", "/s", "/c"]) && options.windowsVerbatimArguments === true),
+		detail: JSON.stringify(observations),
+	};
+});
+
 // req: R-2027
 check("R-2027: the relay gives a signalled pi launch 1000 ms to clean up before ending its process tree", () => ({
 	ok: boundedSpawn.RELAY_SIGNAL_GRACE_MS === 1_000,
@@ -345,6 +433,13 @@ check("R-2027: SIGINT lets pi install remove its lock before install ends its la
 	return { ok: Boolean(started && exited && cleaned && dead), detail: JSON.stringify({ started: Boolean(started), exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) }) };
 });
 
+// req-candidate: R-2300 (Windows only; becomes req: when the Windows CI leg passes it)
+check("R-2300: on Windows, a kill of install alone ends the npm pi launch it waits on within the parent check and the signal grace", async () => {
+	if (process.platform !== "win32") return { skip: "Windows kill-on-close job behavior only" };
+	const observed = await observeParentKill({ group: false, npm: true });
+	return { ok: observed.started && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
+});
+
 // req: R-2130
 check("R-2130: a SIGKILL of install's whole process group ends the pi launch it waits on within the parent check and the signal grace", async () => {
 	if (process.platform === "win32") return { skip: "Windows has no process-group SIGKILL" };
@@ -357,6 +452,25 @@ check("R-2131: a SIGKILL of install alone ends the pi launch it waits on within 
 	if (process.platform === "win32") return { skip: "a Windows parent's death leaves process.ppid unchanged" };
 	const observed = await observeParentKill({ group: false });
 	return { ok: observed.started && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
+});
+
+// req-candidate: R-2303 (Windows only; becomes req: when the Windows CI leg passes it)
+check("R-2303: on Windows, a kill of the pi launch relay alone ends the npm pi it runs and pi's child within the parent check and the signal grace", async () => {
+	if (process.platform !== "win32") return { skip: "Windows kill-on-close job behavior only" };
+	const fixture = makeFixture("version", { npm: true });
+	const child = launchInstallWrapper(fixture, { IGNORE_SIGINT: "1" });
+	const started = await waitFor(() => readPidRecords(fixture.pids).length >= 2);
+	const records = readPidRecords(fixture.pids);
+	const relayPid = records[0]?.ppid;
+	const launchedPids = records.map(({ pid }) => pid);
+	if (started && relayPid) process.kill(relayPid, "SIGKILL");
+	const killedAt = Date.now();
+	const dead = await waitFor(() => launchedPids.length >= 2 && launchedPids.every((pid) => !processAlive(pid)), PARENT_KILL_BOUND_MS);
+	const elapsed = Date.now() - killedAt;
+	if (!dead) for (const pid of launchedPids) try { process.kill(pid, "SIGKILL"); } catch {}
+	if (processAlive(child.pid)) try { process.kill(child.pid, "SIGKILL"); } catch {}
+	const observed = { started: Boolean(started), relayPid, launchedPids, dead: Boolean(dead), elapsed, bound: PARENT_KILL_BOUND_MS, boundBelowHang: PARENT_KILL_BOUND_MS < HANG_MS };
+	return { ok: observed.started && observed.relayPid && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
 });
 
 // req: R-2132

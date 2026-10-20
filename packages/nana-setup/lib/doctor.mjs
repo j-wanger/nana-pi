@@ -7,7 +7,7 @@
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
+ *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail, installLabel? } rows, including a safe place and error-kind repair
  *  for invalid nana-pack JSON and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
@@ -35,9 +35,10 @@ import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.m
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
-import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
 import { PI_LAUNCH_LIMITS_MS } from "./steps.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
+import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
@@ -346,14 +347,15 @@ export function diagnose(layout, opts = {}) {
 		const piSpawn = piOpts.spawn ?? boundedSpawnSync;
 		const piLimits = piOpts.limits ?? PI_LAUNCH_LIMITS_MS;
 		const piExists = piOpts.exists;
+		const piIsFile = piOpts.isFile;
+		const piReadText = piOpts.readText;
 		const isWin = (typeof piPlatform === "function" ? piPlatform() : piPlatform) === "win32";
 		const executable = isWin ? findPi({ env: piEnv, cwd: process.cwd(), exists: piExists }) : "pi";
 		let probe;
 		let refusal;
 		if (!executable) probe = { error: new Error("pi not found on PATH") };
 		else {
-			const comspecKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "comspec");
-			const invocation = isWin ? winCommand(executable, ["--version"], { comspec: comspecKey ? piEnv[comspecKey] : undefined }) : { command: executable, args: ["--version"], options: {} };
+			const invocation = piInvocation(executable, ["--version"], { win32: isWin, env: piEnv, cwd: process.cwd(), exists: piExists, isFile: piIsFile, readText: piReadText });
 			refusal = invocation.refused;
 			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8", timeout: piLimits.version });
 		}
