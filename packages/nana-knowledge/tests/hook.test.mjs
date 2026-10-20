@@ -341,6 +341,31 @@ check("CLI hook emits no stderr warning noise",
 		env: { ...process.env, NANA_KNOWLEDGE_HOME: home },
 	}).length > 0);
 
+// --- the stdin cap: a large Claude Code paste reaches the hook unsliced ---
+// req: R-228
+check("R-228: seal: STDIN_MAX_BYTES is 256 KB", hook.STDIN_MAX_BYTES === 256 * 1024); // the only literal; every assertion below reads hook.STDIN_MAX_BYTES by name
+const padded = (totalBytes, sessionId) => {
+	const skeleton = JSON.stringify({ session_id: sessionId, cwd: td, prompt: "pi review round cap question " });
+	const pad = "x".repeat(Math.max(0, totalBytes - Buffer.byteLength(skeleton, "utf8")));
+	return JSON.stringify({ session_id: sessionId, cwd: td, prompt: "pi review round cap question " + pad });
+};
+const atCapPayload = padded(hook.STDIN_MAX_BYTES, "stdin-cap-at");
+const overCapPayload = padded(hook.STDIN_MAX_BYTES + 1, "stdin-cap-over");
+const atCap = spawnSync(process.execPath, [cli, "hook"], {
+	input: atCapPayload, encoding: "utf8",
+	env: { ...process.env, NODE_NO_WARNINGS: "1", NANA_KNOWLEDGE_HOME: home },
+});
+const overCap = spawnSync(process.execPath, [cli, "hook"], {
+	input: overCapPayload, encoding: "utf8",
+	env: { ...process.env, NODE_NO_WARNINGS: "1", NANA_KNOWLEDGE_HOME: home },
+});
+const overCapLast = fs.readFileSync(path.join(home, "pull.log"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)).at(-1);
+console.log(`NOTE stdin cap: at-cap ${Buffer.byteLength(atCapPayload, "utf8")} bytes -> ${atCap.stdout.length} chars, over-cap ${Buffer.byteLength(overCapPayload, "utf8")} bytes -> ${overCap.stdout.length} chars, reason ${overCapLast?.reason}`);
+// req: R-228
+check("R-228: the hook command reads a payload of exactly STDIN_MAX_BYTES and cuts one byte more, printing nothing",
+	atCap.status === 0 && atCap.stderr === "" && atCap.stdout.startsWith("[nana:knowledge]") &&
+	overCap.status === 0 && overCap.stdout === "" && overCap.stderr === "" && overCapLast?.reason === "bad-json");
+
 
 // --- the wall-clock bound is ENFORCED, not measured ---
 // The failure this exists for: Claude Code hands the hook a stdin it never closes.

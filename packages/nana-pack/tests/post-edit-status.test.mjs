@@ -286,7 +286,7 @@ if (process.platform === "win32") {
 	fs.writeFileSync(file, "z\n");
 	await fire(file);
 
-// req: R-788 R-096
+// req: R-788
 	check("d: aborted turn chip says skipped (aborted)",
 		last(statuses)?.text === "[warning]post-edit – skipped (aborted) · abort.txt");
 	check("d: aborted run is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));

@@ -27,7 +27,7 @@
  *  settings write; settings.json changed on disk during the run; a plist placeholder with no
  *  value. Every other failure is a row: PROBLEM for a non-regular
  *  nana-personal.md, or anything already sitting where the skill symlink
- *  belongs, SKIPPED for win32, a failed knowledge build or missing pi, and PROBLEM for a failed
+ *  belongs, SKIPPED for unsupported win32 pieces, a failed knowledge build or missing pi, and PROBLEM for a failed
  *  per-package `pi install` or launchctl bootstrap/kickstart
  */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
@@ -38,11 +38,12 @@ import * as fs from "node:fs";
 import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
+import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
-import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
@@ -753,14 +754,38 @@ export function stepKnowledge(layout, o) {
 /* ------------------------------------------------------------------------------ PATH bin */
 
 export function stepPath(layout, o) {
-	if (win()) return [skip("PATH pi-review"), skip("PATH pi-worker"), skip("PATH nana-land"), skip("PATH nana-setup")];
-	const r = linkFile(path.join(layout.binDir, "pi-review"), PI_REVIEW_BIN, o);
-	const worker = linkFile(path.join(layout.binDir, "pi-worker"), PI_WORKER_BIN, o);
-	const land = linkFile(path.join(layout.binDir, "nana-land"), NANA_LAND_BIN, o);
-	const setup = linkFile(path.join(layout.binDir, "nana-setup"), NANA_SETUP_BIN, o);
-	const out = [{ label: "PATH pi-review", ...r }, { label: "PATH pi-worker", ...worker }, { label: "PATH nana-land", ...land }, { label: "PATH nana-setup", ...setup }];
-	const onPath = (process.env.PATH || "").split(path.delimiter).includes(layout.binDir);
-	if (!onPath) out.push({ label: "PATH check", status: SKIPPED, detail: `${layout.binDir} is not on this shell's PATH — add it` });
+	const commands = [
+		["pi-review", PI_REVIEW_BIN],
+		["pi-worker", PI_WORKER_BIN],
+		["nana-land", NANA_LAND_BIN],
+		["nana-setup", NANA_SETUP_BIN],
+	];
+	let out;
+	if (win()) {
+		out = commands.map(([name, source]) => {
+			const rendered = renderWinShims(source, layout.binDir);
+			const writes = [
+				writeBytesWithBackup(path.join(layout.binDir, `${name}${WIN_SHIM_SUFFIXES.sh}`), rendered.sh, { ...o, action: "write" }),
+				writeBytesWithBackup(path.join(layout.binDir, `${name}${WIN_SHIM_SUFFIXES.cmd}`), rendered.cmd, { ...o, action: "write" }),
+			];
+			const status = writes.every((result) => result.status === UNCHANGED)
+				? UNCHANGED
+				: writes.every((result) => result.status === CREATED) ? CREATED : UPDATED;
+			const detail = status === UNCHANGED
+				? "sh: no write; .cmd: no write"
+				: writes.map((result, index) => `${index ? ".cmd" : "sh"}: ${result.status === UNCHANGED ? "no write" : result.detail ?? result.status}`).join("; ");
+			return { label: `PATH ${name}`, status, detail };
+		});
+	} else {
+		out = commands.map(([name, source]) => ({ label: `PATH ${name}`, ...linkFile(path.join(layout.binDir, name), source, o) }));
+	}
+	const onPath = win()
+		? (() => {
+			const found = findOnPath("pi-review");
+			return found !== null && path.win32.resolve(found).toLowerCase() === path.win32.resolve(path.join(layout.binDir, `pi-review${WIN_SHIM_SUFFIXES.cmd}`)).toLowerCase();
+		})()
+		: (process.env.PATH || "").split(path.delimiter).includes(layout.binDir);
+	if (!onPath) out.push({ label: "PATH check", status: SKIPPED, detail: `${layout.binDir} is not on this shell's PATH — add it${win() ? " to the user Path in Environment Variables" : ""}` });
 	return out;
 }
 

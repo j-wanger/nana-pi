@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/trust.test.mjs
  * @purpose Pins that the explicit trust command records through pi's ProjectTrustStore only after owner confirmation.
- * @inputs bin/nana-setup.mjs, pi's installed trust-manager module, and temporary project and home roots.
+ * @inputs bin/nana-setup.mjs, pi's installed trust-manager module, the shared PI_INSTALL_HINT, and temporary project and home roots.
  * @outputs PASS/FAIL lines and a nonzero process exit when any assertion fails.
  * @effects disk (temporary trust store and project), process (runs the setup CLI and resolves the installed pi package).
  * @errors a failed assertion prints FAIL and exits nonzero; unexpected errors fail the test.
@@ -17,6 +17,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { decideTrust } = await import("../lib/trust-decision.mjs");
 const { spawnNpmRoot } = await import("../lib/npm-root.mjs");
+const { PI_INSTALL_HINT } = await import("../lib/steps.mjs");
 const root = tmpDir(path.join(os.tmpdir(), "nana-trust-test-"));
 const home = path.join(root, "home");
 const dir = path.join(root, "project");
@@ -88,5 +89,52 @@ check("--home refuses external trust-store symlink before pi writes or creates a
 const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.join("relative", "agent") }, root);
 // req: R-672
 check("relative ambient agent dir is refused", rel.status !== 0 && /relative path/.test(rel.stderr), `${rel.status} ${rel.stderr}`);
+// Builds an env naming a fresh, isolated npm global prefix, so the product's own
+// `spawnNpmRoot` resolves a trust-module path this test controls. Deletes every case
+// variant of npm_config_prefix first: npm's own child processes set the lowercase key, and
+// a machine may export the uppercase one, so both can be present and whichever is read
+// first wins unless both are cleared before this test's value is set.
+const freshTrustEnv = (label) => {
+	const env = { ...process.env };
+	for (const key of Object.keys(env)) if (key.toLowerCase() === "npm_config_prefix") delete env[key];
+	const freshHome = path.join(root, `${label}-home`);
+	const freshAgentDir = path.join(root, `${label}-agent`);
+	const freshPrefix = path.join(root, `${label}-prefix`);
+	fs.mkdirSync(freshPrefix, { recursive: true });
+	env.HOME = freshHome;
+	env.PI_CODING_AGENT_DIR = freshAgentDir;
+	env.npm_config_prefix = freshPrefix;
+	const probeEnv = { ...env };
+	delete probeEnv.HOME;
+	delete probeEnv.USERPROFILE;
+	const probedRoot = spawnNpmRoot({ env: probeEnv });
+	const probedRootPath = probedRoot.stdout.trim();
+	const modulePath = path.join(probedRootPath, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js");
+	const rel = path.relative(root, modulePath);
+	const insideRoot = path.isAbsolute(modulePath) && rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+	const reason = `probed npm root "${probedRootPath}" (npm status ${probedRoot.status}) resolved module path "${modulePath}" outside the test's temp root "${root}"`;
+	return { env, freshAgentDir, modulePath, insideRoot, reason };
+};
+const oneNonEmptyLine = (stderr) => stderr.split(/\r?\n/).filter((line) => line.length > 0);
+const noPi = freshTrustEnv("no-pi");
+let noPiResult = null;
+let noPiLines = [];
+if (noPi.insideRoot) {
+	noPiResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noPi.env });
+	noPiLines = oneNonEmptyLine(noPiResult.stderr);
+}
+// req: R-1800
+check("no pi under npm's global folder exits 2 with one line naming the module path and the install command", noPi.insideRoot && noPiResult.status === 2 && noPiLines.length === 1 && noPiLines[0].includes(noPi.modulePath) && noPiLines[0].includes(PI_INSTALL_HINT) && !fs.existsSync(path.join(noPi.freshAgentDir, "trust.json")), noPi.insideRoot ? `${noPiResult.status} ${JSON.stringify(noPiLines)}` : noPi.reason);
+const noCtor = freshTrustEnv("no-ctor");
+let noCtorResult = null;
+let noCtorLines = [];
+if (noCtor.insideRoot) {
+	fs.mkdirSync(path.dirname(noCtor.modulePath), { recursive: true });
+	fs.writeFileSync(noCtor.modulePath, "module.exports = {};\n");
+	noCtorResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noCtor.env });
+	noCtorLines = oneNonEmptyLine(noCtorResult.stderr);
+}
+// req: R-1801
+check("a pi trust module without ProjectTrustStore exits 2 with one line naming the module path and the install command", noCtor.insideRoot && noCtorResult.status === 2 && noCtorLines.length === 1 && noCtorLines[0].includes(noCtor.modulePath) && noCtorLines[0].includes(PI_INSTALL_HINT), noCtor.insideRoot ? `${noCtorResult.status} ${JSON.stringify(noCtorLines)}` : noCtor.reason);
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

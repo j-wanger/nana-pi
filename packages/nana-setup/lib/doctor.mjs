@@ -12,7 +12,7 @@
  * @outputs an array of { status, label, detail } rows, including a win32-only note row naming the
  *  Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
- *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath()
+ *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
@@ -32,7 +32,8 @@ import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
-import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
 const OK = "ok";
@@ -275,6 +276,24 @@ export function firstOnPath(name, pathValue = process.env.PATH) {
 		try { if (fs.statSync(candidate).isFile() && fs.accessSync(candidate, fs.constants.X_OK) === undefined) return candidate; } catch { /* skip missing or non-executable */ }
 	}
 	return null;
+}
+
+/** Both Windows launcher files must be regular, byte-equal renderings for this checkout. */
+export function winShimState(name, source, binDir) {
+	const rendered = renderWinShims(source, binDir);
+	const files = [
+		[path.join(binDir, `${name}${WIN_SHIM_SUFFIXES.sh}`), rendered.sh],
+		[path.join(binDir, `${name}${WIN_SHIM_SUFFIXES.cmd}`), rendered.cmd],
+	];
+	const wrong = files.filter(([file, wanted]) => {
+		try {
+			const stat = fs.lstatSync(file);
+			return stat.isSymbolicLink() || !stat.isFile() || !fs.readFileSync(file).equals(Buffer.from(wanted));
+		} catch { return true; }
+	}).map(([file]) => file);
+	return wrong.length
+		? { ok: false, detail: `missing or stale: ${wrong.join(", ")} — run \`nana-setup install\`` }
+		: { ok: true, detail: `sh and .cmd match this checkout in ${binDir}` };
 }
 
 export function diagnose(layout, opts = {}) {
@@ -563,10 +582,16 @@ export function diagnose(layout, opts = {}) {
 
 	// --- PATH ---
 	if (win) {
-		add(NOTE, "PATH pi-review", "skipped (win32)");
-		add(NOTE, "PATH pi-worker", "skipped (win32)");
-		add(NOTE, "PATH nana-land", "skipped (win32)");
-		add(NOTE, "PATH nana-setup", "skipped (win32)");
+		for (const [name, source] of [["pi-review", PI_REVIEW_BIN], ["pi-worker", PI_WORKER_BIN], ["nana-land", NANA_LAND_BIN], ["nana-setup", NANA_SETUP_BIN]]) {
+			const state = winShimState(name, source, layout.binDir);
+			add(state.ok ? OK : FAIL, `PATH ${name}`, state.detail);
+		}
+		const found = findOnPath("pi-review");
+		const expected = path.win32.resolve(path.join(layout.binDir, `pi-review${WIN_SHIM_SUFFIXES.cmd}`));
+		const matches = found !== null && path.win32.resolve(found).toLowerCase() === expected.toLowerCase();
+		const remedy = `add ${layout.binDir} to the user Path in Environment Variables, then open a new terminal`;
+		const detail = matches ? `${found} is this checkout's .cmd shim` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
 	} else {
 		const link = path.join(layout.binDir, "pi-review");
 		const worker = path.join(layout.binDir, "pi-worker");
