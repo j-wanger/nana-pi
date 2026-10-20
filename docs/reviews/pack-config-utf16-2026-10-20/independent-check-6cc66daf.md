@@ -1,4 +1,4 @@
-# Independent check — pack-config-utf16 at 6cc66daf (2026-10-20)
+# Independent check — pack-config-utf16 at 961f76d1 (2026-10-20)
 
 VERDICT: HOLDS
 
