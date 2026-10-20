@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/tests/gate-rm-outside.test.mjs
- * @purpose Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, and preserve the inside and variable-led passes.
- * @inputs the real nana-gate handler, gate-rm-outside, gate-shell, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
- * @outputs eight named PASS/FAIL checks and exit 1 when any requirement fails
+ * @purpose Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including the POSIX /tmp root, and preserve the inside and variable-led passes.
+ * @inputs the real nana-gate handler, gate-rm-outside, gate-shell, real-path, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
+ * @outputs nine named PASS/FAIL checks (or eight and one Windows SKIP) and exit 1 when any requirement fails
  * @effects disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables)
  * @errors unexpected failures reject through a per-case timeout and fail the process; assertion failures print FAIL
  */
@@ -13,6 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { rmOutsideTargets } from "../lib/gate-rm-outside.ts";
 import { detectionSegments, splitCommand } from "../lib/gate-shell.ts";
+import { realPath } from "../lib/real-path.mjs";
 
 const F = tmpDir(path.join(os.tmpdir(), "gate-rm-outside-"));
 const WORK = path.join(F, "work");
@@ -81,14 +82,15 @@ const full = (value, cwd = WORK) => path.resolve(cwd, value);
 {
 	const rootTarget = path.join(path.parse(WORK).root, `nana-rm-outside-${process.pid}`, "x");
 	const expected = path.resolve(rootTarget);
-	const headless = await Promise.all([reason(`rm ${shellQuote(rootTarget)}`), reason(`rm -f ${shellQuote(rootTarget)}`)]);
+	const detectionCommand = `echo $(rm ${shellQuote(path.join(OUTSIDE, "detected"))})`;
+	const headless = await Promise.all([reason(`rm ${shellQuote(rootTarget)}`), reason(`rm -f ${shellQuote(rootTarget)}`), reason(detectionCommand)]);
 	const dialogs = [];
 	const ui = { select: async (message, choices) => { dialogs.push({ message, choices }); return "Block"; }, setStatus() {}, notify() {}, theme: { fg: (_c, text) => text } };
 	const interactive = await call(`rm ${shellQuote(rootTarget)}`, "bash", ui);
 	const insideDialogs = [];
 	const insideUi = { ...ui, select: async (message, choices) => { insideDialogs.push({ message, choices }); return "Block"; } };
 	const inside = await call("rm -f x", "bash", insideUi);
-	const ok = headless.every((r) => r.includes(expected)) && interactive?.block === true && dialogs.length === 1 && dialogs[0].message.includes(expected) && !inside?.block && insideDialogs.length === 0;
+	const ok = headless.slice(0, 2).every((r) => r.includes(expected)) && headless[2].includes(path.join(OUTSIDE, "detected")) && interactive?.block === true && dialogs.length === 1 && dialogs[0].message.includes(expected) && !inside?.block && insideDialogs.length === 0;
 	// req: R-2330
 	check("plain rm and rm -f outside the working and temp folders ask and name the target", ok, JSON.stringify({ headless, interactive, dialogs: dialogs.length, inside, insideDialogs: insideDialogs.length }));
 }
@@ -102,9 +104,13 @@ const full = (value, cwd = WORK) => path.resolve(cwd, value);
 	];
 	const results = cases.map(([args, expected]) => ({ command: `rm ${args}`, hits: moduleHits(`rm ${args}`), expected: path.resolve(expected) }));
 	for (const [command, expected] of [["rm a; rm ../outside/b", path.join(OUTSIDE, "b")], ["rm a && rm -f ../outside/b", path.join(OUTSIDE, "b")], ["command rm ../outside/x", path.join(OUTSIDE, "x")], ["/bin/rm ../outside/x", path.join(OUTSIDE, "x")], ["\\rm ../outside/x", path.join(OUTSIDE, "x")], ["rm ../work-sibling/x", path.join(WORK_SIBLING, "x")], [`rm ${shellQuote(path.join(TEMP_SIBLING, "x"))}`, path.join(TEMP_SIBLING, "x")]]) results.push({ command, hits: moduleHits(command), expected: path.resolve(expected) });
-	const ok = results.every(({ hits, expected }) => hits.includes(expected));
+	const handlerResults = await Promise.all([
+		["rm ~/x", path.join(HOME, "x")],
+		["rm -f $HOME/x", path.join(HOME, "x")],
+	].map(async ([command, expected]) => ({ command, expected, reason: await reason(command) })));
+	const ok = results.every(({ hits, expected }) => hits.includes(expected)) && handlerResults.every(({ reason: why, expected }) => why.includes(expected));
 	// req: R-2331
-	check("every honest spelling of an outside rm target asks", ok, JSON.stringify(results.filter(({ hits, expected }) => !hits.includes(expected))));
+	check("every honest spelling of an outside rm target asks", ok, JSON.stringify({ moduleBad: results.filter(({ hits, expected }) => !hits.includes(expected)), handlerBad: handlerResults.filter(({ reason: why, expected }) => !why.includes(expected)) }));
 }
 
 {
@@ -125,6 +131,19 @@ const full = (value, cwd = WORK) => path.resolve(cwd, value);
 	check("plain rm inside a temp folder stays unasked", moduleBad.length === 0 && handlerReason === "", JSON.stringify({ moduleBad, handlerReason }));
 }
 
+if (process.platform === "win32") {
+	console.log("SKIP plain rm under /tmp stays unasked on macOS and Linux: /tmp is not a temp root on Windows");
+} else {
+	const suffix = `nana-rm-outside-${process.pid}-${Math.random().toString(36).slice(2)}`;
+	const typedTarget = path.join("/tmp", suffix, "x");
+	const realTarget = path.join(realPath("/tmp"), suffix, "x");
+	const dialogs = [];
+	const ui = { select: async (message) => { dialogs.push(message); return "Block"; }, setStatus() {}, notify() {}, theme: { fg: (_c, text) => text } };
+	const results = await Promise.all([typedTarget, realTarget].map(async (target) => ({ target, verdict: await call(`rm -f ${shellQuote(target)}`, "bash", ui) })));
+	// req: R-2338
+	check("plain rm under /tmp stays unasked on macOS and Linux", results.every(({ verdict }) => !verdict?.block) && dialogs.length === 0, JSON.stringify({ results, dialogs }));
+}
+
 {
 	const results = ["rm linkout/x", "rm linkout/deep/x"].map((command) => ({ command, hits: moduleHits(command) }));
 	const ok = results.every(({ command, hits }) => hits.includes(full(command.split(" ")[1])));
@@ -139,8 +158,10 @@ const full = (value, cwd = WORK) => path.resolve(cwd, value);
 	const askBad = ask.filter((command) => moduleHits(command).length === 0);
 	if (moduleHits(psAsk, "powershell").length === 0) askBad.push(psAsk);
 	const passBad = pass.filter((command) => moduleHits(command).length !== 0);
+	const handlerCommand = "(cd sub/deep && true); rm ../../x";
+	const handlerReason = await reason(handlerCommand);
 	// req: R-2335
-	check("a cd earlier in the command line moves where relative targets are judged", askBad.length === 0 && passBad.length === 0, JSON.stringify({ askBad, passBad }));
+	check("a cd earlier in the command line moves where relative targets are judged", askBad.length === 0 && passBad.length === 0 && handlerReason.includes(path.resolve(WORK, "../../x")), JSON.stringify({ askBad, passBad, handlerCommand, handlerReason }));
 }
 
 {

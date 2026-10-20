@@ -670,7 +670,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   and headless block name its full path. Absolute, `..`, `~`/`$HOME`, glob and brace, multiple-
   target, later-command, wrapper and linked-folder spellings are read; a preceding `cd`, `pushd`
   or PowerShell location command moves relative targets. Targets strictly inside the working
-  folder or an accepted temp folder still pass, and a link as the target's last part is judged
+  folder or an accepted temp folder, including `/tmp` on macOS and Linux, still pass, and a link as the target's last part is judged
   where that link sits. Recursive and long `--force` forms keep their existing verdict. Targets
   led by another variable, a command substitution or `~user`, and relative targets after an
   unreadable location change, stay unjudged. Known limits: temp folders are shared; a session in

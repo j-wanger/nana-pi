@@ -123,6 +123,17 @@ function journal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 	}
 }
 
+function gateTempRoots(): string[] {
+	const home = os.homedir();
+	const roots = acceptedTempRoots({ platform: process.platform, env: process.env, home, tmpdir: os.tmpdir() });
+	if (process.platform !== "darwin" && process.platform !== "linux") return roots;
+	try {
+		return [...roots, real("/tmp")];
+	} catch {
+		return [...roots, path.resolve("/tmp")];
+	}
+}
+
 function commandHit(command: string, gate: Policy, cwd: string, tool: string): Hit {
 	const policy = commandPolicyHit(command, cwd);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
@@ -136,7 +147,7 @@ function commandHit(command: string, gate: Policy, cwd: string, tool: string): H
 	if (tool === "bash" && segmentable && det.length === 1 && rmInsideCwd(command, cwd)) dangers.set(det[0], null);
 	const outsideOptions = {
 		home: os.homedir(),
-		tempRoots: acceptedTempRoots({ platform: process.platform, env: process.env, home: os.homedir(), tmpdir: os.tmpdir() }),
+		tempRoots: gateTempRoots(),
 		segmentable,
 	};
 	const markOutside = (outside: Map<(typeof det)[number], string>) => {
@@ -219,18 +230,10 @@ function within(target: string, root: string): boolean {
 function laneWriteHit(subject: string, cwd: string): Hit {
 	const configured = process.env.NANA_WORKTREE_ROOT;
 	if (!configured) return null;
-	const resolve = (p: string): string => {
-		try {
-			return real(p);
-		} catch {
-			return path.resolve(p);
-		}
-	};
 	try {
 		const root = real(configured);
 		const target = realOut(subject, cwd);
-		const kept = acceptedTempRoots({ platform: process.platform, env: process.env, home: os.homedir(), tmpdir: os.tmpdir() });
-		const allowed = [root, ...kept, ...(process.platform === "win32" ? [] : [resolve("/tmp")])];
+		const allowed = [root, ...gateTempRoots()];
 		if (target && allowed.some((p) => within(target, p))) return null;
 		return { label: "lane write boundary", reason: `target is outside NANA_WORKTREE_ROOT and temporary directories (${configured})` };
 	} catch {

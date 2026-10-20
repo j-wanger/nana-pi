@@ -1431,7 +1431,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — realPath(p, opts): the folder's native spelling on disk; gitPathKey(s): s normalized for a git-path compare; fileIdentity(p): the entry's exact bigint {dev, ino}, or null when unavailable
 - **effects** — disk (reads: realpathSync.native / realpathSync walk up to an existing ancestor, bigint lstatSync)
 - **errors** — with mustExist, realPath throws the native error when p is missing or when native and typed realpath both fail; otherwise realPath never throws, and fileIdentity never throws
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/lib/gate-rm-outside.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/lib/gate-rm-outside.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/release-status.mjs`
@@ -1836,13 +1836,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/gate-rm-outside.test.mjs`
 
-- **purpose** — Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, and preserve the inside and variable-led passes.
-- **inputs** — the real nana-gate handler, gate-rm-outside, gate-shell, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
-- **outputs** — eight named PASS/FAIL checks and exit 1 when any requirement fails
+- **purpose** — Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including the POSIX /tmp root, and preserve the inside and variable-led passes.
+- **inputs** — the real nana-gate handler, gate-rm-outside, gate-shell, real-path, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
+- **outputs** — nine named PASS/FAIL checks (or eight and one Windows SKIP) and exit 1 when any requirement fails
 - **effects** — disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables)
 - **errors** — unexpected failures reject through a per-case timeout and fail the process; assertion failures print FAIL
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-rm-outside.ts`, `packages/nana-pack/lib/gate-shell.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-rm-outside.ts`, `packages/nana-pack/lib/gate-shell.ts`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-self-protection.test.mjs`
 
