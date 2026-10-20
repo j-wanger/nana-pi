@@ -24,7 +24,18 @@
   on unresolved strings) and P9 (home as typed), because a stat reads the same identity through any spelling and the
   text fallback runs only when a stat fails; P11 (string-prefix `within`, a wrong refusal only); P17 (the stat-failure
   fallback dropped), a test gap — no check makes a stat fail.
-- {CI3V}
+- CI run 39447368542 on draft pull request #132 at 1d9ba683: one failing check on every leg, R-917's source check
+  (`the source check detects direct mkdtemp calls while ignoring only generated leak fixtures`), because build 3 imported
+  `tmpDir` and `tmpDirUnmanaged` on one line. Otherwise macOS 187 PASS, 1 FAIL, 2 SKIP of 190 files (7,964 checks
+  pass); Ubuntu 186 PASS, 1 FAIL, 3 SKIP (7,903); Windows 171 PASS, 1 FAIL, 18 SKIP (6,890 pass, 113 skip;
+  `ci-windows-1d9ba683.log`); install-check passes on macOS and Windows. lane-write-guard passes 16 with 2 skips on
+  macOS, 14 with 4 on Ubuntu, and 17 with 1 on Windows, where the one skip is the data-volume sub-case — so build 3's
+  identity test ran R-2270's second-drive case and R-2271 to R-2273 on native Windows.
+- Build 4 is 13d5bc1a (`build-brief-4.md`, the same builder): it splits that import into two lines and changes nothing
+  else. The seat re-ran `test-runner.test.mjs` (45 pass) and `lane-write-guard.test.mjs` (16 pass, 2 skip) on it. CI run
+  39450318515 on 13d5bc1a: Ubuntu 189 PASS, 0 FAIL, 3 SKIP of 192 files (7,914 checks pass), test-runner 45 pass; macOS
+  and Windows were still running when the round-2 reviews started. The pairs table touches no test import line, so its
+  record on 1d9ba683 stands for build 4.
 - Not re-run on build 3: the Windows-only pairs (`seat-mutate-win-output-61684fb3.txt`, build 1) and the independent
   check (`independent-check-3cc260b8.md`, run on 350f9ce0).
 - The seat merged 5ef07f7f (the objective-path-shapes land tip, now main) at 4f546eff with its merge helper; trace and
