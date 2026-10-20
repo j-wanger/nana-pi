@@ -3,6 +3,8 @@
 // build 1's tip, on the shared runner. Each pair reverts one product site the lane changed (runDoctor's closing line in
 // bin/nana-setup.mjs, diagnose's add and its three installLabel rows in lib/doctor.mjs) to its main form or to the
 // obvious wrong implementation (must-meet.md W1-W8 and W6b; W3 plants a wrong installLabel on an unchanged row).
+// Re-anchored on build 2's tip (build-brief-2.md): D1 and D2 follow runDoctor's nested try, and D4 and D5 revert
+// build 2's fallback branch for a dry-run error that is not a refusal.
 // Run from the worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/doctor-fix-line-2026-10-20/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -18,15 +20,16 @@ const M4 = "R-1993: on win32's real home with its bin folder off the Path, the s
 const M5 = "R-1994: when install refuses the home, the summary names the refusal instead of telling the user to run install";
 const M6 = "R-1995: doctor on a home install would change leaves every file, folder and link unchanged";
 const M7 = "R-1996: with a ! row, both by-hand summary forms still end with the ! count";
+const M8 = "R-1997: a non-refusal dry-run error prints every row and bounded fallback advice without a stack";
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const SUFFIX = "if (warn.length) missingSummary += ` (and see the ${warn.length} ! above)`;";
 const BY_HAND = "const byHandLabels = [...new Set(bad.filter((row) => !installLabels.has(row.installLabel ?? row.label)).map((row) => row.label))];";
 
 const DECLARED = [
 	"(a) every pair runs on macOS; M4 forces win32 through NANA_SETUP_PLATFORM, and the native Windows run is CI's Windows leg",
-	"(b) D1, D2 and D3 name no title: no must-meet check covers the cwd-relative refusal before the dry run (must-meet.md Known limits), a non-SetupError from the dry run, or two ✗ rows sharing one label; they run to show whether any check does",
+	"(b) D1 and D3 name no title: no must-meet check covers the cwd-relative refusal before the dry run (must-meet.md Known limits) or two ✗ rows sharing one label; they run to show whether any check does. D2 names M8 since build 2 added R-1997",
 	"(c) no pair for the bad.length gate on the dry run (with no ✗ row the summary is never printed, so the gate changes only cost) or for the header and README text",
-	"(d) W5 names only M6: its M6 failure detail passes 64 KiB, and the file's process.exit cuts its piped stdout there, so no check after M6 prints under W5 (run straight to a file, W5 also turns M7 red)",
+	"(d) W5 names only M6; since build 2 the file sets process.exitCode and bounds M6's detail, so the checks after M6 print under W5, and any other red there shows as unnamed",
 	"(e) the file's closing tally, FAIL summary: <n> failures, reads as an unnamed red on every red pair; it is not a check",
 ];
 
@@ -77,14 +80,20 @@ const PAIRS = [
 		one(DR, "\"pi objective file\", objective, \"pi nana-objective.md\");", "\"pi objective file\", objective);"),
 	], tests: [FL], expectRed: [M1] },
 	{ n: "D1", name: "the dry run skips the cwd-relative refusal", edits: [
-		one(NS, "\t\t\trefuseCwdRelativePiHome(layout, \"this install\");\n\t\t\tdryRunRows", "\t\t\tdryRunRows"),
+		one(NS, "\t\t\t\trefuseCwdRelativePiHome(layout, \"this install\");\n\t\t\t\tdryRunRows", "\t\t\t\tdryRunRows"),
 	], tests: [FL, RA], expectRed: [] },
 	{ n: "D2", name: "every dry-run error reads as a refusal", edits: [
-		one(NS, "\t\t\tif (!(err instanceof SetupError)) throw err;\n", ""),
-	], tests: [FL], expectRed: [] },
+		one(NS, "\t\t\t\tif (!(err instanceof SetupError)) throw err;\n", ""),
+	], tests: [FL], expectRed: [M8] },
 	{ n: "D3", name: "the by-hand labels repeat a shared label", edits: [
 		one(NS, BY_HAND, "const byHandLabels = bad.filter((row) => !installLabels.has(row.installLabel ?? row.label)).map((row) => row.label);"),
 	], tests: [FL], expectRed: [] },
+	{ n: "D4", name: "the fallback branch prints today's run-install line without the could-not-predict prefix", edits: [
+		one(NS, "missingSummary = `could not predict nana-setup install repairs (${predictionErrorCode}) — ${bad.length} missing — run: nana-setup install`;", "missingSummary = `${bad.length} missing — run: nana-setup install`;"),
+	], tests: [FL], expectRed: [M8] },
+	{ n: "D5", name: "the fallback branch rethrows every non-SetupError (main's crash)", edits: [
+		one(NS, "predictionErrorCode = typeof err?.code === \"string\" && /^[A-Za-z0-9_.-]+$/.test(err.code) ? err.code : \"UNKNOWN\";", "throw err;"),
+	], tests: [FL], expectRed: [M8] },
 ];
 
-process.exitCode = await runMutations({ lane: "doctor-fix-line", self: import.meta.url, tip: "87efebe6", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "doctor-fix-line", self: import.meta.url, tip: "f44248c", declared: DECLARED, pairs: PAIRS });
