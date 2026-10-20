@@ -297,12 +297,13 @@ export function linkSkill(target, source, o = {}) {
 	const resolved = path.resolve(source);
 	if (st?.isSymbolicLink()) {
 		let current = path.resolve(path.dirname(target), fs.readlinkSync(target));
-		if (o.preserveForeignLink) {
-			try { current = realPath(target, { mustExist: true }); } catch { /* broken foreign link */ }
-			let canonicalSource = resolved;
-			try { canonicalSource = realPath(source, { mustExist: true }); } catch { /* missing pack source */ }
-			if (current === canonicalSource) return { status: UNCHANGED, detail: null };
-			return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+		if (o.preserveForeignLink && current !== resolved) {
+			try {
+				if (realPath(target, { mustExist: true }) !== realPath(source, { mustExist: true }))
+					return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+			} catch {
+				return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+			}
 		}
 		if (current === resolved) return { status: UNCHANGED, detail: null };
 		if (o.dryRun) return { status: UPDATED, detail: `would relink (was ${current})` };

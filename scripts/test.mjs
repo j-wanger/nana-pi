@@ -195,6 +195,7 @@ const onPath = (cmd) => {
 /** Declared platform skips: file → () => reason | null. A reason means SKIP, printed. */
 const SKIPS = {
 	"packages/nana-setup/tests/checkout-spelling.test.mjs": checkoutSpellingSkipReason,
+	"packages/nana-setup/tests/checkout-converge.test.mjs": () => process.platform === "win32" ? "POSIX-only: skill links are copies on win32 and uninstall refuses there" : null,
 	// On POSIX it proves no child was left running with `pgrep -f`, and reads "pgrep missing" as
 	// "nothing left" — so without pgrep it would pass without proving anything. On win32 it does
 	// not use pgrep (it guards its own POSIX cases), so it always runs there.
