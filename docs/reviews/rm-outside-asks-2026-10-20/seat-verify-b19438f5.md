@@ -102,3 +102,18 @@
 - Not in this record: a seat-run locked full suite (the land runs it on the reviewed tip) and a local install check.
   The plan does not rule on the install check; the seat runs it or rules it out before the land.
 - Main has not moved under this lane: main is cd2d580e, the merge base and the review base.
+
+## Round 1 and build 3 (22a49d27)
+
+- Round 1 on 31e85b5d: pi gpt-6-astra LAND (SHOULD: shell comments are not stripped, so a commented outside path makes
+  a safe rm ask; carried). Claude Opus 5.5 SEND-BACK, one MUST: CI run 39460770013 at 490bb78b, Ubuntu leg,
+  `gate-rm-outside.test.mjs` 6 pass, 3 fail — the fixture root is under `os.tmpdir()` = `/tmp` on Linux, and build 2's
+  `gateTempRoots()` counts `/tmp`, so the three handler cases build 2 added saw their targets as temp. SHOULD 3:
+  `gateTempRoots()` gave `/tmp` to darwin and linux only, narrower than main's non-win32 rule.
+- Build 3 (`build-brief-3.md`, the same pi sol builder): the three handler cases use never-created targets outside every
+  temp root; `gateTempRoots()` adds `/tmp` on every platform but win32. Two files changed.
+- Seat: `gate-rm-outside.test.mjs` passes 9 with the default TMPDIR and 9 with `TMPDIR=/tmp` (the Linux layout). The
+  builder showed the `TMPDIR=/tmp` run 6 pass, 3 fail on the tip before its change.
+- Seat's pairs on 22a49d27 (`seat-mutate-output-22a49d27.txt`): 31 of 31 red, 0 survived; no anchor moved.
+- CI: run on c9507890 (build 3 plus the pairs record) was still running when round 2 started. The Windows leg of run
+  39460770013 (build 2's product code) and the c9507890 run are the seat's pre-land reads; the land waits for them.
