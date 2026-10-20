@@ -2,14 +2,15 @@
  * @module packages/nana-setup/lib/fsops.mjs
  * @purpose The installer's non-destructive file primitives, each reporting the status of what it
  *  did instead of acting silently.
- * @inputs target and source paths, file contents, { dryRun, copyInstead }, a Date for the backup
- *  stamp; the filesystem — linkFile and seedFile decide presence with lstat, never existsSync, so a
+ * @inputs target and source paths, file contents, { dryRun, copyInstead, unedited }, a Date for the
+ *  backup stamp; the filesystem — linkFile and seedFile decide presence with lstat, never existsSync, so a
  *  dangling symlink reads as present and is left untouched (ensureDir and backupPath are the
  *  exceptions and use existsSync)
  * @outputs { status, detail } with status one of CREATED | UPDATED | UNCHANGED | SKIPPED | PROBLEM;
  *  on disk: symlinks (linkFile), byte copies on a platform without symlinks, files written only
- *  when absent (seedFile), directories (ensureDir), content-compared writes (writeIfChanged) and
- *  <name>.bak-<YYYYMMDD> backups of anything replaced; writeBytesWithBackup() for byte renderings
+ *  when absent (seedFile), directories (ensureDir), content-compared writes (writeIfChanged),
+ *  managed-copy refreshes, and <name>.bak-<YYYYMMDD> backups of anything replaced;
+ *  writeBytesWithBackup() for byte renderings
  * @effects disk (symlink, unlink, mkdir -p, writeFile, rename-to-backup; nothing under dryRun)
  * @errors none typed — an unreadable source or an undeletable target propagates the raw fs error;
  *  a symlink or directory in the way is returned as SKIPPED and never written through
@@ -55,10 +56,10 @@ function lstat(p) {
  * A REGULAR file (or directory) in the way is backed up first and the backup is reported.
  * On a platform without usable symlinks the file is copied instead, and says so.
  */
-export function linkFile(target, source, { dryRun = false, copyInstead = false } = {}) {
+export function linkFile(target, source, { dryRun = false, copyInstead = false, unedited = false } = {}) {
 	const st = lstat(target);
 	const resolved = path.resolve(source);
-	if (copyInstead) return writeBytesWithBackup(target, fs.readFileSync(source), { dryRun, action: "copy" });
+	if (copyInstead) return writeBytesWithBackup(target, fs.readFileSync(source), { dryRun, action: "copy", unedited });
 	if (st?.isSymbolicLink()) {
 		const current = path.resolve(path.dirname(target), fs.readlinkSync(target));
 		if (current === resolved) return { status: UNCHANGED, detail: null };
@@ -85,12 +86,15 @@ export function linkFile(target, source, { dryRun = false, copyInstead = false }
  * directory is renamed to a dated backup first. A symlink is unlinked and replaced without ever
  * reading or writing through it. This is the shared copy/shim primitive.
  */
-export function writeBytesWithBackup(target, contents, { dryRun = false, action = "write" } = {}) {
+export function writeBytesWithBackup(target, contents, { dryRun = false, action = "write", unedited = false } = {}) {
 	const st = lstat(target);
 	const want = Buffer.isBuffer(contents) ? contents : Buffer.from(contents);
-	if (st?.isFile() && !st.isSymbolicLink() && fs.readFileSync(target).equals(want)) return { status: UNCHANGED, detail: action };
+	const regularFile = st?.isFile() && !st.isSymbolicLink();
+	if (regularFile && fs.readFileSync(target).equals(want)) return { status: UNCHANGED, detail: action };
+	const refresh = regularFile && unedited;
 	if (dryRun) {
 		if (!st) return { status: CREATED, detail: `would ${action}` };
+		if (refresh) return { status: UPDATED, detail: "would refresh the managed copy" };
 		return { status: UPDATED, detail: st.isSymbolicLink() ? `would replace a symlink and ${action}` : `would back up to ${path.basename(backupPath(target))} and ${action}` };
 	}
 	fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -100,6 +104,8 @@ export function writeBytesWithBackup(target, contents, { dryRun = false, action 
 		detail = action === "copy"
 			? "replaced a symlink with a copy (the link's target was not written through)"
 			: "replaced a symlink and wrote bytes (the link's target was not written through)";
+	} else if (refresh) {
+		detail = "refreshed managed copy";
 	} else if (st) {
 		const bak = backupPath(target);
 		fs.renameSync(target, bak);

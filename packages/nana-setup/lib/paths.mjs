@@ -7,7 +7,7 @@
  *  process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
  * @outputs pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
  *  base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings,
- *  piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings,
+ *  copyRecord, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings,
  *  knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig,
  *  reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath,
  *  isRealHome; platform(); tildeify()
@@ -50,6 +50,8 @@ export function resolveLayout(opts = {}) {
 		projectsDir: path.join(claudeHome, "projects"),
 		sharedMemoryDir: path.join(claudeHome, "nana-memory", "shared"),
 		claudeSettings: path.join(claudeHome, "settings.json"),
+		// chosen: beside the Claude copies and settings lock, while following --home/--claude-home.
+		copyRecord: path.join(claudeHome, "nana-setup-copies.json"),
 		piHome,
 		piHomeSource: opts.piHome ? "--pi-home" : opts.home ? "--home" : piHome === path.join(base, ".pi", "agent") ? "default" : "PI_CODING_AGENT_DIR",
 		/** The AMBIENT override is relative: piHome is specific to THIS process's cwd, and pi started
