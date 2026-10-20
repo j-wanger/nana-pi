@@ -66,12 +66,11 @@ const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", 
 const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
 // The manifest row for every "link" target exists on every platform (state-manifest.mjs lists
 // every platform-owned path unconditionally) — the coverage check above holds either way. Actual
-// on-disk EXISTENCE does not: win32 never writes a hooks-dir file or the four pi-only skills;
-// POSIX never writes the four .cmd companions. The rules and `requirements` mirror still land on
-// Windows, so these sets keep only the platform-specific absences.
+// on-disk EXISTENCE does not: win32 never writes a hooks-dir file, while POSIX never writes the
+// four .cmd companions. Rules and all five skill mirrors still land on Windows, so these sets keep
+// only the platform-specific absences.
 const posixOnlyInstallTargets = new Set([
   ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
-  ...["spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
 ].map((p) => path.resolve(p)));
 const win32OnlyInstallTargets = new Set(["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd"].map((name) => path.resolve(path.join(ownerLayout.binDir, name))));
 const missingInstallTargets = installTargets.filter((target) => {
