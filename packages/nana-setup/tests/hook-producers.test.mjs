@@ -8,7 +8,7 @@
  */
 import { spawn } from "node:child_process";
 import path from "node:path";
-import { hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
+import { HOOK_PRODUCER_TIMEOUT_MS, hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
 let failures = 0;
 const check = (title, ok) => { console.log(ok ? "PASS" : "FAIL", title); if (!ok) failures++; };
 const invoke = (cli, marker, result) => {
@@ -19,6 +19,18 @@ const invoke = (cli, marker, result) => {
 	}, stdout: { write: (text) => { output += text; } } });
 	return output;
 };
+{
+	const producerNames = ["objective", "adoption", "stale-copies"];
+	const timeouts = new Map();
+	for (const name of producerNames) {
+		runHookProducer({ ...hookProducerConfig(name, "/clone"), run: (_command, _args, options) => {
+			timeouts.set(name, options.timeout);
+			return { status: 0, stdout: "" };
+		}, stdout: { write: () => {} } });
+	}
+	// req: R-2013
+	check("launcher starts the objective, adoption and stale-copy producers with a 1500 ms time limit", HOOK_PRODUCER_TIMEOUT_MS === 1500 && producerNames.every((name) => timeouts.get(name) === HOOK_PRODUCER_TIMEOUT_MS));
+}
 // req: R-687
 check("objective failure marker is byte exact", invoke("/missing/objective.mjs", "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/missing/objective.mjs). Tell the user before spending.\n", { status: 1, stdout: "" }) === "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/missing/objective.mjs). Tell the user before spending.\n");
 // req: R-687
