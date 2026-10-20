@@ -149,7 +149,12 @@ function fixture(form, label) {
 }
 
 function eachSpelling(runCase) {
-	for (const form of forms) for (const spelling of uniqueSpellings) runCase(form, spelling);
+	const errors = [];
+	for (const form of forms) for (const spelling of uniqueSpellings) {
+		try { runCase(form, spelling); }
+		catch (error) { errors.push(`${form.name}/${spelling.kind}: ${error?.message ?? String(error)}`); }
+	}
+	if (errors.length) throw new Error(errors.join("\n"));
 }
 
 function noProblemRow(result) { return !String(result.stdout).split(/\r?\n/u).some((line) => /^\s*✗\s/u.test(line)); }
@@ -286,10 +291,10 @@ uniqueSpellings.length && process.platform !== "win32" ? check("R-1985: uninstal
 		assertFinished(result, "uninstall dry run");
 		const wouldUnlink = String(result.stdout).split(/\r?\n/u).filter((line) => line.includes("would unlink")).length;
 		assert(result.status === 0, `${spelling.kind}: exit=${result.status}\n${result.stdout}\n${result.stderr}`);
-		assert(!result.stdout.includes("resolves outside repository"), `${spelling.kind}: outside-repository row\n${result.stdout}`);
 		assert(wouldUnlink === changed.links, `${spelling.kind}: expected ${changed.links} would-unlink rows, got ${wouldUnlink}\n${result.stdout}`);
+		assert(!result.stdout.includes("resolves outside repository"), `${spelling.kind}: outside-repository row\n${result.stdout}`);
 	}
 }) : skip(process.platform === "win32" ? "R-1985 — uninstall is POSIX-only" : "R-1985 — no second spelling is available on this volume");
 
-console.log(`\n${passes} passed, ${fails} failed, ${skips} skipped`);
+console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);
 if (fails) process.exitCode = 1;

@@ -13,6 +13,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
 // The Claude Code settings.json merge. Pure functions: the file is read and written by the
 // caller, so the merge itself is trivially testable and can never half-write.
@@ -539,8 +540,8 @@ export function knowledgeHookHealthy(settings, repoRoot, platform) {
 	const isAbsolute = platform === "win32" ? path.win32.isAbsolute : path.isAbsolute;
 	return targets.every((target) => {
 		try {
-			const real = fs.realpathSync(target);
-			const root = fs.realpathSync(repoRoot);
+			const real = realPath(target, { mustExist: true });
+			const root = realPath(repoRoot, { mustExist: true });
 			return isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
 		} catch {
 			return false;

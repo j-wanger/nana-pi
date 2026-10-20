@@ -6,8 +6,8 @@
  * @effects disk (reads links, hook targets and knowledge-hook targets).
  * @errors filesystem comparison failures become unhealthy rows; a settings read error makes every settings row unhealthy.
  */
-import * as fs from "node:fs";
 import * as path from "node:path";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { desiredHooks, hasHook, hookTargets, knowledgeHookHealthy } from "./settings.mjs";
 import { HOOKS } from "./steps.mjs";
@@ -36,8 +36,8 @@ export function hookSettingsRows(layout, settings, parseError = null) {
 			// target is a win32 path even when this check is forced on a POSIX host.
 			const resolves = targets.length > 0 && targets.every((target) => {
 				try {
-					const real = fs.realpathSync(target);
-					const root = fs.realpathSync(repoRoot);
+					const real = realPath(target, { mustExist: true });
+					const root = realPath(repoRoot, { mustExist: true });
 					return path.win32.isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
 				} catch { return false; }
 			});
