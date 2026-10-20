@@ -2,12 +2,15 @@
 // Seat wrong-code pairs for lane win-claude-skills (install, hook or gate lane), written by the seat 2026-10-19 on
 // the build tip merged with main (942127f4), on the shared runner. One pair per product site the lane changed: each
 // pair puts that site back to main's form (must-meet.md "Design"; build-brief-1.md M4, M5, M7, M8, M9) and names the
-// must-meet checks it must turn red. Run from the worktree root:
+// must-meet checks it must turn red. Re-run 2026-10-19 on build 2 (fc6ac33d, build-brief-2.md): W8 puts the retired
+// step's marked-copy branch back to build 1's link-only form (MUST 1, R-1904); W1 now reaches R-1902 as a named FAIL
+// (MUST 2). Run from the worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/win-claude-skills-2026-10-19/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
 const SS = "packages/nana-setup/tests/skills-and-standards.test.mjs";
 const RA = "packages/nana-setup/tests/retired-artifacts.test.mjs";
+const INST = "packages/nana-setup/tests/install.test.mjs";
 const SC = "packages/nana-setup/tests/stale-copies.test.mjs";
 const IC = "packages/nana-setup/tests/install-check.test.mjs";
 const STEPS = "packages/nana-setup/lib/steps.mjs";
@@ -26,6 +29,7 @@ const R1902 = "R-1902: forced win32 install retires the recognized spec fixture 
 const R1761 = "R-1761: the stale line names exactly the rule, skill and hook rows doctor marks failed";
 const R1762 = "R-1762: the stale line names as paths to move exactly the skill paths install refuses";
 const R1763 = "R-1763: moving the named paths and running the named install clears the stale line";
+const R1904 = "R-1904: forced win32 second install prints no retired row for four marked skill copies";
 const PIN1081 = "pin R-1081: the doctor note list";
 const DOCTOR_EXITS_0 = "win32: doctor exits 0 on the copy";
 const DOCTOR_GREEN_AGAIN = "win32: doctor is green again";
@@ -36,6 +40,7 @@ const DECLARED = [
 	"(b) the README rows and linkSkill's doc comment changed with no behaviour, so they have no pair",
 	"(c) W1 puts main's skip back inline, since the lane also deleted the unused skip helper",
 	"(d) W1 also turns section 6's two doctor checks red: doctor now marks the four skills it skipped as missing",
+	"(e) W8 names only R-1904: skills-and-standards' 'a second run changes nothing' stays green under it, because the summary still says nothing to do beside skipped rows",
 ];
 
 const PAIRS = [
@@ -69,6 +74,10 @@ const PAIRS = [
 		one(NOTES, "\"release status\", \"Claude Code hooks floor\"]",
 			"\"release status\", \"Claude Code hooks floor\", \"skill spec\", \"skill py-lint\", \"skill py-review\", \"skill py-test\"]"),
 	], tests: [IC], expectRed: [PIN1081] },
+	{ n: "W8", name: "the retired step reports nana-setup's marked win32 copies of the four newer skills again", edits: [
+		one(STEPS, "if (newlyManagedSkill && (st.isSymbolicLink() || (st.isDirectory() && lstatSafe(path.join(source, SKILL_COPY_MARKER))?.isFile()))) {",
+			"if (newlyManagedSkill && st.isSymbolicLink()) {"),
+	], tests: [INST, SS], expectRed: [R1904] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-claude-skills", self: import.meta.url, tip: "942127f4", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-claude-skills", self: import.meta.url, tip: "fc6ac33d", declared: DECLARED, pairs: PAIRS });
