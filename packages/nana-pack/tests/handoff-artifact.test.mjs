@@ -79,7 +79,12 @@ check("custom path: prompt never says .pi/handoff.md", !handoffSection2.includes
 
 // R-189: the injected body is the raw payload behind its provenance framing, capped at
 // INJECT_CAP (8000) UTF-16 code units — never truncated by code point, never routed
-// through promptText, never cut from the raw file text before parsing.
+// through promptText, never cut from the raw file text before parsing. A second,
+// all-ASCII fixture (no surrogate pair anywhere near the cap) is folded into the same
+// check: the first fixture's cut lands just before a pair, so a retuned cap that stays
+// one unit inside that pair (e.g. 8001) would still produce the same cut and slip past
+// it alone — the ASCII fixture has no pair to hide behind, so its cut moves with every
+// retune of the cap, including +-1.
 {
 	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 	const td3 = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-cap-")));
@@ -98,15 +103,34 @@ check("custom path: prompt never says .pi/handoff.md", !handoffSection2.includes
 	const bodyStart = section3.indexOf(startMarker);
 	const bodyEnd = section3.indexOf(endMarker);
 	const cut = bodyStart !== -1 && bodyEnd !== -1 ? section3.slice(bodyStart + startMarker.length, bodyEnd) : "";
+	fs.rmSync(td3, { recursive: true, force: true });
+
+	const td3b = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-cap-ascii-")));
+	fs.mkdirSync(path.join(td3b, ".pi"));
+	const handlers3b = {};
+	ext({ on: (name, fn) => { handlers3b[name] = fn; } });
+	const bodyAscii = "a".repeat(8500);
+	const ctx3b = { cwd: td3b, hasUI: false, isProjectTrusted: () => true };
+	await handlers3b.session_compact({ compactionEntry: { summary: bodyAscii }, reason: "manual" }, ctx3b);
+	await handlers3b.session_start({ reason: "startup" }, ctx3b);
+	const event3b = { systemPromptOptions: { sections: {} } };
+	await handlers3b.before_agent_start(event3b, ctx3b);
+	const section3b = event3b.systemPromptOptions.sections["nana-handoff"] ?? "";
+	const bodyStart3b = section3b.indexOf(startMarker);
+	const bodyEnd3b = section3b.indexOf(endMarker);
+	const cutAscii = bodyStart3b !== -1 && bodyEnd3b !== -1 ? section3b.slice(bodyStart3b + startMarker.length, bodyEnd3b) : "";
+	fs.rmSync(td3b, { recursive: true, force: true });
+
 	// req: R-189
 	check("cap: a 9012-unit body is injected raw as its first 8000 UTF-16 code units, after the Source and Provenance lines",
 		body.length === 9012 &&
 			cut === body.slice(0, 8000) &&
 			section3.indexOf("Source: ") !== -1 &&
 			section3.indexOf("Source: ") < section3.indexOf("Provenance: ") &&
-			section3.indexOf("Provenance: ") < bodyStart + startMarker.length,
+			section3.indexOf("Provenance: ") < bodyStart + startMarker.length &&
+			bodyAscii.length === 8500 &&
+			cutAscii === bodyAscii.slice(0, 8000),
 	);
-	fs.rmSync(td3, { recursive: true, force: true });
 }
 
 // R-2160: when the cap falls between the two halves of a surrogate pair, the injected
