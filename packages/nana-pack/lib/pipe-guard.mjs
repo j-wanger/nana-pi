@@ -24,8 +24,8 @@ const REDIRECTION_NEIGHBOURS = new Set(["<", ">"]);
 const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);
 const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
 const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
-const BASH_BACKGROUND_WAIT = /^wait(?:\s+--)?\s+(?:\$!|\$\{!\})(?=\s|[;&|]|$)/iu;
-const BASH_ERREXIT_CHANGES = /(?:^|[;&\r\n])\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
+const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
+const BASH_ERREXIT_CHANGES = /(?:^|[;&{}\r\n]|\b(?:then|do)\b)\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
 const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
 
@@ -68,13 +68,7 @@ function liveText(command, dialect = "bash") {
 			continue;
 		}
 		if (comment) {
-			const continued = escapedLineBreakEnd(source, i, "\\");
-			if (continued >= 0) {
-				const width = continued - i;
-				text += " ".repeat(width);
-				line += " ".repeat(width);
-				i = continued - 1;
-			} else if (ch === "\n") { comment = false; text += ch; line = ""; }
+			if (ch === "\n") { comment = false; text += ch; line = ""; }
 			else line += " ";
 			continue;
 		}
@@ -129,7 +123,7 @@ function liveText(command, dialect = "bash") {
 				quote = "";
 				if (exposure) text += ` ${exposure} `;
 			}
-			text += ch === "\n" ? "\n" : " ";
+			text += " ";
 			line += ch;
 			continue;
 		}
@@ -141,7 +135,13 @@ function liveText(command, dialect = "bash") {
 			i = continued - 1;
 			continue;
 		}
-		if ((ch === "'" || ch === '"') && source[i - 1] !== "\\") {
+		if (ch === "\\" && i + 1 < source.length) {
+			text += "  ";
+			line += "  ";
+			i++;
+			continue;
+		}
+		if (ch === "'" || ch === '"') {
 			quote = ch; quoteStart = i; text += " "; line += ch; continue;
 		}
 		if (ch === "#" && (i === 0 || /[\s;&|]/.test(source[i - 1]))) {
@@ -158,7 +158,7 @@ function liveText(command, dialect = "bash") {
 }
 
 const isWhitespace = (ch) => ch !== undefined && /\s/u.test(ch);
-const hidden = (ch) => ch === "\n" || ch === "\r" ? ch : " ";
+const hidden = () => " ";
 const quoteKind = (ch) => POWERSHELL_SINGLE_QUOTES.has(ch) ? "single" : POWERSHELL_DOUBLE_QUOTES.has(ch) ? "double" : null;
 const quoteSet = (kind) => kind === "single" ? POWERSHELL_SINGLE_QUOTES : POWERSHELL_DOUBLE_QUOTES;
 
@@ -173,7 +173,8 @@ function isGluedVariableAssignment(source, start, wordStart) {
 
 function scanPowerShell(source) {
 	const spans = [];
-	const result = scanPowerShellRange(source, 0, false, spans);
+	const lastParenClose = source.lastIndexOf(")");
+	const result = scanPowerShellRange(source, 0, false, spans, lastParenClose);
 	spans.sort((a, b) => a.start - b.start || a.end - b.end || a.kind.localeCompare(b.kind));
 	return { live: result.live, spans };
 }
@@ -183,7 +184,7 @@ function scanPowerShell(source) {
  * One stateful pass now decides token starts, masks inactive text, records spans, and recurses
  * through subexpressions. Stopping that same pass at `)` supplies every subexpression bound.
  */
-function scanPowerShellRange(source, start, stopAtClose, spans) {
+function scanPowerShellRange(source, start, stopAtClose, spans, lastParenClose) {
 	let live = "";
 	let tokenStart = true;
 	let wordStart = start;
@@ -234,7 +235,7 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 		const kind = quoteKind(ch);
 		const hereStringStart = tokenStart || isGluedVariableAssignment(source, i, wordStart);
 		if (hereStringStart && ch === "@" && quoteKind(source[i + 1]) && lineEndsAfter(source, i + 2)) {
-			const result = scanPowerShellHereString(source, i, quoteKind(source[i + 1]), spans);
+			const result = scanPowerShellHereString(source, i, quoteKind(source[i + 1]), spans, lastParenClose);
 			live += result.live;
 			i = result.end;
 			tokenStart = true;
@@ -243,7 +244,7 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 		}
 		if (kind) {
 			const standalone = tokenStart;
-			const result = scanPowerShellString(source, i, kind, spans, standalone);
+			const result = scanPowerShellString(source, i, kind, spans, standalone, lastParenClose);
 			live += result.live;
 			i = result.end;
 			tokenStart = standalone && result.closed;
@@ -259,17 +260,17 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 			tokenStart = false;
 			continue;
 		}
-		if (ch === "$" && source[i + 1] === "(") {
+		if (ch === "$" && source[i + 1] === "(" && i + 1 < lastParenClose) {
 			const standalone = tokenStart;
-			const nested = scanPowerShellRange(source, i + 2, true, spans);
+			const nested = scanPowerShellRange(source, i + 2, true, spans, lastParenClose);
 			live += `$(${nested.live}${nested.closed ? ")" : ""}`;
 			i = nested.end;
 			tokenStart = standalone && nested.closed;
 			if (tokenStart) wordStart = i;
 			continue;
 		}
-		if (ch === "(") {
-			const nested = scanPowerShellRange(source, i + 1, true, spans);
+		if (ch === "(" && i < lastParenClose) {
+			const nested = scanPowerShellRange(source, i + 1, true, spans, lastParenClose);
 			live += `(${nested.live}${nested.closed ? ")" : ""}`;
 			i = nested.end;
 			tokenStart = nested.closed;
@@ -296,7 +297,7 @@ function scanPowerShellRange(source, start, stopAtClose, spans) {
 	return { live, end: source.length, closed: false };
 }
 
-function scanPowerShellString(source, start, kind, spans, report) {
+function scanPowerShellString(source, start, kind, spans, report, lastParenClose) {
 	let live = " ";
 	let i = start + 1;
 	let closed = false;
@@ -316,8 +317,8 @@ function scanPowerShellString(source, start, kind, spans, report) {
 				continue;
 			}
 		}
-		if (kind === "double" && ch === "$" && source[i + 1] === "(") {
-			const nested = scanPowerShellRange(source, i + 2, true, spans);
+		if (kind === "double" && ch === "$" && source[i + 1] === "(" && i + 1 < lastParenClose) {
+			const nested = scanPowerShellRange(source, i + 2, true, spans, lastParenClose);
 			live += ` (${nested.live}) `;
 			i = nested.end;
 			continue;
@@ -344,7 +345,7 @@ function scanPowerShellString(source, start, kind, spans, report) {
 	return { live, end: i, closed };
 }
 
-function scanPowerShellHereString(source, start, kind, spans) {
+function scanPowerShellHereString(source, start, kind, spans, lastParenClose) {
 	let live = "  ";
 	let i = start + 2;
 	let lineStart = false;
@@ -357,8 +358,8 @@ function scanPowerShellHereString(source, start, kind, spans) {
 			spans.push({ kind: "string", start, end: i });
 			return { live, end: i, closed: true };
 		}
-		if (kind === "double" && ch === "$" && source[i + 1] === "(") {
-			const nested = scanPowerShellRange(source, i + 2, true, spans);
+		if (kind === "double" && ch === "$" && source[i + 1] === "(" && i + 1 < lastParenClose) {
+			const nested = scanPowerShellRange(source, i + 2, true, spans, lastParenClose);
 			live += ` (${nested.live}) `;
 			i = nested.end;
 			lineStart = false;
@@ -415,6 +416,16 @@ function pipelineStarts(live) {
 	return starts;
 }
 
+function bracketClosers(live) {
+	const closers = new Map();
+	const stack = [];
+	for (let i = 0; i < live.length; i++) {
+		if (BRACKET_OPENERS.has(live[i])) stack.push(i);
+		else if (BRACKET_CLOSERS.has(live[i]) && stack.length > 0) closers.set(stack.pop(), i);
+	}
+	return closers;
+}
+
 function bashErrexitStates(live, pipes) {
 	const changes = [...live.matchAll(BASH_ERREXIT_CHANGES)];
 	const states = [];
@@ -466,24 +477,33 @@ function powershellPipelineEndsInCmdlet(live, pipe, end) {
 	return POWERSHELL_CMDLET_NAME.test(name);
 }
 
-function statusReadAfterPipeline(live, pipe, dialect, errexitActive) {
+function statusReadAfterPipeline(live, pipe, dialect, errexitActive, closers) {
 	if (dialect !== "powershell" && errexitActive) return pipe;
-	let depth = 0;
 	let start = pipe + (live[pipe + 1] === "&" ? 2 : 1);
 	while (start < live.length && isWhitespace(live[start])) start++;
+	let awaitingPipelineCommand = false;
 	for (let i = start; i < live.length; i++) {
 		const ch = live[i];
-		if (BRACKET_OPENERS.has(ch)) { depth++; continue; }
-		if (BRACKET_CLOSERS.has(ch)) {
-			if (depth > 0) depth--;
+		if (BRACKET_OPENERS.has(ch)) {
+			const close = closers.get(i);
+			if (close === undefined) return -1;
+			i = close;
+			awaitingPipelineCommand = false;
 			continue;
 		}
-		if (depth > 0) continue;
+		if (BRACKET_CLOSERS.has(ch)) continue;
+		if (ch === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") {
+			awaitingPipelineCommand = true;
+			if (live[i + 1] === "&") i++;
+			continue;
+		}
+		if (isWhitespace(ch)) {
+			if (awaitingPipelineCommand) continue;
+		} else awaitingPipelineCommand = false;
 		if ((ch === "&" && live[i + 1] === "&") || (ch === "|" && live[i + 1] === "|")) return i;
 		if (dialect !== "powershell" && ch === "&" && !REDIRECTION_NEIGHBOURS.has(live[i - 1]) && !REDIRECTION_NEIGHBOURS.has(live[i + 1])) {
-			let next = i + 1;
-			while (next < live.length && isWhitespace(live[next])) next++;
-			return BASH_BACKGROUND_WAIT.test(live.slice(next)) ? next : -1;
+			const wait = live.slice(i + 1).match(BASH_BACKGROUND_WAIT);
+			return wait ? i + 1 + (wait.index ?? 0) : -1;
 		}
 		if (!STATUS_SEPARATORS.has(ch)) continue;
 
@@ -512,10 +532,11 @@ export function verifierPipeReason(command, dialect = "bash") {
 		&& !/\bset\s+\+o\s+pipefail\b/i.test(live);
 	if (initialPipefail) return null;
 	const pipes = pipelineStarts(live);
+	const closers = bracketClosers(live);
 	const errexitStates = dialect === "powershell" ? [] : bashErrexitStates(live, pipes);
 	for (let i = 0; i < pipes.length; i++) {
 		const pipe = pipes[i];
-		const read = statusReadAfterPipeline(live, pipe, dialect, errexitStates[i] ?? false);
+		const read = statusReadAfterPipeline(live, pipe, dialect, errexitStates[i] ?? false, closers);
 		if (read >= 0 && commits[commits.length - 1] > read) {
 			return "A pipeline runs before git commit without active pipefail; rerun the verifier without a masking pipe or enable pipefail first.";
 		}
