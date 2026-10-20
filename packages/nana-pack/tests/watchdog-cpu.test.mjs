@@ -170,7 +170,7 @@ if (process.platform !== "win32") {
     });
   const lines = cpuLines(run.stderr);
   const positive = lines.length === 4 && lines.every((line) => { const match = /cpu=([\d.]+)s/.exec(line); return match && Number(match[1]) > 0; });
-  // req-candidate: R-1890 (Windows-only; the seat promotes this marker after the lane's Windows CI)
+  // req: R-1890
   check("R-1890: on Windows a busy pi runs to its exit when PowerShell writes a decimal comma", control.status === 0 && control.stdout.trim() === "1,5" && run.code === 0 && !/STALL/.test(run.stderr) && positive,
     JSON.stringify({ control: { status: control.status, stdout: control.stdout, stderr: control.stderr }, run, lines }));
 }
