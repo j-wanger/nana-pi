@@ -161,7 +161,7 @@ if (process.platform !== "win32") {
   const realPowerShell = "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
   fs.writeFileSync(path.join(fixtureA, "powershell.cmd"), `@echo off\r\n"${realPowerShell}" -NoProfile -Command "& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); %~3 | Out-String }"\r\nexit /b %errorlevel%\r\n`);
   const m1Env = { ...fixtureEnv({ FAKE_MODE: "busy", RELEASE: release }), PATH: `${fixtureA}${path.delimiter}${process.env.PATH ?? ""}` };
-  const control = spawnSync("powershell", ["-NoProfile", "-Command", "[double]1.5"], { env: m1Env, encoding: "utf8", timeout: M1_CONTROL_GUARD_MS });
+  const control = spawnSync('powershell -NoProfile -Command "[double]1.5"', { env: m1Env, encoding: "utf8", timeout: M1_CONTROL_GUARD_MS, shell: true });
   const out = path.join(root, "m1-out.txt");
   let released = false;
   const run = await runProcess(process.execPath, [PI_WORKER, "--out", out, "--poll", String(WORKER_POLL_SECS), "--stall-secs", String(WORKER_STALL_SECS), "--", "-p", "busy"],
@@ -182,7 +182,7 @@ else {
   const winCases = [["5000000", winExpected], ["5000000\r\n", winExpected], [" \t5000000\t ", winExpected]];
   if (winExpected !== null) for (const [raw, expected] of winCases) if (parseCpuSample(raw, "win32") !== expected) parseProblems.push(`win32 ${JSON.stringify(raw)} => ${parseCpuSample(raw, "win32")}`);
   for (const raw of ["0,6416708", "0.6416708", "", "-1", "1E-07"]) if (parseCpuSample(raw, "win32") !== null) parseProblems.push(`win32 rejected ${JSON.stringify(raw)} => ${parseCpuSample(raw, "win32")}`);
-  const posixCases = [["0:00.03", 0.03], ["  1:05.50\n", 65.5], ["00:01:05", 65], ["1-00:00:01", 86401]];
+  const posixCases = [["0:00.03", 0.03], ["  1:05.50\n", 65.5], ["00:01:05", 65], ["01:00:00", 3600], ["1-02:03:04", 93784], ["1-00:00:01", 86401]];
   for (const [raw, expected] of posixCases) if (parseCpuSample(raw, "darwin") !== expected) parseProblems.push(`ps ${JSON.stringify(raw)} => ${parseCpuSample(raw, "darwin")}`);
   for (const raw of ["n/a", ""]) if (parseCpuSample(raw, "linux") !== null) parseProblems.push(`ps rejected ${JSON.stringify(raw)} => ${parseCpuSample(raw, "linux")}`);
 }
