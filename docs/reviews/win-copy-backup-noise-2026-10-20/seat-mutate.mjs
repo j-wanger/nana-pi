@@ -19,6 +19,8 @@ const R2311 = "R-2311: owner-edited rule, skill and pi rulings copies each get e
 const R2312 = "R-2312: an absent, unparseable or non-object copy record falls back to one dated backup per changed copy";
 const R2313 = "R-2313: a home installed before the record existed refreshes with no dated backup after one install";
 const R2315 = "R-2315: dry run reports an unedited copy's refresh with no backup and changes nothing";
+const R2317 = "R-2317: a read-only unedited managed copy refreshes without stopping install";
+const R2318 = "R-2318: refreshing an unedited managed copy does not write through its second hard-linked name";
 const R2316 = "R-2316: a directory or read-only file at the copy-record path leaves install finishing with one skipped copy-record row";
 const R954 = "every path created by install maps to a nana-setup-owned manifest row";
 const R955 = "every resolved layout path except declared containers is inventoried";
@@ -67,7 +69,7 @@ const PAIRS = [
 		one(FS, '{ dryRun, action: "copy", unedited });', '{ dryRun, action: "copy" });'),
 	], tests: [CRT], expectRed: [R2310, R2313, R2315] },
 	{ n: "M9", name: "a real run still backs up an unedited copy (no refresh branch)", edits: [
-		one(FS, '} else if (refresh) {\n\t\tdetail = "refreshed managed copy";\n\t} else if (st) {', "} else if (st) {"),
+		one(FS, '} else if (refresh) {', "} else if (false && refresh) {"),
 	], tests: [CRT], expectRed: [R2310, R2313] },
 	{ n: "M10", name: "the dry run keeps main's backup wording for an unedited copy", edits: [
 		one(FS, 'if (refresh) return { status: UPDATED, detail: "would refresh the managed copy" };', ""),
@@ -102,6 +104,12 @@ const PAIRS = [
 	{ n: "M19", name: "the copy record's inventory row has kind generated, which uninstall deletes", edits: [
 		one(SM, ROW, 'rebuild("copy record", layout.copyRecord, "generated");'),
 	], tests: [SMT], expectRed: [R954] },
+	{ n: "M20", name: "build 1's in-place refresh: the copy is written where it stands (build 2's MUST)", edits: [
+		one(FS, 'fs.writeFileSync(temporary, want, { flag: "wx" });', 'fs.writeFileSync(target, want); return { status: UPDATED, detail: "refreshed managed copy" };'),
+	], tests: [CRT], expectRed: [R2317, R2318] },
+	{ n: "M21", name: "a failed atomic replace takes no backup fallback", edits: [
+		one(FS, "\t\t\ttry {\n\t\t\t\tbak = backupPath(target);", "\t\t\ttry {\n\t\t\t\tthrow replaceError;"),
+	], tests: [CRT], expectRed: [R2317] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-copy-backup-noise", self: import.meta.url, tip: "dfe54123", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-copy-backup-noise", self: import.meta.url, tip: "04f09334", declared: DECLARED, pairs: PAIRS });
