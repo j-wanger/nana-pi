@@ -37,6 +37,8 @@ const DECLARED = [
 	"(d) M9 probes the line's order inside the catch branch R-2094 pins, M12 one physical line, M13 V8's message in the line; M14 rewords the contract text the lane's tests stopped typing",
 ];
 
+const R1971_PIN = "R-1971: the manual repair advice is sealed as the README quotes it"; // build 2 (434935e3) pins the sentence
+
 const PAIRS = [
 	{ n: "M1", name: "main's product code: no Unicode wording, main's advice, o.configFailure (W0)", edits: [
 		one(JT, UNICODE_ALT, ")"),
@@ -82,7 +84,7 @@ const PAIRS = [
 	], tests: [OG, DD], expectRed: [R1971, R1972, R2090, R2091] },
 	{ n: "M14", name: "the manual repair is reworded away from the R-1971/R-1972 contract text the pack README quotes", edits: [
 		one(JT, MANUAL_TEXT, '"Fix the file."'),
-	], tests: [OG, DD], expectRed: [R1971, R1972] },
+	], tests: [OG, DD], expectRed: [R1971_PIN] },
 ];
 
-process.exitCode = await runMutations({ lane: "config-advice-fixes", self: import.meta.url, tip: "d22ad0b5", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "config-advice-fixes", self: import.meta.url, tip: "434935e", declared: DECLARED, pairs: PAIRS });
