@@ -169,6 +169,7 @@ test("Windows: doctor reads PATH resolves pi-review ✓ only when the bin direct
 	fs.mkdirSync(vendor, { recursive: true });
 	fs.writeFileSync(path.join(vendor, "package.json"), JSON.stringify({ version: "0.75.0" }));
 	const env = { ...process.env, HOME: home, USERPROFILE: home, Path: `${path.join(home, ".local", "bin")};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`, PATH: `${path.join(home, ".local", "bin")};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`, PATHEXT: ".COM;.EXE;.BAT;.CMD" };
+	delete env.CLAUDE_CONFIG_DIR;
 	const invoke = (label, args, extra = {}) => recordRun(label, spawnSync(process.execPath, [cli, ...args], { cwd: packageRoot, encoding: "utf8", env: { ...env, ...extra }, timeout: CASE_TIMEOUT_MS }));
 	assert.equal(invoke("setup install", ["install"]).status, 0);
 	const good = invoke("doctor with shim first", ["doctor"]);

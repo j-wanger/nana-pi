@@ -281,7 +281,7 @@ Known limits: no lock, so a writer racing `set` (the desk, the installer, an edi
 
 #### Windows
 
-`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run` sends any bare spelling of pi through that pi launch, finds another bare reviewer through Path and PATHEXT, starts a found `.cmd` or `.bat` through cmd.exe and a found `.exe` or `.com` directly, and takes a command containing `\`, `/` or `:` as a path.
+`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run` sends any bare spelling of pi through that pi launch, finds another bare reviewer through Path and PATHEXT, starts a found `.cmd` or `.bat` through cmd.exe and a found `.exe` or `.com` directly, and takes a command containing `\`, `/` or `:` as a path. A relative path is read from the reviewed tree, and a `.cmd` or `.bat` path that names no file there is refused with the cannot-start line before cmd.exe starts.
 
 ### Trust model
 
@@ -551,7 +551,12 @@ is user-scope only** — project config never contributes to it, trusted or not.
   call with `nana-gate: project nana-pack.json gate block is malformed — repair it
   (<file>:<problem>)` — it never silently drops the project's denies / protected paths or
   brings back a user exception the project had cancelled. (If both files are broken the user
-  stop is reported.) **Owner recovery, both scopes** (malformed or over-cap — more than 200
+  stop is reported.) When a file does not parse, the stop instead reads `nana-gate: user
+  nana-pack.json does not parse: <file> at line <line>, column <column>. <repair>. Recovery:
+  …` or `nana-gate: project nana-pack.json does not parse: <file> at line <line>, column
+  <column>. <repair>. Recovery: …`. Its place and repair match the objective's config-failure
+  line; the place is omitted when the parser reports none. **Owner recovery, both scopes**
+  (malformed or over-cap — more than 200
   `extraPatterns` / `protectedPaths` entries): the STOP has no in-pi exception, so repair the
   named file with **any editor outside pi** — `<agent dir>/nana-pack.json` (user) or
   `<cwd>/.pi/nana-pack.json` (trusted project) — **or delete it**: missing means defaults,

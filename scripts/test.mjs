@@ -3,8 +3,8 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, --jobs=N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS
- *  and NANA_COVERAGE_DIR (runtime-map's coverage knob), the test files directly under each package's tests/
+ * @inputs argv (--verbose, --self-test, --jobs=N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
+ *  NANA_COVERAGE_DIR (runtime-map's coverage knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
@@ -14,7 +14,7 @@
  *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
  *  collected file count
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
- *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR, kills that group or taskkills the tree on
+ *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
  *  fixtures, all removed on every exit path; while NANA_COVERAGE_DIR is set, a record and a completion
  *  file under that folder, never removed by this runner)
@@ -28,7 +28,7 @@
 // children, zero model calls), one file at a time, each as `node --experimental-strip-types
 // <file>` from its package dir, each with a FRESH temp HOME and USERPROFILE so no file can read
 // (or write) the real machine's dotfiles, and with every ambient NANA_* (but the NANA_TEST_* runner
-// knobs) plus PI_CODING_AGENT_DIR scrubbed from the child env, so the caller's context cannot
+// knobs) plus PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR scrubbed from the child env, so the caller's context cannot
 // change what the suite tests. Nothing under apps/bench/studies/** or any fixture(s)/ directory is
 // ever collected.
 //
@@ -320,11 +320,11 @@ const count = (out, word) => out.split(/\r?\n/).filter((l) => new RegExp(`^\\s*$
 // nothing to do with the code under test — which is why the review briefs all say
 // `env -u NANA_HANDOFF npm test`. Scrub them here instead, so `npm test` means the same thing
 // in every context. NANA_TEST_* is kept: those are the knobs that steer THIS runner.
-// PI_CODING_AGENT_DIR goes too, for the same reason HOME does: it moves ~/.pi/agent, so a session
-// that has it set (a run started from inside pi) makes objective-injection red — it drives the
-// real handlers against the DEFAULT location under its fake HOME. The rest of PI_* stays: those
+// PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR go too, for the same reason HOME does: they move
+// ~/.pi/agent and ~/.claude, so a session that has either set makes install tests target ambient
+// runtime folders instead of the defaults under their fake HOME. The rest of PI_* stays: those
 // name pi's install (PI_BIN, PI_ROOT, PI_PACKAGE…) and every test that cares sets them itself.
-const SCRUB = (k) => (/^NANA_/.test(k) && !/^NANA_TEST_/.test(k)) || k === "PI_CODING_AGENT_DIR";
+const SCRUB = (k) => (/^NANA_/.test(k) && !/^NANA_TEST_/.test(k)) || k === "PI_CODING_AGENT_DIR" || k === "CLAUDE_CONFIG_DIR";
 const BASE_ENV = (() => {
 	const e = { ...process.env };
 	for (const k of Object.keys(e)) if (SCRUB(k)) delete e[k];

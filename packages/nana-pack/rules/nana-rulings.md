@@ -21,3 +21,4 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-16: At most two lanes build and one more is planned. Each install, hook or gate lane gets one independent check. A blocking question carries a one-word default.
 - 2026-10-16: Rulings live in this file. A new ruling lands in the reviewed change of the lane that records it, and removes any ruling it replaces.
 - 2026-10-17: Development is feature-first. Plans get no review round; the seat and one adversary write each lane's must-meet tests.
+- 2026-10-20: In nana-pi, the seat lands a lane once every reviewer says LAND. The owner gives no separate Land.

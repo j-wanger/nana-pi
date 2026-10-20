@@ -69,8 +69,10 @@ put("C:\\npm\\pi.cmd", "@echo off\r\n");
 put("C:\\npm\\node_modules\\@earendil-works\\pi-coding-agent\\package.json", JSON.stringify({ name: PI_PACKAGE, bin: { [PI_BIN_NAME]: "dist/bundle/cli.js" } }));
 put(entry, "#!/usr/bin/env node\n");
 put("C:\\npm\\claude.cmd", "@echo off\r\n");
+put("C:\\s p\\stub.bat", "@echo off\r\n");
 put("C:\\tools\\pip.exe", "MZ");
 put("C:\\tools\\tool.py", "print(1)\n");
+put("C:\\tree\\tools\\review.cmd", "@echo off\r\n");
 const winOpts = {
 	platform: "win32",
 	env: { PATH: "C:\\npm;C:\\tools", PATHEXT: ".COM;.EXE;.BAT;.CMD;.PY", cOmSpEc: "C:\\Windows\\System32\\cmd.exe" },
@@ -111,6 +113,55 @@ const percent = resolveLaunch(["claude", "100%"]);
 const refusalOk = absent.refused === "not on PATH" && /\.py/i.test(py.refused ?? "") && /line feed/i.test(lineFeed.refused ?? "") && /%/.test(percent.refused ?? "");
 // req: R-2253
 check("on win32 a name not on PATH, a .py PATH finds and a .cmd argument with a line feed or % are refused, named", refusalOk, JSON.stringify({ absent, py, lineFeed, percent }));
+
+const missingPathCases = [
+	["C:\\tools\\reviewr.cmd", "C:\\tools\\reviewr.cmd"],
+	["C:\\tools\\Reviewr.BAT", "C:\\tools\\Reviewr.BAT"],
+	["tools\\review.cmd", "C:\\work\\tools\\review.cmd"],
+].map(([word, expected]) => ({ word, expected, result: resolveLaunch([word]) }));
+const missingPathsRefused = missingPathCases.every(({ expected, result }) => result.command === undefined && String(result.refused).toLowerCase().includes(expected.toLowerCase()));
+// req: R-2430
+check("on win32 a missing .cmd path, a missing upper-case .BAT path and a relative .cmd path absent from the given folder are refused, each naming its resolved path", missingPathsRefused, JSON.stringify(missingPathCases));
+
+const relativePresent = typeof reviewLaunch === "function"
+	? reviewLaunch(["tools\\review.cmd", "-p"], { ...winOpts, cwd: "C:\\tree" })
+	: { loadError: loadError || "reviewLaunch is not exported" };
+// req: R-2431
+check("on win32 a relative .cmd path present only in the given folder starts through ComSpec as written", matchesShape(relativePresent, cmdShape("tools\\review.cmd", ["-p"])), JSON.stringify(relativePresent));
+
+const relativeTreeTitle = "Windows: review-ledger run resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round";
+if (process.platform !== "win32") console.log(`SKIP ${relativeTreeTitle} — Windows leg only`); else {
+	const home = path.join(temp, "relative-tree-home");
+	const repo = makeRepo("relative-tree-repo");
+	const treeReviewer = path.join(repo, "tools", "review.cmd");
+	const cwdReviewer = path.join(temp, "other dir", "review.cmd");
+	const script = "@echo off\r\necho VERDICT: LAND\r\n";
+	fs.mkdirSync(path.dirname(treeReviewer), { recursive: true });
+	fs.writeFileSync(treeReviewer, script);
+	git(repo, "add", "tools/review.cmd");
+	const committed = git(repo, "commit", "-qm", "reviewer");
+	if (committed.status !== 0) throw new Error(committed.stderr);
+	fs.mkdirSync(path.dirname(cwdReviewer), { recursive: true });
+	fs.writeFileSync(cwdReviewer, script);
+	fs.mkdirSync(home, { recursive: true });
+	const env = { ...process.env, HOME: home, USERPROFILE: home };
+	const treeOut = path.join(temp, "relative-tree-out.md");
+	const cwdOut = path.join(temp, "relative-cwd-out.md");
+	const treeRun = spawnSync(process.execPath, [ledgerBin, "run", "--item", "relative-tree-present", "--tree", repo, "--out", treeOut, "--", "tools\\review.cmd"], { cwd: temp, env, encoding: "utf8", timeout: 60000 });
+	const cwdRun = spawnSync(process.execPath, [ledgerBin, "run", "--item", "relative-cwd-only", "--tree", repo, "--out", cwdOut, "--", "other dir\\review.cmd"], { cwd: temp, env, encoding: "utf8", timeout: 60000 });
+	let cwdOutText = null;
+	try { cwdOutText = fs.readFileSync(cwdOut, "utf8"); } catch { /* reported below */ }
+	let reservationNames = [];
+	try { reservationNames = fs.readdirSync(path.join(home, ".pi", "agent", "review-ledger.reservations")); } catch { /* absent is empty */ }
+	const allRounds = rows(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl")).filter((row) => row.kind === "round");
+	const treeRounds = allRounds.filter((row) => row.item === "relative-tree-present");
+	const cwdRounds = allRounds.filter((row) => row.item === "relative-cwd-only");
+	const expectedMissing = path.join(repo, "other dir", "review.cmd");
+	const ok = treeRun.status === 0 && treeRounds.length === 1 && cwdRun.status === 1 && cwdRun.stderr.includes("review-ledger: cannot start other dir\\review.cmd: ") && cwdOutText?.startsWith("cannot start other dir\\review.cmd: ") && cwdOutText.toLowerCase().includes(expectedMissing.toLowerCase()) && reservationNames.length === 0 && cwdRounds.length === 0;
+	// Windows only; the Windows CI leg passed it in run 39496386067.
+	// req: R-2432
+	check("Windows: review-ledger run resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round", ok, JSON.stringify({ treeRun, cwdRun, cwdOutText, reservationNames, treeRounds, cwdRounds }));
+}
 
 const windowsTitle = "Windows: review-ledger run starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round";
 if (process.platform !== "win32") console.log(`SKIP ${windowsTitle} — Windows leg only`); else {
