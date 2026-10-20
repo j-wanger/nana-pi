@@ -433,7 +433,7 @@ check("R-2027: SIGINT lets pi install remove its lock before install ends its la
 	return { ok: Boolean(started && exited && cleaned && dead), detail: JSON.stringify({ started: Boolean(started), exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) }) };
 });
 
-// req-candidate: R-2300 (Windows only; becomes req: when the Windows CI leg passes it)
+// req: R-2300
 check("R-2300: on Windows, a kill of install alone ends the npm pi launch it waits on within the parent check and the signal grace", async () => {
 	if (process.platform !== "win32") return { skip: "Windows kill-on-close job behavior only" };
 	const observed = await observeParentKill({ group: false, npm: true });
@@ -454,7 +454,7 @@ check("R-2131: a SIGKILL of install alone ends the pi launch it waits on within 
 	return { ok: observed.started && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
 });
 
-// req-candidate: R-2303 (Windows only; becomes req: when the Windows CI leg passes it)
+// req: R-2303
 check("R-2303: on Windows, a kill of the pi launch relay alone ends the npm pi it runs and pi's child within the parent check and the signal grace", async () => {
 	if (process.platform !== "win32") return { skip: "Windows kill-on-close job behavior only" };
 	const fixture = makeFixture("version", { npm: true });

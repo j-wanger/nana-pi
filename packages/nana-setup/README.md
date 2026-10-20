@@ -290,7 +290,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - A process pi starts through Command Prompt, such as npm for a registry package, leaves the job chain. A local-folder install starts none.
 - Doctor uses the same npm pi route, but no check kills doctor alone.
 - On macOS and Linux, killing the relay alone can leave pi running.
-- R-2300 and R-2303 stay untested until they pass on the Windows CI leg.
+- R-2300 and R-2303 are implemented by checks that pass on the Windows CI leg.
 
 ## What it never does
 
