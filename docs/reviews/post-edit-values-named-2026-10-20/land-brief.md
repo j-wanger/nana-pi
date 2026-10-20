@@ -75,3 +75,7 @@ FEAT-030 · Get trustworthy feedback after edits
   R-2214 new (implemented)
   R-2215 new (implemented)
 ```
+
+## Land reviewer note (the seat)
+
+The land reviewer is pi gpt-6-astra through pi-review (the owner's call, 2026-10-20), not Claude Fable as this brief's heading and the seat record say. pi-review appends the review standard; nothing else in this brief changes.
