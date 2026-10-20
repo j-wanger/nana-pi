@@ -50,3 +50,23 @@ Known limits (record in HANDOFF residuals at land):
 - `query` still prints "query failed" and names no repair.
 - doctor's knowledge row still names no repair and misses page damage. It waits for the doctor lanes in flight.
 - The recovered MISSING/UNREADABLE wording is unpinned.
+
+## Must-meet changes (re-check on the knowledge-sources-unparseable land tip, 2026-10-20; these win over the rows above)
+
+- Threat model: add one in-scope honest variation. The index is damaged while sources.json, at the same time, does not parse or cannot be read.
+- R-2400 new text: WHILE sources.json parses, IF index.db is not a SQLite database, is truncated, or has a whole page overwritten, THEN the knowledge build shall replace it with an index rebuilt from the sources. The test is unchanged.
+- R-2401 new text: WHILE sources.json parses, IF index.db is a SQLite database whose docs or files table lacks a column the knowledge build uses, THEN the knowledge build shall replace it with an index rebuilt from the sources. The test is unchanged.
+- R-2402 new text: WHILE sources.json parses, WHEN a pull finds an index.db older than one hour that has a whole page overwritten, the build that pull starts in the background shall rebuild the index so that a later pull returns hits. The test is unchanged.
+- R-2403 to R-2406 do not change. R-2406 applies only when the build replaces the index, so the kept case falls outside it. R-2405 still holds when both problems are present.
+- New row R-2407: WHILE sources.json exists but does not parse, IF index.db is not a SQLite database, is truncated, or has a whole page overwritten, THEN `nana-knowledge build`, with or without `--rebuild`, shall keep index.db byte for byte, exit 0, and print one stdout line that names the damage and says the index was not rebuilt, with no stack trace.
+- R-2407 test: `packages/nana-knowledge/tests/recover.test.mjs::R-2407: build and build --rebuild with an unparseable sources.json over a random-bytes, half-truncated or page-overwritten index exit 0, keep index.db byte for byte and print one line naming the damage as not rebuilt`
+- R-2407 check: run it for fixtures (a), (b) and (c).
+  - Build a good index and close every handle. Damage it, delete -wal and -shm, then write the trailing-comma sources.json.
+  - Hash index.db, then spawn `build` and `build --rebuild`.
+  - Each run must exit 0 with empty stderr and no `^\s+at ` line.
+  - Each run must print exactly one stdout line containing "damaged", and that line must contain "not rebuilt".
+  - index.db's hash must be unchanged after each run.
+- R-2407 red today, probed on 29269b13: (a) and (b) exit 1 with a stack for both `build` and `build --rebuild`. For (c), both commands exit 0 with no damaged line and rewrite index.db, and the mtime moves.
+- R-2407 is also red on the plan's unamended design. For (c), `build` prints "rebuilt from the sources" but rebuilds nothing and writes into the damaged file. (a), (b) and (d) exit 1 with a stack. (e) and (f) also exit 1 with a stack.
+- (adversary fix 4) R-2407's check also asserts the damaged line names "file is not a database" for (a) and "malformed" for (b) and (c).
+- Rows R-2400 to R-2407; recover.test.mjs is 8/8.
