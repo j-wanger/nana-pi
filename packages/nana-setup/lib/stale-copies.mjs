@@ -10,6 +10,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { codeSpan } from "../../nana-pack/lib/display.mjs";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
 import { STALE_PREFIX } from "./stale-copies-config.mjs";
@@ -24,7 +25,7 @@ export function linkOk(target, source) {
 	try {
 		const st = fs.lstatSync(target);
 		if (st.isSymbolicLink()) {
-			return fs.realpathSync(target) === fs.realpathSync(source);
+			return realPath(target, { mustExist: true }) === realPath(source, { mustExist: true });
 		}
 		return platform() === "win32" && st.isFile() && fs.readFileSync(target).equals(fs.readFileSync(source));
 	} catch {

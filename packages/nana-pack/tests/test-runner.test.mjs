@@ -23,6 +23,7 @@
 import { tmpDir } from "./tmp-dir.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
+import { checkoutSpellingSkipReason } from "../lib/test-runner-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -274,6 +275,21 @@ const rootStudy = mkRoot("study-present", {
 const studyPresent = run(rootStudy, ["--verbose", "study-tasks"]);
 // req: R-607
 check("study tasks run when their declared extension prerequisite exists", labelFor(studyPresent.out, "study-tasks.test.mjs") === "PASS" && studyPresent.out.includes("PASS study fixture ran") && studyPresent.code === 0);
+
+const spellingProbe = fs.realpathSync.native(tmpDir(path.join(TD, "checkout-spelling-probe-")));
+const swappedSpelling = path.join(path.dirname(spellingProbe), [...path.basename(spellingProbe)].map((char) => char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase()).join(""));
+const secondSpellingExists = swappedSpelling !== spellingProbe && fs.existsSync(swappedSpelling);
+const spellingSkipReason = checkoutSpellingSkipReason(TD);
+const rootSpelling = mkRoot("checkout-spelling", {
+	"packages/nana-setup/tests/checkout-spelling.test.mjs": secondSpellingExists
+		? 'console.log("PASS checkout spelling ran on a volume with a second spelling");\n'
+		: TRAP("checkout spelling ran without a second spelling"),
+});
+const spellingRun = run(rootSpelling, ["checkout-spelling"]);
+// req: R-1986
+check("R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling", secondSpellingExists
+	? spellingSkipReason === null && labelFor(spellingRun.out, "checkout-spelling.test.mjs") === "PASS" && spellingRun.code === 0
+	: spellingSkipReason === "no second spelling exists on a case-sensitive volume" && labelFor(spellingRun.out, "checkout-spelling.test.mjs") === "SKIP" && lineFor(spellingRun.out, "checkout-spelling.test.mjs").includes(spellingSkipReason) && spellingRun.code === 0);
 
 // ── case B: the substring filter, and --verbose ───────────────────────────────────────────────
 const B = run(rootA, ["--verbose", "probe/tests/c-pass"]);

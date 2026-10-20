@@ -11,7 +11,7 @@
  *  knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig,
  *  reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath,
  *  isRealHome; platform(); tildeify()
- * @effects none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
+ * @effects disk (one realPath read at import to canonicalize pkgRoot; all other work is path arithmetic and env/homedir reads)
  * @errors none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
  */
 // Where everything lives. One resolver so `install` and `doctor` can never disagree, and so
@@ -21,9 +21,10 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
 /** <repo>/packages/nana-setup — the files this package ships. */
-export const pkgRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+export const pkgRoot = realPath(path.resolve(fileURLToPath(new URL(".", import.meta.url)), ".."));
 /** <repo> — the install root: what gets registered with pi and referenced from settings.json. */
 export const repoRoot = path.resolve(pkgRoot, "..", "..");
 

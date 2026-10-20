@@ -1,17 +1,33 @@
 /**
  * @module packages/nana-pack/lib/test-runner-config.mjs
- * @purpose Declare the parallel test runner's tunables with their provenance.
- * @inputs none
- * @outputs JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE
- * @effects none
- * @errors none
+ * @purpose Declare the test runner's parallel tunables and volume-dependent file preconditions.
+ * @inputs os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
+ * @outputs JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, checkoutSpellingSkipReason
+ * @effects disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
+ * @errors checkoutSpellingSkipReason propagates temporary-folder creation errors
  */
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+
 // must-meet.md (docs/reviews/parallel-runner-2026-10-19/) is the plan of record: R-1470 to R-1477.
 // scripts/test.mjs and scripts/test-locked.mjs import every tunable here by name — never an
 // inline literal at a point of use.
 
 // contract (R-1470, R-1477): the test runner's --jobs argument prefix.
 export const JOBS_FLAG = "--jobs=";
+
+/** Declare checkout-spelling unrunnable only where its own case-swap probe finds no second spelling. */
+export function checkoutSpellingSkipReason(tmpRoot = os.tmpdir()) {
+	const probe = fs.realpathSync.native(fs.mkdtempSync(path.join(tmpRoot, "nana-checkout-spelling-probe-")));
+	try {
+		const swapCase = (value) => [...value].map((char) => char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase()).join("");
+		const second = path.join(path.dirname(probe), swapCase(path.basename(probe)));
+		return second !== probe && fs.existsSync(second) ? null : "no second spelling exists on a case-sensitive volume";
+	} finally {
+		fs.rmSync(probe, { recursive: true, force: true });
+	}
+}
 
 // chosen (must-meet.md measured table, 2026-10-19, the 10-core seat Mac, other lanes running):
 // 4 at once measured clean; 6 simulates 15-35s faster but adds load beside other lanes' builders;

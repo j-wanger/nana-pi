@@ -9,7 +9,7 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail } rows, including a win32-only note row naming the
+ * @outputs an array of { status, label, detail, installLabel? } rows, including a win32-only note row naming the
  *  Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
@@ -22,6 +22,7 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
@@ -81,9 +82,9 @@ export function skillLinkState(target, source) {
 		return { ok: false, detail: `a symlink or junction is there instead of nana-setup's copy of ${source} — move it, then re-run \`nana-setup install\`` };
 	if (st.isSymbolicLink()) {
 		let current = null;
-		try { current = fs.realpathSync(target); } catch { /* dangling link */ }
+		try { current = realPath(target, { mustExist: true }); } catch { /* dangling link */ }
 		let canonicalSource = path.resolve(source);
-		try { canonicalSource = fs.realpathSync(source); } catch { /* missing pack source */ }
+		try { canonicalSource = realPath(source, { mustExist: true }); } catch { /* missing pack source */ }
 		return current === canonicalSource ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
 	}
 	if (platform() !== "win32") return { ok: false, detail: `${st.isDirectory() ? "a directory" : "a regular file"} is there instead of a symlink to ${source} — move it, then re-run \`nana-setup install\`` };
@@ -303,7 +304,7 @@ export function winShimState(name, source, binDir) {
 export function diagnose(layout, opts = {}) {
 	const win = platform() === "win32";
 	const checks = [];
-	const add = (status, label, detail) => checks.push({ status, label, detail });
+	const add = (status, label, detail, installLabel) => checks.push({ status, label, detail, ...(installLabel === undefined ? {} : { installLabel }) });
 
 	// --- runtime floor: the `node` the objective hook will run (the one on this PATH) ---
 	// R-1057: win32 runs this too now, on whatever `node` doctor's own PATH finds — which may
@@ -363,6 +364,7 @@ export function diagnose(layout, opts = {}) {
 				: pst
 					? "private rule is not a regular file — replace with a regular file"
 					: "private rule is missing — run `nana-setup install` to seed it",
+		"rule nana-personal.md (private)",
 	);
 
 	for (const name of CLAUDE_SKILLS) {
@@ -396,7 +398,7 @@ export function diagnose(layout, opts = {}) {
 
 	// --- two-tier auto-memory ---
 	const idx = path.join(layout.sharedMemoryDir, "MEMORY.md");
-	add(fs.existsSync(idx) ? OK : FAIL, "shared memory index", idx);
+	add(fs.existsSync(idx) ? OK : FAIL, "shared memory index", idx, "shared memory MEMORY.md");
 	const project = path.resolve(opts.projectDir || process.cwd());
 	const state = sharedLinkState(layout.projectsDir, project, layout.sharedMemoryDir);
 	add(
@@ -425,7 +427,7 @@ export function diagnose(layout, opts = {}) {
 	const pf = projectFileState(cfg?.objective?.projectFile);
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
-	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
+	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective, "pi nana-objective.md");
 	add(linkOk(layout.piRulings, ruleSource(RULINGS_FILE)) ? OK : FAIL, "pi nana-rulings.md", `-> ${ruleSource(RULINGS_FILE)}`);
 	const projectDir = path.resolve(opts.projectDir || process.cwd());
 	if (fs.existsSync(path.join(projectDir, ".pi", "nana-pack.json"))) {
