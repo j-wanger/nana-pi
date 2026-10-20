@@ -195,11 +195,11 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
   const home = tempHome();
   const calls = [];
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+  const readmeHome = path.join(home, README_REHEARSAL.home);
   const spawn = async (command, args, options) => {
     calls.push({ command, args, options: { ...options, env: { ...options.env } } });
-    // The README rehearsal (darwin only) runs the real root README's checklist through /bin/zsh;
-    // stub every such call so the existing darwin checks below stay green.
-    if (command === "/bin/zsh") return { status: 0, stdout: "\n  all good.\n" };
+    // Stub only the running platform's README rehearsal shell in its second home.
+    if (command === README_REHEARSAL.shell?.[platformName] && options.cwd === readmeHome) return { status: 0, stdout: "\n  all good.\n" };
     const joined = `${command} ${args.join(" ")}`;
     if (joined.includes("nana-setup.mjs") && args.includes("install")) {
       if (failInstall) return { status: 1, stderr: "failed" };
@@ -259,26 +259,42 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
 }
 
 // req: R-1540
-check("readme gate: darwin prints one readme checklist result line from /bin/zsh runs in a second home; linux and win32 run no /bin/zsh and print none", async () => {
-  for (const platformName of ["darwin", "linux", "win32"]) {
+check("readme gate: darwin prints one readme checklist result line from /bin/zsh runs in a second home; linux runs neither rehearsal shell and prints none", async () => {
+  for (const platformName of ["darwin", "linux"]) {
     const fixture = recordingRun({ platformName });
     try {
       const result = await fixture.run;
       const readmeLines = result.lines.filter((line) => line.includes(README_REHEARSAL.item));
-      const zshCalls = fixture.calls.filter((call) => call.command === README_REHEARSAL.shell);
+      const rehearsalCalls = fixture.calls.filter((call) => Object.values(README_REHEARSAL.shell).includes(call.command));
       if (platformName === "darwin") {
         assert.equal(readmeLines.length, 1, result.lines.join("\n"));
         assert.equal(readmeLines[0], `PASS ${README_REHEARSAL.item}`, result.lines.join("\n"));
-        assert.ok(zshCalls.length > 0);
+        assert.ok(rehearsalCalls.length > 0);
         const readmeHome = path.join(fixture.home, README_REHEARSAL.home);
-        assert.ok(zshCalls.every((call) => call.options.cwd === readmeHome && call.options.cwd !== fixture.home));
+        assert.ok(rehearsalCalls.every((call) => call.command === README_REHEARSAL.shell.darwin && call.options.cwd === readmeHome && call.options.cwd !== fixture.home));
       } else {
         assert.equal(readmeLines.length, 0, result.lines.join("\n"));
-        assert.equal(zshCalls.length, 0);
+        assert.equal(rehearsalCalls.length, 0);
       }
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
 });
+
+async function assertWin32ReadmeGate() {
+  const fixture = recordingRun({ platformName: "win32" });
+  try {
+    const result = await fixture.run;
+    const readmeLines = result.lines.filter((line) => line.includes(README_REHEARSAL.item));
+    const readmeHome = path.join(fixture.home, README_REHEARSAL.home);
+    const cmdCalls = fixture.calls.filter((call) => call.command === README_REHEARSAL.shell.win32 && call.options.cwd === readmeHome);
+    assert.deepEqual(readmeLines, [`PASS ${README_REHEARSAL.item}`], result.lines.join("\n"));
+    assert.ok(cmdCalls.length > 0);
+    assert.equal(cmdCalls.at(-1).args.at(-1), '"cd /d "%USERPROFILE%\\nana-pi" && nana-setup trust "%USERPROFILE%\\nana-pi" --yes && nana-setup doctor"');
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+}
+
+// req: R-1853
+check("readme gate: win32 prints one readme checklist result line from cmd.exe runs in a second home, ending on the Windows checklist's last step", assertWin32ReadmeGate);
 
 // req: R-1071
 check("environment: every override variable and every caller npm_config_* variable is removed, without case on win32", () => {
@@ -403,7 +419,7 @@ check("pi launch: on win32, pi install, pi list and the session go through findP
     assert.equal(launch.command, "C:\\Windows\\cmd.exe");
     assert.equal(launch.options.windowsVerbatimArguments, true);
     assert.deepEqual(launch.args, ["/d", "/v:off", "/s", "/c", '\"\"C:\\tools\\pi.cmd\" \"list\"\"']);
-    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes("pi-subagents") || call.args.join(" ").includes("list") || call.args.join(" ").includes('"--mode" "rpc"')));
+    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes("pi-subagents") || call.args.join(" ").includes('"list"') || call.args.join(" ").includes('"--mode" "rpc"')));
     assert.equal(piCommands.length, 3);
     assert.ok(piCommands.every((call) => call.command.toLowerCase().endsWith("\\cmd.exe")));
     assert.ok(piCommands.every((call) => call.args[0] === "/d" && call.args.includes("/c") && call.args.some((arg) => arg.includes("C:\\tools\\pi.cmd"))));
@@ -838,7 +854,7 @@ check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor"],
   });
 });
 // req: R-1073

@@ -64,14 +64,16 @@ hashed; nothing else.
   code blocks are skipped, so DOCTRINE's own entry-contract template does not become 3
   fake rows. Pointers to ledger rows carry a line number: `~/…/DOCTRINE.md:147`.
 
-Roots that do not exist are skipped, reported by `build` and `status` — and **their
-already-indexed rows are kept**. An unmounted volume or a repo renamed mid-build is not
-evidence that the knowledge is gone; purging on absence would erase a whole root's index
-until some later build happened to run while the mount was back. Rows are purged only when
-the file vanished from a root that was actually scanned, or when the root itself was taken
-out of `sources.json`. (`--rebuild` deletes the database first, so it does re-derive from
-what exists right now — run it when a root is really gone, not when it is merely offline.)
-Add a root by editing the file; nothing else needs to change.
+Roots that do not exist, and roots or folders that cannot be listed, are skipped — and
+**their already-indexed rows are kept**. `build` marks missing roots `MISSING` and every
+unlistable path `UNREADABLE`; `status` marks configured roots `MISS` or `UNREADABLE`.
+An unmounted volume, a privacy denial or a repo renamed mid-build is not evidence that the
+knowledge is gone; purging would erase that part of the index until a later build could read
+it again. Rows are purged only when the file vanished from a root that was actually scanned
+without an unreadable ancestor, or when the root itself was taken out of `sources.json`.
+(`--rebuild` deletes the database first, so it does re-derive from what exists right now —
+run it when a root is really gone, not when it is merely offline.) Add a root by editing the
+file; nothing else needs to change.
 
 **Discovery (roots by convention).** A product repo only got indexed if someone remembered
 to add it, so `sources.json` also takes an optional `discover` block — written into a

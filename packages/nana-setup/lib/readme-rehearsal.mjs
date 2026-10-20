@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/lib/readme-rehearsal.mjs
- * @purpose Rehearses the root README's macOS fresh-machine checklist as written, in a second temporary home.
- * @inputs The root README text, the repo root's package.json repository field, a rehearsal home, a base environment and an injected spawn function.
+ * @purpose Rehearses the root README's platform checklist as written, in a second temporary home.
+ * @inputs A platform name, the root README text, the repo root's package.json repository field, a rehearsal home, a base environment and an injected spawn function.
  * @outputs One readme-checklist judgment: { item, code, passed, detail }.
  * @effects disk (creates the rehearsal home's folders, reads the root README and package.json), process (spawns the checklist's own commands through the injected spawn)
  * @errors Never throws; a step that cannot run or match is reported as a failed judgment.
@@ -9,14 +9,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { README_REHEARSAL } from "./install-check-config.mjs";
+import { resolveLayout } from "./paths.mjs";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Parses the checklist's own `Run `/`then ` command grammar and `expect ` grammar (R-1541). */
-export function parseChecklist(text) {
+export function parseChecklist(text, platformName) {
   const normalized = String(text).replace(/\r\n/g, "\n");
-  const start = normalized.indexOf(README_REHEARSAL.heading);
-  const body = start < 0 ? "" : normalized.slice(start + README_REHEARSAL.heading.length).split(/\n###\s/)[0];
+  const heading = README_REHEARSAL.heading[platformName];
+  const start = normalized.indexOf(heading);
+  const body = start < 0 ? "" : normalized.slice(start + heading.length).split(/\n###\s/)[0];
   const leadPattern = README_REHEARSAL.commandLeads.map(escapeRegExp).join("|");
   const commandRe = new RegExp(`\\b(?:${leadPattern})\\s+\`([^\`]+)\``, "g");
   const expectRe = new RegExp(`\\b${escapeRegExp(README_REHEARSAL.expectLead)}\\s+\`([^\`]+)\``);
@@ -45,8 +47,8 @@ function cloneUrl(root) {
   return `https://github.com/${rest}`;
 }
 
-/** Runs the checklist's planned steps from a fresh rehearsal home (R-1540, R-1542, R-1545). */
-export async function runReadmeRehearsal({ root, home, env, spawn }) {
+/** Runs the platform checklist's planned steps from a fresh rehearsal home (R-1540, R-1542, R-1545, R-1853 to R-1855). */
+export async function runReadmeRehearsal({ root, home, env, spawn, platformName }) {
   fs.mkdirSync(home, { recursive: true });
   fs.mkdirSync(path.join(home, "tmp"), { recursive: true });
   fs.mkdirSync(path.join(home, ".npm"), { recursive: true });
@@ -58,14 +60,26 @@ export async function runReadmeRehearsal({ root, home, env, spawn }) {
     if (README_REHEARSAL.droppedEnv.some((name) => key.toUpperCase() === name.toUpperCase())) delete stepEnv[key];
   }
   stepEnv.npm_config_prefix = npmPrefixDir;
-  stepEnv.PATH = `${path.join(npmPrefixDir, "bin")}${path.delimiter}${stepEnv.PATH ?? ""}`;
+  const prefixBin = path.join(npmPrefixDir, README_REHEARSAL.npmPrefixBin[platformName]);
+  if (platformName === "win32") {
+    const pathKeys = Object.keys(stepEnv).filter((key) => key.toLowerCase() === "path");
+    const pathKey = pathKeys[0] ?? "Path";
+    const callerPath = stepEnv[pathKey] ?? "";
+    for (const key of pathKeys) delete stepEnv[key];
+    const pathParts = [prefixBin];
+    if (README_REHEARSAL.binOnPath[platformName]) pathParts.push(resolveLayout({ home }).binDir);
+    pathParts.push(callerPath);
+    stepEnv[pathKey] = pathParts.join(";");
+  } else {
+    stepEnv.PATH = `${prefixBin}${path.delimiter}${stepEnv.PATH ?? ""}`;
+  }
   stepEnv.GIT_CONFIG_COUNT = "1";
   stepEnv.GIT_CONFIG_KEY_0 = `url.${root}.insteadOf`;
   stepEnv.GIT_CONFIG_VALUE_0 = cloneUrl(root);
   stepEnv.GIT_ALLOW_PROTOCOL = "file";
 
   const text = fs.readFileSync(path.join(root, README_REHEARSAL.readme), "utf8");
-  const steps = rehearsalPlan(parseChecklist(text));
+  const steps = rehearsalPlan(parseChecklist(text, platformName));
   const runnable = steps.filter((step) => step.commands.length > 0);
   const hasTerminalStep = runnable.some((step) => step.expect);
   if (!hasTerminalStep) {
@@ -73,11 +87,13 @@ export async function runReadmeRehearsal({ root, home, env, spawn }) {
   }
   for (const step of runnable) {
     const joined = step.commands.join(" && ");
-    const result = await spawn(README_REHEARSAL.shell, [...README_REHEARSAL.shellArgs, joined], {
+    const commandText = platformName === "win32" ? `"${joined}"` : joined;
+    const result = await spawn(README_REHEARSAL.shell[platformName], [...README_REHEARSAL.shellArgs[platformName], commandText], {
       cwd: home,
       env: stepEnv,
       timeout: README_REHEARSAL.stepTimeoutMs,
       maxOutput: README_REHEARSAL.maxOutput,
+      ...(platformName === "win32" ? { windowsVerbatimArguments: true } : {}),
     });
     const timedOut = result?.error?.code === "ETIMEDOUT";
     const okay = !result?.error && result?.status === 0;

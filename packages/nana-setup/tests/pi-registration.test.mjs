@@ -374,6 +374,90 @@ if (process.platform === "win32") {
 	fs.rmSync(prefix, { recursive: true, force: true });
 } else console.log("SKIP Windows npm-generated pi.cmd integration: space/metacharacter manifest root and prepended PATH");
 
+{
+	const fakeBin = tmpDir(path.join(os.tmpdir(), "nana-dry-run-pi-"));
+	tmps.push(fakeBin);
+	const log = path.join(fakeBin, "calls");
+	const recorder = path.join(fakeBin, "record.cjs");
+	fs.writeFileSync(recorder, `const fs = require("node:fs");\nconst path = require("node:path");\nconst args = process.argv.slice(2);\nfs.appendFileSync(path.join(__dirname, "calls"), JSON.stringify(args) + "\\n");\nif (args[0] === "--version") console.log("1.0.2");\n`);
+	if (process.platform === "win32") fs.writeFileSync(path.join(fakeBin, "pi.cmd"), `@"${process.execPath}" "%~dp0record.cjs" %*\r\n`);
+	else {
+		fs.writeFileSync(path.join(fakeBin, "pi"), `#!/bin/sh\nexec '${process.execPath}' '${recorder}' "$@"\n`);
+		fs.chmodSync(path.join(fakeBin, "pi"), 0o755);
+	}
+	const readCalls = () => fs.existsSync(log) ? fs.readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
+	const savedPath = process.env.PATH;
+	process.env.PATH = `${fakeBin}${path.delimiter}${savedPath ?? ""}`;
+	try {
+		const installed = spawnSync(process.execPath, [cli, "install", "--home", piHomeWith(null)], { encoding: "utf8" });
+		const dry = spawnSync(process.execPath, [cli, "install", "--dry-run", "--home", piHomeWith(null)], { encoding: "utf8" });
+		const homePattern = /^\s*\S\s+pi packages\s+skipped\s+not registered \(--home override in play\)\s*$/m;
+		const homeCalls = readCalls();
+		const beforeAnchor = homeCalls.length;
+		const anchored = stepPiRegister({ ...resolveLayout({ home: piHomeWith(null) }), isRealHome: true }, {}, { platform: () => process.platform });
+		const anchorCalls = readCalls().slice(beforeAnchor);
+		const anchorInstalled = anchorCalls.some((args) => args[0] === "install");
+		// req: R-391
+		check("R-391: under --home with an unregistered extension directory, install and install --dry-run both report the pi packages step skipped (--home override in play)", installed.status === 0 && dry.status === 0 && homePattern.test(installed.stdout) && homePattern.test(dry.stdout), JSON.stringify({ installed: installed.stdout, dry: dry.stdout }));
+		// req: R-358
+		check("R-358: under --home, install and install --dry-run start no pi install while a working pi is first on PATH", !homeCalls.some((args) => args[0] === "install") && anchored[0]?.status === "created" && anchorInstalled, JSON.stringify({ homeCalls, anchored, anchorCalls }));
+	} finally { process.env.PATH = savedPath; }
+}
+
+{
+	const makeFixture = (prefix) => {
+		const root = tmpDir(path.join(os.tmpdir(), prefix));
+		tmps.push(root);
+		for (const name of ["nana-pack", "nana-knowledge"]) {
+			const packageRoot = path.join(root, "packages", name);
+			fs.mkdirSync(path.join(packageRoot, "extensions"), { recursive: true });
+			fs.writeFileSync(path.join(packageRoot, "package.json"), JSON.stringify({ pi: { extensions: ["extensions"] } }));
+		}
+		fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"] } }));
+		return root;
+	};
+	const fixture = makeFixture("nana-pi-dry-");
+	const bangFixture = makeFixture("nana-pi-dry!- ");
+	const layoutFor = (root) => ({ piHome: path.join(root, "agent"), piSettings: path.join(root, "agent", "settings.json"), isRealHome: true });
+	const carriesInstall = (platformName, call) => platformName === "win32" ? call.args.some((arg) => arg.includes('"install"')) : call.args[0] === "install";
+	const runCase = (spec, dryRun) => {
+		const calls = [];
+		const spawn = (command, args, options) => {
+			const call = { command, args, options };
+			calls.push(call);
+			return spec.reply(call);
+		};
+		const result = stepPiRegister(layoutFor(spec.root ?? fixture), { dryRun }, { platform: () => spec.platform, env: spec.env, exists: spec.exists, manifestRoot: spec.root ?? fixture, spawn });
+		return { result, calls, installCalls: calls.filter((call) => carriesInstall(spec.platform, call)) };
+	};
+	const missingCases = [
+		{ platform: "darwin", env: {}, reply: () => ({ error: Object.assign(new Error("missing"), { code: "ENOENT" }) }) },
+		{ platform: "win32", env: { PATH: "C:\\none", PATHEXT: ".CMD", ComSpec: "C:\\Windows\\cmd.exe" }, exists: () => false, reply: () => { throw new Error("must not spawn"); } },
+	];
+	const missingResults = missingCases.map((spec) => ({ install: runCase(spec, false), dry: runCase(spec, true) }));
+	const problemCases = [
+		{ platform: "win32", env: { PATH: "C:\\%bad", PATHEXT: ".CMD", ComSpec: "C:\\Windows\\cmd.exe" }, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", reply: () => { throw new Error("must not spawn"); } },
+		{ platform: "win32", root: bangFixture, env: { PATH: "C:\\bin", PATHEXT: ".CMD", ComSpec: "C:\\Windows\\cmd.exe" }, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.cmd", reply: () => ({ status: 0, stdout: "1.0.2", stderr: "" }) },
+		{ platform: "darwin", env: {}, reply: () => ({ status: 2, stdout: "", stderr: "bad version" }) },
+		{ platform: "darwin", env: {}, reply: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) },
+	];
+	const problemResults = problemCases.map((spec) => ({ install: runCase(spec, false), dry: runCase(spec, true) }));
+	const workingCases = [
+		{ platform: "darwin", env: {}, reply: () => ({ status: 0, stdout: "1.0.2", stderr: "" }) },
+		{ platform: "win32", env: { PATH: "C:\\bin", PATHEXT: ".CMD", ComSpec: "C:\\Windows\\cmd.exe" }, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.cmd", reply: () => ({ status: 0, stdout: "1.0.2", stderr: "" }) },
+	];
+	const workingResults = workingCases.map((spec) => ({ install: runCase(spec, false), dry: runCase(spec, true) }));
+	const missingOk = missingResults.every(({ install, dry }) => JSON.stringify(dry.result) === JSON.stringify(install.result) && dry.result[0]?.status === "skipped" && dry.result[0]?.detail.includes(PI_INSTALL_HINT));
+	const problemOk = problemResults.every(({ install, dry }) => JSON.stringify(dry.result) === JSON.stringify(install.result) && dry.result[0]?.status === "problem" && installExitCode(dry.result) === 1 && dry.installCalls.length === 0);
+	const workingOk = workingResults.every(({ dry }) => dry.result[0]?.status === "created" && dry.result[0]?.detail.startsWith("would add per-package entries for ") && dry.installCalls.length === 0);
+	// req: R-1930
+	check("R-1930: with pi not on PATH, the dry-run pi packages step reports skipped with the pi install hint, as install does, on darwin and win32", missingOk, JSON.stringify(missingResults));
+	// req: R-1931
+	check("R-1931: when install would report the pi packages step ✗ before any pi install, the dry run reports the same ✗ and exits 1", problemOk, JSON.stringify(problemResults));
+	// req: R-1932
+	check("R-1932: with a working pi on PATH and an unregistered extension directory, the dry-run pi packages step reports would add and starts no pi install", workingOk, JSON.stringify(workingResults));
+}
+
 // req: R-392
 check("repository manifests remain byte-identical after fixture coverage checks",   [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].every((file, index) => fs.readFileSync(file).equals(repoManifestBytes[index])));
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

@@ -4,13 +4,16 @@
  * @inputs Claude Code environment, bounded hook JSON stdin, and the shared MEMORY.md file.
  * @outputs the shared-memory header, optional note, and index entries on stdout.
  * @effects disk, process (reads stdin, creates directories and a link, writes stdout).
- * @errors all failures are swallowed so this SessionStart hook exits successfully.
+ * @errors all failures, including a stdout error such as a reader that closed it, are ignored and the hook exits 0.
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { projectKey } from "../../lib/project-key.mjs";
 import { readHookInput } from "../../lib/shared-memory-input.mjs";
+
+// R-1942: Ignore every stdout error so a closed hook reader cannot fail the hook.
+process.stdout.on("error", () => {});
 
 const HEADER = (idx) => `[nana:shared-memory] ${idx} — general feedback/user/reference memories are written HERE (symlinked as shared/ in this project's memory dir); project facts go in the project's own memory dir.`;
 

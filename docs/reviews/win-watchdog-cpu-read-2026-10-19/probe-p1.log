@@ -1,0 +1,289 @@
+# Seat probe P1 — scratch Windows-only CI run 39355882657 (draft pull request #88, branch seatmut/wwcr-p1 at 97eb8a81, main 27fb9d3c's code), 2026-10-20 UTC
+
+Result: step 1 printed 1,5 and a comma CPU value under an in-process de-DE thread culture in Windows PowerShell 5.1.26100 (and in pwsh 7), so the plan's decision is: build as written. After Set-Culture de-DE, a new powershell process printed de-DE and CPU 0,5 (ticks 5000000). Step 4: main's win32-launch.test.mjs failed 'Windows: a busy pi is not stopped as stalled' under de-DE, with cpu=0s reads and STALL. Step 3b used bash's own pid, which is not a Windows pid, so its not-found error says nothing about the read. The full job log follows.
+
+```
+probe-p1	Set up job	﻿2026-10-20T01:53:09.5686787Z Current runner version: '2.337.0'
+probe-p1	Set up job	2026-10-20T01:53:09.5743867Z ##[group]Runner Image Provisioner
+probe-p1	Set up job	2026-10-20T01:53:09.5745183Z Hosted Compute Agent
+probe-p1	Set up job	2026-10-20T01:53:09.5746174Z Version: 20261002.596
+probe-p1	Set up job	2026-10-20T01:53:09.5747202Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+probe-p1	Set up job	2026-10-20T01:53:09.5748536Z Build Date: 2026-10-02T22:28:27Z
+probe-p1	Set up job	2026-10-20T01:53:09.5749619Z Worker ID: {72190cb0-3741-44b7-a37e-2d7719f450a6}
+probe-p1	Set up job	2026-10-20T01:53:09.5750761Z Region: centralus
+probe-p1	Set up job	2026-10-20T01:53:09.5751652Z Cloud: Azure
+probe-p1	Set up job	2026-10-20T01:53:09.5752521Z ##[endgroup]
+probe-p1	Set up job	2026-10-20T01:53:09.5754789Z ##[group]Operating System
+probe-p1	Set up job	2026-10-20T01:53:09.5755834Z Microsoft Windows Server 2025
+probe-p1	Set up job	2026-10-20T01:53:09.5756799Z 10.0.26100
+probe-p1	Set up job	2026-10-20T01:53:09.5757705Z Datacenter
+probe-p1	Set up job	2026-10-20T01:53:09.5758581Z ##[endgroup]
+probe-p1	Set up job	2026-10-20T01:53:09.5759537Z ##[group]Runner Image
+probe-p1	Set up job	2026-10-20T01:53:09.5760530Z Image: windows-2025-vs2026
+probe-p1	Set up job	2026-10-20T01:53:09.5761491Z Version: 20261007.264.1
+probe-p1	Set up job	2026-10-20T01:53:09.5763906Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261007.264/images/windows/Windows2025-VS2026-Readme.md
+probe-p1	Set up job	2026-10-20T01:53:09.5767547Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261007.264
+probe-p1	Set up job	2026-10-20T01:53:09.5769297Z ##[endgroup]
+probe-p1	Set up job	2026-10-20T01:53:09.5771129Z ##[group]GITHUB_TOKEN Permissions
+probe-p1	Set up job	2026-10-20T01:53:09.5773663Z Contents: read
+probe-p1	Set up job	2026-10-20T01:53:09.5774618Z Metadata: read
+probe-p1	Set up job	2026-10-20T01:53:09.5775615Z ##[endgroup]
+probe-p1	Set up job	2026-10-20T01:53:09.5778488Z Secret source: Actions
+probe-p1	Set up job	2026-10-20T01:53:09.5780015Z Cache mode: write
+probe-p1	Set up job	2026-10-20T01:53:09.5781248Z Prepare workflow directory
+probe-p1	Set up job	2026-10-20T01:53:09.6240195Z Prepare all required actions
+probe-p1	Set up job	2026-10-20T01:53:09.6313954Z Getting action download info
+probe-p1	Set up job	2026-10-20T01:53:09.8780114Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+probe-p1	Set up job	2026-10-20T01:53:10.0201031Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+probe-p1	Set up job	2026-10-20T01:53:10.3155407Z Complete job name: probe-p1
+probe-p1	Run actions/checkout@v4	﻿2026-10-20T01:53:10.4612752Z ##[group]Run actions/checkout@v4
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4613821Z with:
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4614257Z   repository: j-wanger/nana-pi
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4618112Z   token: ***
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4618521Z   ssh-strict: true
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4618934Z   ssh-user: git
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4619354Z   persist-credentials: true
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4619804Z   clean: true
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4620226Z   sparse-checkout-cone-mode: true
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4620729Z   fetch-depth: 1
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4621133Z   fetch-tags: false
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4621544Z   show-progress: true
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4621960Z   lfs: false
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4622336Z   submodules: false
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4622768Z   set-safe-directory: true
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4623243Z   allow-unsafe-pr-checkout: false
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4623961Z env:
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4624352Z   PI_VERSION: 1.0.2
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4624781Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.4625558Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.6369884Z Syncing repository: j-wanger/nana-pi
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.6373188Z ##[group]Getting Git version info
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.6374356Z Working directory is 'D:\a\nana-pi\nana-pi'
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:10.7433961Z [command]"C:\Program Files\Git\bin\git.exe" version
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.0777379Z git version 2.56.0.windows.2
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.0838927Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.0866974Z Temporarily overriding HOME='D:\a\_temp\f709a46e-cefe-4c31-be30-07d3dda01f1c' before making global git config changes
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.0869565Z Adding repository directory to the temporary git global config as a safe directory
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.0880252Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.1581954Z Deleting the contents of 'D:\a\nana-pi\nana-pi'
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.1589015Z ##[group]Initializing the repository
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.1598283Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\nana-pi\nana-pi
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.2613020Z Initialized empty Git repository in D:/a/nana-pi/nana-pi/.git/
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.2664038Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/j-wanger/nana-pi
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.3336303Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.3337617Z ##[group]Disabling automatic garbage collection
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.3345751Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.3743296Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.3744625Z ##[group]Setting up auth
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.3755473Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:11.4154580Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:12.9022150Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:12.9465008Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:13.5657205Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:13.6086098Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:14.1912779Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:14.2329030Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:14.2330071Z ##[group]Fetching the repository
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:14.2344310Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +a8f50abe7b940b2c8be5f7ca38bf6eaa9cd2febb:refs/remotes/pull/88/merge
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.4974992Z From https://github.com/j-wanger/nana-pi
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.4976512Z  * [new ref]         a8f50abe7b940b2c8be5f7ca38bf6eaa9cd2febb -> pull/88/merge
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.5024718Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.5025420Z ##[group]Determining the checkout info
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.5027960Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.5038405Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.5584115Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.6012828Z ##[group]Checking out the ref
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:17.6013476Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/88/merge
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.6670941Z Updating files:  93% (2635/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.6755846Z Updating files:  94% (2655/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.6849076Z Updating files:  95% (2683/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.6967821Z Updating files:  96% (2712/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7097414Z Updating files:  97% (2740/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7182131Z Updating files:  98% (2768/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7260764Z Updating files:  99% (2796/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7261445Z Updating files: 100% (2824/2824)
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7261892Z Updating files: 100% (2824/2824), done.
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7449087Z Note: switching to 'refs/remotes/pull/88/merge'.
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7449423Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7449998Z You are in 'detached HEAD' state. You can look around, make experimental
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7450542Z changes and commit them, and you can discard any commits you make in this
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7451019Z state without impacting any branches by switching back to a branch.
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7451551Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7451886Z If you want to create a new branch to retain commits you create, you may
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7453251Z do so (now or later) by using -c with the switch command. Example:
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7455526Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7455703Z   git switch -c <new-branch-name>
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7455888Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7455990Z Or undo this operation with:
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7456351Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7456444Z   git switch -
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7456569Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7456774Z Turn off this advice by setting config variable advice.detachedHead to false
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7457100Z 
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7457489Z HEAD is now at a8f50ab Merge 97eb8a81bbbe256224fdcd28b2174cf36553b8b5 into 27fb9d3cd13a0294d6d78119c6119ab021826efb
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.7603743Z ##[endgroup]
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.8135808Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+probe-p1	Run actions/checkout@v4	2026-10-20T01:53:18.8496997Z a8f50abe7b940b2c8be5f7ca38bf6eaa9cd2febb
+probe-p1	Run actions/setup-node@v4	﻿2026-10-20T01:53:18.9044381Z ##[group]Run actions/setup-node@v4
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9044751Z with:
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9044934Z   node-version: 22
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9045125Z   always-auth: false
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9045384Z   check-latest: false
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9047945Z   token: ***
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9048119Z env:
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9048281Z   PI_VERSION: 1.0.2
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9048477Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:18.9048701Z ##[endgroup]
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:19.0891053Z Found in cache @ C:\hostedtoolcache\windows\node\22.23.3\x64
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:19.0898706Z (node:1416) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:19.0899476Z (Use `node --trace-deprecation ...` to show where the warning was created)
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:19.0902977Z ##[group]Environment details
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:23.9144725Z node: v22.23.3
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:23.9145179Z npm: 10.9.9
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:23.9146124Z yarn: 1.22.22
+probe-p1	Run actions/setup-node@v4	2026-10-20T01:53:23.9147910Z ##[endgroup]
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	﻿2026-10-20T01:53:23.9570641Z ##[group]Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:23.9571424Z [36;1mnpm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:23.9594995Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:23.9595412Z env:
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:23.9595586Z   PI_VERSION: 1.0.2
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:23.9595789Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:23.9596023Z ##[endgroup]
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:53:53.2145509Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:55:07.7153338Z 
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:55:07.7154090Z added 121 packages in 2m
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:55:07.7154490Z 
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:55:07.7154764Z 9 packages are looking for funding
+probe-p1	Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"	2026-10-20T01:55:07.7155099Z   run `npm fund` for details
+probe-p1	P1 step 1 (in-process thread culture de-DE)	﻿2026-10-20T01:55:08.8384894Z ##[group]Run powershell -NoProfile -Command '& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); [double]1.5 | Out-String; (Get-Process -Id $PID).CPU | Out-String; (Get-Process -Id $PID).TotalProcessorTime.Ticks | Out-String }'
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:08.8387139Z [36;1mpowershell -NoProfile -Command '& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); [double]1.5 | Out-String; (Get-Process -Id $PID).CPU | Out-String; (Get-Process -Id $PID).TotalProcessorTime.Ticks | Out-String }'[0m
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:08.8405444Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:08.8405849Z env:
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:08.8406023Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:08.8406232Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:08.8406471Z ##[endgroup]
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:11.5004252Z 1,5
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:11.5004596Z 
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:11.7156311Z 0,90625
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:11.7156708Z 
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:11.7518483Z 9062500
+probe-p1	P1 step 1 (in-process thread culture de-DE)	2026-10-20T01:55:11.7518700Z 
+probe-p1	P1 step 1b (same in pwsh 7)	﻿2026-10-20T01:55:11.8133761Z ##[group]Run pwsh -NoProfile -Command '& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); [double]1.5 | Out-String; (Get-Process -Id $PID).CPU | Out-String; (Get-Process -Id $PID).TotalProcessorTime.Ticks | Out-String }'
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:11.8136135Z [36;1mpwsh -NoProfile -Command '& { [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo(1031); [double]1.5 | Out-String; (Get-Process -Id $PID).CPU | Out-String; (Get-Process -Id $PID).TotalProcessorTime.Ticks | Out-String }'[0m
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:11.8153051Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:11.8153455Z env:
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:11.8153632Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:11.8153848Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:11.8154082Z ##[endgroup]
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:12.3230597Z 1,5
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:12.3230851Z 
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:12.3511978Z 0,515625
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:12.3512322Z 
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:12.3525061Z 5156250
+probe-p1	P1 step 1b (same in pwsh 7)	2026-10-20T01:55:12.3525254Z 
+probe-p1	P1 step 0 (user culture before)	﻿2026-10-20T01:55:12.4217460Z ##[group]Run powershell -NoProfile -Command '(Get-Culture).Name; $PSVersionTable.PSVersion.ToString(); (Get-Process -Id $PID).CPU; (Get-Process -Id $PID).TotalProcessorTime.Ticks'
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.4218851Z [36;1mpowershell -NoProfile -Command '(Get-Culture).Name; $PSVersionTable.PSVersion.ToString(); (Get-Process -Id $PID).CPU; (Get-Process -Id $PID).TotalProcessorTime.Ticks'[0m
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.4234735Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.4235130Z env:
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.4235303Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.4235512Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.4235744Z ##[endgroup]
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.8099073Z en-US
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.8169574Z 5.1.26100.33438
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.8932015Z 0.546875
+probe-p1	P1 step 0 (user culture before)	2026-10-20T01:55:12.8968738Z 5625000
+probe-p1	P1 step 2 (Set-Culture de-DE)	﻿2026-10-20T01:55:12.9415960Z ##[group]Run powershell -NoProfile -Command 'Set-Culture de-DE'
+probe-p1	P1 step 2 (Set-Culture de-DE)	2026-10-20T01:55:12.9416509Z [36;1mpowershell -NoProfile -Command 'Set-Culture de-DE'[0m
+probe-p1	P1 step 2 (Set-Culture de-DE)	2026-10-20T01:55:12.9433815Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 2 (Set-Culture de-DE)	2026-10-20T01:55:12.9434219Z env:
+probe-p1	P1 step 2 (Set-Culture de-DE)	2026-10-20T01:55:12.9434390Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 2 (Set-Culture de-DE)	2026-10-20T01:55:12.9434591Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 2 (Set-Culture de-DE)	2026-10-20T01:55:12.9434825Z ##[endgroup]
+probe-p1	P1 step 3 (new process under the user culture)	﻿2026-10-20T01:55:13.9467284Z ##[group]Run powershell -NoProfile -Command '(Get-Culture).Name; $PSVersionTable.PSVersion.ToString(); (Get-Process -Id $PID).CPU; (Get-Process -Id $PID).TotalProcessorTime.Ticks'
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:13.9469019Z [36;1mpowershell -NoProfile -Command '(Get-Culture).Name; $PSVersionTable.PSVersion.ToString(); (Get-Process -Id $PID).CPU; (Get-Process -Id $PID).TotalProcessorTime.Ticks'[0m
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:13.9486694Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:13.9487096Z env:
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:13.9487268Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:13.9487469Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:13.9487775Z ##[endgroup]
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:14.3208143Z de-DE
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:14.3257037Z 5.1.26100.33438
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:14.4028839Z 0,5
+probe-p1	P1 step 3 (new process under the user culture)	2026-10-20T01:55:14.4064565Z 5000000
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	﻿2026-10-20T01:55:14.4477359Z ##[group]Run powershell -NoProfile -Command "(Get-Process -Id $$).CPU" || true
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.4478072Z [36;1mpowershell -NoProfile -Command "(Get-Process -Id $$).CPU" || true[0m
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.4494848Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.4495248Z env:
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.4495419Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.4495627Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.4495851Z ##[endgroup]
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8931443Z Get-Process : Cannot find a process with the process identifier 1594.
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8932220Z At line:1 char:2
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8932596Z + (Get-Process -Id 1594).CPU
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8932979Z +  ~~~~~~~~~~~~~~~~~~~~
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8933667Z     + CategoryInfo          : ObjectNotFound: (1594:Int32) [Get-Process], ProcessCommandException
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8935186Z     + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.GetProcessCommand
+probe-p1	P1 step 3b (the exact read pi-watchdog runs today)	2026-10-20T01:55:14.8935789Z  
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	﻿2026-10-20T01:55:14.9326698Z ##[group]Run npm test -- packages/nana-pack/tests/win32-launch.test.mjs --verbose || echo "P1 step 4 exit $?"
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:14.9327574Z [36;1mnpm test -- packages/nana-pack/tests/win32-launch.test.mjs --verbose || echo "P1 step 4 exit $?"[0m
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:14.9345514Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:14.9345920Z env:
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:14.9346094Z   PI_VERSION: 1.0.2
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:14.9346303Z   PI_BEFORE: 2026-10-04T06:57:57Z
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:14.9346526Z ##[endgroup]
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:15.5250427Z 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:15.5251255Z > nana-pi@0.5.0 test
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:15.5252163Z > node scripts/test.mjs packages/nana-pack/tests/win32-launch.test.mjs --verbose
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:15.5252830Z 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:16.8451585Z PASS win32 launch runs the npm pi package's bin entry with the running node and the arguments unchanged 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:16.8538797Z PASS win32 launch starts a pi.exe directly 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:16.9490728Z PASS win32 launch refuses with a named reason when pi, its package, its bin or its entry is missing 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:16.9634569Z PASS win32 launch refuses with a named reason, without throwing, when pi's bin is not a string 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:16.9736866Z PASS non-win32 launch is pi by name with the arguments unchanged 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:20.0558097Z PASS Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:20.1825644Z PASS Windows: non-lane pi-worker hands pi line breaks, %, !, quotes and a trailing backslash unchanged 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:22.2487473Z PASS Windows: pi-review hands the review standard to pi as text 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:22.2490434Z PASS Windows: pi-review's recorded revision is a plain sha, not a +snap 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8890571Z FAIL Windows: a busy pi is not stopped as stalled [pi-worker] attempt 1/1
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8891680Z   [pi-worker a1] cpu=0s flat=0/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8892248Z   [pi-worker a1] cpu=0s flat=1/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8892807Z   [pi-worker a1] cpu=4s flat=0/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8893319Z   [pi-worker a1] cpu=0s flat=0/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8894171Z   [pi-worker a1] cpu=0s flat=1/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8895107Z   [pi-worker a1] cpu=0s flat=2/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8895662Z   [pi-worker a1] cpu=0s flat=3/3
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8897266Z   [pi-worker a1] STALL (3s flat CPU) — killing group
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8898020Z [pi-worker] attempt 1 did not succeed
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8898947Z [pi-worker] FAILED after 1 attempt(s) (endpoint likely in a bad stretch)
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.8899551Z 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.9657541Z PASS Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:32.9658883Z PASS Windows: a refused launch writes its reason to --out 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:33.7218092Z PASS Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:33.7934173Z PASS Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:35.3753180Z PASS Windows: lane pi-worker starts pi from a short or differently cased worktree path 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:35.3754198Z 1 FAILED
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:35.5190310Z FAIL  packages/nana-pack/tests/win32-launch.test.mjs  14 pass, 1 fail  18.8s  — exit 1
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:36.7386026Z 
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:36.7387685Z 1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 14 pass, 1 fail, 0 skip · 20.0s
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:36.7388618Z failed: packages/nana-pack/tests/win32-launch.test.mjs
+probe-p1	P1 step 4 (win32-launch under de-DE, main's watchdog)	2026-10-20T01:55:36.7685061Z P1 step 4 exit 1
+probe-p1	Post Run actions/setup-node@v4	﻿2026-10-20T01:55:36.7958457Z Post job cleanup.
+probe-p1	Post Run actions/setup-node@v4	2026-10-20T01:55:36.9646100Z (node:5872) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+probe-p1	Post Run actions/setup-node@v4	2026-10-20T01:55:36.9648147Z (Use `node --trace-deprecation ...` to show where the warning was created)
+probe-p1	Post Run actions/checkout@v4	﻿2026-10-20T01:55:37.0001773Z Post job cleanup.
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.2335501Z [command]"C:\Program Files\Git\bin\git.exe" version
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.2720388Z git version 2.56.0.windows.2
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.2805482Z Temporarily overriding HOME='D:\a\_temp\ec77eaaf-76eb-4658-a5b3-224dea920b67' before making global git config changes
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.2806956Z Adding repository directory to the temporary git global config as a safe directory
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.2818649Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\nana-pi\nana-pi
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.3243979Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.3661591Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:37.9681701Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:38.0041081Z http.https://github.com/.extraheader
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:38.0093264Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:38.0500815Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:38.6510501Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+probe-p1	Post Run actions/checkout@v4	2026-10-20T01:55:38.6915756Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+probe-p1	Complete job	﻿2026-10-20T01:55:39.3030516Z Cleaning up orphan processes
+probe-p1	Complete job	2026-10-20T01:55:39.3341868Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+```

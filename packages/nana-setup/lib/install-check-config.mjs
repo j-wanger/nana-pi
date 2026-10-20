@@ -31,11 +31,11 @@ export const KNOWN_RED = {
   win32: [],
 };
 // Contract values: doctor.mjs informational rows; win32 hook-file rows removed by R-1861, 2026-10-19; floor from R-1060;
-// PATH rows are checks after R-1610, while the four pi-only skill skips remain notes (R-937).
+// PATH and skill rows are checks after R-1610 and R-1900.
 export const DOCTOR_NOTES = {
   darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
   linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {
@@ -67,17 +67,19 @@ export const PI_SESSION = { unavailableWord: "unavailable", maxOutput: 100000 };
 // Chosen 2026-10-12: bound network and doctor subprocesses within the 20-minute CI job.
 // Probe 2026-10-19: the offline faux turn took 0.66 s; 60 s leaves cold Windows runner headroom.
 export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, hook: 5000, doctor: 120000, git: 30000 };
-// Contract values: the macOS fresh-machine checklist's rehearsal grammar and sandbox shape (R-1540 to R-1546),
-// each chosen 2026-10-19 to run the root README's checklist as written, in a second temporary home.
+// Contract values: the macOS and Windows fresh-machine checklist rehearsal grammar and sandbox shape
+// (R-1540 to R-1546, R-1853 to R-1855), chosen 2026-10-19 to run each checklist as written.
 export const README_REHEARSAL = {
   item: "readme checklist", // contract: the install-check result-line item name (R-1540)
   readme: "README.md", // contract: the rehearsed document, read from the repo root (R-1540)
-  heading: "### Fresh machine (macOS), in order", // contract: the checklist section this rehearses (R-1540)
-  platforms: ["darwin"], // chosen 2026-10-19: the README carries only a macOS checklist (R-1540)
+  heading: { darwin: "### Fresh machine (macOS), in order", win32: "### Fresh machine (Windows), in order" }, // contract 2026-10-19: each platform's root README checklist heading (R-1540, R-1853)
+  platforms: ["darwin", "win32"], // chosen 2026-10-19: only platforms with a root README checklist run the rehearsal (R-1540, R-1853)
   home: "readme-home", // chosen 2026-10-19: a folder distinct from the install-check home, never reused (R-1540)
   npmPrefix: ".npm-global", // chosen 2026-10-19: stands in for step 1's writable global npm prefix (R-1542)
-  shell: "/bin/zsh", // contract: macOS's default login shell (R-1542)
-  shellArgs: ["-l", "-c"], // contract: a login shell reads the profile files the checklist assumes (R-1542)
+  npmPrefixBin: { darwin: "bin", win32: "" }, // contract 2026-10-19: npm global launchers live under prefix/bin on macOS and the prefix itself on Windows (R-1542, R-1855)
+  binOnPath: { darwin: false, win32: true }, // chosen 2026-10-19: Windows step 5 cannot edit the user Path during a hermetic rehearsal (R-1855)
+  shell: { darwin: "/bin/zsh", win32: "cmd.exe" }, // contract 2026-10-19: the shells named by the two checklist paths (R-1542, R-1854)
+  shellArgs: { darwin: ["-l", "-c"], win32: ["/d", "/v:off", "/s", "/c"] }, // contract 2026-10-19: login zsh and verbatim cmd invocation arguments (R-1542, R-1854)
   commandLeads: ["Run", "then"], // contract: the README's own command grammar (R-1541)
   expectLead: "expect", // contract: the README's own expectation grammar (R-1541)
   droppedEnv: ["ZDOTDIR"], // chosen 2026-10-19: a caller's ZDOTDIR would redirect the rehearsal's login shell away from its home (R-1542)

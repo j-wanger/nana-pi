@@ -224,6 +224,10 @@ if (POSIX) {
 	check("b: no orphaned grandchild survives the kill", left === "");
 	reap(left);
 	fs.rmSync(td, { recursive: true, force: true });
+} else {
+	console.log("SKIP b: descendant holding the pipe does not hang the handler — pgrep and POSIX process groups");
+	console.log("SKIP b: resolved within deadline + kill grace — pgrep and POSIX process groups");
+	console.log("SKIP b: no orphaned grandchild survives the kill — pgrep and POSIX process groups");
 }
 
 // Every platform builds the same two-level checker tree. The pending-run probe
@@ -413,6 +417,10 @@ if (POSIX) {
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	reap(survivors(marker)); // known residual: out of reach of the group kill
 	fs.rmSync(td, { recursive: true, force: true });
+} else {
+	console.log("SKIP f: unkillable pipe-holder does not hang the handler — pgrep and POSIX process groups");
+	console.log("SKIP f: settled within deadline + kill grace even though the kill failed — pgrep and POSIX process groups");
+	console.log("SKIP f: forced settlement is fed back to the model — pgrep and POSIX process groups");
 }
 
 // (d) a RELATIVE tool path is resolved against ctx.cwd for BOTH the digest and the

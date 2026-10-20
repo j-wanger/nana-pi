@@ -83,9 +83,9 @@ function freshHome() {
 }
 
 const NEUTRAL_CWD = tmpDir(path.join(os.tmpdir(), "nana-setup-cwd-"));
-const run = (args) => args[0] === "doctor"
-	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8" }))
-	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8" });
+const run = (args, env = process.env) => args[0] === "doctor"
+	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env }))
+	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env });
 
 /* --- 1. a fresh machine: every piece lands ------------------------------------------- */
 const home = freshHome();
@@ -101,8 +101,7 @@ const link = (p) => {
 };
 // win32 has no usable symlink (R-1050/declared shape): hooks are never written at all
 // (stepHooks skips every entry — the exec-form settings entries are checked separately, below,
-// through entryInvokes), rules and the `requirements` skill mirror as byte-equal copies, and the
-// four pi-only skills are skipped exactly like the hooks.
+// through entryInvokes), rules and all five runtime-neutral skills as byte-equal copies.
 const winFileCopy = (target, source) => {
 	try {
 		return fs.lstatSync(target).isFile() && !fs.lstatSync(target).isSymbolicLink() && fs.readFileSync(target).equals(fs.readFileSync(source));
@@ -161,8 +160,8 @@ for (const name of ["spec", "py-lint", "py-review", "py-test"]) {
 		// req: R-665
 		check(`skill ${name} is a symlink to the pack skill`, link(path.join(home, ".claude", "skills", name)) === path.join(repo, "packages", "nana-pack", "skills", name));
 	} else {
-		// req: R-665
-		check(`skill ${name} is not installed on win32 (pi-only)`, !fs.existsSync(path.join(home, ".claude", "skills", name)));
+		// req: R-351
+		check(`skill ${name} is a byte-equal mirror on win32`, winFileCopy(path.join(home, ".claude", "skills", name, "SKILL.md"), path.join(repo, "packages", "nana-pack", "skills", name, "SKILL.md")));
 	}
 }
 // req: R-301
@@ -304,6 +303,21 @@ check("second install reports nothing to do", second.stdout.includes("nothing to
 check("second install reports no created/updated line", !/^\s+\+ /m.test(second.stdout), second.stdout);
 // req: R-300
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
+
+const forcedWinHome = freshHome();
+const forcedWinEnv = { ...process.env, NANA_SETUP_PLATFORM: "win32" };
+const forcedWinNames = ["spec", "py-lint", "py-review", "py-test"];
+const forcedWinFirst = run(["install", "--home", forcedWinHome], forcedWinEnv);
+const forcedWinFilled = forcedWinFirst.status === 0 && forcedWinNames.every((name) => {
+	const marker = path.join(forcedWinHome, ".claude", "skills", name, ".nana-setup-copy");
+	return fs.existsSync(marker) && fs.lstatSync(marker).isFile();
+});
+const forcedWinSecond = run(["install", "--home", forcedWinHome], forcedWinEnv);
+// req: R-1904
+check("R-1904: forced win32 second install prints no retired row for four marked skill copies",
+	forcedWinFilled && forcedWinSecond.status === 0 && forcedWinNames.every((name) => !forcedWinSecond.stdout.includes(`retired .claude/skills/${name}`)),
+	`${forcedWinFirst.stdout}\n--- second ---\n${forcedWinSecond.stdout}`);
+
 if (process.platform !== "win32") {
 	// req: R-964
 	check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));

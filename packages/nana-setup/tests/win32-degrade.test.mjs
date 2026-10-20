@@ -366,7 +366,7 @@ if (process.platform !== "win32") {
 	const posix = freshHome();
 	run(["install", "--home", posix]);
 	check("seam does not leak: a normal run links the hooks", fs.lstatSync(path.join(posix, ".claude", "hooks", "nana-objective.mjs")).isSymbolicLink());
-}
+} else console.log("SKIP seam does not leak: a normal run links the hooks — a Windows install links no hook files");
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 process.exit(fails);

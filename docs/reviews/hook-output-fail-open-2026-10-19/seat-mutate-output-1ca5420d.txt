@@ -1,0 +1,13 @@
+seat-mutate: lane hook-output-fail-open, tip 1ca5420d6f1af57f7dcad064572872992ab6bbbf, table e955beff98898a79dfa45b728d3aa4db46655bcc98f707966f8885787257cf32, merge-base d4423eff5a68c3ae5137adf1e5ed890f9b2154ed, 5 pairs in 1 shards (5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T02:45:44.563Z
+DECLARED (a) every pair runs on macOS only; Windows, where a closed reader may surface as EPIPE or EOF, is unprobed (must-meet.md Known limits)
+DECLARED (b) the 'ignore every stdout error' choice has no pair: an EPIPE-only listener stays green on macOS by design (must-meet.md Known limits), and this runner has no stay-green pairs
+DECLARED (c) the four @errors header clauses are documentation and have no pair
+[1/1] seat-mutate: lane hook-output-fail-open, shard 1/1, tip 1ca5420d6f1af57f7dcad064572872992ab6bbbf, merge-base d4423eff5a68c3ae5137adf1e5ed890f9b2154ed, 5 pairs, darwin, node v22.22.2, 2026-10-20T02:45:45.566Z
+[1/1] BASELINE ok   packages/nana-setup/tests/hooks-closed-output.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/1] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 objective hook has no stdout error listener (main's form) — 1/1 named: objective hook ignores a closed stdout and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 adoption hook has no stdout error listener (main's form) — 1/1 named: adoption hook ignores a closed stdout and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 shared-memory hook has no stdout error listener (main's form) — 1/1 named: shared-memory hook ignores a closed stdout and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 verifier hook has no stdout error listener (main's form) — 1/1 named: verifier hook ignores a closed stdout and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 roster notice entry no longer exits before the stream error fires (pin) — 1/1 named: roster-notice hook ignores a closed stdout and exits 0; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards
