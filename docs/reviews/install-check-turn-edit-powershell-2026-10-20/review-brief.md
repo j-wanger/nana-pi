@@ -73,3 +73,5 @@ shipped extension or gate code, `PI_TURN` and every existing check unchanged, an
 match a fresh run; (5) the plan's known limits are recorded as HANDOFF residuals, and none of them hides a bug that
 stops the feature; (6) HANDOFF and the session entry are true, including the three edited pi-seat-live-turn residuals;
 (7) any MUST.
+
+Merge note (the seat, before round 1): `a8686203` merges main `6f07daee`, which holds the doctor-fix-line land (`8466795b`) and the setup-checkout-spelling land (`6f07daee`). Neither touches the lane's install-check files. The merge was clean. The seat then dropped one doubled HANDOFF Landed line (review-test-waits' present-tense copy; main's past-tense line stays). Review `git diff 6f07daee..HEAD` for the lane's own change, and `git show --remerge-diff a8686203` for the merge. The seat re-ran the local macOS install check on the merged tip before this round.
