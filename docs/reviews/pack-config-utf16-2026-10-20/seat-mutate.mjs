@@ -119,4 +119,4 @@ const PAIRS = [
 	], tests: [PU], expectRed: [R2230, R2231, R2232] },
 ];
 
-process.exitCode = await runMutations({ lane: "pack-config-utf16", self: import.meta.url, tip: "961f76d1", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "pack-config-utf16", self: import.meta.url, tip: "58e2da48", declared: DECLARED, pairs: PAIRS });
