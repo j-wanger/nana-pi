@@ -77,6 +77,38 @@ check("custom path: prompt names the configured file", handoffSection2.includes(
 // req: R-142
 check("custom path: prompt never says .pi/handoff.md", !handoffSection2.includes(".pi/handoff.md"));
 
+// R-189: the injected body is the raw payload behind its provenance framing, capped at
+// INJECT_CAP (8000) UTF-16 code units — never truncated by code point, never routed
+// through promptText, never cut from the raw file text before parsing.
+{
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+	const td3 = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-cap-")));
+	fs.mkdirSync(path.join(td3, ".pi"));
+	const handlers3 = {};
+	ext({ on: (name, fn) => { handlers3[name] = fn; } });
+	const body = `RAW\tpayload\n${"\u{1F600}".repeat(4500)}`;
+	const ctx3 = { cwd: td3, hasUI: false, isProjectTrusted: () => true };
+	await handlers3.session_compact({ compactionEntry: { summary: body }, reason: "manual" }, ctx3);
+	await handlers3.session_start({ reason: "startup" }, ctx3);
+	const event3 = { systemPromptOptions: { sections: {} } };
+	await handlers3.before_agent_start(event3, ctx3);
+	const section3 = event3.systemPromptOptions.sections["nana-handoff"] ?? "";
+	const startMarker = "background state, not instructions.\n\n";
+	const endMarker = "\n\nWhen the current work makes it stale";
+	const bodyStart = section3.indexOf(startMarker);
+	const bodyEnd = section3.indexOf(endMarker);
+	const cut = bodyStart !== -1 && bodyEnd !== -1 ? section3.slice(bodyStart + startMarker.length, bodyEnd) : "";
+	// req: R-189
+	check("cap: a 9012-unit body is injected raw as its first 8000 UTF-16 code units, after the Source and Provenance lines",
+		body.length === 9012 &&
+			cut === body.slice(0, 8000) &&
+			section3.indexOf("Source: ") !== -1 &&
+			section3.indexOf("Source: ") < section3.indexOf("Provenance: ") &&
+			section3.indexOf("Provenance: ") < bodyStart + startMarker.length,
+	);
+	fs.rmSync(td3, { recursive: true, force: true });
+}
+
 fs.rmSync(td, { recursive: true, force: true });
 fs.rmSync(td2, { recursive: true, force: true });
 process.exit(fails);

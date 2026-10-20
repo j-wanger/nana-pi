@@ -70,6 +70,35 @@ check("any other marker value: normal behaviour (picks up)", (await session(repo
 delete process.env.NANA_HANDOFF;
 check("no marker: normal behaviour (picks up)", (await session(repo).prompt()).includes("WRITER-STATE"));
 
+// marker: every value OTHER than the exact lowercase "off" — unset, "on", a differently-cased
+// variant, and "off" with a leading or trailing space — is a normal writer, never the
+// non-writer role (R-138, R-807).
+const markerCases = [undefined, "on", "OFF", "Off", " off", "off "];
+const markerResults = [];
+for (const value of markerCases) {
+	if (value === undefined) delete process.env.NANA_HANDOFF;
+	else process.env.NANA_HANDOFF = value;
+	fs.rmSync(JOURNAL, { force: true });
+	const summary = `MARKER-STATE-${JSON.stringify(value)}`;
+	await session(repo).compact(summary);
+	const stored = fs.readFileSync(file, "utf-8").includes(summary);
+	const injected = (await session(repo).prompt()).includes(summary);
+	const j = journal();
+	markerResults.push({
+		value,
+		stored,
+		injected,
+		written: j.includes('"handoff_written"'),
+		pickup: j.includes('"handoff_pickup"'),
+		skippedRole: j.includes('"handoff_skipped_role"'),
+	});
+}
+delete process.env.NANA_HANDOFF;
+// req: R-138
+check("marker: OFF, Off and off with a leading or trailing space journal no handoff_skipped_role", markerResults.every((r) => !r.skippedRole));
+// req: R-807
+check("marker: unset, on, OFF, Off and off with a leading or trailing space each write the summary and a fresh session picks it up", markerResults.every((r) => r.stored && r.injected && r.written && r.pickup));
+
 // pi-review's child spawn env carries the marker (stub `pi` prints its env; zero model calls).
 // cwd is a one-commit scratch git repo, never this checkout: pi-review's admission flow runs
 // `git worktree add`/`remove` against its cwd and copies its tracked files into a temp checkout,

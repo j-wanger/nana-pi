@@ -1859,7 +1859,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Pins the user-scope handoff store — written atomically, keyed per exact canonical directory so nothing borrows an ancestor's, and skipped by resume, fork and reload
 - **inputs** — extensions/nana-handoff.ts, a nana-pack.json and the handoff store under a temp HOME, and throwaway repositories and worktrees
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, store files, repository fixtures), process (sets HOME, spawns a child session)
+- **effects** — disk (temp HOME, store files, repository fixtures), process (sets HOME, PI_CODING_AGENT_DIR for one block, spawns a child session)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
