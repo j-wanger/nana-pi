@@ -335,9 +335,11 @@ console.log("VERDICT: LAND");
 		const refusedLedgerRun = spawnSync(process.execPath, [reviewLedgerBin, "run", "--item", "winledger-refused", "--tree", reviewTree, "--out", refusedLedgerOut, "--", "pi", "-p", "x"], { cwd: temp, encoding: "utf8", timeout: 60000, env: voltaEnv });
 		let refusedRounds = [];
 		try { refusedRounds = fs.readFileSync(path.join(temp, ".pi", "agent", "review-ledger.rounds.jsonl"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.kind === "round" && row.item === "winledger-refused"); } catch { /* no ledger is also no round */ }
-		// req: R-1723
+		const refusedLedgerOutText = fs.existsSync(refusedLedgerOut) ? fs.readFileSync(refusedLedgerOut, "utf8") : "";
+		// req: R-1723 R-2250
 		check("Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
 			refusedLedgerRun.status === 1 && /pi launch refused: pi at .* is not an npm global install/.test(refusedLedgerRun.stderr) &&
+			refusedLedgerOutText.startsWith("cannot start pi: pi launch refused:") &&
 			readRecord().length === 0 && refusedRounds.length === 0 &&
 			JSON.stringify(reservationNames()) === JSON.stringify(reservationsBefore),
 			JSON.stringify({ refusedLedgerRun, calls: readRecord(), refusedRounds, reservationsBefore, reservationsAfter: reservationNames() }));

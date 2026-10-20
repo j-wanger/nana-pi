@@ -182,11 +182,17 @@ any other launcher command as given and does **not** inject this text; a hand-ro
 paste it itself.
 
 **Any other launcher** (e.g. a hand-rolled `claude -p … > "$scratch/out.md"`) prefixes the same check —
-`bin/review-ledger.mjs run` reserves the round, runs the command with stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output. It starts the command with `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`, as `pi-review` does, and starts a first word `pi` the way `pi-review` starts pi. A recorded empty verdict keeps the output and consumed round, prints why `nana-land` will refuse it, and exits 1; a non-empty verdict retains the verdict-recorded line and exit 0. The reviewed tree defaults to the launcher cwd; pass `--tree <path>` when launching from scratch:
+`bin/review-ledger.mjs run` reserves the round, runs the command with stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output. It starts the command with `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`, as `pi-review` does, and starts a first word `pi` the way `pi-review` starts pi. If the command cannot start, stderr and `--out` begin `cannot start <command>: <reason>`, and no reservation or round remains. A recorded empty verdict keeps the output and consumed round, prints why `nana-land` will refuse it, and exits 1; a non-empty verdict retains the verdict-recorded line and exit 0. The reviewed tree defaults to the launcher cwd; pass `--tree <path>` when launching from scratch:
 
 ```bash
 scratch=$(mktemp -d)
 node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role opus --out "$scratch/out.md" -- claude -p --model <model> "$(cat brief.md)"
+```
+
+On Windows, a `.cmd` reviewer such as npm-installed claude or codex starts through cmd.exe. Cmd.exe cannot carry `"`, `%`, `!`, a line break or a trailing backslash in an argument, and caps its line at 8191 characters. Give such a reviewer its brief on stdin from Command Prompt or Git Bash:
+
+```bat
+node packages/nana-pack/bin/review-ledger.mjs run --item <slug> --out out.md -- claude -p --model <model> < brief.md
 ```
 
 `review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
@@ -272,7 +278,7 @@ Known limits: no lock, so a writer racing `set` (the desk, the installer, an edi
 
 #### Windows
 
-`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run -- pi …` starts pi the same way; any other command starts by name, so a `.exe`/`.com` starts and a `.cmd`/`.bat` does not.
+`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run` sends any bare spelling of pi through that pi launch, finds another bare reviewer through Path and PATHEXT, starts a found `.cmd` or `.bat` through cmd.exe and a found `.exe` or `.com` directly, and takes a command containing `\`, `/` or `:` as a path.
 
 ### Trust model
 
@@ -339,7 +345,7 @@ concurrent edit remains loud and is recorded unverified. Redirect checks do not 
 submodule contents, so logs redirected inside a submodule are not detected.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
-Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
+Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes), `tests/review-launch.test.mjs` (command launch).
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 

@@ -5,15 +5,15 @@
  *  records its verdict, `check` asks whether one would be admitted.
  * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
  *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, the user-scope review ledger,
- *  pi-watchdog.mjs's piLaunch, and worker-config.mjs's PI_BIN_NAME and REVIEWER_CHILD_ENV
+ *  review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
  * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
- *  `check`, and the admission note, warnings, unread-verdict note and refusals on stderr
- * @effects process (resolves a first-word `pi`, spawns the review command with reviewer child env and
- *  stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's
- *  lock, reservation, tally and audit files)
+ *  `check`, and the admission note, warnings, unread-verdict note, cannot-start line and refusals on stderr
+ * @effects process (resolves and spawns the review command with reviewer child env and stdout piped,
+ *  runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock,
+ *  reservation, tally and audit files, including a best-effort cannot-start line)
  * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
- *  pi launch or admission, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result
- *  (only the latter returns the reservation with no round consumed); exit 0 otherwise
+ *  admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero /
+ *  non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
  */
 // review-ledger.mjs — the review round cap for ANY launcher (T2b). Same ledger and rules as
 // pi-review (see review-round.mjs); this is the hook a hand-rolled launcher calls.
@@ -31,8 +31,8 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { admit, complete, project, readRounds, release, repoKeyOf, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
-import { piLaunch } from './pi-watchdog.mjs';
-import { PI_BIN_NAME, REVIEWER_CHILD_ENV } from './worker-config.mjs';
+import { reviewLaunch } from './review-launch.mjs';
+import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const sep = rest.indexOf('--');
@@ -77,25 +77,36 @@ const childOption = (name) => {
   const i = child.indexOf(name);
   return i >= 0 ? child[i + 1] : null;
 };
-const launch = child[0] === PI_BIN_NAME
-  ? piLaunch(child.slice(1), { cwd: process.cwd() })
-  : { command: child[0], args: child.slice(1) };
-if (launch.refused) die(`pi launch refused: ${launch.refused}`);
+const launch = reviewLaunch(child);
 const adm = admit(own, { launcher: 'review-ledger run', provider: childOption('--provider'), model: childOption('--model'), attempts: 1 });
 if (!adm.ok) die(adm.message);
 process.stderr.write(`review-ledger: ${adm.note}\n`);
 if (adm.warning) process.stderr.write(`review-ledger: WARNING: ${adm.warning}\n`);
 const out = adm.res.out;
+const cannotStart = (reason) => {
+  release(adm.id);
+  const line = `cannot start ${child[0] || '""'}: ${reason}`;
+  try { writeFileSync(out, `${line}\n`); } catch { /* best effort; stderr remains authoritative */ }
+  die(line);
+};
+if (launch.refused) cannotStart(launch.refused);
 // async spawn so the heartbeat keeps renewing the reservation while the review runs (sol r2 #15)
 const stopHeartbeat = startHeartbeat(adm.res);
+const chunks = [];
+let k;
+try {
+  k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV } });
+} catch (e) {
+  stopHeartbeat();
+  cannotStart(e.code ?? e.message);
+}
 const r = await new Promise((done) => {
-  const chunks = [];
-  const k = spawn(launch.command, launch.args, { cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV } });
   k.stdout.on('data', (c) => chunks.push(c));
   k.on('error', (error) => done({ status: null, error, stdout: Buffer.concat(chunks).toString('utf8') }));
   k.on('close', (status, signal) => done({ status, signal, stdout: Buffer.concat(chunks).toString('utf8') }));
 });
 stopHeartbeat();
+if (r.error) cannotStart(r.error.code ?? r.error.message);
 const text = r.stdout ?? '';
 try { writeFileSync(out, text); } catch (e) { release(adm.id); die(`cannot write ${out}: ${e.message} — reservation returned`); }
 if (r.status === 0 && text.trim() && reviewShaped(text)) {

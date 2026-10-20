@@ -1,0 +1,43 @@
+/**
+ * @module packages/nana-pack/bin/review-launch.mjs
+ * @purpose Resolve a review command to its direct, Windows cmd.exe, or pi-specific launch.
+ * @inputs a child argv and injected platform, environment, cwd, file probes, text reader, and Node executable.
+ * @outputs a spawn command, arguments and optional options, or a named refusal.
+ * @effects disk through default Windows command and pi lookup probes.
+ * @errors lookup and unsafe Windows arguments return refusals; injected readers may throw.
+ */
+import * as path from "node:path";
+import { findOnPath, winCommand } from "../lib/win-command.mjs";
+import { PI_EXTENSIONS } from "../lib/win-command-config.mjs";
+import { piLaunch } from "./pi-watchdog.mjs";
+import { PI_BIN_NAME } from "./worker-config.mjs";
+
+export function reviewLaunch(child, {
+	platform = process.platform,
+	env = process.env,
+	cwd = process.cwd(),
+	exists,
+	isFile,
+	readText,
+	execPath = process.execPath,
+} = {}) {
+	const [word, ...args] = child;
+	const piOptions = { platform, env, cwd, exists, isFile, readText, execPath };
+	if (platform !== "win32") return word === PI_BIN_NAME ? piLaunch(args, piOptions) : { command: word, args };
+
+	const folded = word.toLowerCase();
+	const piNames = [PI_BIN_NAME, ...PI_EXTENSIONS.map((extension) => PI_BIN_NAME + extension)];
+	if (piNames.includes(folded)) {
+		const launch = piLaunch(args, piOptions);
+		return launch.refused ? { refused: `pi launch refused: ${launch.refused}` } : launch;
+	}
+
+	const comspec = Object.entries(env).find(([key]) => /^comspec$/i.test(key))?.[1];
+	if (/[\\/:]/.test(word)) {
+		const extension = path.win32.extname(word).toLowerCase();
+		return PI_EXTENSIONS.slice(-2).includes(extension) ? winCommand(word, args, { comspec }) : { command: word, args };
+	}
+
+	const found = findOnPath(word, { env, cwd, exists });
+	return found ? winCommand(found, args, { comspec }) : { refused: "not on PATH" };
+}
