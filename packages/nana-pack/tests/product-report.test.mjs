@@ -807,6 +807,24 @@ try {
     fs.writeFileSync(path.join(testsDir, "np-changed-skip.test.mjs"), "// np-changed-skip.test.mjs, changed\n");
     fs.writeFileSync(path.join(testsDir, "np-changed-pass.test.mjs"), "// np-changed-pass.test.mjs, changed\n");
 
+    // R-1655's discriminator must prove the heading counts the LISTED rows and not the ledger's
+    // VIOLATED rows, without depending on how many rows the live REQUIREMENTS.md this fixture
+    // was copied from happens to mark violated right now — that count drifts with the ledger
+    // (build-brief-2.md: an honest split there once collided it with the heading's 6 by
+    // coincidence). The fixture pins its own count instead: every row the copy started out
+    // violated is neutralized, and exactly one unrelated row is forced violated, so the number
+    // compared against is fixed by construction, never 6.
+    const VIOLATED_COUNT = 1;
+    {
+      const ledgerPath = path.join(root, "REQUIREMENTS.md");
+      const text = fs.readFileSync(ledgerPath, "utf8");
+      const lines = text.split("\n");
+      for (const row of readRequirementRows(parseLedger(text)))
+        if (row.status === "violated") lines[row.line - 1] = `| ${row.id} | ${row.requirement} | untested | ${row.evidence} |`;
+      fs.writeFileSync(ledgerPath, lines.join("\n"));
+    }
+    setRowStatusAndEvidence("R-1042", "violated", "fixture-controlled violated row for the R-1655 discriminator");
+
     const out = path.join(temp, "not-passed.html");
     await generateReport({ root, out });
     const view = renderHtmlAt(fs.readFileSync(out, "utf8"), "#issues");
@@ -852,7 +870,7 @@ try {
     check("R-1655: the not-passed heading states the number of rows listed under it",
       Boolean(heading) && headingCount === listedCards.length &&
       JSON.stringify([...listedIds].sort()) === JSON.stringify(["R-1020", "R-1021", "R-1025", "R-1026", "R-1027", "R-1030"].sort()) &&
-      headingCount !== view.model.violated.length,
+      view.model.violated.length === VIOLATED_COUNT && headingCount !== VIOLATED_COUNT,
       JSON.stringify({ headingCount, listedIds, violated: view.model.violated.length }));
   }
   {
