@@ -2797,11 +2797,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/hook-health.mjs`
 
 - **purpose** — Judge Claude Code hook links and settings once for doctor and the session-start stale-copy producer.
-- **inputs** — a nana-setup layout, parsed Claude settings or its read error, the active platform, and checkout hook sources.
+- **inputs** — a nana-setup layout, parsed Claude settings or its read error, the active platform, checkout hook sources, and an optional checkout-root override for tests.
 - **outputs** — hookLinkRows() and hookSettingsRows(), ordered labelled rows with health and actionable detail fields.
 - **effects** — disk (reads links, hook targets and knowledge-hook targets).
 - **errors** — filesystem or merge-simulation failures become unhealthy rows; a settings read error makes every settings row unhealthy.
-- **callers** — `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`
+- **callers** — `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — `packages/nana-pack/lib/real-path.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`
 
 ### `packages/nana-setup/lib/hook-producer.mjs`
@@ -3662,7 +3662,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts), process (spawns install and doctor with forced win32).
 - **errors** — A failed check prints its observed detail; unexpected setup or filesystem errors propagate.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/writing-rule.test.mjs`
 

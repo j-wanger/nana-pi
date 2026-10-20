@@ -284,7 +284,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - Git Bash on Windows has no settings-lock removal form of its own.
 - `state --paths` archives only the default, non-overlapping layout and refuses custom homes that alias or nest; configured home roots cannot contain glob characters.
 - No mechanical check keeps a future doctor-calling test inside `withPiStub`; an unwrapped call runs the ambient `pi --version` (read-only), and reviewers check it.
-- On Windows, install leaves hand-written or look-alike hook entries as written; doctor's ✗ settings line names each one and tells you to remove it by hand and run install, or edit it to run this checkout's command. Two exceptions are not named and may leave the row reading ✓: an entry whose path ends in a backslash, and an entry run through `node.exe`.
+- On Windows, install leaves hand-written or look-alike hook entries as written; doctor's ✗ settings line names each one and tells you to remove it by hand and run install, or edit it to run this checkout's command. Two exceptions are not named and may leave the row reading ✓: an entry whose script path's last separator is a backslash, such as `C:\Users\me\old\nana-objective.mjs`, and an entry run through `node.exe`.
 - `project` still prints the typeless warning.
 - A bare `uvx copier copy` project keeps the seeded objective's DRAFT lines until an owner ratifies them through the relevant scaffold or adopt skill; copier alone does not ask for either line.
 - A copier-born project has no month log until `nana-setup project` runs; the distinct entry routes are not collapsed into one setup path.
