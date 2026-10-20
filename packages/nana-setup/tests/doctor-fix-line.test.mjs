@@ -210,32 +210,27 @@ const beforeResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd,
 const afterResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, pathRowBin, otherDir, nodeDir, ...sysDirs] });
 
 // req: R-2320
-check(
-	"R-2320: with the bin folder on PATH and its pi-review launcher removed, the PATH resolves pi-review row names nana-setup install instead of the PATH fix",
+check("R-2320: with the bin folder on PATH and its pi-review launcher removed, the PATH resolves pi-review row names nana-setup install instead of the PATH fix",
 	toInstall(onResult, "PATH resolves pi-review") && pathRowDetail(onResult).includes("nana-setup install") && !pathRowDetail(onResult).includes(`add ${pathRowBin} to`),
 	`install ${pathRowInstall.status}\ndoctor ${onResult.status}\n${onResult.stdout}\n${onResult.stderr}`,
 );
 // req: R-2321
-check(
-	"R-2321: with the bin folder on PATH and its pi-review launcher removed, the summary gives PATH resolves pi-review to install",
+check("R-2321: with the bin folder on PATH and its pi-review launcher removed, the summary gives PATH resolves pi-review to install",
 	toInstall(onResult, "PATH resolves pi-review"),
 	`doctor ${onResult.status}\n${onResult.stdout}\n${onResult.stderr}`,
 );
 // req: R-2322
-check(
-	"R-2322: with the bin folder off PATH and its pi-review launcher removed, the summary lists PATH resolves pi-review by hand",
+check("R-2322: with the bin folder off PATH and its pi-review launcher removed, the summary lists PATH resolves pi-review by hand",
 	byHand(offResult, "PATH resolves pi-review") && pathRowDetail(offResult).includes(`add ${pathRowBin} to`),
 	`doctor ${offResult.status}\n${offResult.stdout}\n${offResult.stderr}`,
 );
 // req: R-2324
-check(
-	"R-2324: with another pi-review on PATH before the bin folder and the launcher removed, the summary lists PATH resolves pi-review by hand",
+check("R-2324: with another pi-review on PATH before the bin folder and the launcher removed, the summary lists PATH resolves pi-review by hand",
 	byHand(beforeResult, "PATH resolves pi-review"),
 	`doctor ${beforeResult.status}\n${beforeResult.stdout}\n${beforeResult.stderr}`,
 );
 // req: R-2325
-check(
-	"R-2325: with another pi-review on PATH after the bin folder and the launcher removed, the summary gives PATH resolves pi-review to install",
+check("R-2325: with another pi-review on PATH after the bin folder and the launcher removed, the summary gives PATH resolves pi-review to install",
 	toInstall(afterResult, "PATH resolves pi-review"),
 	`doctor ${afterResult.status}\n${afterResult.stdout}\n${afterResult.stderr}`,
 );
@@ -248,8 +243,7 @@ const forcedBin = path.join(forcedHome, ".local", "bin");
 fs.rmSync(path.join(forcedBin, "pi-review.cmd"), { force: true });
 const forcedResult = runOnPath(["doctor"], { home: forcedHome, cwd: forcedCwd, entries: [forcedBin.toUpperCase(), stubDir, nodeDir, ...sysDirs], extraEnv: forcedEnv });
 // req: R-2323
-check(
-	"R-2323: as win32 with the bin folder on the Path in another letter case and its .cmd shim removed, the summary gives PATH resolves pi-review to install",
+check("R-2323: as win32 with the bin folder on the Path in another letter case and its .cmd shim removed, the summary gives PATH resolves pi-review to install",
 	toInstall(forcedResult, "PATH resolves pi-review"),
 	`install ${forcedInstall.status}\ndoctor ${forcedResult.status}\n${forcedResult.stdout}\n${forcedResult.stderr}`,
 );
