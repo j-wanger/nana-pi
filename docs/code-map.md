@@ -1308,7 +1308,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Parse BOM-tolerant JSON text and turn JSON syntax errors into safe, shared config-failure details.
 - **inputs** — A string containing JSON text, optionally prefixed by U+FEFF; an error from JSON.parse; or a file and safe parse-failure classification.
-- **outputs** — The parsed value, a safe parse-failure classification without parser text, and the shared config-failure detail.
+- **outputs** — The parsed value, a safe parse-failure classification without parser text, and the shared FORWARD_SLASH_ADVICE and MANUAL_JSON_ADVICE repair sentences in config-failure detail.
 - **effects** — none
 - **errors** — parseJsonText exposes JSON.parse's SyntaxError; jsonErrorPlace returns null when no place is reported.
 - **callers** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`

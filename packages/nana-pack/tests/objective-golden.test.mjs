@@ -40,7 +40,12 @@ delete process.env.PI_CODING_AGENT_DIR;
 const enter = (w) => { process.env.HOME = w.home; process.env.USERPROFILE = w.home; if (w.agentDir) process.env.PI_CODING_AGENT_DIR = w.agentDir; else delete process.env.PI_CODING_AGENT_DIR; };
 const leave = () => { process.env.HOME = origHome; if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile; delete process.env.PI_CODING_AGENT_DIR; };
 const ext = (await import(new URL("../extensions/nana-objective.ts", import.meta.url).href)).default;
-const { LINE_CAP, OUTPUT_CAP, PATH_CAP, CONFIG_FAILURE_PREFIX, finish, displayPath, ownerVouched, trustRecord, produceObjective, objectivePath } = await import(new URL("../lib/objective.ts", import.meta.url).href);
+const { LINE_CAP, OUTPUT_CAP, PATH_CAP, CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, finish, displayPath, ownerVouched, trustRecord, produceObjective, objectivePath } = await import(new URL("../lib/objective.ts", import.meta.url).href);
+
+// req: R-1971
+check("R-1971: the manual repair advice is sealed as the README quotes it", MANUAL_JSON_ADVICE === "Repair the JSON by hand.");
+// req: R-2092
+check("R-2092: the forward-slash repair advice is sealed as the config contract defines it", FORWARD_SLASH_ADVICE === "Write paths in this file with forward slashes and any other backslash as two, because JSON reads a single backslash as an escape.");
 
 const OBJ = (s) => `**Objective (since 2026-09-28):** ${s}`;
 const PRI = (s) => `**Current priority (since 2026-09-28):** ${s}`;
@@ -1332,8 +1337,6 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 	}
 }
 
-const FORWARD_SLASH_ADVICE = "Write objective.path with forward slashes because JSON reads a single backslash as an escape.";
-const MANUAL_JSON_ADVICE = "Repair the JSON by hand.";
 const malformedConfigFixtures = [
 	["single backslashes", String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
@@ -1386,6 +1389,65 @@ check("unparseable user nana-pack.json: both runtimes keep the objective and add
 	// req: R-1973
 	check("unparseable user nana-pack.json and unreadable objective: both runtimes print the config line and UNAVAILABLE marker without file text", unavailableWithBrokenConfig);
 }
+
+const unicodeEscapeResults = [];
+for (const [label, fixture] of [
+	["drive path", String.raw`{ "objective": { "path": "D:\umbrella-zq7\OBJECTIVE.md" } }`],
+	["users path", String.raw`{ "objective": { "path": "c:\users\me\umbrella-zq7\OBJECTIVE.md" } }`],
+]) {
+	unicodeEscapeResults.push(await withCaseLimit(`Unicode escape ${label}`, async () => {
+		const w = world({ config: false });
+		const file = path.join(w.home, ".pi", "agent", "nana-pack.json");
+		fs.writeFileSync(file, fixture);
+		const cwd = path.join(w.home, "elsewhere");
+		const hookText = await golden(`Unicode escape ${label}`, w, cwd, () => {});
+		const piText = await runPi(w, cwd);
+		return [hookText ?? "", piText ?? ""].every((text) => {
+			const configLines = text.split("\n").filter((line) => line.startsWith(CONFIG_FAILURE_PREFIX));
+			return configLines.length === 1 && configLines[0].includes(displayPath(file)) && / at line 1, column \d+\./.test(configLines[0]) && configLines[0].includes(FORWARD_SLASH_ADVICE) && !configLines[0].includes(MANUAL_JSON_ADVICE) && text.includes(`governing: ${w.umbrellaFile}`) && !text.includes("zq7") && !text.includes("Bad Unicode");
+		});
+	}));
+}
+// req: R-2090
+check("a pasted path with a backslash before u: both runtimes give the forward-slash repair, never file text", unicodeEscapeResults.every(Boolean), JSON.stringify(unicodeEscapeResults));
+
+const gateEscapeResult = await withCaseLimit("bad escape in a gate pattern", async () => {
+	const w = world({ config: false });
+	const file = path.join(w.home, ".pi", "agent", "nana-pack.json");
+	fs.writeFileSync(file, String.raw`{ "gate": { "extraPatterns": ["rm\s+-rf-zq7"] } }`);
+	const cwd = path.join(w.home, "elsewhere");
+	const hookText = await golden("bad escape in a gate pattern", w, cwd, () => {});
+	const piText = await runPi(w, cwd);
+	const keys = /\b(?:gate|extraPatterns|allowPatterns|protectedPaths|stopReason|postEdit|commands|notify|enabled|headless|journal|path|handoff|staleAfterDays|objective|projectFile|receipts|dir)\b/;
+	return [hookText ?? "", piText ?? ""].every((text) => {
+		const configLines = text.split("\n").filter((line) => line.startsWith(CONFIG_FAILURE_PREFIX));
+		if (configLines.length !== 1 || text.includes("zq7")) return false;
+		const afterFile = configLines[0].slice(configLines[0].indexOf(displayPath(file)) + displayPath(file).length);
+		return /backslash as two\b/.test(afterFile) && !keys.test(afterFile);
+	});
+});
+// req: R-2092
+check("a bad escape in a gate pattern: both runtimes tell the user to write the backslash as two and name no config key", gateEscapeResult);
+
+const missingSettingsResults = [undefined, null].map((settings) => {
+	try {
+		const result = produceObjective(scratch, settings);
+		return result.unavailable === true && result.text.startsWith(`${HEAD}\n\nOBJECTIVE UNAVAILABLE: internal error (`);
+	} catch {
+		return false;
+	}
+});
+// req: R-2093
+check("produceObjective with no settings object returns the internal-error marker, never throws", missingSettingsResults.every(Boolean), JSON.stringify(missingSettingsResults));
+
+const forcedConfigFile = path.join(scratch, "forced-config.json");
+const forcedFailure = produceObjective(scratch, {
+	get path() { throw new Error("forced producer failure"); },
+	configFailure: { file: forcedConfigFile, line: 3, column: 7, repair: "manual" },
+});
+const forcedParts = forcedFailure.text.split("\n\n");
+// req: R-2094
+check("an internal producer error keeps the config-failure line before the internal-error marker", forcedParts.length === 3 && forcedParts[0] === HEAD && forcedParts[1].includes(displayPath(forcedConfigFile)) && forcedParts[1].includes(" at line 3, column 7.") && forcedParts[1].includes(MANUAL_JSON_ADVICE) && forcedParts[2].startsWith("OBJECTIVE UNAVAILABLE: internal error (") && forcedParts[2].includes("forced producer failure"));
 
 fs.rmSync(scratch, { recursive: true, force: true });
 process.exit(fails);
