@@ -123,8 +123,28 @@ await withinLimit("--claude-home and --home win over CLAUDE_CONFIG_DIR", async (
 	const homeRun = runInstall(fixture, ambient, ["--home", secondHome]);
 	const explicitFiles = fs.existsSync(path.join(explicit, "settings.json")) && fs.existsSync(path.join(explicit, "rules", "nana-soul.md"));
 	const homeFiles = fs.existsSync(path.join(secondHome, ".claude", "settings.json")) && fs.existsSync(path.join(secondHome, ".claude", "rules", "nana-soul.md"));
+
+	const relativeClaudeFixture = freshCase("relative-claude-flag");
+	const relativeExplicit = path.join(relativeClaudeFixture.home, "relative explicit claude");
+	const relativeExplicitRun = runInstall(relativeClaudeFixture, "rel-claude", ["--claude-home", relativeExplicit]);
+	const relativeExplicitLine = relativeExplicitRun.stdout.split(/\r?\n/).find((line) => line.includes("claude home")) ?? "";
+	const relativeExplicitOk = relativeExplicitRun.status === 0 &&
+		fs.existsSync(path.join(relativeExplicit, "settings.json")) &&
+		emptyOrAbsent(path.join(relativeClaudeFixture.work, "rel-claude")) &&
+		relativeExplicitLine.includes("(from --claude-home)");
+
+	const relativeHomeFixture = freshCase("relative-home-flag");
+	const relativeHome = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-claude-config-relative-flag-home-")));
+	const relativeHomeRun = runInstall(relativeHomeFixture, "rel-claude", ["--home", relativeHome]);
+	const relativeHomeLine = relativeHomeRun.stdout.split(/\r?\n/).find((line) => line.includes("claude home")) ?? "";
+	const relativeHomeOk = relativeHomeRun.status === 0 &&
+		fs.existsSync(path.join(relativeHome, ".claude", "settings.json")) &&
+		emptyOrAbsent(path.join(relativeHomeFixture.work, "rel-claude")) &&
+		relativeHomeLine.includes(path.join(relativeHome, ".claude")) &&
+		relativeHomeLine.includes("(from --home)");
+
 	// req: R-2392
-	check("--claude-home and --home win over CLAUDE_CONFIG_DIR", explicitRun.status === 0 && homeRun.status === 0 && explicitFiles && homeFiles && emptyOrAbsent(ambient), `explicit=${explicitRun.status}\n${output(explicitRun)}\nhome=${homeRun.status}\n${output(homeRun)}\nambient=${fs.existsSync(ambient) ? fs.readdirSync(ambient).join(",") : "absent"}`);
+	check("--claude-home and --home win over CLAUDE_CONFIG_DIR", explicitRun.status === 0 && homeRun.status === 0 && explicitFiles && homeFiles && emptyOrAbsent(ambient) && relativeExplicitOk && relativeHomeOk, `explicit=${explicitRun.status}\n${output(explicitRun)}\nhome=${homeRun.status}\n${output(homeRun)}\nrelative explicit=${relativeExplicitRun.status}\n${output(relativeExplicitRun)}\nrelative home=${relativeHomeRun.status}\n${output(relativeHomeRun)}\nambient=${fs.existsSync(ambient) ? fs.readdirSync(ambient).join(",") : "absent"}`);
 });
 
 await withinLimit("a relative CLAUDE_CONFIG_DIR: install exits 2 naming the variable and writes nothing", async () => {

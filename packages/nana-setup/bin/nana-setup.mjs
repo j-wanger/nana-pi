@@ -180,7 +180,7 @@ function runInstall(opts) {
 	refuseCwdRelativeClaudeHome(layout, "this install");
 	console.log(`nana-setup install${opts.dryRun ? " (dry run)" : ""}`);
 	console.log(`  install root  ${repoRoot}`);
-	console.log(`  claude home   ${tildeify(layout.claudeHome)}${layout.claudeHomeSource === CLAUDE_CONFIG_ENV ? `  (from ${CLAUDE_CONFIG_ENV})` : ""}`);
+	console.log(`  claude home   ${tildeify(layout.claudeHome)}${layout.claudeHomeSource === "default" ? "" : `  (from ${layout.claudeHomeSource})`}`);
 	console.log(`  pi home       ${tildeify(layout.piHome)}\n`);
 	const results = install(layout, opts);
 	const width = Math.max(...results.map((r) => r.label.length));
