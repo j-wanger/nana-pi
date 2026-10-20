@@ -180,7 +180,7 @@ const rootA = mkRoot("A", {
 		'fs.writeFileSync(process.env.PROBE_OUT + "/env.json", JSON.stringify({',
 		"\thandoff: String(process.env.NANA_HANDOFF), knowledge: String(process.env.NANA_KNOWLEDGE_HOME),",
 		"\tstage: String(process.env.NANA_STAGE_KEY), knob: String(process.env.NANA_TEST_TIMEOUT_MS),",
-		"\tagent_dir: String(process.env.PI_CODING_AGENT_DIR), pi_bin: String(process.env.PI_BIN),",
+		"\tagent_dir: String(process.env.PI_CODING_AGENT_DIR), claude_dir: String(process.env.CLAUDE_CONFIG_DIR), pi_bin: String(process.env.PI_BIN),",
 		"\tprobe_out: String(!!process.env.PROBE_OUT), tmpdir: process.env.TMPDIR,",
 		"}));",
 		'console.log("PASS env fixture ran");',
@@ -203,6 +203,7 @@ const A = run(rootA, [], {
 	NANA_STAGE_KEY: "sekret",
 	NANA_TEST_TIMEOUT_MS: "60000",
 	PI_CODING_AGENT_DIR: "/ambient/agent",
+	CLAUDE_CONFIG_DIR: "/ambient/claude",
 	PI_BIN: "/kept/pi",
 	GIT_BIN: gitBin,
 	GIT_CONFIG_COUNT: "1",
@@ -257,6 +258,8 @@ check("each test gets a unique TMPDIR and the runner removes leaked temp content
 check("ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept", envJson?.handoff === "undefined" && envJson.knowledge === "undefined" && envJson.stage === "undefined" && envJson.knob === "60000" && envJson.probe_out === "true");
 // req: R-618
 check("PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone", envJson?.agent_dir === "undefined" && envJson.pi_bin === "/kept/pi");
+// req: R-2396
+check("CLAUDE_CONFIG_DIR is scrubbed from the child env", envJson?.claude_dir === "undefined");
 
 if (posix) {
 	// req: R-607

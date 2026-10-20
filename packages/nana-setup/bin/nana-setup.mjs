@@ -4,7 +4,7 @@
  * @purpose The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
  * @inputs argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home,
  *  --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
- *  defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR,
+ *  defaulted project dir; whatever resolveLayout reads (HOME, CLAUDE_CONFIG_DIR, PI_CODING_AGENT_DIR,
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
  *  <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for
@@ -17,7 +17,7 @@
  *  runs write nothing), process (the child processes those steps spawn; doctor's dry run may start `pi
  *  --version`; replaces the warning listeners for doctor and project --check; sets process.exitCode)
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
- *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
+ *  ambient PI_CODING_AGENT_DIR or CLAUDE_CONFIG_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
  *  store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1
  *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw outside doctor's
  *  install dry-run prediction (stack on stderr);
@@ -40,7 +40,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline/promises";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
-import { repoRoot, resolveLayout, tildeify, platform } from "../lib/paths.mjs";
+import { CLAUDE_CONFIG_ENV, repoRoot, resolveLayout, tildeify, platform } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { PI_INSTALL_HINT, SetupError, install, installExitCode } from "../lib/steps.mjs";
 import { decideTrust } from "../lib/trust-decision.mjs";
@@ -58,7 +58,7 @@ const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
 Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
-  --claude-home <dir>  the .claude directory            (default ~/.claude)
+  --claude-home <dir>  the .claude directory            (default: CLAUDE_CONFIG_DIR, else ~/.claude)
   --pi-home <dir>      the pi agent directory           (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
   --desk               install + load the desk launchd service (macOS, opt-in)
   --name <n>           project: the project's name      (default: the folder's name)
@@ -148,6 +148,15 @@ function refuseCwdRelativePiHome(layout, what) {
 	);
 }
 
+function refuseCwdRelativeClaudeHome(layout, what) {
+	if (!layout.claudeHomeCwdRelative) return;
+	throw new SetupError(
+		`${CLAUDE_CONFIG_ENV} is a relative path; here it resolves to ${layout.claudeHome}, which is specific to the ` +
+			`current working directory (${layout.claudeHomeCwdRelative}), so ${what} would act on the wrong folder. ` +
+			`Pass --claude-home <absolute dir>, or set ${CLAUDE_CONFIG_ENV} to an absolute path, and re-run.`,
+	);
+}
+
 function runUninstall(opts) {
 	if (Boolean(opts.dryRun) === Boolean(opts.yes)) throw new SetupError("uninstall requires exactly one of --dry-run or --yes");
 	if (platform() === "win32") throw new SetupError("uninstall is POSIX-only");
@@ -168,9 +177,10 @@ function runUninstall(opts) {
 function runInstall(opts) {
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this install");
+	refuseCwdRelativeClaudeHome(layout, "this install");
 	console.log(`nana-setup install${opts.dryRun ? " (dry run)" : ""}`);
 	console.log(`  install root  ${repoRoot}`);
-	console.log(`  claude home   ${tildeify(layout.claudeHome)}`);
+	console.log(`  claude home   ${tildeify(layout.claudeHome)}${layout.claudeHomeSource === "default" ? "" : `  (from ${layout.claudeHomeSource})`}`);
 	console.log(`  pi home       ${tildeify(layout.piHome)}\n`);
 	const results = install(layout, opts);
 	const width = Math.max(...results.map((r) => r.label.length));
@@ -356,6 +366,7 @@ function runDoctor(opts) {
 		try {
 			try {
 				refuseCwdRelativePiHome(layout, "this install");
+				refuseCwdRelativeClaudeHome(layout, "this install");
 				dryRunRows = install(layout, { dryRun: true });
 			} catch (err) {
 				if (!(err instanceof SetupError)) throw err;

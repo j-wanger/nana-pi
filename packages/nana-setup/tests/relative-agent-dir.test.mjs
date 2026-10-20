@@ -37,6 +37,7 @@ fs.mkdirSync(CWD);
 const REL = "rel-agent";
 const resolved = path.join(CWD, REL);
 const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: REL };
+delete env.CLAUDE_CONFIG_DIR;
 const run = (...args) => {
 	const invoke = () => spawnSync(process.execPath, [cli, ...args], { cwd: CWD, env: { ...env, PATH: process.env.PATH }, encoding: "utf-8" });
 	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
@@ -133,6 +134,7 @@ try {
 
 			const installEnv = { ...process.env };
 			delete installEnv.PI_CODING_AGENT_DIR;
+			delete installEnv.CLAUDE_CONFIG_DIR;
 			const installResult = spawnSync(process.execPath, [cli, "install", "--home", relHome], { cwd: relCwd, env: installEnv, encoding: "utf-8" });
 
 			const claudeHomeArg = path.join(relHome, ".claude");

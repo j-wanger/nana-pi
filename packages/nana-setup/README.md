@@ -434,7 +434,7 @@ On Windows all five runtime-neutral Claude Code skills are mirrored as managed c
 --name <n>           project: the project's name  (default: the folder's name)
 --check              project: one ✓ or ✗ line per file; exits 1 on any ✗
 --home <dir>         put every user-scope location under <dir> (tests, dry machines)
---claude-home <dir>  the .claude directory        (default ~/.claude)
+--claude-home <dir>  the .claude directory        (default: CLAUDE_CONFIG_DIR, else ~/.claude)
 --pi-home <dir>      the pi agent directory       (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
 --desk               install + load the desk launchd service (macOS, opt-in)
 --dry-run            install: report changes; uninstall: preview removal (writes nothing)
@@ -447,6 +447,8 @@ and `project --check` all refuse it (exit 2, naming the resolved dir, before any
 written — `project` reads the user-scope config to decide what to write) until you pass
 `--pi-home <absolute dir>` or set an absolute value, and `doctor` prints a `!` line naming the cwd it resolved against and never says "all good"
 (exit 1). An explicit `--pi-home`, relative or not, is your decision and is used as given.
+
+An absolute `CLAUDE_CONFIG_DIR` is honoured when neither `--claude-home` nor `--home` is given. A relative value makes install exit 2 before writing, and doctor names that refusal in its summary. An empty value counts as unset. The two flags always win over the variable.
 
 ## Install check
 
@@ -461,8 +463,10 @@ On FAIL, the check prints the hooks block and the last knowledge-pull record aft
 ## Tests
 
 Zero-dep: `node packages/nana-setup/tests/<file>.test.mjs` (each file exits with its failure
-count). Every run installs into `os.tmpdir()` with `--home`, so no test can touch the real
-`~/.claude`, `~/.pi`, `~/.local/bin` or LaunchAgents, and none of them loads a launchd service.
+count). The repository runner scrubs `CLAUDE_CONFIG_DIR` before starting each file. Every run
+targets a fresh home under `os.tmpdir()` through its environment and explicit setup flags, so no
+test can touch the real `~/.claude`, `~/.pi`, `~/.local/bin` or LaunchAgents, and none loads a
+launchd service.
 
 Environment switches (tests and CI only):
 
