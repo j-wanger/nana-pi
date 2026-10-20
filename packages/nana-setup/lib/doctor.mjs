@@ -23,6 +23,7 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import { configFailureDetail, jsonParseFailure, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
@@ -82,9 +83,9 @@ export function skillLinkState(target, source) {
 		return { ok: false, detail: `a symlink or junction is there instead of nana-setup's copy of ${source} — move it, then re-run \`nana-setup install\`` };
 	if (st.isSymbolicLink()) {
 		let current = null;
-		try { current = fs.realpathSync(target); } catch { /* dangling link */ }
+		try { current = realPath(target, { mustExist: true }); } catch { /* dangling link */ }
 		let canonicalSource = path.resolve(source);
-		try { canonicalSource = fs.realpathSync(source); } catch { /* missing pack source */ }
+		try { canonicalSource = realPath(source, { mustExist: true }); } catch { /* missing pack source */ }
 		return current === canonicalSource ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
 	}
 	if (platform() !== "win32") return { ok: false, detail: `${st.isDirectory() ? "a directory" : "a regular file"} is there instead of a symlink to ${source} — move it, then re-run \`nana-setup install\`` };
