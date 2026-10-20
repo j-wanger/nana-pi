@@ -42,6 +42,11 @@ const leave = () => { process.env.HOME = origHome; if (origUserProfile === undef
 const ext = (await import(new URL("../extensions/nana-objective.ts", import.meta.url).href)).default;
 const { LINE_CAP, OUTPUT_CAP, PATH_CAP, CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, finish, displayPath, ownerVouched, trustRecord, produceObjective, objectivePath } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 
+// req: R-1971
+check("R-1971: the manual repair advice is sealed as the README quotes it", MANUAL_JSON_ADVICE === "Repair the JSON by hand.");
+// req: R-2092
+check("R-2092: the forward-slash repair advice is sealed as the config contract defines it", FORWARD_SLASH_ADVICE === "Write paths in this file with forward slashes and any other backslash as two, because JSON reads a single backslash as an escape.");
+
 const OBJ = (s) => `**Objective (since 2026-09-28):** ${s}`;
 const PRI = (s) => `**Current priority (since 2026-09-28):** ${s}`;
 const UMBRELLA = `# Objective and current priority\n\n*preamble*\n\n${OBJ("build products with agents.")}\n\n${PRI("make nana-pi coherent.")}\n\n## Rules\n\n- a rule\n`;
