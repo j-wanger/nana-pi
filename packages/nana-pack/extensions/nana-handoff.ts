@@ -75,14 +75,15 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { EVENT as UNADOPTED, adoptionSettings, canonicalCwd, isAdopted, printable, recentReports, repoRootOf, rootState, storePathFor, tailLines } from "../lib/adoption.mjs";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { orderNanaSections } from "../lib/prompt-sections.mjs";
-import { fileField, locator, promptPath, promptText, uiPath, uiText } from "../lib/display.mjs";
+import { fileField, head, locator, promptPath, promptText, uiPath, uiText } from "../lib/display.mjs";
 
 let adoptionOverrideJournaled = false;
 
 // The store resolver lives in lib/adoption.mjs (one implementation, shared with the seat's reader).
 export { canonicalCwd, storeDir, storePathFor } from "../lib/adoption.mjs";
 
-const INJECT_CAP = 8000;
+// contract (R-189): the injected compaction summary body cap, in UTF-16 code units.
+export const INJECT_CAP = 8000;
 const POINTER_CAP = 300;
 const DAY_MS = 86_400_000;
 const AUTHORITY =
@@ -411,7 +412,7 @@ export default function (pi: ExtensionAPI) {
 						`Source: ${loc.mark ? `${loc.text} ${loc.mark}` : loc.text} · written ${new Date(when).toISOString()} by session ${promptText(h.writer, 200)}`,
 						AUTHORITY,
 						"",
-						h.body.slice(0, INJECT_CAP),
+						head(h.body, INJECT_CAP),
 						"",
 						`When the current work makes it stale, update ${loc.text} in place.`,
 					);
