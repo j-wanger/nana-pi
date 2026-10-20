@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/relative-agent-dir.test.mjs
  * @purpose Pins that an AMBIENT relative PI_CODING_AGENT_DIR is refused by `install`, `project` and `project --check` with the cwd and the remedy named, while an explicit --pi-home is honoured and `doctor` warns
- * @inputs bin/nana-setup.mjs with a relative PI_CODING_AGENT_DIR in the environment, and throwaway home and project dirs
+ * @inputs bin/nana-setup.mjs with a relative PI_CODING_AGENT_DIR in the environment, throwaway home and project dirs, and lib/doctor.mjs's PI_SUBAGENTS_FLOOR
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home and project dirs), process (sets PI_CODING_AGENT_DIR, spawns the setup CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
+const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -102,6 +103,57 @@ try {
 	check("doctor exits non-zero with the warning", d.status === 1, `status ${d.status}`);
 	const dx = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--pi-home", explicit], { cwd: CWD, env: { ...env, PATH: process.env.PATH }, encoding: "utf-8" }));
 	check("doctor --pi-home <abs>: no cwd-specific warning", !dx.stdout.split("\n").some((l) => l.trim().startsWith("!")), dx.stdout);
+
+	{
+		const relHome = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-setup-rel-claude-home-")));
+		const relCwd = path.join(relHome, "somewhere");
+		fs.mkdirSync(relCwd, { recursive: true });
+		try {
+			fs.mkdirSync(path.join(relHome, ".pi", "agent", "nana-knowledge"), { recursive: true });
+			fs.writeFileSync(path.join(relHome, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+			const subagentsDir = path.join(relHome, ".pi", "agent", "npm", "node_modules", "pi-subagents");
+			fs.mkdirSync(subagentsDir, { recursive: true });
+			fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+
+			const installEnv = { ...process.env };
+			delete installEnv.PI_CODING_AGENT_DIR;
+			const installResult = spawnSync(process.execPath, [cli, "install", "--home", relHome], { cwd: relCwd, env: installEnv, encoding: "utf-8" });
+
+			const claudeHomeArg = path.join(relHome, ".claude");
+			const absoluteAgentDir = path.join(relHome, ".pi", "agent");
+			const relativeAgentDir = path.relative(relCwd, absoluteAgentDir);
+			const doctorRun = (agentDir) => withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--claude-home", claudeHomeArg], {
+				cwd: relCwd,
+				env: { ...process.env, HOME: relHome, USERPROFILE: relHome, PI_CODING_AGENT_DIR: agentDir, PATH: process.env.PATH },
+				encoding: "utf-8",
+			}));
+			const absoluteDoctor = doctorRun(absoluteAgentDir);
+			const relativeDoctor = doctorRun(relativeAgentDir);
+
+			const okLabels = (stdout) => stdout.split("\n").filter((l) => l.trim().startsWith("✓")).map((l) => l.trim().slice(1).trim().split(/\s{2,}/)[0]).sort();
+			const absoluteOk = okLabels(absoluteDoctor.stdout);
+			const relativeOk = okLabels(relativeDoctor.stdout);
+			const absoluteBadLines = absoluteDoctor.stdout.split("\n").filter((l) => { const t = l.trim(); return t.startsWith("✗") || t.startsWith("!"); });
+			const relativeWarnLines = relativeDoctor.stdout.split("\n").filter((l) => l.trim().startsWith("!"));
+
+			// req: R-346
+			check("R-346: on a home doctor reads as all good, an ambient relative PI_CODING_AGENT_DIR still prints every row, adds one ! line naming the cwd, never says all good and exits non-zero",
+				installResult.status === 0 &&
+					absoluteDoctor.status === 0 &&
+					/all good/.test(absoluteDoctor.stdout) &&
+					absoluteBadLines.length === 0 &&
+					absoluteOk.length > 0 &&
+					JSON.stringify(relativeOk) === JSON.stringify(absoluteOk) &&
+					relativeWarnLines.length === 1 &&
+					relativeWarnLines[0].includes(relCwd) &&
+					!/all good/.test(relativeDoctor.stdout) &&
+					relativeDoctor.status !== 0 &&
+					relativeDoctor.status !== null,
+				`install=${installResult.status}\nabsolute=${absoluteDoctor.status}\n${absoluteDoctor.stdout}\n---\nrelative=${relativeDoctor.status}\n${relativeDoctor.stdout}`);
+		} finally {
+			fs.rmSync(relHome, { recursive: true, force: true });
+		}
+	}
 } finally {
 	fs.rmSync(HOME, { recursive: true, force: true });
 }

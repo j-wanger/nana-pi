@@ -180,6 +180,20 @@ try {
 		fs.mkdirSync(target, { recursive: true });
 		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
 		const r = run(["install", "--home", occupied]);
+		const dry1870 = run(["install", "--home", occupied, "--dry-run"]);
+		// req: R-1870
+		check("R-1870: install leaves an owner's folder at the requirements skill path untouched, backs up nothing in the skills directory and reports ✗ with the move-or-remove fix",
+			fs.lstatSync(target).isDirectory() &&
+				!fs.lstatSync(target).isSymbolicLink() &&
+				fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n" &&
+				!fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")) &&
+				/✗ skill requirements/.test(r.stdout) &&
+				/a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout),
+			r.stdout);
+		// req: R-1871
+		check("R-1871: an owner's folder at the requirements skill path makes install and install --dry-run exit 1",
+			r.status === 1 && dry1870.status === 1,
+			`${r.status} ${dry1870.status}`);
 		if (process.platform !== "win32") {
 			check("occupied skill dir: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
 			check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);

@@ -2,8 +2,10 @@
  * @module packages/nana-pack/lib/mutation-runner-config.mjs
  * @purpose Hold the mutation runner's tunables and contract values, each with its provenance.
  * @inputs none
- * @outputs SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, DRAIN_MS, SCRATCH_PREFIX,
- *  MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO, OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT,
+ * @outputs SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, WORKTREE_REMOVE_RETRIES,
+ *  WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, WORKTREE_LOCK_UNREADABLE_STALE_MS,
+ *  WORKTREE_LOCK_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO,
+ *  OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT,
  *  SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
  * @effects none
  * @errors none
@@ -29,6 +31,26 @@ export const FILE_TIMEOUT_MS = 10 * 60 * 1000;
 // (seat-mutate.mjs :416-421).
 export const BASELINE_RETRIES = 1;
 
+// chosen: not measured; a Windows hold on a scratch entry's files should clear within a second; retune if
+// a record shows the still-listed line (R-1773).
+export const WORKTREE_REMOVE_RETRIES = 3;
+
+// chosen: not measured; a Windows hold on a scratch entry's files should clear within a second; retune if
+// a record shows the still-listed line (R-1773).
+export const WORKTREE_REMOVE_RETRY_MS = 250;
+
+// chosen: 25 milliseconds keeps a held cross-shard worktree-operation lock responsive without hot polling;
+// not measured (R-1775).
+export const WORKTREE_LOCK_WAIT_MS = 25;
+
+// chosen: 30 seconds is longer than this runner's normal add and bounded removal operation, while allowing
+// recovery from an old lock whose owner record was damaged before this atomic protocol (R-1777).
+export const WORKTREE_LOCK_UNREADABLE_STALE_MS = 30_000;
+
+// chosen: 30 seconds is longer than a normal add and the bounded removal operation; every lock wait and
+// release must still end if a live pid is reused or Windows keeps the lock path inaccessible (R-1778, R-1779).
+export const WORKTREE_LOCK_WAIT_LIMIT_MS = 30_000;
+
 // contract R-1234: the suite runner's drain (scripts/test.mjs :58), so a file ends as under `npm test`.
 // Defined twice until the parallel suite lane (CHANGE.md §3.5, residual 1): a declared violation.
 export const DRAIN_MS = 2000;
@@ -39,10 +61,9 @@ export const SCRATCH_PREFIX = "seat-mutate-";
 // contract R-1240: the working pattern's base branch, read for the merge base (seat-mutate.mjs :313).
 export const MAIN_BRANCH = "main";
 
-// contract R-1230, R-1231, R-1238, R-1239, R-1241: the landed names (seat-mutate.mjs :30-31, :53, :527).
-// R-1231 and R-1243: SHARD, TALLY, SCRATCH, TIP_COMMIT and TABLE_HASH are the three shard-only names this
-// lane adds (SHARD and TALLY already existed on the landed runner; SCRATCH, TIP_COMMIT and TABLE_HASH are
-// new).
+// contract R-1230, R-1231, R-1238, R-1239, R-1241, R-1775: the runner's environment names.
+// SHARD, TALLY, SCRATCH, TIP_COMMIT, TABLE_HASH and WORKTREE_LOCK are parent-to-shard values; the shared
+// WORKTREE_LOCK path serializes worktree administration in one run.
 export const ENV_NAMES = Object.freeze({
 	OUT: "SEAT_MUTATE_OUT",
 	TIP: "SEAT_MUTATE_TIP",
@@ -57,6 +78,7 @@ export const ENV_NAMES = Object.freeze({
 	SCRATCH: "SEAT_MUTATE_SCRATCH",
 	TIP_COMMIT: "SEAT_MUTATE_TIP_COMMIT",
 	TABLE_HASH: "SEAT_MUTATE_TABLE_HASH",
+	WORKTREE_LOCK: "SEAT_MUTATE_WORKTREE_LOCK",
 });
 
 // chosen: the lock sits beside the record under the record's own name, so a refusal names a file the seat

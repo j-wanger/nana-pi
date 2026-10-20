@@ -546,6 +546,34 @@ const homeSnapshot = (root) => {
 	check('{"hooks":"disabled"}: no PATH entry', !fs.existsSync(path.join(home, ".local", "bin", "pi-review")));
 }
 
+/* --- R-924: an unparseable body and a shape the merge will not edit both abort before any
+   write, exit 2, and name the settings file -------------------------------------------- */
+{
+	const unparseableHome = freshHome();
+	const unparseableFile = path.join(unparseableHome, ".claude", "settings.json");
+	fs.writeFileSync(unparseableFile, '{ "hooks": { "SessionStart": [ } }');
+	const beforeUnparseable = homeSnapshot(unparseableHome);
+	const unparseableResult = run(["install"], unparseableHome);
+	const afterUnparseable = homeSnapshot(unparseableHome);
+
+	const shapeHome = freshHome();
+	const shapeFile = path.join(shapeHome, ".claude", "settings.json");
+	fs.writeFileSync(shapeFile, '{"hooks":"disabled"}');
+	const beforeShape = homeSnapshot(shapeHome);
+	const shapeResult = run(["install"], shapeHome);
+	const afterShape = homeSnapshot(shapeHome);
+
+	// req: R-924
+	check("R-924: install over a settings.json that does not parse, or parses to a shape it will not edit, exits 2 naming the file with everything under the home unchanged",
+		unparseableResult.status === 2 &&
+			shapeResult.status === 2 &&
+			unparseableResult.stderr.includes(unparseableFile) &&
+			shapeResult.stderr.includes(shapeFile) &&
+			afterUnparseable === beforeUnparseable &&
+			afterShape === beforeShape,
+		`${unparseableResult.status} ${shapeResult.status}\n${unparseableResult.stderr}\n${shapeResult.stderr}`);
+}
+
 /* --- stale knowledge-hook migration is atomic and leaves unknown hooks untouched -------- */
 {
 	const home = freshHome();
@@ -652,6 +680,14 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
 // req: R-925
 	check("lock: the other run's lock is left exactly as it was", fs.readFileSync(lockOf(home), "utf8") === JSON.stringify(held));
+	// req: R-322
+	check("R-322: a held settings lock stops install printing the lock path, the recorded pid, its age and the exact rm command",
+		r.status === 2 &&
+			r.stderr.includes(lockOf(home)) &&
+			r.stderr.includes("pid 4242") &&
+			/\b9\ds ago\b/.test(r.stderr) &&
+			r.stderr.includes(`rm ${lockOf(home)}`),
+		r.stderr);
 }
 {
 	// an old lock is NOT reclaimed — no age threshold, no pid liveness check
