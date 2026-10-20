@@ -2729,8 +2729,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — The installer's non-destructive file primitives, each reporting the status of what it did instead of acting silently.
 - **inputs** — target and source paths, file contents, { dryRun, copyInstead, unedited }, a Date for the backup stamp; the filesystem — linkFile and seedFile decide presence with lstat, never existsSync, so a dangling symlink reads as present and is left untouched (ensureDir and backupPath are the exceptions and use existsSync)
 - **outputs** — { status, detail } with status one of CREATED | UPDATED | UNCHANGED | SKIPPED | PROBLEM; on disk: symlinks (linkFile), byte copies on a platform without symlinks, files written only when absent (seedFile), directories (ensureDir), content-compared writes (writeIfChanged), managed-copy refreshes, and <name>.bak-<YYYYMMDD> backups of anything replaced; writeBytesWithBackup() for byte renderings
-- **effects** — disk (symlink, unlink, mkdir -p, writeFile, rename-to-backup; nothing under dryRun)
-- **errors** — none typed — an unreadable source or an undeletable target propagates the raw fs error; a symlink or directory in the way is returned as SKIPPED and never written through
+- **effects** — disk (symlink, unlink, mkdir -p, temporary-file write, atomic rename, rename-to-backup; nothing under dryRun)
+- **errors** — none typed — managed-copy refresh failures return PROBLEM; other unreadable sources or undeletable targets propagate the raw fs error; a symlink or directory in the way is returned as SKIPPED and never written through
 - **callers** — `packages/nana-setup/lib/copy-record.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`
 - **callees** — —
 
@@ -3008,7 +3008,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove Windows managed copies refresh without backup noise while owner edits still get one backup.
 - **inputs** — One temporary checkout copy, fresh temporary homes, the nana-setup install CLI, mutable rule and skill sources, and copy-record failure shapes.
-- **outputs** — Six PASS/FAIL requirement checks, optional read-only SKIP output under POSIX root, and a nonzero exit for failures.
+- **outputs** — Eight PASS/FAIL requirement checks, optional read-only SKIP output under POSIX root, and a nonzero exit for failures.
 - **effects** — disk (one copied checkout and temporary homes only), process (bounded nana-setup install children).
 - **errors** — A failed assertion fails its requirement check; a child timeout or launch error is reported as that check's failure.
 - **callers** — —

@@ -3,7 +3,7 @@
  * @module packages/nana-setup/tests/copy-record.test.mjs
  * @purpose Prove Windows managed copies refresh without backup noise while owner edits still get one backup.
  * @inputs One temporary checkout copy, fresh temporary homes, the nana-setup install CLI, mutable rule and skill sources, and copy-record failure shapes.
- * @outputs Six PASS/FAIL requirement checks, optional read-only SKIP output under POSIX root, and a nonzero exit for failures.
+ * @outputs Eight PASS/FAIL requirement checks, optional read-only SKIP output under POSIX root, and a nonzero exit for failures.
  * @effects disk (one copied checkout and temporary homes only), process (bounded nana-setup install children).
  * @errors A failed assertion fails its requirement check; a child timeout or launch error is reported as that check's failure.
  */
@@ -12,13 +12,14 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const CASE_LIMIT_MS = 20_000;
 const checkout = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const copied = tmpDir(path.join(os.tmpdir(), "nana-copy-record-checkout-"));
 const cli = path.join(copied, "packages", "nana-setup", "bin", "nana-setup.mjs");
+const readonlyRenameShim = path.join(copied, "readonly-rename-shim.mjs");
 const sourcePaths = {
 	rule: path.join(copied, "packages", "nana-setup", "claude", "rules", "nana-soul.md"),
 	rulings: path.join(copied, "packages", "nana-pack", "rules", "nana-rulings.md"),
@@ -37,6 +38,22 @@ function copyFixture() {
 		fs.cpSync(path.join(checkout, "packages", name), path.join(copied, "packages", name), { recursive: true });
 }
 copyFixture();
+fs.writeFileSync(readonlyRenameShim, `
+import fs from "node:fs";
+import path from "node:path";
+import { syncBuiltinESMExports } from "node:module";
+const renameSync = fs.renameSync;
+fs.renameSync = (source, target) => {
+	const readonlyTarget = process.env.NANA_TEST_READONLY_RENAME_TARGET;
+	if (readonlyTarget && path.resolve(target) === path.resolve(readonlyTarget) && path.basename(source).includes(".nana-refresh-") && (fs.statSync(target).mode & 0o222) === 0) {
+		const error = new Error(\`EACCES: simulated Windows read-only replacement, rename '\${source}' -> '\${target}'\`);
+		error.code = "EACCES";
+		throw error;
+	}
+	return renameSync(source, target);
+};
+syncBuiltinESMExports();
+`);
 
 const originalSources = Object.fromEntries(Object.entries(sourcePaths).map(([name, file]) => [name, fs.readFileSync(file)]));
 
@@ -76,9 +93,10 @@ function freshFixture(label) {
 	};
 }
 
-function runInstall(fixture, args = []) {
+function runInstall(fixture, args = [], extraEnv = {}) {
 	const env = {
 		...process.env,
+		...extraEnv,
 		HOME: fixture.home,
 		USERPROFILE: fixture.home,
 		PATH: `${path.dirname(process.execPath)}${path.delimiter}${process.env.PATH ?? ""}`,
@@ -97,8 +115,8 @@ function runInstall(fixture, args = []) {
 	return result;
 }
 
-function installOk(fixture, args = []) {
-	const result = runInstall(fixture, args);
+function installOk(fixture, args = [], extraEnv = {}) {
+	const result = runInstall(fixture, args, extraEnv);
 	assert(result.status === 0, `install exited ${result.status}\n${result.stdout}\n${result.stderr}`);
 	return result;
 }
@@ -239,6 +257,48 @@ check("R-2315: dry run reports an unedited copy's refresh with no backup and cha
 		assert(/refresh/u.test(row.detail) && !/backup|\.bak-/u.test(row.detail), `${label}: ${row.detail}`);
 	}
 	assert(snapshot(fixture.home) === before, "dry run changed the home snapshot");
+});
+
+// req: R-2317
+check("R-2317: a read-only unedited managed copy refreshes without stopping install", () => {
+	if (process.platform !== "win32" && typeof process.getuid === "function" && process.getuid() === 0) {
+		skip("R-2317: read-only unedited managed copy — POSIX root writes through file modes");
+		return;
+	}
+	const fixture = freshFixture("2317-read-only");
+	installOk(fixture);
+	const oldBytes = fs.readFileSync(fixture.targets.rule);
+	fs.appendFileSync(sourcePaths.rule, "\nread-only refresh\n");
+	fs.chmodSync(fixture.targets.rule, 0o444);
+	let result;
+	try {
+		const priorNodeOptions = process.env.NODE_OPTIONS?.trim();
+		result = runInstall(fixture, [], {
+			NANA_TEST_READONLY_RENAME_TARGET: fixture.targets.rule,
+			NODE_OPTIONS: `${priorNodeOptions ? `${priorNodeOptions} ` : ""}--import=${pathToFileURL(readonlyRenameShim).href}`,
+		});
+	} finally {
+		if (fs.existsSync(fixture.targets.rule)) fs.chmodSync(fixture.targets.rule, 0o644);
+		for (const backup of backupsFor(fixture.targets.rule)) fs.chmodSync(backup, 0o644);
+	}
+	assert(result.status === 0, `install exited ${result.status}\n${result.stdout}\n${result.stderr}`);
+	assert(fs.readFileSync(fixture.targets.rule).equals(fs.readFileSync(sourcePaths.rule)), "the managed copy does not hold the new source bytes");
+	const backups = backupsFor(fixture.targets.rule);
+	assert(backups.length <= 1, `the managed copy has ${backups.length} backups`);
+	if (backups.length === 1) assert(fs.readFileSync(backups[0]).equals(oldBytes), "the backup does not hold the old managed bytes");
+});
+
+// req: R-2318
+check("R-2318: refreshing an unedited managed copy does not write through its second hard-linked name", () => {
+	const fixture = freshFixture("2318-hard-link");
+	installOk(fixture);
+	const oldBytes = fs.readFileSync(fixture.targets.rule);
+	const otherName = path.join(fixture.home, "keep.md");
+	fs.linkSync(fixture.targets.rule, otherName);
+	fs.appendFileSync(sourcePaths.rule, "\nhard-link refresh\n");
+	installOk(fixture);
+	assert(fs.readFileSync(fixture.targets.rule).equals(fs.readFileSync(sourcePaths.rule)), "the managed copy does not hold the new source bytes");
+	assert(fs.readFileSync(otherName).equals(oldBytes), "the second hard-linked name did not keep its old bytes");
 });
 
 // req: R-2316

@@ -11,9 +11,11 @@
  *  when absent (seedFile), directories (ensureDir), content-compared writes (writeIfChanged),
  *  managed-copy refreshes, and <name>.bak-<YYYYMMDD> backups of anything replaced;
  *  writeBytesWithBackup() for byte renderings
- * @effects disk (symlink, unlink, mkdir -p, writeFile, rename-to-backup; nothing under dryRun)
- * @errors none typed — an unreadable source or an undeletable target propagates the raw fs error;
- *  a symlink or directory in the way is returned as SKIPPED and never written through
+ * @effects disk (symlink, unlink, mkdir -p, temporary-file write, atomic rename, rename-to-backup;
+ *  nothing under dryRun)
+ * @errors none typed — managed-copy refresh failures return PROBLEM; other unreadable sources or
+ *  undeletable targets propagate the raw fs error; a symlink or directory in the way is returned
+ *  as SKIPPED and never written through
  */
 // File operations shared by the steps. Every one of them reports what it did rather than
 // doing it silently, and none of them destroys anything: a regular file in the way is backed
@@ -105,7 +107,31 @@ export function writeBytesWithBackup(target, contents, { dryRun = false, action 
 			? "replaced a symlink with a copy (the link's target was not written through)"
 			: "replaced a symlink and wrote bytes (the link's target was not written through)";
 	} else if (refresh) {
-		detail = "refreshed managed copy";
+		const temporary = path.join(path.dirname(target), `.${path.basename(target)}.nana-refresh-${process.pid}-${Date.now()}`);
+		try {
+			fs.writeFileSync(temporary, want, { flag: "wx" });
+		} catch (error) {
+			return { status: PROBLEM, detail: `could not prepare a replacement for ${target}: ${error?.message ?? String(error)}` };
+		}
+		try {
+			fs.renameSync(temporary, target);
+			return { status: UPDATED, detail: "refreshed managed copy" };
+		} catch (replaceError) {
+			try { fs.unlinkSync(temporary); } catch { /* best effort after a failed replacement */ }
+			let bak;
+			try {
+				bak = backupPath(target);
+				fs.renameSync(target, bak);
+				fs.writeFileSync(target, want);
+				return { status: UPDATED, detail: `backed up ${path.basename(target)} -> ${path.basename(bak)}, then ${action === "copy" ? "copied" : "wrote"}` };
+			} catch (fallbackError) {
+				const backup = bak ? `; the old copy may be at ${bak}` : "";
+				return {
+					status: PROBLEM,
+					detail: `could not refresh ${target}: ${replaceError?.message ?? String(replaceError)}; backup fallback failed: ${fallbackError?.message ?? String(fallbackError)}${backup}`,
+				};
+			}
+		}
 	} else if (st) {
 		const bak = backupPath(target);
 		fs.renameSync(target, bak);
