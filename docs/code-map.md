@@ -1306,12 +1306,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/gate-temp-roots.ts`
 
-- **purpose** — The one shared rule for which temp folders a gate's lane write boundary counts as writable: the OS temp folder and, on Windows, a differing TMP, except a drive or filesystem root, the home folder, or a folder above it.
+- **purpose** — The one shared rule for which temp folders a gate's lane write boundary counts as writable: the OS temp folder and, on Windows, a differing TMP, except a drive or filesystem root, the home folder, or a folder above it — the home test by filesystem identity, so an alternate spelling of home (a macOS data-volume firmlink path) is still caught.
 - **inputs** — acceptedTempRoots({platform, env, home, tmpdir}): every value injected, never read from process.env or the OS directly; isExcludedTempRoot(t, home) and within(parent, child) take plain path strings
 - **outputs** — acceptedTempRoots(...): the accepted temp roots, each resolved to its on-disk spelling; isExcludedTempRoot(t, home): true when `t` is excluded; within(parent, child): true when `child` lies inside, or is, `parent`
-- **effects** — disk (resolves each candidate and home through lib/real-path's realPath)
-- **errors** — never throws — acceptedTempRoots returns [] on any internal failure
-- **callers** — `packages/nana-pack/extensions/nana-gate.ts`
+- **effects** — disk (resolves each candidate and home through lib/real-path's realPath; stats `t` and home's ancestor chain up to the root, once each, for filesystem identity)
+- **errors** — never throws — acceptedTempRoots returns [] on any internal failure, and a failed stat falls back to the text test
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/lane-write-guard.test.mjs`
 - **callees** — `packages/nana-pack/lib/real-path.mjs`
 
 ### `packages/nana-pack/lib/handoff-asks.mjs`
@@ -1952,7 +1952,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (fixtures under home, OS temp or /var/tmp), process (environment)
 - **errors** — failed assertions exit nonzero
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/launch-wait.mjs`
 

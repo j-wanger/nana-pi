@@ -6,11 +6,12 @@
  * @effects disk (fixtures under home, OS temp or /var/tmp), process (environment)
  * @errors failed assertions exit nonzero
  */
-import { tmpDir } from "./tmp-dir.mjs";
+import { tmpDir, tmpDirUnmanaged } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 const worktree = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "lane-root-")));
 const homeFixture = fs.realpathSync(tmpDir(path.join(os.homedir(), "lane-guard-home-")));
 const contained = (parent, child) => { const rel = path.relative(parent, child); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
@@ -263,7 +264,10 @@ const laneFile = path.join(worktree, `lane-ok-${pid}.txt`);
 	let ok = false;
 	if (outsideAvailable) {
 		const savedHome = process.env.HOME, savedUserProfile = process.env.USERPROFILE;
-		const r2271Link = path.join(homeFixture, `R2271HomeAlias-${pid}`);
+		// Unmanaged root (tests/tmp-dir.mjs header): this folder holds a symlink/junction, so it
+		// must never sit under a root the exit hook recursively removes.
+		const r2271LinkRoot = tmpDirUnmanaged(path.join(os.tmpdir(), "lane-guard-r2271-link-"));
+		const r2271Link = path.join(r2271LinkRoot, "alias");
 		fs.symlinkSync(outside, r2271Link, process.platform === "win32" ? "junction" : "dir");
 		process.env.HOME = outside; process.env.USERPROFILE = outside;
 		try {
@@ -277,6 +281,26 @@ const laneFile = path.join(worktree, `lane-ok-${pid}.txt`);
 				} finally {
 					restoreTempVars();
 				}
+			}
+			// macOS firmlink regression (review finding, 2026-10-20): `outside`'s data-volume
+			// spelling is the SAME directory (same inode) on a stock macOS machine; elsewhere this
+			// sub-case is a real SKIP, as the R-2270 second-drive sub-case is off that platform.
+			const r2271DataVolume = path.join("/System/Volumes/Data", outside);
+			let r2271OutsideId = null, r2271DataVolumeId = null;
+			try { r2271OutsideId = fs.statSync(outside, { bigint: true }); } catch {}
+			try { r2271DataVolumeId = fs.statSync(r2271DataVolume, { bigint: true }); } catch {}
+			const r2271DataVolumeAvailable = r2271OutsideId !== null && r2271DataVolumeId !== null && r2271OutsideId.dev === r2271DataVolumeId.dev && r2271OutsideId.ino === r2271DataVolumeId.ino;
+			if (r2271DataVolumeAvailable) {
+				setTempVars(r2271DataVolume);
+				try {
+					results.push(await refused(target));
+					results.push(await refused(path.join(r2271DataVolume, `r2271-home-${pid}`, "x.txt")));
+					results.push(await allowed(laneFile));
+				} finally {
+					restoreTempVars();
+				}
+			} else {
+				console.log("SKIP a temp variable naming the home folder or a folder above it opens no home file (data-volume spelling): no data-volume spelling of this fixture");
 			}
 			ok = results.length > 0 && results.every(Boolean);
 		} finally {
@@ -300,6 +324,14 @@ const laneFile = path.join(worktree, `lane-ok-${pid}.txt`);
 			results.push(await allowed(path.join(r2272Temp, `r2272-file-${pid}.txt`)));
 			results.push(await refused(path.join(outside, `r2272-sibling-${pid}`, "x.txt")));
 			results.push(await allowed(laneFile));
+			// Feature-dependent (review finding, 2026-10-20): the handler checks above still pass
+			// with the feature removed (main also allows a temp folder inside home), so this calls
+			// the lane's own acceptedTempRoots directly — with the import gone, the whole file fails
+			// to load, which fails this check too.
+			const r2272Kept = acceptedTempRoots({ platform: process.platform, env: {}, home: outside, tmpdir: r2272Temp });
+			const r2272Dropped = acceptedTempRoots({ platform: process.platform, env: {}, home: outside, tmpdir: outside });
+			results.push(r2272Kept.length > 0);
+			results.push(r2272Dropped.length === 0);
 			ok = results.length > 0 && results.every(Boolean);
 		} finally {
 			restoreTempVars();
