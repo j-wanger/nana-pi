@@ -1318,7 +1318,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Hold the mutation runner's tunables and contract values, each with its provenance.
 - **inputs** — none
-- **outputs** — SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, WORKTREE_REMOVE_RETRIES, WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, WORKTREE_LOCK_UNREADABLE_STALE_MS, WORKTREE_LOCK_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO, OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT, SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
+- **outputs** — SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, WORKTREE_REMOVE_RETRIES, WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, WORKTREE_LOCK_UNREADABLE_STALE_MS, WORKTREE_LOCK_WAIT_LIMIT_MS, WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH, ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO, OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT, SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/tests/mutation-runner.test.mjs`
@@ -1966,7 +1966,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/mutation-runner.test.mjs`
 
-- **purpose** — Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain, edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table identity and config-merge contracts (R-1230 to R-1244 and R-1770 to R-1779) against a disposable git fixture.
+- **purpose** — Pin the shared mutation runner's scratch-worktree isolation, test-file run, timeout/drain, edit/syntax/containment refusals, baseline, judging, sharding, record, refusals, dry/log, lock, tip/table identity and config-merge contracts (R-1230 to R-1244, R-1770 to R-1779 and R-1960) against a disposable git fixture.
 - **inputs** — ../lib/mutation-runner.mjs, ../lib/mutation-runner-config.mjs, and a throwaway git repository this file builds under the OS temp directory for every run
 - **outputs** — PASS/FAIL lines for each marked check and a non-zero exit when any fails
 - **effects** — disk (a throwaway git repo, scratch worktrees and records under the OS temp directory), process (spawns shard and test-file children; two checks send SIGTERM/SIGKILL to processes this file started)
