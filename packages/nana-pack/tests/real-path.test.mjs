@@ -10,7 +10,6 @@
 import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { realPath } from "../lib/real-path.mjs";
 import { tmpDirUnmanaged } from "./tmp-dir.mjs";
 
@@ -36,12 +35,22 @@ const originalNative = fs.realpathSync.native;
 try {
 	// req: R-2180
 	check("R-2180: typed realpath is used for every sampled non-missing native error with and without mustExist", () => {
-		const target = path.dirname(fileURLToPath(import.meta.url));
-		const expected = fs.realpathSync(target);
-		for (const code of ["EISDIR", "EIO", "EPERM", "UNKNOWN"]) {
-			fs.realpathSync.native = () => { throw Object.assign(new Error(`injected ${code}`), { code }); };
-			assert(realPath(target) === expected, `${code}: without mustExist did not return typed realpath`);
-			assert(realPath(target, { mustExist: true }) === expected, `${code}: with mustExist did not return typed realpath`);
+		const root = tmpDirUnmanaged(path.join(os.tmpdir(), "nana-real-path-fallback-"));
+		const target = path.join(root, "target");
+		const alias = path.join(root, "alias");
+		fs.mkdirSync(target);
+		try {
+			fs.symlinkSync(target, alias, process.platform === "win32" ? "junction" : "dir");
+			const expected = fs.realpathSync(alias);
+			assert(expected !== alias, `fixture did not change the input path: ${alias}`);
+			for (const code of ["EISDIR", "EIO", "EPERM", "UNKNOWN"]) {
+				fs.realpathSync.native = () => { throw Object.assign(new Error(`injected ${code}`), { code }); };
+				assert(realPath(alias) === expected, `${code}: without mustExist did not return typed realpath`);
+				assert(realPath(alias, { mustExist: true }) === expected, `${code}: with mustExist did not return typed realpath`);
+			}
+		} finally {
+			try { fs.unlinkSync(alias); } catch {}
+			fs.rmSync(root, { recursive: true, force: true });
 		}
 	});
 	fs.realpathSync.native = originalNative;
