@@ -83,9 +83,9 @@ function freshHome() {
 }
 
 const NEUTRAL_CWD = tmpDir(path.join(os.tmpdir(), "nana-setup-cwd-"));
-const run = (args) => args[0] === "doctor"
-	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8" }))
-	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8" });
+const run = (args, env = process.env) => args[0] === "doctor"
+	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env }))
+	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env });
 
 /* --- 1. a fresh machine: every piece lands ------------------------------------------- */
 const home = freshHome();
@@ -303,6 +303,21 @@ check("second install reports nothing to do", second.stdout.includes("nothing to
 check("second install reports no created/updated line", !/^\s+\+ /m.test(second.stdout), second.stdout);
 // req: R-300
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
+
+const forcedWinHome = freshHome();
+const forcedWinEnv = { ...process.env, NANA_SETUP_PLATFORM: "win32" };
+const forcedWinNames = ["spec", "py-lint", "py-review", "py-test"];
+const forcedWinFirst = run(["install", "--home", forcedWinHome], forcedWinEnv);
+const forcedWinFilled = forcedWinFirst.status === 0 && forcedWinNames.every((name) => {
+	const marker = path.join(forcedWinHome, ".claude", "skills", name, ".nana-setup-copy");
+	return fs.existsSync(marker) && fs.lstatSync(marker).isFile();
+});
+const forcedWinSecond = run(["install", "--home", forcedWinHome], forcedWinEnv);
+// req: R-1904
+check("R-1904: forced win32 second install prints no retired row for four marked skill copies",
+	forcedWinFilled && forcedWinSecond.status === 0 && forcedWinNames.every((name) => !forcedWinSecond.stdout.includes(`retired .claude/skills/${name}`)),
+	`${forcedWinFirst.stdout}\n--- second ---\n${forcedWinSecond.stdout}`);
+
 if (process.platform !== "win32") {
 	// req: R-964
 	check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));

@@ -400,7 +400,7 @@ try {
 		const result = run(["install", "--home", h], env);
 		// req: R-1902
 		check("R-1902: forced win32 install retires the recognized spec fixture and installs the pack copy",
-			result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.readFileSync(path.join(spec, "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "spec", "SKILL.md"))),
+			result.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")) && fs.existsSync(path.join(spec, "SKILL.md")) && fs.readFileSync(path.join(spec, "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "spec", "SKILL.md"))),
 			result.stdout);
 	}
 	{

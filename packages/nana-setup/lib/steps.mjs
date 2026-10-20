@@ -333,8 +333,9 @@ export function stepRetiredArtifacts(layout, o) {
 		}
 		const st = lstatSafe(source);
 		if (!st) continue;
-		if (st.isSymbolicLink() && NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`)) {
-			// stepSkills (R-665) reports every link at these managed names.
+		const newlyManagedSkill = NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`);
+		if (newlyManagedSkill && (st.isSymbolicLink() || (st.isDirectory() && lstatSafe(path.join(source, SKILL_COPY_MARKER))?.isFile()))) {
+			// stepSkills reports every link at these managed names and owns every marked win32 copy.
 			continue;
 		}
 		if (!matchesRetiredArtifact(entry, st, source)) {
