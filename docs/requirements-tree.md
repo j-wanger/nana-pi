@@ -80,7 +80,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-02 · Rows: 18 · IDs: R-588, R-975–R-979, R-981, R-1002–R-1007, R-1009, R-1011, R-1109, R-1355, R-1356
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
-  Parent: — · Rows: 166 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-1800, R-1801, R-2240–R-2243, R-2330–R-2338
+  Parent: — · Rows: 171 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-1800, R-1801, R-2240–R-2243, R-2330–R-2338, R-2360–R-2364
   - **FEAT-009 · Decide which project content is trusted**
     Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
     Status: active
@@ -95,7 +95,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Load and refresh policy configuration with defined precedence, bounded reading and safe behavior when configuration breaks.
     Status: active
     Also applies: R-074, R-078, R-188, R-190, R-195, R-778
-    Parent: CAP-03 · Rows: 36 · IDs: R-043, R-048–R-050, R-059–R-070, R-080–R-083, R-193, R-196, R-197, R-634–R-636, R-765, R-769, R-772–R-774, R-780, R-781, R-826, R-829, R-865
+    Parent: CAP-03 · Rows: 41 · IDs: R-043, R-048–R-050, R-059–R-070, R-080–R-083, R-193, R-196, R-197, R-634–R-636, R-765, R-769, R-772–R-774, R-780, R-781, R-826, R-829, R-865, R-2360–R-2364
   - **FEAT-012 · Render paths and provenance clearly**
     Purpose: Render paths, labels and provenance through the documented normalization and presentation rules.
     Status: active
@@ -174,7 +174,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-04 · Rows: 25 · IDs: R-584, R-585, R-587, R-593–R-597, R-684, R-686, R-740, R-848, R-996, R-1031, R-1032, R-1078, R-1090–R-1092, R-1313, R-1320, R-1530, R-1531, R-2060, R-2061
 - **CAP-05 · Follow and steer development**
   Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
-  Parent: — · Rows: 105 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141
+  Parent: — · Rows: 108 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382
   - **FEAT-020 · Find and read previous sessions**
     Purpose: Read, title, navigate and display session history while retaining correct branch identity.
     Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
@@ -194,7 +194,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Show working-tree changes, readable activity and bounded output, and notify the developer when attention is needed.
     Status: active
     Also applies: R-458, R-484, R-781, R-810
-    Parent: CAP-05 · Rows: 47 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141
+    Parent: CAP-05 · Rows: 50 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382
   - **FEAT-024 · Edit session and project settings safely**
     Purpose: Expose supported configuration and context edits while preserving unknown fields and existing files on failure.
     Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
