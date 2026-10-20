@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/bin/worker-config.mjs
- * @purpose Define the sealed launcher values: the lane ceiling, the default builder and roster, and pi's npm package identity.
+ * @purpose Define the sealed launcher values: the lane ceiling, Windows CPU tick scale, default builder and roster, and pi's npm package identity.
  * @inputs none
- * @outputs LANE_MAX_SECS, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS,
+ * @outputs LANE_MAX_SECS, WIN_CPU_TICKS_PER_SECOND, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS,
  *  CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, LANE_SIZE_SLOTS,
  *  LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, REVIEWER_CHILD_ENV, NPM_DIRS,
  *  PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN
@@ -11,6 +11,8 @@
  */
 // chosen 28,800 seconds: eight hours covers the measured 20,495-second longest builder round (hardening program, 2026-10-07).
 export const LANE_MAX_SECS = 28_800;
+// contract: .NET TimeSpan.TicksPerSecond, 100-nanosecond ticks (R-1891)
+export const WIN_CPU_TICKS_PER_SECOND = 10_000_000;
 // Jake's roster ruling, 2026-10-06; since the roster lane (2026-10-13) a machine's roster lives in the user-scope nana-pack.json (R-1120-R-1122), and LANE_DEFAULTS is the default builder only.
 export const LANE_DEFAULTS = Object.freeze({
   provider: 'openai-codex',

@@ -3,11 +3,11 @@
  * @purpose Start pi (on win32 through its npm Node entry) under a CPU-liveness watchdog that kills
  *  and retries attempts whose CPU time stays flat and cleans up child trees on termination signals.
  * @inputs the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after
- *  it, the child's CPU seconds from `ps` or PowerShell, the caller's accept(text) predicate, and, on
- *  win32, PATH, PATHEXT and pi's npm package's `package.json`
- * @outputs {ok, text, attempt} with captured output, signal-aborted status, per-poll `cpu=…s flat=n/m`, STALL and
- *  attempt lines on stderr, the RETRIES_NOTICE string, a parse {error}, and piLaunch's own
- *  `{command, args}` or `{refused}`
+ *  it, the child's CPU time from `ps` or the PowerShell TotalProcessorTime tick read, the caller's
+ *  accept(text) predicate, and, on win32, PATH, PATHEXT and pi's npm package's `package.json`
+ * @outputs {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null,
+ *  per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the
+ *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
  * @effects process (spawns pi detached per attempt with NANA_HANDOFF=off — by name, its located
  *  `.exe`/`.com`, or node with its entry on win32 — kills its process tree on a stall or signal,
  *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
@@ -38,7 +38,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import * as path from 'node:path';
 import { findPi } from '../lib/win-command.mjs';
-import { PI_PACKAGE, PI_BIN_NAME, NPM_DIRS } from './worker-config.mjs';
+import { PI_PACKAGE, PI_BIN_NAME, NPM_DIRS, WIN_CPU_TICKS_PER_SECOND } from './worker-config.mjs';
 
 /**
  * Resolve how to launch pi on this platform (R-1125). Not win32: pi by name, argv unchanged —
@@ -124,20 +124,36 @@ export function parseWatchdogArgv(argv, { defaultRetries = 2 } = {}) {
 export const RETRIES_NOTICE = (tag, n) =>
   `${tag}: note — --retries ${n} = ${n} re-attempt(s) after the first (${n + 1} attempt(s) total); before T2b it meant ${n} attempt(s) total\n`;
 
-// CPU-time (seconds) of a pid via `ps -o time=` (mm:ss or hh:mm:ss). 0 if gone.
+/** Parse one CPU reader result as seconds. Windows emits a whole .NET TimeSpan tick count;
+ *  ps emits [dd-][hh:]mm:ss[.fraction]. Surrounding whitespace is ignored; all other text is
+ *  unreadable and returns null. */
+export function parseCpuSample(raw, platform = process.platform) {
+  if (typeof raw !== 'string') return null;
+  const text = raw.trim();
+  if (platform === 'win32') {
+    if (!/^\d+$/.test(text)) return null;
+    const ticks = Number(text);
+    return Number.isFinite(ticks) ? ticks / WIN_CPU_TICKS_PER_SECOND : null;
+  }
+  const match = /^(?:(\d+)-)?(?:(\d+):)?(\d+):([0-5]\d(?:\.\d+)?)$/.exec(text);
+  if (!match) return null;
+  const days = Number(match[1] ?? 0);
+  const hours = Number(match[2] ?? 0);
+  const minutes = Number(match[3]);
+  const seconds = Number(match[4]);
+  const total = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+  return Number.isFinite(total) ? total : null;
+}
+
+// CPU-time (seconds) of a pid via a whole TimeSpan tick count on win32 or ps time elsewhere.
 function cpuSeconds(pid) {
   try {
-    if (process.platform === 'win32') {
-      const raw = execSync(`powershell -NoProfile -Command \"(Get-Process -Id ${pid}).CPU\"`, { encoding: 'utf8' }).trim();
-      const seconds = Number(raw);
-      return Number.isFinite(seconds) ? seconds : 0;
-    }
-    const raw = execSync(`ps -o time= -p ${pid}`, { encoding: 'utf8' }).trim();
-    if (!raw) return 0;
-    const parts = raw.split(':').map(Number);
-    return parts.reduce((acc, n) => acc * 60 + n, 0);
+    const raw = process.platform === 'win32'
+      ? execSync(`powershell -NoProfile -Command \"(Get-Process -Id ${pid}).TotalProcessorTime.Ticks\"`, { encoding: 'utf8' })
+      : execSync(`ps -o time= -p ${pid}`, { encoding: 'utf8' });
+    return parseCpuSample(raw);
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -225,9 +241,16 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
       return { ok: false, text: readOut(), ceiling: true };
     }
     const cpu = cpuSeconds(child.pid);
-    if (cpu === lastCpu) flatPolls++; else flatPolls = 0;
-    lastCpu = cpu;
-    process.stderr.write(`  [${tag} a${attempt}] cpu=${cpu}s flat=${flatPolls}/${maxFlat}\n`);
+    await new Promise((r) => setImmediate(r));
+    if (child.exitCode !== null || child.signalCode !== null) break;
+    if (cpu === null) {
+      flatPolls++;
+      process.stderr.write(`  [${tag} a${attempt}] cpu=unreadable flat=${flatPolls}/${maxFlat}\n`);
+    } else {
+      if (cpu === lastCpu) flatPolls++; else flatPolls = 0;
+      lastCpu = cpu;
+      process.stderr.write(`  [${tag} a${attempt}] cpu=${cpu}s flat=${flatPolls}/${maxFlat}\n`);
+    }
     if (flatPolls >= maxFlat) {
       process.stderr.write(`  [${tag} a${attempt}] STALL (${stallSecs}s flat CPU) — killing group\n`);
       killGroup(child);
