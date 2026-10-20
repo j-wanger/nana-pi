@@ -54,7 +54,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { readBounded } from "./bounded-read.mjs";
 import { piAgentDir } from "./gate-paths.ts";
-import { jsonErrorPlace, parseJsonText } from "./json-text.mjs";
+import { jsonParseFailure, parseJsonText } from "./json-text.mjs";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
@@ -97,7 +97,7 @@ export interface NanaPackConfig {
 	 * (no opt-in). `projectFile` only renames that file: a bare filename, owner-set at
 	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
-	objective: { enabled: boolean; path: string | null; projectFile: string | null; configFailure?: { file: string; line?: number; column?: number } };
+	objective: { enabled: boolean; path: string | null; projectFile: string | null; configFailure?: { file: string; line?: number; column?: number; repair: "forward-slash" | "manual" } };
 	/** Deprecated compatibility keys; accepted and ignored for one release after decision D5, 2026-10-06. */
 	receipts: { enabled: boolean; dir: string | null };
 }
@@ -252,8 +252,8 @@ interface FileRead {
 	/** valid leaves only, by block */
 	blocks: Blocks;
 	problems: string[];
-	/** Present only when parsing failed; null means the parser reported no safe place. */
-	jsonFailure?: { line: number; column: number } | null;
+	/** Present only when parsing failed; carries no parser message or file text. */
+	jsonFailure?: { line?: number; column?: number; repair: "forward-slash" | "manual" };
 	/** true when the gate block is known-good (absent file, or no gate problem) */
 	gateValid: boolean;
 }
@@ -318,7 +318,7 @@ function readConfigFile(p: string): FileRead {
 	try {
 		raw = parseJsonText(text);
 	} catch (e: any) {
-		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], jsonFailure: jsonErrorPlace(e), gateValid: false };
+		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], jsonFailure: jsonParseFailure(e), gateValid: false };
 	}
 	const { blocks, problems } = normalizeRaw(raw);
 	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate") && !ALLOW_CAP.test(m));

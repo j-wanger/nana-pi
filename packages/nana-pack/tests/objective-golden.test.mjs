@@ -1332,19 +1332,24 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 	}
 }
 
+const FORWARD_SLASH_ADVICE = "Write objective.path with forward slashes because JSON reads a single backslash as an escape.";
+const MANUAL_JSON_ADVICE = "Repair the JSON by hand.";
 const malformedConfigFixtures = [
 	["single backslashes", String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
 }
-`, true],
+`, FORWARD_SLASH_ADVICE, "line 2, column 48"],
 	["BOM and CRLF", `\uFEFF${String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
 }
-`.replace(/\n/g, "\r\n")}`, true],
-	["unquoted path", `{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, false],
+`.replace(/\n/g, "\r\n")}`, FORWARD_SLASH_ADVICE, "line 2, column 48"],
+	["bad control character", `{ "objective": { "path": "control-zq7
+character" } }`, FORWARD_SLASH_ADVICE, true],
+	["unquoted path", `{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, MANUAL_JSON_ADVICE, false],
+	["trailing comma", `{ "objective": { "path": "trailing-zq7", } }`, MANUAL_JSON_ADVICE, true],
 ];
 const malformedConfigResults = [];
-for (const [label, fixture, hasPlace] of malformedConfigFixtures) {
+for (const [label, fixture, advice, place] of malformedConfigFixtures) {
 	malformedConfigResults.push(await withCaseLimit(label, async () => {
 		const w = world({ config: false });
 		const file = path.join(w.home, ".pi", "agent", "nana-pack.json");
@@ -1354,14 +1359,33 @@ for (const [label, fixture, hasPlace] of malformedConfigFixtures) {
 		const piText = await runPi(w, cwd);
 		const texts = [hookText ?? "", piText ?? ""];
 		const lines = texts.map((text) => text.split("\n").filter((line) => line.startsWith(CONFIG_FAILURE_PREFIX)));
-		const placeOk = hasPlace
-			? lines.every(([line]) => line?.includes("line 2, column 48"))
-			: lines.every(([line]) => line !== undefined && !/line \d/.test(line));
-		return lines.every((found) => found.length === 1) && lines.every(([line]) => line?.includes(displayPath(file)) && line.includes("forward slash")) && placeOk && texts.every((text) => text.includes(`governing: ${w.umbrellaFile}`) && text.includes(CHARGE) && !text.includes("umbrella-zq7") && !text.includes("Bad escaped") && !text.includes("Unexpected token"));
+		const placeOk = typeof place === "string"
+			? lines.every(([line]) => line?.includes(place))
+			: place
+				? lines.every(([line]) => / at line \d+, column \d+\./.test(line ?? ""))
+				: lines.every(([line]) => line !== undefined && !/line \d/.test(line));
+		const otherAdvice = advice === FORWARD_SLASH_ADVICE ? MANUAL_JSON_ADVICE : FORWARD_SLASH_ADVICE;
+		return lines.every((found) => found.length === 1) && lines.every(([line]) => line?.includes(displayPath(file)) && line.includes(advice) && !line.includes(otherAdvice)) && placeOk && texts.every((text) => text.includes(`governing: ${w.umbrellaFile}`) && text.includes(CHARGE) && !text.includes("zq7") && !text.includes("Bad escaped") && !text.includes("Bad control") && !text.includes("Unexpected token"));
 	}));
 }
 // req: R-1971
-check("unparseable user nana-pack.json: both runtimes keep the objective and add one line naming the file, the line and column, and the forward-slash repair, never file text", malformedConfigResults.every(Boolean), JSON.stringify(malformedConfigResults));
+check("unparseable user nana-pack.json: both runtimes keep the objective and add one line with the error-kind repair, never file text", malformedConfigResults.every(Boolean), JSON.stringify(malformedConfigResults));
+
+{
+	const unavailableWithBrokenConfig = await withCaseLimit("unparseable config and unavailable objective", async () => {
+		const w = world({ config: false });
+		const file = path.join(w.home, ".pi", "agent", "nana-pack.json");
+		fs.writeFileSync(file, `{ "objective": { "path": "unavailable-secret-zq7", } }`);
+		fs.rmSync(w.umbrellaFile);
+		fs.mkdirSync(w.umbrellaFile);
+		const cwd = path.join(w.home, "elsewhere");
+		const hookText = await golden("unparseable config and unavailable objective", w, cwd, () => {});
+		const piText = await runPi(w, cwd);
+		return [hookText ?? "", piText ?? ""].every((text) => text.includes(CONFIG_FAILURE_PREFIX) && text.includes(`OBJECTIVE UNAVAILABLE: unreadable (${w.umbrellaFile})`) && !text.includes("unavailable-secret-zq7"));
+	});
+	// req: R-1973
+	check("unparseable user nana-pack.json and unreadable objective: both runtimes print the config line and UNAVAILABLE marker without file text", unavailableWithBrokenConfig);
+}
 
 fs.rmSync(scratch, { recursive: true, force: true });
 process.exit(fails);

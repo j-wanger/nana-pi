@@ -9,7 +9,7 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail } rows, including a safe place and forward-slash repair for invalid
+ * @outputs an array of { status, label, detail } rows, including a safe place and error-kind repair for invalid
  *  nana-pack JSON and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
@@ -21,7 +21,7 @@
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
-import { CONFIG_FAILURE_PREFIX, jsonErrorPlace, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { configFailureDetail, jsonParseFailure, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
@@ -310,12 +310,7 @@ function piPackConfigState(file) {
 	try {
 		return { cfg: parseJsonText(text), parseDetail: null };
 	} catch (error) {
-		const place = jsonErrorPlace(error);
-		const where = place ? ` at line ${place.line}, column ${place.column}` : "";
-		return {
-			cfg: null,
-			parseDetail: `${CONFIG_FAILURE_PREFIX}${file}${where}. Repair it by hand with forward slashes in objective.path because JSON reads a single backslash as an escape.`,
-		};
+		return { cfg: null, parseDetail: configFailureDetail(file, jsonParseFailure(error)) };
 	}
 }
 

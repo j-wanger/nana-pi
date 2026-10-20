@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/objective.ts
  * @purpose THE objective producer — resolve the governing objective file and render the exact block both
  *  runtimes print.
- * @inputs the session cwd, the user-scope objective settings (path, projectFile and an optional configFailure place),
+ * @inputs the session cwd, the user-scope objective settings (path, projectFile and an optional safe configFailure classification),
  *  the nearest OBJECTIVE.md walking up from cwd, and pi's active agent dir with its trust store, that store's folder,
  *  permissions and lock
  * @outputs ObjectiveResult {text, unavailable, events, notices} — the heading, an optional safe config-failure
@@ -56,7 +56,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piTrustStorePath } from "./gate-paths.ts";
 import { BOUNDED_READ_CAP, readBounded } from "./bounded-read.mjs";
-import { CONFIG_FAILURE_PREFIX } from "./json-text.mjs";
+import { CONFIG_FAILURE_PREFIX, configFailureDetail } from "./json-text.mjs";
 // The display renderers live in lib/display.mjs (lane S1, one implementation for every surface);
 // re-exported here unchanged, so every existing import and the T2c goldens are untouched.
 import { CONTROL, PATH_CAP, displayPath, displayText, head } from "./display.mjs";
@@ -78,7 +78,7 @@ export interface ObjectiveSettings {
 	/** Filename to walk up for. null / false / "" / absent = DEFAULT_PROJECT_FILE — never "off". */
 	projectFile?: string | false | null;
 	/** A user config that was read but did not parse; never carries parser message or file text. */
-	configFailure?: { file: string; line?: number; column?: number };
+	configFailure?: { file: string; line?: number; column?: number; repair: "forward-slash" | "manual" };
 }
 
 /** A bare filename: no separator, not "." / "..". config.ts refuses anything else with a named problem. */
@@ -531,10 +531,7 @@ const noLines = (file: string) => `no **Objective or **Current priority line fou
 function configFailureLine(o: ObjectiveSettings): string | null {
 	const failure = o.configFailure;
 	if (!failure) return null;
-	const place = Number.isInteger(failure.line) && Number.isInteger(failure.column)
-		? ` at line ${failure.line}, column ${failure.column}`
-		: "";
-	return `${CONFIG_FAILURE_PREFIX}${displayPath(failure.file)}${place}. Write objective.path with forward slashes because JSON reads a single backslash as an escape. Tell the user before spending.`;
+	return `${configFailureDetail(displayPath(failure.file), failure)} Tell the user before spending.`;
 }
 
 function sameFile(a: string, b: string): boolean {

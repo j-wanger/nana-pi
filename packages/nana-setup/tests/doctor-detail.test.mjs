@@ -201,27 +201,48 @@ try {
 		check("two leading marks, a mark inside the object or malformed text after one mark stay unparseable for doctor and adoption", observations.every(({ doctorRow, settings, expectedJournal }) => doctorRow?.status === "fail" && settings.journal === expectedJournal && settings.objectiveFile === "OBJECTIVE.md"), JSON.stringify(observations));
 	}
 
+	const forwardSlashAdvice = "Write objective.path with forward slashes because JSON reads a single backslash as an escape.";
+	const manualJsonAdvice = "Repair the JSON by hand.";
 	const malformedConfigFixtures = [
 		[String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
 }
-`, true],
+`, forwardSlashAdvice, "line 2, column 48"],
 		[`\uFEFF${String.raw`{
   "objective": { "enabled": false, "path": "C:\Users\me\umbrella-zq7\OBJECTIVE.md" }
 }
-`.replace(/\n/g, "\r\n")}`, true],
-		[`{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, false],
+`.replace(/\n/g, "\r\n")}`, forwardSlashAdvice, "line 2, column 48"],
+		[`{ "objective": { "path": "control-zq7
+character" } }`, forwardSlashAdvice, true],
+		[`{ "objective": { "path": C:/umbrella-zq7/OBJECTIVE.md } }`, manualJsonAdvice, false],
+		[`{ "objective": { "path": "trailing-zq7", } }`, manualJsonAdvice, true],
 	];
-	const malformedConfigRows = malformedConfigFixtures.map(([fixture, hasPlace]) => {
+	const malformedConfigRows = malformedConfigFixtures.map(([fixture, advice, place]) => {
 		const layout = layoutWith("file");
 		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
 		fs.writeFileSync(layout.piPackConfig, fixture);
 		const row = diagnoseWithPi(layout, { projectDir: layout.base }).find((candidate) => candidate.label === "pi nana-pack.json");
-		const placeOk = hasPlace ? row?.detail.includes("line 2, column 48") : !/line \d/.test(row?.detail ?? "");
-		return row?.status === "fail" && row.detail.startsWith(CONFIG_FAILURE_PREFIX) && row.detail.includes(displayPath(layout.piPackConfig)) && row.detail.includes("forward slash") && placeOk && !row.detail.includes("umbrella-zq7") && !row.detail.includes("Bad escaped") && !row.detail.includes("Unexpected token");
+		const placeOk = typeof place === "string"
+			? row?.detail.includes(place)
+			: place
+				? / at line \d+, column \d+\./.test(row?.detail ?? "")
+				: !/line \d/.test(row?.detail ?? "");
+		const otherAdvice = advice === forwardSlashAdvice ? manualJsonAdvice : forwardSlashAdvice;
+		return row?.status === "fail" && row.detail.startsWith(CONFIG_FAILURE_PREFIX) && row.detail.includes(displayPath(layout.piPackConfig)) && row.detail.includes(advice) && !row.detail.includes(otherAdvice) && placeOk && !row.detail.includes("zq7") && !row.detail.includes("Bad escaped") && !row.detail.includes("Bad control") && !row.detail.includes("Unexpected token");
 	});
 	// req: R-1972
-	check("doctor names an unparseable nana-pack.json's file, the error's line and column and the forward-slash repair, never the file's text", malformedConfigRows.every(Boolean), JSON.stringify(malformedConfigRows));
+	check("doctor names an unparseable nana-pack.json's file and the error-kind repair, never the file's text", malformedConfigRows.every(Boolean), JSON.stringify(malformedConfigRows));
+
+	{
+		const rows = ["missing", "folder"].map((shape) => {
+			const layout = layoutWith("file");
+			if (shape === "folder") fs.mkdirSync(layout.piPackConfig, { recursive: true });
+			const row = diagnoseWithPi(layout, { projectDir: layout.base }).find((candidate) => candidate.label === "pi nana-pack.json");
+			return { row, detail: `missing or unparseable: ${layout.piPackConfig}` };
+		});
+		// req: R-1974
+		check("doctor keeps missing-or-unparseable detail for a missing or unreadable nana-pack.json", rows.every(({ row, detail }) => row?.status === "fail" && row.detail === detail), JSON.stringify(rows));
+	}
 
 	// objective.projectFile: default / rename / INVALID are three distinct verdicts (T2a astra land MUST 2).
 	// Driven through diagnose() with a real ~/.pi/agent/nana-pack.json, so the ✓/✗ is the one doctor prints.
