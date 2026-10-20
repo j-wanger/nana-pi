@@ -55,3 +55,7 @@ purpose. Lane class: install, hook or gate — nana-setup install (how long inst
 
 Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
 (4) HANDOFF and the session entry are true; (5) any MUST.
+
+## Base note (the seat, after this brief was written)
+
+Since `4249067c`, the seat merged main `0305bc8d` (the post-edit-values-named land tip, after realpath-strict-fallback) into the lane at `e045872f`, regenerating the code map and the requirements tree. Review this lane's own change as `git diff main...HEAD` (three dots: against the merge base) and the merge as `git show --remerge-diff e045872f` if your git supports it. This round covers the merged tip; no separate confirmation round is planned. The land reviewer is pi gpt-6-astra through pi-review (the owner's call, 2026-10-20).

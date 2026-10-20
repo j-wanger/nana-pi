@@ -62,3 +62,7 @@ the steps header say what the code does; (6) the known bugs are recorded honestl
 lock, pi registration and the desk step after the release with no test, two Claude homes over one pi home, an
 uninstall beside an install, and fsops' look-then-act gaps; (7) HANDOFF and the session entry are true, including the
 reworded install-honest-report lock residual and the edited killed-run line; (8) any MUST.
+
+## Base note (the seat, after this brief was written)
+
+Since `4249067c`, the seat merged main `0305bc8d` (the post-edit-values-named land tip, after realpath-strict-fallback) into the lane at `e045872f`, regenerating the code map and the requirements tree. Review this lane's own change as `git diff main...HEAD` (three dots: against the merge base) and the merge as `git show --remerge-diff e045872f` if your git supports it. This round covers the merged tip; no separate confirmation round is planned. The land reviewer is pi gpt-6-astra through pi-review (the owner's call, 2026-10-20).
