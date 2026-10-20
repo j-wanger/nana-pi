@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 326 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 327 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -2413,6 +2413,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a missing piLaunch export fails every forced title, not the whole file; failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/windows-skip-lines.test.mjs`
+
+- **purpose** — Pins that each check one of eight test files runs only off Windows prints its own SKIP line, naming the check and a reason, on the branch those files take on Windows.
+- **inputs** — the eight test files must-meet.md's Design section names (docs/reviews/win-silent-skips-2026-10-19/must-meet.md), read as text from this checkout
+- **outputs** — PASS/FAIL lines per file on stdout, and exit 1 when any file fails
+- **effects** — none
+- **errors** — a failing check prints the unmatched titles, or "no guarded check" with a hint to retire the row; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — —
 
 ### `packages/nana-pack/tests/worker-lane.test.mjs`
 

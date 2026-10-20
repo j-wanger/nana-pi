@@ -146,7 +146,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 		// req: R-640
 		check("reader: canonical /tmp alias is skipped without override", alias.stdout === "");
 		fs.rmSync(aliasBase, { recursive: true, force: true });
-	}
+	} else console.log("SKIP reader: canonical /tmp alias is skipped without override — Windows has no /tmp alias");
 }
 // Injected temp roots let the reader predicate be tested without hiding ordinary temp fixtures.
 {

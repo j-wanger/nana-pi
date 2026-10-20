@@ -169,7 +169,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
 		// req: R-640
 		check("adoption: canonical /tmp alias is skipped without override", reportsFor(alias).length === 0);
 		fs.rmSync(aliasBase, { recursive: true, force: true });
-	}
+	} else console.log("SKIP adoption: canonical /tmp alias is skipped without override — Windows has no /tmp alias");
 	process.env.NANA_TEST_TEMP_ROOTS = "";
 }
 // Test-only injected temp roots: production defaults skip OS temp roots, ordinary fixtures opt out.
