@@ -1,0 +1,72 @@
+=== job 1 (job-118451912254)
+2026-10-20T04:21:03.3862787Z [36;1mfor i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|release|files: |FAIL" || true; done[0m
+2026-10-20T04:22:42.7126871Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:22:42.7128687Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:22:42.7135041Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:22:42.7139044Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:22:42.7141366Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 97.9s
+2026-10-20T04:24:23.9566923Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:24:23.9569890Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:24:23.9573789Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:24:23.9575598Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:24:23.9577207Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 100.0s
+=== job 2 (job-118451912473)
+2026-10-20T04:20:24.2248481Z [36;1mfor i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|release|files: |FAIL" || true; done[0m
+2026-10-20T04:22:16.9599163Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:22:16.9600758Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:22:16.9602282Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:22:16.9605544Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:22:16.9608186Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 110.7s
+2026-10-20T04:24:20.6660776Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:24:20.6666406Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:24:20.6670669Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:24:20.6713652Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:24:20.6715174Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 121.4s
+=== job 3 (job-118451912486)
+2026-10-20T04:21:01.7309454Z [36;1mfor i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|release|files: |FAIL" || true; done[0m
+2026-10-20T04:22:50.9542535Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:22:50.9544104Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:22:50.9545485Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:22:50.9549461Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:22:50.9552359Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 107.5s
+2026-10-20T04:24:49.0078574Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:24:49.0081240Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:24:49.0083201Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:24:49.0084986Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:24:49.0086961Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 116.4s
+=== job 4 (job-118451912543)
+2026-10-20T04:21:42.2203384Z [36;1mfor i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|release|files: |FAIL" || true; done[0m
+2026-10-20T04:23:43.6146303Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:23:43.6158667Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:23:43.6163512Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:23:43.6165978Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:23:43.6168980Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 119.2s
+2026-10-20T04:25:59.4078644Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:25:59.4081257Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:25:59.4083458Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:25:59.4085416Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:25:59.4087386Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 133.4s
+=== job 5 (job-118451912563)
+2026-10-20T04:20:21.9148448Z [36;1mfor i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|release|files: |FAIL" || true; done[0m
+2026-10-20T04:22:13.0656546Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:22:13.0660757Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:22:13.0664183Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:22:13.0672820Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:22:13.0675508Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 109.5s
+2026-10-20T04:24:09.1397486Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:24:09.1400780Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:24:09.1403690Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:24:09.1405828Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:24:09.1410607Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 114.5s
+=== job 6 (job-118451912685)
+2026-10-20T04:20:30.1991714Z [36;1mfor i in 1 2; do npm test -- packages/nana-pack/tests/mutation-runner.test.mjs --verbose 2>&1 | grep -E "contending child|transient lock|never releases|release|files: |FAIL" || true; done[0m
+2026-10-20T04:22:23.6057298Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:22:23.6059396Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:22:23.6061547Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:22:23.6063752Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:22:23.6066037Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 111.9s
+2026-10-20T04:24:15.5061134Z PASS mutation runner: contending child processes observe complete lock ownership and never overlap their critical sections 
+2026-10-20T04:24:15.5064526Z PASS mutation runner: transient lock read, stat and link errors retry 
+2026-10-20T04:24:15.5066483Z PASS R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit 
+2026-10-20T04:24:15.5069693Z PASS mutation runner: a live holder that never releases makes the waiter stop at the configured limit, record the lock and holder pid once, and leave the lock owned 
+2026-10-20T04:24:15.5073712Z 1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 37 pass, 0 fail, 3 skip · 110.4s

@@ -12,6 +12,7 @@
 // Run: node packages/nana-pack/tests/review-ledger.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
+import { awaitLaunchRecord } from "./launch-wait.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -638,6 +639,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 // 7. termination signals kill and reap both wrapper children; reviews release reservations
 if (process.platform !== "win32") {
 	let signalsCleaned = true;
+	let signalDetails = "";
 	for (const [launcher, sig, expected] of [["review", "SIGINT", 130], ["review", "SIGTERM", 143], ["review", "SIGHUP", 129], ["worker", "SIGINT", 130], ["worker", "SIGTERM", 143], ["worker", "SIGHUP", 129]]) {
 		freshHome(`signal-${launcher}-${sig}`);
 		const childPidFile = path.join(tmp, `signal-${launcher}-${sig}.pid`);
@@ -645,17 +647,19 @@ if (process.platform !== "win32") {
 		const args = launcher === "review" ? ["--item", "signal", "--out", out()] : ["--out", out()];
 		const k = spawn(process.execPath, [script, ...args, "--poll", "1", "--stall-secs", "20", "--retries", "0", "--", "-p", "x"],
 			{ cwd: A.d, env: env({ STUB: "ignorer", CHILD_PID: childPidFile }), stdio: ["ignore", "ignore", "pipe"] });
+		const exited = new Promise((r) => k.once("exit", r));
 		let stderr = ""; k.stderr.on("data", (d) => { stderr += d; });
-		for (let i = 0; i < 200 && !fs.existsSync(childPidFile); i++) await new Promise((r) => setTimeout(r, 25));
-		const grandchildPid = Number(fs.readFileSync(childPidFile, "utf8").trim());
-		process.kill(k.pid, sig);
-		const code = await new Promise((r) => k.once("exit", r));
-		let grandchildAlive = true; try { process.kill(grandchildPid, 0); } catch { grandchildAlive = false; }
+		const pidRecord = await awaitLaunchRecord(childPidFile, { closed: exited, isComplete: (text) => /^\d+\n$/.test(text) });
+		const grandchildPid = Number(pidRecord?.trim());
+		if (k.exitCode === null && k.signalCode === null) process.kill(k.pid, sig);
+		const code = await exited;
+		let grandchildAlive = pidRecord !== null; try { process.kill(grandchildPid, 0); } catch { grandchildAlive = false; }
 		const reservationReleased = launcher !== "review" || fs.readdirSync(resDir).length === 0;
-		signalsCleaned &&= code === expected && !grandchildAlive && reservationReleased;
+		if (pidRecord === null) signalDetails += `${launcher} ${sig}: no pid record\n`;
+		signalsCleaned &&= pidRecord !== null && code === expected && !grandchildAlive && reservationReleased;
 	}
 	// req: R-623
-	check("watchdog signals reap children, release review reservations and preserve signal exit codes", signalsCleaned);
+	check("watchdog signals reap children, release review reservations and preserve signal exit codes", signalsCleaned, signalDetails);
 } else {
 	console.log("SKIP watchdog signals reap children, release review reservations and preserve signal exit codes — Windows has no POSIX signal to a process group");
 }
