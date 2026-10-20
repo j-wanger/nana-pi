@@ -1381,7 +1381,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — realPath(p, opts): the folder's native spelling on disk; gitPathKey(s): s normalized for a git-path compare; fileIdentity(p): the entry's exact bigint {dev, ino}, or null when unavailable
 - **effects** — disk (reads: realpathSync.native / realpathSync walk up to an existing ancestor, bigint lstatSync)
 - **errors** — realPath throws (as realpathSync does) when mustExist is true and p does not exist, or (SHOULD 5, brief 2) on any other native error (ELOOP, EACCES, …) reached with mustExist; otherwise it never throws, and fileIdentity never throws
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/release-status.mjs`
@@ -1476,12 +1476,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/test-runner-config.mjs`
 
-- **purpose** — Declare the parallel test runner's tunables with their provenance.
-- **inputs** — none
-- **outputs** — JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE
-- **effects** — none
-- **errors** — none
-- **callers** — `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **purpose** — Declare the test runner's parallel tunables and volume-dependent file preconditions.
+- **inputs** — os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
+- **outputs** — JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, checkoutSpellingSkipReason
+- **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
+- **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
+- **callers** — `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/verdict-config.mjs`
@@ -2372,7 +2372,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs the copied runner as a child per case; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/tmp-dir.mjs`
 
@@ -3022,7 +3022,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and settings fixtures), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/project-dismiss.test.mjs`
 
