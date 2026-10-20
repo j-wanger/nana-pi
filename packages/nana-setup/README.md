@@ -23,8 +23,8 @@ CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's buil
 instead of the objective, and `doctor`'s
 `node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register
 the packages, and only when they are not registered yet). On Windows it finds the first supported
-`pi.com`, `.exe`, `.bat` or `.cmd` on PATH, respecting PATH-folder and PATHEXT order; `.cmd`/`.bat`
-shims run through ComSpec. A missing pi is skipped with the install hint. A found pi whose version
+`pi.com`, `.exe`, `.bat` or `.cmd` on PATH, respecting PATH-folder and PATHEXT order. An npm
+`pi.cmd` starts its package's Node entry; any other `.cmd` or `.bat` runs through ComSpec. A missing pi is skipped with the install hint. A found pi whose version
 probe fails is a problem and makes install exit 1. On macOS/Linux, a `pi` whose interpreter is missing
 still reports “not on PATH” because the OS gives the same error. On POSIX the existing PATH lookup remains.
 Install also calls `node` (to build the knowledge index) and `launchctl` (only with `--desk`, only on
@@ -43,6 +43,7 @@ A session-start producer still running at the launcher's 1500 ms limit is stoppe
 | `packages/nana-pack/rules/nana-writing.md` (writing for Jake — trial, 2026-10-04) | `~/.claude/rules/nana-writing.md` | **symlink** — sourced from `packages/nana-pack/rules/`, not this package's own `claude/rules/`, because the `nana-writing` pack extension reads the SAME file for pi (one source, two runtimes — design-ruling.md Amendment 1, 2026-10-04, §A1) |
 | `packages/nana-pack/rules/nana-rulings.md` (nana's standing rulings, rulings-file lane, 2026-10-19) | `~/.claude/rules/nana-rulings.md` | **symlink** — sourced from `packages/nana-pack/rules/`, the same file the pi half reads a COPY of (below), named no owner and no model |
 | `packages/nana-pack/rules/nana-rulings.md` | the pi agent dir (`nana-rulings.md`) | **symlink** on POSIX, **byte-equal copy** on win32 — unlike `nana-writing`, the `nana-rulings` pack extension reads THIS installed copy, never the pack file directly (the owner's install ruling: "install to user level .pi folder"); doctor's `pi nana-rulings.md` row reads ✗ for anything else, including a stale win32 copy |
+| Windows managed-copy record | `~/.claude/nana-setup-copies.json` (**Windows only**) | Records the hash of each rule, skill and pi rulings copy install last wrote. An unchanged managed copy refreshes without a dated backup; an owner-edited or unrecorded copy still gets one first. An unusable record fails safe to backups and a skipped row. |
 | `requirements`, `spec`, `py-lint`, `py-review`, `py-test` skills | matching `~/.claude/skills/<name>` | **symlinks** to the same runtime-neutral `packages/nana-pack/skills/<name>` directories pi reads on POSIX; **byte-equal managed copies** on Windows. Recognized stale nana-dev-kit copies are moved to dated backups outside the active skills root before linking or copying; unknown or edited directories are left untouched and doctor reads ✗. The `scaffold-*` and `adopt-*` skills remain pi-only because they assume pi |
 | retired nana-dev-kit and broken Codex imports | `~/.claude/backups/` or `~/.agents/backups/` | recognized artifacts move to `<YYYY-MM-DD>-retired/` only after lstat and provenance checks; unknown content stays in place. A link at `spec`, `py-lint`, `py-review` or `py-test` is reported by its skill row, not as retired. `~/.agents/skills/synced/` is excluded. Existing repository context-warning markers are not scanned; install prints a reminder to remove them manually. Under a linked Claude home, install reports only the retired artifacts that are there and leaves them in place — an absent retired path prints no row |
 | `~/.claude/rules/nana-personal.md` (private) | `~/.claude/rules/` | **copied from `claude/rules/nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
@@ -267,7 +268,7 @@ Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and th
 
 Doctor's `pi executable` row checks `pi --version` and names the shared install hint on failure; `PATH resolves pi-review` checks the first executable match on PATH. `pi package source` compares registered package trees with the checkout supplying hooks and rules. Doctor mutes exactly the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning and prints every other Node warning.
 
-Install's dry run decides which ✗ rows doctor's last line gives to `nana-setup install`, and doctor lists the rest by hand. A row with no install step, such as `PATH resolves pi-review`, is listed by hand. The dry run writes nothing. When install refuses the home, doctor prints `<n> missing — nana-setup install will not run until this is fixed: <first refusal line>`.
+Install's dry run decides which ✗ rows doctor's last line gives to `nana-setup install`, and doctor lists the rest by hand. `PATH resolves pi-review` goes to install when the bin folder is already on PATH and no earlier PATH entry holds a pi-review; otherwise doctor lists it by hand. The dry run writes nothing. When install refuses the home, doctor prints `<n> missing — nana-setup install will not run until this is fixed: <first refusal line>`.
 
 Doctor's `release status` row is informational (·). It counts template commits on main since the highest plain vX.Y.Z tag and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `countTemplateCommits` for later release gates.
 
@@ -284,6 +285,13 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - `tests/install.test.mjs` and `tests/win32-degrade.test.mjs` fail when started from an untrusted working folder: their CLI subprocesses inherit that folder's trust state. The suite runs them from the repo, so it stays green.
 - An earlier install made through another spelling of the checkout converges once on the next install. On macOS and Linux, install converges every link and the knowledge hook to the checkout's on-disk spelling, a linked spelling included, and uninstall removes a knowledge entry that differs from install's desired entry only in that spelling. On Windows, a letter-case, drive-letter or short-name spelling gets six hook entries and eight launcher files rewritten with dated backups, while hook entries written through a junction to the checkout stay.
 - When native realpath fails, setup uses typed realpath spelling, so native spelling guarantees do not apply on that path.
+- A `pi.cmd` with no resolvable npm package beside it, including pi.dev, pnpm and Volta layouts, keeps the Command Prompt route. Killing install alone or its relay can leave that pi running.
+- Windows Ctrl-C has no install handler. An npm pi ends with install, which can cut short pi's cleanup. Pi's settings lock is held only around a write and treats a leftover lock as stale after about 10 seconds.
+- The npm pi route uses the Node running install, not a `node.exe` beside the shim.
+- A process pi starts through Command Prompt, such as npm for a registry package, leaves the job chain. A local-folder install starts none.
+- Doctor uses the same npm pi route, but no check kills doctor alone.
+- On macOS and Linux, killing the relay alone can leave pi running.
+- R-2300 and R-2303 are implemented by checks that pass on the Windows CI leg.
 
 ## What it never does
 
@@ -342,9 +350,9 @@ Doctor's `release status` row is informational (·). It counts template commits 
   symlink counts as present (see `project` above); the Windows copy path removes a link before
   copying rather than writing through it.
 - **Never destroys a file it replaces.** A regular file where a symlink belongs is renamed to
-  `<name>.bak-<YYYYMMDD>` first, and the backup is named in the output. The Windows copy path
-  owes the same guarantee: it backs up too, and it never writes *through* a symlink — the link is
-  removed first, so whatever it pointed at is untouched.
+  `<name>.bak-<YYYYMMDD>` first, and the backup is named in the output. On Windows, an unedited
+  managed copy refreshes without another backup; an edited or unrecorded copy is backed up first.
+  The copy path never writes *through* a symlink: it removes the link, leaving its target untouched.
 - Install and project setup never prompt. `trust` requires `--yes` or an interactive owner confirmation.
 - **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`, and `trust`
   refuses an explicit `--pi-home` outside the supplied `--home`. That is what makes the tests safe.
@@ -366,7 +374,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 ## Idempotence
 
 Re-running install is the normal case: the second run prints `nothing to do — everything was already in
-place`. `install --dry-run` reports the same decisions and writes nothing. On the real home the dry run's pi packages step runs install's own pi checks, `pi --version` included, and stops before the first `pi install`, so it cannot foresee a `pi install` failure. Install, its dry run and doctor stop waiting at the limits `PI_LAUNCH_LIMITS_MS` sets in `lib/steps.mjs`, end the pi process tree (taskkill on Windows; without taskkill only cmd.exe ends), and print ✗ naming the command and the limit. On macOS and Linux, install's relay also ends its pi launch when install is killed, even with its whole process group, and still gives pi its grace. `uninstall --dry-run` previews inventory rows without taking the settings lock or writing. Uninstall requires exactly one of `--dry-run` or `--yes`; edited seeds and hand-written pieces are left.
+place`. `install --dry-run` reports the same decisions and writes nothing. On the real home the dry run's pi packages step runs install's own pi checks, `pi --version` included, and stops before the first `pi install`, so it cannot foresee a `pi install` failure. Install, its dry run and doctor stop waiting at the limits `PI_LAUNCH_LIMITS_MS` sets in `lib/steps.mjs`, end the pi process tree (taskkill on Windows; without taskkill only cmd.exe ends), and print ✗ naming the command and the limit. On macOS and Linux, install's relay also ends its pi launch when install is killed, even with its whole process group, and still gives pi its grace. On Windows, an npm pi also ends when install is killed. `uninstall --dry-run` previews inventory rows without taking the settings lock or writing. Uninstall requires exactly one of `--dry-run` or `--yes`; edited seeds and hand-written pieces are left.
 
 **Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — uninstall exits 1 only for a failure such as a loaded desk service or unsafe settings preflight. `uninstall` exits 2 when its confirmation mode is missing or the platform is win32. Left-by-design items are reported but do not fail. `doctor`
 also exits 1 on a `!` row, which says what was checked may not be what pi reads, so it never
@@ -409,7 +417,7 @@ On native Windows, nana-setup wires every Claude Code hook entry in exec form fr
 
 Known launcher limits match ordinary `.cmd` behavior. Windows PowerShell 5.1 drops an empty argument and breaks a spaced argument ending in `\\`. cmd.exe changes an unspaced argument containing `& | < > ^ ( )`, an embedded double quote, or a defined `%NAME%`. Use Git Bash or the node form for those values. Git Bash rewrites `/`-shaped arguments before native Node receives them. The shim names a same-drive bin relative to `%dp0%` because cmd.exe reads a `.cmd` file in the console code page. On the hosted Windows runner under code page 437, a same-drive absolute bin path containing `é` misread that letter and failed to start the bin. A bin on another drive still needs the absolute form and is therefore inferred to fail when its path contains characters outside the active console code page; doctor still reads the rendered shim ✓. The shim resolves `node.exe` only through PATH because a bare `node` searches the caller's folder first. No `.ps1` shim is written because the default Restricted policy would reject it instead of falling back to `.cmd`. Node must remain on PATH at run time. Windows uninstall remains unsupported and leaves these shims, while a changed shim is preserved under a dated backup during repair.
 
-On Windows all five runtime-neutral Claude Code skills are mirrored as managed copies, not links. Each copy carries `.nana-setup-copy`; install refreshes shipped files with in-folder file backups while preserving owner-added files. A real directory at any managed skill path that nana-setup did not make is refused and left untouched, the same as macOS; install exits 1 naming it and doctor reads ✗. Doctor also refuses a regular file, symlink or junction at a Windows skill path and names the path type.
+On Windows all five runtime-neutral Claude Code skills are mirrored as managed copies, not links. Each copy carries `.nana-setup-copy`; install refreshes a shipped file without a backup when it still matches the last installed bytes, and backs up an owner-edited or unrecorded file while preserving owner-added files. A real directory at any managed skill path that nana-setup did not make is refused and left untouched, the same as macOS; install exits 1 naming it and doctor reads ✗. Doctor also refuses a regular file, symlink or junction at a Windows skill path and names the path type.
 
 ## Usage and options
 
@@ -462,6 +470,7 @@ loudly and counted, never silent.
 | File | Covers |
 |---|---|
 | `tests/uninstall.test.mjs` | explicit confirmation, exact settings pruning, and released context-hook handling |
+| `tests/copy-record.test.mjs` | Windows rule, skill and pi rulings refreshes without backup noise; edited and unrecorded copies; dry runs; unusable records |
 | `tests/state-manifest.test.mjs` | classified inventory, layout coverage, ledger parity, secret classification, and read-only listing with inaccessible secret fixtures |
 | `tests/restore.test.mjs` | documented command lines, durable-store absence, inventory listing and restore ordering |
 | `tests/install.test.mjs` | a fresh machine, the second run changing nothing, printing no retired skill-link row and adding no skipped rows, backup on collision, what is never overwritten (incl. a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |

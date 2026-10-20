@@ -7,7 +7,7 @@
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
+ *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail, installLabel? } rows, including a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
@@ -37,9 +37,10 @@ import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.m
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
-import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
 import { PI_LAUNCH_LIMITS_MS } from "./steps.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
+import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
@@ -348,14 +349,15 @@ export function diagnose(layout, opts = {}) {
 		const piSpawn = piOpts.spawn ?? boundedSpawnSync;
 		const piLimits = piOpts.limits ?? PI_LAUNCH_LIMITS_MS;
 		const piExists = piOpts.exists;
+		const piIsFile = piOpts.isFile;
+		const piReadText = piOpts.readText;
 		const isWin = (typeof piPlatform === "function" ? piPlatform() : piPlatform) === "win32";
 		const executable = isWin ? findPi({ env: piEnv, cwd: process.cwd(), exists: piExists }) : "pi";
 		let probe;
 		let refusal;
 		if (!executable) probe = { error: new Error("pi not found on PATH") };
 		else {
-			const comspecKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "comspec");
-			const invocation = isWin ? winCommand(executable, ["--version"], { comspec: comspecKey ? piEnv[comspecKey] : undefined }) : { command: executable, args: ["--version"], options: {} };
+			const invocation = piInvocation(executable, ["--version"], { win32: isWin, env: piEnv, cwd: process.cwd(), exists: piExists, isFile: piIsFile, readText: piReadText });
 			refusal = invocation.refused;
 			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8", timeout: piLimits.version });
 		}
@@ -636,9 +638,19 @@ export function diagnose(layout, opts = {}) {
 		const found = findOnPath("pi-review");
 		const expected = path.win32.resolve(path.join(layout.binDir, `pi-review${WIN_SHIM_SUFFIXES.cmd}`));
 		const matches = found !== null && path.win32.resolve(found).toLowerCase() === expected.toLowerCase();
+		// Same split findOnPath uses internally: trim each entry and strip a surrounding quote pair.
+		const entries = String(process.env.PATH ?? "").split(";").map((dir) => dir.trim().replace(/^"|"$/g, "")).filter(Boolean);
+		const binAt = entries.findIndex((dir) => path.win32.resolve(dir).toLowerCase() === path.win32.resolve(layout.binDir).toLowerCase());
+		// No spread of process.env: Windows' own "Path" key would outrank this injected PATH in findOnPath's case-insensitive lookup.
+		const installFixes = !matches && binAt >= 0 && findOnPath("pi-review", { env: { PATH: entries.slice(0, binAt).join(";"), PATHEXT: process.env.PATHEXT } }) === null;
 		const remedy = `add ${layout.binDir} to the user Path in Environment Variables, then open a new terminal`;
-		const detail = matches ? `${found} is this checkout's .cmd shim` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
-		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
+		const foundDetail = found ? `pi-review resolves to ${found}` : "pi-review not found on PATH";
+		const detail = matches
+			? `${found} is this checkout's .cmd shim`
+			: installFixes
+				? `${foundDetail}; ${layout.binDir} is on PATH — run \`nana-setup install\` to recreate the launcher`
+				: `${foundDetail}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	} else {
 		const link = path.join(layout.binDir, "pi-review");
 		const worker = path.join(layout.binDir, "pi-worker");
@@ -650,9 +662,17 @@ export function diagnose(layout, opts = {}) {
 		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
 		const found = firstOnPath("pi-review");
 		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
+		const entries = String(process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+		const binAt = entries.findIndex((dir) => path.resolve(dir) === path.resolve(layout.binDir));
+		const installFixes = !matches && binAt >= 0 && firstOnPath("pi-review", entries.slice(0, binAt).join(path.delimiter)) === null;
 		const remedy = `add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
-		const detail = matches ? `${found} resolves to this checkout` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
-		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
+		const foundDetail = found ? `pi-review resolves to ${found}` : "pi-review not found on PATH";
+		const detail = matches
+			? `${found} resolves to this checkout`
+			: installFixes
+				? `${foundDetail}; ${layout.binDir} is on PATH — run \`nana-setup install\` to recreate the launcher`
+				: `${foundDetail}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	}
 
 	// --- pi package registration ---

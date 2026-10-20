@@ -7,11 +7,12 @@
  *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
  *  packages/nana-pack/rules (the writing rule and the rulings file); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
- *  NANA_SETUP_PLATFORM
+ *  <claudeHome>/nana-setup-copies.json; pi's npm package.json; NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
- *  merged into <claudeHome>/settings.json; install takes the O_EXCL .settings.json.nana-setup.lock
- *  before its first write and holds it through the PATH entries; the settings write's fsync'd temp-file rename
+ *  merged into <claudeHome>/settings.json; on win32 a copy record tracks the last installed bytes;
+ *  install takes the O_EXCL .settings.json.nana-setup.lock before its first write and holds it
+ *  through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
  *  win32), <piHome>/extensions/subagent/config.json,
@@ -45,12 +46,14 @@ import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
-import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
+import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
+import { openCopyRecord } from "./copy-record.mjs";
 
 export class SetupError extends Error {}
 
@@ -86,6 +89,10 @@ export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
+
+function rememberCopy(o, target, sourceBytes, result) {
+	if (win() && !o.dryRun && [CREATED, UPDATED, UNCHANGED].includes(result.status)) o.copyRecord?.remember(target, sourceBytes);
+}
 
 /** lstat that never throws — the link itself, never what it points at. */
 export function lstatSafe(p) {
@@ -123,11 +130,16 @@ export function stepHooks(layout, o) {
 export function stepRules(layout, o) {
 	const out = [];
 	for (const rule of CLAUDE_RULES) {
-		const r = linkFile(path.join(layout.rulesDir, rule), ruleSource(rule), {
+		const target = path.join(layout.rulesDir, rule);
+		const source = ruleSource(rule);
+		const sourceBytes = win() ? fs.readFileSync(source) : null;
+		const r = linkFile(target, source, {
 			...o,
 			// Windows needs a privilege for symlinks; a copy still gets the identity in place.
 			copyInstead: win(),
+			unedited: o.copyRecord?.unedited(target),
 		});
+		rememberCopy(o, target, sourceBytes, r);
 		out.push({ label: `rule ${rule}`, ...r });
 	}
 	// PRIVATE, and never in the repo: created from the example only when absent, then never
@@ -284,7 +296,13 @@ export function linkSkill(target, source, o = {}) {
 				detail: `a directory is already at ${target} — left untouched; move or remove it, then re-run`,
 			};
 		}
-		const results = files.map((f) => linkFile(path.join(target, f), path.join(source, f), { ...o, copyInstead: true }));
+		const results = files.map((f) => {
+			const fileTarget = path.join(target, f);
+			const sourceBytes = fs.readFileSync(path.join(source, f));
+			const result = linkFile(fileTarget, path.join(source, f), { ...o, copyInstead: true, unedited: o.copyRecord?.unedited(fileTarget) });
+			rememberCopy(o, fileTarget, sourceBytes, result);
+			return result;
+		});
 		const problem = results.find((r) => r.status === PROBLEM);
 		if (problem) return problem;
 		const marker = writeIfChanged(path.join(target, SKILL_COPY_MARKER), SKILL_COPY_MARKER_CONTENT, o);
@@ -693,7 +711,11 @@ export function stepPiConfig(layout, o) {
 	// The owner's install ruling ("install to user level .pi folder", rulings-file lane,
 	// 2026-10-19): a symlink on POSIX, a byte-equal copy on win32 — the nana-rulings extension
 	// reads THIS copy, never the pack file directly (unlike nana-writing's extension default).
-	out.push({ label: "pi nana-rulings.md", ...linkFile(layout.piRulings, ruleSource(RULINGS_FILE), { ...o, copyInstead: win() }) });
+	const rulingsSource = ruleSource(RULINGS_FILE);
+	const rulingsBytes = win() ? fs.readFileSync(rulingsSource) : null;
+	const rulings = linkFile(layout.piRulings, rulingsSource, { ...o, copyInstead: win(), unedited: o.copyRecord?.unedited(layout.piRulings) });
+	rememberCopy(o, layout.piRulings, rulingsBytes, rulings);
+	out.push({ label: "pi nana-rulings.md", ...rulings });
 	return out;
 }
 
@@ -1086,7 +1108,7 @@ export function registrationState(layout) {
 // chosen 2026-10-20: measured pi 1.0.2 launches took 0.15 s; 30 s covers cold starts and 120 s covers startup tidy and settings-lock retries while keeping two installs under the install check's 300 s bound.
 export const PI_LAUNCH_LIMITS_MS = Object.freeze({ version: 30_000, install: 120_000 });
 
-export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = boundedSpawnSync, limits = PI_LAUNCH_LIMITS_MS, exists, manifestRoot = repoRoot } = {}) {
+export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = boundedSpawnSync, limits = PI_LAUNCH_LIMITS_MS, exists, isFile, readText, manifestRoot = repoRoot } = {}) {
 	const state = packageCoverage(layout, manifestRoot);
 	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `all extension directories registered${state.match ? ` as ${state.match}` : ""}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
@@ -1094,8 +1116,7 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 	const pi = win32 ? findPi({ env, cwd: process.cwd(), exists }) : "pi";
 	if (!pi) return [{ label: "pi packages", status: SKIPPED, detail: `pi is not on PATH — \`${PI_INSTALL_HINT}\`, then re-run` }];
 	const launch = (args, install = false) => {
-		const comspecKey = Object.keys(env).find((key) => key.toLowerCase() === "comspec");
-		const command = win32 ? winCommand(pi, args, { comspec: comspecKey ? env[comspecKey] : undefined }) : { command: pi, args, options: {} };
+		const command = piInvocation(pi, args, { win32, env, cwd: process.cwd(), exists, isFile, readText });
 		if (command.refused) return { refused: command.refused };
 		// the dry run stops here, before the first pi install, after every check install runs.
 		if (install && o.dryRun) return { status: 0 };
@@ -1130,16 +1151,19 @@ export function install(layout, opts = {}) {
 	const settingsState = readClaudeSettings(layout);
 	const results = [];
 	const fileSteps = (lockHeld) => {
-		results.push(...stepRetiredArtifacts(layout, o));
-		results.push(...stepHooks(layout, o));
-		results.push(...stepRules(layout, o));
-		results.push(...stepSkills(layout, o));
-		results.push(...stepSettings(layout, o, settingsState, { lockHeld }));
-		results.push(...stepSharedMemory(layout, o));
-		results.push(...stepPiConfig(layout, o));
-		results.push(...stepSubagentConfig(layout, o));
-		results.push(...stepReviewerAgent(layout, o));
-		results.push(...stepPath(layout, o));
+		const copyRecord = win() ? openCopyRecord(layout.copyRecord) : null;
+		const fileOptions = { ...o, copyRecord };
+		results.push(...stepRetiredArtifacts(layout, fileOptions));
+		results.push(...stepHooks(layout, fileOptions));
+		results.push(...stepRules(layout, fileOptions));
+		results.push(...stepSkills(layout, fileOptions));
+		results.push(...stepSettings(layout, fileOptions, settingsState, { lockHeld }));
+		results.push(...stepSharedMemory(layout, fileOptions));
+		results.push(...stepPiConfig(layout, fileOptions));
+		results.push(...stepSubagentConfig(layout, fileOptions));
+		results.push(...stepReviewerAgent(layout, fileOptions));
+		results.push(...stepPath(layout, fileOptions));
+		if (copyRecord) results.push(...copyRecord.save(fileOptions));
 	};
 	if (o.dryRun) fileSteps(false);
 	else withSettingsLock(layout.claudeSettings, () => fileSteps(true));
