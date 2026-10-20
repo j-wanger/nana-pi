@@ -56,11 +56,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piTrustStorePath } from "./gate-paths.ts";
 import { BOUNDED_READ_CAP, readBounded } from "./bounded-read.mjs";
-import { CONFIG_FAILURE_PREFIX, configFailureDetail } from "./json-text.mjs";
+import { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, configFailureDetail } from "./json-text.mjs";
 // The display renderers live in lib/display.mjs (lane S1, one implementation for every surface);
 // re-exported here unchanged, so every existing import and the T2c goldens are untouched.
 import { CONTROL, PATH_CAP, displayPath, displayText, head } from "./display.mjs";
-export { CONFIG_FAILURE_PREFIX, PATH_CAP, displayPath, displayText };
+export { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, PATH_CAP, displayPath, displayText };
 
 /** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
@@ -528,8 +528,8 @@ export const provenanceLabel = (file: string, dir: string, store?: { path: strin
 
 const noLines = (file: string) => `no **Objective or **Current priority line found in ${displayPath(file)}`;
 
-function configFailureLine(o: ObjectiveSettings): string | null {
-	const failure = o.configFailure;
+function configFailureLine(o: ObjectiveSettings | null | undefined): string | null {
+	const failure = o?.configFailure;
 	if (!failure) return null;
 	return `${configFailureDetail(displayPath(failure.file), failure)} Tell the user before spending.`;
 }
@@ -636,7 +636,7 @@ export function finish(out: string): string {
 }
 
 /** Never throws: an internal failure is itself a named marker. */
-export function produceObjective(cwd: string, o: ObjectiveSettings): ObjectiveResult {
+export function produceObjective(cwd: string, o: ObjectiveSettings | null | undefined): ObjectiveResult {
 	try {
 		return produce(cwd, o);
 	} catch (err) {
