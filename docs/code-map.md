@@ -1996,7 +1996,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/lifecycle-journal.test.mjs`
 
-- **purpose** — Pins that each of the five session lifecycle events leaves exactly one journal line carrying the session cwd and the process pid, and that the session_start and session_shutdown lines carry pi's reason for that event
+- **purpose** — Pins one journal line with cwd and pid for each lifecycle event, reasons on session and compaction lines, and only the allowed fields on compaction lines
 - **inputs** — extensions/nana-lifecycle.ts and a nana-pack.json under a temp HOME
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOME, config file and journal file), process (sets HOME and USERPROFILE)
