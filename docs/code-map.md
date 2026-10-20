@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 355 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 356 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1122,7 +1122,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (appends the journal, realpaths candidate paths via gate-paths), process (the adopted-policy map lives on globalThis so widening is seen across extension copies)
 - **errors** — never throws — a failed policy load becomes a stopReason and a failed analysis becomes the hit `gate analysis failed`, and both block; headless hits block fail-closed
 - **callers** — `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`
-- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/lib/gate-shell.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pipe-guard.mjs`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/lib/gate-shell.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pipe-guard.mjs`
 
 ### `packages/nana-pack/extensions/nana-handoff.ts`
 
@@ -1304,6 +1304,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-paths.ts`
 - **callees** — —
 
+### `packages/nana-pack/lib/gate-temp-roots.ts`
+
+- **purpose** — The one shared rule for which temp folders a gate's lane write boundary counts as writable: the OS temp folder and, on Windows, a differing TMP, except a drive or filesystem root, the home folder, or a folder above it.
+- **inputs** — acceptedTempRoots({platform, env, home, tmpdir}): every value injected, never read from process.env or the OS directly; isExcludedTempRoot(t, home) and within(parent, child) take plain path strings
+- **outputs** — acceptedTempRoots(...): the accepted temp roots, each resolved to its on-disk spelling; isExcludedTempRoot(t, home): true when `t` is excluded; within(parent, child): true when `child` lies inside, or is, `parent`
+- **effects** — disk (resolves each candidate and home through lib/real-path's realPath)
+- **errors** — never throws — acceptedTempRoots returns [] on any internal failure
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`
+- **callees** — `packages/nana-pack/lib/real-path.mjs`
+
 ### `packages/nana-pack/lib/handoff-asks.mjs`
 
 - **purpose** — Splits HANDOFF's Open for Jake section into raw entries with independent tag and title parses.
@@ -1401,7 +1411,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — realPath(p, opts): the folder's native spelling on disk; gitPathKey(s): s normalized for a git-path compare; fileIdentity(p): the entry's exact bigint {dev, ino}, or null when unavailable
 - **effects** — disk (reads: realpathSync.native / realpathSync walk up to an existing ancestor, bigint lstatSync)
 - **errors** — with mustExist, realPath throws the native error when p is missing or when native and typed realpath both fail; otherwise realPath never throws, and fileIdentity never throws
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/release-status.mjs`
