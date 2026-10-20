@@ -1,0 +1,12 @@
+seat-mutate: lane lifecycle-compaction-reason, tip c81371f6e2f1ad48e92ff869737358c78a41d435, table 8499a586b09460d8812e17240080c2e49e79238c4f1d6e4eb798071ac4c932d8, merge-base 9552afb1d8033a9a03107ea02319335527c5da46, 5 pairs in 1 shards (5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T20:52:31.554Z
+DECLARED (a) M1-M3 are main's form at each changed site; R-2380 and R-2382 are green on main by design, so M4 (W7) and M5 (W2) are the obvious wrong fixes that pin them
+DECLARED (b) R-162 and R-2140 cover sites this lane did not change and have no pair
+[1/1] seat-mutate: lane lifecycle-compaction-reason, shard 1/1, tip c81371f6e2f1ad48e92ff869737358c78a41d435, merge-base 9552afb1d8033a9a03107ea02319335527c5da46, 5 pairs, darwin, node v22.22.2, 2026-10-20T20:52:32.395Z
+[1/1] BASELINE ok   packages/nana-pack/tests/lifecycle-journal.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/1] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M1 session_before_compact journals no reason (main's form) — 2/2 named: journal: the three compaction lines carry pi's reason | journal: a compaction reason outside manual, threshold and overflow is journaled unchanged; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 session_compact journals no reason (main's form) — 2/2 named: journal: the three compaction lines carry pi's reason | journal: a compaction reason outside manual, threshold and overflow is journaled unchanged; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 session_compact_failed journals no reason (main's form) — 2/2 named: journal: the three compaction lines carry pi's reason | journal: a compaction reason outside manual, threshold and overflow is journaled unchanged; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 session_before_compact spreads pi's whole event into the line (W7) — 1/1 named: journal: a compaction line keeps only ts, event, cwd, pid and reason from pi's full event; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 session_compact_failed defaults a missing reason to "unknown" (W2) — 1/1 named: journal: a compaction event with no reason leaves one line with no reason field; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards
