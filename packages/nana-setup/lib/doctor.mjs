@@ -24,13 +24,14 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import { configFailureDetail, jsonParseFailure, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { codeSpan } from "../../nana-pack/lib/display.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -389,9 +390,17 @@ export function diagnose(layout, opts = {}) {
 		"rule nana-personal.md (private)",
 	);
 
+	// A linked Claude home or skills folder is the SAME refusal stepSkills already makes for every
+	// name (`linkedSkillFolder` reuses its own test): a ✗ row then points at the folder to move
+	// aside, matching the session-start line, rather than the generic "run nana-setup install"
+	// text that run would refuse anyway (plan-attack.md amendments 1–2).
+	const linkedFolder = linkedSkillFolder(layout);
 	for (const name of CLAUDE_SKILLS) {
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
-		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
+		const detail = !st.ok && linkedFolder
+			? `install will not add skills under the linked folder ${codeSpan(linkedFolder) ?? linkedFolder} — move it aside, then run \`nana-setup install\``
+			: st.detail;
+		add(st.ok ? OK : FAIL, `skill ${name}`, detail);
 	}
 	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.claudeHome, name)));
 	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", legacyFlags.length ? `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags` : "none present");
