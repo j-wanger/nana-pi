@@ -43,3 +43,30 @@
   has its own value. Builder's wrong-code tries: the old lock, a non-atomic publication and an unconditional removal
   each fail. `mutation-runner.test.mjs` 36/36 three runs in a row.
 - The HANDOFF line no longer says "and so does a bypassed lock" (the reviewer's S4).
+
+## Round 2 and build 4 (the seat, after the final reviewer's SEND-BACK on d9955553)
+
+- Opus round 2 sent the lane back with one MUST from CI. M3: CI run 39342973804 on `d9955553` was green on macOS
+  and Ubuntu and red on Windows: R-1776's contention check saw 7 of 8 workers exit 1 with `EPERM` from the lock read
+  (a file being deleted on Windows can be visible and refuse to open); 674 of 2,400 acquisitions completed. A throw in
+  the release would have left the lock naming a live pid, so every shard would wait forever. SHOULD S5: a lock naming
+  a pid that never dies was held forever. NOTEs: N1 the stale-side content compare is not pinned by a check; N2 a
+  hand-run shard with no lock variable threw `path.dirname(undefined)`; N3 the record cited only local runs.
+- Build 4 (`build-brief-4.md`, commit c8db77a4, a pi gpt-5.6-sol builder): EPERM, EACCES and EBUSY from the lock's
+  read, stat, link, unlink and release count as held and retry on every platform; a release that keeps failing records
+  one line naming the lock (R-1778). Any lock naming a live holder makes a waiter stop after
+  `WORKTREE_LOCK_WAIT_LIMIT_MS` (30,000 ms, chosen, sealed), record the lock and holder pid once, and leave the lock
+  in place (R-1779). A missing lock variable now fails with one line naming it (N2). The builder's checks inject the
+  errors on macOS, so both new checks were red before the change; its wrong-code tries (no transient handling, no
+  limit, non-atomic publication, unconditional removal) each failed their named check. `mutation-runner.test.mjs`
+  38 PASS on four runs in a row.
+- N1 stays a known limit (the reviewer's own probe: 40 runs x 16 workers with the compare removed gave 0 overlaps).
+- CI run 39347932197 on draft pull request #75 at `f5851dc1` (build 4 with main f0d6da24 merged): macOS 165 PASS,
+  0 FAIL, 2 SKIP of 167 files (7,677 checks pass); Ubuntu the same file counts (7,622); Windows 150 PASS, 0 FAIL,
+  17 SKIP (6,617), its skips main's declared ones; install-check passes on macOS and Windows. On Windows the test file
+  passes 36 with 3 skips, and R-1775 (a shard's add and removal wait for the lock), R-1776 (contention, no overlap),
+  R-1778 (transient errors retry) and R-1779 (a never-releasing holder) pass by title. The Windows log is
+  `ci-windows-run-3.log`.
+- The seat then merged main 4656f646 (`76f75878`; pwsh-lexer-oracle and the lanes before it) and dropped two HANDOFF
+  lines the merge helper had kept: a doubled win-pi-registration-test line and a knowledge-refresh-pin line main had
+  already removed.
