@@ -2,14 +2,14 @@
  * @module packages/nana-knowledge/lib/sources.ts
  * @purpose Resolve which knowledge roots to index, seeding sources.json on first run and discovering roots
  *  by convention.
- * @inputs sources.json at paths.sources (`roots` plus an optional `discover` block), os.homedir(), and the
- *  directory entries of every configured parent
- * @outputs the de-nested, de-duplicated root list (explicit roots first, then discovered ones) with the
- *  extra skip names, plus DEFAULT_DISCOVER, SKIP_DIRS and the path-boundary contains predicate
+ * @inputs sources.json bytes at paths.sources (`roots` plus an optional `discover` block), os.homedir(),
+ *  and the directory entries of every configured parent
+ * @outputs the de-nested, de-duplicated root list (explicit roots first, then discovered ones), extra skip
+ *  names, an unreadable or safe unparseable problem, its marker formatter, and root utilities
  * @effects disk (reads sources.json, readdirs each parent and stats each candidate subdir; writes a seeded
  *  sources.json when the file is absent)
- * @errors none — bad JSON yields no roots, and a missing parent, missing subdir or unwritable home is
- *  skipped silently
+ * @errors returns unreadable or safe unparseable source problems; missing sources seed as before, while a
+ *  missing parent, missing subdir or unwritable home is skipped silently
  */
 // sources.json: the only knob. { "roots": [{ "path": "...", "kind": "articles"|"ledger" }] }
 // Missing roots are skipped silently at build time — a store can be deleted or a repo
@@ -22,6 +22,12 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import {
+	FORWARD_SLASH_ADVICE,
+	jsonParseFailure,
+	MANUAL_JSON_ADVICE,
+	parseJsonBytes,
+} from "../../nana-pack/lib/json-text.mjs";
 import { paths } from "./paths.ts";
 
 export type Kind = "articles" | "ledger";
@@ -129,21 +135,43 @@ function parseDiscover(raw: unknown): Discover | null {
 	};
 }
 
+export type SourcesProblem =
+	| { kind: "unreadable" }
+	| { kind: "unparseable"; line?: number; column?: number; repair: "forward-slash" | "manual" };
+
 export interface Sources {
 	/** Explicit roots first, then discovered ones; deduped by resolved path. */
 	roots: Root[];
 	/** Extra directory names to skip, from `discover.exclude` (empty when not configured). */
 	exclude: string[];
+	/** Present when an existing sources.json could not safely supply roots. */
+	problem?: SourcesProblem;
 }
 
-/** Read sources.json, creating it from the seed when absent. Never throws on bad JSON. */
+// Contract marker values (R-2372, R-2375); CLI surfaces must use these exact words.
+const UNPARSEABLE_MARKER = "UNPARSEABLE";
+const UNREADABLE_MARKER = "UNREADABLE";
+
+/** Safe CLI marker for a sources.json problem; never includes parser or file text. */
+export function formatSourcesProblem(problem: SourcesProblem): string {
+	if (problem.kind === "unreadable") return `${UNREADABLE_MARKER} (no roots read, rows kept)`;
+	const place = Number.isInteger(problem.line) && Number.isInteger(problem.column)
+		? ` at line ${problem.line}, column ${problem.column}`
+		: "";
+	const advice = problem.repair === "forward-slash" ? FORWARD_SLASH_ADVICE : MANUAL_JSON_ADVICE;
+	return `${UNPARSEABLE_MARKER}${place} (no roots read, rows kept). ${advice}`;
+}
+
+/** Read sources.json, creating it from the seed when absent. Never throws on a source-file problem. */
 export function loadSources(): Sources {
 	const file = paths.sources;
-	let raw: unknown;
+	let bytes: Buffer;
 	try {
-		raw = JSON.parse(fs.readFileSync(file, "utf8"));
+		bytes = fs.readFileSync(file);
 	} catch (err) {
-		if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") return { roots: [], exclude: [] };
+		if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
+			return { roots: [], exclude: [], problem: { kind: "unreadable" } };
+		}
 		// First run: seed the literal stores AND the discover block, so a repo added later
 		// is picked up without anyone editing the file.
 		const roots = seedRoots();
@@ -152,6 +180,12 @@ export function loadSources(): Sources {
 			fs.writeFileSync(file, JSON.stringify({ roots, discover: DEFAULT_DISCOVER }, null, 2) + "\n");
 		} catch { /* read-only home: run with what we derived */ }
 		return union(roots, discoverRoots(DEFAULT_DISCOVER), DEFAULT_DISCOVER.exclude);
+	}
+	let raw: unknown;
+	try {
+		raw = parseJsonBytes(bytes);
+	} catch (err) {
+		return { roots: [], exclude: [], problem: { kind: "unparseable", ...jsonParseFailure(err) } };
 	}
 	const listed = Array.isArray((raw as { roots?: unknown })?.roots) ? (raw as { roots: unknown[] }).roots : [];
 	const explicit: Root[] = listed

@@ -1,8 +1,6 @@
 /**
  * @module packages/nana-pack/tests/lifecycle-journal.test.mjs
- * @purpose Pins that each of the five session lifecycle events leaves exactly one journal line
- *  carrying the session cwd and the process pid, and that the session_start and session_shutdown
- *  lines carry pi's reason for that event
+ * @purpose Pins one journal line with cwd and pid for each lifecycle event, reasons on session and compaction lines, and only the allowed fields on compaction lines
  * @inputs extensions/nana-lifecycle.ts and a nana-pack.json under a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, config file and journal file), process (sets HOME and USERPROFILE)
@@ -42,8 +40,7 @@ ext({ on: (name, fn) => { handlers[name] = fn; }, registerCommand: () => {} });
 
 const ctx = { cwd: TD, hasUI: false, isProjectTrusted: () => true };
 
-// Each of the five events, fired once, with the reason pi would carry on that event (session_start
-// and session_shutdown are the only two pi 1.0.2 types give a reason on).
+// Each of the five events, fired once, with the reason pi 1.0.2 gives every event.
 const CASES = [
 	["session_start", "resume"],
 	["session_before_compact", "threshold"],
@@ -81,6 +78,63 @@ check("journal: the session_start and session_shutdown lines carry pi's reason",
 	startLine?.reason === "resume" && shutdownLine?.reason === "fork",
 	JSON.stringify({ start: startLine?.reason, shutdown: shutdownLine?.reason }),
 );
+
+// req: R-2141
+check("journal: the three compaction lines carry pi's reason",
+	byEvent("session_before_compact")[0]?.reason === "threshold" &&
+		byEvent("session_compact")[0]?.reason === "manual" &&
+		byEvent("session_compact_failed")[0]?.reason === "overflow",
+	JSON.stringify(Object.fromEntries(["session_before_compact", "session_compact", "session_compact_failed"].map((type) => [type, byEvent(type)[0]?.reason]))),
+);
+
+const compactionTypes = ["session_before_compact", "session_compact", "session_compact_failed"];
+const readJournalLines = () => fs.readFileSync(JOURNAL_PATH, "utf-8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+const fireBatch = async (subfolder, eventFor) => {
+	const cwd = path.join(TD, subfolder);
+	fs.mkdirSync(cwd);
+	const throws = [];
+	for (const type of compactionTypes) {
+		try {
+			await handlers[type](eventFor(type), { ...ctx, cwd });
+		} catch (error) {
+			throws.push({ type, error: String(error) });
+		}
+	}
+	return { throws, lines: readJournalLines().filter((line) => line.cwd === cwd) };
+};
+
+// req: R-2380
+check("journal: a compaction event with no reason leaves one line with no reason field", await (async () => {
+	const result = await fireBatch("no-reason", (type) => ({ type }));
+	return result.throws.length === 0 && result.lines.length === compactionTypes.length &&
+		compactionTypes.every((type) => result.lines.filter((line) => line.event === type).length === 1 &&
+			!Object.hasOwn(result.lines.find((line) => line.event === type), "reason"));
+})());
+
+// req: R-2381
+check("journal: a compaction reason outside manual, threshold and overflow is journaled unchanged", await (async () => {
+	const result = await fireBatch("future-reasons", (type) => ({ type, reason: `future-${type}` }));
+	return result.throws.length === 0 && result.lines.length === compactionTypes.length &&
+		compactionTypes.every((type) => result.lines.filter((line) => line.event === type).length === 1 &&
+			result.lines.find((line) => line.event === type)?.reason === `future-${type}`);
+})());
+
+const FULL_EVENT_LINE_FIELDS = ["ts", "event", "cwd", "pid", "reason"];
+// req: R-2382
+check("journal: a compaction line keeps only ts, event, cwd, pid and reason from pi's full event", await (async () => {
+	const marker = "event-text-marker";
+	const result = await fireBatch("full-events", (type) => {
+		if (type === "session_before_compact") return { type, preparation: { marker }, branchEntries: [{ marker }], customInstructions: marker, reason: "threshold", willRetry: true, signal: new AbortController().signal };
+		if (type === "session_compact") return { type, compactionEntry: { summary: marker }, fromExtension: true, reason: "manual", willRetry: false };
+		return { type, reason: "overflow", errorMessage: marker, aborted: false, willRetry: true, fromExtension: true };
+	});
+	return result.throws.length === 0 && result.lines.length === compactionTypes.length &&
+		compactionTypes.every((type) => {
+			const line = result.lines.find((entry) => entry.event === type);
+			return result.lines.filter((entry) => entry.event === type).length === 1 &&
+				Object.keys(line).every((key) => FULL_EVENT_LINE_FIELDS.includes(key));
+		});
+})());
 
 fs.rmSync(TD, { recursive: true, force: true });
 console.log(fails ? `${fails} FAILED` : "ALL PASS");

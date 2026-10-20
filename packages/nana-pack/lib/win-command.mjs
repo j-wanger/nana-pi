@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/win-command.mjs
  * @purpose Resolve and safely launch supported Windows commands, and conservatively identify absent cmd.exe commands.
  * @inputs command names, argument arrays, injected environment/cwd/existence and optional ComSpec.
- * @outputs absolute lookup paths, spawnSync argument records/refusals, or a missing-command predicate.
+ * @outputs absolute lookup paths, a default existence probe, spawnSync argument records/refusals, or a missing-command predicate.
  * @effects disk
  * @errors refusals are returned as values; lookup errors mean absent.
  */
@@ -15,7 +15,7 @@ function envValue(env, key) {
   const found = Object.keys(env ?? {}).find((item) => item.toLowerCase() === key.toLowerCase());
   return found === undefined ? undefined : env[found];
 }
-function defaultExists(file) {
+export function defaultExists(file) {
   try { return !fs.lstatSync(file).isDirectory(); } catch { return false; }
 }
 function extensions(env, allowedExtensions) {

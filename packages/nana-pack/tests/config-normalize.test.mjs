@@ -61,6 +61,8 @@ const STOP = /^user nana-pack\.json gate block is malformed — repair it \(.+:.
 // A malformed gate block in a nana-trusted PROJECT with no last-good project gate in this
 // process stops too (invariant 6, astra L1 land ruling) — never "no project contribution".
 const PSTOP = /^project nana-pack\.json gate block is malformed — repair it \(.+nana-pack\.json:.+\)$/s;
+const PARSE_STOP = /^user nana-pack\.json does not parse: .+(?: at line \d+, column \d+)?\. .+[^.]$/s;
+const PARSE_PSTOP = /^project nana-pack\.json does not parse: .+nana-pack\.json(?: at line \d+, column \d+)?\. .+[^.]$/s;
 const check = (n, ok) => { total++; if (!ok) { fails++; failed.push(n); } };
 const named = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 
@@ -201,10 +203,10 @@ for (const v of [0, -1, 1e400]) {
 	const text = '{\n  "notify": { "headless": true },\n  "gate": { "extraPatterns": ["x"], },\n}\n';
 	const r = load(env({ userText: text }));
 	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.notify.headless === false && eq(r.cfg.postEdit.commands, []));
-	named("Opus trailing-comma file: gate stops conservatively (no valid policy in this process)", STOP.test(r.cfg?.gate.stopReason ?? ""));
+	named("Opus trailing-comma file: gate stops conservatively (no valid policy in this process)", PARSE_STOP.test(r.cfg?.gate.stopReason ?? ""));
 	const p = load(env({ user: VALID, projectText: text }));
 	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && eq(p.cfg.notify, VALID.notify));
-	named("trailing-comma PROJECT file: gate stops conservatively (no valid project policy in this process)", PSTOP.test(p.cfg?.gate.stopReason ?? ""));
+	named("trailing-comma PROJECT file: gate stops conservatively (no valid project policy in this process)", PARSE_PSTOP.test(p.cfg?.gate.stopReason ?? ""));
 }
 {
 	const r = load(env({ user: { postEdit: { commands: [{ match: "\\.ts$", run: "ok" }, 7, { match: "(", run: "x" }, { run: "nomatch" }, { match: "a", run: "t", timeoutMs: -1 }, { match: "b", run: "u", timeoutMs: 50 }] } } }));
