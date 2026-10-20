@@ -1,23 +1,20 @@
 /**
  * @module packages/nana-knowledge/lib/build.ts
- * @purpose Build the knowledge index incrementally under an atomic build lock, re-indexing only files whose
- *  bytes changed.
+ * @purpose Build or recover the knowledge index under an atomic build lock, re-indexing only files whose bytes changed.
  * @inputs roots or a read/parse problem from sources.json, the `.md` files under readable roots
  *  (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, and `rebuild`
- * @outputs BuildStats (per-root counts, totals, preserved and removed rows, missing/unreadable paths,
- *  sources problem, timing and db size), the index's meta rows, the index age, and a doc count
+ * @outputs BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
  * @effects disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes
  *  the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row
  *  transactions, a WAL truncate checkpoint)
- * @errors BuildLockedError when another live builder holds the lock; node:sqlite's own throws on an
- *  unusable database; a sources problem or unreadable root/folder keeps its indexed rows
+ * @errors BuildLockedError when another live builder holds the lock; unrecoverable node:sqlite errors; a sources problem or unreadable root/folder keeps its indexed rows
  */
 // Incremental index build. Read-only on every source: we stat, read, hash. Nothing is
 // ever written back into a knowledge store.
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { openDb, setMeta, type Db } from "./db.ts";
+import { checkIndex, indexDamage, openDb, setMeta, type Db } from "./db.ts";
 import { parseArticle, parseLedger, type Row } from "./parse.ts";
 import { paths } from "./paths.ts";
 import { contains, loadSources, skipNames, type Root, type SourcesProblem } from "./sources.ts";
@@ -157,6 +154,8 @@ export interface BuildStats {
 	missingRoots: string[];
 	unreadable: string[];
 	problem?: SourcesProblem;
+	recovered?: string;
+	keptDamage?: string;
 	ms: number;
 	dbBytes: number;
 }
@@ -225,25 +224,60 @@ export function pruneShown(now = Date.now()): number {
  * snapshot, and the output is POINTERS — a pointer from generation N-1 still names a real
  * file. A temp-db-and-rename would buy single-generation reads nobody can perceive.
  */
+type LoadedSources = ReturnType<typeof loadSources>;
+
+function problemStats(problem: SourcesProblem, started: number, reason?: string): BuildStats {
+	let dbBytes = 0;
+	try { dbBytes = fs.statSync(paths.db).size; } catch { /* absent or unreadable */ }
+	return {
+		roots: [], files: 0, rows: 0, reindexed: 0, unchanged: 0, removed: 0, preserved: 0,
+		skippedLarge: 0, missingRoots: [], unreadable: [], problem,
+		...(reason ? { keptDamage: reason } : {}), ms: Date.now() - started, dbBytes,
+	};
+}
+
 export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStats> {
 	if (!acquireBuildLock()) throw new BuildLockedError();
+	const started = Date.now();
 	try {
-		return await buildLocked(opts);
+		const sources = loadSources();
+		if (sources.problem && !fs.existsSync(paths.db)) return problemStats(sources.problem, started);
+		try {
+			return await buildLocked(opts, sources);
+		} catch (err) {
+			const reason = indexDamage(err);
+			if (!reason) throw err;
+			if (sources.problem) return problemStats(sources.problem, started, reason);
+			if (opts.rebuild) throw err;
+			const stats = await buildLocked({ rebuild: true }, sources);
+			stats.recovered = reason;
+			return stats;
+		}
 	} finally {
 		releaseBuildLock();
 	}
 }
 
-async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
+async function buildLocked(opts: { rebuild?: boolean }, sources: LoadedSources): Promise<BuildStats> {
 	const t0 = Date.now();
-	const { roots, exclude, problem } = loadSources();
-	const skip = skipNames(exclude);
+	const { problem } = sources;
 	if (opts.rebuild && !problem) {
 		for (const suffix of ["", "-wal", "-shm"]) {
 			try { fs.rmSync(paths.db + suffix, { force: true }); } catch { /* ignore */ }
 		}
 	}
-	const db = await openDb(paths.db, { create: true });
+	const db = await openDb(paths.db, { create: !problem, readonly: !!problem });
+	try {
+		checkIndex(db);
+		return buildOpen(db, sources, t0);
+	} finally {
+		try { db.close(); } catch { /* preserve the build error */ }
+	}
+}
+
+function buildOpen(db: Db, sources: LoadedSources, t0: number): BuildStats {
+	const { roots, exclude, problem } = sources;
+	const skip = skipNames(exclude);
 	const stats: BuildStats = {
 		roots: [], files: 0, rows: 0, reindexed: 0, unchanged: 0, removed: 0, preserved: 0,
 		skippedLarge: 0, missingRoots: [], unreadable: [], problem, ms: 0, dbBytes: 0,
@@ -264,6 +298,15 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 		db.prepare("SELECT path, root, hash, size, mtime, rows FROM files").all()
 			.map((r: any) => [r.path, { root: r.root, hash: r.hash, size: r.size, mtime: r.mtime, rows: r.rows }]),
 	);
+
+	if (problem) {
+		stats.files = existing.size;
+		stats.preserved = existing.size;
+		for (const prev of existing.values()) stats.rows += prev.rows;
+		stats.ms = Date.now() - t0;
+		try { stats.dbBytes = fs.statSync(paths.db).size; } catch { /* ignore */ }
+		return stats;
+	}
 
 	const delDocs = db.prepare("DELETE FROM docs WHERE path = ?");
 	const insDoc = db.prepare("INSERT INTO docs (key, path, root, kind, loc, title, body) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -326,7 +369,6 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	setMeta(db, "doc_count", String(stats.rows));
 	setMeta(db, "file_count", String(stats.files));
 	try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch { /* best effort */ }
-	db.close();
 
 	pruneShown();
 	stats.ms = Date.now() - t0;

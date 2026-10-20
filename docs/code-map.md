@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 366 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 367 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -778,9 +778,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The knowledge CLI — build, query, hook, status and prune over the local index.
 - **inputs** — argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook JSON on stdin (up to STDIN_MAX_BYTES), and sources.json bytes plus the index
-- **outputs** — build counts and source/root problem markers, query hits or JSON, index/root status, and the hook pointer block on stdout; usage and query/index failures on stderr
+- **outputs** — build counts, source/root and index-damage markers, query hits or JSON, index/root status, and the hook pointer block on stdout; usage and query failures on stderr
 - **effects** — disk (builds and reads the index, writes the shown files and pull.log), database, process (sets the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
-- **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, 0 otherwise — including source-file problems, every `hook` failure, and a build that lost the lock
+- **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, and 0 otherwise — including reported index damage, source-file problems, every `hook` failure, and a build that lost the lock
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`
 
@@ -796,22 +796,22 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-knowledge/lib/build.ts`
 
-- **purpose** — Build the knowledge index incrementally under an atomic build lock, re-indexing only files whose bytes changed.
+- **purpose** — Build or recover the knowledge index under an atomic build lock, re-indexing only files whose bytes changed.
 - **inputs** — roots or a read/parse problem from sources.json, the `.md` files under readable roots (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, and `rebuild`
-- **outputs** — BuildStats (per-root counts, totals, preserved and removed rows, missing/unreadable paths, sources problem, timing and db size), the index's meta rows, the index age, and a doc count
+- **outputs** — BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
 - **effects** — disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row transactions, a WAL truncate checkpoint)
-- **errors** — BuildLockedError when another live builder holds the lock; node:sqlite's own throws on an unusable database; a sources problem or unreadable root/folder keeps its indexed rows
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **errors** — BuildLockedError when another live builder holds the lock; unrecoverable node:sqlite errors; a sources problem or unreadable root/folder keeps its indexed rows
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/parse.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/sources.ts`
 
 ### `packages/nana-knowledge/lib/db.ts`
 
-- **purpose** — Open the node:sqlite knowledge database, create its FTS5 schema on the build path, and read or write the meta table.
+- **purpose** — Open and verify the node:sqlite knowledge database, create its FTS5 schema on the build path, and read or write the meta table.
 - **inputs** — the database file path and {create, readonly}; node:sqlite imported dynamically with its SQLite ExperimentalWarning muted
-- **outputs** — a Db handle (exec / prepare / close), a meta value or null, and SCHEMA_VERSION
+- **outputs** — a Db handle (exec / prepare / close), index damage classification and validation, a meta value or null, and SCHEMA_VERSION
 - **effects** — disk (mkdirs the parent and creates the database file on the create path), database (WAL pragmas, the docs/files/docs_fts schema and its triggers, meta upserts)
-- **errors** — openDb rejects with whatever node:sqlite throws (absent file, unreadable, locked); getMeta swallows and returns null
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **errors** — openDb rejects after closing a created handle when setup fails; checkIndex throws IndexDamageError or node:sqlite damage; getMeta swallows and returns null
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/lib/hook.ts`
@@ -821,7 +821,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome records to pull.log
 - **effects** — disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25 search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
 - **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block, reviewer-role, worker-role
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-knowledge/lib/parse.ts`
@@ -841,7 +841,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the home dir plus the sources.json, index.db, shown/, pull.log and build.lock paths, and tildeify's `~`-collapsed display form
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/recover.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/lib/query.ts`
@@ -851,7 +851,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Hit records {key, path, display, loc, kind, title, snippet, score} whose every field is one line, capped (TITLE_MAX / DISPLAY_MAX / SNIPPET_MAX) and free of the literal FIELD_SEP, the display path exact or reversibly JSON-escaped
 - **effects** — database (one SELECT over docs_fts joined to docs)
 - **errors** — database prepare/query errors are thrown to the caller; a row that cannot be rendered loses only its own pointer
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-knowledge/lib/sources.ts`
@@ -924,6 +924,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/parse.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
+### `packages/nana-knowledge/tests/recover.test.mjs`
+
+- **purpose** — Prove damaged knowledge indexes are rebuilt safely, reported without stacks, or preserved when sources cannot be parsed.
+- **inputs** — Temporary profiles, article roots and indexes damaged as bytes, pages or incomplete SQLite schemas.
+- **outputs** — Eight PASS/FAIL lines for R-2400 through R-2407, with exit 1 when any check fails.
+- **effects** — disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI and a detached hook rebuild).
+- **errors** — A failed or timed-out case prints FAIL; fixture and child-process errors are contained by that case.
+- **callers** — —
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+
 ### `packages/nana-knowledge/tests/render.test.mjs`
 
 - **purpose** — Pins that every knowledge pointer reaches the prompt through nana-pack's ONE renderer, asserted on rendered output because titles and paths come from other people's repositories
@@ -951,7 +961,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **callers** — `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/tests/tokenize.test.mjs`

@@ -1,14 +1,12 @@
 /**
  * @module packages/nana-knowledge/lib/db.ts
- * @purpose Open the node:sqlite knowledge database, create its FTS5 schema on the build path, and read or
- *  write the meta table.
+ * @purpose Open and verify the node:sqlite knowledge database, create its FTS5 schema on the build path, and read or write the meta table.
  * @inputs the database file path and {create, readonly}; node:sqlite imported dynamically with its SQLite
  *  ExperimentalWarning muted
- * @outputs a Db handle (exec / prepare / close), a meta value or null, and SCHEMA_VERSION
+ * @outputs a Db handle (exec / prepare / close), index damage classification and validation, a meta value or null, and SCHEMA_VERSION
  * @effects disk (mkdirs the parent and creates the database file on the create path), database (WAL
  *  pragmas, the docs/files/docs_fts schema and its triggers, meta upserts)
- * @errors openDb rejects with whatever node:sqlite throws (absent file, unreadable, locked); getMeta
- *  swallows and returns null
+ * @errors openDb rejects after closing a created handle when setup fails; checkIndex throws IndexDamageError or node:sqlite damage; getMeta swallows and returns null
  */
 // node:sqlite (Node >= 22.5, bundled SQLite has FTS5). Imported dynamically so the
 // ExperimentalWarning can be muted first — the hook writes to stdout and its stderr is
@@ -37,6 +35,37 @@ export function loadSqlite(): Promise<any> {
 }
 
 export const SCHEMA_VERSION = "1";
+
+/** SQLite primary result codes classified as index damage; contract: R-2400, R-2401. */
+export const DAMAGE_CODES = new Set([1, 11, 26]);
+
+export class IndexDamageError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "IndexDamageError";
+	}
+}
+
+/** Return a stable damage reason for known index damage, otherwise null. */
+export function indexDamage(err: unknown): string | null {
+	if (err instanceof IndexDamageError) return err.message;
+	if (!err || typeof err !== "object") return null;
+	const sqlite = err as { code?: unknown; errcode?: unknown; message?: unknown };
+	if (sqlite.code !== "ERR_SQLITE_ERROR" || typeof sqlite.errcode !== "number" || !DAMAGE_CODES.has(sqlite.errcode & 0xff)) return null;
+	return typeof sqlite.message === "string" && sqlite.message ? sqlite.message : "SQLite index error";
+}
+
+/** Verify every page and report the first structural finding. */
+export function checkIndex(db: Db): void {
+	const row = db.prepare("PRAGMA quick_check(1)").get();
+	const raw = row && typeof row === "object" ? Object.values(row)[0] : undefined;
+	if (raw === "ok") return;
+	const finding = String(raw ?? "quick check failed")
+		.replace(/^\*\*\* in database main \*\*\*\s*/i, "")
+		.replace(/\s+/g, " ")
+		.trim();
+	throw new IndexDamageError(`database disk image is malformed: ${finding}`);
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -84,13 +113,18 @@ export async function openDb(dbPath: string, opts: { create?: boolean; readonly?
 	const { DatabaseSync } = await loadSqlite();
 	if (opts.create) fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 	const db = new DatabaseSync(dbPath, { readOnly: !!opts.readonly }) as Db;
-	// Schema/PRAGMA only on the build path. The query path opens an existing file and
-	// issues nothing but SELECTs — a read-only *handle* would trip over WAL's shm file.
-	if (opts.create) {
-		db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
-		db.exec(SCHEMA);
+	try {
+		// Schema/PRAGMA only on the build path. The query path opens an existing file and
+		// issues nothing but SELECTs — a read-only *handle* would trip over WAL's shm file.
+		if (opts.create) {
+			db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
+			db.exec(SCHEMA);
+		}
+		return db;
+	} catch (err) {
+		try { db.close(); } catch { /* preserve the setup error */ }
+		throw err;
 	}
-	return db;
 }
 
 export function getMeta(db: Db, key: string): string | null {
