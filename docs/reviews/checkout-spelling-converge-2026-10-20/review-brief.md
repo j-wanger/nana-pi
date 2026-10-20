@@ -88,3 +88,8 @@ FEAT-018 · Update or remove managed components safely
   R-2203 new (implemented)
   R-2204 new (implemented)
 ```
+
+
+## Pairs re-run note (the seat)
+
+After the chain merge the seat re-ran the 14 wrong-code pairs on `d901a045`, as the planner asked once realpath-strict-fallback was in: 12 of 14 red, the same two declared survivors (P5, P10) — record `seat-mutate-output-d901a045.txt`. The land reviewer is now pi astra (the owner's call), not Fable as the seat record says.

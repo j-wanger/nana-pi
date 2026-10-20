@@ -83,3 +83,7 @@ FEAT-018 · Update or remove managed components safely
   R-2203 new (implemented)
   R-2204 new (implemented)
 ```
+
+## Land reviewer note (the seat)
+
+The land reviewer is pi gpt-6-astra through pi-review (the owner's call, 2026-10-20), not Claude Fable as this brief and the seat record say. pi-review appends the review standard. After the chain merge the seat re-ran the 14 wrong-code pairs on `d901a045`, as the planner asked once realpath-strict-fallback was in: 12 of 14 red, the same two declared survivors (P5, P10) — record `seat-mutate-output-d901a045.txt`.

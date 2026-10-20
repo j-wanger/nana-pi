@@ -92,4 +92,4 @@ const PAIRS = [
 	], tests: [CC], expectRed: [R2203] },
 ];
 
-process.exitCode = await runMutations({ lane: "checkout-spelling-converge", self: import.meta.url, tip: "29b83bf4", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "checkout-spelling-converge", self: import.meta.url, tip: "d901a045", declared: DECLARED, pairs: PAIRS });
