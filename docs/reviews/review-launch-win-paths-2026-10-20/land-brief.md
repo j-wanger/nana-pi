@@ -58,3 +58,7 @@ unchanged).
 
 Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
 (4) HANDOFF and the session entry are true; (5) any MUST.
+
+## Seat, after CI (2026-10-20)
+
+The Windows leg of run 39496386067 at 6136c925 printed `PASS Windows: review-ledger run resolves a relative .cmd reviewer path against --tree, …` (log line 4417) (review-launch.test.mjs 8 pass, 1 skip; log `ci-windows-6136c925.log`). The seat flipped R-2432's marker from `req-candidate` to `req:` and its row from untested to implemented; its evidence cell now cites that check; the earlier sentences saying it waits on the Windows leg are superseded. The two Windows-only pairs W1 and W2 still have not run (a carried line).

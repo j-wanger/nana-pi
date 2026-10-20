@@ -158,7 +158,8 @@ if (process.platform !== "win32") console.log(`SKIP ${relativeTreeTitle} — Win
 	const cwdRounds = allRounds.filter((row) => row.item === "relative-cwd-only");
 	const expectedMissing = path.join(repo, "other dir", "review.cmd");
 	const ok = treeRun.status === 0 && treeRounds.length === 1 && cwdRun.status === 1 && cwdRun.stderr.includes("review-ledger: cannot start other dir\\review.cmd: ") && cwdOutText?.startsWith("cannot start other dir\\review.cmd: ") && cwdOutText.toLowerCase().includes(expectedMissing.toLowerCase()) && reservationNames.length === 0 && cwdRounds.length === 0;
-	// req-candidate: R-2432 (Windows only; becomes req: when the Windows CI leg passes it)
+	// Windows only; the Windows CI leg passed it in run 39496386067.
+	// req: R-2432
 	check("Windows: review-ledger run resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round", ok, JSON.stringify({ treeRun, cwdRun, cwdOutText, reservationNames, treeRounds, cwdRounds }));
 }
 
