@@ -30,3 +30,6 @@ All eight checks PASS; the listed files keep their counts; every wrong version a
 
 ## Report (≤ 10 lines)
 Commit SHA(s); PASS counts per file run; wrong-code results as letter → check red or not; any deviation from the design and why; anything left open.
+
+## Seat note (lane-guard-temp-root's independent check, 2026-10-20)
+`lib/gate-temp-roots.ts` exports `within(parent, child)`. `extensions/nana-gate.ts` keeps its own private `within(target, root)` with the arguments in the opposite order. Import the module's `within` and pass the parent first; a swapped call gives the opposite answer. Add one check that would fail if the arguments were swapped.
