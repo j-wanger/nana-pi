@@ -62,3 +62,22 @@ the session-start stale-copy producer, and a pi extension's dependency.
 
 Check: (1) no fail-open; (2) no listed harm, the uninstall regression judged against the standard; (3) nothing main
 does today stopped working, on any of the three CI legs; (4) HANDOFF and the session entry are true; (5) any MUST.
+
+## Merge note (the seat, after this brief was written)
+
+Since `cfe08b9f`, the seat merged main `8466795b` (the doctor-fix-line land: doctor's closing line runs install's dry run; doctor.mjs rows carry an installLabel) as `7021e38a`, then kept one copy of a doubled HANDOFF line (`15491d2f`), then re-ran the wrong-code table on the merged tip: 10 of 14 red, the same four declared survivors (record `seat-mutate-output-15491d2.txt`, commit `5ca86887`). The plan's adversary required that re-run for whichever of this lane and doctor-fix-line landed second. checkout-spelling, doctor-fix-line, pi-registration and doctor-detail pass alone on the merged tip. Review this lane's own change as `git diff 8466795b...HEAD` and the merge as `git show --remerge-diff 7021e38a`. Tree movement now (`node scripts/requirements-moved.mjs --root . --base 8466795b`):
+
+```
+tree movement 8466795..5ca8688: 7 rows in 4 features
+FEAT-013 · Install and connect harness runtimes
+  R-1981 new (implemented)
+  R-1982 new (implemented)
+  R-1984 new (implemented)
+FEAT-015 · Diagnose the active environment
+  R-1980 new (implemented)
+  R-1983 new (implemented)
+FEAT-018 · Update or remove managed components safely
+  R-1985 new (implemented)
+FEAT-031 · Run checks reliably and without contaminating work
+  R-1986 new (implemented)
+```
