@@ -40,6 +40,7 @@ const discardedStatusCases = [
 	["PowerShell LASTEXITCODE after case-insensitive Where-Object", "npm test | wHeRe-ObJeCt { $_ }; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
 	["PowerShell single-quoted question mark stays literal", "npm test | Select-Object -Last 5; if ('$?' -eq 'True') { git commit -m x }", "powershell"],
 	["PowerShell backtick-escaped question mark stays literal", 'npm test | Select-Object -Last 5; if ("`$?" -eq "True") { git commit -m x }', "powershell"],
+	["PowerShell backtick-escaped question mark in an expandable here-string stays literal", '@"\n`$?\n"@\nnpm test | Select-Object -Last 5\ngit commit -m x', "powershell"],
 ];
 for (const [name, command, dialect] of discardedStatusCases) {
 	// req: R-2350
@@ -72,6 +73,8 @@ const consumedStatusCases = [
 	["bash errexit set inside subshell", "(set -e; npm test | tail -5; git commit -m x)"],
 	["bash outer errexit survives set +e inside a subshell", "set -e; (set +e; make lint); npm test | tail -5; git commit -m x"],
 	["bash outer errexit survives set +e inside command substitution", "set -e; echo \"$(set +e; make lint)\"; npm test | tail -5; git commit -m x"],
+	["bash outer errexit survives set +e inside backtick substitution", "set -e; `set +e`; npm test | tail -5; git commit -m x"],
+	["bash outer errexit survives set +e inside process substitution", "set -e; cat <(set +e; true); npm test | tail -5; git commit -m x"],
 	["bash outer errexit survives set +o errexit inside a subshell", "set -e; ( set +o errexit; make lint); npm test | tail -5; git commit -m x"],
 	["bash outer errexit survives a later set +e inside a subshell", "set -e; (echo preparing; set +e; true); npm test | tail -5; git commit -m checked"],
 	["bash outer errexit survives a later set +e inside a command substitution", "set -e; $(echo a; set +e); npm test | tail -5; git commit -m x"],
