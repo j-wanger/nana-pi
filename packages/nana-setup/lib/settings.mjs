@@ -526,18 +526,13 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 					try {
 						// The JS lookup keeps a typed letter case, drive letter and 8.3 name, so a win32
 						// exec entry written through another spelling reads unhealthy and gets its one-time
-						// rewrite; on POSIX the same-file rule does that, a linked spelling included.
-						const real = fs.realpathSync(match.target);
-						const root = fs.realpathSync(repoRoot);
+						// rewrite. On POSIX, strict lookup recognizes the checkout's on-disk spelling;
+						// respelledKnowledgeEntry alone decides whether that healthy entry is installer-owned.
+						const real = win32 ? fs.realpathSync(match.target) : realPath(match.target, { mustExist: true });
+						const root = win32 ? fs.realpathSync(repoRoot) : realPath(repoRoot, { mustExist: true });
 						healthy = real === root || real.startsWith(root + path.sep);
 					} catch { /* missing target */ }
-					let sameFile = false;
-					if (match.form === "posix" && hook.command !== w.entry.command) {
-						const wantedTarget = installerKnowledgeTarget(w.entry.command);
-						try {
-							sameFile = wantedTarget !== null && realPath(match.target, { mustExist: true }) === realPath(wantedTarget, { mustExist: true });
-						} catch { /* missing target */ }
-					}
+					const sameFile = match.form === "posix" && respelledKnowledgeEntry(hook, w);
 					found.push({ group, index: i, healthy, form: match.form, sameFile });
 				}
 			}

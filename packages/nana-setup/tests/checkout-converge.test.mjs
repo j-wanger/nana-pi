@@ -214,6 +214,25 @@ process.platform !== "win32" ? check("R-2202: install converges the knowledge co
 	});
 }) : skip("R-2202 — POSIX-only: Windows hook entries keep typed path spellings");
 
+// req: R-2205
+process.platform !== "win32" ? check("R-2205: install leaves a customized respelled knowledge entry unchanged", () => {
+	eachSpelling((spelling) => {
+		const { fixture } = earlierHome(spelling, `2205-${spelling.kind}`);
+		const settings = readSettings(fixture);
+		const entries = knowledgeEntries(settings);
+		assert(entries.length === 1, `${spelling.kind}: expected one knowledge entry before reinstall, got ${entries.length}`);
+		entries[0].async = true;
+		writeSettings(fixture, settings);
+		const before = JSON.stringify(entries[0]);
+		const result = run(canonical, ["install"], fixture);
+		assertFinished(result, "customized-entry install");
+		assert(result.status === 0, `${spelling.kind}: install exited ${result.status}\n${result.stdout}\n${result.stderr}`);
+		const afterEntries = knowledgeEntries(readSettings(fixture));
+		assert(afterEntries.length === 1, `${spelling.kind}: expected one knowledge entry after reinstall, got ${afterEntries.length}`);
+		assert(JSON.stringify(afterEntries[0]) === before, `${spelling.kind}: customized knowledge entry changed`);
+	});
+}) : skip("R-2205 — POSIX-only: Windows hook entries keep typed path spellings");
+
 // req: R-2203
 process.platform !== "win32" ? check("R-2203: uninstall removes a respelled knowledge entry without a variant row", () => {
 	eachSpelling((spelling) => {
