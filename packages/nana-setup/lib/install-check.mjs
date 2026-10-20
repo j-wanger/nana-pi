@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SESSION, PI_TURN, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
@@ -193,6 +193,10 @@ function linesOf(text) {
   return String(text ?? "").split("\n").map((line) => line.trimEnd());
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export function readPiSessionEvents(stdout) {
   const unavailable = PI_SESSION.unavailableWord.toLowerCase();
   for (const line of linesOf(stdout)) {
@@ -230,6 +234,30 @@ export function judgePiTurn({ record, stderr, status, token }) {
   if (!knowledge) return { passed: false, code: "missing-knowledge", detail: `no ${PI_TURN.knowledgeMarker} user message names ${PI_TURN.noteFile}` };
   const gate = Array.isArray(record.toolResults) && record.toolResults.some((result) => result?.toolName === PI_TURN.tool && result.isError === true && typeof result.text === "string" && result.text.startsWith(PI_TURN.gateBlockPrefix));
   if (!gate) return { passed: false, code: "missing-gate-block", detail: `no errored ${PI_TURN.tool} result starts with the gate block text` };
+  return { passed: true, code: null, detail: "" };
+}
+
+export function judgePiPostEdit({ record, token }) {
+  const results = Array.isArray(record?.toolResults) ? record.toolResults.filter((result) => result?.toolName === PI_TURN_EDIT.tool) : [];
+  if (results.length === 0) return { passed: false, code: "missing-write-result", detail: `no ${PI_TURN_EDIT.tool} tool result` };
+  const successful = results.filter((result) => result.isError !== true && typeof result.text === "string");
+  if (successful.length === 0) return { passed: false, code: "write-error", detail: `${PI_TURN_EDIT.tool} tool result is marked as an error` };
+  const checkLines = successful.flatMap((result) => linesOf(result.text)).filter((line) => line.startsWith(PI_TURN_EDIT.failureLead));
+  if (checkLines.length === 0) return { passed: false, code: "missing-check-line", detail: `no ${PI_TURN_EDIT.tool} result line starts with ${PI_TURN_EDIT.failureLead}` };
+  const exitLines = checkLines.filter((line) => line.includes(PI_TURN_EDIT.exitText));
+  if (exitLines.length === 0) return { passed: false, code: "missing-exit", detail: `post-edit check line does not hold ${PI_TURN_EDIT.exitText}` };
+  if (!exitLines.some((line) => line.includes(token))) return { passed: false, code: "missing-token", detail: "post-edit check line does not hold the run token" };
+  return { passed: true, code: null, detail: "" };
+}
+
+export function judgePiPowerShell({ record }) {
+  const results = Array.isArray(record?.toolResults) ? record.toolResults.filter((result) => result?.toolName === PI_TURN_POWERSHELL.tool) : [];
+  if (results.length === 0) return { passed: false, code: "missing-powershell-result", detail: `no ${PI_TURN_POWERSHELL.tool} tool result` };
+  const errors = results.filter((result) => result.isError === true);
+  if (errors.length === 0) return { passed: false, code: "powershell-not-error", detail: `${PI_TURN_POWERSHELL.tool} tool result is not marked as an error` };
+  if (!errors.some((result) => typeof result.text === "string" && result.text.startsWith(PI_TURN.gateBlockPrefix))) {
+    return { passed: false, code: "missing-gate-block", detail: `no errored ${PI_TURN_POWERSHELL.tool} result starts with the gate block text` };
+  }
   return { passed: true, code: null, detail: "" };
 }
 
@@ -286,6 +314,15 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     fs.writeFileSync(path.join(home, ".pi", "agent", "nana-objective.md"), `**Objective (since 2026-10-12):** ${token}.\n\n**Current priority (since 2026-10-12):** install-check ${token}.\n`);
     const memory = path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md");
     fs.appendFileSync(memory, `\n- [${token}] install-check fixture memory.\n`);
+    const packConfigPath = path.join(home, ".pi", "agent", "nana-pack.json");
+    try {
+      const packConfig = JSON.parse(fs.readFileSync(packConfigPath, "utf8"));
+      if (isPlainObject(packConfig)) {
+        const postEdit = isPlainObject(packConfig.postEdit) ? packConfig.postEdit : {};
+        const run = `"${process.execPath}" -e "${PI_TURN_EDIT.source}" ${PI_TURN_EDIT.placeholder}`;
+        fs.writeFileSync(packConfigPath, `${JSON.stringify({ ...packConfig, postEdit: { ...postEdit, commands: [{ match: PI_TURN_EDIT.match, run }] } }, null, 2)}\n`);
+      }
+    } catch {}
   }
   const piRun = async (args, timeout = SPAWN_TIMEOUT_MS.pi, options = {}, preparedLaunch = null) => {
     if (platformName !== "win32") return invoke(pi, args, { ...options, cwd: project, timeout });
@@ -309,12 +346,20 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   const sessionOkay = okay(session) && sessionOutput.includes("reload-runtime") && journalHasUnadopted(journal, project, platformName) && !sessionFinding;
   const sessionDetail = !okay(session) ? reason(session) : sessionFinding?.detail ?? (!sessionOutput.includes("reload-runtime") ? "reload-runtime not in get_commands output" : !journalHasUnadopted(journal, project, platformName) ? `journal has no directory_unadopted for ${project}` : "");
   report("pi session", session.error?.code === "ETIMEDOUT" ? "timeout" : sessionFinding?.code ?? "no-output", sessionOkay, sessionDetail);
-  const turnArgs = [...PI_TURN.args.map((arg) => arg === PI_TURN.fixture ? path.join(root, arg) : arg), `${SAMPLE_INPUTS.prompt} ${token}`];
+  const turnTools = PI_TURN_POWERSHELL.platforms.includes(platformName) ? PI_TURN_POWERSHELL.toolList : [];
+  const turnArgs = [...turnTools, ...PI_TURN.args.map((arg) => arg === PI_TURN.fixture ? path.join(root, arg) : arg), `${SAMPLE_INPUTS.prompt} ${token}`];
   const turn = await piRun(turnArgs, SPAWN_TIMEOUT_MS.turn);
   let turnRecord = null;
   try { turnRecord = JSON.parse(fs.readFileSync(path.join(home, PI_TURN.record), "utf8")); } catch {}
+  const turnTimedOut = turn.error?.code === "ETIMEDOUT";
   const turnJudgment = judgePiTurn({ record: turnRecord, stderr: turn.stderr ?? "", status: turn.status, token });
-  report(PI_TURN.item, turn.error?.code === "ETIMEDOUT" ? "timeout" : turnJudgment.code, turnJudgment.passed, turn.error ? reason(turn) : turnJudgment.detail);
+  report(PI_TURN.item, turnTimedOut ? "timeout" : turnJudgment.code, !turnTimedOut && turnJudgment.passed, turn.error ? reason(turn) : turnJudgment.detail);
+  const editJudgment = judgePiPostEdit({ record: turnRecord, token });
+  report(PI_TURN_EDIT.item, turnTimedOut ? "timeout" : editJudgment.code, !turnTimedOut && editJudgment.passed, turn.error ? reason(turn) : editJudgment.detail);
+  if (PI_TURN_POWERSHELL.platforms.includes(platformName)) {
+    const powershellJudgment = judgePiPowerShell({ record: turnRecord });
+    report(PI_TURN_POWERSHELL.item, turnTimedOut ? "timeout" : powershellJudgment.code, !turnTimedOut && powershellJudgment.passed, turn.error ? reason(turn) : powershellJudgment.detail);
+  }
   const settingsPath = path.join(home, ".claude", "settings.json");
   let settings = {}; try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf8")); } catch {}
   const groups = Object.entries(settings.hooks ?? {}).flatMap(([event, rows]) => rows.map((group) => ({ event, group })));

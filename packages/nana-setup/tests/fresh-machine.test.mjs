@@ -1,18 +1,21 @@
 /**
  * @module packages/nana-setup/tests/fresh-machine.test.mjs
  * @purpose Pins the ordered fresh-machine README checklist and its sourced version values.
- * @inputs README.md, doctor and step constants, CI workflow and resolved layout names.
+ * @inputs README.md, doctor and step constants, CI workflow, resolved layout names, and the pack and doctor objective-path resolvers.
  * @outputs PASS/FAIL lines and a nonzero exit on failed checks.
  * @effects disk (reads repository documentation and source).
  * @errors failed checks exit nonzero.
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DESK_NODE_FLOOR, PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { parseChecklist, rehearsalPlan } from "../lib/readme-rehearsal.mjs";
+import { objectiveTarget } from "../lib/steps.mjs";
+const { objectivePath } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
 
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
@@ -78,4 +81,18 @@ check("Windows checklist has eight ordered actions for Command Prompt at the dec
 check("Windows last step runs cd /d to the clone, trust and doctor as commands and expects all good", windowsLastStep?.commands.length === 3 && windowsLastStep.commands[0] === 'cd /d "%USERPROFILE%\\nana-pi"' && windowsLastStep.commands[1] === 'nana-setup trust "%USERPROFILE%\\nana-pi" --yes' && windowsLastStep.commands[2] === "nana-setup doctor" && windowsLastStep.expect === "all good", JSON.stringify(windowsLastStep));
 // req: R-1852
 check("every Windows checklist command names user-folder paths only as double-quoted %USERPROFILE% paths, and at least three exist", !/~|\$HOME/.test(windowsFlat) && !outsideQuotedUserPaths.includes("%USERPROFILE%") && quotedUserPaths.length >= 3, windowsFlat);
+const windowsJsonExamples = [...(windowsEntries[6] ?? "").matchAll(/`(\{[^`]+\})`/g)].map((match) => match[1]);
+const windowsJsonResults = windowsJsonExamples.map((text) => {
+	try {
+		const cfg = JSON.parse(text);
+		const packPath = objectivePath(cfg.objective);
+		const doctorPath = objectiveTarget(resolveLayout(), cfg);
+		const relative = path.relative(os.homedir(), packPath);
+		return cfg?.objective?.path?.startsWith("~/") && !cfg.objective.path.includes("\\") && packPath === doctorPath && relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
+	} catch {
+		return false;
+	}
+});
+// req: R-1970
+check("Windows step 7 shows a nana-pack.json example that parses as JSON and whose objective.path resolves inside the home folder alike in the pack and in doctor", windowsJsonResults.length > 0 && windowsJsonResults.every(Boolean), JSON.stringify({ examples: windowsJsonExamples, results: windowsJsonResults }));
 if (fails) process.exitCode = 1;
