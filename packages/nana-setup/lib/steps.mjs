@@ -20,7 +20,7 @@
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -349,15 +349,18 @@ export function stepRetiredArtifacts(layout, o) {
 		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
 		const relativeTail = entry.relative.slice(root.length + 1);
 		const source = root === ".claude" ? path.join(artifactHome, relativeTail) : path.join(artifactHome, entry.relative);
-		if (!directoryAncestorsAreSafe(artifactHome, path.dirname(source), true)) {
-			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe source ancestor under ${artifactHome}; source left untouched` });
-			continue;
-		}
+		// Read first (lstat alone, never a write): a retired path absent under an unsafe ancestor
+		// prints no row at all — only a retired path actually THERE is this install's business
+		// (seat ruling, lane spec: an existence check by lstat may run before the ancestor check).
 		const st = lstatSafe(source);
 		if (!st) continue;
 		const newlyManagedSkill = NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`);
 		if (newlyManagedSkill && (st.isSymbolicLink() || (st.isDirectory() && lstatSafe(path.join(source, SKILL_COPY_MARKER))?.isFile()))) {
 			// stepSkills reports every link at these managed names and owns every marked win32 copy.
+			continue;
+		}
+		if (!directoryAncestorsAreSafe(artifactHome, path.dirname(source), true)) {
+			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe source ancestor under ${artifactHome}; source left untouched` });
 			continue;
 		}
 		if (!matchesRetiredArtifact(entry, st, source)) {
@@ -382,12 +385,12 @@ export function stepRetiredArtifacts(layout, o) {
 	}
 	for (const old of RETIRED_HOOKS) {
 		const link = path.join(layout.hooksDir, old);
+		const st = lstatSafe(link);
+		if (!st) continue;
 		if (!directoryAncestorsAreSafe(layout.claudeHome, layout.hooksDir, true)) {
 			out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
 			continue;
 		}
-		const st = lstatSafe(link);
-		if (!st) continue;
 		let owned = false;
 		if (st.isSymbolicLink()) {
 			try {
@@ -402,16 +405,22 @@ export function stepRetiredArtifacts(layout, o) {
 		} else out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `${old} is not a repository-managed symlink — left untouched` });
 	}
 	const legacyHook = path.join(layout.hooksDir, "context-size-check.sh");
-	const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
-	const hookStat = hookAncestorsSafe ? lstatSafe(legacyHook) : null;
-	if (!hookAncestorsSafe) out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
-	if (hookStat?.isSymbolicLink()) {
-		let target = null;
-		try { target = realPath(legacyHook, { mustExist: true }); } catch { /* dangling */ }
-		const root = realPath(repoRoot, { mustExist: true });
-		if (target && (target === root || target.startsWith(root + path.sep))) {
-			if (!o.dryRun) fs.unlinkSync(legacyHook);
-			out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
+	// lstat first — a regular file counts too, not only a link: the guard below must run (and the
+	// ✗ row print) whenever anything at all sits there, so it never misses a non-link occupant
+	// through an unsafe ancestor (plan-attack.md amendment 5).
+	const hookStat = lstatSafe(legacyHook);
+	if (hookStat) {
+		const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
+		if (!hookAncestorsSafe) {
+			out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
+		} else if (hookStat.isSymbolicLink()) {
+			let target = null;
+			try { target = realPath(legacyHook, { mustExist: true }); } catch { /* dangling */ }
+			const root = realPath(repoRoot, { mustExist: true });
+			if (target && (target === root || target.startsWith(root + path.sep))) {
+				if (!o.dryRun) fs.unlinkSync(legacyHook);
+				out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
+			}
 		}
 	}
 	out.push({ label: "repository context-warning markers", status: UNCHANGED, detail: "if present, delete .claude/.context-warned files manually; repositories were not scanned" });
@@ -430,6 +439,21 @@ export function stepSkills(layout, o) {
 			return { label: `skill ${name}`, status: UPDATED, detail: "would link after the provenance-confirmed backup" };
 		return { label: `skill ${name}`, ...linkSkill(target, source, { ...o, preserveForeignLink: NEW_CLAUDE_SKILLS.includes(name) }) };
 	});
+}
+
+/**
+ * The Claude home or skills folder a linked ancestor is forcing `stepSkills` to refuse every
+ * skill through, or null when its own refusal test (`directoryAncestorsAreSafe` above) already
+ * holds. Decided by `lstat` alone — the same read every skill name already performs — never a
+ * write: the Claude home is checked first, then the skills folder, and the first one `lstat`
+ * reports as a link is the one doctor and the stale-copies notice both name to move aside.
+ */
+export function linkedSkillFolder(layout) {
+	if (directoryAncestorsAreSafe(layout.claudeHome, layout.skillsDir, true)) return null;
+	for (const candidate of [layout.claudeHome, layout.skillsDir]) {
+		if (lstatSafe(candidate)?.isSymbolicLink()) return candidate;
+	}
+	return null;
 }
 
 /* -------------------------------------------------------------------- claude settings.json */
