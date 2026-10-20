@@ -928,7 +928,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove damaged knowledge indexes are rebuilt safely, reported without stacks, or preserved when sources cannot be parsed.
 - **inputs** — Temporary profiles, article roots and indexes damaged as bytes, pages or incomplete SQLite schemas.
-- **outputs** — Eight PASS/FAIL lines for R-2400 through R-2407, with exit 1 when any check fails.
+- **outputs** — Ten PASS/FAIL lines for R-2400 through R-2409, with exit 1 when any check fails.
 - **effects** — disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI and a detached hook rebuild).
 - **errors** — A failed or timed-out case prints FAIL; fixture and child-process errors are contained by that case.
 - **callers** — —

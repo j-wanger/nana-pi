@@ -2,7 +2,7 @@
  * @module packages/nana-knowledge/tests/recover.test.mjs
  * @purpose Prove damaged knowledge indexes are rebuilt safely, reported without stacks, or preserved when sources cannot be parsed.
  * @inputs Temporary profiles, article roots and indexes damaged as bytes, pages or incomplete SQLite schemas.
- * @outputs Eight PASS/FAIL lines for R-2400 through R-2407, with exit 1 when any check fails.
+ * @outputs Ten PASS/FAIL lines for R-2400 through R-2409, with exit 1 when any check fails.
  * @effects disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI and a detached hook rebuild).
  * @errors A failed or timed-out case prints FAIL; fixture and child-process errors are contained by that case.
  */
@@ -13,7 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { build, BuildLockedError } from "../lib/build.ts";
+import * as buildLib from "../lib/build.ts";
 import { loadSqlite, openDb, setMeta } from "../lib/db.ts";
 import { runHook, STALE_MS } from "../lib/hook.ts";
 import { paths } from "../lib/paths.ts";
@@ -26,6 +26,7 @@ process.env.HOME = suiteProfile;
 process.env.USERPROFILE = suiteProfile;
 delete process.env.NANA_ROLE;
 
+const { build, BuildLockedError } = buildLib;
 const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
 const PHRASE = "recovery orchid lighthouse";
 const FILLER_ARTICLES = 40;
@@ -138,6 +139,17 @@ function expectedReason(kind) {
 
 function hashFile(file) {
 	return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+async function rowCount(f) {
+	activate(f);
+	let db;
+	try {
+		db = await openDb(f.db, {});
+		return db.prepare("SELECT COUNT(*) AS n FROM docs").get().n;
+	} finally {
+		try { db?.close(); } catch {}
+	}
 }
 
 async function caseWithin(run) {
@@ -270,6 +282,39 @@ const r2407 = await caseWithin(async () => {
 	return true;
 });
 
+const r2408 = await caseWithin(async () => {
+	const f = await goodFixture("healthy-sources-problem");
+	const rowsBefore = await rowCount(f);
+	fs.writeFileSync(f.sources, '{\n  "roots": [],\n}\n');
+	fs.mkdirSync(path.join(f.home, "shown"), { recursive: true });
+	const oldShown = path.join(f.home, "shown", "old.json");
+	fs.writeFileSync(oldShown, "{}");
+	const oldTime = Date.now() - 2 * buildLib.SHOWN_TTL_MS;
+	fs.utimesSync(oldShown, oldTime / 1000, oldTime / 1000);
+	let db;
+	try {
+		db = await openDb(f.db, {});
+		setMeta(db, "built_at", String(Date.now() - 2 * STALE_MS));
+	} finally {
+		try { db?.close(); } catch {}
+	}
+	const staleTime = Date.now() - 2 * STALE_MS;
+	fs.utimesSync(f.db, staleTime / 1000, staleTime / 1000);
+	const built = runCli(f, "build");
+	const status = runCli(f, "status");
+	const ageHours = Number(/built ([0-9.]+)h ago/.exec(status.stdout)?.[1]);
+	return cleanCli(built) && cleanCli(status) && await rowCount(f) === rowsBefore &&
+		ageHours * 60 * 60 * 1000 < STALE_MS && !fs.existsSync(oldShown);
+});
+
+const r2409 = await caseWithin(async () => {
+	const f = fixture("missing-index-sources-problem");
+	fs.writeFileSync(f.sources, '{\n  "roots": [],\n}\n');
+	const result = runCli(f, "build");
+	return cleanCli(result) && result.stdout.split(/\r?\n/).some((line) => line.includes("UNPARSEABLE")) &&
+		fs.existsSync(f.db) && await rowCount(f) === 0;
+});
+
 let fails = 0;
 function check(name, ok) {
 	console.log(ok ? "PASS" : "FAIL", name);
@@ -292,5 +337,9 @@ check("R-2405: status on a random-bytes, half-truncated or page-overwritten inde
 check("R-2406: build on a random-bytes, half-truncated or page-overwritten index exits 0 with one line naming the damage, no stack", r2406);
 // req: R-2407
 check("R-2407: build and build --rebuild with an unparseable sources.json over a random-bytes, half-truncated or page-overwritten index exit 0, keep index.db byte for byte and print one line naming the damage as not rebuilt", r2407);
+// req: R-2408
+check("R-2408: an unparseable sources.json over a stale healthy index keeps every row, refreshes its age and prunes an old shown file", r2408);
+// req: R-2409
+check("R-2409: an unparseable sources.json with no index exits 0, prints UNPARSEABLE and creates an empty index", r2409);
 
 process.exitCode = fails ? 1 : 0;

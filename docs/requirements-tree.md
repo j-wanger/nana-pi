@@ -4,7 +4,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 218 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2407
+  Parent: — · Rows: 220 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409
   - **FEAT-001 · Keep goals and priorities in view**
     Purpose: Provide the governing project objective and preserve its precedence over background context.
     Status: active
@@ -34,7 +34,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.
     Status: active
     Also applies: R-310
-    Parent: CAP-01 · Rows: 63 · IDs: R-200–R-216, R-232, R-235, R-236, R-240, R-347, R-348, R-386, R-871, R-872, R-881–R-885, R-894, R-933–R-935, R-1910–R-1915, R-2340–R-2346, R-2370–R-2376, R-2400–R-2407
+    Parent: CAP-01 · Rows: 65 · IDs: R-200–R-216, R-232, R-235, R-236, R-240, R-347, R-348, R-386, R-871, R-872, R-881–R-885, R-894, R-933–R-935, R-1910–R-1915, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409
   - **FEAT-004 · Retrieve relevant context with provenance**
     Purpose: Surface bounded, relevant knowledge pointers at the right moment with source framing and predictable failure behavior.
     Status: active

@@ -20,7 +20,7 @@ import { paths } from "./paths.ts";
 import { contains, loadSources, skipNames, type Root, type SourcesProblem } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
-const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** A lock older than this is a crashed builder, not a running one. */
 export const LOCK_TTL_MS = 10 * 60 * 1000;
 
@@ -241,7 +241,6 @@ export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStat
 	const started = Date.now();
 	try {
 		const sources = loadSources();
-		if (sources.problem && !fs.existsSync(paths.db)) return problemStats(sources.problem, started);
 		try {
 			return await buildLocked(opts, sources);
 		} catch (err) {
@@ -266,7 +265,13 @@ async function buildLocked(opts: { rebuild?: boolean }, sources: LoadedSources):
 			try { fs.rmSync(paths.db + suffix, { force: true }); } catch { /* ignore */ }
 		}
 	}
-	const db = await openDb(paths.db, { create: !problem, readonly: !!problem });
+	const existing = fs.existsSync(paths.db);
+	if (problem && existing) {
+		const probe = await openDb(paths.db, { readonly: true });
+		try { checkIndex(probe); }
+		finally { try { probe.close(); } catch { /* preserve the check error */ } }
+	}
+	const db = await openDb(paths.db, { create: !problem || !existing });
 	try {
 		checkIndex(db);
 		return buildOpen(db, sources, t0);
@@ -298,15 +303,6 @@ function buildOpen(db: Db, sources: LoadedSources, t0: number): BuildStats {
 		db.prepare("SELECT path, root, hash, size, mtime, rows FROM files").all()
 			.map((r: any) => [r.path, { root: r.root, hash: r.hash, size: r.size, mtime: r.mtime, rows: r.rows }]),
 	);
-
-	if (problem) {
-		stats.files = existing.size;
-		stats.preserved = existing.size;
-		for (const prev of existing.values()) stats.rows += prev.rows;
-		stats.ms = Date.now() - t0;
-		try { stats.dbBytes = fs.statSync(paths.db).size; } catch { /* ignore */ }
-		return stats;
-	}
 
 	const delDocs = db.prepare("DELETE FROM docs WHERE path = ?");
 	const insDoc = db.prepare("INSERT INTO docs (key, path, root, kind, loc, title, body) VALUES (?, ?, ?, ?, ?, ?, ?)");
