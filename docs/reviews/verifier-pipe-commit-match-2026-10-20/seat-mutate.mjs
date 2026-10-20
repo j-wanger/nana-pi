@@ -141,6 +141,7 @@ const GUARD_NOW = "only when a masked pipeline's exit status can reach the commi
 const GUARD_MAIN = "that pipelines output before `git commit` without earlier active `pipefail`";
 
 const DECLARED = [
+	"(builds 6 to 8, 3b503992) round 1's land reviewer MUSTs. Build 6 scopes an errexit change to its subshell, command substitution, backtick or process substitution, and keeps a PowerShell status read live in an expandable string or here-string. E3, E4 and E8 are re-anchored on its scope walk; E9 and X20 to X23 pin its sites. On 9f155fd2, 69 of 76 read red: E9 and X23 survived, because no check had a backtick substitution or an escaped status in a here-string. Builds 7 and 8 (tests only) added those cases. Declared on 3b503992: F4 (the backtick left neighbour) is now equivalent on tested input, because build 6 wraps an unquoted backtick substitution in parentheses before the finder runs; S26 (PowerShell ${?}) is not claimed by any row and stays unpinned",
 	"(build 5, e5b0483e) E5 to E7 are re-anchored on build 5's errexit prefix, which moves ( and $( into their own group; E8 and Q3 pin build 5's two fixes: a subshell's set +e does not reach the outer command, and an even run of backslashes before a double quote closes it",
 	"(build 4, c2d0dcb4) K2 and K5 are removed: build 4 deleted the two quoted-continuation branches they broke (dead since build 3). E5 and E6 are re-anchored on build 4's errexit prefix, which adds (. E7, B2 and B3 pin build 4's fixes: errexit after (, the escape rule that keeps an escaped letter visible (B3), and the raw line that keeps the backslash, which is what finds a backslash heredoc delimiter (B2 puts build 3's whole rule back)",
 	"(build 3, ad08d901) every pair runs on macOS with no pwsh: the span oracle and hooks-win32-exec skip here, so no pair names their checks. install-check.test.mjs picks hook calls by the hook script's file name (build 2), so it passes from the lane worktree and from the runner's scratch worktrees",
@@ -353,11 +354,11 @@ const PAIRS = [
 	], tests: [T], expectRed: [CS("bash errexit set inside subshell")] },
 	{ n: "E8", name: "set +e or +o errexit inside a subshell turns errexit off for the outer command (build 4's form; build 6: no scope restore at the closer)", edits: [
 		one(PG, "active = scopes.pop().active;", "scopes.pop();"),
-	], tests: [T], expectRed: ["bash outer errexit survives set +e inside a subshell", "bash outer errexit survives set +e inside command substitution", "bash outer errexit survives set +o errexit inside a subshell", "bash outer errexit survives a later set +e inside a subshell", "bash outer errexit survives a later set +e inside a command substitution", "bash outer errexit survives a later set +o errexit inside a subshell"].map(CS) },
+	], tests: [T], expectRed: ["bash outer errexit survives set +e inside a subshell", "bash outer errexit survives set +e inside command substitution", "bash outer errexit survives set +o errexit inside a subshell", "bash outer errexit survives a later set +e inside a subshell", "bash outer errexit survives a later set +e inside a command substitution", "bash outer errexit survives a later set +o errexit inside a subshell", "bash outer errexit survives a later set +e inside backtick substitution", "bash outer errexit survives set +e inside process substitution"].map(CS) },
 	// build 6 (9f155fd2): round 1's land reviewer MUSTs
 	{ n: "E9", name: "(round 1 MUST 1) an unquoted bash backtick substitution is not a scope (build 5's text)", edits: [
 		one(PG, "if (ch === \"`\") {\n\t\t\tlet end = i + 1;", "if (false) {\n\t\t\tlet end = i + 1;"),
-	], tests: [T], expectRed: [] },
+	], tests: [T], expectRed: [CS("bash outer errexit survives a later set +e inside backtick substitution")] },
 	{ n: "X20", name: "(round 1 MUST 2) a status read in a PowerShell double-quoted string is blanked (build 5's form)", edits: [
 		one(PG, "\t\t\t\tlive += status;\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;", "\t\t\t\tlive += \" \".repeat(status.length);\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;"),
 	], tests: [T], expectRed: [CS("PowerShell double-quoted question mark")] },
@@ -369,7 +370,7 @@ const PAIRS = [
 	], tests: [T], expectRed: [DS("PowerShell single-quoted question mark stays literal")] },
 	{ n: "X23", name: "a backtick in a PowerShell expandable here-string escapes nothing (build 5's here-string)", edits: [
 		one(PG, "if (kind === \"double\" && ch === \"`\" && i + 1 < source.length) {", "if (false) {"),
-	], tests: [T], expectRed: [] },
+	], tests: [T], expectRed: [DS("PowerShell backtick-escaped question mark in an expandable here-string after the pipeline stays literal")] },
 	{ n: "S26", name: "PowerShell ${?} is not a status spelling (build 5's reader)", edits: [
 		one(PG, 'if (dialect === "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;', 'if (dialect === "powershell" && ch === "$" && live[i + 1] === "?") return true;'),
 	], tests: [T], expectRed: [] },
@@ -403,4 +404,4 @@ const PAIRS = [
 	], tests: [IC], expectRed: [] },
 ];
 
-process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "9f155fd2", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "3b503992", declared: DECLARED, pairs: PAIRS });
