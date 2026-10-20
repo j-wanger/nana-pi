@@ -6,16 +6,16 @@
  * @outputs realPath(p, opts): the folder's native spelling on disk; gitPathKey(s): s normalized for a
  *  git-path compare; fileIdentity(p): the entry's exact bigint {dev, ino}, or null when unavailable
  * @effects disk (reads: realpathSync.native / realpathSync walk up to an existing ancestor, bigint lstatSync)
- * @errors realPath throws (as realpathSync does) when mustExist is true and p does not exist, or (SHOULD
- *  5, brief 2) on any other native error (ELOOP, EACCES, …) reached with mustExist; otherwise it never
- *  throws, and fileIdentity never throws
+ * @errors with mustExist, realPath throws the native error when p is missing or when native and typed
+ *  realpath both fail; otherwise realPath never throws, and fileIdentity never throws
  */
 // real-path.mjs (W7c, 2026-10-18) — native realpath everywhere, because native returns the spelling ON
 // DISK (case, long name, resolved symlink), which is what git already prints, while JS realpathSync keeps
 // a typed case, an 8.3 short name or a lowercase drive letter. No case folding: native already returns the
 // case on disk, and folding would change every Windows ledger key once (see review-round.mjs, nana-land.mjs,
-// review-ledger.mjs). No `\\?\` strip: libuv's native resolver is believed to remove it already (inferred;
-// a Windows-only spelling in the must-meet tests measures this).
+// review-ledger.mjs). Where native lookup fails, the fallback uses typed spelling, so spelling guarantees
+// hold only where native lookup works. No `\\?\` strip: libuv's native resolver is believed to remove it
+// already (inferred; a Windows-only spelling in the must-meet tests measures this).
 import { realpathSync, lstatSync } from 'node:fs';
 import { dirname, basename, join, resolve } from 'node:path';
 
@@ -44,10 +44,9 @@ function canonicalizeMissing(abs) {
  * The folder's (or file's) spelling on disk: `fs.realpathSync.native(path.resolve(p))`.
  * - Missing (`ENOENT`/`ENOTDIR`): with `mustExist`, throws, as `realpathSync` does today; otherwise
  *   canonicalizes the deepest existing ancestor and appends the rest unchanged.
- * - Any other native error (`ELOOP`, `EACCES`, …): with `mustExist`, throws (SHOULD 5, brief 2: a
- *   caller that asked for a confirmed real path must not get back an unresolved one silently);
- *   otherwise falls back to `fs.realpathSync(abs)` (today's result), so a volume whose native
- *   resolver fails still works as it did before this function existed.
+ * - Any other native error (`ELOOP`, `EACCES`, …): tries `fs.realpathSync(abs)` with or without
+ *   `mustExist`. If typed realpath also fails, with `mustExist`, throws the native error; otherwise
+ *   returns `abs`.
  */
 export function realPath(p, { mustExist = false } = {}) {
   const abs = resolve(p);
@@ -58,8 +57,12 @@ export function realPath(p, { mustExist = false } = {}) {
       if (mustExist) throw e;
       return canonicalizeMissing(abs);
     }
-    if (mustExist) throw e;
-    try { return realpathSync(abs); } catch { return abs; }
+    try {
+      return realpathSync(abs);
+    } catch {
+      if (mustExist) throw e;
+      return abs;
+    }
   }
 }
 
