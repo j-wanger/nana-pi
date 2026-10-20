@@ -302,7 +302,7 @@
 - Review timeline (review-timeline): nothing runs it automatically. Its six new requirements leave the review feature's product-report assessment out of date until the queued report refresh.
 - win-leg-flip: the two new checks read the CI file as text, not as GitHub reads it. They fail on any expression they do not know, and name it.
 - win-leg-flip: the blocking Windows leg skips the 16 declared desk files. A new Windows failure in one of them cannot stop release.
-- win-leg-flip: the README still says the Linux leg fails one symlink-escape check. That stopped being true when the lane write guard fix landed. It waits for the Linux question.
+- win-leg-flip: the README still says the Linux leg fails one symlink-escape check. That stopped being true when the lane write guard fix landed. The owner ruled on 2026-10-20 that the Linux leg does not block release yet; the README line still needs the fix.
 - win-leg-flip: the check that the suite leg blocks release reads the suite job as all text between the suite and release jobs. A job added between them later could be misread.
 - readme-install: every macOS install check now installs pi over the network for step 2. A network failure there turns the blocking macOS job red (inferred).
 - readme-install: the rehearsal clones the checkout's last commit but reads the README from the working files. A local run with uncommitted changes tests a mix of the two.
@@ -834,7 +834,7 @@
 7. **Queue for the new priority, in order (Jake, 2026-10-11, 2026-10-16 and 2026-10-17; two lanes building plus one in planning):**
    - Now: the Windows fixes, which Jake moved up on 2026-10-17: nine lanes, starting with project files on Windows. Uninstall stays unsupported on Windows for now, and the Windows CI leg now blocks release (both Jake's 2026-10-17 calls).
    - Then tree-oriented briefs and reviews: each brief names its feature in the requirements tree, reviews read per feature, and each land shows how the tree moved.
-   - Then the rest of Jake's 2026-10-16 feedback and the continuity study: an adoption refresh of basketball-geek and trading-zone.
+   - Then the rest of Jake's 2026-10-16 feedback and the continuity study. The adoption refreshes of trading-zone (2026-10-19) and basketball-geek (2026-10-20) have landed.
    - The parallel test runner has landed: the locked suite runs four test files at once. It left the process lane because it changes the suite's gate.
    - The Windows fixes cover project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
@@ -852,7 +852,7 @@
 - **[optional, since 2026-10-13] Report the upstream break.** pi-codemode 1.2.0 removed two exports in a minor release. That breaks pi 1.0.2 for every user who installs it fresh. Filing an upstream issue is public, so the call is yours.
 - **[optional, since 2026-10-13] Your work machine's launch branch.** Main now carries its own Windows launch through pi's Node entry. Drop that local branch before you pull main.
 - **[optional, since 2026-10-14] The seat guide and the regroup on Windows.** Pull main and run the nana-setup install once on Windows. Doctor should then show the new rule, and the requirements skill copy updates to the tree and the regroup. Then watch one lane: the seat should start the worker and wait without checking its partial work.
-- **[optional, since 2026-10-15] Lift your flat projects.** Each project's lift is its own lane, with your yes on its dry run. Lift aml-desk first, then basketball-geek once someone commits or drops its six uncommitted rows, then trading-zone.
+- **[optional, since 2026-10-15] Lift your flat projects.** Each project's lift is its own lane, with your yes on its dry run. Lift aml-desk first, then basketball-geek, whose uncommitted rows landed on 2026-10-20, then trading-zone.
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". One real gap: a subagent from a prompt template always runs in the foreground. Where did you see it — pi, the desk or Claude Code — and did the agent wait or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis; writability and staleness are pre-checks; the Claude hook resolves a relative override against its own cwd. The label no longer fires in your five repos.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
