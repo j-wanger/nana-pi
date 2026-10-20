@@ -87,3 +87,5 @@ FEAT-013 · Install and connect harness runtimes
   R-932 untested -> implemented
   R-939 untested -> retired
 ```
+
+Seat note after the chain merge: the merge brought two copies of the builder-briefs residual line (pi-probe-timeout's chain had already doubled it, and this lane edited the same line). The seat collapsed all three versions into one line that keeps every fact. Check that no fact was lost.
