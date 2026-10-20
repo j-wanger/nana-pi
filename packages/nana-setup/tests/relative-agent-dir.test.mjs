@@ -70,6 +70,22 @@ try {
 	const relExplicit = run("install", "--pi-home", REL, "--dry-run");
 	check("an explicit RELATIVE --pi-home is not refused (resolved as given)", !/specific to the current working directory/.test(relExplicit.stdout + relExplicit.stderr) && relExplicit.stdout.includes(REL), relExplicit.stdout + relExplicit.stderr);
 
+	const explicitRelative = path.join(CWD, "explicit-rel");
+	fs.mkdirSync(path.join(explicitRelative, "nana-knowledge"), { recursive: true });
+	fs.writeFileSync(path.join(explicitRelative, "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+	const relativeOk = run("install", "--pi-home", "explicit-rel");
+	const relativeOutput = relativeOk.stdout + relativeOk.stderr;
+	// req: R-932
+	check("R-932: install uses an explicit --pi-home as given, an absolute one as named and a relative one against the cwd, with no refusal under an ambient relative PI_CODING_AGENT_DIR",
+		ok.status === 0 &&
+			fs.existsSync(path.join(explicit, "nana-pack.json")) &&
+			relativeOk.status === 0 &&
+			fs.existsSync(path.join(explicitRelative, "nana-pack.json")) &&
+			!fs.existsSync(path.join(HOME, "explicit-rel")) &&
+			!fs.existsSync(resolved) &&
+			!relativeOutput.includes("specific to the current working directory"),
+		`${ok.status} ${relativeOk.status}\n${relativeOutput}`);
+
 	// ── project / project --check: the same refusal (sol r3 HIGH) ──
 	// `project` reads the user-scope pi config to decide whether to write a project one, so under an
 	// ambient relative value it would read <setup-cwd>/rel-agent and could seed a project config that

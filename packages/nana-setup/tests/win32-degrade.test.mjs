@@ -104,6 +104,31 @@ for (const label of ["settings SessionStart objective", "settings SessionStart a
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
 check("win32: no launchd plist", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
+{
+	const deskHome = freshHome();
+	const installDesk = run(["install", "--desk", "--home", deskHome], { NANA_SETUP_PLATFORM: "win32" });
+	const dryDesk = run(["install", "--desk", "--dry-run", "--home", deskHome], { NANA_SETUP_PLATFORM: "win32" });
+	const results = [installDesk, dryDesk].map((result) => {
+		const deskLines = result.stdout.split("\n").filter((outputLine) => /\bdesk\b/.test(outputLine));
+		return {
+			status: result.status,
+			deskLines,
+			noHookRow: !/^\s*\S hook /m.test(result.stdout),
+			stdout: result.stdout,
+			stderr: result.stderr,
+		};
+	});
+	// req: R-349
+	check("R-349: on win32, install --desk and its dry run create no hook folder and no launch agent, and report the desk service skipped (win32)",
+		results.every((result) => result.status === 0 &&
+			result.deskLines.length === 1 &&
+			/desk service\s+skipped\s+skipped \(win32/.test(result.deskLines[0]) &&
+			result.noHookRow) &&
+			!fs.existsSync(path.join(deskHome, "Library")) &&
+			!fs.existsSync(path.join(deskHome, ".claude", "hooks")),
+		JSON.stringify(results));
+}
+
 /* the pieces that DO work on Windows still run */
 const soul = path.join(home, ".claude", "rules", "nana-soul.md");
 // req: R-350
