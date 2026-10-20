@@ -95,4 +95,4 @@ const PAIRS = [
 	{ n: "M14", name: "every site in main's form (main's code)", edits: Object.values(SITE).flat(), tests: [CS], expectRed: [R1980, R1981, R1982, R1983, R1984, R1985] },
 ];
 
-process.exitCode = await runMutations({ lane: "setup-checkout-spelling", self: import.meta.url, tip: "6bf3c850", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "setup-checkout-spelling", self: import.meta.url, tip: "15491d2", declared: DECLARED, pairs: PAIRS });
