@@ -123,7 +123,9 @@ const psCases = [
 	['PS: a comment after a comma hides a ) that would close early (§2.3.3 only)', '"$(Write-Output 1,# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
 	['PS: a comment after a pipe hides a ) that would close early (§2.3.3 only)', '"$(Write-Output 1|# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
 	['PS: a comment after an ampersand hides a ) that would close early (§2.3.3 only)', '"$(Write-Output 1&# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
-	['PS: a comment after a dollar sign hides a ) that would close early (§2.3.3 only)', '"$(Write-Output $# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: $# is one bare word, so its ) closes the subexpression', '"$(Write-Output $# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', false],
+	// The tokenizer reports `$#` as one Generic token, so `#` starts no comment and the first `)`
+	// closes the subexpression; the later pipe therefore stays inside the outer string.
 	// backtick (§2.3.3) can never actually sit right before a LIVE "#": the backtick-escape rule
 	// (matching real PowerShell) always consumes the very next character first, so "`#" is an
 	// escaped, literal "#", never a comment start — this is the reachable half of that claim;
