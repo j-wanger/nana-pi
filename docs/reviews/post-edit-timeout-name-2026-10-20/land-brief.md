@@ -1,0 +1,53 @@
+# Review — post-edit-timeout-name (a post-edit check with no time limit of its own gets the pack's named default, read by name), 2026-10-20 (Fable, the land reviewer)
+
+Feature: FEAT-030 · Get trustworthy feedback after edits
+
+Review `git diff 15703d8d..HEAD` on `feat/post-edit-timeout-name` (`git merge-base HEAD main` is `15703d8d`; main is
+`54433844` when this brief was written). The lane branched from main `1b54211c`, and its builder merged main
+`15703d8d` (the pi-probe-timeout land tip) at `5db4d8e4`; `1b54211c..15703d8d` is pi-probe-timeout, already on main.
+The plan of record is `docs/reviews/post-edit-timeout-name-2026-10-20/must-meet.md`: two must-meet checks, rows R-2150
+to R-2151. `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the one build (dbcd6db4). The seat's
+record is `seat-verify-eba75dca.md`: CI run 39399379115 at eba75dca, 0 failing files on macOS, Ubuntu and Windows
+(`ci-windows-eba75dca.log` beside it), the wrong-code pairs (`seat-mutate.mjs`; 8 of 8 red on eba75dca, 0 survived)
+and the independent check (`independent-check-eba75dca.md`: HOLDS, no MUST, 10 probes). The final reviewer's brief is
+`review-brief.md`. The local macOS install check runs before the land.
+
+Tree movement (`node scripts/requirements-moved.mjs --root . --base 15703d8d`, the merge base):
+
+```
+tree movement 15703d8..9284d1e: 2 rows in 1 features
+FEAT-030 · Get trustworthy feedback after edits
+  R-2150 new (implemented)
+  R-2151 new (implemented)
+```
+
+The code under review: `packages/nana-pack/extensions/nana-post-edit.ts` now imports `POST_EDIT_DEFAULT_TIMEOUT_MS`
+from the new `packages/nana-pack/lib/post-edit-config.mjs` (30000, chosen) and arms a command that sets no
+`timeoutMs` at that value; before, it read the inline literal `30_000`. The new test file is
+`packages/nana-pack/tests/post-edit-default-timeout.test.mjs`.
+
+Judge whether the lane fails open: a check whose command sets no `timeoutMs` arming no deadline, so a hung check hangs
+the turn; a command's own `timeoutMs` overridden by the default; a malformed `timeoutMs` now running a check; or the
+extension failing to load, under pi's own loader or in an installed pack, so no post-edit check runs. Judge whether it
+leaves a harm the review standard lists: a broken pi extension on macOS, Linux or Windows, or a test writing outside the
+temp folders it owns or leaving `setTimeout` patched. Judge whether anything main does today stopped working: every
+post-edit result and chip main gives (pass, fail, timeout, could not run, the lock refusal), R-1702's zero, the kill
+paths on all three systems, pi's file queue under its real loader, and both CI install-check legs, whose live pi turn
+runs post-edit.
+
+Known gaps the seat records as residuals; judge whether each is a harm the standard lists or a known bug: five other
+post-edit values (the kill grace, the output cap, the failure cap, the command cap and the lock message cap) stay
+inside the extension, unnamed and unsealed; the pack README does not state the 30-second default; R-2150 proves the
+name only through a copy of the extension and its lib folder, so a later import from outside that folder fails the
+check loudly. The plan's claim that `timeoutMs: null` takes the default is wrong: the config loader rejects null, on
+main and on the lane alike; the seat's record says so, with no residual. The seat's pairs ran on macOS only; CI's
+native Windows pass of both new checks is the Windows evidence.
+
+Threat model: honest variation in our tools' output and the OS is in scope (a command with no `timeoutMs`, with 0,
+with a positive integer or with a malformed value; pi's jiti loader and Node's native import; a pack or temp folder
+with spaces, non-ASCII letters or a Windows short name; macOS, Linux and native win32); deliberate forgery is out (a
+hand-edited copy of the pack, a forged config module).
+Lane class: install, hook or gate — a pi extension, `nana-post-edit.ts`.
+
+Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
+(4) HANDOFF and the session entry are true; (5) any MUST.
