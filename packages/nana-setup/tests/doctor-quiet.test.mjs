@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/tests/doctor-quiet.test.mjs
- * @purpose Pin doctor's selective muting of Node warnings while preserving unrelated warning output.
+ * @purpose Pin the selective muting of Node warnings in doctor and project --check while preserving unrelated warning output.
  * @inputs The nana-setup CLI, scratch homes and projects, a pi stub, and a warning-emitting preload.
  * @outputs PASS/FAIL lines and a summary with a nonzero exit when any check fails.
  * @effects disk (temporary fixtures), process (spawns the CLI with sanitized environments).
@@ -30,6 +30,21 @@ const runDoctor = (label, nodeOptions = []) => {
 		delete env.NODE_REDIRECT_WARNINGS;
 		return spawnSync(process.execPath, [...nodeOptions, cli, "doctor", "--home", home], { cwd: folder, env, encoding: "utf8" });
 	}) };
+};
+
+const runProjectCheck = (label, { nodeOptions = [], config = true } = {}) => {
+	const folder = path.join(root, label);
+	fs.mkdirSync(folder, { recursive: true });
+	if (config) {
+		fs.mkdirSync(path.join(folder, ".pi"), { recursive: true });
+		fs.writeFileSync(path.join(folder, ".pi", "nana-pack.json"), "{}\n");
+	}
+	const home = path.join(root, `${label}-home`);
+	const env = { ...process.env };
+	delete env.NODE_OPTIONS;
+	delete env.NODE_NO_WARNINGS;
+	delete env.NODE_REDIRECT_WARNINGS;
+	return spawnSync(process.execPath, [...nodeOptions, cli, "project", folder, "--check", "--home", home], { cwd: folder, env, encoding: "utf8" });
 };
 
 {
@@ -62,6 +77,28 @@ const runDoctor = (label, nodeOptions = []) => {
 	const { result } = runDoctor("unmuted-warning", ["--import", pathToFileURL(preload).href]);
 	// req: R-1752
 	check("doctor still prints a Node warning it does not mute", result.stdout.includes("nana-setup doctor") && result.stderr.includes("doctor keeps this experimental warning") && result.stderr.includes("doctor keeps this coded warning"), `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+}
+
+{
+	const result = runProjectCheck("project-without-config", { config: false });
+	const warnings = warningLines(result.stderr);
+	// req: R-2052
+	check("project --check in a folder without project config writes no Node warning", result.stdout.includes("nana-setup project --check") && !result.stdout.includes("project trust") && warnings.length === 0, `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+}
+
+{
+	const result = runProjectCheck("project-with-config", { config: true });
+	const warnings = warningLines(result.stderr);
+	// req: R-2050
+	check("project --check in a folder with project config writes no Node warning", result.stdout.includes("nana-setup project --check") && result.stdout.includes("project trust") && warnings.length === 0, `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+}
+
+{
+	const preload = path.join(root, "project-warning-preload.mjs");
+	fs.writeFileSync(preload, `const originalWrite = process.stdout.write.bind(process.stdout);\nlet emitted = false;\nprocess.stdout.write = function (chunk, ...args) {\n\tif (!emitted && String(chunk).includes("nana-setup project --check")) {\n\t\temitted = true;\n\t\tprocess.emitWarning("project --check keeps this experimental warning", { type: "ExperimentalWarning" });\n\t\tprocess.emitWarning("project --check keeps this coded warning", { code: "NANA_PROJECT_QUIET_PROBE" });\n\t}\n\treturn originalWrite(chunk, ...args);\n};\n`);
+	const result = runProjectCheck("project-unmuted-warning", { nodeOptions: ["--import", pathToFileURL(preload).href] });
+	// req: R-2051
+	check("project --check still prints a Node warning it does not mute", result.stdout.includes("nana-setup project --check") && result.stderr.includes("project --check keeps this experimental warning") && result.stderr.includes("project --check keeps this coded warning"), `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
 }
 
 console.log(`${fails ? "FAIL" : "PASS"} summary: ${fails} failures`);

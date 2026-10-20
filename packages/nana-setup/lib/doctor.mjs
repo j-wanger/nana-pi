@@ -14,7 +14,7 @@
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
- * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
+ * @effects disk (reads only), process (spawns node, a bounded pi --version process tree and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
  */
@@ -35,6 +35,8 @@ import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { PI_LAUNCH_LIMITS_MS } from "./steps.mjs";
+import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
@@ -340,7 +342,8 @@ export function diagnose(layout, opts = {}) {
 		const piOpts = opts.pi ?? {};
 		const piPlatform = piOpts.platform ?? platform;
 		const piEnv = piOpts.env ?? process.env;
-		const piSpawn = piOpts.spawn ?? spawnSync;
+		const piSpawn = piOpts.spawn ?? boundedSpawnSync;
+		const piLimits = piOpts.limits ?? PI_LAUNCH_LIMITS_MS;
 		const piExists = piOpts.exists;
 		const isWin = (typeof piPlatform === "function" ? piPlatform() : piPlatform) === "win32";
 		const executable = isWin ? findPi({ env: piEnv, cwd: process.cwd(), exists: piExists }) : "pi";
@@ -351,11 +354,11 @@ export function diagnose(layout, opts = {}) {
 			const comspecKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "comspec");
 			const invocation = isWin ? winCommand(executable, ["--version"], { comspec: comspecKey ? piEnv[comspecKey] : undefined }) : { command: executable, args: ["--version"], options: {} };
 			refusal = invocation.refused;
-			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8" });
+			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8", timeout: piLimits.version });
 		}
 		const version = !refusal && probe?.status === 0 ? (probe.stdout || "").split(/\r?\n/)[0] : "";
 		const valid = /^v?\d+\.\d+\.\d+/.test(version);
-		const detail = valid ? version : refusal ? `pi launch refused: ${refusal} — install: ${PI_INSTALL_HINT}` : probe?.error ? `pi not found or could not start — install: ${PI_INSTALL_HINT}` : probe?.status !== 0 ? `pi --version exited ${probe?.status} — install: ${PI_INSTALL_HINT}` : `pi --version printed no version — install: ${PI_INSTALL_HINT}`;
+		const detail = valid ? version : refusal ? `pi launch refused: ${refusal} — install: ${PI_INSTALL_HINT}` : probe?.error?.code === "ETIMEDOUT" ? `pi --version gave no answer within ${piLimits.version / 1_000} s and was stopped — install: ${PI_INSTALL_HINT}` : probe?.error ? `pi not found or could not start — install: ${PI_INSTALL_HINT}` : probe?.status !== 0 ? `pi --version exited ${probe?.status} — install: ${PI_INSTALL_HINT}` : `pi --version printed no version — install: ${PI_INSTALL_HINT}`;
 		add(valid ? OK : layout.isRealHome ? FAIL : NOTE, "pi executable", detail);
 	}
 

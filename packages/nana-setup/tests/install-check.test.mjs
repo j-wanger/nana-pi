@@ -198,7 +198,13 @@ function passingTurnRecord(token) {
     ],
   };
 }
-function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null } = {}) {
+function reviewArgument(args, input, name) {
+  const index = args.indexOf(name);
+  if (index >= 0) return args[index + 1];
+  const match = String(input ?? args.join(" ")).match(new RegExp(`["']${name}["']\\s+["']([^"']+)["']`));
+  return match?.[1] ?? null;
+}
+function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null, reviewRecordForms = null } = {}) {
   const home = tempHome();
   const calls = [];
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -224,6 +230,10 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       }
       fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
       fs.writeFileSync(path.join(home, ".claude/settings.json"), JSON.stringify({ hooks }));
+      const bin = path.join(home, ".local", "bin");
+      fs.mkdirSync(bin, { recursive: true });
+      fs.writeFileSync(path.join(bin, "pi-review"), "#!/bin/sh\n");
+      if (platformName === "win32") fs.writeFileSync(path.join(bin, "pi-review.cmd"), "@echo off\r\n");
       return { status: 0, stdout: "" };
     }
     if (args[0] === "init") return { status: 0 };
@@ -238,6 +248,24 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       const token = args.at(-1)?.match(/installcheck_[a-z0-9]+/)?.[0] ?? args.at(-1);
       fs.writeFileSync(path.join(home, installConfig.PI_TURN.record), JSON.stringify(passingTurnRecord(token)));
       return { status: 0, stdout: "fixture turn complete" };
+    }
+    const reviewText = `${joined}\n${options.input ?? ""}`;
+    if (installConfig.PI_REVIEW?.provider && reviewText.includes(installConfig.PI_REVIEW.provider)) {
+      const review = installConfig.PI_REVIEW;
+      const item = reviewArgument(args, options.input, "--item");
+      const outFile = reviewArgument(args, options.input, "--out");
+      const token = reviewText.match(/installcheck_[a-z0-9]+/)?.[0] ?? "missing";
+      const form = options.input ? "sh" : command.toLowerCase().endsWith("cmd.exe") ? "cmd" : "path";
+      fs.mkdirSync(path.dirname(outFile), { recursive: true });
+      fs.writeFileSync(outFile, `${review.answer}\n\n${review.verdictLine}`);
+      const tally = path.join(home, ...review.tally);
+      fs.mkdirSync(path.dirname(tally), { recursive: true });
+      fs.appendFileSync(tally, `${JSON.stringify({ v: 2, kind: "round", item, verdict: review.verdict })}\n`);
+      if (reviewRecordForms === null || reviewRecordForms.includes(form)) {
+        const standard = fs.readFileSync(path.join(root, review.standard), "utf8");
+        fs.writeFileSync(path.join(home, review.record), JSON.stringify({ system: standard, userMessages: [`${review.prompt} ${token}`], role: review.role }));
+      }
+      return { status: 0, stdout: "fixture review complete" };
     }
     if (joined.includes("nana-objective.mjs")) {
       const objective = fs.readFileSync(path.join(home, ".pi/agent/nana-objective.md"), "utf8");
@@ -260,8 +288,13 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
-  const pathEnv = platformName === "win32" ? { Path: "C:\\tools" } : { PATH: "/bin" };
-  const run = runInstallCheck({ root, home, platformName, env: { ...pathEnv, ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => candidate.toLowerCase() === (piShim ? "c:\\tools\\pi.cmd" : "c:\\tools\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
+  const pathEnv = platformName === "win32" ? { Path: "C:\\Git\\cmd;C:\\tools" } : { PATH: "/bin" };
+  const winExists = (candidate) => {
+    const normalized = candidate.toLowerCase().replaceAll("/", "\\");
+    const launcher = path.join(home, ".local", "bin", "pi-review.cmd").toLowerCase().replaceAll("/", "\\");
+    return normalized === launcher || normalized === "c:\\git\\cmd\\git.exe" || normalized === "c:\\git\\bin\\bash.exe" || normalized === (piShim ? "c:\\tools\\pi.cmd" : "c:\\tools\\pi.exe");
+  };
+  const run = runInstallCheck({ root, home, platformName, env: { ...pathEnv, ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? winExists : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
   return { home, calls, run };
 }
 
@@ -742,7 +775,7 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       assert.equal((memory.match(/^- \[/gm) ?? []).length, 1);
       assert.equal(fs.existsSync(path.join(fixture.home, ".claude-placeholder")), false);
       assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "notes"));
-      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative === ".pi/agent/nana-journal.jsonl" || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
+      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative === ".pi/agent/nana-journal.jsonl" || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
       const written = [];
       const visit = (directory) => {
         for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -753,7 +786,15 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
         }
       };
       visit(fixture.home);
-      assert.deepEqual(written.sort(), [".claude/nana-memory/shared/MEMORY.md", ".pi/agent/nana-objective.md"]);
+      const reviewOutputs = (platformName === "win32" ? installConfig.PI_REVIEW.runs.win32 : installConfig.PI_REVIEW.runs.default).map((run) => [installConfig.PI_REVIEW.outFolder, `${run.item}.md`].join("/"));
+      assert.deepEqual(written.sort(), [
+        ".claude/nana-memory/shared/MEMORY.md",
+        ".pi/agent/nana-objective.md",
+        installConfig.PI_REVIEW.record,
+        installConfig.PI_REVIEW.tally.join("/"),
+        [installConfig.PI_REVIEW.repoFolder, installConfig.PI_REVIEW.fixtureFile].join("/"),
+        ...reviewOutputs,
+      ].sort());
       const child = fixture.calls.find(call => call.args[0] === "init").options.env;
       const pathKey = Object.keys(child).find((key) => key.toLowerCase() === "path");
       const pathValue = child[pathKey];
@@ -1240,6 +1281,219 @@ check("pi powershell gate: win32 prints one line, PASS only when an errored powe
       assert.deepEqual(lines, platformName === "win32" ? [`PASS ${powershell.item}`] : []);
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
+});
+
+// req: R-2070
+check("pi-review repo: under a git config that forbids a guessed identity and requires signing, real git commits the sealed fixture file in a review repository at the sealed folder outside the fixture project", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+    if (command !== "git") return spawn(command, args, options);
+    const result = spawnSync(command, args, {
+      cwd: options.cwd,
+      env: {
+        ...options.env,
+        PATH: process.env.PATH,
+        GIT_CONFIG_COUNT: "3",
+        GIT_CONFIG_KEY_0: "user.useConfigOnly",
+        GIT_CONFIG_VALUE_0: "true",
+        GIT_CONFIG_KEY_1: "commit.gpgsign",
+        GIT_CONFIG_VALUE_1: "true",
+        GIT_CONFIG_KEY_2: "gpg.program",
+        GIT_CONFIG_VALUE_2: path.join(options.env.HOME, "missing-gpg"),
+      },
+      encoding: "utf8",
+    });
+    return { status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr, error: result.error ?? null };
+  } });
+  try {
+    const result = await fixture.run;
+    assert.ok(result.lines.includes("PASS pi-review"), result.lines.join("\n"));
+    const review = installConfig.PI_REVIEW;
+    const repo = path.join(fixture.home, review.repoFolder);
+    assert.equal(repo.startsWith(`${path.join(fixture.home, "project")}${path.sep}`), false);
+    const tree = spawnSync("git", ["ls-tree", "-r", "--name-only", "HEAD"], { cwd: repo, env: { ...process.env, PATH: process.env.PATH }, encoding: "utf8" });
+    assert.equal(tree.status, 0, tree.stderr);
+    assert.deepEqual(tree.stdout.trim().split(/\r?\n/), [review.fixtureFile]);
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2071
+check("pi-review launch: off win32, one review starts by the path of the temporary home's bin pi-review from the review repository with the sealed item and arguments, an output outside that repository and a prompt holding the run token", async () => {
+  const fixture = recordingRun({ platformName: "linux" });
+  try {
+    const result = await fixture.run;
+    const review = installConfig.PI_REVIEW;
+    const calls = fixture.calls.filter((call) => `${call.command} ${call.args.join(" ")}`.includes(review.provider));
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    const run = review.runs.default[0];
+    const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+    const token = call.args.at(-1).match(/installcheck_[a-z0-9]+/)?.[0];
+    const outFile = path.join(fixture.home, review.outFolder, `${run.item}.md`);
+    assert.equal(call.command, path.join(fixture.home, ".local", "bin", "pi-review"));
+    assert.equal(call.options.cwd, path.join(fixture.home, review.repoFolder));
+    assert.equal(outFile.startsWith(`${call.options.cwd}${path.sep}`), false);
+    assert.deepEqual(call.args, ["--out", outFile, "--item", run.item, ...review.launcherArgs, "--", ...review.args.map((arg) => arg === review.fixture ? path.join(root, arg) : arg), `${review.prompt} ${token}`]);
+    assert.equal(call.options.timeout, installConfig.SPAWN_TIMEOUT_MS.review);
+    assert.deepEqual(result.lines.filter((line) => line.includes("pi-review")), [`PASS ${run.label}`]);
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2072
+check("pi-review launch: on win32, the temporary home's pi-review.cmd starts under the command interpreter and Git Bash runs a command naming pi-review bare, each once from the review repository with its own item and output", async () => {
+  const fixture = recordingRun({ platformName: "win32" });
+  try {
+    const result = await fixture.run;
+    const review = installConfig.PI_REVIEW;
+    const repo = path.join(fixture.home, review.repoFolder);
+    const calls = fixture.calls.filter((call) => `${call.command} ${call.args.join(" ")} ${call.options.input ?? ""}`.includes(review.provider));
+    assert.equal(calls.length, 2, fixture.calls.map((call) => `${call.command} ${call.args.join(" ")}`).join("\n"));
+    const cmd = calls.find((call) => call.command === "C:\\Windows\\System32\\cmd.exe");
+    const sh = calls.find((call) => call.command === "C:\\Git\\bin\\bash.exe");
+    assert.ok(cmd); assert.ok(sh);
+    assert.equal(cmd.options.cwd, repo); assert.equal(sh.options.cwd, repo);
+    assert.equal(cmd.options.windowsVerbatimArguments, true);
+    assert.ok(cmd.args.at(-1).includes(`"${path.join(fixture.home, ".local", "bin", "pi-review.cmd")}"`));
+    assert.equal(cmd.args.at(-1).includes("pi-review.mjs"), false);
+    assert.deepEqual(sh.args, []);
+    assert.equal(sh.options.input.split(/\r?\n/).filter(Boolean).length, 1);
+    assert.match(sh.options.input, /^'pi-review' /);
+    assert.equal(sh.options.input.includes(path.join(fixture.home, ".local", "bin", "pi-review")), false);
+    for (const run of review.runs.win32) {
+      const output = path.join(fixture.home, review.outFolder, `${run.item}.md`);
+      assert.equal(calls.filter((call) => `${call.args.join(" ")} ${call.options.input ?? ""}`.includes(run.item) && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes(output)).length, 1);
+    }
+    assert.deepEqual(result.lines.filter((line) => line.includes("pi-review")), review.runs.win32.map((run) => `PASS ${run.label}`));
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2073
+check("pi-review lines: one line per run, PASS only when the run exits 0 in time and its output's last non-blank line is exactly the sealed verdict line", async () => {
+  const review = installConfig.PI_REVIEW;
+  const token = "installcheck_reviewlines";
+  const standard = "whole standard\r\ntrailing tab\t";
+  const item = review.runs.default[0].item;
+  const good = {
+    launch: { status: 0, error: null },
+    reviewText: `${review.answer}\r\n\r\n${review.verdictLine}\r\n \t`,
+    tallyText: `${JSON.stringify({ kind: "round", item, verdict: review.verdict })}\r\n\t`,
+    record: { system: standard, userMessages: [`prompt ${token}`], role: review.role },
+    standard,
+    token,
+    item,
+  };
+  assert.equal(installCheck.judgePiReview(good).passed, true);
+  const variants = [
+    { ...good, launch: { status: null, error: { code: "ETIMEDOUT" } }, code: "timeout" },
+    { ...good, launch: { status: null, error: { code: "ENOENT" } }, code: "launch" },
+    { ...good, launch: { status: 1, error: null }, code: "exit" },
+    { ...good, reviewText: null, code: "missing-review" },
+    { ...good, reviewText: `${review.answer}\n${review.verdictLine}\t`, code: "verdict-line" },
+    { ...good, reviewText: `${review.verdictLine}\nnotes\nVERDICT: SEND-BACK`, code: "verdict-line" },
+  ];
+  for (const variant of variants) {
+    const judged = installCheck.judgePiReview(variant);
+    assert.equal(judged.passed, false);
+    assert.equal(judged.code, variant.code);
+  }
+  for (const platformName of ["linux", "win32"]) {
+    const fixture = recordingRun({ platformName });
+    try {
+      const result = await fixture.run;
+      const runs = platformName === "win32" ? review.runs.win32 : review.runs.default;
+      assert.deepEqual(result.lines.filter((line) => line.includes("pi-review")), runs.map((run) => `PASS ${run.label}`));
+    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  }
+});
+
+// req: R-2074
+check("pi-review ledger: no round line, two round lines or a round line whose verdict is not the sealed verdict for the run's item each fail that run's line", () => {
+  const review = installConfig.PI_REVIEW;
+  const item = review.runs.default[0].item;
+  const token = "installcheck_ledger";
+  const standard = "standard";
+  const row = (rowItem = item, verdict = review.verdict) => JSON.stringify({ kind: "round", item: rowItem, verdict });
+  const base = { launch: { status: 0 }, reviewText: `${review.answer}\n${review.verdictLine}`, record: { system: standard, userMessages: [token], role: review.role }, standard, token, item };
+  assert.equal(installCheck.judgePiReview({ ...base, tallyText: `${row("another-item")}\r\n${row()} \t` }).passed, true);
+  for (const tallyText of ["", row("another-item"), `${row()}\r\n${row()}`, row(item, null), row(item, "SEND-BACK")]) {
+    const judged = installCheck.judgePiReview({ ...base, tallyText });
+    assert.equal(judged.passed, false);
+    assert.equal(judged.code, "ledger");
+  }
+});
+
+// req: R-2075
+check("pi-review record: a record missing the whole review standard, the run token or the reviewer role fails, and on win32 the cmd run's record cannot pass the sh run", async () => {
+  const review = installConfig.PI_REVIEW;
+  const item = review.runs.default[0].item;
+  const token = "installcheck_record";
+  const standard = "first line\r\nsecond line with trailing space \r\nlast line";
+  const base = { launch: { status: 0 }, reviewText: `${review.answer}\n${review.verdictLine}`, tallyText: JSON.stringify({ kind: "round", item, verdict: review.verdict }), standard, token, item };
+  assert.equal(installCheck.judgePiReview({ ...base, record: { system: standard, userMessages: [`prompt ${token}`], role: review.role } }).passed, true);
+  for (const [record, code] of [
+    [{ system: standard.slice(0, -1), userMessages: [token], role: review.role }, "standard"],
+    [{ system: standard, userMessages: ["another token"], role: review.role }, "token"],
+    [{ system: standard, userMessages: [token] }, "role"],
+    [{ system: standard, userMessages: [token], role: "worker" }, "role"],
+  ]) assert.equal(installCheck.judgePiReview({ ...base, record }).code, code);
+  const fixture = recordingRun({ platformName: "win32", reviewRecordForms: ["cmd"] });
+  try {
+    const result = await fixture.run;
+    assert.ok(result.lines.includes("PASS pi-review (cmd)"), result.lines.join("\n"));
+    assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-review (sh) — missing-record:")), result.lines.join("\n"));
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2076
+check("fixture: the review fixture extension sits under packages/nana-setup outside every pi package manifest's extension directories", () => {
+  const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+  const fixture = path.resolve(root, installConfig.PI_REVIEW.fixture);
+  assert.equal(fs.existsSync(fixture), true);
+  const manifests = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.name === "package.json") manifests.push(absolute);
+    }
+  };
+  visit(root);
+  const extensionDirs = manifests.flatMap((manifest) => (JSON.parse(fs.readFileSync(manifest, "utf8")).pi?.extensions ?? []).map((entry) => path.resolve(path.dirname(manifest), entry)));
+  assert.ok(fixture.startsWith(`${path.join(root, "packages", "nana-setup")}${path.sep}`));
+  assert.ok(extensionDirs.every((directory) => {
+    const relative = path.relative(directory, fixture);
+    return relative.startsWith("..") || path.isAbsolute(relative);
+  }));
+});
+
+// req: R-2070, R-2071, R-2072, R-2073, R-2074, R-2075, R-2076
+check("pin R-2070 to R-2076: the review's sealed fixture, provider, model, arguments, runs, items, labels, folders, git options, prompt, verdict, record, tally and standard paths, and timeout", () => {
+  assert.deepEqual(installConfig.PI_REVIEW, {
+    fixture: "packages/nana-setup/lib/install-check-review.mjs",
+    provider: "nana-install-check-review-fixture",
+    model: "nana-install-check-review",
+    args: ["--offline", "-e", "packages/nana-setup/lib/install-check-review.mjs", "--provider", "nana-install-check-review-fixture", "--model", "nana-install-check-review", "--no-session", "-p"],
+    launcherArgs: ["--retries", "0"],
+    runs: {
+      default: [{ label: "pi-review", item: "install-check-review", form: "path" }],
+      win32: [{ label: "pi-review (cmd)", item: "install-check-review-cmd", form: "cmd" }, { label: "pi-review (sh)", item: "install-check-review-sh", form: "sh" }],
+    },
+    repoFolder: "review-repo",
+    outFolder: "review-out",
+    fixtureFile: "review-fixture.txt",
+    fixtureText: "nana install check review fixture\n",
+    commitMessage: "Add install check review fixture",
+    gitOptions: ["-c", "user.name=Nana Install Check", "-c", "user.email=nana-install-check@example.invalid", "-c", "commit.gpgsign=false"],
+    prompt: "Review the install check fixture",
+    answer: "The install check fixture meets the review brief.",
+    verdict: "LAND",
+    verdictLine: "VERDICT: LAND",
+    record: ".nana-install-check-review.json",
+    tally: [".pi", "agent", "review-ledger.rounds.jsonl"],
+    standard: "packages/nana-pack/prompts/review-standard.md",
+    role: "reviewer",
+  });
+  assert.equal(installConfig.SPAWN_TIMEOUT_MS.review, 180000);
 });
 
 check("pin R-2000 to R-2004: the post-edit item, tool, fixture file, match, placeholder, failure lead, check source and exit code, and the PowerShell item, tool, platforms and tool list", () => {
