@@ -62,3 +62,20 @@ build, on all three CI legs; (4) the tests write only inside the temp folders th
 `finally`, and clean up; (5) the README, the module headers and the rows say what the code does, the rebuild wording
 included; (6) HANDOFF and the session entry are true, including the narrowed walker residual, the seven new
 knowledge-unreadable-root residuals and the other lanes' items the seat added; (7) any MUST.
+
+## Merge note (the seat, after this brief was written)
+
+Since `81eb7496`, the seat committed `61573a27` (it replaces home paths in the builder's committed build-2 output with placeholders; no other change) and merged main `8a9ff9a3` (readme-windows-checklist landed: the setup README's Windows checklist and its rehearsal; no knowledge file). Lanes land by fast-forward, so main is contained before this lane lands. Review this lane's own change as `git diff 8a9ff9a3...HEAD` (three dots) and the merge as `git show --remerge-diff e2fa063c`. The merge helper resolved HANDOFF and the session file (both sides' lines kept) and regenerated the tree and code map. Tree movement now (`node scripts/requirements-moved.mjs --root . --base 8a9ff9a3`):
+
+```
+tree movement 8a9ff9a..e2fa063: 8 rows in 1 features
+FEAT-003 · Index and connect existing knowledge sources
+  R-207 untested -> implemented
+  R-883 untested -> implemented
+  R-1910 new (implemented)
+  R-1911 new (implemented)
+  R-1912 new (implemented)
+  R-1913 new (implemented)
+  R-1914 new (implemented)
+  R-1915 new (implemented)
+```
