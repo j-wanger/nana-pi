@@ -1,0 +1,547 @@
+suite (ubuntu-latest)	UNKNOWN STEP	﻿2026-10-19T20:57:20.1457604Z Current runner version: '2.337.0'
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1477038Z ##[group]Runner Image Provisioner
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1477652Z Hosted Compute Agent
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1478092Z Version: 20261015.610
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1478504Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1479000Z Build Date: 2026-10-14T17:06:54Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1479482Z Worker ID: {d683a2a7-bf50-4bda-93e5-198f9fc0a229}
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1479949Z Region: centralus
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1480353Z Cloud: Azure
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1480716Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1481547Z ##[group]Operating System
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1481931Z Ubuntu
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1482252Z 24.04.5
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1482674Z LTS
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1483009Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1483605Z ##[group]Runner Image
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1484029Z Image: ubuntu-24.04
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1484404Z Version: 20261018.339.1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1485285Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1486260Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1486841Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1487588Z ##[group]GITHUB_TOKEN Permissions
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1488874Z Contents: read
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1489226Z Metadata: read
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1489660Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1491036Z Secret source: Actions
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1491713Z Cache mode: write
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1492155Z Prepare workflow directory
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1786101Z Prepare all required actions
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.1818932Z Getting action download info
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.4034676Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.4746374Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:20.5985693Z Download action repository 'astral-sh/setup-uv@v5' (SHA:d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.3497998Z Download action repository 'pnpm/action-setup@v4' (SHA:b906affcce14559ad1aafd4ab0e942779e9f58b1)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.8386969Z Complete job name: suite (ubuntu-latest)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9013048Z ##[group]Run actions/checkout@v4
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9014053Z with:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9014616Z   fetch-depth: 0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9015236Z   repository: j-wanger/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9020614Z   token: ***
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9021194Z   ssh-strict: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9021781Z   ssh-user: git
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9022377Z   persist-credentials: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9023030Z   clean: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9023723Z   sparse-checkout-cone-mode: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9024428Z   fetch-tags: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9025031Z   show-progress: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9025644Z   lfs: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9026224Z   submodules: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9026839Z   set-safe-directory: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9027536Z   allow-unsafe-pr-checkout: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9028356Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9028898Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9029510Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9030202Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9030892Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9758807Z Syncing repository: j-wanger/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9760939Z ##[group]Getting Git version info
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9761837Z Working directory is '/home/runner/work/nana-pi/nana-pi'
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9766532Z [command]/usr/bin/git version
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9859015Z git version 2.55.0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9874155Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9886812Z Temporarily overriding HOME='/home/runner/work/_temp/1f77087c-fb01-4696-a977-eb222d04ad27' before making global git config changes
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9889510Z Adding repository directory to the temporary git global config as a safe directory
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9892424Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nana-pi/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9942513Z Deleting the contents of '/home/runner/work/nana-pi/nana-pi'
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9949189Z ##[group]Initializing the repository
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:21.9954681Z [command]/usr/bin/git init /home/runner/work/nana-pi/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0043325Z hint: Using 'master' as the name for the initial branch. This default branch name
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0046660Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0048747Z hint: to use in all of your new repositories, which will suppress this warning,
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0050397Z hint: call:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0051316Z hint:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0052439Z hint: 	git config --global init.defaultBranch <name>
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0053899Z hint:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0055137Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0057069Z hint: 'development'. The just-created branch can be renamed via this command:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0058591Z hint:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0059519Z hint: 	git branch -m <name>
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0060666Z hint:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0062044Z hint: Disable this message with "git config set advice.defaultBranchName false"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0064167Z Initialized empty Git repository in /home/runner/work/nana-pi/nana-pi/.git/
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0068690Z [command]/usr/bin/git remote add origin https://github.com/j-wanger/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0123663Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0124969Z ##[group]Disabling automatic garbage collection
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0126245Z [command]/usr/bin/git config --local gc.auto 0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0190514Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0191983Z ##[group]Setting up auth
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0193525Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0221059Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0525842Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0566424Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0778899Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.0819313Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.1029247Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.1124234Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.1125445Z ##[group]Fetching the repository
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:22.1133303Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +e52e6fa0280204002300b357a8c03051e415e531:refs/remotes/pull/70/merge
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0027550Z From https://github.com/j-wanger/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0028573Z  * [new branch]        feat/adopt-closes-check                  -> origin/feat/adopt-closes-check
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0029200Z  * [new branch]        feat/audit-open-questions                -> origin/feat/audit-open-questions
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0029746Z  * [new branch]        feat/bench-win                           -> origin/feat/bench-win
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0030285Z  * [new branch]        feat/blast-radius                        -> origin/feat/blast-radius
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0030841Z  * [new branch]        feat/bom-pack-config                     -> origin/feat/bom-pack-config
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0031425Z  * [new branch]        feat/cc-hooks-windows                    -> origin/feat/cc-hooks-windows
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0031983Z  * [new branch]        feat/ci-pi-pin                           -> origin/feat/ci-pi-pin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0032850Z  * [new branch]        feat/clean-revision                      -> origin/feat/clean-revision
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0033557Z  * [new branch]        feat/doctor-quiet                        -> origin/feat/doctor-quiet
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0034071Z  * [new branch]        feat/feature-first                       -> origin/feat/feature-first
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0034615Z  * [new branch]        feat/fresh-install                       -> origin/feat/fresh-install
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0035126Z  * [new branch]        feat/g005-carveout                       -> origin/feat/g005-carveout
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0035487Z  * [new branch]        feat/gate-rm-workdir                     -> origin/feat/gate-rm-workdir
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0035909Z  * [new branch]        feat/install-check                       -> origin/feat/install-check
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0062573Z  * [new branch]        feat/install-honest-report               -> origin/feat/install-honest-report
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0063295Z  * [new branch]        feat/knowledge-refresh-pin               -> origin/feat/knowledge-refresh-pin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0063872Z  * [new branch]        feat/leaf-total-drop                     -> origin/feat/leaf-total-drop
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0064365Z  * [new branch]        feat/lift                                -> origin/feat/lift
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0064856Z  * [new branch]        feat/linux-lane-guard                    -> origin/feat/linux-lane-guard
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0065400Z  * [new branch]        feat/linux-path-spelling                 -> origin/feat/linux-path-spelling
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0065755Z  * [new branch]        feat/mutate-runner                       -> origin/feat/mutate-runner
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0066095Z  * [new branch]        feat/parallel-runner                     -> origin/feat/parallel-runner
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0066452Z  * [new branch]        feat/pi-cmd-launch                       -> origin/feat/pi-cmd-launch
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0066796Z  * [new branch]        feat/post-edit-win-pin                   -> origin/feat/post-edit-win-pin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0067136Z  * [new branch]        feat/process                             -> origin/feat/process
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0067666Z  * [new branch]        feat/pwsh-lexer-oracle                   -> origin/feat/pwsh-lexer-oracle
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0068027Z  * [new branch]        feat/readme-check-cp1252                 -> origin/feat/readme-check-cp1252
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0068388Z  * [new branch]        feat/readme-install                      -> origin/feat/readme-install
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0068808Z  * [new branch]        feat/regroup                             -> origin/feat/regroup
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0069438Z  * [new branch]        feat/regroup-shares                      -> origin/feat/regroup-shares
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0069794Z  * [new branch]        feat/report-not-passed                   -> origin/feat/report-not-passed
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0070154Z  * [new branch]        feat/report-test-details                 -> origin/feat/report-test-details
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0070555Z  * [new branch]        feat/review-ledger-run-reviewer          -> origin/feat/review-ledger-run-reviewer
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0070938Z  * [new branch]        feat/review-timeline                     -> origin/feat/review-timeline
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0071261Z  * [new branch]        feat/roster                              -> origin/feat/roster
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0071578Z  * [new branch]        feat/roster-notice                       -> origin/feat/roster-notice
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0071902Z  * [new branch]        feat/roster-set                          -> origin/feat/roster-set
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0072229Z  * [new branch]        feat/rulings-file                        -> origin/feat/rulings-file
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0072557Z  * [new branch]        feat/runtime-map                         -> origin/feat/runtime-map
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0072875Z  * [new branch]        feat/seat-guide                          -> origin/feat/seat-guide
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0073484Z  * [new branch]        feat/seat-rule                           -> origin/feat/seat-rule
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0074111Z  * [new branch]        feat/silent-main-guard                   -> origin/feat/silent-main-guard
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0074451Z  * [new branch]        feat/study-stop                          -> origin/feat/study-stop
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0074753Z  * [new branch]        feat/tree                                -> origin/feat/tree
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0075079Z  * [new branch]        feat/tree-briefs                         -> origin/feat/tree-briefs
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0075433Z  * [new branch]        feat/unclaimed-tests                     -> origin/feat/unclaimed-tests
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0075806Z  * [new branch]        feat/unread-verdict-loud                 -> origin/feat/unread-verdict-loud
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0076159Z  * [new branch]        feat/watchdog-exit                       -> origin/feat/watchdog-exit
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0076506Z  * [new branch]        feat/win-claude-hooks                    -> origin/feat/win-claude-hooks
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0076865Z  * [new branch]        feat/win-gate-tmp                        -> origin/feat/win-gate-tmp
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0077215Z  * [new branch]        feat/win-impact-paths                    -> origin/feat/win-impact-paths
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0077584Z  * [new branch]        feat/win-install-shape                   -> origin/feat/win-install-shape
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0077939Z  * [new branch]        feat/win-leg-blocking                    -> origin/feat/win-leg-blocking
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0078281Z  * [new branch]        feat/win-leg-flip                        -> origin/feat/win-leg-flip
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0078619Z  * [new branch]        feat/win-line-endings                    -> origin/feat/win-line-endings
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0078985Z  * [new branch]        feat/win-objective-golden                -> origin/feat/win-objective-golden
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0079354Z  * [new branch]        feat/win-path-commands                   -> origin/feat/win-path-commands
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0079709Z  * [new branch]        feat/win-pi-gate                         -> origin/feat/win-pi-gate
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0080184Z  * [new branch]        feat/win-pi-handoff                      -> origin/feat/win-pi-handoff
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0080567Z  * [new branch]        feat/win-pi-registration-test            -> origin/feat/win-pi-registration-test
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0080973Z  * [new branch]        feat/win-post-edit-utf8                  -> origin/feat/win-post-edit-utf8
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0081349Z  * [new branch]        feat/win-project-files                   -> origin/feat/win-project-files
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0081728Z  * [new branch]        feat/win-python-template                 -> origin/feat/win-python-template
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0082105Z  * [new branch]        feat/win-review-paths                    -> origin/feat/win-review-paths
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0082491Z  * [new branch]        feat/win-review-stubs                    -> origin/feat/win-review-stubs
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0082898Z  * [new branch]        feat/win-review-tests                    -> origin/feat/win-review-tests
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0083400Z  * [new branch]        feat/win-session-start                   -> origin/feat/win-session-start
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0083761Z  * [new branch]        feat/win-setup-tools                     -> origin/feat/win-setup-tools
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0084127Z  * [new branch]        feat/win-skill-occupied                  -> origin/feat/win-skill-occupied
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0084496Z  * [new branch]        feat/win-stale-copies                    -> origin/feat/win-stale-copies
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0084864Z  * [new branch]        feat/win-template-tests                  -> origin/feat/win-template-tests
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0085191Z  * [new branch]        main                                     -> origin/main
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0085530Z  * [new branch]        seatmut/post-edit-win-pin                -> origin/seatmut/post-edit-win-pin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0085954Z  * [new branch]        seatmut/review-ledger-run-reviewer       -> origin/seatmut/review-ledger-run-reviewer
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0086472Z  * [new branch]        seatmut/win-path-commands                -> origin/seatmut/win-path-commands
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0086863Z  * [new branch]        seatmut/win-post-edit-utf8               -> origin/seatmut/win-post-edit-utf8
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0087253Z  * [new branch]        seatmut2/post-edit-win-pin               -> origin/seatmut2/post-edit-win-pin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0087585Z  * [new tag]           v0.3.0                                   -> v0.3.0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0087855Z  * [new tag]           v0.4.0                                   -> v0.4.0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0088113Z  * [new tag]           v0.5.0                                   -> v0.5.0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0088364Z  * [new tag]           v0.6.0                                   -> v0.6.0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0088615Z  * [new tag]           v0.6.1                                   -> v0.6.1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0088871Z  * [new tag]           v0.6.10                                  -> v0.6.10
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0089139Z  * [new tag]           v0.6.11                                  -> v0.6.11
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0089402Z  * [new tag]           v0.6.12                                  -> v0.6.12
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0089662Z  * [new tag]           v0.6.13                                  -> v0.6.13
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0089914Z  * [new tag]           v0.6.14                                  -> v0.6.14
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0090163Z  * [new tag]           v0.6.15                                  -> v0.6.15
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0090418Z  * [new tag]           v0.6.16                                  -> v0.6.16
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0090670Z  * [new tag]           v0.6.17                                  -> v0.6.17
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0090923Z  * [new tag]           v0.6.18                                  -> v0.6.18
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0091177Z  * [new tag]           v0.6.19                                  -> v0.6.19
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0091579Z  * [new tag]           v0.6.2                                   -> v0.6.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0091962Z  * [new tag]           v0.6.20                                  -> v0.6.20
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0092489Z  * [new tag]           v0.6.21                                  -> v0.6.21
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0092910Z  * [new tag]           v0.6.22                                  -> v0.6.22
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0093406Z  * [new tag]           v0.6.23                                  -> v0.6.23
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0093800Z  * [new tag]           v0.6.24                                  -> v0.6.24
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0094182Z  * [new tag]           v0.6.3                                   -> v0.6.3
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0094550Z  * [new tag]           v0.6.4                                   -> v0.6.4
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0094923Z  * [new tag]           v0.6.5                                   -> v0.6.5
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0095326Z  * [new tag]           v0.6.6                                   -> v0.6.6
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0095740Z  * [new tag]           v0.6.7                                   -> v0.6.7
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0096170Z  * [new tag]           v0.6.8                                   -> v0.6.8
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0096595Z  * [new tag]           v0.6.9                                   -> v0.6.9
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0097070Z  * [new ref]           e52e6fa0280204002300b357a8c03051e415e531 -> pull/70/merge
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0098692Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0099120Z ##[group]Determining the checkout info
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0099565Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0099825Z [command]/usr/bin/git sparse-checkout disable
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0100570Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0141127Z ##[group]Checking out the ref
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.0144231Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/70/merge
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2839726Z Note: switching to 'refs/remotes/pull/70/merge'.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2840109Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2840643Z You are in 'detached HEAD' state. You can look around, make experimental
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2840976Z changes and commit them, and you can discard any commits you make in this
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2841311Z state without impacting any branches by switching back to a branch.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2841487Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2841629Z If you want to create a new branch to retain commits you create, you may
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2841936Z do so (now or later) by using -c with the switch command. Example:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842097Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842187Z   git switch -c <new-branch-name>
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842306Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842391Z Or undo this operation with:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842503Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842571Z   git switch -
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842661Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2842815Z Turn off this advice by setting config variable advice.detachedHead to false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2843009Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2843522Z HEAD is now at e52e6fa0 Merge b4a0ffd061ca86646601159028858aecce4e70f0 into d50000849a551c6c8f4c524172014e0f21499ace
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2877694Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2925646Z [command]/usr/bin/git log -1 --format=%H
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.2957289Z e52e6fa0280204002300b357a8c03051e415e531
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3161824Z ##[group]Run actions/setup-node@v4
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3162028Z with:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3162170Z   node-version: 22
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3162320Z   always-auth: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3162475Z   check-latest: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3164119Z   token: ***
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3164261Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3164402Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3164563Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3164743Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.3164909Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.4125501Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.4128358Z (node:2126) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.4129017Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.4129957Z ##[group]Environment details
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.6859571Z node: v22.23.3
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.6859868Z npm: 10.9.9
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.6860125Z yarn: 1.22.22
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.6860709Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7007160Z ##[group]Run astral-sh/setup-uv@v5
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7007364Z with:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7008822Z   github-token: ***
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7008975Z   enable-cache: auto
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7009169Z   cache-dependency-glob: **/uv.lock
+suite (ubuntu-latest)	UNKNOWN STEP	**/requirements*.txt
+suite (ubuntu-latest)	UNKNOWN STEP	
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7009392Z   prune-cache: true
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7009554Z   ignore-nothing-to-cache: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7009737Z   ignore-empty-workdir: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7009902Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7010040Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7010197Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7010376Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.7010539Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.8256731Z (node:2157) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:24.8257689Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.2982465Z Downloading uv from "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-unknown-linux-gnu.tar.gz" ...
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.6462413Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/12166a60-5b9a-4318-8a6a-9497476fab6b -f /home/runner/work/_temp/506e1b3f-eee1-42c0-95a6-0046a4c4a28e
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.9953707Z Added /home/runner/.local/bin to the path
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.9973899Z Added /opt/hostedtoolcache/uv/0.13.1/x86_64 to the path
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.9978131Z Set UV_CACHE_DIR to /home/runner/work/_temp/setup-uv-cache
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.9978603Z Successfully installed uv version 0.13.1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:25.9979162Z Searching files using cache dependency glob: **/uv.lock,**/requirements*.txt
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.1272474Z No matches found for glob
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.1289649Z ##[warning]No file matched to [**/uv.lock,**/requirements*.txt]. The cache will never get invalidated. Make sure you have checked out the target repository and configured the cache-dependency-glob input correctly.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.1811932Z Trying to restore uv cache from GitHub Actions cache with key: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-no-dependency-glob
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.3120797Z Cache hit for: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-no-dependency-glob
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.3193473Z (node:2157) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.8563422Z Received 4653513 of 4653513 (100.0%), 11.3 MBs/sec
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.8563705Z Cache Size: ~4 MB (4653513 B)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.8579697Z [command]/usr/bin/tar -xf /home/runner/work/_temp/fb2464b6-a780-411c-aa9a-9983e958a0db/cache.tzst -P -C /home/runner/work/nana-pi/nana-pi --use-compress-program unzstd
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.8868319Z Cache restored successfully
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.8875972Z uv cache restored from GitHub Actions cache with key: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-no-dependency-glob
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046217Z ##[group]Run pnpm/action-setup@v4
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046384Z with:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046498Z   version: 11
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046615Z   dest: ~/setup-pnpm
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046736Z   run_install: null
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046850Z   cache: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9046974Z   cache_dependency_path: pnpm-lock.yaml
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047134Z   package_json_file: package.json
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047275Z   standalone: false
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047390Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047499Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047622Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047769Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9047947Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:26.9048121Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.0135587Z ##[group]Running self-installer...
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.3838530Z (node:2198) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.3839214Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.6611914Z Progress: resolved 1, reused 0, downloaded 0, added 0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.6668639Z Packages: +1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.6669183Z +
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:27.9926060Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.2372646Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.2373547Z dependencies:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.2373914Z + pnpm 11.28.6 (12.14.0 is available)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.2374106Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.3565309Z Done in 1.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.3764968Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.3765414Z Installation Completed!
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.4766741Z ##[group]Run npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.4767176Z [36;1mnpm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"[0m
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5114929Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5115160Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5115292Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5115432Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5115596Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5115774Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5115987Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:28.5116169Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:34.3021779Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.2975655Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.2976257Z added 121 packages in 8s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.2976794Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.2977102Z 9 packages are looking for funding
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.2977704Z   run `npm fund` for details
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3473499Z ##[group]Run test "$(pi --version)" = "${PI_VERSION}"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3473753Z [36;1mtest "$(pi --version)" = "${PI_VERSION}"[0m
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3522093Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3522374Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3522547Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3522742Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3522967Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3523323Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3523636Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.3523901Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5949502Z ##[group]Run npm test
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5949690Z [36;1mnpm test[0m
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5993220Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5993424Z env:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5993536Z   PI_VERSION: 1.0.2
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5993662Z   PI_BEFORE: 2026-10-04T06:57:57Z
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5993810Z   NANA_TEST_REQUIRE_COPIER: 1
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5993975Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5994176Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.5994347Z ##[endgroup]
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.6696690Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.6697348Z > nana-pi@0.5.0 test
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.6697653Z > node scripts/test.mjs
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:36.6697761Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:38.2279781Z PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  1.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:39.6669349Z PASS  packages/nana-knowledge/tests/extension.test.mjs                36 pass  1.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:44.3989086Z PASS  packages/nana-knowledge/tests/hook.test.mjs                     96 pass  4.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:44.5067770Z PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        27 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:44.5570723Z PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:44.6530300Z PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:44.7074248Z PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:44.9618434Z PASS  packages/nana-pack/tests/adoption-producer.test.mjs             62 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:45.8638796Z PASS  packages/nana-pack/tests/adoption-reader.test.mjs               44 pass  0.9s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:46.0666954Z PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              98 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:52.1172214Z PASS  packages/nana-pack/tests/agent-dir-hostile.test.mjs             28 pass  6.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:54.7845768Z PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs              55 pass  2.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:54.9187798Z PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:55.2956469Z PASS  packages/nana-pack/tests/blast-radius.test.mjs                  8 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:55.4006125Z PASS  packages/nana-pack/tests/bounded-read.test.mjs                  4 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:55.4302275Z PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   13 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:56.0060293Z PASS  packages/nana-pack/tests/code-map.test.mjs                      48 pass  0.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:56.1170466Z PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:56.8093762Z PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          38 pass  0.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:57.0494268Z PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     98 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:57:57.3139227Z PASS  packages/nana-pack/tests/config-normalize.test.mjs              23 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:05.8077362Z PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  27 pass  8.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:06.3850271Z PASS  packages/nana-pack/tests/config-trust.test.mjs                  27 pass  0.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:06.6365790Z PASS  packages/nana-pack/tests/display-surfaces.test.mjs              181 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:07.6754194Z PASS  packages/nana-pack/tests/frontier.test.mjs                      45 pass  1.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:07.7885940Z PASS  packages/nana-pack/tests/gate-config-robustness.test.mjs        4 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:13.3818957Z PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  5.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:13.7775405Z PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:14.3735241Z PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs                7 pass, 1 skip  0.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:14.5308242Z PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:14.7056123Z PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.0515302Z PASS  packages/nana-pack/tests/gate-survives-mutation.test.mjs        38 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.1672259Z PASS  packages/nana-pack/tests/handoff-artifact.test.mjs              7 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.1932531Z PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.4015433Z PASS  packages/nana-pack/tests/handoff-staleness.test.mjs             78 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.5584702Z PASS  packages/nana-pack/tests/handoff-store.test.mjs                 50 pass, 1 skip  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.6646531Z PASS  packages/nana-pack/tests/handoff-symlink.test.mjs               14 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:15.7798108Z PASS  packages/nana-pack/tests/handoff-trust.test.mjs                 51 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:19.5068035Z PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           7 pass  3.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:23.2646648Z PASS  packages/nana-pack/tests/immutable-review.test.mjs              18 pass  3.8s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:29.3220401Z PASS  packages/nana-pack/tests/land.test.mjs                          52 pass  6.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:29.4287255Z PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              11 pass, 2 skip  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:29.5271775Z PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:29.9295795Z PASS  packages/nana-pack/tests/line-endings.test.mjs                  1 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:30.7740625Z PASS  packages/nana-pack/tests/linked-launch.test.mjs                 5 pass  0.8s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:42.3082053Z PASS  packages/nana-pack/tests/mutation-runner.test.mjs               27 pass  11.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:43.4436400Z PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               8 pass  1.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:43.8055793Z PASS  packages/nana-pack/tests/nana-roster.test.mjs                   18 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:58:52.7987935Z PASS  packages/nana-pack/tests/notify-fallback.test.mjs               28 pass  9.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:21.8404421Z PASS  packages/nana-pack/tests/objective-golden.test.mjs              1236 pass  29.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:21.9474848Z PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:24.4814276Z PASS  packages/nana-pack/tests/path-spelling.test.mjs                 9 pass, 13 skip  2.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:24.5242531Z PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:29.1249588Z PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs        22 pass, 1 skip  4.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:29.2900937Z PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    84 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:31.7053746Z PASS  packages/nana-pack/tests/post-edit-file-queue.test.mjs          5 pass  2.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:44.3588384Z PASS  packages/nana-pack/tests/post-edit-hardening.test.mjs           22 pass, 1 skip  12.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T20:59:46.0983769Z PASS  packages/nana-pack/tests/post-edit-status.test.mjs              32 pass, 1 skip  1.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:01.0202957Z PASS  packages/nana-pack/tests/product-report.test.mjs                71 pass  14.9s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:01.2528587Z PASS  packages/nana-pack/tests/readme-check.test.mjs                  11 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:01.6831174Z PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:02.2277632Z PASS  packages/nana-pack/tests/requirement-rows.test.mjs              5 pass  0.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:28.8009893Z PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  26.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:28.9572807Z PASS  packages/nana-pack/tests/requirements-moved.test.mjs            4 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:00:59.6016163Z PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          62 pass  30.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:03.5779070Z PASS  packages/nana-pack/tests/requirements-trace.test.mjs            61 pass  4.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:04.3791444Z PASS  packages/nana-pack/tests/requirements-tree.test.mjs             93 pass  0.8s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:05.7426819Z PASS  packages/nana-pack/tests/requirements-unclaimed.test.mjs        6 pass  1.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:54.3655762Z PASS  packages/nana-pack/tests/review-ledger.test.mjs                 163 pass  48.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:54.3988013Z PASS  packages/nana-pack/tests/review-round.test.mjs                  33 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:54.7088656Z PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:56.7409939Z PASS  packages/nana-pack/tests/review-timeline.test.mjs               11 pass  2.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:57.0074794Z PASS  packages/nana-pack/tests/roster-notice.test.mjs                 16 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:01:57.1528101Z PASS  packages/nana-pack/tests/rulings.test.mjs                       10 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:00.1847510Z PASS  packages/nana-pack/tests/runtime-map.test.mjs                   8 pass  3.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:00.2828648Z PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:03.7376009Z PASS  packages/nana-pack/tests/template-acceptance.test.mjs           12 pass  3.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:04.4490104Z PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  0.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:26.3566524Z PASS  packages/nana-pack/tests/templates-render.test.mjs              168 pass  21.9s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:47.9331069Z PASS  packages/nana-pack/tests/templates-update.test.mjs              34 pass  21.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:02:52.5019222Z PASS  packages/nana-pack/tests/test-locked.test.mjs                   17 pass  4.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:03:20.2159025Z PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          8 pass  27.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:03:36.7141125Z PASS  packages/nana-pack/tests/test-runner.test.mjs                   44 pass  16.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:03:38.4304283Z PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  1.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:03:52.4670187Z PASS  packages/nana-pack/tests/watchdog-exit.test.mjs                 6 pass  14.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:03:52.4970462Z PASS  packages/nana-pack/tests/win-command.test.mjs                   47 pass, 1 skip  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:03:52.5545251Z PASS  packages/nana-pack/tests/win32-launch.test.mjs                  5 pass, 6 skip  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:00.1473400Z PASS  packages/nana-pack/tests/worker-lane.test.mjs                   52 pass  7.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:00.5245944Z PASS  packages/nana-pack/tests/writing-check.test.mjs                 46 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:00.9371534Z PASS  packages/nana-pack/tests/writing-injection.test.mjs             27 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:00.9984198Z PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs       12 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:01.2475452Z PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          5 pass, 1 skip  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:01.2868920Z PASS  packages/nana-setup/tests/desk-service.test.mjs                 6 pass, 1 skip  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:03.5334071Z PASS  packages/nana-setup/tests/doctor-detail.test.mjs                68 pass  2.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:03.6401303Z PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             3 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:04.3914559Z PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  0.8s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:04.5176941Z PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        8 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:04.7099583Z PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:04.9530422Z PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.0694403Z PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.1605748Z PASS  packages/nana-setup/tests/entry-guidance.test.mjs               14 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.2007070Z PASS  packages/nana-setup/tests/fresh-machine.test.mjs                5 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.2296652Z PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.3245924Z PASS  packages/nana-setup/tests/hook-producers.test.mjs               10 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.3247270Z SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs             runs only on the Windows leg (process.platform !== "win32")
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:05.4793448Z PASS  packages/nana-setup/tests/install-check.test.mjs                106 pass  0.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:09.1457049Z PASS  packages/nana-setup/tests/install.test.mjs                      104 pass  3.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:09.1750258Z PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:09.2202547Z PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               8 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:10.1608110Z PASS  packages/nana-setup/tests/pi-registration.test.mjs              64 pass, 3 skip  0.9s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:10.5701502Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:10.5985374Z PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:10.7295741Z PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:19.3318300Z PASS  packages/nana-setup/tests/project.test.mjs                      123 pass  8.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:19.3797139Z PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs             6 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:20.0070891Z PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           29 pass  0.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:21.0259631Z PASS  packages/nana-setup/tests/restore.test.mjs                      14 pass  1.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:23.3949633Z PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            48 pass  2.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:23.8840123Z PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  0.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:25.0351329Z PASS  packages/nana-setup/tests/rulings-install.test.mjs              8 pass  1.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:25.0632421Z PASS  packages/nana-setup/tests/seat-rule.test.mjs                    13 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:28.1192379Z PASS  packages/nana-setup/tests/settings-merge.test.mjs               217 pass  3.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:28.1496291Z PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:28.6906143Z PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:28.7491470Z PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:32.1559274Z PASS  packages/nana-setup/tests/skills-and-standards.test.mjs         81 pass  3.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:33.4292516Z PASS  packages/nana-setup/tests/stale-copies.test.mjs                 8 pass  1.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:34.2247984Z PASS  packages/nana-setup/tests/state-manifest.test.mjs               20 pass  0.8s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:34.8277355Z PASS  packages/nana-setup/tests/trust.test.mjs                        11 pass  0.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:36.4901408Z PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  1.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:37.1817572Z PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                29 pass  0.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:40.3158205Z PASS  packages/nana-setup/tests/win32-degrade.test.mjs                98 pass  3.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:40.3526073Z PASS  packages/nana-setup/tests/writing-rule.test.mjs                 3 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:40.4118000Z PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:46.7221926Z PASS  apps/desk/test/app-listener.test.mjs                            76 pass  6.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:54.9279495Z PASS  apps/desk/test/buffer-caps.test.mjs                             30 pass  8.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:56.2991258Z PASS  apps/desk/test/changes-endpoint.test.mjs                        88 pass  1.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:04:59.8653486Z PASS  apps/desk/test/crash-paths.test.mjs                             42 pass  3.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:01.1634911Z PASS  apps/desk/test/host-rule.test.mjs                               30 pass  1.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:01.2066068Z PASS  apps/desk/test/knowledge-home-isolation.test.mjs                1 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:01.2348503Z PASS  apps/desk/test/live-feel.test.mjs                               64 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:01.8409988Z PASS  apps/desk/test/origin-rule.test.mjs                             11 pass  0.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:02.8651302Z PASS  apps/desk/test/pi-087-entries.test.mjs                          11 pass  1.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:03.3125580Z PASS  apps/desk/test/pi-resolution.test.mjs                           43 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:03.7238168Z PASS  apps/desk/test/pi-rpc-contract.test.mjs                         10 pass  0.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:04.7442278Z PASS  apps/desk/test/pi-session-parity.test.mjs                       42 pass  1.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:24.4458831Z PASS  apps/desk/test/prompt-detach.test.mjs                           24 pass  19.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:26.8523791Z PASS  apps/desk/test/spawn-and-persist.test.mjs                       122 pass  2.4s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:42.5110182Z PASS  apps/desk/test/stage-key-persistence.test.mjs                   82 pass  15.7s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:48.6052724Z PASS  apps/desk/test/teardown-invariants.test.mjs                     18 pass  6.1s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:51.5616352Z PASS  apps/desk/test/usage-line.test.mjs                              6 pass  3.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:51.5966183Z PASS  apps/bench/test/agentdir.test.mjs                               26 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:51.6323055Z PASS  apps/bench/test/aggregate.test.mjs                              62 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:51.6627843Z PASS  apps/bench/test/argv.test.mjs                                   32 pass, 1 skip  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:52.5849065Z PASS  apps/bench/test/catch-ledger.test.mjs                           76 pass  0.9s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:56.0616566Z PASS  apps/bench/test/checkers.test.mjs                               92 pass  3.5s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:05:58.2825055Z PASS  apps/bench/test/evaluator-hardening.test.mjs                    68 pass  2.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:00.2964085Z PASS  apps/bench/test/integration.test.mjs                            48 pass  2.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:00.3252020Z PASS  apps/bench/test/nested.test.mjs                                 59 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:00.6180570Z PASS  apps/bench/test/ops.test.mjs                                    48 pass  0.3s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:07.6514125Z PASS  apps/bench/test/orchestration-paths.test.mjs                    91 pass  7.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:07.7006594Z PASS  apps/bench/test/plan.test.mjs                                   57 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:07.7007551Z SKIP  apps/bench/test/study-tasks.test.mjs                            needs apps/bench/.ext/pi-web-access (not present)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.2681887Z PASS  apps/bench/test/timeout.test.mjs                                12 pass  1.6s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.3031942Z PASS  apps/bench/test/usage.test.mjs                                  90 pass  0.0s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.4155500Z 
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.4156707Z 165 files: 163 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 7611 pass, 0 fail, 35 skip · 512.2s
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.4372534Z Post job cleanup.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.5332059Z Pruning is unnecessary.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.5491218Z Post job cleanup.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.6457532Z Cache hit occurred on key setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-no-dependency-glob, not saving cache.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.6458644Z (node:45872) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.6460116Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.6599025Z Post job cleanup.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.7491906Z (node:45880) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.7492395Z (Use `node --trace-deprecation ...` to show where the warning was created)
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.7648746Z Post job cleanup.
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8310544Z [command]/usr/bin/git version
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8350642Z git version 2.55.0
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8381826Z Temporarily overriding HOME='/home/runner/work/_temp/9cbaaedc-a7c9-4477-b9b9-b7c02f9a741f' before making global git config changes
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8382826Z Adding repository directory to the temporary git global config as a safe directory
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8396268Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nana-pi/nana-pi
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8455684Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8505637Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8796705Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8841445Z http.https://github.com/.extraheader
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8857454Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.8927510Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.9209454Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.9253378Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.9618711Z Cleaning up orphan processes
+suite (ubuntu-latest)	UNKNOWN STEP	2026-10-19T21:06:09.9875531Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, astral-sh/setup-uv@v5, pnpm/action-setup@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
