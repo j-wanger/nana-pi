@@ -187,6 +187,7 @@ Purpose: Label summary authority and replace stale content with a readable, corr
 | R-803 | IF the path cannot be addressed as written THEN the raw path shall not appear in the pointer. | implemented | `packages/nana-pack/tests/handoff-staleness.test.mjs::${label}: the raw path never appears in the pointer` |
 | R-129 | WHEN a new compaction happens, staleness shall reset to the full text with no pointer. | implemented | `packages/nana-pack/tests/handoff-staleness.test.mjs::reset: new compaction → full text again`, `packages/nana-pack/tests/handoff-staleness.test.mjs::reset: no pointer` |
 | R-189 | The handoff summary body shall remain raw payload behind its provenance framing, capped at 8000 UTF-16 code units. | implemented | `packages/nana-pack/tests/handoff-artifact.test.mjs::cap: a 9012-unit body is injected raw as its first 8000 UTF-16 code units, after the Source and Provenance lines` |
+| R-2160 | IF the injection cap falls between the two halves of a surrogate pair in a handoff summary body, THEN the injected body shall end immediately before that pair. | implemented | `packages/nana-pack/tests/handoff-artifact.test.mjs::cap: a body cut between the two halves of a surrogate pair is injected ending before that pair` |
 
 ### SUB-004 · Use custom and legacy locations safely
 Purpose: Resolve custom paths and reject unsafe or legacy locations without overwriting their contents.
