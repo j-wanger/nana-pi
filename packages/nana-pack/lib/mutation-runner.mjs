@@ -43,6 +43,7 @@ import {
 	WORKTREE_LOCK_WAIT_MS,
 	WORKTREE_LOCK_UNREADABLE_STALE_MS,
 	WORKTREE_LOCK_WAIT_LIMIT_MS,
+	WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS,
 	CHILD_NODE_ARGS,
 	TS_CHECK_ARGS,
 	logName,
@@ -267,6 +268,7 @@ export function withWorktreeOperationLock(lockPath, operation, options = {}) {
 	const now = options.now ?? Date.now;
 	const wait = options.wait ?? ((ms) => Atomics.wait(sleeper, 0, 0, ms));
 	const waitLimitMs = options.waitLimitMs ?? WORKTREE_LOCK_WAIT_LIMIT_MS;
+	const releaseWaitLimitMs = options.releaseWaitLimitMs ?? WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS;
 	const report = options.report ?? ((line) => console.error(line));
 	const ownerText = JSON.stringify({ pid: process.pid, started: new Date().toISOString(), owner: randomUUID() });
 	const waitStarted = now();
@@ -311,11 +313,17 @@ export function withWorktreeOperationLock(lockPath, operation, options = {}) {
 	try {
 		return operation();
 	} finally {
+		const releaseStarted = now();
 		for (;;) {
 			const removal = removeWorktreeLockIfOwned(lockPath, ownerText, io);
 			if (removal !== "retry") break;
-			// A live owner must not abandon its lock: waiters cannot distinguish that leftover from
-			// a still-running critical section, and Windows can keep an open file delete-pending.
+			// A live owner must not abandon its lock at the acquisition limit: waiters cannot distinguish
+			// that leftover from a still-running critical section, and Windows can keep a file delete-pending.
+			if (now() - releaseStarted >= releaseWaitLimitMs) {
+				const line = `seat-mutate: owned worktree-operation lock ${lockPath} could not be released within ${releaseWaitLimitMs} milliseconds`;
+				report(line);
+				throw new Error(line);
+			}
 			wait(WORKTREE_LOCK_WAIT_MS);
 		}
 	}
