@@ -263,6 +263,8 @@ Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and th
 
 Doctor's `pi executable` row checks `pi --version` and names the shared install hint on failure; `PATH resolves pi-review` checks the first executable match on PATH. `pi package source` compares registered package trees with the checkout supplying hooks and rules. Doctor mutes exactly the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning and prints every other Node warning.
 
+Install's dry run decides which ✗ rows doctor's last line gives to `nana-setup install`, and doctor lists the rest by hand. A row with no install step, such as `PATH resolves pi-review`, is listed by hand. The dry run writes nothing. When install refuses the home, doctor prints `<n> missing — nana-setup install will not run until this is fixed: <first refusal line>`.
+
 Doctor's `release status` row is informational (·). It counts template commits on main since the highest plain vX.Y.Z tag and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `countTemplateCommits` for later release gates.
 
 ## Known limits
@@ -456,6 +458,7 @@ loudly and counted, never silent.
 | `tests/readme-rehearsal.test.mjs` | the checklist's `Run`/`then`/`expect` parse grammar, the sealed answer rule, the rehearsal home's environment (no ZDOTDIR, the home npm prefix ahead of PATH, only the clone redirect added), the spawn adapter's configurable output cap, and the stop-at-first-failure verdict (all steps ok, a nonzero exit, a timeout, missing expected text, and no expected text anywhere) |
 | `tests/doctor-runtime.test.mjs` | pi executable diagnostics and first executable pi-review PATH resolution |
 | `tests/doctor-quiet.test.mjs` | doctor mutes its SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning while preserving unrelated Node warnings |
+| `tests/doctor-fix-line.test.mjs` | doctor's final line gives install only the ✗ rows its dry run repairs, lists the rest by hand, reports a refusal, preserves ! counts, and writes nothing |
 | `tests/win32-degrade.test.mjs` | every still-posix-only step reporting `skipped (win32)`; install and doctor printing no hook-file row; all eight PATH shim files, install idempotence and collision backup; doctor requiring both shim renderings; the six win32 settings entries wired in exec form with matcher `Bash\|PowerShell`; and the copy path backing up / never writing through a symlink |
 | `tests/win32-hook-repair.test.mjs` | Windows repair of carried POSIX shell-form hooks and the first unquoted knowledge form; verifier relocation and deduplication; second-install and doctor health; owner look-alikes preserved byte-identically |
 | `tests/win-shims.test.mjs` | bare-name sh, cmd.exe and Windows PowerShell argument and exit-status handoff; PATH node selection; self-rewrite safety; and Windows PATH-resolution diagnosis |
