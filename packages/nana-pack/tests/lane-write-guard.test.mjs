@@ -6,7 +6,8 @@
  * @effects disk (fixtures under home, OS temp or /var/tmp), process (environment)
  * @errors failed assertions exit nonzero
  */
-import { tmpDir, tmpDirUnmanaged } from "./tmp-dir.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
+import { tmpDirUnmanaged } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
