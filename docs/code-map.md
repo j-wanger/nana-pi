@@ -1277,9 +1277,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/gate-rm-inside.ts`
 
 - **purpose** — Decide whether a plain recursive/forced rm of literal relative targets strictly inside the session working directory may run with no approval, per Jake's 2026-10-10 ruling.
-- **inputs** — a raw bash command string, the session cwd, an optional home override (default os.homedir()), env PI_CODING_AGENT_DIR (through gate-paths), and the filesystem (realpath and lstat of cwd, home, the active pi agent folder, every target and its intermediate parts)
+- **inputs** — a raw bash command string, the session cwd, an optional home override (default os.homedir()), env PI_CODING_AGENT_DIR (through gate-paths), and the filesystem (realpath and lstat of cwd, home, the active pi agent folder, every target and its intermediate parts, and the HEAD/objects/refs/.git entries along the cwd's ancestor walk and of each existing target part, for the bare-repository shape guard)
 - **outputs** — rmInsideCwd(command, cwd, home?): true only when every guard below passes, false otherwise
-- **effects** — disk (realpath and lstat of cwd, home, the active pi agent folder and each target's parts)
+- **effects** — disk (realpath and lstat of cwd, home, the active pi agent folder, each target's parts, and the HEAD/objects/refs/.git entries on the cwd's ancestor walk and each existing target part)
 - **errors** — never throws — any unexpected error anywhere in the walk is treated as false
 - **callers** — `packages/nana-pack/extensions/nana-gate.ts`
 - **callees** — `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/real-path.mjs`
@@ -1786,11 +1786,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/gate-rm-inside.test.mjs`
 
-- **purpose** — Pin the one rm exemption (R-1490) and its six guard rows (R-1491 to R-1496) over the REAL registered gate handler
-- **inputs** — extensions/nana-gate.ts with lib/gate-rm-inside.ts, lib/gate-shell.ts, lib/gate-paths.ts and lib/real-path.mjs, a temp HOME, a temp cwd fixture tree and env PI_CODING_AGENT_DIR
+- **purpose** — Pin the one rm exemption (R-1490), its six guard rows (R-1491 to R-1496) and the bare-repository guard rows (R-2240 to R-2243) over the REAL registered gate handler
+- **inputs** — extensions/nana-gate.ts with lib/gate-rm-inside.ts, lib/gate-shell.ts, lib/gate-paths.ts and lib/real-path.mjs, a temp HOME, a temp cwd fixture tree, a temp git-fixture tree (built with git on PATH) and env PI_CODING_AGENT_DIR
 - **outputs** — PASS/FAIL lines per row on stdout, a SKIP line when the case-changed HOME spelling does not exist on this filesystem, and exit 1 when any row fails
-- **effects** — disk (temp HOME, cwd fixtures incl. three symlinks, config files), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR)
-- **errors** — a failed row prints FAIL with the cases that got the wrong verdict and the run exits 1; an unexpected throw propagates and fails the run
+- **effects** — disk (temp HOME, cwd fixtures incl. three symlinks, config files, a temp git-fixture tree), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR; spawns git)
+- **errors** — a failed row prints FAIL with the cases that got the wrong verdict and the run exits 1; an unexpected throw propagates and fails the run, including a missing git
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
