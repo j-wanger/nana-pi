@@ -14,7 +14,7 @@
     titles are unchanged, and the valid-JSON leaf checks keep the old regex.
   - The pack README's Malformed config bullet names the parse form for both scopes. The code map and the tree are
     regenerated. 7b3a1202 adds the seat's pairs record.
-- CI runs on draft pull request #144 at 255846f0. CI-PENDING.
+- CI runs on draft pull request #144 at 255846f0. CI run 39496247352 at 255846f0 reads 0 failing on all three legs: macOS 192 PASS, 0 FAIL, 2 SKIP of 194 files (8,005 checks pass, 35 skip); Ubuntu 191 PASS, 0 FAIL, 3 SKIP of 194 files (7,944 checks pass, 55 skip); Windows 176 PASS, 0 FAIL, 18 SKIP of 194 files (6,933 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-255846f0.log in this folder.
   - Main's own known failures: Ubuntu's path-spelling GP1 and GP2 until linux-path-spelling landed (main ca27d86); a
     pull-request run's R-291 leaf-total failure, a merge artifact of GitHub's merge commit. Windows main reads 0 FAIL
     since 4be0b79 (desk files are declared skips). A failure in that set is main's, not the lane's.

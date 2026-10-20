@@ -6,7 +6,7 @@ Review `git diff 9552afb1..HEAD` on `feat/gate-stop-names-config` (main was `955
 merge-base HEAD main` is `9552afb1`). The plan of record is `docs/reviews/gate-stop-names-config-2026-10-20/must-meet.md`:
 five must-meet checks, rows R-2360 to R-2364. `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the one
 build (255846f0). The seat's record is `seat-verify-7b3a1202.md`. CI runs on draft pull request #144 at 255846f0.
-CI-PENDING. The land runs the locked suite on the reviewed tip. The record also holds the macOS wrong-code pairs
+CI run 39496247352 at 255846f0 reads 0 failing on all three legs: macOS 192 PASS, 0 FAIL, 2 SKIP of 194 files (8,005 checks pass, 35 skip); Ubuntu 191 PASS, 0 FAIL, 3 SKIP of 194 files (7,944 checks pass, 55 skip); Windows 176 PASS, 0 FAIL, 18 SKIP of 194 files (6,933 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-255846f0.log in this folder. The land runs the locked suite on the reviewed tip. The record also holds the macOS wrong-code pairs
 (`seat-mutate.mjs`; 14 of 14 red, 0 survived) and the independent check (`independent-check-7b3a1202.md`: HOLDS over
 ten probes on 255846f0, no MUST, two declared known bugs). The final reviewer's brief is `review-brief.md`.
 
