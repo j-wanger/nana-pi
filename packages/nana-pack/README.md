@@ -639,19 +639,29 @@ is user-scope only** — project config never contributes to it, trusted or not.
   agent folder in either direction; a symbolic link or junction anywhere on the way; a glob,
   variable, substitution, quote, backslash, `~`, `--`, another flag, a prefix (`sudo`, `command`,
   `/bin/rm`, `VAR=value`), a second command, leading/trailing whitespace, or the powershell tool;
-  and a home, home-ancestor, root or dot-named working directory. A configured `extraPatterns` or
-  `protectedPaths` match and a named policy file still stop it — this exemption clears only the
-  non-floor "rm recursive/forced" danger, never the floor or those later checks. Known limits:
-  plain `rm` and `rm -f` still pass anywhere outside the working directory, as before — making
-  those ask too is a separate lane; absolute and dot-named targets and compounds (`rm -rf build
-  && npm test`) still ask; the exemption assumes the command runs as typed in the session cwd, so
-  a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids it; a bare
-  repository as the cwd (`repo.git`, no dot-named part) is not recognised, so `rm -rf objects
-  refs` runs unasked there; a target that holds a git repository two or more levels down is not
-  recognised either — the `.git` check looks only one level under the target, so `rm -rf vendor`
-  runs unasked when the repository actually sits a level deeper inside it; nor is a target that
-  is itself a bare repository (`rm -rf origin.git`, which has no `.git` entry inside it to catch);
-  PowerShell keeps asking for every form.
+  a home, home-ancestor, root or dot-named working directory; and a target of such an rm, or an
+  existing folder on the way to it, that holds a bare repository's shape (a `HEAD` file and
+  `objects` and `refs` folders), or a session working directory, or a folder above it, that holds
+  that shape with no `.git` entry from the working directory up to and including it — unless a
+  worktree that `git worktree add` made inside that folder keeps the exemption. A configured
+  `extraPatterns` or `protectedPaths` match and a named policy file still stop it — this exemption
+  clears only the non-floor "rm recursive/forced" danger, never the floor or those later checks.
+  Known limits: plain `rm` and `rm -f` still pass anywhere outside the working directory, as
+  before — making those ask too is a separate lane; absolute and dot-named targets and compounds
+  (`rm -rf build && npm test`) still ask; the exemption assumes the command runs as typed in the
+  session cwd, so a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids
+  it; a target that holds a git repository two or more levels down is not recognised — the `.git`
+  check looks only one level under the target, so `rm -rf vendor` runs unasked when the repository
+  actually sits a level deeper inside it; a bare repository below a target (`rm -rf mirrors`,
+  when `mirrors` holds `app.git`) still runs unasked, as a non-bare repository nested below a
+  target does — the owner's nested-repo trade stays as it is; a legacy symlinked `HEAD`, or
+  `objects`/`refs` that are links, are not recognised; a plain folder inside a bare repository
+  that is not a worktree over-asks, as does a path from outside through a bare repository into
+  its worktree; any `.git` entry ends the walk up from the working directory, whether valid or
+  not, as git also stops there, and the walk ignores ceiling folders, filesystem boundaries and
+  the `GIT_DIR`/`GIT_OBJECT_DIRECTORY` settings and always runs to the filesystem root, which can
+  only over-ask; mount points and inner links keep their existing residuals; PowerShell keeps
+  asking for every form.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,

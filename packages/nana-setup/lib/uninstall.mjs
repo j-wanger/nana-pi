@@ -95,7 +95,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   };
   const previewSettings = structuredClone(initial.settings);
   const removedSettings = mutateSettings(previewSettings);
-  const variants = settingsVariants(initial.settings, layout);
+  const variants = settingsVariants(previewSettings, layout);
   let settingsChanged = removedSettings.length > 0;
   if (settingsChanged && !dryRun) {
     withSettingsLock(settingsRow.path, () => {

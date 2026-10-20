@@ -1,17 +1,19 @@
 /**
  * @module packages/nana-pack/tests/gate-rm-inside.test.mjs
- * @purpose Pin the one rm exemption (R-1490) and its six guard rows (R-1491 to R-1496) over the REAL registered gate handler
- * @inputs extensions/nana-gate.ts with lib/gate-rm-inside.ts, lib/gate-shell.ts, lib/gate-paths.ts and lib/real-path.mjs, a temp HOME, a temp cwd fixture tree and env PI_CODING_AGENT_DIR
+ * @purpose Pin the one rm exemption (R-1490), its six guard rows (R-1491 to R-1496) and the bare-repository guard rows (R-2240 to R-2243) over the REAL registered gate handler
+ * @inputs extensions/nana-gate.ts with lib/gate-rm-inside.ts, lib/gate-shell.ts, lib/gate-paths.ts and lib/real-path.mjs, a temp HOME, a temp cwd fixture tree, a temp git-fixture tree (built with git on PATH) and env PI_CODING_AGENT_DIR
  * @outputs PASS/FAIL lines per row on stdout, a SKIP line when the case-changed HOME spelling does not exist on this filesystem, and exit 1 when any row fails
- * @effects disk (temp HOME, cwd fixtures incl. three symlinks, config files), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR)
- * @errors a failed row prints FAIL with the cases that got the wrong verdict and the run exits 1; an unexpected throw propagates and fails the run
+ * @effects disk (temp HOME, cwd fixtures incl. three symlinks, config files, a temp git-fixture tree), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR; spawns git)
+ * @errors a failed row prints FAIL with the cases that got the wrong verdict and the run exits 1; an unexpected throw propagates and fails the run, including a missing git
  */
 // L2 (2026-10-19): the one exemption a plain, literal, in-cwd rm gets (Jake's 2026-10-10 ruling)
-// and every guard that keeps today's verdict otherwise. Real registered handler, headless
-// fail-closed, one interactive variant pins zero dialogs for the exempt form (gate-corpus's
-// harness: lib gate-shell.ts, gate-paths.ts, real-path.mjs, gate-rm-inside.ts).
+// and every guard that keeps today's verdict otherwise, plus the bare-repository guard added
+// 2026-10-20. Real registered handler, headless fail-closed, one interactive variant pins zero
+// dialogs for the exempt form (gate-corpus's harness: lib gate-shell.ts, gate-paths.ts,
+// real-path.mjs, gate-rm-inside.ts).
 // Run: node --experimental-strip-types <this file>
 import { tmpDir } from "./tmp-dir.mjs";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -46,6 +48,75 @@ const HOME_LINK = path.join(CWD, "home-link");
 fs.symlinkSync(HOME, HOME_LINK, process.platform === "win32" ? "junction" : "dir");
 const HOME_CASE_CHANGED = path.join(path.dirname(HOME), path.basename(HOME).toUpperCase());
 
+// ---- bare-repository fixtures (R-2240 to R-2243): one root, left to tmpDir's exit hook.
+const BARE = tmpDir(path.join(os.tmpdir(), "gate-rm-inside-bare-"));
+const GIT_BASE_ARGS = ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "init.defaultBranch=main", "-c", "commit.gpgsign=false"];
+function gitEnv() {
+	return Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")));
+}
+function git(args, cwd) {
+	execFileSync("git", [...GIT_BASE_ARGS, ...args], { cwd, env: gitEnv(), stdio: "pipe" });
+}
+
+// R-2240: a bare repository and one nested two levels under the cwd.
+const work = path.join(BARE, "work");
+fs.mkdirSync(work, { recursive: true });
+git(["init", "--bare", "vault"], work);
+git(["init", "--bare", "repos/mirror.git"], work);
+
+// R-2241/R-2242 setup: a non-bare repo cloned bare, with a worktree git added inside it.
+const src = path.join(BARE, "src");
+fs.mkdirSync(src, { recursive: true });
+git(["init"], src);
+git(["commit", "--allow-empty", "-m", "c"], src);
+git(["clone", "--bare", "src", "proj.git"], BARE);
+const projGit = path.join(BARE, "proj.git");
+git(["worktree", "add", "wt"], projGit);
+git(["branch", "topic"], projGit);
+const wt = path.join(projGit, "wt");
+fs.mkdirSync(path.join(wt, "build"), { recursive: true });
+fs.mkdirSync(path.join(wt, "src", "gen"), { recursive: true });
+
+// R-2242: a `git init` folder whose top ALSO holds a HEAD file and objects/refs folders,
+// alongside its real (and only valid) `.git` folder.
+const both = path.join(BARE, "both");
+fs.mkdirSync(both, { recursive: true });
+git(["init"], both);
+fs.writeFileSync(path.join(both, "HEAD"), "ref: refs/heads/main\n");
+fs.mkdirSync(path.join(both, "objects"), { recursive: true });
+fs.mkdirSync(path.join(both, "refs"), { recursive: true });
+fs.mkdirSync(path.join(both, "build"), { recursive: true });
+
+// R-2243: five look-alikes, each holding only part of the bare-repository shape, plus an
+// empty x/ so each can also serve as a cwd.
+const look = path.join(BARE, "look");
+fs.mkdirSync(look, { recursive: true });
+
+const onlyhead = path.join(look, "onlyhead");
+fs.mkdirSync(path.join(onlyhead, "x"), { recursive: true });
+fs.writeFileSync(path.join(onlyhead, "HEAD"), "x");
+
+const objrefs = path.join(look, "objrefs");
+fs.mkdirSync(path.join(objrefs, "x"), { recursive: true });
+fs.mkdirSync(path.join(objrefs, "objects"), { recursive: true });
+fs.mkdirSync(path.join(objrefs, "refs"), { recursive: true });
+
+const headobj = path.join(look, "headobj");
+fs.mkdirSync(path.join(headobj, "x"), { recursive: true });
+fs.writeFileSync(path.join(headobj, "HEAD"), "x");
+fs.mkdirSync(path.join(headobj, "objects"), { recursive: true });
+
+const headrefs = path.join(look, "headrefs");
+fs.mkdirSync(path.join(headrefs, "x"), { recursive: true });
+fs.writeFileSync(path.join(headrefs, "HEAD"), "x");
+fs.mkdirSync(path.join(headrefs, "refs"), { recursive: true });
+
+const headdir = path.join(look, "headdir");
+fs.mkdirSync(path.join(headdir, "x"), { recursive: true });
+fs.mkdirSync(path.join(headdir, "HEAD"), { recursive: true }); // HEAD as a folder, not a file
+fs.mkdirSync(path.join(headdir, "objects"), { recursive: true });
+fs.mkdirSync(path.join(headdir, "refs"), { recursive: true });
+
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra); if (!ok) fails++; };
 
@@ -68,6 +139,20 @@ async function wrongVerdicts(h, want, cases, ui = null) {
 	for (const [cwd, command, toolName = "bash"] of cases) {
 		const got = await verdict(h, cwd, command, toolName, ui);
 		if (got !== want) bad.push({ cwd, command, toolName, want, got });
+	}
+	return bad;
+}
+
+/** Runs every [cwd, command, toolName?] case interactively with a fresh UI per case that always
+ *  picks `pick`, and returns the cases whose verdict was not `want` or whose dialog count was
+ *  not exactly one. */
+async function wrongAsks(h, want, cases, pick) {
+	const bad = [];
+	for (const [cwd, command, toolName = "bash"] of cases) {
+		const dialogs = [];
+		const ui = { select: async (m, o) => { dialogs.push({ m, o }); return pick; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } };
+		const got = await verdict(h, cwd, command, toolName, ui);
+		if (got !== want || dialogs.length !== 1) bad.push({ cwd, command, toolName, want, got, dialogs: dialogs.length });
 	}
 	return bad;
 }
@@ -195,6 +280,68 @@ async function wrongVerdicts(h, want, cases, ui = null) {
 	const bad = [...badA, ...badB, ...badC];
 	// req: R-1496
 	check("configured deny and protected patterns and named policy files still stop an exempt-shaped rm", bad.length === 0, JSON.stringify(bad));
+}
+
+// ---- R-2240: a target, or an existing folder on the way to it, with a bare repository's shape
+{
+	const h = register({});
+	const cases = ["vault", "vault/objects", "vault/refs/heads", "repos/mirror.git/objects"].map((t) => [work, `rm -rf ${t}`]);
+	const headlessBad = await wrongVerdicts(h, "BLOCK", cases);
+	const interactiveBad = await wrongAsks(h, "BLOCK", cases, "Block");
+	// req: R-2240
+	check("rm of a bare repository or of a path inside one still asks",
+		headlessBad.length === 0 && interactiveBad.length === 0, JSON.stringify({ headlessBad, interactiveBad }));
+}
+
+// ---- R-2241: the working directory, or a folder above it, with a bare repository's shape and
+// no `.git` entry from the working directory up to and including that folder
+{
+	const h = register({});
+	const cases = [
+		[projGit, "rm -rf objects"], [projGit, "rm -rf refs"],
+		[path.join(projGit, "refs"), "rm -rf heads"],
+		[path.join(projGit, "refs", "heads"), "rm -rf topic"],
+		[path.join(projGit, "worktrees"), "rm -rf wt"],
+	];
+	const headlessBad = await wrongVerdicts(h, "BLOCK", cases);
+	const interactiveBad = await wrongAsks(h, "BLOCK", cases, "Block");
+	// req: R-2241
+	check("rm in a bare repository's folder or a folder inside it still asks",
+		headlessBad.length === 0 && interactiveBad.length === 0, JSON.stringify({ headlessBad, interactiveBad }));
+}
+
+// ---- R-2242: a worktree git added inside a bare repository's folder keeps the exemption
+{
+	const h = register({});
+	const dialogs = [];
+	const ui = { select: async (m, o) => { dialogs.push({ m, o }); return "Allow once"; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } };
+	const cases = [
+		[wt, "rm -rf build"], [path.join(wt, "src"), "rm -rf gen"], [both, "rm -rf build"],
+	];
+	const headlessBad = await wrongVerdicts(h, "ALLOW", cases);
+	const interactiveBad = await wrongVerdicts(h, "ALLOW", cases, ui);
+	// req: R-2242
+	check("rm in a worktree that git added inside a bare repository's folder still runs unasked",
+		headlessBad.length === 0 && interactiveBad.length === 0 && dialogs.length === 0,
+		JSON.stringify({ headlessBad, interactiveBad, dialogShown: dialogs.length }));
+}
+
+// ---- R-2243: a target or the working directory with only part of the bare-repository shape
+{
+	const h = register({});
+	const dialogs = [];
+	const ui = { select: async (m, o) => { dialogs.push({ m, o }); return "Allow once"; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } };
+	const names = ["onlyhead", "objrefs", "headobj", "headrefs", "headdir"];
+	const cases = [
+		...names.map((n) => [look, `rm -rf ${n}`]),
+		...names.map((n) => [path.join(look, n), "rm -rf x"]),
+	];
+	const headlessBad = await wrongVerdicts(h, "ALLOW", cases);
+	const interactiveBad = await wrongVerdicts(h, "ALLOW", cases, ui);
+	// req: R-2243
+	check("rm of or in a folder holding only part of a bare repository's shape still runs unasked",
+		headlessBad.length === 0 && interactiveBad.length === 0 && dialogs.length === 0,
+		JSON.stringify({ headlessBad, interactiveBad, dialogShown: dialogs.length }));
 }
 
 fs.rmSync(HOME, { recursive: true, force: true });
