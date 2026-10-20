@@ -73,3 +73,22 @@ code map match fresh runs; (6) the plan's known limits (step 5 never runs, a CI 
 rehearsal home with no space on the temp drive, step 2's network install under the 300 s step cap, no PowerShell and no
 Linux checklist) are HANDOFF residuals, and none hides a bug that stops the feature; (7) HANDOFF and the session entry
 are true, including the seat items carried from other lanes; (8) any MUST.
+
+## Merge note (the seat, after this brief was written)
+
+Since `c05d98e9`, the seat merged main `d4423eff` (install-pins and review-records-pin landed: tests and rows for install and the review ledger; no README checklist, install-check or rehearsal file). Lanes land by fast-forward, so main is contained before this lane lands; no confirmation round is needed for it, because this round reviews the merged tip. Review this lane's own change as `git diff d4423eff...HEAD` (three dots) and the merge as `git show --remerge-diff 1b05a2cf`. The merge helper resolved HANDOFF and the session file (both sides' lines kept) and regenerated the tree and code map. Tree movement now (`node scripts/requirements-moved.mjs --root . --base d4423eff`):
+
+```
+FEAT-013 · Install and connect harness runtimes
+  R-951 text changed
+  R-1111 text changed
+  R-1546 text changed
+  R-1850 new (implemented)
+  R-1851 new (implemented)
+  R-1852 new (implemented)
+FEAT-015 · Diagnose the active environment
+  R-1542 text changed
+  R-1853 new (implemented)
+  R-1854 new (implemented)
+  R-1855 new (implemented)
+```
