@@ -54,7 +54,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { readBounded } from "./bounded-read.mjs";
 import { piAgentDir } from "./gate-paths.ts";
-import { jsonParseFailure, parseJsonText } from "./json-text.mjs";
+import { jsonParseFailure, parseJsonBytes } from "./json-text.mjs";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
@@ -301,9 +301,9 @@ function linkText(p: string): string {
 }
 
 function readConfigFile(p: string): FileRead {
-	let text: string;
+	let bytes: Buffer;
 	try {
-		text = readBounded(p).toString("utf-8");
+		bytes = readBounded(p);
 	} catch (e: any) {
 		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") {
 			// Absent only if NOTHING is there. A symlink that resolves nowhere is a policy file
@@ -316,7 +316,7 @@ function readConfigFile(p: string): FileRead {
 	}
 	let raw: unknown;
 	try {
-		raw = parseJsonText(text);
+		raw = parseJsonBytes(bytes);
 	} catch (e: any) {
 		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], jsonFailure: jsonParseFailure(e), gateValid: false };
 	}

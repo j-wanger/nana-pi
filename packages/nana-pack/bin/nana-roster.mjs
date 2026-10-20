@@ -16,6 +16,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { parseJsonBytes } from '../lib/json-text.mjs';
 import { ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
 
 const ENTRY_FIELDS = Object.freeze(['provider', 'model', 'thinking']);
@@ -24,7 +25,7 @@ function isLink(p) {
   try { return fs.lstatSync(p).isSymbolicLink(); } catch { return false; }
 }
 
-/** Read the user-scope file. Returns {kind:'absent'} | {kind:'refused', problem} | {kind:'read', text}. */
+/** Read the user-scope file. Returns {kind:'absent'} | {kind:'refused', problem} | {kind:'read', bytes}. */
 function readRosterFile(file) {
   let buf;
   try {
@@ -42,7 +43,7 @@ function readRosterFile(file) {
     if (code === 'ERR_TOO_LARGE') return { kind: 'refused', problem: `${file} exceeds the ${BOUNDED_READ_CAP}-byte bounded read cap` };
     return { kind: 'refused', problem: `${file} is unreadable (${code ?? err?.message ?? 'error'})` };
   }
-  return { kind: 'read', text: buf.toString('utf8') };
+  return { kind: 'read', bytes: buf };
 }
 
 function kindOf(value) {
@@ -136,7 +137,7 @@ export function resolveRoster(agentDir) {
   if (state.kind === 'refused') return { ok: false, file, problem: state.problem };
   let raw;
   try {
-    raw = JSON.parse(state.text.replace(/^﻿/, ''));
+    raw = parseJsonBytes(state.bytes);
   } catch (err) {
     return { ok: false, file, problem: `invalid JSON (${String(err?.message ?? err).slice(0, 160)})` };
   }

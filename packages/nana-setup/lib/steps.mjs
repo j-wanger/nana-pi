@@ -35,7 +35,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
-import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -675,7 +675,7 @@ export function stepPiConfig(layout, o) {
 /** What nana-pack.json says about the objective — reported by `doctor`, never rewritten. */
 export function readPiPackConfig(layout) {
 	try {
-		return parseJsonText(fs.readFileSync(layout.piPackConfig, "utf8"));
+		return parseJsonBytes(fs.readFileSync(layout.piPackConfig));
 	} catch {
 		return null;
 	}
