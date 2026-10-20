@@ -36,6 +36,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { resolveObjectivePath } from "../../nana-pack/lib/objective-path.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -641,16 +642,15 @@ export function stepSharedMemory(layout, o) {
 /* ------------------------------------------------------------------------- pi user config */
 
 /**
- * Resolve nana-pack.json's `objective.path` the way the pack does: `~/` expands, a relative path
- * resolves against the pi home and NEVER against cwd, null means the default file. Shared with
- * `doctor` so the two can never disagree about which file the objective lives in.
+ * Resolve nana-pack.json's `objective.path` through the shared resolver (lib/objective-path.mjs):
+ * a non-string or "" value, or one missing, is the default file; "~" and a leading `~/` expand
+ * under the home folder (`~\` too, on win32); an absolute value stays as is; anything else
+ * resolves against the pi home, never cwd. Shared with `doctor` so the two can never disagree
+ * about which file the objective lives in, and never throws on a raw JSON value of any shape —
+ * nana-pack.json is read here with no schema layer, unlike the producer's loadUserObjective().
  */
 export function objectiveTarget(layout, cfg) {
-	const p = cfg?.objective?.path;
-	if (!p) return layout.piObjective;
-	if (p === "~") return layout.base;
-	if (p.startsWith("~/")) return path.join(layout.base, p.slice(2));
-	return path.isAbsolute(p) ? p : path.join(layout.piHome, p);
+	return resolveObjectivePath(cfg?.objective?.path, { home: layout.base, agentDir: layout.piHome, platform: process.platform });
 }
 
 export function stepPiConfig(layout, o) {

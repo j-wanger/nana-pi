@@ -10,7 +10,8 @@
  *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail, installLabel? } rows, including a safe place and error-kind repair
- *  for invalid nana-pack JSON and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
+ *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
+ *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
@@ -458,6 +459,11 @@ export function diagnose(layout, opts = {}) {
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : configState.parseDetail ?? `missing or unparseable: ${layout.piPackConfig}`);
 	const pf = projectFileState(cfg?.objective?.projectFile);
 	add(pf.status, "pi objective.projectFile", pf.detail);
+	const rawObjectivePath = cfg?.objective?.path;
+	if (rawObjectivePath !== undefined && rawObjectivePath !== null && typeof rawObjectivePath !== "string") {
+		const shown = JSON.stringify(rawObjectivePath)?.slice(0, 120) ?? String(rawObjectivePath);
+		add(FAIL, "pi objective.path", `${shown} is invalid (expected a path string or null) — the producer ignores it and uses ${layout.piObjective}; set objective.path in ${layout.piPackConfig} to a path string, or null for the default`);
+	}
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective, "pi nana-objective.md");
 	add(linkOk(layout.piRulings, ruleSource(RULINGS_FILE)) ? OK : FAIL, "pi nana-rulings.md", `-> ${ruleSource(RULINGS_FILE)}`);
