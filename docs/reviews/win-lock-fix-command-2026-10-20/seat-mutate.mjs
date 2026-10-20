@@ -27,6 +27,9 @@ const DECLARED = [
 	"(c) M22 (doctor's label after its command) and M23 (doctor's row drops the 'if no nana-setup is running' caveat) change wording R-2084 does not read; each names R-2084 and is expected to survive, which says no must-meet check pins that claim",
 ];
 
+const R2084_CAVEAT = "R-2084: doctor's settings lock row, on a fresh and an installed home, says to remove the lock only if no nana-setup is running"; // build 3 (cdccc250)
+const R2084_ORDER = "R-2084: on win32 doctor's settings lock row puts each shell label before its command and ends on a command"; // build 3 (cdccc250)
+
 const PAIRS = [
 	// settings-lock.mjs — removalCommands, POSIX line
 	{ n: "M1", name: "the sh line is main's unquoted rm", edits: [
@@ -98,10 +101,10 @@ const PAIRS = [
 	], tests: [IT, WDT], expectRed: [HEALTHY, HEALTHY_WIN32] },
 	{ n: "M22", name: "doctor's win32 row puts each label after its command (plan-attack amendment 2)", edits: [
 		one(DR, "`in ${commands[0].shell}: ${commands[0].command} — or in ${commands[1].shell}: ${commands[1].command}`", "`${commands[0].command} (${commands[0].shell}) — or ${commands[1].command} (${commands[1].shell})`"),
-	], tests: [SLT], expectRed: [R2084] },
+	], tests: [SLT], expectRed: [R2084_ORDER] },
 	{ n: "M23", name: "doctor's row calls the lock safe to delete, dropping the live-install caveat", edits: [
 		one(DR, "install will not run until it is removed; if no nana-setup is running, remove it:", "it is left over from an interrupted run and safe to delete:"),
-	], tests: [SLT], expectRed: [R2084] },
+	], tests: [SLT], expectRed: [R2084_CAVEAT] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-lock-fix-command", self: import.meta.url, tip: "74606671", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-lock-fix-command", self: import.meta.url, tip: "cdccc250", declared: DECLARED, pairs: PAIRS });
