@@ -236,6 +236,30 @@ function problemStats(problem: SourcesProblem, started: number, reason?: string)
 	};
 }
 
+async function assertRecoveryDeleteSafe(): Promise<void> {
+	let db: Db | undefined;
+	let began = false;
+	let failure: unknown;
+	try {
+		db = await openDb(paths.db, {});
+		db.exec("PRAGMA busy_timeout=0");
+		db.exec("BEGIN IMMEDIATE");
+		began = true;
+	} catch (err) {
+		if (!indexDamage(err)) failure = err;
+	} finally {
+		if (began) {
+			try { db!.exec("ROLLBACK"); }
+			catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
+		}
+		if (db) {
+			try { db.close(); }
+			catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
+		}
+	}
+	if (failure !== undefined) throw failure;
+}
+
 export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStats> {
 	if (!acquireBuildLock()) throw new BuildLockedError();
 	const started = Date.now();
@@ -248,6 +272,7 @@ export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStat
 			if (!reason) throw err;
 			if (sources.problem) return problemStats(sources.problem, started, reason);
 			if (opts.rebuild) throw err;
+			await assertRecoveryDeleteSafe();
 			const stats = await buildLocked({ rebuild: true }, sources);
 			stats.recovered = reason;
 			return stats;

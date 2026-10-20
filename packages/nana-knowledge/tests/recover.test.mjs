@@ -201,33 +201,42 @@ const r2402 = await caseWithin(async () => {
 });
 
 const r2403 = await caseWithin(async () => {
-	const f = await goodFixture("write-lock");
-	activate(f);
-	let committed;
-	try {
-		committed = await openDb(f.db, {});
-		setMeta(committed, "sentinel", "committed-value");
-	} finally {
-		try { committed?.close(); } catch {}
+	for (const damage of [false, true]) {
+		const f = await goodFixture(damage ? "damaged-write-lock" : "write-lock");
+		activate(f);
+		let committed;
+		try {
+			committed = await openDb(f.db, {});
+			setMeta(committed, "sentinel", "committed-value");
+		} finally {
+			try { committed?.close(); } catch {}
+		}
+		if (damage) await applyDamage(f, "docs-page");
+		const { DatabaseSync } = await loadSqlite();
+		const writer = new DatabaseSync(f.db);
+		let rejected = false;
+		let beforeBytes;
+		let beforeInode;
+		try {
+			writer.exec("BEGIN IMMEDIATE");
+			writer.prepare("INSERT INTO meta(key, value) VALUES (?, ?)").run("uncommitted", "held-value");
+			beforeBytes = fs.readFileSync(f.db);
+			beforeInode = fs.statSync(f.db).ino;
+			try { await build(); } catch { rejected = true; }
+			if (!rejected || fs.statSync(f.db).ino !== beforeInode || !beforeBytes.equals(fs.readFileSync(f.db))) return false;
+		} finally {
+			try { writer.exec("ROLLBACK"); } catch {}
+			writer.close();
+		}
+		let fresh;
+		try {
+			fresh = await openDb(f.db, {});
+			if (fresh.prepare("SELECT value FROM meta WHERE key = ?").get("sentinel")?.value !== "committed-value") return false;
+		} finally {
+			try { fresh?.close(); } catch {}
+		}
 	}
-	const { DatabaseSync } = await loadSqlite();
-	const writer = new DatabaseSync(f.db);
-	let rejected = false;
-	try {
-		writer.exec("BEGIN IMMEDIATE");
-		writer.prepare("INSERT INTO meta(key, value) VALUES (?, ?)").run("uncommitted", "held-value");
-		try { await build(); } catch { rejected = true; }
-	} finally {
-		try { writer.exec("ROLLBACK"); } catch {}
-		writer.close();
-	}
-	let fresh;
-	try {
-		fresh = await openDb(f.db, {});
-		return rejected && fresh.prepare("SELECT value FROM meta WHERE key = ?").get("sentinel")?.value === "committed-value";
-	} finally {
-		try { fresh?.close(); } catch {}
-	}
+	return true;
 });
 
 const r2404 = await caseWithin(async () => {
@@ -328,7 +337,7 @@ check("R-2401: a build over a SQLite file whose docs or files table lacks a used
 // req: R-2402
 check("R-2402: a pull over a page-overwritten index older than one hour starts a build that heals it, and a later pull hits", r2402);
 // req: R-2403
-check("R-2403: a build over a write-locked index fails and a fresh handle still reads the committed sentinel", r2403);
+check("R-2403: builds over healthy or page-damaged write-locked indexes fail, keep index.db's inode and bytes, and a fresh handle reads the committed sentinel", r2403);
 // req: R-2404
 check("R-2404: a build that loses the build lock leaves a damaged index.db byte for byte", r2404);
 // req: R-2405
