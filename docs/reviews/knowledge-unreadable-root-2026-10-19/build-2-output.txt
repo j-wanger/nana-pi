@@ -1,6 +1,6 @@
 $ node packages/nana-setup/bin/install-check.mjs
-pi: /Users/jwang/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
-node: /Users/jwang/.hermes/node/bin/node
+pi: <home>/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: <home>/.hermes/node/bin/node
 PASS install
 PASS pi-subagents
 PASS pi list nana-pack
