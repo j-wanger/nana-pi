@@ -24,3 +24,7 @@ Check: (1) the must-meet checks are not vacuous: W2 and W3 in `lib/mutation-runn
 check red; (2) no step of the check's gate still races the lift; (3) the diagnostic's marker read cannot throw out of
 the worker or turn a real overlap green; (4) no test writes outside the temp folders it owns; (5) nothing else changed:
 no lib, config, row or tree edit; (6) HANDOFF and the session entry are true, the residual lines included; (7) any MUST.
+
+## Base note (the seat, after this brief was written)
+
+Since `571c488b`, the seat merged main `54433844` (the handoff-pins land tip) into the lane. Review this lane's own change as `git diff main...HEAD` (three dots: against the merge base). In the merge the seat dropped main's older install-cli-pins residual about the macOS overlap, because this lane's rewritten line replaces it.
