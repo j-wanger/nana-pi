@@ -25,6 +25,7 @@ const BASH_ESCAPED_HIDDEN = /[\s|&;(){}<>$`#'"\\]/u;
 const BASH_STATUS_READER_WORDS = new Set(["then", "do"]);
 const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
 const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
+const POWERSHELL_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\}|\$LASTEXITCODE\b)/iu;
 const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
 const BASH_ERREXIT_CHANGES = /(?:^|[;&{}\r\n]|\b(?:then|do)\b|(\$?\())\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
@@ -143,6 +144,16 @@ function liveText(command, dialect = "bash") {
 				i++;
 			}
 			continue;
+		}
+		if (ch === "`") {
+			let end = i + 1;
+			while (end < source.length && (source[end] !== "`" || escapedByOddBackslashes(source, end))) end++;
+			if (end < source.length) {
+				text += ` (${liveText(source.slice(i + 1, end))}) `;
+				line += " ";
+				i = end;
+				continue;
+			}
 		}
 		if (ch === "'" || ch === '"') {
 			quote = ch; quoteStart = i; text += " "; line += ch; continue;
@@ -320,6 +331,14 @@ function scanPowerShellString(source, start, kind, spans, report, lastParenClose
 			i = nested.end;
 			continue;
 		}
+		if (kind === "double" && ch === "$") {
+			const status = source.slice(i).match(POWERSHELL_STATUS_EXPANSION)?.[0] ?? "";
+			if (status) {
+				live += status;
+				i += status.length;
+				continue;
+			}
+		}
 		if (quotes.has(ch)) {
 			if (quotes.has(source[i + 1])) {
 				live += "  ";
@@ -355,12 +374,27 @@ function scanPowerShellHereString(source, start, kind, spans, lastParenClose) {
 			spans.push({ kind: "string", start, end: i });
 			return { live, end: i, closed: true };
 		}
+		if (kind === "double" && ch === "`" && i + 1 < source.length) {
+			live += hidden(ch) + hidden(source[i + 1]);
+			i += 2;
+			lineStart = false;
+			continue;
+		}
 		if (kind === "double" && ch === "$" && source[i + 1] === "(" && i + 1 < lastParenClose) {
 			const nested = scanPowerShellRange(source, i + 2, true, spans, lastParenClose);
 			live += ` (${nested.live}) `;
 			i = nested.end;
 			lineStart = false;
 			continue;
+		}
+		if (kind === "double" && ch === "$") {
+			const status = source.slice(i).match(POWERSHELL_STATUS_EXPANSION)?.[0] ?? "";
+			if (status) {
+				live += status;
+				i += status.length;
+				lineStart = false;
+				continue;
+			}
 		}
 		live += hidden(ch);
 		lineStart = ch === "\n" || ch === "\r";
@@ -423,17 +457,27 @@ function bracketClosers(live) {
 	return closers;
 }
 
-function bashErrexitStates(live, pipes) {
-	const changes = [...live.matchAll(BASH_ERREXIT_CHANGES)];
+function bashErrexitStates(live, pipes, closers) {
+	const changes = [...live.matchAll(BASH_ERREXIT_CHANGES)].map((match) => ({
+		end: (match.index ?? 0) + match[0].length,
+		sign: match[2] ?? match[4],
+	}));
 	const states = [];
+	const scopes = [];
 	let active = false;
 	let change = 0;
+	let cursor = 0;
 	for (const pipe of pipes) {
-		while (change < changes.length && (changes[change].index ?? 0) + changes[change][0].length <= pipe) {
-			const afterSubshellOpener = changes[change][1] !== undefined;
-			const sign = changes[change][2] ?? changes[change][4];
-			if (!afterSubshellOpener || sign === "-") active = sign === "-";
-			change++;
+		for (; cursor < pipe; cursor++) {
+			if (live[cursor] === "(" && closers.has(cursor)) {
+				scopes.push({ close: closers.get(cursor), active });
+			} else if (live[cursor] === ")" && scopes.at(-1)?.close === cursor) {
+				active = scopes.pop().active;
+			}
+			while (change < changes.length && changes[change].end <= cursor + 1) {
+				active = changes[change].sign === "-";
+				change++;
+			}
 		}
 		states.push(active);
 	}
@@ -450,7 +494,7 @@ function nextCommandReadsStatus(live, start, dialect, powershellNativeStatus) {
 	for (let i = start; i < live.length; i++) {
 		const ch = live[i];
 		if (dialect !== "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;
-		if (dialect === "powershell" && ch === "$" && live[i + 1] === "?") return true;
+		if (dialect === "powershell" && ch === "$" && BASH_STATUS_EXPANSION.test(live.slice(i))) return true;
 		if (dialect === "powershell" && powershellNativeStatus && POWERSHELL_LAST_EXIT_CODE.test(live.slice(i))) return true;
 		if (BRACKET_OPENERS.has(ch)) { depth++; continue; }
 		if (BRACKET_CLOSERS.has(ch)) { if (depth > 0) depth--; continue; }
@@ -532,7 +576,7 @@ export function verifierPipeReason(command, dialect = "bash") {
 	if (initialPipefail) return null;
 	const pipes = pipelineStarts(live);
 	const closers = bracketClosers(live);
-	const errexitStates = dialect === "powershell" ? [] : bashErrexitStates(live, pipes);
+	const errexitStates = dialect === "powershell" ? [] : bashErrexitStates(live, pipes, closers);
 	for (let i = 0; i < pipes.length; i++) {
 		const pipe = pipes[i];
 		const read = statusReadAfterPipeline(live, pipe, dialect, errexitStates[i] ?? false, closers);

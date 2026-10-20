@@ -38,6 +38,8 @@ const discardedStatusCases = [
 	["PowerShell CRLF", "npm test | Select-Object -Last 5\r\ngit commit -m x", "powershell"],
 	["PowerShell LASTEXITCODE after Select-Object", "npm test | Select-Object -Last 5; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
 	["PowerShell LASTEXITCODE after case-insensitive Where-Object", "npm test | wHeRe-ObJeCt { $_ }; if ($LASTEXITCODE -eq 0) { git commit -m x }", "powershell"],
+	["PowerShell single-quoted question mark stays literal", "npm test | Select-Object -Last 5; if ('$?' -eq 'True') { git commit -m x }", "powershell"],
+	["PowerShell backtick-escaped question mark stays literal", 'npm test | Select-Object -Last 5; if ("`$?" -eq "True") { git commit -m x }', "powershell"],
 ];
 for (const [name, command, dialect] of discardedStatusCases) {
 	// req: R-2350
@@ -71,6 +73,9 @@ const consumedStatusCases = [
 	["bash outer errexit survives set +e inside a subshell", "set -e; (set +e; make lint); npm test | tail -5; git commit -m x"],
 	["bash outer errexit survives set +e inside command substitution", "set -e; echo \"$(set +e; make lint)\"; npm test | tail -5; git commit -m x"],
 	["bash outer errexit survives set +o errexit inside a subshell", "set -e; ( set +o errexit; make lint); npm test | tail -5; git commit -m x"],
+	["bash outer errexit survives a later set +e inside a subshell", "set -e; (echo preparing; set +e; true); npm test | tail -5; git commit -m checked"],
+	["bash outer errexit survives a later set +e inside a command substitution", "set -e; $(echo a; set +e); npm test | tail -5; git commit -m x"],
+	["bash outer errexit survives a later set +o errexit inside a subshell", "set -e; (true; set +o errexit); npm test | tail -5; git commit -m x"],
 	["bash even backslashes close double quotes", 'echo "a\\\\"; echo "b\\\\"; npm test | tail -5 && git commit -m x'],
 	["bash errexit set after then", "if true; then set -e; npm test | tail -5; fi; git commit -m x"],
 	["bash errexit set after do", "while true; do set -e; npm test | tail -5; break; done; git commit -m x"],
@@ -107,6 +112,9 @@ const consumedStatusCases = [
 	["PowerShell backtick-LF inside double quotes", "npm test | Select-String -Pattern \"FAIL`\nERROR\" -Quiet && git commit -m x", "powershell"],
 	["PowerShell call operator in pipeline", "npm test | & tail -5 && git commit -m x", "powershell"],
 	["PowerShell question mark", "npm test | Select-Object -Last 5; if ($?) { Write-Output ok }; git commit -m x", "powershell"],
+	["PowerShell double-quoted question mark", 'npm test | Select-Object -Last 5; if ("$?" -eq "True") { git commit -m checked }', "powershell"],
+	["PowerShell question mark in an expandable here-string", 'npm test | Select-Object -Last 5;\n@"\n$?\n"@\ngit commit -m x', "powershell"],
+	["PowerShell question mark in a string subexpression", 'npm test | Select-Object -Last 5; "$($?)"; git commit -m x', "powershell"],
 	["PowerShell ||", "npm test | Select-Object -Last 5 || exit 1; git commit -m x", "powershell"],
 	["PowerShell double-quoted multiline pattern", "npm test | Select-String -Pattern \"FAIL\nERROR\" -Quiet && git commit -m x", "powershell"],
 	["PowerShell single-quoted multiline pattern", "npm test | Select-String -Pattern 'FAIL\nERROR' -Quiet && git commit -m x", "powershell"],
