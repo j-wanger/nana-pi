@@ -55,6 +55,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piTrustStorePath } from "./gate-paths.ts";
+import { resolveObjectivePath } from "./objective-path.mjs";
 import { BOUNDED_READ_CAP, readBounded } from "./bounded-read.mjs";
 import { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, configFailureDetail } from "./json-text.mjs";
 // The display renderers live in lib/display.mjs (lane S1, one implementation for every surface);
@@ -99,15 +100,16 @@ export interface ObjectiveResult {
 }
 
 /**
- * `~/` expands; a RELATIVE path resolves against pi's ACTIVE agent dir (gate-paths' piAgentDir():
- * PI_CODING_AGENT_DIR when set, else ~/.pi/agent) and NEVER against the session cwd. The default
- * (no path) is <active agent dir>/nana-objective.md — the same dir the trust store is read from.
+ * Shared resolver (lib/objective-path.mjs): a non-string or "" value resolves to
+ * `<active agent dir>/nana-objective.md` — the same dir the trust store is read from; "~" is
+ * home; a leading `~/` expands under home on every platform, a leading `~\` only on win32; an
+ * absolute value stays unchanged; anything else resolves against pi's ACTIVE agent dir
+ * (gate-paths' piAgentDir(): PI_CODING_AGENT_DIR when set, else ~/.pi/agent) and NEVER against
+ * the session cwd. `o.path`, never `o?.path`: a missing settings object must still throw here,
+ * so produceObjective's catch turns it into the internal-error marker (R-2093).
  */
 export function objectivePath(o: ObjectiveSettings): string {
-	const p = o.path ?? path.join(piAgentDir(), "nana-objective.md");
-	if (p === "~") return os.homedir();
-	if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
-	return path.isAbsolute(p) ? p : path.join(piAgentDir(), p);
+	return resolveObjectivePath(o.path, { home: os.homedir(), agentDir: piAgentDir(), platform: process.platform });
 }
 
 function isSymlink(file: string): boolean {
