@@ -458,7 +458,9 @@ seat guide's rule). A parent killed outright writes no record, leaves its shards
 their own, and leaves its lock for the next run on that record to replace. On Windows a stop
 ends each shard outright rather than delivering a signal it can catch, and npm's config values
 are not read there. Shards share one operation lock, so a scratch-worktree add never overlaps
-another shard's complete removal and its retries. After a scratch-worktree removal fails, the runner
+another shard's complete removal and its retries. Only one waiter at a time removes a dead shard's
+lock. A waiter killed while removing one, plus a later dead shard, can still let two waiters in.
+After a scratch-worktree removal fails, the runner
 checks whether its entry is still listed, waits, deletes the scratch folder, and retries the removal by the unique
 `<scratch folder base name>/wt` suffix. It never runs `git worktree prune`, because pruning can
 remove entries the runner did not create. A locked scratch entry therefore stays listed after

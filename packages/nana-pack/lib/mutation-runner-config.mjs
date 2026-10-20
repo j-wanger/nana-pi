@@ -5,7 +5,7 @@
  * @outputs SHARDS_DEFAULT, STAGGER_SECS_DEFAULT, FILE_TIMEOUT_MS, BASELINE_RETRIES, WORKTREE_REMOVE_RETRIES,
  *  WORKTREE_REMOVE_RETRY_MS, WORKTREE_LOCK_WAIT_MS, WORKTREE_LOCK_UNREADABLE_STALE_MS,
  *  WORKTREE_LOCK_WAIT_LIMIT_MS, WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH,
- *  ENV_NAMES, LOCK_SUFFIX, TABLE_HASH_ALGO,
+ *  ENV_NAMES, LOCK_SUFFIX, WORKTREE_LOCK_BREAKER_SUFFIX, TABLE_HASH_ALGO,
  *  OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT,
  *  SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
  * @effects none
@@ -89,6 +89,10 @@ export const ENV_NAMES = Object.freeze({
 // chosen: the lock sits beside the record under the record's own name, so a refusal names a file the seat
 // can find (R-1242).
 export const LOCK_SUFFIX = ".lock";
+
+// chosen: a short adjacent suffix gives every dead-lock takeover one atomic breaker without changing the
+// operation lock's established path or ownership format (R-2170).
+export const WORKTREE_LOCK_BREAKER_SUFFIX = ".break";
 
 // chosen: Node's built-in hash, so the runner keeps no dependency; the header names the algorithm beside
 // the value (R-1243).
