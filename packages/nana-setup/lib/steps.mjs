@@ -11,7 +11,7 @@
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json; install takes the O_EXCL .settings.json.nana-setup.lock
- *  before its first write and holds it through the settings write, whose fsync'd temp-file rename
+ *  before its first write and holds it through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
  *  win32), <piHome>/extensions/subagent/config.json,
@@ -24,7 +24,7 @@
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
  *  edit; install cannot take its settings lock before its first write and hold it through the
- *  settings write; settings.json changed on disk during the run; a plist placeholder with no
+ *  PATH entries; settings.json changed on disk during the run; a plist placeholder with no
  *  value. Every other failure is a row: PROBLEM for a non-regular
  *  nana-personal.md, or anything already sitting where the skill symlink
  *  belongs, SKIPPED for unsupported win32 pieces, a failed knowledge build or missing pi, and PROBLEM for a failed
@@ -297,12 +297,13 @@ export function linkSkill(target, source, o = {}) {
 	const resolved = path.resolve(source);
 	if (st?.isSymbolicLink()) {
 		let current = path.resolve(path.dirname(target), fs.readlinkSync(target));
-		if (o.preserveForeignLink) {
-			try { current = realPath(target, { mustExist: true }); } catch { /* broken foreign link */ }
-			let canonicalSource = resolved;
-			try { canonicalSource = realPath(source, { mustExist: true }); } catch { /* missing pack source */ }
-			if (current === canonicalSource) return { status: UNCHANGED, detail: null };
-			return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+		if (o.preserveForeignLink && current !== resolved) {
+			try {
+				if (realPath(target, { mustExist: true }) !== realPath(source, { mustExist: true }))
+					return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+			} catch {
+				return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+			}
 		}
 		if (current === resolved) return { status: UNCHANGED, detail: null };
 		if (o.dryRun) return { status: UPDATED, detail: `would relink (was ${current})` };
@@ -1104,21 +1105,21 @@ export function install(layout, opts = {}) {
 	// Pre-flight: the one thing that can abort. Parse before any write.
 	const settingsState = readClaudeSettings(layout);
 	const results = [];
-	const claudeSteps = (lockHeld) => {
+	const fileSteps = (lockHeld) => {
 		results.push(...stepRetiredArtifacts(layout, o));
 		results.push(...stepHooks(layout, o));
 		results.push(...stepRules(layout, o));
 		results.push(...stepSkills(layout, o));
 		results.push(...stepSettings(layout, o, settingsState, { lockHeld }));
+		results.push(...stepSharedMemory(layout, o));
+		results.push(...stepPiConfig(layout, o));
+		results.push(...stepSubagentConfig(layout, o));
+		results.push(...stepReviewerAgent(layout, o));
+		results.push(...stepPath(layout, o));
 	};
-	if (o.dryRun) claudeSteps(false);
-	else withSettingsLock(layout.claudeSettings, () => claudeSteps(true));
-	results.push(...stepSharedMemory(layout, o));
-	results.push(...stepPiConfig(layout, o));
-	results.push(...stepSubagentConfig(layout, o));
-	results.push(...stepReviewerAgent(layout, o));
+	if (o.dryRun) fileSteps(false);
+	else withSettingsLock(layout.claudeSettings, () => fileSteps(true));
 	results.push(...stepKnowledge(layout, o));
-	results.push(...stepPath(layout, o));
 	if (opts.desk) results.push(...stepDesk(layout, o));
 	results.push(...stepPiRegister(layout, o));
 	return results;

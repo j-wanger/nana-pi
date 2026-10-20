@@ -282,7 +282,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - A copier-born project has no month log until `nana-setup project` runs; the distinct entry routes are not collapsed into one setup path.
 - Project-scope `.pi/settings.json` package entries are not read; a second separate clone with a different git common dir is not recognized; `http://` spellings are invisible under R-325. Install still reports a remote- or worktree-covered registration as in place and adds nothing; doctor is the instrument for detecting a source that differs from this checkout.
 - `tests/install.test.mjs` and `tests/win32-degrade.test.mjs` fail when started from an untrusted working folder: their CLI subprocesses inherit that folder's trust state. The suite runs them from the repo, so it stays green.
-- An earlier install made through another spelling of the checkout converges once on the next install: POSIX links and the knowledge hook are rewritten, while Windows rewrites six hook entries and eight launcher files with dated backups. Uninstall leaves an earlier-spelling knowledge hook entry as a settings hook variant until install converges it.
+- An earlier install made through another spelling of the checkout converges once on the next install. On macOS and Linux, install converges every link and the knowledge hook to the checkout's on-disk spelling, a linked spelling included, and uninstall removes a knowledge entry that differs from install's desired entry only in that spelling. On Windows, a letter-case, drive-letter or short-name spelling gets six hook entries and eight launcher files rewritten with dated backups, while hook entries written through a junction to the checkout stay.
 - When native realpath fails, setup uses typed realpath spelling, so native spelling guarantees do not apply on that path.
 
 ## What it never does
@@ -293,7 +293,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - **Never runs `pi install` or `npm` for you** to bring `pi-subagents` to the version `doctor`
   checks for, and never edits `mcp.json` — both are read-only checks (above); the fix is a command
   `doctor` names, for you to run.
-- **Install never removes or reorders** existing settings entries except the two exact retired context-hook forms and the Windows repair of POSIX-installer entries: the five shell-form hooks and first unquoted knowledge form become exec form in place, while the verifier moves from `Bash` to `Bash\|PowerShell` without disturbing foreign entries or duplicating an existing verifier. It updates only the command field of exact managed retired SessionStart hooks, in place. `uninstall` removes only exact desired hook objects; variants and foreign entries stay. A hook counts as present only when
+- **Install never removes or reorders** existing settings entries except the two exact retired context-hook forms and the Windows repair of POSIX-installer entries: the five shell-form hooks and first unquoted knowledge form become exec form in place, while the verifier moves from `Bash` to `Bash\|PowerShell` without disturbing foreign entries or duplicating an existing verifier. It updates only the command field of exact managed retired SessionStart hooks, in place. `uninstall` removes exact desired hook objects and a knowledge entry that differs only by another spelling of the same file; variants and foreign entries stay. A hook counts as present only when
   the command actually **executes** that script: the command is tokenized with shell-quoting
   rules, leading `VAR=value` assignments are dropped, and `argv[0]` must be the interpreter
   (`node` for the ported hooks; bash/sh/zsh for other commands) with `argv[1]` a path ending in `/<script>` (plus the expected
@@ -309,11 +309,18 @@ Doctor's `release status` row is informational (·). It counts template commits 
   (`{"hooks":"disabled"}` parses but cannot be extended) — a failure there **aborts before
   anything on disk moves**. After preflight, install takes an exclusive lock file
   (`~/.claude/.settings.json.nana-setup.lock`, taken with `O_EXCL`) before its first write and holds
-  it through the settings write. Retired artifacts, hooks, rules, skills and settings all run while
-  it is held. Inside it, the file is re-read and compared to the preflight bytes; the temp file is
-  written and `fsync`ed; then the file is
-  compared **again**, immediately before the rename. Mode is preserved, and the temp file is
-  removed on any abort. `--dry-run` never takes the lock.
+  it through the PATH entries. Retired artifacts, hooks, rules, skills, settings, shared memory,
+  pi config, subagent config, the reviewer agent and PATH entries all run while it is held. A second
+  install started then exits 2 and writes nothing. Inside the lock, the settings file is re-read and
+  compared to the preflight bytes; the temp file is written and `fsync`ed; then the file is compared
+  **again**, immediately before the rename. Mode is preserved, and the temp file is removed on any
+  abort. `--dry-run` never takes the lock. The knowledge build, desk service and pi registration run
+  after release, so a Ctrl-C there leaves no lock.
+
+  The lock lives in the Claude home. Two installs with different `--claude-home` values over one pi
+  home and bin folder are not kept apart. A second install started after release runs beside the
+  first run's knowledge build, desk step and pi registration; concurrent pi registration still
+  relies on pi's own settings lock.
 
   **A leftover lock is yours to clear.** If the lock exists, the run aborts before anything is
   written and prints the lock path, the pid and age the lock recorded. On macOS and Linux it prints
@@ -477,6 +484,7 @@ loudly and counted, never silent.
 | `tests/desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
 | `tests/stale-copies.test.mjs` | Claude Code and pi stale-copy notices on POSIX and win32; exact doctor-label parity across hook links, hook settings, rules and skills; blocked skill paths or their linked parent to move; repair clearing the line; a byte-unchanged home; silence when current; and the checker failure marker |
 | `tests/checkout-spelling.test.mjs` | install, doctor, stale-copy and uninstall identity across the checkout's on-disk spelling and an available case, drive-letter or 8.3 spelling, including homes written by an earlier spelling |
+| `tests/checkout-converge.test.mjs` | POSIX install convergence for same-checkout skill links and the knowledge hook, foreign-link preservation, and uninstall ownership; the runner skips this file on Windows |
 | `tests/realpath-fallback.test.mjs` | install, doctor, the stale-copy producer and POSIX uninstall when native realpath fails inside the checkout and typed realpath succeeds |
 | `tests/skills-and-standards.test.mjs` | the `requirements` skill and the `claude/rules/nana-standards.md` rule: the frontmatter name and every trigger phrase the description must carry, a fresh machine getting both as symlinks into the repo, idempotence, doctor ✓ or ✗ with the fix named, a **regular directory** already at `~/.claude/skills/requirements` reported with install **exit 1** and the owner's file untouched and nothing backed up into the skills dir, a symlink pointing elsewhere relinked, and the forced win32 branch (a real directory of byte-equal copies, a stale copy caught by doctor and refreshed, a hand-written file backed up beside itself); on win32 a folder nana-setup did not make is refused the same way — install and `--dry-run` **exit 1** and leave it byte-identical, doctor reads ✗ — while a `.nana-setup-copy`-marked mirror or a pre-marker shipped SKILL.md (LF or CRLF) keeps refreshing and a fresh mirror gets the marker written |
 | `tests/project.test.mjs` | `project` on a blank folder (every file, `git init`, the one-line `CLAUDE.md` import, the canonical section verbatim), the same import written with `NANA_SETUP_PLATFORM=win32` forced, the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing objective, navigation, or sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. nana-pi's own committed `CLAUDE.md`, a regular file holding the import; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; the CLAUDE.md import reading ✓, and an existing symlink still reading ✓ only when it RESOLVES to this project's AGENTS.md (dangling, `-> missing/AGENTS.md` and a link to another project all ✗, with exit 1); the AGENTS.md placeholder text reading ✗ and a refresh replacing it with the import file without ever writing through a link; `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_TEST_REQUIRE_COPIER=1`) when `uvx` is not installed |
