@@ -77,4 +77,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R2412] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-hook-variant-loop", self: import.meta.url, tip: "a20a37ce", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-hook-variant-loop", self: import.meta.url, tip: "27b06dec", declared: DECLARED, pairs: PAIRS });
