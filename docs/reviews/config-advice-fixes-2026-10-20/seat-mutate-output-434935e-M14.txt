@@ -1,0 +1,11 @@
+seat-mutate: lane config-advice-fixes, tip 434935e351a1eca095d9858b605d5e1c381649f7, table 7c2064338f89172d761e3977277f93056fdaa5fa01138367917e56fe4053f45c, merge-base 385c633fc27ac1d1e9b3fc10e300be71c13ad3ce, 1 pairs in 1 shards (1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T08:10:36.639Z
+DECLARED (a) every pair runs on macOS with this machine's Node 22.22.2; outside this table, Node 24.22.0 (reached through npx) gave the same V8 wording as 22.22.2 for the Unicode, bad escaped, control character, trailing comma and empty-file cases
+DECLARED (b) no pair removes the two new exports or objective.ts's re-export: a missing export makes every importing check read undefined, a crash rather than wrong behaviour
+DECLARED (c) the hook launcher, bin/nana-objective.mjs, the extension, config.ts, doctor.mjs and both READMEs are unchanged by the lane, so no pair reverts them; doctor reads the advice only through the shared constant
+DECLARED (d) M9 probes the line's order inside the catch branch R-2094 pins, M12 one physical line, M13 V8's message in the line; M14 rewords the contract text the lane's tests stopped typing
+[1/1] seat-mutate: lane config-advice-fixes, shard 1/1, tip 434935e351a1eca095d9858b605d5e1c381649f7, merge-base 385c633fc27ac1d1e9b3fc10e300be71c13ad3ce, 1 pairs, darwin, node v22.22.2, 2026-10-20T08:10:37.704Z
+[1/1] BASELINE ok   packages/nana-pack/tests/objective-golden.test.mjs (exit 0, 1280 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/doctor-detail.test.mjs (exit 0, 71 PASS, 0 FAIL, )
+[1/1] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED M14 the manual repair is reworded away from the R-1971/R-1972 contract text the pack README quotes — 1/1 named: R-1971: the manual repair advice is sealed as the README quotes it; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards
