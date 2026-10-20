@@ -52,8 +52,6 @@ const aEntries = Array.from({ length: countFor(aSample.length + 2) }, (_, i) =>
 	`- [Amber ${String(i).padStart(4, "0")}](amber-${String(i).padStart(4, "0")}.md) — ${"a".repeat(200)}${i % 2 ? " " : "\t"}`,
 );
 const fixtureA = runFixture("a", aEntries, "\r\n");
-// req: R-2340
-check("R-2340: an over-budget CRLF index prints at most the output budget", fixtureA.stdout.length <= SHARED_MEMORY_OUTPUT_BUDGET, `length=${fixtureA.stdout.length}`);
 
 // Fixture D: each six-line group has four short, one long and one very long description.
 const dDescriptionLengths = [20, 20, 20, 20, 200, 700];
@@ -112,6 +110,26 @@ const bLeadingWholeLines = bPrinted.length > 0
 	&& !fixtureB.stdout.includes(headOf(bEntries[bPrinted.length]));
 // req: R-2343
 check("R-2343: when titles alone overflow the budget, leading entries print and trailing entries are left out whole", bLeadingWholeLines, `printed=${bPrinted.length}/${bEntries.length}`);
+
+// Fixture F: 60-character titles fill the budget without, but not with, the required fold line.
+const fixtureFEmpty = runFixture("f-empty", []);
+const fHead = `- [${"F".repeat(60)}](f.md)`;
+const fZeroLineLength = fHead.length + SHARED_MEMORY_TRIM_MARK.length + 1;
+const fCount = Math.floor((SHARED_MEMORY_OUTPUT_BUDGET - fixtureFEmpty.stdout.length) / fZeroLineLength);
+const fEntries = Array.from({ length: fCount }, () => `${fHead} — brief`);
+const fixtureF = runFixture("f-boundary", fEntries, "\n", fixtureFEmpty.home);
+
+// Fixture G: a symlinked project path adds the self-heal note to an over-budget index.
+const gHome = tmpDir(path.join(os.tmpdir(), "nana-budget-g-"));
+const gProjects = path.join(gHome, ".claude", "projects");
+const gExternal = tmpDir(path.join(os.tmpdir(), "nana-budget-g-external-"));
+fs.mkdirSync(path.dirname(gProjects), { recursive: true });
+fs.symlinkSync(gExternal, gProjects);
+const fixtureG = runFixture("g-note", aEntries, "\n", gHome);
+
+const budgetLengths = [fixtureA, fixtureB, fixtureF, fixtureG].map(({ stdout }) => stdout.length);
+// req: R-2340
+check("R-2340: an over-budget CRLF index prints at most the output budget", budgetLengths.every((length) => length <= SHARED_MEMORY_OUTPUT_BUDGET), `lengths=${budgetLengths.join(",")}`);
 
 function foldHasCounts(run, shortened, total, leftOut) {
 	const fold = lastLine(run);
