@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/lib/gate-rm-inside.ts
  * @purpose Decide whether a plain recursive/forced rm of literal relative targets strictly inside the session working directory may run with no approval, per Jake's 2026-10-10 ruling.
- * @inputs a raw bash command string, the session cwd, an optional home override (default os.homedir()), env PI_CODING_AGENT_DIR (through gate-paths), and the filesystem (realpath and lstat of cwd, home, the active pi agent folder, every target and its intermediate parts)
+ * @inputs a raw bash command string, the session cwd, an optional home override (default os.homedir()), env PI_CODING_AGENT_DIR (through gate-paths), and the filesystem (realpath and lstat of cwd, home, the active pi agent folder, every target and its intermediate parts, and the HEAD/objects/refs/.git entries along the cwd's ancestor walk and of each existing target part, for the bare-repository shape guard)
  * @outputs rmInsideCwd(command, cwd, home?): true only when every guard below passes, false otherwise
- * @effects disk (realpath and lstat of cwd, home, the active pi agent folder and each target's parts)
+ * @effects disk (realpath and lstat of cwd, home, the active pi agent folder, each target's parts, and the HEAD/objects/refs/.git entries on the cwd's ancestor walk and each existing target part)
  * @errors never throws — any unexpected error anywhere in the walk is treated as false
  */
 /**
@@ -34,6 +34,14 @@ import { realPath } from "./real-path.mjs";
 const PLAIN_RM = /^rm([ \t]+[A-Za-z0-9._@/-]+)+$/;
 const RM_FLAG = /^(-[rRfv]+|--recursive|--force|--verbose)$/;
 
+// contract: R-2240, R-2241 — git's is_git_directory shape (a HEAD file plus objects and refs
+// folders), lstat only, never following a link. One function (isBareShape, below) tests it for
+// both the cwd's ancestor walk (3b) and the per-target walk (5).
+const BARE_HEAD = "HEAD";
+const BARE_OBJECTS = "objects";
+const BARE_REFS = "refs";
+const GIT_ENTRY = ".git";
+
 /** `child` lies inside, or is, `parent` — on `path.relative`, never a string-prefix test. */
 function inside(child: string, parent: string): boolean {
 	const relative = path.relative(parent, child);
@@ -43,13 +51,38 @@ function inside(child: string, parent: string): boolean {
 const isFsRoot = (p: string): boolean => path.dirname(p) === p;
 const hasDotPart = (p: string): boolean => p.split(path.sep).some((part) => part.length > 0 && part.startsWith("."));
 
+/** `fs.lstatSync(p)`, or null on ENOENT/ENOTDIR; any other error rethrows — rmInsideCwd's outer
+ *  catch turns that into false, which keeps the @errors contract. Never follows a link. */
+function lstatOrNull(p: string): fs.Stats | null {
+	try {
+		return fs.lstatSync(p);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code === "ENOENT" || code === "ENOTDIR") return null;
+		throw error;
+	}
+}
+
+/** `dir` has git's bare-repository shape: a `HEAD` file, and `objects` and `refs` folders —
+ *  lstat only, so a symlinked HEAD/objects/refs is not recognised (declared survivor: it asks
+ *  more, never less). Mirrors git's is_git_directory. */
+function isBareShape(dir: string): boolean {
+	const head = lstatOrNull(path.join(dir, BARE_HEAD));
+	const objects = lstatOrNull(path.join(dir, BARE_OBJECTS));
+	const refs = lstatOrNull(path.join(dir, BARE_REFS));
+	return !!head?.isFile() && !!objects?.isDirectory() && !!refs?.isDirectory();
+}
+
 /**
  * true only for a command that is exactly `rm`, flags drawn only from -r/-R/-f/-v (alone or
  * combined) or --recursive/--force/--verbose, and one or more relative targets each strictly
  * inside `cwd` — none a link anywhere on the way, none dot-named, none directly holding a
- * `.git` entry, none overlapping the active pi agent folder in either direction — and `cwd`
- * itself is not a filesystem root, not home or an ancestor of home, and has no dot-named part.
- * Never throws.
+ * `.git` entry, none a bare repository's folder or holding one on the way to it, none
+ * overlapping the active pi agent folder in either direction — and `cwd` itself is not a
+ * filesystem root, not home or an ancestor of home, has no dot-named part, and (walking up to
+ * the nearest `.git` entry, as git's own discovery does) is not a bare repository's folder or
+ * inside one, unless that `.git` entry sits at or below the bare repository, as in a worktree
+ * `git worktree add` made inside it. Never throws.
  */
 export function rmInsideCwd(command: string, cwd: string, home = os.homedir()): boolean {
 	try {
@@ -66,6 +99,17 @@ export function rmInsideCwd(command: string, cwd: string, home = os.homedir()): 
 		const cwdReal = realPath(cwd);
 		const homeReal = realPath(home);
 		if (isFsRoot(cwdReal) || inside(homeReal, cwdReal) || hasDotPart(cwdReal)) return false;
+
+		// 3b: walk up from the cwd as git's own directory discovery does, looking for a bare
+		// repository's shape — contract: R-2241, R-2242. Each level tests for a `.git` entry
+		// (of any type) FIRST: finding one ends the walk, so a worktree `git worktree add` made
+		// inside a bare repository keeps the exemption. Only then is the level's shape tested;
+		// a match keeps today's verdict (ask).
+		for (let dir = cwdReal; ; dir = path.dirname(dir)) {
+			if (lstatOrNull(path.join(dir, GIT_ENTRY))) break;
+			if (isBareShape(dir)) return false;
+			if (isFsRoot(dir)) break;
+		}
 
 		const agentReal = realPath(piAgentDir());
 
@@ -88,6 +132,9 @@ export function rmInsideCwd(command: string, cwd: string, home = os.homedir()): 
 					return false;
 				}
 				if (st.isSymbolicLink()) return false;
+				// contract: R-2240 — an existing folder part with a bare repository's shape
+				// returns false; this covers the target itself and every folder on the way to it.
+				if (st.isDirectory() && isBareShape(cur)) return false;
 			}
 
 			// 6: the target and the active pi agent folder must not overlap, either direction
