@@ -7,7 +7,7 @@ merge-base HEAD main` is `cd2d580e`). The plan of record is `docs/reviews/rm-out
 eight must-meet checks, rows R-2330 to R-2337, plus R-2338, which build 2 added after the independent check's MUST.
 `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is build 1 (3d8e2d22); `build-brief-2.md` is build 2
 (b19438f5). The seat's record is `seat-verify-b19438f5.md`. On draft pull request #140, build 1's CI run was cancelled
-as superseded, and run 39460770013 runs at 490bb78b (build 2 plus the seat's pairs record). CI-PENDING. The record also
+as superseded, and run 39460770013 runs at 490bb78b (build 2 plus the seat's pairs record). It was still running when this brief was written; the seat reads its Windows leg before the land. The land runs the locked suite on the reviewed tip. The record also
 holds the macOS wrong-code pairs (`seat-mutate.mjs`; 27 of 30 red on build 1, G2, G5 and G6 surviving; 31 of 31 red on
 build 2) and the independent check (`independent-check-b19438f5.md`: FINDINGS, one MUST, run on 3d8e2d22). Build 2
 fixes that MUST; the check did not re-run on build 2, and the seat's re-run of its replay against build 2 saw 1 new

@@ -26,7 +26,7 @@
   files, 192 PASS, 2 SKIP. Nothing else held the machine lock then.
 - CI on draft pull request #140:
   - Run 39457512319 at 3d8e2d22 (build 1) was cancelled as superseded.
-  - Run 39460770013 at 490bb78b (build 2 plus the seat's pairs table and record, no code change). CI-PENDING.
+  - Run 39460770013 at 490bb78b (build 2 plus the seat's pairs table and record, no code change). Still running when the reviews started (13:05 EDT); the seat reads its Windows leg before the land, as the plan says.
   - Main's own known failures: Ubuntu's path-spelling GP1 and GP2 until linux-path-spelling landed (main ca27d86); a
     pull-request run's R-291 leaf-total failure, a merge artifact of GitHub's merge commit. Windows main reads 0 FAIL
     since 4be0b79 (desk files are declared skips). A failure in that set is main's, not the lane's.
@@ -64,7 +64,8 @@
        than main: 67 under `/tmp`, 5 under its real path and 1 `/config`. A compound call lost its whole command.
        Nothing main blocks ran on the lane. Fixed by build 2 (b19438f5): `gateTempRoots()` and R-2338 with its check.
        The seat re-ran the check's own replay against build 2: 1 new block versus main, a reviewer's `rm /config`, the
-       one case the plan expected. The independent check itself did not re-run on build 2.
+       one case the plan expected. Its counts line: reviewer 280 calls, 1 new block, 0 newly open; builder 47, 0, 0;
+       other 5, 0, 0. The per-call output stays in the seat's scratch folder, because it quotes recorded commands. The independent check itself did not re-run on build 2.
     2. Known bug: a commit message in a heredoc with a line starting `rm ../x` blocks headless. The plan's known limit 6
        declares it. Builders commit with `-F "$msg"`, so it is rare. Recorded as a HANDOFF residual.
     3. Not probed: win32 path handling, because the module uses the native `path` functions with no platform

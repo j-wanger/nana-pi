@@ -8,7 +8,7 @@ eight must-meet checks, rows R-2330 to R-2337, plus R-2338, which build 2 added 
 `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is build 1 (3d8e2d22); `build-brief-2.md` is build 2
 (b19438f5), which adds the `/tmp` temp root on macOS and Linux and closes three pair survivors. The seat's record is
 `seat-verify-b19438f5.md`. On draft pull request #140, build 1's CI run was cancelled as superseded, and run
-39460770013 runs at 490bb78b (build 2 plus the seat's pairs record). CI-PENDING. The record also holds the macOS
+39460770013 runs at 490bb78b (build 2 plus the seat's pairs record). It was still running when this brief was written; the seat reads its Windows leg before the land. The land runs the locked suite on the reviewed tip. The record also holds the macOS
 wrong-code pairs (`seat-mutate.mjs`; 27 of 30 red on build 1, G2, G5 and G6 surviving; 31 of 31 red on build 2; records
 `seat-mutate-output-3d8e2d22.txt` and `seat-mutate-output-b19438f5.txt`) and the independent check
 (`independent-check-b19438f5.md`: FINDINGS, one MUST, run on 3d8e2d22). Build 2 fixes that MUST. The independent check
