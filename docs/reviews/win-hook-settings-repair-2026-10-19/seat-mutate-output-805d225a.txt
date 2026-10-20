@@ -1,0 +1,28 @@
+seat-mutate: lane win-hook-settings-repair, tip 805d225a98f6071762d319d7e5b59c15629c51c0, table 10992cfe863a3c657d39aaefa3fdd9a69230082f458311e12c618c387046f105, merge-base d4423eff5a68c3ae5137adf1e5ed890f9b2154ed, 13 pairs in 1 shards (13, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-20T02:17:44.704Z
+DECLARED (a) every pair runs on macOS; the lane's file forces NANA_SETUP_PLATFORM=win32 on every leg, and the native Windows run is CI's Windows leg
+DECLARED (b) M10-M13 name no title and run over the lane file plus win32-degrade, settings-merge, verifier-pipe, stale-copies, uninstall and install: M11 (an emptied Bash group is kept) is the plan's known-limit survivor; M10, M12 and M13 probe lane sites no must-meet check names
+DECLARED (c) no pair for the absolute-path and knowledge-suffix tests of the two new forms: a look-alike that copies nana's status message, timeout, quoting and folder is forgery, outside the threat model
+DECLARED (d) no pair for POSIX_VERIFIER_MATCHER replacing the inline "Bash" in desiredHooks, or for reusing an existing verifier-matcher group: neither changes behaviour a check or the review standard names
+[1/1] seat-mutate: lane win-hook-settings-repair, shard 1/1, tip 805d225a98f6071762d319d7e5b59c15629c51c0, merge-base d4423eff5a68c3ae5137adf1e5ed890f9b2154ed, 13 pairs, darwin, node v22.22.2, 2026-10-20T02:17:45.313Z
+[1/1] BASELINE ok   packages/nana-setup/tests/win32-hook-repair.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/win32-degrade.test.mjs (exit 0, 87 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/settings-merge.test.mjs (exit 0, 219 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/verifier-pipe.test.mjs (exit 0, 29 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/stale-copies.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/uninstall.test.mjs (exit 0, 31 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-setup/tests/install.test.mjs (exit 0, 106 PASS, 0 FAIL, )
+[1/1] RESULT: 9/13 red (9 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 4 survived [M10, M11, M12, M13]
+RED M1 installerTarget keeps main: no posix-shell form for the five hooks — 5/5 named: win32 install: carried shell-form SessionStart entries become exec form in place | win32 install: a shell-form verifier under Bash ends as one exec-form verifier under WIN_VERIFIER_M… | win32 install: a Bash verifier beside a WIN_VERIFIER_MATCHER verifier ends as one | win32 install: the Bash group keeps its matcher and other entries when the verifier moves | win32 doctor: all six settings rows read ✓ after one install over the carried home; 5 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 installerTarget keeps main: no posix-unquoted knowledge form — 1/1 named: win32 install: the first installer's unquoted knowledge entry becomes exec form in place; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 the posix-shell form skips its byte-equal quoting check — 1/1 named: win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 the posix-shell form accepts any folder that ends in the script — 1/1 named: win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 the posix-unquoted form skips its byte-equal check — 1/1 named: win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M6 the Bash-group scan drops its timeout gate — 1/1 named: win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M7 the move rewrites the surviving Bash group's matcher — 1/1 named: win32 install: the Bash group keeps its matcher and other entries when the verifier moves; 1 FAIL total (1 file changed, 1 insertion(+))
+RED M8 the move appends a second verifier beside one already under the verifier matcher — 1/1 named: win32 install: a Bash verifier beside a WIN_VERIFIER_MATCHER verifier ends as one; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M9 a scanned Bash group counts as a repair — 1/1 named: win32 install: a second install over the repaired home reports all six settings rows unchanged; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN M10 the move is not counted as a repair (main's replaced = false) — SURVIVED
+GREEN M11 a Bash group the move empties is kept — SURVIVED
+GREEN M12 the moved verifier keeps none of its own keys — SURVIVED
+GREEN M13 the already-moved test drops its timeout gate — SURVIVED
+RESULT: 9/13 red (9 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 4 survived [M10, M11, M12, M13], across 1 shards
