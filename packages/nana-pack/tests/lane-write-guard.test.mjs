@@ -7,10 +7,12 @@
  * @errors failed assertions exit nonzero
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { tmpDirUnmanaged } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 const worktree = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "lane-root-")));
 const homeFixture = fs.realpathSync(tmpDir(path.join(os.homedir(), "lane-guard-home-")));
 const contained = (parent, child) => { const rel = path.relative(parent, child); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
@@ -37,7 +39,7 @@ const link = path.join(worktree, "escape"); fs.symlinkSync(outside, link, "dir")
 const dangling = path.join(worktree, "dangling-outside"); fs.symlinkSync(path.join(outside, "missing-file"), dangling);
 const loopA = path.join(worktree, "loop-a"), loopB = path.join(worktree, "loop-b");
 fs.symlinkSync(loopB, loopA); fs.symlinkSync(loopA, loopB);
-process.env.HOME = worktree; process.env.USERPROFILE = worktree;
+process.env.HOME = homeFixture; process.env.USERPROFILE = homeFixture;
 const ext = (await import("../extensions/nana-gate.ts")).default;
 let handler; ext({ on: (event, fn) => { if (event === "tool_call") handler = fn; } });
 const ctx = { cwd: worktree, hasUI: false };
@@ -207,6 +209,175 @@ const nonVacuityControl = async (label) => {
 		check("home, at-sign and file URL targets are judged where pi writes them", results.every(Boolean));
 	} finally {
 		process.env.HOME = savedHome; process.env.USERPROFILE = savedUserProfile;
+	}
+}
+
+// --- R-2270 to R-2273: a temp variable naming a drive root, home, or a folder above home ---
+const reasonOf = async (target, toolName = "write", cwd = worktree) =>
+	(await handler({ toolName, input: toolName === "bash" ? { command: target } : { path: target } }, { cwd, hasUI: false }))?.reason ?? "";
+const refused = async (target, toolName = "write", cwd = worktree) => (await reasonOf(target, toolName, cwd)).includes("lane write boundary");
+const allowed = async (target, toolName = "write", cwd = worktree) => (await reasonOf(target, toolName, cwd)) === "";
+const laneFile = path.join(worktree, `lane-ok-${pid}.txt`);
+
+{
+	const title = "a temp variable naming a drive root opens nothing outside the lane";
+	const results = [];
+	const fsRoot = path.parse(worktree).root;
+	const r2270Target = path.join(fsRoot, `nana-lane-guard-root-${pid}`, "x.txt");
+	setTempVars(fsRoot);
+	try {
+		results.push(await refused(r2270Target));
+		results.push(!fs.existsSync(path.dirname(r2270Target)));
+		results.push(await allowed(laneFile));
+	} finally {
+		restoreTempVars();
+	}
+	if (process.platform === "win32") {
+		let secondDrive = null;
+		for (let code = "D".charCodeAt(0); code <= "Z".charCodeAt(0); code++) {
+			const candidate = `${String.fromCharCode(code)}:\\`;
+			if (candidate[0].toUpperCase() === fsRoot[0].toUpperCase() || candidate[0].toUpperCase() === homeFixture[0].toUpperCase()) continue;
+			try {
+				fs.accessSync(candidate);
+				secondDrive = candidate;
+				break;
+			} catch {
+				continue;
+			}
+		}
+		if (secondDrive === null) {
+			console.log(`SKIP ${title} (second drive): no second drive root`);
+		} else {
+			setTempVars(secondDrive);
+			try {
+				results.push(await refused(path.join(secondDrive, `nana-lane-guard-root2-${pid}`, "x.txt")));
+				results.push(await allowed(laneFile));
+			} finally {
+				restoreTempVars();
+			}
+		}
+	}
+	// req: R-2270
+	check("a temp variable naming a drive root opens nothing outside the lane", results.length > 0 && results.every(Boolean));
+}
+
+{
+	let ok = false;
+	if (outsideAvailable) {
+		const savedHome = process.env.HOME, savedUserProfile = process.env.USERPROFILE;
+		// Unmanaged root (tests/tmp-dir.mjs header): this folder holds a symlink/junction, so it
+		// must never sit under a root the exit hook recursively removes.
+		const r2271LinkRoot = tmpDirUnmanaged(path.join(os.tmpdir(), "lane-guard-r2271-link-"));
+		const r2271Link = path.join(r2271LinkRoot, "alias");
+		fs.symlinkSync(outside, r2271Link, process.platform === "win32" ? "junction" : "dir");
+		process.env.HOME = outside; process.env.USERPROFILE = outside;
+		try {
+			const results = [];
+			const target = path.join(outside, `r2271-home-${pid}`, "x.txt");
+			for (const value of [outside, path.dirname(outside), r2271Link]) {
+				setTempVars(value);
+				try {
+					results.push(await refused(target));
+					results.push(await allowed(laneFile));
+				} finally {
+					restoreTempVars();
+				}
+			}
+			// macOS firmlink regression (review finding, 2026-10-20): `outside`'s data-volume
+			// spelling is the SAME directory (same inode) on a stock macOS machine; elsewhere this
+			// sub-case is a real SKIP, as the R-2270 second-drive sub-case is off that platform.
+			const r2271DataVolume = path.join("/System/Volumes/Data", outside);
+			let r2271OutsideId = null, r2271DataVolumeId = null;
+			try { r2271OutsideId = fs.statSync(outside, { bigint: true }); } catch {}
+			try { r2271DataVolumeId = fs.statSync(r2271DataVolume, { bigint: true }); } catch {}
+			const r2271DataVolumeAvailable = r2271OutsideId !== null && r2271DataVolumeId !== null && r2271OutsideId.dev === r2271DataVolumeId.dev && r2271OutsideId.ino === r2271DataVolumeId.ino;
+			if (r2271DataVolumeAvailable) {
+				setTempVars(r2271DataVolume);
+				try {
+					results.push(await refused(target));
+					results.push(await refused(path.join(r2271DataVolume, `r2271-home-${pid}`, "x.txt")));
+					results.push(await allowed(laneFile));
+				} finally {
+					restoreTempVars();
+				}
+			} else {
+				console.log("SKIP a temp variable naming the home folder or a folder above it opens no home file (data-volume spelling): no data-volume spelling of this fixture");
+			}
+			ok = results.length > 0 && results.every(Boolean);
+		} finally {
+			process.env.HOME = savedHome; process.env.USERPROFILE = savedUserProfile;
+		}
+	}
+	// req: R-2271
+	check("a temp variable naming the home folder or a folder above it opens no home file", ok, outsideAvailable ? null : outsideSkipReason);
+}
+
+{
+	let ok = false;
+	if (outsideAvailable) {
+		const savedHome = process.env.HOME, savedUserProfile = process.env.USERPROFILE;
+		process.env.HOME = outside; process.env.USERPROFILE = outside;
+		const r2272Temp = path.join(outside, "AppData", "Local", "Temp");
+		fs.mkdirSync(r2272Temp, { recursive: true });
+		setTempVars(r2272Temp);
+		try {
+			const results = [];
+			results.push(await allowed(path.join(r2272Temp, `r2272-file-${pid}.txt`)));
+			results.push(await refused(path.join(outside, `r2272-sibling-${pid}`, "x.txt")));
+			results.push(await allowed(laneFile));
+			// Feature-dependent (review finding, 2026-10-20): the handler checks above still pass
+			// with the feature removed (main also allows a temp folder inside home), so this calls
+			// the lane's own acceptedTempRoots directly — with the import gone, the whole file fails
+			// to load, which fails this check too.
+			const r2272Kept = acceptedTempRoots({ platform: process.platform, env: {}, home: outside, tmpdir: r2272Temp });
+			const r2272Dropped = acceptedTempRoots({ platform: process.platform, env: {}, home: outside, tmpdir: outside });
+			results.push(r2272Kept.length > 0);
+			results.push(r2272Dropped.length === 0);
+			ok = results.length > 0 && results.every(Boolean);
+		} finally {
+			restoreTempVars();
+			process.env.HOME = savedHome; process.env.USERPROFILE = savedUserProfile;
+		}
+	}
+	// req: R-2272
+	check("a temp folder inside the home folder still takes temp output", ok, outsideAvailable ? null : outsideSkipReason);
+}
+
+{
+	if (process.platform !== "win32") {
+		check("on Windows a differing TMP counts as a temp folder under the same rule as TEMP", false, "the differing-TMP case is a Windows one: on macOS and Linux Node reads TMPDIR first");
+	} else {
+		const folderA = path.join(homeFixture, `R2273A-${pid}`);
+		const folderB = path.join(homeFixture, `R2273B-${pid}`);
+		fs.mkdirSync(folderA, { recursive: true });
+		fs.mkdirSync(folderB, { recursive: true });
+		const fsRoot = path.parse(worktree).root;
+		const rootTarget = path.join(fsRoot, `nana-lane-guard-root-${pid}`, "x.txt");
+		const savedTemp = process.env.TEMP, savedTmp = process.env.TMP;
+		const setBoth = (temp, tmp) => { process.env.TEMP = temp; process.env.TMP = tmp; };
+		try {
+			const results = [];
+			// (a) TEMP=A, TMP=B: files in A and B allowed
+			setBoth(folderA, folderB);
+			results.push(await allowed(path.join(folderA, `r2273a-${pid}.txt`)));
+			results.push(await allowed(path.join(folderB, `r2273b-${pid}.txt`)));
+			results.push(await allowed(laneFile));
+			// (b) TEMP=R, TMP=B: the B file allowed, rootT refused
+			setBoth(fsRoot, folderB);
+			results.push(await allowed(path.join(folderB, `r2273b2-${pid}.txt`)));
+			results.push(await refused(rootTarget));
+			// (c) TEMP=A, TMP=R: rootT refused
+			setBoth(folderA, fsRoot);
+			results.push(await refused(rootTarget));
+			// (d) TEMP=A, TMP=homeFixture: homeFixture/r2273-home-<pid>/x.txt refused
+			setBoth(folderA, homeFixture);
+			results.push(await refused(path.join(homeFixture, `r2273-home-${pid}`, "x.txt")));
+			// req: R-2273
+			check("on Windows a differing TMP counts as a temp folder under the same rule as TEMP", results.length > 0 && results.every(Boolean));
+		} finally {
+			if (savedTemp === undefined) delete process.env.TEMP; else process.env.TEMP = savedTemp;
+			if (savedTmp === undefined) delete process.env.TMP; else process.env.TMP = savedTmp;
+		}
 	}
 }
 

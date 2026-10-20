@@ -52,6 +52,7 @@ import { displayPath, displayText } from "../lib/objective.ts";
 import { verifierPipeReason } from "../lib/pipe-guard.mjs";
 import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit, resolveToolPath } from "../lib/gate-paths.ts";
 import { rmInsideCwd } from "../lib/gate-rm-inside.ts";
+import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
@@ -203,11 +204,18 @@ function within(target: string, root: string): boolean {
 function laneWriteHit(subject: string, cwd: string): Hit {
 	const configured = process.env.NANA_WORKTREE_ROOT;
 	if (!configured) return null;
+	const resolve = (p: string): string => {
+		try {
+			return real(p);
+		} catch {
+			return path.resolve(p);
+		}
+	};
 	try {
 		const root = real(configured);
 		const target = realOut(subject, cwd);
-		const tempRoots = process.platform === "win32" ? [os.tmpdir()] : [os.tmpdir(), "/tmp"];
-		const allowed = [root, ...tempRoots.map((p) => { try { return real(p); } catch { return path.resolve(p); } })];
+		const kept = acceptedTempRoots({ platform: process.platform, env: process.env, home: os.homedir(), tmpdir: os.tmpdir() });
+		const allowed = [root, ...kept, ...(process.platform === "win32" ? [] : [resolve("/tmp")])];
 		if (target && allowed.some((p) => within(target, p))) return null;
 		return { label: "lane write boundary", reason: `target is outside NANA_WORKTREE_ROOT and temporary directories (${configured})` };
 	} catch {

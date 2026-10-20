@@ -7,10 +7,11 @@
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
+ *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail, installLabel? } rows, including a safe place and error-kind repair
- *  for invalid nana-pack JSON and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
+ *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
+ *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
@@ -23,21 +24,23 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import { configFailureDetail, jsonParseFailure, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { codeSpan } from "../../nana-pack/lib/display.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
-import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
 import { PI_LAUNCH_LIMITS_MS } from "./steps.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
+import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
@@ -346,14 +349,15 @@ export function diagnose(layout, opts = {}) {
 		const piSpawn = piOpts.spawn ?? boundedSpawnSync;
 		const piLimits = piOpts.limits ?? PI_LAUNCH_LIMITS_MS;
 		const piExists = piOpts.exists;
+		const piIsFile = piOpts.isFile;
+		const piReadText = piOpts.readText;
 		const isWin = (typeof piPlatform === "function" ? piPlatform() : piPlatform) === "win32";
 		const executable = isWin ? findPi({ env: piEnv, cwd: process.cwd(), exists: piExists }) : "pi";
 		let probe;
 		let refusal;
 		if (!executable) probe = { error: new Error("pi not found on PATH") };
 		else {
-			const comspecKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "comspec");
-			const invocation = isWin ? winCommand(executable, ["--version"], { comspec: comspecKey ? piEnv[comspecKey] : undefined }) : { command: executable, args: ["--version"], options: {} };
+			const invocation = piInvocation(executable, ["--version"], { win32: isWin, env: piEnv, cwd: process.cwd(), exists: piExists, isFile: piIsFile, readText: piReadText });
 			refusal = invocation.refused;
 			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8", timeout: piLimits.version });
 		}
@@ -386,9 +390,17 @@ export function diagnose(layout, opts = {}) {
 		"rule nana-personal.md (private)",
 	);
 
+	// A linked Claude home or skills folder is the SAME refusal stepSkills already makes for every
+	// name (`linkedSkillFolder` reuses its own test): a ✗ row then points at the folder to move
+	// aside, matching the session-start line, rather than the generic "run nana-setup install"
+	// text that run would refuse anyway (plan-attack.md amendments 1–2).
+	const linkedFolder = linkedSkillFolder(layout);
 	for (const name of CLAUDE_SKILLS) {
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
-		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
+		const detail = !st.ok && linkedFolder
+			? `install will not add skills under the linked folder ${codeSpan(linkedFolder) ?? linkedFolder} — move it aside, then run \`nana-setup install\``
+			: st.detail;
+		add(st.ok ? OK : FAIL, `skill ${name}`, detail);
 	}
 	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.claudeHome, name)));
 	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", legacyFlags.length ? `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags` : "none present");
@@ -456,6 +468,11 @@ export function diagnose(layout, opts = {}) {
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : configState.parseDetail ?? `missing or unparseable: ${layout.piPackConfig}`);
 	const pf = projectFileState(cfg?.objective?.projectFile);
 	add(pf.status, "pi objective.projectFile", pf.detail);
+	const rawObjectivePath = cfg?.objective?.path;
+	if (rawObjectivePath !== undefined && rawObjectivePath !== null && typeof rawObjectivePath !== "string") {
+		const shown = JSON.stringify(rawObjectivePath)?.slice(0, 120) ?? String(rawObjectivePath);
+		add(FAIL, "pi objective.path", `${shown} is invalid (expected a path string or null) — the producer ignores it and uses ${layout.piObjective}; set objective.path in ${layout.piPackConfig} to a path string, or null for the default`);
+	}
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective, "pi nana-objective.md");
 	add(linkOk(layout.piRulings, ruleSource(RULINGS_FILE)) ? OK : FAIL, "pi nana-rulings.md", `-> ${ruleSource(RULINGS_FILE)}`);
@@ -621,9 +638,19 @@ export function diagnose(layout, opts = {}) {
 		const found = findOnPath("pi-review");
 		const expected = path.win32.resolve(path.join(layout.binDir, `pi-review${WIN_SHIM_SUFFIXES.cmd}`));
 		const matches = found !== null && path.win32.resolve(found).toLowerCase() === expected.toLowerCase();
+		// Same split findOnPath uses internally: trim each entry and strip a surrounding quote pair.
+		const entries = String(process.env.PATH ?? "").split(";").map((dir) => dir.trim().replace(/^"|"$/g, "")).filter(Boolean);
+		const binAt = entries.findIndex((dir) => path.win32.resolve(dir).toLowerCase() === path.win32.resolve(layout.binDir).toLowerCase());
+		// No spread of process.env: Windows' own "Path" key would outrank this injected PATH in findOnPath's case-insensitive lookup.
+		const installFixes = !matches && binAt >= 0 && findOnPath("pi-review", { env: { PATH: entries.slice(0, binAt).join(";"), PATHEXT: process.env.PATHEXT } }) === null;
 		const remedy = `add ${layout.binDir} to the user Path in Environment Variables, then open a new terminal`;
-		const detail = matches ? `${found} is this checkout's .cmd shim` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
-		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
+		const foundDetail = found ? `pi-review resolves to ${found}` : "pi-review not found on PATH";
+		const detail = matches
+			? `${found} is this checkout's .cmd shim`
+			: installFixes
+				? `${foundDetail}; ${layout.binDir} is on PATH — run \`nana-setup install\` to recreate the launcher`
+				: `${foundDetail}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	} else {
 		const link = path.join(layout.binDir, "pi-review");
 		const worker = path.join(layout.binDir, "pi-worker");
@@ -635,9 +662,17 @@ export function diagnose(layout, opts = {}) {
 		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
 		const found = firstOnPath("pi-review");
 		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
+		const entries = String(process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+		const binAt = entries.findIndex((dir) => path.resolve(dir) === path.resolve(layout.binDir));
+		const installFixes = !matches && binAt >= 0 && firstOnPath("pi-review", entries.slice(0, binAt).join(path.delimiter)) === null;
 		const remedy = `add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
-		const detail = matches ? `${found} resolves to this checkout` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
-		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
+		const foundDetail = found ? `pi-review resolves to ${found}` : "pi-review not found on PATH";
+		const detail = matches
+			? `${found} resolves to this checkout`
+			: installFixes
+				? `${foundDetail}; ${layout.binDir} is on PATH — run \`nana-setup install\` to recreate the launcher`
+				: `${foundDetail}; ${remedy}`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	}
 
 	// --- pi package registration ---

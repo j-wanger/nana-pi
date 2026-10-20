@@ -7,7 +7,7 @@
  *  process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
  * @outputs pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
  *  base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings,
- *  piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings,
+ *  copyRecord, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings,
  *  knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig,
  *  reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath,
  *  isRealHome; platform(); tildeify()
@@ -20,6 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
+import { DEFAULT_OBJECTIVE_FILE } from "../../nana-pack/lib/objective-path.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
@@ -50,6 +51,8 @@ export function resolveLayout(opts = {}) {
 		projectsDir: path.join(claudeHome, "projects"),
 		sharedMemoryDir: path.join(claudeHome, "nana-memory", "shared"),
 		claudeSettings: path.join(claudeHome, "settings.json"),
+		// chosen: beside the Claude copies and settings lock, while following --home/--claude-home.
+		copyRecord: path.join(claudeHome, "nana-setup-copies.json"),
 		piHome,
 		piHomeSource: opts.piHome ? "--pi-home" : opts.home ? "--home" : piHome === path.join(base, ".pi", "agent") ? "default" : "PI_CODING_AGENT_DIR",
 		/** The AMBIENT override is relative: piHome is specific to THIS process's cwd, and pi started
@@ -57,7 +60,7 @@ export function resolveLayout(opts = {}) {
 		piHomeCwdRelative: !opts.piHome && !opts.home && piAgentDirIsCwdRelative() ? safeCwd() : null,
 		piSettings: path.join(piHome, "settings.json"),
 		piPackConfig: path.join(piHome, "nana-pack.json"),
-		piObjective: path.join(piHome, "nana-objective.md"),
+		piObjective: path.join(piHome, DEFAULT_OBJECTIVE_FILE),
 		piRulings: path.join(piHome, RULINGS_FILE),
 		// pi-subagents' own config file (a third-party vendor extension nana-pi only consumes —
 		// architecture-ruling.md 2026-10-04 §2): seed-once, doctor-verifies, never clobber a hand

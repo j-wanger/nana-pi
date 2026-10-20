@@ -13,19 +13,9 @@ import { skillLinkState } from "../lib/doctor.mjs";
 import { hookLinkRows, hookSettingsRows } from "../lib/hook-health.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { hasAdoptionInstallRecord, linkOk, staleNotice } from "../lib/stale-copies.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, ruleSource, stepSkills } from "../lib/steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, linkedSkillFolder, ruleSource, stepSkills } from "../lib/steps.mjs";
 
 const layout = resolveLayout();
-
-function linkedSkillParent(row) {
-	if (!row.detail?.startsWith("unsafe source ancestor")) return null;
-	for (const candidate of [layout.claudeHome, layout.skillsDir]) {
-		try {
-			if (fs.lstatSync(candidate).isSymbolicLink()) return candidate;
-		} catch { /* a missing path is not moveable */ }
-	}
-	return null;
-}
 
 function existingPath(candidate) {
 	try {
@@ -68,7 +58,7 @@ if (hasAdoptionInstallRecord(layout, settings)) {
 		for (const row of stepSkills(layout, { dryRun: true })) {
 			const name = row.label.startsWith("skill ") ? row.label.slice("skill ".length) : "";
 			if (row.status === "problem" && failedSkills.has(name)) {
-				const movePath = linkedSkillParent(row) ?? existingPath(path.join(layout.skillsDir, name));
+				const movePath = linkedSkillFolder(layout) ?? existingPath(path.join(layout.skillsDir, name));
 				if (movePath && !movePaths.includes(movePath)) movePaths.push(movePath);
 			}
 		}

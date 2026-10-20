@@ -7,11 +7,12 @@
  *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
  *  packages/nana-pack/rules (the writing rule and the rulings file); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
- *  NANA_SETUP_PLATFORM
+ *  <claudeHome>/nana-setup-copies.json; pi's npm package.json; NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
- *  merged into <claudeHome>/settings.json; install takes the O_EXCL .settings.json.nana-setup.lock
- *  before its first write and holds it through the PATH entries; the settings write's fsync'd temp-file rename
+ *  merged into <claudeHome>/settings.json; on win32 a copy record tracks the last installed bytes;
+ *  install takes the O_EXCL .settings.json.nana-setup.lock before its first write and holds it
+ *  through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
  *  win32), <piHome>/extensions/subagent/config.json,
@@ -19,7 +20,7 @@
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -36,6 +37,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { resolveObjectivePath } from "../../nana-pack/lib/objective-path.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -44,12 +46,14 @@ import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
-import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
+import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
+import { openCopyRecord } from "./copy-record.mjs";
 
 export class SetupError extends Error {}
 
@@ -85,6 +89,10 @@ export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
+
+function rememberCopy(o, target, sourceBytes, result) {
+	if (win() && !o.dryRun && [CREATED, UPDATED, UNCHANGED].includes(result.status)) o.copyRecord?.remember(target, sourceBytes);
+}
 
 /** lstat that never throws — the link itself, never what it points at. */
 export function lstatSafe(p) {
@@ -122,11 +130,16 @@ export function stepHooks(layout, o) {
 export function stepRules(layout, o) {
 	const out = [];
 	for (const rule of CLAUDE_RULES) {
-		const r = linkFile(path.join(layout.rulesDir, rule), ruleSource(rule), {
+		const target = path.join(layout.rulesDir, rule);
+		const source = ruleSource(rule);
+		const sourceBytes = win() ? fs.readFileSync(source) : null;
+		const r = linkFile(target, source, {
 			...o,
 			// Windows needs a privilege for symlinks; a copy still gets the identity in place.
 			copyInstead: win(),
+			unedited: o.copyRecord?.unedited(target),
 		});
+		rememberCopy(o, target, sourceBytes, r);
 		out.push({ label: `rule ${rule}`, ...r });
 	}
 	// PRIVATE, and never in the repo: created from the example only when absent, then never
@@ -283,7 +296,13 @@ export function linkSkill(target, source, o = {}) {
 				detail: `a directory is already at ${target} — left untouched; move or remove it, then re-run`,
 			};
 		}
-		const results = files.map((f) => linkFile(path.join(target, f), path.join(source, f), { ...o, copyInstead: true }));
+		const results = files.map((f) => {
+			const fileTarget = path.join(target, f);
+			const sourceBytes = fs.readFileSync(path.join(source, f));
+			const result = linkFile(fileTarget, path.join(source, f), { ...o, copyInstead: true, unedited: o.copyRecord?.unedited(fileTarget) });
+			rememberCopy(o, fileTarget, sourceBytes, result);
+			return result;
+		});
 		const problem = results.find((r) => r.status === PROBLEM);
 		if (problem) return problem;
 		const marker = writeIfChanged(path.join(target, SKILL_COPY_MARKER), SKILL_COPY_MARKER_CONTENT, o);
@@ -331,15 +350,18 @@ export function stepRetiredArtifacts(layout, o) {
 		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
 		const relativeTail = entry.relative.slice(root.length + 1);
 		const source = root === ".claude" ? path.join(artifactHome, relativeTail) : path.join(artifactHome, entry.relative);
-		if (!directoryAncestorsAreSafe(artifactHome, path.dirname(source), true)) {
-			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe source ancestor under ${artifactHome}; source left untouched` });
-			continue;
-		}
+		// Read first (lstat alone, never a write): a retired path absent under an unsafe ancestor
+		// prints no row at all — only a retired path actually THERE is this install's business
+		// (seat ruling, lane spec: an existence check by lstat may run before the ancestor check).
 		const st = lstatSafe(source);
 		if (!st) continue;
 		const newlyManagedSkill = NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`);
 		if (newlyManagedSkill && (st.isSymbolicLink() || (st.isDirectory() && lstatSafe(path.join(source, SKILL_COPY_MARKER))?.isFile()))) {
 			// stepSkills reports every link at these managed names and owns every marked win32 copy.
+			continue;
+		}
+		if (!directoryAncestorsAreSafe(artifactHome, path.dirname(source), true)) {
+			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe source ancestor under ${artifactHome}; source left untouched` });
 			continue;
 		}
 		if (!matchesRetiredArtifact(entry, st, source)) {
@@ -364,12 +386,12 @@ export function stepRetiredArtifacts(layout, o) {
 	}
 	for (const old of RETIRED_HOOKS) {
 		const link = path.join(layout.hooksDir, old);
+		const st = lstatSafe(link);
+		if (!st) continue;
 		if (!directoryAncestorsAreSafe(layout.claudeHome, layout.hooksDir, true)) {
 			out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
 			continue;
 		}
-		const st = lstatSafe(link);
-		if (!st) continue;
 		let owned = false;
 		if (st.isSymbolicLink()) {
 			try {
@@ -384,16 +406,22 @@ export function stepRetiredArtifacts(layout, o) {
 		} else out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `${old} is not a repository-managed symlink — left untouched` });
 	}
 	const legacyHook = path.join(layout.hooksDir, "context-size-check.sh");
-	const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
-	const hookStat = hookAncestorsSafe ? lstatSafe(legacyHook) : null;
-	if (!hookAncestorsSafe) out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
-	if (hookStat?.isSymbolicLink()) {
-		let target = null;
-		try { target = realPath(legacyHook, { mustExist: true }); } catch { /* dangling */ }
-		const root = realPath(repoRoot, { mustExist: true });
-		if (target && (target === root || target.startsWith(root + path.sep))) {
-			if (!o.dryRun) fs.unlinkSync(legacyHook);
-			out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
+	// lstat first — a regular file counts too, not only a link: the guard below must run (and the
+	// ✗ row print) whenever anything at all sits there, so it never misses a non-link occupant
+	// through an unsafe ancestor (plan-attack.md amendment 5).
+	const hookStat = lstatSafe(legacyHook);
+	if (hookStat) {
+		const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
+		if (!hookAncestorsSafe) {
+			out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
+		} else if (hookStat.isSymbolicLink()) {
+			let target = null;
+			try { target = realPath(legacyHook, { mustExist: true }); } catch { /* dangling */ }
+			const root = realPath(repoRoot, { mustExist: true });
+			if (target && (target === root || target.startsWith(root + path.sep))) {
+				if (!o.dryRun) fs.unlinkSync(legacyHook);
+				out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
+			}
 		}
 	}
 	out.push({ label: "repository context-warning markers", status: UNCHANGED, detail: "if present, delete .claude/.context-warned files manually; repositories were not scanned" });
@@ -412,6 +440,21 @@ export function stepSkills(layout, o) {
 			return { label: `skill ${name}`, status: UPDATED, detail: "would link after the provenance-confirmed backup" };
 		return { label: `skill ${name}`, ...linkSkill(target, source, { ...o, preserveForeignLink: NEW_CLAUDE_SKILLS.includes(name) }) };
 	});
+}
+
+/**
+ * The Claude home or skills folder a linked ancestor is forcing `stepSkills` to refuse every
+ * skill through, or null when its own refusal test (`directoryAncestorsAreSafe` above) already
+ * holds. Decided by `lstat` alone — the same read every skill name already performs — never a
+ * write: the Claude home is checked first, then the skills folder, and the first one `lstat`
+ * reports as a link is the one doctor and the stale-copies notice both name to move aside.
+ */
+export function linkedSkillFolder(layout) {
+	if (directoryAncestorsAreSafe(layout.claudeHome, layout.skillsDir, true)) return null;
+	for (const candidate of [layout.claudeHome, layout.skillsDir]) {
+		if (lstatSafe(candidate)?.isSymbolicLink()) return candidate;
+	}
+	return null;
 }
 
 /* -------------------------------------------------------------------- claude settings.json */
@@ -640,16 +683,15 @@ export function stepSharedMemory(layout, o) {
 /* ------------------------------------------------------------------------- pi user config */
 
 /**
- * Resolve nana-pack.json's `objective.path` the way the pack does: `~/` expands, a relative path
- * resolves against the pi home and NEVER against cwd, null means the default file. Shared with
- * `doctor` so the two can never disagree about which file the objective lives in.
+ * Resolve nana-pack.json's `objective.path` through the shared resolver (lib/objective-path.mjs):
+ * a non-string or "" value, or one missing, is the default file; "~" and a leading `~/` expand
+ * under the home folder (`~\` too, on win32); an absolute value stays as is; anything else
+ * resolves against the pi home, never cwd. Shared with `doctor` so the two can never disagree
+ * about which file the objective lives in, and never throws on a raw JSON value of any shape —
+ * nana-pack.json is read here with no schema layer, unlike the producer's loadUserObjective().
  */
 export function objectiveTarget(layout, cfg) {
-	const p = cfg?.objective?.path;
-	if (!p) return layout.piObjective;
-	if (p === "~") return layout.base;
-	if (p.startsWith("~/")) return path.join(layout.base, p.slice(2));
-	return path.isAbsolute(p) ? p : path.join(layout.piHome, p);
+	return resolveObjectivePath(cfg?.objective?.path, { home: layout.base, agentDir: layout.piHome, platform: process.platform });
 }
 
 export function stepPiConfig(layout, o) {
@@ -669,7 +711,11 @@ export function stepPiConfig(layout, o) {
 	// The owner's install ruling ("install to user level .pi folder", rulings-file lane,
 	// 2026-10-19): a symlink on POSIX, a byte-equal copy on win32 — the nana-rulings extension
 	// reads THIS copy, never the pack file directly (unlike nana-writing's extension default).
-	out.push({ label: "pi nana-rulings.md", ...linkFile(layout.piRulings, ruleSource(RULINGS_FILE), { ...o, copyInstead: win() }) });
+	const rulingsSource = ruleSource(RULINGS_FILE);
+	const rulingsBytes = win() ? fs.readFileSync(rulingsSource) : null;
+	const rulings = linkFile(layout.piRulings, rulingsSource, { ...o, copyInstead: win(), unedited: o.copyRecord?.unedited(layout.piRulings) });
+	rememberCopy(o, layout.piRulings, rulingsBytes, rulings);
+	out.push({ label: "pi nana-rulings.md", ...rulings });
 	return out;
 }
 
@@ -1062,7 +1108,7 @@ export function registrationState(layout) {
 // chosen 2026-10-20: measured pi 1.0.2 launches took 0.15 s; 30 s covers cold starts and 120 s covers startup tidy and settings-lock retries while keeping two installs under the install check's 300 s bound.
 export const PI_LAUNCH_LIMITS_MS = Object.freeze({ version: 30_000, install: 120_000 });
 
-export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = boundedSpawnSync, limits = PI_LAUNCH_LIMITS_MS, exists, manifestRoot = repoRoot } = {}) {
+export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = boundedSpawnSync, limits = PI_LAUNCH_LIMITS_MS, exists, isFile, readText, manifestRoot = repoRoot } = {}) {
 	const state = packageCoverage(layout, manifestRoot);
 	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `all extension directories registered${state.match ? ` as ${state.match}` : ""}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
@@ -1070,8 +1116,7 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 	const pi = win32 ? findPi({ env, cwd: process.cwd(), exists }) : "pi";
 	if (!pi) return [{ label: "pi packages", status: SKIPPED, detail: `pi is not on PATH — \`${PI_INSTALL_HINT}\`, then re-run` }];
 	const launch = (args, install = false) => {
-		const comspecKey = Object.keys(env).find((key) => key.toLowerCase() === "comspec");
-		const command = win32 ? winCommand(pi, args, { comspec: comspecKey ? env[comspecKey] : undefined }) : { command: pi, args, options: {} };
+		const command = piInvocation(pi, args, { win32, env, cwd: process.cwd(), exists, isFile, readText });
 		if (command.refused) return { refused: command.refused };
 		// the dry run stops here, before the first pi install, after every check install runs.
 		if (install && o.dryRun) return { status: 0 };
@@ -1106,16 +1151,19 @@ export function install(layout, opts = {}) {
 	const settingsState = readClaudeSettings(layout);
 	const results = [];
 	const fileSteps = (lockHeld) => {
-		results.push(...stepRetiredArtifacts(layout, o));
-		results.push(...stepHooks(layout, o));
-		results.push(...stepRules(layout, o));
-		results.push(...stepSkills(layout, o));
-		results.push(...stepSettings(layout, o, settingsState, { lockHeld }));
-		results.push(...stepSharedMemory(layout, o));
-		results.push(...stepPiConfig(layout, o));
-		results.push(...stepSubagentConfig(layout, o));
-		results.push(...stepReviewerAgent(layout, o));
-		results.push(...stepPath(layout, o));
+		const copyRecord = win() ? openCopyRecord(layout.copyRecord) : null;
+		const fileOptions = { ...o, copyRecord };
+		results.push(...stepRetiredArtifacts(layout, fileOptions));
+		results.push(...stepHooks(layout, fileOptions));
+		results.push(...stepRules(layout, fileOptions));
+		results.push(...stepSkills(layout, fileOptions));
+		results.push(...stepSettings(layout, fileOptions, settingsState, { lockHeld }));
+		results.push(...stepSharedMemory(layout, fileOptions));
+		results.push(...stepPiConfig(layout, fileOptions));
+		results.push(...stepSubagentConfig(layout, fileOptions));
+		results.push(...stepReviewerAgent(layout, fileOptions));
+		results.push(...stepPath(layout, fileOptions));
+		if (copyRecord) results.push(...copyRecord.save(fileOptions));
 	};
 	if (o.dryRun) fileSteps(false);
 	else withSettingsLock(layout.claudeSettings, () => fileSteps(true));
