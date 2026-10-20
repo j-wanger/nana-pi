@@ -34,4 +34,4 @@ const PAIRS = [
 	{ n: "M10", name: "W8: a pair-safe cut one unit long, then a raw cut back to INJECT_CAP", edits: cut("head(h.body, INJECT_CAP + 1).slice(0, INJECT_CAP),"), tests: [HA], expectRed: [R2160] },
 ];
 
-process.exitCode = await runMutations({ lane: "handoff-cap-surrogate", self: import.meta.url, tip: "4f686738", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "handoff-cap-surrogate", self: import.meta.url, tip: "4011c0a3", declared: DECLARED, pairs: PAIRS });
