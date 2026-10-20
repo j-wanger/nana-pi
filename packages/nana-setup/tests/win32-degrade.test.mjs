@@ -23,7 +23,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { HOOKS, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { renderWinShims } = await import(new URL("../lib/win-shims.mjs", import.meta.url).href);
 const { findGitBash } = await import(new URL("../lib/install-check.mjs", import.meta.url).href);
 
@@ -61,9 +61,6 @@ check("win32 install exits 0", r.status === 0, r.stderr);
 
 const lines = r.stdout.split("\n");
 const line = (label) => lines.find((l) => l.includes(label)) ?? "";
-for (const label of ["hook nana-objective.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs"]) {
-	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
-}
 const pathBins = new Map([
 	["pi-review", PI_REVIEW_BIN],
 	["pi-worker", PI_WORKER_BIN],
@@ -134,6 +131,14 @@ check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("ba
 // R-985, R-1053: the verifier-pipe hook IS wired on win32 now, matcher Bash|PowerShell.
 const allEntries = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => ({ group: g, hook: h }))));
 const win32Wanted = desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo, platform: "win32" });
+const hookScriptNames = win32Wanted.filter((w) => fs.existsSync(path.join(pkg, "claude", "hooks", w.spec.script))).map((w) => w.spec.script);
+const printedLabels = (output) => output.split("\n").flatMap((row) => row.match(/^\s*\S\s(.+?)\s{2,}/)?.[1] ?? []);
+const printsNoHookFileRows = (output) => {
+	const labels = printedLabels(output);
+	return hookScriptNames.length === 5 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
+};
+// req: R-1860
+check("win32 install prints no row labelled with a Claude Code hook script", printsNoHookFileRows(r.stdout), r.stdout);
 for (const w of win32Wanted) {
 	const found = allEntries.filter(({ hook }) => JSON.stringify(hook).includes(w.marker.replace(" hook", "")));
 	// req: R-1050
@@ -153,11 +158,8 @@ const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, do
 check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 // req: R-937
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
-// The hook-file rows remain platform skips. PATH rows are real shim checks now.
-for (const label of HOOKS.map((h) => `hook ${h}`)) {
-	// req: R-937
-	check(`win32 doctor: ${label} reads skipped (win32)`, new RegExp(`${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+skipped \\(win32\\)`).test(doc.stdout), doc.stdout);
-}
+// req: R-1861
+check("win32 doctor prints no row labelled with a Claude Code hook script", printsNoHookFileRows(doc.stdout), doc.stdout);
 // req: R-937
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
 const healthyPathRows = [...pathBins.keys()].every((name) => new RegExp(`✓ PATH ${name}\\b`).test(doc.stdout));

@@ -30,12 +30,12 @@ export const KNOWN_RED = {
   darwin: [],
   win32: [],
 };
-// Contract values: doctor.mjs informational rows; win32 hook skips come from the hooks lane (R-937), floor from R-1060;
+// Contract values: doctor.mjs informational rows; win32 hook-file rows removed by R-1861, 2026-10-19; floor from R-1060;
 // PATH rows are checks after R-1610, while the four pi-only skill skips remain notes (R-937).
 export const DOCTOR_NOTES = {
   darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
   linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {
@@ -44,8 +44,29 @@ export const SAMPLE_INPUTS = {
   verifier: { bashHit: "npm test | tail -1 && git commit -m done", bashMiss: "git status", powershellHit: "npm test | Select-Object -Last 5; git commit -m x" },
   maxOutput: 10000,
 };
+// Probe 2026-10-19: a live offline faux turn observed these prompt sections, knowledge pointer,
+// tool result and extension-error spelling. Provider/model names are chosen fixture-only names.
+export const PI_TURN = {
+  item: "pi turn",
+  fixture: "packages/nana-setup/lib/install-check-turn.mjs",
+  provider: "nana-install-check-fixture",
+  model: "nana-install-check-turn",
+  args: ["--offline", "-e", "packages/nana-setup/lib/install-check-turn.mjs", "--provider", "nana-install-check-fixture", "--model", "nana-install-check-turn", "--no-session", "-p"],
+  tool: "bash",
+  record: ".nana-install-check-turn.json",
+  noteFile: "install-check.md",
+  rulingsHeading: "## Standing rulings (nana)",
+  writingTag: "<nana-writing>",
+  knowledgeMarker: "[nana:knowledge]",
+  gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
+  extensionErrorPrefix: "Extension error (",
+};
+// Probe 2026-10-19: RPC output with pi-subagents was 21,699 bytes and placed a widget after
+// byte 20,970. The unavailable word is chosen to cover nana's explicit degraded-state notices.
+export const PI_SESSION = { unavailableWord: "unavailable", maxOutput: 100000 };
 // Chosen 2026-10-12: bound network and doctor subprocesses within the 20-minute CI job.
-export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, hook: 5000, doctor: 120000, git: 30000 };
+// Probe 2026-10-19: the offline faux turn took 0.66 s; 60 s leaves cold Windows runner headroom.
+export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, hook: 5000, doctor: 120000, git: 30000 };
 // Contract values: the macOS fresh-machine checklist's rehearsal grammar and sandbox shape (R-1540 to R-1546),
 // each chosen 2026-10-19 to run the root README's checklist as written, in a second temporary home.
 export const README_REHEARSAL = {

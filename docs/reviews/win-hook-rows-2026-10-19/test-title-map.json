@@ -1,0 +1,10 @@
+{
+  "win32: ${label} reports skipped (win32)": {
+    "replacedBy": "win32 install prints no row labelled with a Claude Code hook script",
+    "why": "R-1860: Windows installs no hook-file links, so install now omits those rows and the replacement rejects all five script-labelled rows while guarding the six settings rows."
+  },
+  "win32 doctor: ${label} reads skipped (win32)": {
+    "replacedBy": "win32 doctor prints no row labelled with a Claude Code hook script",
+    "why": "R-1861: Windows runs hooks from checkout settings, so doctor now omits those rows and the replacement rejects all five script-labelled rows while guarding the six settings rows."
+  }
+}

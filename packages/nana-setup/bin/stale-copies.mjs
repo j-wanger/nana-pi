@@ -48,7 +48,7 @@ try {
 if (hasAdoptionInstallRecord(layout, settings)) {
 	const labels = [];
 	for (const row of hookLinkRows(layout)) {
-		if (!row.ok && !row.skipped) labels.push(row.label);
+		if (!row.ok) labels.push(row.label);
 	}
 	for (const name of CLAUDE_RULES) {
 		if (!linkOk(path.join(layout.rulesDir, name), ruleSource(name))) labels.push(`rule ${name}`);
@@ -62,7 +62,7 @@ if (hasAdoptionInstallRecord(layout, settings)) {
 		}
 	}
 	for (const row of hookSettingsRows(layout, settings, parseError)) {
-		if (!row.ok && !row.skipped) labels.push(row.label);
+		if (!row.ok) labels.push(row.label);
 	}
 	const movePaths = [];
 	if (labels.length) {

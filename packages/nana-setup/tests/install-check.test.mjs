@@ -14,7 +14,10 @@ import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
+import * as installConfig from "../lib/install-check-config.mjs";
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
+import * as installCheck from "../lib/install-check.mjs";
+import { STALE_PREFIX, STALE_UNAVAILABLE_PREFIX } from "../lib/stale-copies-config.mjs";
 import { projectKey } from "../lib/project-key.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
@@ -180,6 +183,14 @@ check("reporting matches known-red fingerprint and expiry and rejects unexpected
 });
 
 function tempHome() { return tmpDir(path.join(os.tmpdir(), "install-check-test-")); }
+function passingTurnRecord(token) {
+  const turn = installConfig.PI_TURN;
+  return {
+    system: `${token}\n${turn.rulingsHeading}\n${turn.writingTag}`,
+    userMessages: [`${turn.knowledgeMarker} ~/notes/docs/${turn.noteFile}`],
+    toolResults: [{ toolName: turn.tool, isError: true, text: `${turn.gateBlockPrefix} sample` }],
+  };
+}
 function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null } = {}) {
   const home = tempHome();
   const calls = [];
@@ -216,6 +227,11 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       fs.writeFileSync(path.join(home, ".pi/agent/nana-journal.jsonl"), JSON.stringify({ event: "directory_unadopted", cwd: path.join(home, "project") }));
       return { status: 0, stdout: "reload-runtime" };
     }
+    if (installConfig.PI_TURN?.provider && joined.includes(installConfig.PI_TURN.provider)) {
+      const token = args.at(-1)?.match(/installcheck_[a-z0-9]+/)?.[0] ?? args.at(-1);
+      fs.writeFileSync(path.join(home, installConfig.PI_TURN.record), JSON.stringify(passingTurnRecord(token)));
+      return { status: 0, stdout: "fixture turn complete" };
+    }
     if (joined.includes("nana-objective.mjs")) {
       const objective = fs.readFileSync(path.join(home, ".pi/agent/nana-objective.md"), "utf8");
       return { status: 0, stdout: `[nana:objective] ${objective.match(/installcheck_[a-z0-9]+/)?.[0] ?? "fixture"}` };
@@ -229,7 +245,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
       return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
     }
-    if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: "[nana:knowledge] install-check.md" };
+    if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: `${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}` };
     if (joined.includes("verifier-pipe.mjs")) {
       const input = JSON.parse(options.input);
       return { status: 0, stdout: input.tool_input.command === (input.tool_name === "PowerShell" ? "npm test | Select-Object -Last 5; git commit -m x" : "npm test | tail -1 && git commit -m done") ? `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n` : "" };
@@ -387,7 +403,7 @@ check("pi launch: on win32, pi install, pi list and the session go through findP
     assert.equal(launch.command, "C:\\Windows\\cmd.exe");
     assert.equal(launch.options.windowsVerbatimArguments, true);
     assert.deepEqual(launch.args, ["/d", "/v:off", "/s", "/c", '\"\"C:\\tools\\pi.cmd\" \"list\"\"']);
-    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && /pi-subagents|list|--mode/.test(call.args.join(" ")));
+    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes("pi-subagents") || call.args.join(" ").includes("list") || call.args.join(" ").includes('"--mode" "rpc"')));
     assert.equal(piCommands.length, 3);
     assert.ok(piCommands.every((call) => call.command.toLowerCase().endsWith("\\cmd.exe")));
     assert.ok(piCommands.every((call) => call.args[0] === "/d" && call.args.includes("/c") && call.args.some((arg) => arg.includes("C:\\tools\\pi.cmd"))));
@@ -703,7 +719,7 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       assert.equal((memory.match(/^- \[/gm) ?? []).length, 1);
       assert.equal(fs.existsSync(path.join(fixture.home, ".claude-placeholder")), false);
       assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "notes"));
-      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative === ".pi/agent/nana-journal.jsonl" || relative === "notes/docs/install-check.md";
+      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative === ".pi/agent/nana-journal.jsonl" || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
       const written = [];
       const visit = (directory) => {
         for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -822,7 +838,7 @@ check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
   });
 });
 // req: R-1073
@@ -902,6 +918,172 @@ check("timeout: a hook past its timeout reports the timeout code, not no-output"
     /nana-objective/.test(`${command} ${args.join(" ")}`) ? { error: { code: "ETIMEDOUT" }, ms: 5432 } : spawn(command, args, options) });
   try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms")); assert.ok(!result.lines.includes("XFAIL hook objective — no-output")); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1790
+check("pi turn: one turn runs from the fixture project with the base environment, the sealed arguments, one prompt argument holding the prompt and run token, and timeout, through winCommand on win32, and prints one pi turn line", async () => {
+  for (const platformName of ["linux", "win32"]) {
+    const fixture = recordingRun({ platformName, env: { NANA_ROLE: "worker" }, piShim: platformName === "win32" ? "C:\\tools\\pi.cmd" : null });
+    try {
+      const result = await fixture.run;
+      const turn = installConfig.PI_TURN;
+      const calls = fixture.calls.filter((call) => `${call.command} ${call.args.join(" ")}`.includes(turn.provider));
+      assert.equal(calls.length, 1, fixture.calls.map((call) => `${call.command} ${call.args.join(" ")}`).join("\n"));
+      const call = calls[0];
+      const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+      const token = call.args.join(" ").match(/installcheck_[a-z0-9]+/)?.[0];
+      assert.ok(token);
+      const prompt = `${installConfig.SAMPLE_INPUTS.prompt} ${token}`;
+      const expectedArgs = [...turn.args.map((arg) => arg === turn.fixture ? path.join(root, arg) : arg), prompt];
+      if (platformName === "linux") assert.deepEqual(call.args, expectedArgs);
+      else {
+        assert.equal(call.command, "C:\\Windows\\System32\\cmd.exe");
+        assert.ok(call.args.at(-1).includes(`"${turn.provider}"`));
+        assert.ok(call.args.at(-1).includes(`"${prompt}"`));
+        assert.ok(!call.args.at(-1).includes(`"${installConfig.SAMPLE_INPUTS.prompt}" "${token}"`));
+      }
+      assert.equal(call.options.cwd, path.join(fixture.home, "project"));
+      assert.equal(call.options.timeout, installConfig.SPAWN_TIMEOUT_MS.turn);
+      assert.equal(Object.keys(call.options.env).some((key) => key.toLowerCase() === "nana_role"), false);
+      assert.equal(result.lines.filter((line) => line.includes(turn.item)).length, 1, result.lines.join("\n"));
+      assert.ok(result.lines.includes(`PASS ${turn.item}`), result.lines.join("\n"));
+    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  }
+});
+
+// req: R-1070, R-1791
+check("pi turn: a nonzero exit or a missing record, run token, rulings heading, writing section or knowledge message each fails the pi turn line, and a full record passes", () => {
+  const token = "installcheck_judge";
+  const good = passingTurnRecord(token);
+  const judge = (record = good, status = 0, stderr = "") => installCheck.judgePiTurn({ record, stderr, status, token });
+  assert.equal(judge().passed, true);
+  const exited = judge(good, 7, `earlier detail\r\n${"x".repeat(240)} \t`);
+  assert.equal(exited.passed, false);
+  const exitLine = formatResultLine(installConfig.PI_TURN.item, { status: "FAIL", code: exited.code }, exited.detail);
+  assert.equal(exitLine, `FAIL pi turn — exit: exit status 7; last stderr: ${"x".repeat(172)}`);
+  assert.equal(exitLine.includes("\n"), false);
+  assert.equal(judge(null).passed, false);
+  for (const record of [
+    { ...good, system: good.system.replace(token, "missing") },
+    { ...good, system: good.system.replace(installConfig.PI_TURN.rulingsHeading, "<nana-rulings>") },
+    { ...good, system: good.system.replace(installConfig.PI_TURN.writingTag, "missing") },
+    { ...good, userMessages: [`not ${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}`] },
+    { ...good, userMessages: [`${installConfig.PI_TURN.knowledgeMarker} another-note.md`] },
+  ]) assert.equal(judge(record).passed, false);
+});
+
+// req: R-1792
+check("pi turn: a missing bash tool result, one not marked as an error, or one without the gate block text each fails the pi turn line", () => {
+  const token = "installcheck_tool";
+  const good = passingTurnRecord(token);
+  const judge = (toolResults) => installCheck.judgePiTurn({ record: { ...good, toolResults }, stderr: "", status: 0, token });
+  assert.equal(judge(good.toolResults).passed, true);
+  assert.equal(judge([]).passed, false);
+  assert.equal(judge([{ ...good.toolResults[0], toolName: "read" }]).passed, false);
+  assert.equal(judge([{ ...good.toolResults[0], isError: false }]).passed, false);
+  assert.equal(judge([{ ...good.toolResults[0], text: "ordinary tool failure" }]).passed, false);
+});
+
+// req: R-1793
+check("pi turn: an extension error on stderr or a stale line in the system prompt fails the pi turn line though every expected text is present", () => {
+  const token = "installcheck_stale";
+  const good = passingTurnRecord(token);
+  const judge = (record, stderr = "") => installCheck.judgePiTurn({ record, stderr, status: 0, token });
+  const extensionLine = `${installConfig.PI_TURN.extensionErrorPrefix}fixture): exploded`;
+  const extension = judge(good, `noise\r\n${extensionLine} \t`);
+  assert.equal(extension.passed, false); assert.ok(extension.detail.includes(extensionLine));
+  for (const prefix of [STALE_PREFIX, STALE_UNAVAILABLE_PREFIX]) {
+    const staleLine = `${prefix} fixture`;
+    const stale = judge({ ...good, system: `${good.system}\r\n${staleLine} \t` });
+    assert.equal(stale.passed, false); assert.ok(stale.detail.includes(staleLine));
+  }
+});
+
+// req: R-1794
+check("pi session: an extension_error event or an unavailable notice, widget or status fails the pi session line though get_commands lists reload-runtime, and the session spawn carries the sealed output cap", async () => {
+  const events = [
+    { type: "extension_error", extensionPath: "fixture.ts", event: "session_start", error: "exploded" },
+    { type: "extension_ui_request", id: "n", method: "notify", message: "objective UnAvAiLaBlE: missing" },
+    { type: "extension_ui_request", id: "w", method: "setWidget", widgetLines: ["roster unavailable"] },
+    { type: "extension_ui_request", id: "s", method: "setStatus", statusText: "knowledge UNAVAILABLE" },
+  ];
+  for (const [index, event] of events.entries()) {
+    const encoded = `${JSON.stringify({ type: "response", command: "get_commands", commands: [{ name: "reload-runtime" }] })}\r\n${JSON.stringify(event)}${index % 2 ? " \t" : ""}`;
+    const finding = installCheck.readPiSessionEvents(`not json\r\n${encoded}\r\n{\"truncated\"`);
+    assert.ok(finding?.detail, JSON.stringify(event));
+    assert.ok(installCheck.readPiSessionEvents(encoded)?.detail, `no-final-newline ${JSON.stringify(event)}`);
+    const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+      const result = await spawn(command, args, options);
+      return args.includes("--mode") && args.includes("rpc") ? { ...result, stdout: `${encoded}\n` } : result;
+    } });
+    try {
+      const result = await fixture.run;
+      assert.ok(result.lines.some((line) => line.startsWith("FAIL pi session —") && line.toLowerCase().includes(index === 0 ? "extension_error" : "unavailable")), result.lines.join("\n"));
+      const call = fixture.calls.find((item) => item.args.includes("--mode") && item.args.includes("rpc"));
+      assert.equal(call.options.maxOutput, installConfig.PI_SESSION.maxOutput);
+    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  }
+  assert.equal(installCheck.readPiSessionEvents('{"truncated"'), null);
+});
+
+// req: R-1795
+check("adoption: a stale line or a stale-check unavailable line fails though the output names the project", async () => {
+  for (const [index, prefix] of [STALE_PREFIX, STALE_UNAVAILABLE_PREFIX].entries()) {
+    const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+      const result = await spawn(command, args, options);
+      if (!`${command} ${args.join(" ")}`.includes("nana-adoption.mjs")) return result;
+      const ending = index === 0 ? " \t" : "";
+      return { ...result, stdout: `[nana:adoption] ${path.join(fixture.home, "project")}\r\n${prefix} fixture${ending}` };
+    } });
+    await assertOnlyHookFails(fixture, "hook adoption");
+  }
+});
+
+// req: R-1796
+check("fixture: the turn's fixture extension sits under packages/nana-setup outside every pi package manifest's extension directories", () => {
+  const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+  const fixture = path.resolve(root, installConfig.PI_TURN.fixture);
+  assert.equal(fs.existsSync(fixture), true);
+  const manifests = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.name === "package.json") manifests.push(absolute);
+    }
+  };
+  visit(root);
+  const extensionDirs = manifests.flatMap((manifest) => {
+    const parsed = JSON.parse(fs.readFileSync(manifest, "utf8"));
+    return (parsed.pi?.extensions ?? []).map((entry) => path.resolve(path.dirname(manifest), entry));
+  });
+  assert.ok(fixture.startsWith(`${path.join(root, "packages", "nana-setup")}${path.sep}`));
+  assert.ok(extensionDirs.every((directory) => {
+    const relative = path.relative(directory, fixture);
+    return relative.startsWith("..") || path.isAbsolute(relative);
+  }), `${fixture} is inside ${extensionDirs.join(", ")}`);
+});
+
+// req: R-1790, R-1791, R-1792, R-1793, R-1794, R-1795, R-1796
+check("pin R-1790 to R-1796: the turn's sealed fixture path, provider, model, arguments, tool, record file, timeout and expected texts, and the session's unavailable word and output cap", () => {
+  assert.deepEqual(installConfig.PI_TURN, {
+    item: "pi turn",
+    fixture: "packages/nana-setup/lib/install-check-turn.mjs",
+    provider: "nana-install-check-fixture",
+    model: "nana-install-check-turn",
+    args: ["--offline", "-e", "packages/nana-setup/lib/install-check-turn.mjs", "--provider", "nana-install-check-fixture", "--model", "nana-install-check-turn", "--no-session", "-p"],
+    tool: "bash",
+    record: ".nana-install-check-turn.json",
+    noteFile: "install-check.md",
+    rulingsHeading: "## Standing rulings (nana)",
+    writingTag: "<nana-writing>",
+    knowledgeMarker: "[nana:knowledge]",
+    gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
+    extensionErrorPrefix: "Extension error (",
+  });
+  assert.equal(installConfig.SPAWN_TIMEOUT_MS.turn, 60000);
+  assert.deepEqual(installConfig.PI_SESSION, { unavailableWord: "unavailable", maxOutput: 100000 });
 });
 
 await runChecks();
