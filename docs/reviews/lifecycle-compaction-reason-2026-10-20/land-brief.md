@@ -6,7 +6,7 @@ Review `git diff 9552afb1..HEAD` on `feat/lifecycle-compaction-reason` (main was
 written; `git merge-base HEAD main` is `9552afb1`). The plan of record is
 `docs/reviews/lifecycle-compaction-reason-2026-10-20/must-meet.md`: four must-meet checks, rows R-2141 and R-2380 to
 R-2382. `plan-attack.md` holds the adversary's AMEND; `build-brief-1.md` is the one build (c81371f6). The seat's record
-is `seat-verify-92dce9ff.md`. CI on draft pull request #141 runs at c81371f6 (run 39495504953). CI-PENDING. The land
+is `seat-verify-92dce9ff.md`. CI on draft pull request #141 runs at c81371f6 (run 39495504953). CI run 39495504953 at c81371f6 reads 0 failing on all three legs: macOS 192 PASS, 0 FAIL, 2 SKIP of 194 files (8,004 checks pass, 35 skip); Ubuntu 191 PASS, 0 FAIL, 3 SKIP of 194 files (7,943 checks pass, 55 skip); Windows 176 PASS, 0 FAIL, 18 SKIP of 194 files (6,932 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-c81371f6.log in this folder. The land
 runs the locked suite on the reviewed tip, and the seat runs the macOS install check before the land. The record also
 holds the macOS wrong-code pairs (`seat-mutate.mjs`; 5 of 5 red, 0 survived) and the independent check
 (`independent-check-92dce9ff.md`: HOLDS over ten probes on c81371f6, no MUST). The final reviewer's brief is

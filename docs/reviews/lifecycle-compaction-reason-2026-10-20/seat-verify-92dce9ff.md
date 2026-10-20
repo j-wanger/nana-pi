@@ -18,7 +18,7 @@
     `implemented`. The tree and the code map are regenerated.
   - 92dce9ff adds the seat's pairs table and record, with no code change.
 - CI on draft pull request #141: run 39495504953 at c81371f6 (build 1; 92dce9ff is not pushed and changes no code).
-  CI-PENDING.
+  CI run 39495504953 at c81371f6 reads 0 failing on all three legs: macOS 192 PASS, 0 FAIL, 2 SKIP of 194 files (8,004 checks pass, 35 skip); Ubuntu 191 PASS, 0 FAIL, 3 SKIP of 194 files (7,943 checks pass, 55 skip); Windows 176 PASS, 0 FAIL, 18 SKIP of 194 files (6,932 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-c81371f6.log in this folder.
   - Main's own known failures: Ubuntu's path-spelling GP1 and GP2 until linux-path-spelling landed (main ca27d86); a
     pull-request run's R-291 leaf-total failure, a merge artifact of GitHub's merge commit. Windows main reads 0 FAIL
     since 4be0b79 (desk files are declared skips). A failure in that set is main's, not the lane's.
