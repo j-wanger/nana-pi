@@ -1075,7 +1075,6 @@ export function registrationState(layout) {
 export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = spawnSync, exists, manifestRoot = repoRoot } = {}) {
 	const state = packageCoverage(layout, manifestRoot);
 	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `all extension directories registered${state.match ? ` as ${state.match}` : ""}` }];
-	if (o.dryRun) return [{ label: "pi packages", status: CREATED, detail: `would add per-package entries for ${state.missing.join(", ")}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
 	const win32 = (typeof getPlatform === "function" ? getPlatform() : getPlatform) === "win32";
 	const pi = win32 ? findPi({ env, cwd: process.cwd(), exists }) : "pi";
@@ -1084,6 +1083,8 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 		const comspecKey = Object.keys(env).find((key) => key.toLowerCase() === "comspec");
 		const command = win32 ? winCommand(pi, args, { comspec: comspecKey ? env[comspecKey] : undefined }) : { command: pi, args, options: {} };
 		if (command.refused) return { refused: command.refused };
+		// the dry run stops here, before the first pi install, after every check install runs.
+		if (install && o.dryRun) return { status: 0 };
 		return spawn(command.command, command.args, { ...command.options, encoding: "utf8", ...(install ? { env: { ...env, PI_CODING_AGENT_DIR: layout.piHome } } : {}) });
 	};
 	const probe = launch(["--version"]);
@@ -1097,7 +1098,7 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 		if (r.error || r.status !== 0) return [{ label: "pi packages", status: PROBLEM, detail: `pi install ${dir} failed: ${(r.stderr || "").trim().split("\n").pop() || r.error?.message || `exit ${r.status}`}` }];
 		added.push(dir);
 	}
-	return [{ label: "pi packages", status: CREATED, detail: `added per-package entries: ${added.join(", ")}` }];
+	return [{ label: "pi packages", status: CREATED, detail: o.dryRun ? `would add per-package entries for ${state.missing.join(", ")}` : `added per-package entries: ${added.join(", ")}` }];
 }
 
 /* ------------------------------------------------------------------------------- install */
