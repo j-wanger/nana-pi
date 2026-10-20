@@ -68,3 +68,6 @@ doctor's other rows, install and its dry run, on all three legs; (5) the tests w
 own; (6) the pack README's new bullet against build 2's advice split (the seat's observation: it still says the line
 always gives the forward-slash advice); (7) HANDOFF and the session entry are true, including the removed step 7 line,
 the new residuals, the doctor-fix-line review lines and the independent check's build; (8) any MUST.
+
+
+Build 3 (since the briefs were written): build 3 (7e17a969, build-brief-3.md) rewrote the pack README bullet in item (6), so it now says the line gives the forward-slash advice for a backslash error and "Repair the JSON by hand." for any other parse error. The seat commit after it (a0bccd0d) drops the unparseable config from the doctor-fix-line residual's list of ✗ lines that name no fix, since doctor's row now names one. Main 8466795b was merged in at ec916812 before build 3. Build 3 touched only the README; CI ran on d519cc09.

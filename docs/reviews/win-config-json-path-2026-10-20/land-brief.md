@@ -57,3 +57,6 @@ nana-objective extension print, `lib/config.ts` (read by every pack extension, t
 
 Check: (1) no fail-open; (2) no listed harm; (3) nothing main does today stopped working, on any of the three CI legs;
 (4) HANDOFF and the session entry are true; (5) any MUST.
+
+
+Build 3 (since the briefs were written): build 3 (7e17a969, build-brief-3.md) rewrote the pack README bullet in item (6), so it now says the line gives the forward-slash advice for a backslash error and "Repair the JSON by hand." for any other parse error. The seat commit after it (a0bccd0d) drops the unparseable config from the doctor-fix-line residual's list of ✗ lines that name no fix, since doctor's row now names one. Main 8466795b was merged in at ec916812 before build 3. Build 3 touched only the README; CI ran on d519cc09.
