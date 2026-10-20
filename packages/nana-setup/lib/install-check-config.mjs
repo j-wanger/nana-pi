@@ -85,12 +85,46 @@ export const PI_TURN_POWERSHELL = {
   platforms: ["win32"], // Contract: pi documents the tool as Windows-only (R-2003, R-2004).
   toolList: ["--tools", "read,bash,edit,write,powershell"], // Contract: preserve defaults and enable powershell (R-2003).
 };
+// Contract values: pi-review.mjs, review-round.mjs and review-standard.md, read 2026-10-20;
+// fixture-only names and folders are chosen to isolate this deterministic live review.
+export const PI_REVIEW = (() => {
+  const fixture = "packages/nana-setup/lib/install-check-review.mjs"; // Chosen: setup-owned fixture outside registered extension folders (R-2076).
+  const provider = "nana-install-check-review-fixture"; // Chosen: distinct from the turn fixture provider (R-2071, R-2072).
+  const model = "nana-install-check-review"; // Chosen: distinct from the turn fixture model (R-2071, R-2072).
+  const verdict = "LAND"; // Contract: the accepted review verdict (R-2073, R-2074).
+  return {
+    fixture,
+    provider,
+    model,
+    args: ["--offline", "-e", fixture, "--provider", provider, "--model", model, "--no-session", "-p"], // Contract: deterministic offline pi invocation (R-2071, R-2072).
+    launcherArgs: ["--retries", "0"], // Chosen: one deterministic attempt exposes a flaky launch (R-2071, R-2072).
+    runs: {
+      default: [{ label: "pi-review", item: "install-check-review", form: "path" }], // Contract: one path launch off Windows (R-2071, R-2073).
+      win32: [{ label: "pi-review (cmd)", item: "install-check-review-cmd", form: "cmd" }, { label: "pi-review (sh)", item: "install-check-review-sh", form: "sh" }], // Contract: cmd then Git Bash, with separate ledger items (R-2072, R-2073).
+    },
+    repoFolder: "review-repo", // Chosen: dedicated repository in the temporary home (R-2070).
+    outFolder: "review-out", // Chosen: review output stays outside the reviewed repository (R-2071, R-2072).
+    fixtureFile: "review-fixture.txt", // Chosen: one sealed committed fixture (R-2070).
+    fixtureText: "nana install check review fixture\n", // Chosen: deterministic committed fixture content (R-2070).
+    commitMessage: "Add install check review fixture", // Chosen: deterministic fixture commit message (R-2070).
+    gitOptions: ["-c", "user.name=Nana Install Check", "-c", "user.email=nana-install-check@example.invalid", "-c", "commit.gpgsign=false"], // Chosen: supply identity and disable inherited signing (R-2070).
+    prompt: "Review the install check fixture", // Chosen: shell-neutral plain words (R-2071, R-2072).
+    answer: "The install check fixture meets the review brief.", // Chosen: deterministic faux-model answer (R-2073).
+    verdict,
+    verdictLine: `VERDICT: ${verdict}`, // Contract: review-standard.md final-line shape (R-2073).
+    record: ".nana-install-check-review.json", // Chosen: isolated fixture observation record (R-2075).
+    tally: [".pi", "agent", "review-ledger.rounds.jsonl"], // Contract: review-round.mjs user-home tally (R-2074).
+    standard: "packages/nana-pack/prompts/review-standard.md", // Contract: pi-review.mjs appended review standard (R-2075).
+    role: "reviewer", // Contract: pi-review.mjs child role (R-2075).
+  };
+})();
 // Probe 2026-10-19: RPC output with pi-subagents was 21,699 bytes and placed a widget after
 // byte 20,970. The unavailable word is chosen to cover nana's explicit degraded-state notices.
 export const PI_SESSION = { unavailableWord: "unavailable", maxOutput: 100000 };
 // Chosen 2026-10-12: bound network and doctor subprocesses within the 20-minute CI job.
 // Probe 2026-10-19: the offline faux turn took 0.66 s; 60 s leaves cold Windows runner headroom.
-export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, hook: 5000, doctor: 120000, git: 30000 };
+// Chosen 2026-10-20: review gets 180 s, above one 75 s stall bound plus its 15 s poll (R-2073).
+export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, review: 180000, hook: 5000, doctor: 120000, git: 30000 };
 // Contract values: the macOS and Windows fresh-machine checklist rehearsal grammar and sandbox shape
 // (R-1540 to R-1546, R-1853 to R-1855), chosen 2026-10-19 to run each checklist as written.
 export const README_REHEARSAL = {

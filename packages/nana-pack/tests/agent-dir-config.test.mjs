@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/agent-dir-config.test.mjs
- * @purpose Pins that nana-pack's user-scope resources follow pi's active agent dir for an absolute, a relative and a tilde PI_CODING_AGENT_DIR, each naming a symlinked dir
- * @inputs extensions/nana-gate.ts, lib/config.ts, lib/gate-paths.ts, nana-pack.json at both agent dirs under a temp HOME
+ * @purpose Pins that nana-pack's user-scope resources follow pi's active agent dir for an absolute, a relative and a tilde PI_CODING_AGENT_DIR, each naming a symlinked dir, that the stranded default file is never opened when no active config exists, and that no mismatch note or journal line fires when the active config is present or none is stranded
+ * @inputs extensions/nana-gate.ts, extensions/nana-roster-notice.ts, lib/config.ts, lib/adoption.mjs, lib/gate-paths.ts, node:module's createRequire and syncBuiltinESMExports, nana-pack.json at both agent dirs under a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME and symlinked agent dirs), process (sets HOME and PI_CODING_AGENT_DIR, changes the process cwd)
+ * @effects disk (temp HOME and symlinked agent dirs), process (sets HOME and PI_CODING_AGENT_DIR, changes the process cwd, temporarily wraps node:fs's CommonJS read entry points to observe which files are opened)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // U2 (2026-09-28): nana-pack's user-scope resources follow pi's ACTIVE agent dir
@@ -20,6 +20,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { createRequire, syncBuiltinESMExports } from "node:module";
 
 const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2-")));
 process.env.HOME = HOME;
@@ -34,14 +35,62 @@ fs.mkdirSync(DEFAULT_DIR, { recursive: true });
 fs.writeFileSync(path.join(DEFAULT_DIR, "nana-pack.json"), JSON.stringify({ gate: { extraPatterns: ["\\bzorble\\b"] } }));
 
 const ext = (await import(new URL("../extensions/nana-gate.ts", import.meta.url).href)).default;
+const rosterNoticeExt = (await import(new URL("../extensions/nana-roster-notice.ts", import.meta.url).href)).default;
 const { policyFileHit, commandPolicyHit, pathCandidates, piAgentDir } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
-const { journalFile, loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
+const { journalFile, loadConfig, loadUserObjective } = await import(new URL("../lib/config.ts", import.meta.url).href);
+const { adoptionSettings } = await import(new URL("../lib/adoption.mjs", import.meta.url).href);
 const { ledgerPaths } = await import(new URL("../bin/review-round.mjs", import.meta.url).href);
 let handler;
 ext({ on: (ev, fn) => { if (ev === "tool_call") handler = fn; } });
+let rosterNoticeStart;
+rosterNoticeExt({ on: (ev, fn) => { if (ev === "session_start") rosterNoticeStart = fn; } });
 
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", name, extra); if (!ok) fails++; };
+
+/** path.resolve equality, lowercased on win32 (matches paths the same way the gate's own policy-file checks do). */
+function samePath(a, b) {
+	let ra, rb;
+	try { ra = path.resolve(String(a)); } catch { ra = String(a); }
+	try { rb = path.resolve(String(b)); } catch { rb = String(b); }
+	if (process.platform === "win32") { ra = ra.toLowerCase(); rb = rb.toLowerCase(); }
+	return ra === rb;
+}
+
+// R-193: wrap node:fs's CommonJS read entry points so a read of the stranded default file is
+// OBSERVED, not just its behavioural effect. syncBuiltinESMExports() makes every
+// `import * as fs from "node:fs"` namespace (config.ts, bounded-read.mjs, adoption.mjs,
+// nana-roster.mjs) reach the same wrapped functions. stat/exists/realpath/readlink stay
+// unwrapped — the mismatch note and the policy floor use them.
+const requireFS = createRequire(import.meta.url)("node:fs");
+const WRAP_SYNC = ["openSync", "readFileSync", "open", "readFile", "createReadStream"];
+const WRAP_PROMISES = ["open", "readFile"];
+
+/** Runs `run()` while recording every path those entry points are called with (a numeric arg0 —
+ *  a file descriptor, not a path — is not recorded). Restores every original in `finally`. */
+async function opened(run) {
+	const seen = [];
+	const record = (arg0) => { if (typeof arg0 !== "number") seen.push(String(arg0)); };
+	const originalSync = {};
+	for (const name of WRAP_SYNC) {
+		originalSync[name] = requireFS[name];
+		requireFS[name] = function (...args) { record(args[0]); return originalSync[name].apply(this, args); };
+	}
+	const originalPromise = {};
+	for (const name of WRAP_PROMISES) {
+		originalPromise[name] = requireFS.promises[name];
+		requireFS.promises[name] = function (...args) { record(args[0]); return originalPromise[name].apply(this, args); };
+	}
+	syncBuiltinESMExports();
+	try {
+		await run();
+	} finally {
+		for (const name of WRAP_SYNC) requireFS[name] = originalSync[name];
+		for (const name of WRAP_PROMISES) requireFS.promises[name] = originalPromise[name];
+		syncBuiltinESMExports();
+	}
+	return { seen, hasOpened: (p) => seen.some((s) => samePath(s, p)) };
+}
 
 let canLink = true;
 try {
@@ -120,6 +169,86 @@ for (const f of FORMS) {
 	// ---- (d) the round-cap ledger never moves
 	// req: R-192
 	check(`${T} (d) ledger dir is ~/.pi/agent`, ledgerPaths().dir === DEFAULT_DIR, ledgerPaths().dir);
+}
+
+// ---- R-193: with no active nana-pack.json, the stranded default file is announced but never opened
+{
+	const strandedFile = path.join(DEFAULT_DIR, "nana-pack.json");
+	const activeDir = path.join(HOME, "r193-agent");
+	fs.mkdirSync(activeDir, { recursive: true });
+	process.env.PI_CODING_AGENT_DIR = activeDir;
+	const activeFile = path.join(activeDir, "nana-pack.json");
+	const r193Notes = [];
+	const r193Cwd = path.join(HOME, "r193-cwd");
+	fs.mkdirSync(r193Cwd, { recursive: true });
+	const r193Ctx = {
+		cwd: r193Cwd,
+		hasUI: true,
+		ui: { notify: (m) => r193Notes.push(m), select: async () => "Block", setStatus() {}, setWidget() {} },
+		isProjectTrusted: () => false,
+		sessionManager: { getSessionId: () => "r193" },
+	};
+	const { seen, hasOpened } = await opened(async () => {
+		loadConfig(r193Ctx);
+		loadUserObjective();
+		adoptionSettings();
+		await rosterNoticeStart({ reason: "startup" }, r193Ctx);
+		await handler({ toolName: "bash", input: { command: "zorble now" } }, r193Ctx);
+	});
+	const noted = r193Notes.some((m) => m.includes(strandedFile));
+	const strandedOpened = hasOpened(strandedFile);
+	const activeOpened = hasOpened(activeFile);
+	// req: R-193
+	check("with no active nana-pack.json, the stranded default file is announced but never opened",
+		fs.existsSync(strandedFile) && noted && !strandedOpened && activeOpened,
+		`stranded-exists=${fs.existsSync(strandedFile)} noted=${noted} stranded-opened=${strandedOpened} active-opened=${activeOpened} seen=${JSON.stringify(seen)}`,
+	);
+}
+
+// ---- R-825: no mismatch note or journal line when the active config is present, or none is stranded
+{
+	const strandedFile = path.join(DEFAULT_DIR, "nana-pack.json");
+	const countMismatch = (dir, sid) => {
+		const notes = [];
+		const ctx = { cwd: HOME, hasUI: true, ui: { notify: (m) => notes.push(m), select: async () => "Block", setStatus() {} }, isProjectTrusted: () => false, sessionManager: { getSessionId: () => sid } };
+		const jf = path.join(dir, "nana-journal.jsonl");
+		const mismatchLines = () => (fs.existsSync(jf) ? fs.readFileSync(jf, "utf-8").split("\n").filter((l) => l.includes('"config_agent_dir_mismatch"')).length : 0);
+		const before = mismatchLines();
+		loadConfig(ctx);
+		const after = mismatchLines();
+		const mine = notes.filter((m) => m.includes("agent dir") || m.includes("PI_CODING_AGENT_DIR"));
+		return { notes: mine.length, lines: after - before };
+	};
+
+	// (i) a relocated empty dir, with the stranded file renamed away
+	const dirI = path.join(HOME, "r825-i-agent");
+	fs.mkdirSync(dirI, { recursive: true });
+	process.env.PI_CODING_AGENT_DIR = dirI;
+	const strandedBak = `${strandedFile}.r825-bak`;
+	fs.renameSync(strandedFile, strandedBak);
+	let caseI;
+	try {
+		caseI = countMismatch(dirI, "r825-i");
+	} finally {
+		fs.renameSync(strandedBak, strandedFile);
+	}
+
+	// (ii) a relocated dir holding {}, with the stranded file present
+	const dirII = path.join(HOME, "r825-ii-agent");
+	fs.mkdirSync(dirII, { recursive: true });
+	fs.writeFileSync(path.join(dirII, "nana-pack.json"), "{}");
+	process.env.PI_CODING_AGENT_DIR = dirII;
+	const caseII = countMismatch(dirII, "r825-ii");
+
+	// (iii) PI_CODING_AGENT_DIR unset: the default dir is the active dir
+	delete process.env.PI_CODING_AGENT_DIR;
+	const caseIII = countMismatch(DEFAULT_DIR, "r825-iii");
+
+	// req: R-825
+	check("no mismatch note or journal line when the active config is present or no default config is stranded",
+		caseI.notes === 0 && caseI.lines === 0 && caseII.notes === 0 && caseII.lines === 0 && caseIII.notes === 0 && caseIII.lines === 0,
+		JSON.stringify({ i: caseI, ii: caseII, iii: caseIII }),
+	);
 }
 
 // Missing dir / a FILE as the agent dir: total, no throw, no stop, defaults + the note.

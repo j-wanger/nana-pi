@@ -84,6 +84,38 @@ check("six active hook entries are wanted", wanted.length === 6);
 	check("unbalanced quoting reads as NOT installed", !commandInvokes("node '/x/nana-objective.mjs", objective));
 }
 
+{
+	const objective = spec("SessionStart objective");
+	const knowledge = spec("UserPromptSubmit knowledge pull");
+	const script = objective.script;
+	const knowledgePath = "/r/packages/nana-knowledge/bin/nana-knowledge.ts";
+	const cases = [
+		[objective, `node '/a b/${script}'`, true],
+		[objective, `node \"/a b/${script}\"`, true],
+		[objective, `node /a\\ b/${script}`, true],
+		[objective, `NODE_NO_WARNINGS=1 node /x/${script}`, true],
+		[objective, `A=1 B=2 node /x/${script}`, true],
+		[objective, `/usr/bin/node /x/${script}`, true],
+		[knowledge, `NODE_NO_WARNINGS=1 node '${knowledgePath}' hook`, true],
+		[objective, `node '/x/${script}`, false],
+		[objective, `echo node /x/${script}`, false],
+		[objective, `env node /x/${script}`, false],
+		[objective, `echo /x/${script}`, false],
+		[objective, `cat /x/${script}`, false],
+		[objective, `node /x/old-${script}`, false],
+		[objective, `node /x/${script}.disabled`, false],
+		[objective, `node --inspect /x/${script}`, false],
+		[objective, `nodemon /x/${script}`, false],
+		[knowledge, `node ${knowledgePath} build`, false],
+		[knowledge, `node ${knowledgePath}`, false],
+		[knowledge, `node ${knowledgePath} build hook`, false],
+	];
+	const results = cases.map(([hookSpec, command, expected]) => ({ command, expected, actual: commandInvokes(command, hookSpec) }));
+	// req: R-317
+	check("R-317: a hook counts as present only when its command, read with shell quoting and leading VAR=value words dropped, runs the interpreter on a path ending in the script with the expected argument",
+		results.every((result) => result.actual === result.expected), JSON.stringify(results));
+}
+
 /* --- the tokenizer the matcher is built on -------------------------------------------- */
 {
 	const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -466,6 +498,52 @@ const homeSnapshot = (root) => {
 	walk(root);
 	return JSON.stringify(entries);
 };
+
+{
+	const refusedBodies = [
+		'{"hooks":',
+		"[]",
+		"null",
+		'"x"',
+		'{"hooks":null}',
+		'{"hooks":[]}',
+		'{"hooks":{"Stop":{}}}',
+		'{"hooks":{"Stop":[1]}}',
+		'{"hooks":{"Stop":[null]}}',
+		'{"hooks":{"Stop":[{"hooks":"x"}]}}',
+	];
+	const refused = refusedBodies.map((body) => {
+		const home = freshHome();
+		const file = path.join(home, ".claude", "settings.json");
+		fs.writeFileSync(file, body);
+		const before = homeSnapshot(home);
+		const result = run(["install"], home);
+		return { body, status: result.status, named: result.stderr.includes(file), unchanged: homeSnapshot(home) === before, stderr: result.stderr };
+	});
+	const acceptedBodies = [
+		" \n\t ",
+		'{"theme":"dark"}',
+		'{"hooks":{"Notification":[{"matcher":"x"}]}}',
+	];
+	const objective = desiredHooks({ hooksDir: "/h", repoRoot: "/r" }).find((entry) => entry.label === "SessionStart objective").spec;
+	const accepted = acceptedBodies.map((body) => {
+		const home = freshHome();
+		const file = path.join(home, ".claude", "settings.json");
+		fs.writeFileSync(file, body);
+		const result = run(["install"], home);
+		let parsed = null;
+		let readError = null;
+		try { parsed = JSON.parse(fs.readFileSync(file, "utf8")); }
+		catch (error) { readError = error.message; }
+		const entries = parsed?.hooks?.SessionStart?.flatMap((group) => Array.isArray(group?.hooks) ? group.hooks : []) ?? [];
+		return { body, status: result.status, invokes: entries.some((entry) => entryInvokes(entry, objective, platform())), readError, stderr: result.stderr };
+	});
+	// req: R-320
+	check("R-320: preflight refuses a settings.json that does not parse or breaks any rung of the hooks shape, and accepts a blank file, no hooks key and a foreign group without hooks",
+		refused.every((result) => result.status === 2 && result.named && result.unchanged) &&
+			accepted.every((result) => result.status === 0 && result.invokes && result.readError === null),
+		JSON.stringify({ refused, accepted }));
+}
 
 /* --- end to end: a real settings.json with foreign hooks ------------------------------ */
 {

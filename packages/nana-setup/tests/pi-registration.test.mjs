@@ -117,6 +117,13 @@ function piHomeWith(packages) {
 	check("install did not add an entry", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
 	const doc = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" }));
 	check("doctor reports pi packages ✓", /✓ pi packages/.test(doc.stdout), doc.stdout);
+	const installPackagesLine = r.stdout.split("\n").find((outputLine) => /pi packages/.test(outputLine)) ?? "";
+	const doctorPackagesLine = doc.stdout.split("\n").find((outputLine) => /✓ pi packages/.test(outputLine)) ?? "";
+	// req: R-927
+	check("R-927: when this repo is already registered, install and doctor both name the matching entry on the pi packages row",
+		installPackagesLine.trimEnd().endsWith("registered as " + rel) &&
+			doctorPackagesLine.trimEnd().endsWith("registered as " + rel),
+		`${installPackagesLine}\n${doctorPackagesLine}`);
 }
 {
 	const home = piHomeWith(["npm:pi-mcp-adapter"]);
@@ -242,6 +249,24 @@ function piHomeWith(packages) {
 				const r = spawnSync(process.execPath, [wtCli, "install", "--home", home], { encoding: "utf8" });
 				check("install from the worktree does not run `pi install` for a registered repo", /pi packages\s+unchanged\s+(?:all extension directories registered|registered as)/.test(r.stdout), r.stdout);
 				check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
+
+				const checkoutHome = piHomeWith(null);
+				const checkoutAgent = path.join(checkoutHome, ".pi", "agent");
+				const worktreePack = path.relative(checkoutAgent, path.join(worktreeRoot, "packages", "nana-pack"));
+				const worktreeKnowledge = path.relative(checkoutAgent, path.join(worktreeRoot, "packages", "nana-knowledge"));
+				fs.writeFileSync(path.join(checkoutAgent, "settings.json"), JSON.stringify({ packages: [worktreePack, worktreeKnowledge] }, null, 2));
+				const checkoutRun = spawnSync(process.execPath, [cli, "install", "--home", checkoutHome], { encoding: "utf8" });
+				const mainEntries = JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages;
+				const worktreeEntries = JSON.parse(fs.readFileSync(path.join(checkoutAgent, "settings.json"), "utf8")).packages;
+				// req: R-384
+				check("R-384: install from a linked worktree counts the main checkout's entries as registered, and install from this checkout counts the worktree's entries, adding none",
+					r.status === 0 &&
+						checkoutRun.status === 0 &&
+						/pi packages\s+unchanged\s+all extension directories registered as /.test(r.stdout) &&
+						/pi packages\s+unchanged\s+all extension directories registered as /.test(checkoutRun.stdout) &&
+						mainEntries.length === 2 &&
+						worktreeEntries.length === 2,
+					`${r.stdout}\n---\n${checkoutRun.stdout}`);
 
 				// the `~/...` spelling of the same clone
 				const tildeForm = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-pack")) : null;

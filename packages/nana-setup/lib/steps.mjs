@@ -19,9 +19,9 @@
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
- *  `pi --version` / `pi install`, `git rev-parse`)
+ *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
  *  edit; install cannot take its settings lock before its first write and hold it through the
  *  settings write; settings.json changed on disk during the run; a plist placeholder with no
@@ -45,6 +45,7 @@ import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacy
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findOnPath, findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -1057,7 +1058,10 @@ export function registrationState(layout) {
 	return packageCoverage(layout);
 }
 
-export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = spawnSync, exists, manifestRoot = repoRoot } = {}) {
+// chosen 2026-10-20: measured pi 1.0.2 launches took 0.15 s; 30 s covers cold starts and 120 s covers startup tidy and settings-lock retries while keeping two installs under the install check's 300 s bound.
+export const PI_LAUNCH_LIMITS_MS = Object.freeze({ version: 30_000, install: 120_000 });
+
+export function stepPiRegister(layout, o, { platform: getPlatform = platform, env = process.env, spawn = boundedSpawnSync, limits = PI_LAUNCH_LIMITS_MS, exists, manifestRoot = repoRoot } = {}) {
 	const state = packageCoverage(layout, manifestRoot);
 	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `all extension directories registered${state.match ? ` as ${state.match}` : ""}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
@@ -1070,16 +1074,18 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 		if (command.refused) return { refused: command.refused };
 		// the dry run stops here, before the first pi install, after every check install runs.
 		if (install && o.dryRun) return { status: 0 };
-		return spawn(command.command, command.args, { ...command.options, encoding: "utf8", ...(install ? { env: { ...env, PI_CODING_AGENT_DIR: layout.piHome } } : {}) });
+		return spawn(command.command, command.args, { ...command.options, encoding: "utf8", timeout: install ? limits.install : limits.version, ...(install ? { env: { ...env, PI_CODING_AGENT_DIR: layout.piHome } } : {}) });
 	};
 	const probe = launch(["--version"]);
 	if (probe.refused) return [{ label: "pi packages", status: PROBLEM, detail: `pi launch refused: ${probe.refused}` }];
 	if (!win32 && probe.error?.code === "ENOENT") return [{ label: "pi packages", status: SKIPPED, detail: `pi is not on PATH — \`${PI_INSTALL_HINT}\`, then re-run` }];
+	if (probe.error?.code === "ETIMEDOUT") return [{ label: "pi packages", status: PROBLEM, detail: `pi --version gave no answer within ${limits.version / 1_000} s and was stopped` }];
 	if (probe.error || probe.status !== 0) return [{ label: "pi packages", status: PROBLEM, detail: `pi --version ${probe.error ? `could not start: ${probe.error.message}` : `failed: ${(probe.stderr || "").trim().split("\n").pop() || `exit ${probe.status}`}`}` }];
 	const added = [];
 	for (const dir of state.packageRoots.filter((root) => state.missing.some((ext) => ext.startsWith(root + path.sep)))) {
 		const r = launch(["install", dir], true);
 		if (r.refused) return [{ label: "pi packages", status: PROBLEM, detail: `pi install refused: ${r.refused}` }];
+		if (r.error?.code === "ETIMEDOUT") return [{ label: "pi packages", status: PROBLEM, detail: `pi install ${dir} gave no answer within ${limits.install / 1_000} s and was stopped` }];
 		if (r.error || r.status !== 0) return [{ label: "pi packages", status: PROBLEM, detail: `pi install ${dir} failed: ${(r.stderr || "").trim().split("\n").pop() || r.error?.message || `exit ${r.status}`}` }];
 		added.push(dir);
 	}

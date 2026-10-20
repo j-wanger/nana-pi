@@ -448,12 +448,15 @@ fs.mkdirSync(lockHome, { recursive: true });
 process.env.NANA_KNOWLEDGE_HOME = lockHome;
 const lockFile = path.join(lockHome, "build.lock");
 const won = [acquireBuildLock(), acquireBuildLock(), acquireBuildLock()];
+// req: R-232
 check("three sequential lock attempts in one process: exactly one wins", won.filter(Boolean).length === 1);
+// req: R-232
 check("the lock file records the owning pid", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
 
 // a foreign lock is never cleared by release
 fs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid + 99999, at: Date.now() }));
 releaseBuildLock();
+// req: R-232
 check("release leaves a lock owned by ANOTHER pid alone", fs.existsSync(lockFile));
 
 // ...but a stale one is reclaimed
@@ -554,6 +557,7 @@ fs.writeFileSync(path.join(lockHome, "sources.json"), JSON.stringify({ roots: [{
 acquireBuildLock();
 let locked = false;
 try { await build(); } catch (e) { locked = e?.constructor?.name === "BuildLockedError"; }
+// req: R-232
 check("build() fails fast while another builder holds the lock", locked);
 releaseBuildLock();
 check("build() runs once the lock is free", (await build()).files > 0);
