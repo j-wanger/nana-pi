@@ -1059,8 +1059,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Resolve a review command to its direct, Windows cmd.exe, or pi-specific launch.
 - **inputs** — a child argv and injected platform, environment, cwd, file probes, text reader, and Node executable.
 - **outputs** — a spawn command, arguments and optional options, or a named refusal.
-- **effects** — disk through default Windows command and pi lookup probes.
-- **errors** — lookup and unsafe Windows arguments return refusals; injected readers may throw.
+- **effects** — disk (default Windows command, path existence and pi lookup probes).
+- **errors** — lookup, absent Windows batch paths and unsafe Windows arguments return refusals; injected readers may throw.
 - **callers** — `packages/nana-pack/bin/review-ledger.mjs`
 - **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/win-command-config.mjs`, `packages/nana-pack/lib/win-command.mjs`
 
@@ -1558,7 +1558,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Resolve and safely launch supported Windows commands, and conservatively identify absent cmd.exe commands.
 - **inputs** — command names, argument arrays, injected environment/cwd/existence and optional ComSpec.
-- **outputs** — absolute lookup paths, spawnSync argument records/refusals, or a missing-command predicate.
+- **outputs** — absolute lookup paths, a default existence probe, spawnSync argument records/refusals, or a missing-command predicate.
 - **effects** — disk
 - **errors** — refusals are returned as values; lookup errors mean absent.
 - **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/tests/win-command.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
