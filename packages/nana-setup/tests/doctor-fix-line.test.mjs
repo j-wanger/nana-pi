@@ -271,7 +271,8 @@ const unexpectedBaseline = run(["doctor", "--home", unexpectedHome], { home: une
 const unreadableRule = path.join(unexpectedHome, ".claude", "rules", "nana-soul.md");
 fs.writeFileSync(unreadableRule, "stale copy\n");
 const preload = path.join(root, "dry-run-read-error.mjs");
-fs.writeFileSync(preload, `import fs from "node:fs";\nimport path from "node:path";\nimport { syncBuiltinESMExports } from "node:module";\nconst original = fs.readFileSync;\nconst target = path.resolve(process.env.NANA_DOCTOR_READ_ERROR_TARGET);\nlet reads = 0;\nfs.readFileSync = function (file, ...args) {\n\tif (path.resolve(String(file)) === target && ++reads === 2) throw Object.assign(new Error("injected dry-run read failure"), { code: "EACCES" });\n\treturn original.call(this, file, ...args);\n};\nsyncBuiltinESMExports();\n`);
+// Diagnose reads once; the win32 copy record now checks the target before the copy primitive reads it.
+fs.writeFileSync(preload, `import fs from "node:fs";\nimport path from "node:path";\nimport { syncBuiltinESMExports } from "node:module";\nconst original = fs.readFileSync;\nconst target = path.resolve(process.env.NANA_DOCTOR_READ_ERROR_TARGET);\nlet reads = 0;\nfs.readFileSync = function (file, ...args) {\n\tif (path.resolve(String(file)) === target && ++reads === 3) throw Object.assign(new Error("injected dry-run read failure"), { code: "EACCES" });\n\treturn original.call(this, file, ...args);\n};\nsyncBuiltinESMExports();\n`);
 const unexpectedDoctor = run(["doctor", "--home", unexpectedHome], {
 	home: unexpectedHome,
 	cwd: unexpectedCwd,

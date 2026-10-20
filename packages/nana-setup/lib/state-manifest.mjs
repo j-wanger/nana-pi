@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/lib/state-manifest.mjs
  * @purpose Defines the single classified inventory of nana state and its restoration provenance.
- * @inputs resolveLayout-shaped absolute paths, ledgerPaths(home) and nana-pack's RULINGS_FILE.
+ * @inputs resolveLayout-shaped absolute paths including the Windows copy record, ledgerPaths(home) and nana-pack's RULINGS_FILE.
  * @outputs sealed STATE_CLASSES and stateRows(layout).
  * @effects none
  * @errors none
@@ -56,6 +56,7 @@ export function stateRows(layout) {
 
   seed("subagent config.json", layout.subagentConfig, SUBAGENT_CONFIG_SEED, "rebuildable");
   seed("reviewer.md", layout.reviewerAgent, REVIEWER_SEED, "rebuildable");
+  rebuild("copy record", layout.copyRecord, "file");
   for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
