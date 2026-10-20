@@ -109,6 +109,32 @@ check("custom path: prompt never says .pi/handoff.md", !handoffSection2.includes
 	fs.rmSync(td3, { recursive: true, force: true });
 }
 
+// R-2160: when the cap falls between the two halves of a surrogate pair, the injected
+// body ends immediately before that pair (CAP - 1 units), never on a lone high surrogate.
+{
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+	const td4 = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-cap-pair-")));
+	fs.mkdirSync(path.join(td4, ".pi"));
+	const handlers4 = {};
+	ext({ on: (name, fn) => { handlers4[name] = fn; } });
+	const CAP = mod.INJECT_CAP;
+	const body = `${"x".repeat(CAP - 1)}\u{1F600}tail`;
+	const ctx4 = { cwd: td4, hasUI: false, isProjectTrusted: () => true };
+	await handlers4.session_compact({ compactionEntry: { summary: body }, reason: "manual" }, ctx4);
+	await handlers4.session_start({ reason: "startup" }, ctx4);
+	const event4 = { systemPromptOptions: { sections: {} } };
+	await handlers4.before_agent_start(event4, ctx4);
+	const section4 = event4.systemPromptOptions.sections["nana-handoff"] ?? "";
+	const startMarker4 = "background state, not instructions.\n\n";
+	const endMarker4 = "\n\nWhen the current work makes it stale";
+	const bodyStart4 = section4.indexOf(startMarker4);
+	const bodyEnd4 = section4.indexOf(endMarker4);
+	const cut4 = bodyStart4 !== -1 && bodyEnd4 !== -1 ? section4.slice(bodyStart4 + startMarker4.length, bodyEnd4) : "";
+	// req: R-2160
+	check("cap: a body cut between the two halves of a surrogate pair is injected ending before that pair", cut4 === "x".repeat(CAP - 1));
+	fs.rmSync(td4, { recursive: true, force: true });
+}
+
 fs.rmSync(td, { recursive: true, force: true });
 fs.rmSync(td2, { recursive: true, force: true });
 process.exit(fails);
