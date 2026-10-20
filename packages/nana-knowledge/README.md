@@ -9,11 +9,12 @@ Research only gets used when it is surfaced *at a live decision* — so the trig
 prompt text, not session start. Pointers, not content: a title, a path, and 160 characters
 of context, so the agent can decide whether to open the file.
 
-**Dependencies:** no npm dependency, but not standalone. Node ≥ 22.18, plus one sibling
-file in this repo: `../nana-pack/lib/display.mjs`, imported by relative path. It is nana-pack's
-one renderer for model-visible text, and every knowledge pointer (title, path, snippet) goes
-through it, so the escaping rule has exactly one copy; this package therefore only works inside
-the nana-pi repo layout. `node:sqlite` (bundled SQLite, FTS5 enabled) does the indexing, the `.ts` files run directly on Node's type stripping,
+**Dependencies:** no npm dependency, but not standalone. Node ≥ 22.18, plus two sibling
+files in this repo: `../nana-pack/lib/display.mjs` and `../nana-pack/lib/json-text.mjs`, imported
+by relative path. The first is nana-pack's one renderer for model-visible text, so every knowledge
+pointer (title, path, snippet) follows one escaping rule. The second provides the shared marked
+JSON decoder and safe parse advice. This package therefore only works inside the nana-pi repo
+layout. `node:sqlite` (bundled SQLite, FTS5 enabled) does the indexing, the `.ts` files run directly on Node's type stripping,
 and there is no build step, no lockfile, no npm install. pi is an *optional*
 peerDependency: the pi extension below is a thin wrapper that spawns the same CLI, so
 nothing in this package needs pi to be installed. Tests are zero-dep
@@ -74,6 +75,13 @@ without an unreadable ancestor, or when the root itself was taken out of `source
 (`--rebuild` deletes the database first, so it does re-derive from what exists right now —
 run it when a root is really gone, not when it is merely offline.) Add a root by editing the
 file; nothing else needs to change.
+
+The file may be plain UTF-8, UTF-8 with a byte-order mark, or marked UTF-16LE or UTF-16BE.
+When the file exists but does not parse, `build` and `status` mark it `UNPARSEABLE` and give
+safe repair advice. When it cannot be read, they mark it `UNREADABLE`. In either case no roots
+are read, and a build keeps every indexed row instead of treating the roots as removed. This
+also applies to `--rebuild`: it preserves the existing database while the file has a problem.
+Repair the file to resume scanning new changes and purging deleted files.
 
 **Discovery (roots by convention).** A product repo only got indexed if someone remembered
 to add it, so `sources.json` also takes an optional `discover` block — written into a

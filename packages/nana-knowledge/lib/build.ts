@@ -2,15 +2,15 @@
  * @module packages/nana-knowledge/lib/build.ts
  * @purpose Build the knowledge index incrementally under an atomic build lock, re-indexing only files whose
  *  bytes changed.
- * @inputs the roots from sources.json, the `.md` files under them (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS
- *  skipped), the existing `files` table as the stat/hash cache, and the `rebuild` option
- * @outputs BuildStats (per-root files/rows/skipped, reindexed, unchanged, removed, preserved, missingRoots,
- *  unreadable paths, ms, dbBytes), the index's meta rows, the index age in ms, and a doc count
+ * @inputs roots or a read/parse problem from sources.json, the `.md` files under readable roots
+ *  (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, and `rebuild`
+ * @outputs BuildStats (per-root counts, totals, preserved and removed rows, missing/unreadable paths,
+ *  sources problem, timing and db size), the index's meta rows, the index age, and a doc count
  * @effects disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes
  *  the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row
  *  transactions, a WAL truncate checkpoint)
  * @errors BuildLockedError when another live builder holds the lock; node:sqlite's own throws on an
- *  unusable database; an unreadable source file, root or folder is skipped and its indexed rows are kept
+ *  unusable database; a sources problem or unreadable root/folder keeps its indexed rows
  */
 // Incremental index build. Read-only on every source: we stat, read, hash. Nothing is
 // ever written back into a knowledge store.
@@ -20,7 +20,7 @@ import * as path from "node:path";
 import { openDb, setMeta, type Db } from "./db.ts";
 import { parseArticle, parseLedger, type Row } from "./parse.ts";
 import { paths } from "./paths.ts";
-import { contains, loadSources, skipNames, type Root } from "./sources.ts";
+import { contains, loadSources, skipNames, type Root, type SourcesProblem } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
 const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -156,6 +156,7 @@ export interface BuildStats {
 	skippedLarge: number;
 	missingRoots: string[];
 	unreadable: string[];
+	problem?: SourcesProblem;
 	ms: number;
 	dbBytes: number;
 }
@@ -235,9 +236,9 @@ export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStat
 
 async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	const t0 = Date.now();
-	const { roots, exclude } = loadSources();
+	const { roots, exclude, problem } = loadSources();
 	const skip = skipNames(exclude);
-	if (opts.rebuild) {
+	if (opts.rebuild && !problem) {
 		for (const suffix of ["", "-wal", "-shm"]) {
 			try { fs.rmSync(paths.db + suffix, { force: true }); } catch { /* ignore */ }
 		}
@@ -245,7 +246,7 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	const db = await openDb(paths.db, { create: true });
 	const stats: BuildStats = {
 		roots: [], files: 0, rows: 0, reindexed: 0, unchanged: 0, removed: 0, preserved: 0,
-		skippedLarge: 0, missingRoots: [], unreadable: [], ms: 0, dbBytes: 0,
+		skippedLarge: 0, missingRoots: [], unreadable: [], problem, ms: 0, dbBytes: 0,
 	};
 
 	const candidates: Candidate[] = [];
@@ -309,8 +310,8 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	//     gone, and purging would erase its index until a later build can read it again.
 	const delFile = db.prepare("DELETE FROM files WHERE path = ?");
 	for (const [gone, prev] of existing) {
-		if (configuredRoots.has(prev.root) &&
-			(!scannedRoots.has(prev.root) || stats.unreadable.some((u) => contains(u, gone)))) {
+		if (problem || (configuredRoots.has(prev.root) &&
+			(!scannedRoots.has(prev.root) || stats.unreadable.some((u) => contains(u, gone))))) {
 			// still counted: these rows are still IN the index, so the meta counts below
 			// and `status` must reflect them.
 			stats.preserved++; stats.files++; stats.rows += prev.rows;
