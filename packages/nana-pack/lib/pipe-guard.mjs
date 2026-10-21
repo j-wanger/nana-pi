@@ -27,7 +27,7 @@ const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
 const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
 const POWERSHELL_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\}|\$LASTEXITCODE\b)/iu;
 const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
-const BASH_ERREXIT_CHANGES = /(?:^|[;&{}\r\n]|\b(?:then|do)\b|(\$?\())\s*set\s+(?:([+-])([a-z]*e[a-z]*)|([+-])o\s+errexit)\b/giu;
+const BASH_ERREXIT_ENABLES = /(?:^|[;&|`(){}\r\n]|\b(?:then|do)\b)\s*set\s+(?:-[a-z]*e[a-z]*|-o\s+errexit)\b/giu;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
 const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
 
@@ -144,16 +144,6 @@ function liveText(command, dialect = "bash") {
 				i++;
 			}
 			continue;
-		}
-		if (ch === "`") {
-			let end = i + 1;
-			while (end < source.length && (source[end] !== "`" || escapedByOddBackslashes(source, end))) end++;
-			if (end < source.length) {
-				text += ` (${liveText(source.slice(i + 1, end))}) `;
-				line += " ";
-				i = end;
-				continue;
-			}
 		}
 		if (ch === "'" || ch === '"') {
 			quote = ch; quoteStart = i; text += " "; line += ch; continue;
@@ -457,31 +447,18 @@ function bracketClosers(live) {
 	return closers;
 }
 
-function bashErrexitStates(live, pipes, closers) {
-	const changes = [...live.matchAll(BASH_ERREXIT_CHANGES)].map((match) => ({
-		end: (match.index ?? 0) + match[0].length,
-		sign: match[2] ?? match[4],
-	}));
-	const states = [];
-	const scopes = [];
+function bashErrexitStates(live, pipes) {
+	const enables = [...live.matchAll(BASH_ERREXIT_ENABLES)]
+		.map((match) => (match.index ?? 0) + match[0].length);
+	let enable = 0;
 	let active = false;
-	let change = 0;
-	let cursor = 0;
-	for (const pipe of pipes) {
-		for (; cursor < pipe; cursor++) {
-			if (live[cursor] === "(" && closers.has(cursor)) {
-				scopes.push({ close: closers.get(cursor), active });
-			} else if (live[cursor] === ")" && scopes.at(-1)?.close === cursor) {
-				active = scopes.pop().active;
-			}
-			while (change < changes.length && changes[change].end <= cursor + 1) {
-				active = changes[change].sign === "-";
-				change++;
-			}
+	return pipes.map((pipe) => {
+		while (enable < enables.length && enables[enable] <= pipe) {
+			active = true;
+			enable++;
 		}
-		states.push(active);
-	}
-	return states;
+		return active;
+	});
 }
 
 function wordAt(text, at) {
@@ -576,7 +553,7 @@ export function verifierPipeReason(command, dialect = "bash") {
 	if (initialPipefail) return null;
 	const pipes = pipelineStarts(live);
 	const closers = bracketClosers(live);
-	const errexitStates = dialect === "powershell" ? [] : bashErrexitStates(live, pipes, closers);
+	const errexitStates = dialect === "powershell" ? [] : bashErrexitStates(live, pipes);
 	for (let i = 0; i < pipes.length; i++) {
 		const pipe = pipes[i];
 		const read = statusReadAfterPipeline(live, pipe, dialect, errexitStates[i] ?? false, closers);

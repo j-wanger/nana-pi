@@ -205,7 +205,7 @@ check("pack README declares the Claude win32 verifier coverage", /Claude Code ho
 // req: R-2354
 check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
 // req: R-2356
-check("both READMEs declare which pipelines the verifier-pipe guard asks on", [packDeclaration, setupDeclaration].every((line) => /a `;` or a newline/.test(line) && /does not prompt/.test(line) && /`git\.exe`/.test(line) && /path/.test(line)));
+check("both READMEs declare which pipelines the verifier-pipe guard asks on", [packDeclaration, setupDeclaration].every((line) => /a `;` or a newline/.test(line) && /does not prompt/.test(line) && line.includes("`set -<letters including e>`") && line.includes("`set -o errexit`") && /never turns that text flag off/.test(line) && /`git\.exe`/.test(line) && /path/.test(line)));
 // final review r2 (sol SHOULD 2, astra SHOULD 3): the migration sentence now opens "On POSIX" —
 // Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
 // req: R-985
