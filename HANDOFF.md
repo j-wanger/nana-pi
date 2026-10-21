@@ -1006,6 +1006,7 @@
 - Capability fields (cap-kinds, final review): the checker reads kind and retired lines on every capability. So a flat ledger whose part prose starts with Kind: or Retired: no longer lifts, where main lifted it. The refusal names the line, and rewording it fixes it. No ledger on this machine has such a line.
 - Capability fields (cap-kinds, final review): no check covers a G-row deliverable, or a deliverable shared into its capability rather than homed there. The second is refused as homed elsewhere, as the plan says.
 - Capability fields (cap-kinds, final review): the tree movement report does not name a capability whose label alone changed.
+- Stale-copies check on Windows (ledger-stages, CI): its linked Claude folder case failed 3 checks once on CI's Windows leg, then passed on a re-run. The lane does not touch it. It may be flaky.
 
 ## Where things stand
 
