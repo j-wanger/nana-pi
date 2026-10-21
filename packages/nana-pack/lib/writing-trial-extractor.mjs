@@ -13,6 +13,8 @@ import { checkText, splitSentences } from "./writing-check.mjs";
 
 /** Contract (R-2516): accepted attachment titles start with this role-neutral prefix. */
 export const RULE_TITLE = "# Nana — Writing for";
+/** Provenance: identity-scan.config.json and R-2511's seal, 2026-10-21; archived trial reports name the owner. */
+export const OWNER_WORD_DIGESTS = Object.freeze(["cdf30c6b345276278bedc7bcedd9d5582f5b8e0c1dd858f46ef4ea231f92731d"]);
 const RULE_ANCHOR = "Put the verdict in the first sentence. Use one of:";
 const DEFAULT_ROOT = path.join(process.env.HOME ?? "~", ".claude", "projects");
 const WORDS = (text) => text.trim().split(/\s+/u).filter(Boolean).length;
@@ -118,8 +120,10 @@ function checksByDay(sessions) {
 	return [...days].sort(([a], [b]) => a.localeCompare(b)).map(([day, count]) => ({ day, count }));
 }
 
-function scoreDecisions(reports) {
+function scoreDecisions(reports, { ownerWordDigests = OWNER_WORD_DIGESTS } = {}) {
+	const ownerWordDigestSet = new Set(ownerWordDigests);
 	const rules = [/\b(?:tested|test|checked|ran|measured)\b/iu, /\b\d+(?:\.\d+)?%?\b/u, /\b(?:trade|trade-off|risk|cost|but|while|versus|vs\.?)\b/iu, /\b(?:recommend|recommendation|should|choose|prefer|propose)\b/iu, /\b(?:your call|the owner|you decide|your decision)\b/iu];
+	const namesOwner = (block) => block.split(/[^A-Za-z0-9_]+/u).some((token) => token && ownerWordDigestSet.has(crypto.createHash("sha256").update(token.toLowerCase()).digest("hex")));
 	return reports.flatMap((report) => {
 		const decisions = [];
 		for (const block of report.body.split(/\n\s*\n/u)) {
@@ -128,7 +132,7 @@ function scoreDecisions(reports) {
 		}
 		return decisions.map((blocks, index) => {
 			const partBlocks = blocks.slice(1, 6);
-			const orderedParts = rules.map((rule, part) => Boolean(partBlocks[part] && rule.test(partBlocks[part])));
+			const orderedParts = rules.map((rule, part) => Boolean(partBlocks[part] && (rule.test(partBlocks[part]) || (part === 4 && namesOwner(partBlocks[part])))));
 			return { sessionId: report.sessionId, timestamp: report.timestamp, decision: index + 1, orderedParts, parts: orderedParts, score: orderedParts.filter(Boolean).length };
 		});
 	});

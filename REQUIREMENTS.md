@@ -2163,6 +2163,7 @@ Also applies: G-012, G-021, G-022
 | R-2514 | WHEN a HANDOFF heading starts with "Open for" and a space, the product report shall list that section's entries as asks. | implemented | `packages/nana-pack/tests/product-report.test.mjs::an Open for heading with any name is read as the asks section` |
 | R-2515 | WHEN a HANDOFF heading starts with "Open for" and a space, the frontier report shall apply its open-tag, misplaced-landed, overdue-date, section-order and read-window checks to that section. | implemented | `packages/nana-pack/tests/frontier.test.mjs::an Open for heading with any name gets every live-section check` |
 | R-2516 | WHEN a transcript attaches the shipped writing rule under any "Writing for" title, the trial extractor shall count that session as rule-attached. | implemented | `packages/nana-pack/tests/writing-trial-extractor.test.mjs::a rule attached under any Writing for title counts as attached` |
+| R-2521 | WHEN a decision block names the owner by the first identity word or by a role word, the trial extractor shall count the block's fifth rubric part as present. | implemented | `packages/nana-pack/tests/writing-trial-extractor.test.mjs::a decision naming the owner by name or by role scores its fifth part`; `packages/nana-pack/tests/writing-trial-extractor.test.mjs::seal: the extractor's owner word digest` |
 
 ## FEAT-033 · Adopt explicit engineering standards
 Purpose: Keep shared configuration and module-boundary policies in one place and link their applicability to project features.

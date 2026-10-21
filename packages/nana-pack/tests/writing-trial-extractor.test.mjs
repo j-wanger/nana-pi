@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { RULE_TITLE, checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
+import { OWNER_WORD_DIGESTS, RULE_TITLE, checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 let failures = 0;
@@ -34,6 +34,12 @@ function fixture() {
 }
 const shippedRule = fs.readFileSync(new URL("../rules/nana-writing.md", import.meta.url), "utf8");
 const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", attachment: shippedRule };
+
+// req: R-2521
+check("seal: the extractor's owner word digest", () => {
+	const config = JSON.parse(fs.readFileSync(new URL("../../../identity-scan.config.json", import.meta.url), "utf8"));
+	assert.deepEqual(OWNER_WORD_DIGESTS, [config.wordDigests[0]]);
+});
 
 {
 	const f = fixture();
@@ -226,6 +232,15 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 		assert.equal(decisions[0].score, 5);
 		assert.equal(decisions[1].score, 5);
 		assert.equal(decisions[2].score, 3);
+	});
+	// req: R-2521
+	check("a decision naming the owner by name or by role scores its fifth part", () => {
+		const namedWord = "marigold";
+		const namedReports = reports.map((report) => ({ ...report, body: report.body.replace(/the owner/giu, namedWord) }));
+		const digest = crypto.createHash("sha256").update(namedWord).digest("hex");
+		assert.deepEqual(scoreDecisions(reports).map(({ score }) => score), [5, 5, 3]);
+		assert.deepEqual(scoreDecisions(namedReports, { ownerWordDigests: [digest] }).map(({ score }) => score), [5, 5, 3]);
+		assert.deepEqual(scoreDecisions(namedReports).map(({ score }) => score), [4, 4, 3]);
 	});
 }
 if (failures) process.exitCode = 1;
