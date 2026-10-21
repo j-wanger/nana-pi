@@ -137,10 +137,11 @@ const LATER_PIPE_AMPERSAND = '\t\t\tawaitingPipelineCommand = true;\n\t\t\tif (l
 const BACKSLASH_ESCAPE = String.raw`if (ch === "\\" && i + 1 < source.length) {`;
 const QUOTE_OPEN = `if (ch === "'" || ch === '"') {`;
 const QUOTE_OPEN_BUILD2 = String.raw`if ((ch === "'" || ch === '"') && source[i - 1] !== "\\") {`;
-const GUARD_NOW = "only when a masked pipeline's exit status can reach the commit without earlier active `pipefail`; a `;` or a newline that discards it does not prompt, and `git.exe` and path spellings count as git";
+const GUARD_NOW = "when a masked pipeline's exit status can reach the commit without earlier active `pipefail`. Earlier live Bash text also makes that pipeline prompt when it contains `errexit` anywhere, in any case and even inside a longer word, or contains a `set` word at any position followed within the same simple command\u2014before the next `;`, `&`, `|`, newline or closing bracket\u2014by an option word made of `-` and letters including `e`. A later `set +e` or `set +o errexit` never turns that text flag off, and `+o errexit` itself counts as enabling, even before a status-discarding `;` or newline. Without that earlier Bash errexit text, a `;` or a newline that discards the status does not prompt, and `git.exe` and path spellings count as git";
 const GUARD_MAIN = "that pipelines output before `git commit` without earlier active `pipefail`";
 
 const DECLARED = [
+	"(builds 9 to 11, acb649cb) round 2: both reviewers sent back errexit-scope fail-opens. The seat subtracted the set +e relaxation (build 9); build 10 widened the matcher fail-safe (any errexit text, or a set word with an -e option word anywhere in its simple command), closing five spellings the seat found; build 11 computes the first enable once (build 10 was pipes times length: 3,489 ms on 64 KB of a|b; against 20 ms on round 1). The old E4 to E9 sites (the +e sign, the command-position prefix, the scope walk, the backtick group) are gone, so E2 to E6 are rewritten for the new matcher, E4 now being the old rule put back, and E7 to E9 are dropped. No pair for the simple-command split or for checking only the first set word: each wrong form only adds asks",
 	"(builds 6 to 8, 3b503992) round 1's land reviewer MUSTs. Build 6 scopes an errexit change to its subshell, command substitution, backtick or process substitution, and keeps a PowerShell status read live in an expandable string or here-string. E3, E4 and E8 are re-anchored on its scope walk; E9 and X20 to X23 pin its sites. On 9f155fd2, 69 of 76 read red: E9 and X23 survived, because no check had a backtick substitution or an escaped status in a here-string. Builds 7 and 8 (tests only) added those cases. Declared on 3b503992: F4 (the backtick left neighbour) is now equivalent on tested input, because build 6 wraps an unquoted backtick substitution in parentheses before the finder runs; S26 (PowerShell ${?}) is not claimed by any row and stays unpinned",
 	"(build 5, e5b0483e) E5 to E7 are re-anchored on build 5's errexit prefix, which moves ( and $( into their own group; E8 and Q3 pin build 5's two fixes: a subshell's set +e does not reach the outer command, and an even run of backslashes before a double quote closes it",
 	"(build 4, c2d0dcb4) K2 and K5 are removed: build 4 deleted the two quoted-continuation branches they broke (dead since build 3). E5 and E6 are re-anchored on build 4's errexit prefix, which adds (. E7, B2 and B3 pin build 4's fixes: errexit after (, the escape rule that keeps an escaped letter visible (B3), and the raw line that keeps the backslash, which is what finds a backslash heredoc delimiter (B2 puts build 3's whole rule back)",
@@ -334,31 +335,21 @@ const PAIRS = [
 	{ n: "E1", name: "(5) no errexit reader", edits: [
 		one(PG, 'if (dialect !== "powershell" && errexitActive) return pipe;', "if (false) return pipe;"),
 	], tests: [T], expectRed: [CS("bash set -e"), CS("bash set -o errexit"), ...NESTED_ERREXIT] },
-	{ n: "E2", name: "set -o errexit is not an errexit spelling", edits: [
-		one(PG, String.raw`|([+-])o\s+errexit)\b/giu;`, String.raw`)\b/giu;`),
-	], tests: [T], expectRed: [CS("bash set -o errexit")] },
+	{ n: "E2", name: "(build 10) the errexit text rule is dropped: only a set word's -e option counts", edits: [
+		one(PG, "const BASH_ERREXIT_TEXT = /errexit/iu;", "const BASH_ERREXIT_TEXT = /(?!)/u;"),
+	], tests: [T], expectRed: [CS("bash set -o errexit"), CS("bash set errexit after an earlier option"), CS("bash set errexit after an option pair"), CS("bash shopt errexit text")] },
 	{ n: "E3", name: "errexit set after the pipe counts", edits: [
-		one(PG, "changes[change].end <= cursor + 1", "true"),
+		one(PG, "return pipes.map((pipe) => enabledAt <= pipe);", "return pipes.map(() => Number.isFinite(enabledAt));"),
 	], tests: [T], expectRed: [DS("bash set -e after pipeline")] },
-	{ n: "E4", name: "set +e does not turn errexit off", edits: [
-		one(PG, 'active = changes[change].sign === "-";', 'if (changes[change].sign === "-") active = true;'),
-	], tests: [T], expectRed: [DS("bash set +e disables errexit before pipeline")] },
-	{ n: "E5", name: "errexit set right after { does not count (build 2's prefix without braces)", edits: [
-		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&\r\n]|\b(?:then|do)\b|(\$?\())\s*set`),
-	], tests: [T], expectRed: [NESTED_ERREXIT[0]] },
-	{ n: "E6", name: "errexit set right after then or do does not count (build 2's prefix without the words)", edits: [
-		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&{}\r\n]|(\$?\())\s*set`),
-	], tests: [T], expectRed: [NESTED_ERREXIT[1], NESTED_ERREXIT[2]] },
-	{ n: "E7", name: "errexit set right after ( does not count (build 3's prefix)", edits: [
-		one(PG, ERREXIT_PREFIX, String.raw`(?:^|[;&{}\r\n]|\b(?:then|do)\b|(\$?\((?!)))\s*set`),
-	], tests: [T], expectRed: [CS("bash errexit set inside subshell")] },
-	{ n: "E8", name: "set +e or +o errexit inside a subshell turns errexit off for the outer command (build 4's form; build 6: no scope restore at the closer)", edits: [
-		one(PG, "active = scopes.pop().active;", "scopes.pop();"),
-	], tests: [T], expectRed: ["bash outer errexit survives set +e inside a subshell", "bash outer errexit survives set +e inside command substitution", "bash outer errexit survives set +o errexit inside a subshell", "bash outer errexit survives a later set +e inside a subshell", "bash outer errexit survives a later set +e inside a command substitution", "bash outer errexit survives a later set +o errexit inside a subshell", "bash outer errexit survives a later set +e inside backtick substitution", "bash outer errexit survives set +e inside process substitution"].map(CS) },
-	// build 6 (9f155fd2): round 1's land reviewer MUSTs
-	{ n: "E9", name: "(round 1 MUST 1) an unquoted bash backtick substitution is not a scope (build 5's text)", edits: [
-		one(PG, "if (ch === \"`\") {\n\t\t\tlet end = i + 1;", "if (false) {\n\t\t\tlet end = i + 1;"),
-	], tests: [T], expectRed: [CS("bash outer errexit survives a later set +e inside backtick substitution")] },
+	{ n: "E4", name: "(builds 1 to 8, round 2's findings) a later set +e turns errexit off", edits: [
+		one(PG, "\t\tcommandStart = i + 1;\n\t}\n\treturn first;", "\t\tcommandStart = i + 1;\n\t}\n\treturn /\\bset\\s+\\+e\\b/u.test(live) ? Number.POSITIVE_INFINITY : first;"),
+	], tests: [T], expectRed: [CS("bash a later set +e does not turn errexit off"), CS("bash a subshell ending in a set +e pipeline returns its status to outer errexit")] },
+	{ n: "E5", name: "(build 9's matcher) only the option word right after set counts", edits: [
+		one(PG, "const BASH_ERREXIT_OPTION_AFTER_SPACE = /\\s-[a-z]*e[a-z]*(?![\\w-])/giu;", "const BASH_ERREXIT_OPTION_AFTER_SPACE = /\\s-[a-z]*e[a-z]*(?![\\w-])/yiu;"),
+	], tests: [T], expectRed: [CS("bash set option after an earlier option")] },
+	{ n: "E6", name: "(build 9's position rule) set counts only at the start of its simple command", edits: [
+		one(PG, "function bashErrexitOptionEnd(command) {\n", "function bashErrexitOptionEnd(command) {\n\tif (!/^\\s*set\\b/iu.test(command)) return Number.POSITIVE_INFINITY;\n"),
+	], tests: [T], expectRed: [CS("bash negated set")] },
 	{ n: "X20", name: "(round 1 MUST 2) a status read in a PowerShell double-quoted string is blanked (build 5's form)", edits: [
 		one(PG, "\t\t\t\tlive += status;\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;", "\t\t\t\tlive += \" \".repeat(status.length);\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;"),
 	], tests: [T], expectRed: [CS("PowerShell double-quoted question mark")] },
@@ -404,4 +395,4 @@ const PAIRS = [
 	], tests: [IC], expectRed: [] },
 ];
 
-process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "3b503992", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "acb649cb", declared: DECLARED, pairs: PAIRS });
