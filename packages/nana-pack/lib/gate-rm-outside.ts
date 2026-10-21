@@ -31,7 +31,9 @@ export const GIT_BASH_TEMP_VARIABLES = ["TMP", "TEMP"] as const;
 // contract (R-2492): Git for Windows' cygdrive mount accepts one drive letter followed by / or end (mount.cc:895-917).
 export const GIT_BASH_DRIVE = /^\/([A-Za-z])(?=\/|$)/;
 
-/** Read Git Bash's default temp and cygdrive spellings as Windows paths by textual substitution. */
+/** Read Git Bash's default temp and cygdrive spellings as Windows paths by textual substitution.
+ * `normalizeWindowsShellPath` in `lib/agent-dir.mjs` reads pi's tool paths with other rules (`/mnt/c`, `/cygdrive/c`). We keep the two apart on purpose because Git Bash's mount table maps neither prefix.
+ */
 export function gitBashPath(spelling: string, { platform, env }: { platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv }): string {
 	if (platform !== "win32" || env === undefined || spelling.startsWith("//") || spelling.includes("\\")) return spelling;
 	const normalized = path.posix.normalize(spelling);

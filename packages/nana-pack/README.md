@@ -682,7 +682,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   pipelines, subshells and groups can over- or under-approximate execution; only rm command
   position is covered; heredoc command-looking lines can be judged; other shells and a hand-edited
   fstab are not translated; Git Bash fixes `/tmp` once per user while any Git Bash runs; `/usr`,
-  `/etc`, `/home`, `/cygdrive`, `/mnt` and `//host` spellings ask; only lowercase `/tmp` is read;
+  `/etc` and `/home` spellings are read on the working folder's drive, not where Git Bash reads
+  them; `/cygdrive`, `/mnt` and `//host` are not read as drives and ask; `..` is collapsed before
+  any link is read, while Git Bash follows a link first; only lowercase `/tmp` is read;
   with neither TMP nor TEMP set, `/tmp` asks; and PowerShell colon-bound parameters, pipeline input,
   filter/include scope and backtick escapes are not read. This text gate remains advisory and does not cover deliberate path hiding or races.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
