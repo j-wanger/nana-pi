@@ -2,7 +2,7 @@
  * @module packages/nana-knowledge/tests/recover.test.mjs
  * @purpose Prove damaged knowledge indexes are rebuilt safely, reported without stacks, or preserved when sources cannot be parsed.
  * @inputs Temporary profiles, article roots and indexes damaged as bytes, pages or incomplete SQLite schemas.
- * @outputs Ten PASS/FAIL lines for R-2400 through R-2409, with exit 1 when any check fails.
+ * @outputs Eleven PASS/FAIL/SKIP lines for R-2400 through R-2409, with exit 1 when any check fails.
  * @effects disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI and a detached hook rebuild).
  * @errors A failed or timed-out case prints FAIL; fixture and child-process errors are contained by that case.
  */
@@ -141,6 +141,11 @@ function hashFile(file) {
 	return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
 
+function isBusyOrLocked(err) {
+	const primaryCode = typeof err?.errcode === "number" ? err.errcode & 0xff : null;
+	return primaryCode === 5 || primaryCode === 6 || /busy|locked/i.test(String(err?.message ?? ""));
+}
+
 async function rowCount(f) {
 	activate(f);
 	let db;
@@ -239,6 +244,43 @@ const r2403 = await caseWithin(async () => {
 	return true;
 });
 
+const r2403Late = process.platform === "win32" ? null : await caseWithin(async () => {
+	const f = await goodFixture("late-write-lock");
+	await applyDamage(f, "docs-page");
+	activate(f);
+	const { DatabaseSync } = await loadSqlite();
+	let attempted = false;
+	let blocked = false;
+	let committed = false;
+	const stats = await build({
+		onRecoveryLocked: () => {
+			attempted = true;
+			const writer = new DatabaseSync(f.db);
+			try {
+				writer.exec("PRAGMA busy_timeout=0");
+				writer.exec("BEGIN IMMEDIATE");
+				writer.prepare("INSERT INTO meta(key, value) VALUES (?, ?)").run("late-writer", "committed-value");
+				writer.exec("COMMIT");
+				committed = true;
+			} catch (err) {
+				blocked = isBusyOrLocked(err);
+				try { writer.exec("ROLLBACK"); } catch {}
+			} finally {
+				writer.close();
+			}
+		},
+	});
+	let lateRow;
+	let fresh;
+	try {
+		fresh = await openDb(f.db, {});
+		lateRow = fresh.prepare("SELECT value FROM meta WHERE key = ?").get("late-writer");
+	} finally {
+		try { fresh?.close(); } catch {}
+	}
+	return attempted && blocked && !committed && !lateRow && !!stats.recovered && await queryHits(f);
+});
+
 const r2404 = await caseWithin(async () => {
 	const f = await goodFixture("build-lock");
 	await applyDamage(f, "random");
@@ -325,7 +367,11 @@ const r2409 = await caseWithin(async () => {
 });
 
 let fails = 0;
-function check(name, ok) {
+function check(name, ok, skipReason = null) {
+	if (skipReason) {
+		console.log("SKIP", name, "—", skipReason);
+		return;
+	}
 	console.log(ok ? "PASS" : "FAIL", name);
 	if (!ok) fails++;
 }
@@ -338,6 +384,9 @@ check("R-2401: a build over a SQLite file whose docs or files table lacks a used
 check("R-2402: a pull over a page-overwritten index older than one hour starts a build that heals it, and a later pull hits", r2402);
 // req: R-2403
 check("R-2403: builds over healthy or page-damaged write-locked indexes fail, keep index.db's inode and bytes, and a fresh handle reads the committed sentinel", r2403);
+// req: R-2403
+check("R-2403: a writer arriving after recovery takes its lock is blocked before delete, then the damaged index recovers", r2403Late ?? false,
+	process.platform === "win32" ? "Windows releases the recovery lock before delete by design" : null);
 // req: R-2404
 check("R-2404: a build that loses the build lock leaves a damaged index.db byte for byte", r2404);
 // req: R-2405

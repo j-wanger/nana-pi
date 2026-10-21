@@ -2,7 +2,7 @@
  * @module packages/nana-knowledge/lib/build.ts
  * @purpose Build or recover the knowledge index under an atomic build lock, re-indexing only files whose bytes changed.
  * @inputs roots or a read/parse problem from sources.json, the `.md` files under readable roots
- *  (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, and `rebuild`
+ *  (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, `rebuild`, and an optional recovery-lock test hook
  * @outputs BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
  * @effects disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes
  *  the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row
@@ -236,9 +236,16 @@ function problemStats(problem: SourcesProblem, started: number, reason?: string)
 	};
 }
 
-async function assertRecoveryDeleteSafe(): Promise<void> {
+function deleteIndexFiles(): void {
+	for (const suffix of ["", "-wal", "-shm"]) {
+		try { fs.rmSync(paths.db + suffix, { force: true }); } catch { /* a later open reports what remains */ }
+	}
+}
+
+async function assertRecoveryDeleteSafe(onRecoveryLocked?: () => void): Promise<void> {
 	let db: Db | undefined;
 	let began = false;
+	let deleteAfterClose = false;
 	let failure: unknown;
 	try {
 		db = await openDb(paths.db, {});
@@ -247,20 +254,44 @@ async function assertRecoveryDeleteSafe(): Promise<void> {
 		began = true;
 	} catch (err) {
 		if (!indexDamage(err)) failure = err;
-	} finally {
-		if (began) {
-			try { db!.exec("ROLLBACK"); }
-			catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
-		}
-		if (db) {
-			try { db.close(); }
-			catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
+	}
+
+	if (failure === undefined) {
+		try {
+			if (began) onRecoveryLocked?.();
+			if (process.platform === "win32" || !began) {
+				// Windows cannot remove a database another process has open. Release our handle
+				// first; a writer entering this gap makes delete fail, so recovery fails and keeps it.
+				deleteAfterClose = true;
+			} else {
+				// POSIX permits unlinking an open file. Keep BEGIN IMMEDIATE held through every
+				// unlink so no writer can commit to the file recovery is replacing.
+				deleteIndexFiles();
+			}
+		} catch (err) {
+			failure = err;
 		}
 	}
+
+	if (began) {
+		try { db!.exec("ROLLBACK"); }
+		catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
+	}
+	if (db) {
+		try { db.close(); }
+		catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
+	}
 	if (failure !== undefined) throw failure;
+	if (deleteAfterClose) deleteIndexFiles();
 }
 
-export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStats> {
+export interface BuildOptions {
+	rebuild?: boolean;
+	/** Test seam for a writer arriving after recovery's lock check. */
+	onRecoveryLocked?: () => void;
+}
+
+export async function build(opts: BuildOptions = {}): Promise<BuildStats> {
 	if (!acquireBuildLock()) throw new BuildLockedError();
 	const started = Date.now();
 	try {
@@ -272,8 +303,8 @@ export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStat
 			if (!reason) throw err;
 			if (sources.problem) return problemStats(sources.problem, started, reason);
 			if (opts.rebuild) throw err;
-			await assertRecoveryDeleteSafe();
-			const stats = await buildLocked({ rebuild: true }, sources);
+			await assertRecoveryDeleteSafe(opts.onRecoveryLocked);
+			const stats = await buildLocked({ rebuild: true, recoveryFilesDeleted: true }, sources);
 			stats.recovered = reason;
 			return stats;
 		}
@@ -282,14 +313,12 @@ export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStat
 	}
 }
 
-async function buildLocked(opts: { rebuild?: boolean }, sources: LoadedSources): Promise<BuildStats> {
+interface LockedBuildOptions { rebuild?: boolean; recoveryFilesDeleted?: boolean }
+
+async function buildLocked(opts: LockedBuildOptions, sources: LoadedSources): Promise<BuildStats> {
 	const t0 = Date.now();
 	const { problem } = sources;
-	if (opts.rebuild && !problem) {
-		for (const suffix of ["", "-wal", "-shm"]) {
-			try { fs.rmSync(paths.db + suffix, { force: true }); } catch { /* ignore */ }
-		}
-	}
+	if (opts.rebuild && !problem && !opts.recoveryFilesDeleted) deleteIndexFiles();
 	const existing = fs.existsSync(paths.db);
 	if (problem && existing) {
 		const probe = await openDb(paths.db, { readonly: true });

@@ -797,7 +797,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-knowledge/lib/build.ts`
 
 - **purpose** — Build or recover the knowledge index under an atomic build lock, re-indexing only files whose bytes changed.
-- **inputs** — roots or a read/parse problem from sources.json, the `.md` files under readable roots (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, and `rebuild`
+- **inputs** — roots or a read/parse problem from sources.json, the `.md` files under readable roots (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, `rebuild`, and an optional recovery-lock test hook
 - **outputs** — BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
 - **effects** — disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row transactions, a WAL truncate checkpoint)
 - **errors** — BuildLockedError when another live builder holds the lock; unrecoverable node:sqlite errors; a sources problem or unreadable root/folder keeps its indexed rows
@@ -928,7 +928,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove damaged knowledge indexes are rebuilt safely, reported without stacks, or preserved when sources cannot be parsed.
 - **inputs** — Temporary profiles, article roots and indexes damaged as bytes, pages or incomplete SQLite schemas.
-- **outputs** — Ten PASS/FAIL lines for R-2400 through R-2409, with exit 1 when any check fails.
+- **outputs** — Eleven PASS/FAIL/SKIP lines for R-2400 through R-2409, with exit 1 when any check fails.
 - **effects** — disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI and a detached hook rebuild).
 - **errors** — A failed or timed-out case prints FAIL; fixture and child-process errors are contained by that case.
 - **callers** — —
