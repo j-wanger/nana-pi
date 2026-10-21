@@ -1,0 +1,18 @@
+# CI run 39635853134 at f33f5902 (PR #155), suite (windows-latest), job 119345987495: the lane's row lines and file lines
+
+PASS R-2485: the pack-config-utf16 test launches Windows PowerShell with the sealed 60-second limit 
+PASS R-2480: a pi-subagents install that exits 1 and then 0 prints PASS pi-subagents after one sealed pause
+PASS R-2481: each pi-subagents install attempt that exits 1 prints one NOTE line naming its number, the attempt count and that attempt's npm error-code line
+PASS R-2480: the pi-subagents retry is sealed at three attempts, a five-second pause and npm's two error-code line leads
+PASS R-2486: a pi-subagents install that times out runs once and prints FAIL pi-subagents with its timeout
+PASS R-2484: the launch-limit test accepts a stop up to the limit, the relay settle window and the sealed 3.5-second margin, below the relay backstop 
+SKIP R-2482: forced-win32 fixtures prove the limit off Windows; a second Windows run would re-expose the open linked-claude failure
+PASS R-2483: when the stale-copies checker fails inside the linked-claude adoption hook, the R-1761 failure names that hook run's status, signal, time and unavailable line 
+PASS  packages/nana-setup/tests/stale-copies-slow.test.mjs            1 pass, 1 skip  6.9s
+PASS R-2482: the stale-copies install-child limit is sealed at 20 seconds 
+PASS  packages/nana-pack/tests/pack-config-utf16.test.mjs             6 pass  6.2s
+PASS  packages/nana-setup/tests/install-check.test.mjs                133 pass  3.1s
+PASS  packages/nana-setup/tests/pi-launch-limits.test.mjs             13 pass, 5 skip  29.2s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs                 14 pass, 1 skip  7.3s
+
+201 files: 183 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7159 pass, 0 fail, 116 skip · 1844.8s

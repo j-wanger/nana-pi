@@ -1,0 +1,40 @@
+seat-mutate: lane win-leg-flakes, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, table dccfc5f77f987e77b6f7e9a35fa0b5fb5705b83f41d11a71a91d60684560160a, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T16:17:13.287Z
+DECLARED (build 1, 6c99f999) the brief's five wrong-code tries for R-2480, R-2481, R-2486 and the retry pin
+DECLARED (builds 2-3, bc3e492d) the briefs' six tries for R-2482 to R-2485, re-run by the seat
+DECLARED (adversary) a relay that loses its deadline must still fail R-2020 to R-2022 under the 7.5 s bound
+[1/5] seat-mutate: lane win-leg-flakes, shard 1/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 3 pairs, darwin, node v22.22.2, 2026-10-21T16:17:14.140Z
+[1/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/stale-copies.test.mjs (exit 0, 14 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/stale-copies-slow.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/pack-config-utf16.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane win-leg-flakes, shard 2/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 3 pairs, darwin, node v22.22.2, 2026-10-21T16:17:18.156Z
+[2/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/stale-copies-slow.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 16 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane win-leg-flakes, shard 3/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 2 pairs, darwin, node v22.22.2, 2026-10-21T16:17:22.232Z
+[3/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/stale-copies-slow.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane win-leg-flakes, shard 4/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 2 pairs, darwin, node v22.22.2, 2026-10-21T16:17:26.238Z
+[4/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 16 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane win-leg-flakes, shard 5/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 2 pairs, darwin, node v22.22.2, 2026-10-21T16:17:30.170Z
+[5/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 16 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED W1 no retry loop: one attempt only — 1/1 named: /^R-2480: a pi-subagents install that exits 1 and then 0/; UNNAMED red: [install-check.test.mjs] R-2481: each pi-subagents install attempt that exits 1 prints one NOTE line naming its number, the attempt co…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W2 the NOTE line is dropped — 1/1 named: /^R-2481: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED W3 every NOTE names attempt 1's code line — 1/1 named: /^R-2481: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W4 a timeout is retried too — 1/1 named: /^R-2486: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W5 the sealed attempt count drops to two — 1/1 named: /^R-2480: the pi-subagents retry is sealed/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W6 the install-child limit back to 5 seconds — 2/2 named: /^R-2482: the stale-copies install-child limit is sealed/ | /^R-2482: off Windows, stale-copies passes every check/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W7 the repair install still on the 5-second hook limit — 1/1 named: /^R-2482: off Windows, stale-copies passes every check/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W8 the R-1761 detail drops the hook run's facts — 1/1 named: /^R-2483: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W9 the hang-stop margin at 5 seconds (bound above the relay backstop) — 1/1 named: /^R-2484: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W10 the hang-stop margin back to 1 second — 1/1 named: /^R-2484: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W11 the PowerShell helper passes the shared 15-second timeout — 1/1 named: /^R-2485: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W12 the relay loses its deadline (only the outer backstop stops a hung pi) — 3/3 named: /^R-2020: / | /^R-2021: / | /^R-2022: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 12/12 red (11 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived, across 5 shards

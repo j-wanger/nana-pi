@@ -13,8 +13,7 @@
 1. **Priority review, 2026-10-24.** Met: the requirements tree, four-digit IDs and the land rule. Also met: the Windows CI runner and the fixes it found. All three legs read 0 failing, and the Windows leg blocks release. Partly met: install and hooks. CI's install check passes on macOS and Windows, but the owner's own Windows run at current main is pending (see Open). Checklist steps 1 and 7 on both systems, and Windows step 5, run by hand. None has run on a clean account or a fresh machine. The seat brings the review pack.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 3. **Queue (the owner, 2026-10-21; two lanes building plus one in planning):**
-   - Building: win-leg-flakes (the four first-try Windows failures).
-   - Next to build: gate-rm-gitbash-tmp, a gate lane, planned with its adversary's fixes. On Windows, pi's gate reads a Git Bash `/tmp` or `/c/` path as a folder at the drive root. So it blocks a headless builder deleting its own temp files.
+   - Building: gate-rm-gitbash-tmp, a gate lane, planned with its adversary's fixes. On Windows, pi's gate reads a Git Bash `/tmp` or `/c/` path as a folder at the drive root. So it blocks a headless builder deleting its own temp files.
    - Then, in order:
      - The writing rule's adoption, an install, hook or gate lane. It adds a PATH link, a `writing.enabled` key and one `toWellFormed()` fix. The pre-send check becomes mandatory, and blocking is decided per surface.
      - Known bugs per feature. Known bugs move out of this file into one file per feature, which changes the shared review bar. Until then the frontier checker's size finding stays.
@@ -24,8 +23,9 @@
      - A settings file with a byte-order mark.
      - The audit's seat calls.
    - Seat work: regenerate and republish the product report in a reviewed change.
-4. **Karpathy's other formats.** The review-timeline diagram is unblocked; nobody has started it.
-5. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
+4. **Windows first-try failures.** The win-leg-flakes lane fixed the four seen on 2026-10-20 and 2026-10-21. Count first-try Windows failures over the next 20 CI runs; before the fix, about 4 of 20 needed a re-run.
+5. **Karpathy's other formats.** The review-timeline diagram is unblocked; nobody has started it.
+6. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
@@ -60,6 +60,7 @@
 - 2026-10-21: this repo's eight capabilities now carry kinds, deliverables and binds, added in place with no feature or row moved. Seven are product capabilities, each listing four to six deliverable rows. Trust and tool actions is the one constraint. It binds five stages: direction and context, the lane loop, setup, following and steering development, and the checkable tools. The seat proposed the lines with a workflow of eight proposers and one critic, which checked every row. A new check keeps every live capability kinded and every product capability listing deliverables. CI reads 0 failing on macOS, Linux and Windows. The install check passes on macOS and Windows. All 3 of the seat's wrong versions of the ledger turn that check red. The report's stage view shows three gaps. Two deliverables have no test yet. No tested trust row is shared into the lane loop.
 - 2026-10-21: the owner's second set of rulings, on the seat's recommendations. The writing rule is adopted after its trial, and its adoption is a later lane. Known bugs move out of this file into one file per feature, also in a later lane. The owner-name scrub covers the current files only, with no history rewrite. With the owner's word, the seat deleted 92,773 old test folders from the macOS temp folder.
 - 2026-10-21: this file now opens with its live sections, and the frontier checker reports what one default read misses. Before, Next started at line 1,022 of a 334 KB file. pi's read tool stops at 50 KB, so a pi seat saw only old landed lines. Now Where things stand, Next and Open for Jake come first, and 153 old landed lines moved to the session archive. The checker reports a live section placed after Landed or Carried residuals. It also reports a live section that ends past one default read, and a file over that read. A suite check keeps this repo's own file in that order. The file stays over the read window until known bugs move to one file per feature.
+- 2026-10-21: the four first-try Windows CI failures now have fixes. The install check retries a failed pi-subagents install up to three times, five seconds apart. Each failed attempt prints a NOTE line with npm's own error code, which the main-push failure had lost. A timeout is never retried. Two test limits now come from measured runs: stale-copies gives an install 20 seconds, and the PowerShell child 60. The launch-limit test accepts a stop up to 7.5 seconds, still below the relay's own backstop. The linked Claude folder failure is diagnosed, not fixed: its failure line now names the hook run's status, time and output.
 
 ## Carried residuals (live; one line each)
 
@@ -904,7 +905,7 @@
 - Capability fields (cap-kinds, final review): the checker reads kind and retired lines on every capability. So a flat ledger whose part prose starts with Kind: or Retired: no longer lifts, where main lifted it. The refusal names the line, and rewording it fixes it. No ledger on this machine has such a line.
 - Capability fields (cap-kinds, final review): no check covers a G-row deliverable, or a deliverable shared into its capability rather than homed there. The second is refused as homed elsewhere, as the plan says.
 - Capability fields (cap-kinds, final review): the tree movement report does not name a capability whose label alone changed.
-- Stale-copies check on Windows (ledger-stages, CI): its linked Claude folder case failed 3 checks once on CI's Windows leg, then passed on a re-run. The lane does not touch it. It may be flaky.
+- Stale-copies check on Windows (ledger-stages CI; win-leg-flakes): its linked Claude folder case failed 3 checks once on CI's Windows leg, then passed on a re-run. The cause is still unknown; a 5-second hook kill is unlikely from the phase timings. Its R-1761 failure line now names the hook run's status, signal, time and unavailable lines, so the next failure shows the cause. Fixing it is a hook lane.
 - Capability fields (cap-fields-own, plan): the checkable-code capability is a product tool family, a seat call the owner can reverse. Its README rows and general engineering rows read like a constraint and could be carved out later.
 - Capability fields (cap-fields-own, plan): no stage here names what it needs. The lane loop's inputs come from setup, which sits later in the ledger.
 - Capability fields (cap-fields-own, report): no row names the builder's lane commits, so the lane loop lists no build-stage deliverable.
@@ -922,3 +923,16 @@
 - Frontier checks (frontier-first, plan): the read window copies pi 1.0.2's defaults; pi 1.3.0 keeps them. A pi upgrade that changes them needs the values retuned, and the two seals then fail naming R-2471 and R-2472.
 - Frontier checks (frontier-first, plan): a single Landed line hundreds of words long is still not flagged; the landed-entry check covers only entries that span lines.
 - Frontier checks (frontier-first, plan): a lane cut before this one lands meets a conflict in this file when it merges main. The seat places its lines in the new sections and compares the counts of known-bug lines and Open asks before and after.
+- Windows flakes (win-leg-flakes, plan): the pi-subagents retry can hide an intermittent real fault that passes within three attempts. Each failed attempt still prints a NOTE line with npm's code.
+- Windows flakes (win-leg-flakes, plan): on Windows a refused pi launch returns status 1, so the install check retries it twice for nothing, about 10 seconds.
+- Windows flakes (win-leg-flakes, plan): npm's error-code lead comes from npm 10.9.7. If npm rewords it, the NOTE line falls back to the last error line. The spawn adapter keeps the first 10,001 characters, so very long npm output could cut the code line.
+- Windows flakes (win-leg-flakes, plan): with the larger limits, stale-copies no longer catches an install that slows from under 1 second to under 20. The launch-limit test now accepts a stop up to 7.5 seconds.
+- Windows flakes (win-leg-flakes, plan): the slowed-install check skips on Windows by design. The forced-Windows fixtures run on macOS and Linux. The hook-detail check runs on every system.
+- Windows flakes (win-leg-flakes, plan): CI re-runs cannot prove the failure rate fell. The proof is the two slowed and failing meta-runs and the call-site checks.
+- Test runner (win-leg-flakes, cause audit): the runner's cleanup of a file's temp folder and home has no guard. In run 39464607963 an EBUSY there killed the runner after 154 of 200 files, so 46 files never ran and no summary printed. A small lane on the runner fixes it.
+- PowerShell config check (win-leg-flakes, cause audit): pack-config-utf16 ends on an uncaught ENOENT when PowerShell writes no file. Its header promises a named failure with PowerShell's status, error and time.
+- Stale-copies on Windows (win-leg-flakes, cause audit): an install the test stops at its limit leaves its knowledge-build grandchild holding the index file. The test stops only the direct child.
+- Install-child limit (win-leg-flakes, plan): five test files now each define the same 20-second install-child limit. One shared test value would keep them together.
+- Provenance label (frontier-first final review): the dropped ask held three known limits. A broken trust.json link gets no diagnosis; writability and staleness are only pre-checks; the Claude hook resolves a relative override against its own folder. The label itself no longer fires in the owner's five repos.
+- Frontier checks (frontier-first final review): the read window's exact edge is not pinned. Three wrong versions keep the 51 checks green: >= for >, the end line's newline counted, and the trailing empty element counted as a line.
+- Frontier checks (frontier-first final review): pi splits lines on the newline only. On a file with Windows line endings, pi's line includes its carriage return. The checker stops before it and can read one byte under pi at the exact edge.

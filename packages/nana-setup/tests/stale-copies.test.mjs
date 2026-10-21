@@ -34,7 +34,10 @@ const tmps = [];
 const cli = path.join(pkgRoot, "bin", "nana-setup.mjs");
 const adoptionSource = path.join(pkgRoot, "claude", "hooks", "nana-adoption.mjs");
 const expectedCommand = `node "${path.join(fs.realpathSync(pkgRoot), "bin", "nana-setup.mjs")}" install`;
+// contract: the installed Claude Code hook timeout is 5 seconds.
 const CASE_LIMIT_MS = 5000;
+// measured 2026-10-21 (R-2482): Windows legs ran this file in 4.9–8.6 s; a 5 s kill landed during index build; matching other setup child limits.
+export const INSTALL_CHILD_LIMIT_MS = 20_000;
 
 function temp(prefix) {
 	const dir = tmpDir(path.join(os.tmpdir(), prefix));
@@ -73,7 +76,7 @@ function installHome(platformName, name) {
 		cwd: project,
 		encoding: "utf8",
 		env: { ...process.env, HOME: home, USERPROFILE: home },
-		timeout: CASE_LIMIT_MS,
+		timeout: INSTALL_CHILD_LIMIT_MS,
 	});
 	if (result.status !== 0) throw new Error(`install failed for ${platformName}/${name}: ${result.status}\n${result.stdout}\n${result.stderr}`);
 	return { home, project, layout: resolveLayout({ home }) };
@@ -236,10 +239,12 @@ async function buildBroken(platformName, name, breaker) {
 	const doctor = doctorRows(fixture);
 	const skillDryRun = stepSkills(fixture.layout, { dryRun: true });
 	const before = homeSnapshot(fixture.home);
+	const hookStarted = Date.now();
 	const hook = hookResult(fixture, platformName);
+	const hookMs = Date.now() - hookStarted;
 	const after = homeSnapshot(fixture.home);
 	const sections = name === "legacy" ? await extensionSections(fixture) : null;
-	return { platform: platformName, name, fixture, doctor, skillDryRun, before, hook, after, sections, ...metadata };
+	return { platform: platformName, name, fixture, doctor, skillDryRun, before, hook, hookMs, after, sections, ...metadata };
 }
 
 async function platformFixtures(platformName) {
@@ -269,6 +274,8 @@ async function platformFixtures(platformName) {
 }
 
 check("seal: stale-copy prefixes and pi section key are pinned", STALE_PREFIX === "[nana:install] INSTALL STALE:" && STALE_UNAVAILABLE_PREFIX === "[nana:install] STALE-COPY CHECK UNAVAILABLE:" && STALE_SECTION === "nana-install-stale");
+// req: R-2482
+check("R-2482: the stale-copies install-child limit is sealed at 20 seconds", INSTALL_CHILD_LIMIT_MS === 20_000);
 
 const uninstalled = { home: temp("nana-stale-uninstalled-home-"), project: temp("nana-stale-uninstalled-project-") };
 const uninstalledEnv = { ...process.env, HOME: uninstalled.home, USERPROFILE: uninstalled.home, CLAUDE_PROJECT_DIR: uninstalled.project };
@@ -299,7 +306,7 @@ check("R-1760: a missing hook link or hook settings entry puts one stale line in
 const labelFacts = brokenCases.map((item) => {
 	const expected = item.doctor.filter((row) => row.status === "fail" && /^(hook|rule|skill|settings) /.test(row.label) && row.label !== "rule nana-personal.md").map((row) => row.label);
 	const line = staleLines(item.hook)[0] ?? "";
-	return { platform: item.platform, name: item.name, expected, actual: labelsFrom(line), nonempty: expected.length > 0 };
+	return { platform: item.platform, name: item.name, expected, actual: labelsFrom(line), nonempty: expected.length > 0, hookStatus: item.hook.status, hookSignal: item.hook.signal, hookMs: item.hookMs, unavailable: unavailableLines(item.hook) };
 });
 const r1761 = labelFacts.every(({ expected, actual, nonempty }) => nonempty && JSON.stringify(actual) === JSON.stringify(expected));
 // req: R-1761
@@ -382,7 +389,7 @@ async function repairCase(item) {
 	const scratch = temp(`nana-stale-${item.platform}-${item.name}-moved-`);
 	for (const [index, movePath] of movePaths.entries()) fs.renameSync(movePath, path.join(scratch, `${index}-${path.basename(movePath)}`));
 	const env = { ...process.env, HOME: item.fixture.home, USERPROFILE: item.fixture.home };
-	const install = spawnSync(process.execPath, [cli, "install", "--home", item.fixture.home], { cwd: item.fixture.project, encoding: "utf8", env, timeout: CASE_LIMIT_MS });
+	const install = spawnSync(process.execPath, [cli, "install", "--home", item.fixture.home], { cwd: item.fixture.project, encoding: "utf8", env, timeout: INSTALL_CHILD_LIMIT_MS });
 	const after = hookResult(item.fixture, item.platform);
 	return { platform: item.platform, name: item.name, command: spans.at(-1), namedAsExpected, safe, installStatus: install.status, installStdout: install.stdout, installStderr: install.stderr, hookStatus: after.status, staleAfter: staleLines(after) };
 }

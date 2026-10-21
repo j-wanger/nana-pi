@@ -3,7 +3,7 @@
  * @module packages/nana-setup/tests/pi-launch-limits.test.mjs
  * @purpose Prove install, its dry run and doctor bound pi launches and end every process those launches start.
  * @inputs steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
- * @outputs PASS/FAIL/SKIP lines for seventeen requirement checks and exit 1 when any check fails
+ * @outputs PASS/FAIL/SKIP lines for eighteen requirement checks and exit 1 when any check fails
  * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
  * @errors a failed or over-time check prints FAIL and makes the file exit nonzero
  */
@@ -27,7 +27,9 @@ const MAIN_SPAWN_STREAM_BYTES = 1024 * 1024;
 const SIGNAL_CASE_BOUND_MS = 9_000;
 // Test-only margin for scheduler delay on shared CI after the relay's one-second settle window.
 const RELAY_ELAPSED_MARGIN_MS = 1_000;
-const RELAY_ELAPSED_BOUND_MS = LIMIT_MS + RELAY_SETTLE_MS + RELAY_ELAPSED_MARGIN_MS;
+// Measured 2026-10-21: worst stop was 6,714 ms; 3.5 s covers the tail and stays 0.5 s under the relay backstop.
+const HANG_STOP_MARGIN_MS = 3_500;
+const RELAY_ELAPSED_BOUND_MS = LIMIT_MS + RELAY_SETTLE_MS + HANG_STOP_MARGIN_MS;
 const PARENT_KILL_BOUND_MS = RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + RELAY_ELAPSED_MARGIN_MS;
 const CLEANUP_DELAY_MS = 2 * RELAY_PARENT_POLL_MS;
 const CASE_LIMIT_MS = SIGNAL_CASE_BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS;
@@ -234,6 +236,17 @@ function timedDoctor() {
 function stoppedVersion(row) {
 	return row?.detail.includes("pi --version") && row.detail.includes(`${LIMIT_MS / 1_000} s`) && row.detail.includes("stopped");
 }
+
+// req: R-2484
+check("R-2484: the launch-limit test accepts a stop up to the limit, the relay settle window and the sealed 3.5-second margin, below the relay backstop", () => {
+	const parentKillExpected = RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + RELAY_ELAPSED_MARGIN_MS;
+	const ok = HANG_STOP_MARGIN_MS === 3_500
+		&& RELAY_ELAPSED_BOUND_MS === LIMIT_MS + RELAY_SETTLE_MS + HANG_STOP_MARGIN_MS
+		&& RELAY_ELAPSED_BOUND_MS < LIMIT_MS + RELAY_BACKSTOP_MS
+		&& RELAY_ELAPSED_BOUND_MS < HANG_MS
+		&& PARENT_KILL_BOUND_MS === parentKillExpected;
+	return { ok, detail: JSON.stringify({ HANG_STOP_MARGIN_MS, RELAY_ELAPSED_BOUND_MS, LIMIT_MS, RELAY_SETTLE_MS, RELAY_BACKSTOP_MS, HANG_MS, PARENT_KILL_BOUND_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_ELAPSED_MARGIN_MS, parentKillExpected }) };
+});
 
 // req: R-2020
 check("R-2020: a pi that hangs on --version makes install and install --dry-run stop at the limit, report pi packages ✗ naming pi --version and the limit, and exit 1", () => {
