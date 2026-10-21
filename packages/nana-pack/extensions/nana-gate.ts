@@ -149,6 +149,8 @@ function commandHit(command: string, gate: Policy, cwd: string, tool: string): H
 		home: os.homedir(),
 		tempRoots: gateTempRoots(),
 		segmentable,
+		platform: process.platform,
+		env: process.env,
 	};
 	const markOutside = (outside: Map<(typeof det)[number], string>) => {
 		for (const [segment, target] of outside) {

@@ -11,6 +11,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { spawnSync } from "node:child_process";
 import { gitBashPath, rmOutsideTargets } from "../lib/gate-rm-outside.ts";
 import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 import { detectionSegments, splitCommand } from "../lib/gate-shell.ts";
@@ -66,6 +67,7 @@ async function deadline(promise, label) {
 	}
 }
 const shellQuote = (value) => `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+const gitBash = (p) => "/" + p[0].toLowerCase() + p.slice(2).replaceAll("\\", "/");
 async function call(command, toolName = "bash", ui = null) {
 	const ctx = { cwd: WORK, hasUI: !!ui, isProjectTrusted: () => false, ...(ui ? { ui } : {}) };
 	return deadline(handlers.tool_call({ toolName, input: { command } }, ctx), `${toolName}: ${command}`);
@@ -177,6 +179,58 @@ const full = (value, cwd = WORK) => path.resolve(cwd, value);
 		&& JSON.stringify(tempFallback) === JSON.stringify([path.resolve(HOME, NAME)]) && positiveControl.length === 0;
 	// req: R-2494
 	check("a Git Bash /tmp target still asks when TMP names a drive root, the home folder or a folder above it", ok, JSON.stringify({ cases, tempFallback, expectedFallback: path.resolve(HOME, NAME), positiveControl }));
+}
+
+if (process.platform !== "win32") {
+	console.log("SKIP on Windows a headless rm -f of a Git Bash /tmp file runs unblocked: Git Bash spellings are a Windows reading");
+} else {
+	const name = `nana-rm-gitbash-${process.pid}`;
+	const saved = new Map(["TMP", "TEMP", "HOME", "USERPROFILE"].map((key) => [key, process.env[key]]));
+	process.env.TMP = TEMP_ROOT;
+	process.env.TEMP = TEMP_ROOT;
+	process.env.HOME = path.join(HOME, "home");
+	process.env.USERPROFILE = path.join(HOME, "home");
+	try {
+		const reasons = await Promise.all([reason(`rm -f /tmp/${name}`), reason(`cd /tmp && rm -f ${name}`)]);
+		const outsideReason = await reason(`rm -f ${shellQuote(path.join(NEVER_ROOT, "x"))}`);
+		// req: R-2495
+		check("on Windows a headless rm -f of a Git Bash /tmp file runs unblocked", reasons.every((why) => why === "") && outsideReason.includes(path.resolve(NEVER_ROOT, "x")), JSON.stringify({ reasons, outsideReason }));
+	} finally {
+		for (const [key, value] of saved) value === undefined ? delete process.env[key] : (process.env[key] = value);
+	}
+}
+
+if (process.platform !== "win32") {
+	console.log("SKIP on Windows a headless rm of, or after a cd to, a Git Bash drive spelling is judged at that drive's path: Git Bash spellings are a Windows reading");
+} else {
+	const workTarget = gitBash(path.join(WORK, "x"));
+	const tempTarget = gitBash(path.join(TEMP_ROOT, "x"));
+	const outsideTarget = gitBash(path.join(NEVER_ROOT, "x"));
+	const cases = await Promise.all([
+		[ `rm -f ${shellQuote(workTarget)}`, "" ],
+		[ `rm -f ${shellQuote(tempTarget)}`, "" ],
+		[ `cd ${shellQuote(gitBash(WORK))} && rm -f x`, "" ],
+	].map(async ([command, expected]) => ({ command, expected, actual: await reason(command) })));
+	const outsideReason = await reason(`rm -f ${shellQuote(outsideTarget)}`);
+	// req: R-2496
+	check("on Windows a headless rm of, or after a cd to, a Git Bash drive spelling is judged at that drive's path", cases.every(({ actual, expected }) => actual === expected) && outsideReason.includes(path.resolve(NEVER_ROOT, "x")), JSON.stringify({ cases, outsideReason }));
+}
+
+if (process.platform !== "win32") {
+	console.log("SKIP on Windows the gate reads Git Bash drive spellings as Git Bash's own cygpath does, over a usertemp /tmp mount: not running on Windows");
+} else {
+	const bash = path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Git", "bin", "bash.exe");
+	if (!fs.existsSync(bash)) {
+		console.log("SKIP on Windows the gate reads Git Bash drive spellings as Git Bash's own cygpath does, over a usertemp /tmp mount: Git Bash bash.exe is missing from %ProgramFiles%\\Git\\bin");
+	} else {
+		const result = spawnSync(bash, ["-c", "/usr/bin/cygpath -w /c/Users /D/data/x; /usr/bin/mount"], { encoding: "utf8" });
+		const lines = result.stdout.trim().split(/\r?\n/);
+		const expected = ["/c/Users", "/D/data/x"].map((spelling) => path.win32.resolve(gitBashPath(spelling, { platform: "win32", env: {} })));
+		const readsMatch = lines.length >= 3 && expected.every((value, index) => lines[index].toLowerCase() === value.toLowerCase());
+		const usertemp = lines.slice(2).some((line) => / on \/tmp type \S+ \([^)]*usertemp[^)]*\)/i.test(line));
+		// req: R-2497
+		check("on Windows the gate reads Git Bash drive spellings as Git Bash's own cygpath does, over a usertemp /tmp mount", result.status === 0 && readsMatch && usertemp, JSON.stringify({ status: result.status, lines, expected, usertemp }));
+	}
 }
 
 {

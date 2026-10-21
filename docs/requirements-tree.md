@@ -84,7 +84,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-02 · Rows: 18 · IDs: R-588, R-975–R-979, R-981, R-1002–R-1007, R-1009, R-1011, R-1109, R-1355, R-1356
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
-  Parent: — · Rows: 184 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-1800, R-1801, R-2240–R-2243, R-2330–R-2338, R-2350–R-2357, R-2360–R-2364, R-2490–R-2494
+  Parent: — · Rows: 187 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-1800, R-1801, R-2240–R-2243, R-2330–R-2338, R-2350–R-2357, R-2360–R-2364, R-2490–R-2497
   Kind: constraint
   Binds: CAP-01, CAP-02, CAP-04, CAP-05, CAP-07
   - **FEAT-009 · Decide which project content is trusted**
@@ -96,7 +96,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Inspect supported tool actions, preserve mandatory restrictions and provide actionable approval or refusal behavior.
     Status: active
     Also applies: R-033, R-079, R-081, R-183, R-184, R-190, R-774, R-962
-    Parent: CAP-03 · Rows: 89 · IDs: R-035–R-042, R-044–R-047, R-051–R-058, R-071–R-073, R-195, R-630–R-633, R-637–R-639, R-762–R-764, R-766–R-768, R-770, R-771, R-775–R-777, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-2240–R-2243, R-2330–R-2338, R-2350–R-2357, R-2490–R-2494
+    Parent: CAP-03 · Rows: 92 · IDs: R-035–R-042, R-044–R-047, R-051–R-058, R-071–R-073, R-195, R-630–R-633, R-637–R-639, R-762–R-764, R-766–R-768, R-770, R-771, R-775–R-777, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-2240–R-2243, R-2330–R-2338, R-2350–R-2357, R-2490–R-2497
   - **FEAT-011 · Keep policy changes safe and recoverable**
     Purpose: Load and refresh policy configuration with defined precedence, bounded reading and safe behavior when configuration breaks.
     Status: active
