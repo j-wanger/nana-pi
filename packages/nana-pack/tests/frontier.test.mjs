@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/frontier.test.mjs
- * @purpose Pins the report-only HANDOFF frontier checker against rewritten and legacy fixtures, structural findings, an injected date, and strict-mode exits.
- * @inputs the frontier CLI, fixture HANDOFF files, and temporary oversized input
+ * @purpose Pins the report-only HANDOFF frontier checker against its read window, section order, rewritten and legacy fixtures, an injected date, and strict-mode exits.
+ * @inputs the frontier CLI, fixture HANDOFF files, this repository's HANDOFF.md, and temporary inputs
  * @outputs named PASS/FAIL checks and a nonzero test exit when an assertion fails
  * @effects disk (temporary input); process (spawns the CLI)
  * @errors failed assertions are reported and cause exit 1
@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { HANDOFF_WORD_BUDGET } from "../lib/frontier-config.mjs";
+import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../lib/frontier-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +49,10 @@ const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "
 
 // req: R-873
 check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
+// req: R-2471 R-2472
+check("seal: HANDOFF read window is 51,200 bytes", READ_WINDOW_BYTES === 51200);
+// req: R-2471 R-2472
+check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 
 {
 	const rootLayout = fs.readFileSync(path.resolve(HERE, "../../../AGENTS.md"), "utf8");
@@ -77,7 +81,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 {
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", frozenRewrite], { encoding: "utf8" });
 	// req: R-877
-	check("frozen 2026-10-06 rewrite passes on 2026-10-07", r.status === 0 && r.stdout.includes("summary words=1026 budget=1200 findings=0"), r.stdout);
+	check("frozen 2026-10-06 rewrite reports only its three section-order findings on 2026-10-07", r.status === 0 && r.stdout.includes("summary words=1026 budget=1200 findings=3") && r.stdout.split("section-order:").length - 1 === 3, r.stdout);
 }
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
@@ -98,7 +102,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 {
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", preRewrite], { encoding: "utf8" });
 	// req: R-873 R-875 R-878
-	check("frozen pre-rewrite HANDOFF reports 12 findings and key drift categories", r.stdout.includes("summary words=3761 budget=1200 findings=12") && r.stdout.includes("word-budget:") && r.stdout.split("misplaced-landed:").length - 1 === 3 && r.stdout.split("open-tag:").length - 1 === 8, r.stdout);
+	check("frozen pre-rewrite HANDOFF reports 15 findings and key drift categories", r.stdout.includes("summary words=3761 budget=1200 findings=15") && r.stdout.includes("word-budget:") && r.stdout.split("misplaced-landed:").length - 1 === 3 && r.stdout.split("open-tag:").length - 1 === 8, r.stdout);
 }
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
@@ -219,5 +223,62 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	check("unreadable input follows default error policy", defaultUnreadable.status === 0 && defaultUnreadable.stdout.includes(":0: error:"), `${defaultUnreadable.status}: ${defaultUnreadable.stdout}`);
 	// req: R-879
 	check("unreadable input follows strict error policy", strictUnreadable.status === 1 && strictUnreadable.stdout.includes(":0: error:"), `${strictUnreadable.status}: ${strictUnreadable.stdout}`);
+}
+{
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-window-"));
+	const runText = (name, text) => {
+		const file = path.join(dir, name);
+		fs.writeFileSync(file, text);
+		return run(file).stdout;
+	};
+	const n = Math.ceil(READ_WINDOW_BYTES / 1203) + 1;
+	const bytesText = ["## Where things stand", "- state", "## Next", "### Detail", ...Array(n).fill(`- ${"é".repeat(600)}`), "## Open for Jake", "- **[optional, since 2026-10-01] Ask.** body"].join("\n");
+	const bytesOutput = runText("bytes.md", bytesText);
+	const m = READ_WINDOW_LINES + 100;
+	const linesOutput = runText("lines.md", ["## Where things stand", ...Array(m).fill("- s"), "## Next", "1. step"].join("\n"));
+	const smallOutput = runText("small.md", "## Where things stand\n- s\n## Next\n1. n\n");
+	const readLines = (output) => output.split("\n").filter((line) => line.includes(": read-window:")).map((line) => Number(/:(\d+):/.exec(line)?.[1]));
+	// req: R-2471
+	check("R-2471: a live section that ends past the read window in bytes or in lines is reported as read-window", JSON.stringify(readLines(bytesOutput)) === JSON.stringify([3, 5 + n]) && JSON.stringify(readLines(linesOutput)) === JSON.stringify([1, m + 2]) && readLines(smallOutput).length === 0, `${bytesOutput}\n${linesOutput}`);
+	const k = Math.ceil(READ_WINDOW_BYTES / 1003) + 1;
+	const bigText = `## Next\n${Array(k).fill(`- ${"é".repeat(500)}\n`).join("")}`;
+	const bigOutput = runText("big-bytes.md", bigText);
+	const manyOutput = runText("many-lines.md", Array(READ_WINDOW_LINES + 1).fill("- s\n").join(""));
+	const atLimitOutput = runText("at-limit.md", Array(READ_WINDOW_LINES).fill("- s\n").join(""));
+	const sizes = (output) => output.split("\n").filter((line) => line.includes(": file-size:"));
+	// req: R-2472
+	check("R-2472: a document over the read window in bytes or in lines gets one file-size finding with its byte and line counts", sizes(bigOutput).length === 1 && sizes(bigOutput)[0].includes(`bytes=${Buffer.byteLength(bigText)}`) && sizes(bigOutput)[0].includes(`lines=${k + 1}`) && sizes(manyOutput).length === 1 && sizes(manyOutput)[0].includes(`lines=${READ_WINDOW_LINES + 1}`) && sizes(atLimitOutput).length === 0, `${bigOutput}\n${manyOutput}`);
+	fs.rmSync(dir, { recursive: true, force: true });
+}
+{
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-order-"));
+	const cases = {
+		"after-landed.md": ["# HANDOFF", "## Landed", "- 2026-10-21: one line.", "## Where things stand", "- state", "## Next", "1. step", "## Open for Jake", "- **[optional, since 2026-10-01] Ask.** body"],
+		"after-residuals.md": ["## Where things stand", "- state", "## Carried residuals (live; one line each)", "- residual", "## Next", "1. step"],
+		"between.md": ["## Landed", "## Where things stand", "## Carried residuals", "## Next"],
+		"frontier-first.md": ["## Where things stand", "## Next", "## Open for Jake", "## Landed (one line each)", "## Carried residuals"],
+	};
+	const outputs = {};
+	for (const [name, lines] of Object.entries(cases)) {
+		const file = path.join(dir, name);
+		fs.writeFileSync(file, lines.join("\n"));
+		outputs[name] = run(file).stdout;
+	}
+	const sectionFindings = (output) => output.split("\n").filter((line) => line.includes(": section-order:"));
+	const lineNumbers = (output) => sectionFindings(output).map((line) => Number(/:(\d+):/.exec(line)?.[1]));
+	// req: R-2470
+	check("R-2470: a Where things stand, Next or Open for Jake heading after a Landed or Carried residuals heading is reported as section-order", JSON.stringify(lineNumbers(outputs["after-landed.md"])) === JSON.stringify([4, 6, 8]) && sectionFindings(outputs["after-landed.md"]).every((line) => line.includes("comes after Landed at line 2")) && JSON.stringify(lineNumbers(outputs["after-residuals.md"])) === JSON.stringify([5]) && sectionFindings(outputs["after-residuals.md"])[0].includes("comes after Carried residuals at line 3") && JSON.stringify(lineNumbers(outputs["between.md"])) === JSON.stringify([2, 4]) && sectionFindings(outputs["between.md"]).every((line) => line.includes("comes after Landed at line 1")) && sectionFindings(outputs["frontier-first.md"]).length === 0, Object.values(outputs).join("\n"));
+	fs.rmSync(dir, { recursive: true, force: true });
+}
+{
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-control-"));
+	const file = path.join(dir, "control.md");
+	const k = Math.ceil(READ_WINDOW_BYTES / 1003) + 1;
+	fs.writeFileSync(file, ["## Landed", ...Array(k).fill(`- ${"x".repeat(1000)}`), "## Next", "1. step"].join("\n"));
+	const control = run(file).stdout;
+	const repository = run(path.resolve(HERE, "../../../HANDOFF.md")).stdout;
+	// req: R-2473
+	check("R-2473: this repository's HANDOFF.md gets no section-order or read-window finding", control.includes("section-order:") && control.includes("read-window:") && !repository.includes("section-order:") && !repository.includes("read-window:"), `${control}\n${repository}`);
+	fs.rmSync(dir, { recursive: true, force: true });
 }
 if (fails) process.exitCode = 1;

@@ -1,0 +1,28 @@
+seat-mutate: lane frontier-first, tip e8096fd40e54ff295ee2b88934f80cde86c5729c, table 21e27d30ce92a39a002aeb931dc32d0e6aa3a1695a02e60d3b461a60b835ae0d, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 10 pairs in 5 shards (2+2+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T15:07:08.959Z
+DECLARED (build 2, e8096fd4) the must-meet's wrong-code pairs over the three new kinds and this repository's HANDOFF
+[1/5] seat-mutate: lane frontier-first, shard 1/5, tip e8096fd40e54ff295ee2b88934f80cde86c5729c, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:07:09.753Z
+[1/5] BASELINE ok   packages/nana-pack/tests/frontier.test.mjs (exit 0, 51 PASS, 0 FAIL, )
+[1/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane frontier-first, shard 2/5, tip e8096fd40e54ff295ee2b88934f80cde86c5729c, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:07:13.826Z
+[2/5] BASELINE ok   packages/nana-pack/tests/frontier.test.mjs (exit 0, 51 PASS, 0 FAIL, )
+[2/5] RESULT: 2/2 red (1 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane frontier-first, shard 3/5, tip e8096fd40e54ff295ee2b88934f80cde86c5729c, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:07:17.886Z
+[3/5] BASELINE ok   packages/nana-pack/tests/frontier.test.mjs (exit 0, 51 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (1 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane frontier-first, shard 4/5, tip e8096fd40e54ff295ee2b88934f80cde86c5729c, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:07:21.929Z
+[4/5] BASELINE ok   packages/nana-pack/tests/frontier.test.mjs (exit 0, 51 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane frontier-first, shard 5/5, tip e8096fd40e54ff295ee2b88934f80cde86c5729c, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:07:25.941Z
+[5/5] BASELINE ok   packages/nana-pack/tests/frontier.test.mjs (exit 0, 51 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED F1 Carried residuals is not an archive heading — 1/1 named: /^R-2470: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F2 every live heading is flagged whenever any archive heading exists — 1/1 named: /^R-2470: /; UNNAMED red: [frontier.test.mjs] R-2473: this repository's HANDOFF.md gets no section-order or read-window finding <tmp> 2 FAIL total (1 file changed, 1 deletion(-))
+RED F3 the last archive heading decides instead of the first — 1/1 named: /^R-2470: /; UNNAMED red: [frontier.test.mjs] frontier golden: current output is byte-identical <fixture>/current.md:1: word-budget: words=1663 budget=1200; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F4 read-window counts characters instead of UTF-8 bytes — 1/1 named: /^R-2471: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F5 file-size counts characters instead of UTF-8 bytes — 1/1 named: /^R-2472: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F6 read-window tests the heading's own position, not the section's end — 1/1 named: /^R-2471: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F7 a section ends at the next heading of any level — 1/1 named: /^R-2471: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F8 the final newline counts as an extra line — 1/1 named: /^R-2472: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F9 file-size flags a document at the line limit — 1/1 named: /^R-2472: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED F10 a Landed heading lands above this repository's live sections (as a careless merge would) — 1/1 named: /^R-2473: /; 1 FAIL total (1 file changed, 4 insertions(+))
+RESULT: 10/10 red (8 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 5 shards

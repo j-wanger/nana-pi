@@ -352,7 +352,7 @@ Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (pr
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 
-This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for Jake, unresolved numbered references, overdue explicit dates, and missing Open for Jake tags.
+This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for Jake, unresolved numbered references, overdue explicit dates, and missing Open for Jake tags. It also checks the document's size against one default read (51,200 bytes or 2,000 lines: pi 1.0.2's read tool limits, the smaller of the two seats' limits), and reports a Where things stand, Next or Open for Jake section placed after a Landed or Carried residuals heading or ending past that read.
 
 ```bash
 node packages/nana-pack/bin/nana-frontier.mjs HANDOFF.md
