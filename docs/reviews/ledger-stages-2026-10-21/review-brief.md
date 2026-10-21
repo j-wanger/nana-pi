@@ -12,7 +12,7 @@ landed as c51bfcd8, and merged main at 64f846e3). The plan of record is
 `docs/reviews/ledger-stages-2026-10-21/must-meet.md`: five must-meet checks, rows R-2450 to R-2454, the build rules from
 the adversary's evidence, and known limits. `build-brief-1.md` is build 1 (a5fbba37); the seat's record is
 `seat-verify-64f846e3.md`, with the wrong-code pairs in `seat-mutate.mjs` and `seat-mutate-output-a5fbba37.txt` (18 of
-19 red; P2 a declared test gap). CI-PENDING. The land runs the locked suite on the reviewed tip.
+19 red; P2 a declared test gap). CI run 39553518547 at 016e5e40 reads 0 failing on all three legs: macOS 198 PASS, 0 FAIL, 2 SKIP of 200 files (8,216 checks pass, 36 skip); Ubuntu 197 PASS, 0 FAIL, 3 SKIP of 200 files (8,155 checks pass, 56 skip); Windows 182 PASS, 0 FAIL, 18 SKIP of 200 files (7,144 checks pass, 115 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-016e5e40.log in this folder. The land runs the locked suite on the reviewed tip.
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`, run at 64f846e3, before the seat's notes
 commit):
