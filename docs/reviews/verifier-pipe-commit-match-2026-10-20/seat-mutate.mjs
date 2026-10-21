@@ -39,7 +39,7 @@ const R983_GATE = [
 ];
 const DISCARDED = [
 	"bash semicolon", "bash LF", "bash intervening git add", "bash background", "bash background followed by another command",
-	"bash set -e after pipeline", "bash set +e disables errexit before pipeline", "bash command substitution",
+	"bash set -e after pipeline", "bash command substitution",
 	"bash question mark after an intervening command", "bash quoted question mark after an intervening command",
 	"bash completed loop", "bash completed pipeline after a continued line", "PowerShell semicolon", "PowerShell LF",
 	"PowerShell CRLF", "PowerShell LASTEXITCODE after Select-Object", "PowerShell LASTEXITCODE after case-insensitive Where-Object",
@@ -141,6 +141,7 @@ const GUARD_NOW = "when a masked pipeline's exit status can reach the commit wit
 const GUARD_MAIN = "that pipelines output before `git commit` without earlier active `pipefail`";
 
 const DECLARED = [
+	"(acb649cb, after the run) 69 of 73 red. F4, the backtick left neighbour, is red again, because build 9 removed build 6's backtick group. S26 (PowerShell ${?}, no row claims it) and K1, K8 and C1 (as in round 1) survive. Pair S1 no longer names 'bash set +e disables errexit before pipeline', which build 9 moved to the consumed cases",
 	"(builds 9 to 11, acb649cb) round 2: both reviewers sent back errexit-scope fail-opens. The seat subtracted the set +e relaxation (build 9); build 10 widened the matcher fail-safe (any errexit text, or a set word with an -e option word anywhere in its simple command), closing five spellings the seat found; build 11 computes the first enable once (build 10 was pipes times length: 3,489 ms on 64 KB of a|b; against 20 ms on round 1). The old E4 to E9 sites (the +e sign, the command-position prefix, the scope walk, the backtick group) are gone, so E2 to E6 are rewritten for the new matcher, E4 now being the old rule put back, and E7 to E9 are dropped. No pair for the simple-command split or for checking only the first set word: each wrong form only adds asks",
 	"(builds 6 to 8, 3b503992) round 1's land reviewer MUSTs. Build 6 scopes an errexit change to its subshell, command substitution, backtick or process substitution, and keeps a PowerShell status read live in an expandable string or here-string. E3, E4 and E8 are re-anchored on its scope walk; E9 and X20 to X23 pin its sites. On 9f155fd2, 69 of 76 read red: E9 and X23 survived, because no check had a backtick substitution or an escaped status in a here-string. Builds 7 and 8 (tests only) added those cases. Declared on 3b503992: F4 (the backtick left neighbour) is now equivalent on tested input, because build 6 wraps an unquoted backtick substitution in parentheses before the finder runs; S26 (PowerShell ${?}) is not claimed by any row and stays unpinned",
 	"(build 5, e5b0483e) E5 to E7 are re-anchored on build 5's errexit prefix, which moves ( and $( into their own group; E8 and Q3 pin build 5's two fixes: a subshell's set +e does not reach the outer command, and an even run of backslashes before a double quote closes it",
