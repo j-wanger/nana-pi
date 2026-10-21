@@ -35,6 +35,20 @@ function fixture(name = "repo") {
   git(["add", "REQUIREMENTS.md", "HANDOFF.md"]); git(["commit", "-qm", "fixture"]);
   return { root, git };
 }
+function treeFixture(name, ledger, handoff = "# Handoff\n\n## Open for Jake\n") {
+  const root = path.join(temp, name);
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), ledger);
+  fs.writeFileSync(path.join(root, "HANDOFF.md"), handoff);
+  const git = (args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  git(["init", "-q"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
+  git(["add", "REQUIREMENTS.md", "HANDOFF.md"]); git(["commit", "-qm", "fixture"]);
+  return { root, git };
+}
+const table = (rows) => `| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n${rows.map(([id, status]) => `| ${id} | ${id} shall work. | ${status} | — |`).join("\n")}\n`;
+const capabilityCards = (view) => view.root.children.filter((node) => node.tag === "article");
+const capabilityCard = (view, id) => capabilityCards(view).find((card) => card.children.some((node) => node.tag === "h3" && node.textContent.startsWith(`${id} · `)));
+const pinsKindedHeadings = (view, expected) => expected.every(([id, label]) => capabilityCard(view, id)?.children.some((node) => node.tag === "h3" && node.textContent === `${id} · ${label}`));
 const hashRow = (id, requirement, status) => createHash("sha256").update(JSON.stringify([id, requirement, status])).digest("hex");
 function makeAssessment(root, commit, featureId = "FEAT-001") {
   const parsed = parseLedger(fs.readFileSync(path.join(root, "REQUIREMENTS.md"), "utf8").replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[ \t]+$/g, "")).join("\n"));
@@ -999,6 +1013,135 @@ try {
         noHeading: noHeadingNodes.filter((n) => n.tag === "p" || n.tag === "ul").map((n) => [n.tag, n.textContent]),
         preamble: preambleNodes.filter((n) => n.tag === "p" || n.tag === "ul").map((n) => [n.tag, n.textContent]),
       }));
+  }
+  {
+    const ledger = [
+      "# CAP-30 · Guard rails", "Purpose: constrain the stages.", "Outcome: stages stay safe.", "Kind: constraint", "Binds: CAP-33", "",
+      "## FEAT-030 · Guard feature", "Purpose: guard the work.", "Status: active", "", table([["R-3000", "implemented"]]),
+      "# CAP-31 · Legacy loop", "Purpose: keep the loop.", "Outcome: the loop works.", "",
+      "## FEAT-031 · Loop feature", "Purpose: loop the work.", "Status: active", "", table([["R-3001", "implemented"]]),
+      "# CAP-32 · Build base", "Purpose: build an artifact.", "Outcome: the base exists.", "Kind: product", "",
+      "## FEAT-032 · Base feature", "Purpose: make the base.", "Status: active", "", table([["R-3002", "implemented"]]),
+      "# CAP-33 · Use base", "Purpose: consume the artifact.", "Outcome: the artifact is used.", "Kind: product", "Needs: CAP-32", "",
+      "## FEAT-033 · Consumer feature", "Purpose: use the base.", "Status: active", "", table([["R-3003", "implemented"]]),
+    ].join("\n");
+    const current = treeFixture("stage-order", ledger);
+    const out = path.join(temp, "stage-order.html");
+    await generateReport({ root: current.root, out });
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+    const order = capabilityCards(product).map((card) => card.children.find((node) => node.tag === "h3")?.textContent.split(" · ")[0]);
+    const need = capabilityCard(product, "CAP-33")?.children.find((node) => node.tag === "p" && node.textContent.startsWith("Needs:"));
+
+    const historicalLedger = spawnSync("git", ["show", "5548d4c2:REQUIREMENTS.md"], { cwd: ROOT, encoding: "utf8" }).stdout;
+    const historical = treeFixture("historical-stage-order", historicalLedger, fs.readFileSync(path.join(ROOT, "HANDOFF.md"), "utf8"));
+    const historicalOut = path.join(temp, "historical-stage-order.html");
+    await generateReport({ root: historical.root, out: historicalOut });
+    const oldProduct = renderHtmlAt(fs.readFileSync(historicalOut, "utf8"), "#product");
+    const oldCapabilityIds = parseLedger(historicalLedger).headings.filter((heading) => heading.id.startsWith("CAP-")).map((heading) => heading.id);
+    const oldCards = capabilityCards(oldProduct);
+    const oldOrder = oldCards.map((card) => card.children[0]?.textContent.split(" · ")[0]);
+    const oldShape = oldCards.every((card) => card.children[0]?.tag === "h3" && card.children[1]?.tag === "p" && card.children[1]?.textContent.startsWith("Purpose: ") && card.children[2]?.tag === "p" && card.children[2]?.textContent.startsWith("Outcome: ") && card.children.slice(3).every((node, index) => node.tag === (index % 2 === 0 ? "p" : "div")));
+    // req: R-2450
+    check("R-2450: the Product view orders product, then kindless, then constraint capabilities, in document order within each, and a product card names its needs", JSON.stringify(order) === JSON.stringify(["CAP-32", "CAP-33", "CAP-31", "CAP-30"]) && need?.textContent === "Needs: CAP-32 · Build base" && pinsKindedHeadings(product, [["CAP-30", "Guard rails"], ["CAP-32", "Build base"], ["CAP-33", "Use base"]]) && JSON.stringify(oldOrder) === JSON.stringify(oldCapabilityIds) && oldShape, JSON.stringify({ order, need: need?.textContent, oldOrder, oldShape }));
+  }
+  {
+    const withFields = [
+      "# CAP-40 · First stage", "Purpose: hold the first stage.", "Outcome: first work ships.", "Kind: product", "",
+      "## FEAT-040 · First active", "Purpose: use a constraint.", "Status: active", "Also applies: R-4100, R-4103", "", table([["R-4000", "implemented"]]),
+      "# CAP-41 · Second stage", "Purpose: hold the second stage.", "Outcome: second work ships.", "Kind: product", "",
+      "## FEAT-042 · Second frozen", "Purpose: use an unchecked constraint.", "Status: frozen (fixture)", "Also applies: R-4101", "", table([["R-4103", "implemented"]]),
+      "# CAP-42 · Third stage", "Purpose: hold the third stage.", "Outcome: third work ships.", "Kind: product", "",
+      "## FEAT-041 · Third proposed", "Purpose: propose a constraint use.", "Status: proposed", "Also applies: R-4102", "",
+      "# CAP-43 · Unbound stage", "Purpose: hold an unbound stage.", "Outcome: unbound work ships.", "Kind: product", "",
+      "## FEAT-044 · Unbound active", "Purpose: use a constraint outside the bind.", "Status: active", "Also applies: R-4102", "", table([["R-4003", "implemented"]]),
+      "# CAP-44 · Safety constraint", "Purpose: constrain selected stages.", "Outcome: selected stages are covered.", "Kind: constraint", "Binds: CAP-40, CAP-41, CAP-42", "",
+      "## FEAT-045 · Constraint checks", "Purpose: own the checks.", "Status: active", "", table([["R-4100", "implemented"], ["R-4101", "untested"], ["R-4102", "implemented"]]),
+    ].join("\n");
+    const withoutFields = withFields.split("\n").filter((line) => !/^(?:Kind|Deliverables|Needs|Binds|Retired):/.test(line)).join("\n");
+    const repo = treeFixture("constraint-coverage", withoutFields);
+    const stampedCommit = repo.git(["rev-parse", "HEAD"]).stdout.trim();
+    const storePath = writeStore(repo.root, [makeAssessment(repo.root, stampedCommit, "FEAT-040")]);
+    const before = await buildReport({ root: repo.root });
+    fs.writeFileSync(path.join(repo.root, "REQUIREMENTS.md"), withFields);
+    repo.git(["add", "REQUIREMENTS.md"]); repo.git(["commit", "-qm", "add capability fields"]);
+    const after = await buildReport({ root: repo.root });
+    const invariant = before.features.every((feature) => { const changed = after.features.find((item) => item.id === feature.id); return changed && JSON.stringify([feature.counts, feature.shared, feature.sharedBy, feature.assessmentState]) === JSON.stringify([changed.counts, changed.shared, changed.sharedBy, changed.assessmentState]); });
+    const out = path.join(temp, "constraint-coverage.html");
+    await generateReport({ root: repo.root, out });
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+    const card = capabilityCard(product, "CAP-44");
+    const bound = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("bound")) ?? [];
+    const exact = [
+      ["CAP-40 · First stage", "R-4100", false],
+      ["CAP-41 · Second stage", "gap", true],
+      ["CAP-42 · Third stage", "gap", true],
+    ].every(([name, value, gap], index) => bound[index]?.textContent.includes(name) && bound[index]?.textContent.includes(value) && bound[index]?.attrs.class.includes("gap") === gap);
+    // req: R-2451
+    check("R-2451: a constraint card lists each bound capability with its implemented shared constraint rows, or a gap", bound.length === 3 && exact && !card?.textContent.includes("CAP-43") && !card?.textContent.includes("R-4102") && !card?.textContent.includes("R-4103") && invariant && validateStore({ root: repo.root, storePath }).length === 0 && pinsKindedHeadings(product, [["CAP-40", "First stage"], ["CAP-41", "Second stage"], ["CAP-42", "Third stage"], ["CAP-43", "Unbound stage"], ["CAP-44", "Safety constraint"]]), JSON.stringify({ bound: bound.map((item) => [item.textContent, item.attrs.class]), invariant, store: validateStore({ root: repo.root, storePath }) }));
+  }
+  {
+    const ledger = [
+      "# CAP-50 · Product stage", "Purpose: produce deliverables.", "Outcome: deliverables are visible.", "Kind: product", "Deliverables: R-5003, R-5000, R-5002, R-5001", "",
+      "## FEAT-050 · Direct homes", "Purpose: own direct deliverables.", "Status: active", "", table([["R-5000", "implemented"], ["R-5003", "violated"]]),
+      "## FEAT-051 · Grouped homes", "Purpose: own grouped deliverables.", "Status: active", "",
+      "### SUB-050 · Group", "Purpose: group deliverables.", "", table([["R-5001", "untested"], ["R-5002", "planned"]]),
+      "# CAP-51 · Consumer stage", "Purpose: consume deliverables.", "Outcome: consumers work.", "Kind: product", "Needs: CAP-50", "",
+      "## FEAT-052 · First consumer", "Purpose: consume two rows.", "Status: active", "Also applies: R-5000, R-5001", "", table([["R-5100", "implemented"]]),
+      "## FEAT-053 · Second consumer", "Purpose: consume one row.", "Status: frozen (fixture)", "Also applies: R-5000", "", table([["R-5101", "implemented"]]),
+    ].join("\n");
+    const repo = treeFixture("deliverables", ledger);
+    const out = path.join(temp, "deliverables.html");
+    await generateReport({ root: repo.root, out });
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+    const card = capabilityCard(product, "CAP-50");
+    const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
+    const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
+    const links = (id) => (byId[id]?.children ?? []).filter((node) => node.tag === "a").map((node) => [node.textContent, node.attrs.href]);
+    const expectedOrder = ["R-5003", "R-5000", "R-5002", "R-5001"];
+    const statuses = { "R-5003": "violated", "R-5000": "implemented", "R-5002": "planned", "R-5001": "untested" };
+    const itemFacts = expectedOrder.every((id) => byId[id]?.textContent.includes(statuses[id]) && byId[id]?.attrs.class.includes("gap") === (id !== "R-5000"));
+    // req: R-2452
+    check("R-2452: a product card lists its deliverables in line order with status, home and consumers, and marks every one not implemented as a gap", JSON.stringify(items.map((item) => item.textContent.slice(0, 6))) === JSON.stringify(expectedOrder) && itemFacts && JSON.stringify(links("R-5000")) === JSON.stringify([["FEAT-050 · Direct homes", "#FEAT-050"], ["FEAT-052 · First consumer", "#FEAT-052"], ["FEAT-053 · Second consumer", "#FEAT-053"]]) && JSON.stringify(links("R-5001")) === JSON.stringify([["FEAT-051 · Grouped homes", "#FEAT-051"], ["FEAT-052 · First consumer", "#FEAT-052"]]) && byId["R-5002"]?.textContent.includes("none") && pinsKindedHeadings(product, [["CAP-50", "Product stage"], ["CAP-51", "Consumer stage"]]), JSON.stringify(items.map((item) => [item.textContent, item.attrs.class, (item.children ?? []).filter((node) => node.tag === "a").map((node) => [node.textContent, node.attrs.href])])));
+  }
+  {
+    const ledger = [
+      "# CAP-60 · Product holder", "Purpose: hold a product feature.", "Outcome: product work exists.", "Kind: product", "",
+      "## FEAT-060 · Product feature", "Purpose: do product work.", "Status: active", "", table([["R-6000", "implemented"]]),
+      "# CAP-61 · Constraint holder", "Purpose: hold a constraint feature.", "Outcome: constraint work exists.", "Kind: constraint", "Binds: CAP-60", "",
+      "## FEAT-061 · Constraint feature", "Purpose: do constraint work.", "Status: active", "", table([["R-6001", "implemented"]]),
+      "# CAP-62 · Kindless holder", "Purpose: hold a legacy feature.", "Outcome: legacy work exists.", "",
+      "## FEAT-062 · Kindless feature", "Purpose: do legacy work.", "Status: active", "", table([["R-6002", "implemented"]]),
+    ].join("\n");
+    const repo = treeFixture("detail-capability", ledger);
+    const out = path.join(temp, "detail-capability.html");
+    await generateReport({ root: repo.root, out });
+    const html = fs.readFileSync(out, "utf8");
+    const expected = [["FEAT-060", "Capability: CAP-60 · Product holder · product"], ["FEAT-061", "Capability: CAP-61 · Constraint holder · constraint"], ["FEAT-062", "Capability: CAP-62 · Kindless holder"]];
+    const details = expected.map(([id, text]) => { const view = renderHtmlAt(html, `#${id}`); const purposeAt = view.root.children.findIndex((node) => node.tag === "p" && node.textContent.startsWith("Purpose:")); return { id, text, actual: view.root.children[purposeAt + 1]?.textContent, all: view.nodes.map((node) => node.textContent ?? node.text ?? "").join(" ") }; });
+    const product = renderHtmlAt(html, "#product");
+    // req: R-2453
+    check("R-2453: a feature's detail view names its capability, and the kind only when the capability has one", details.every((detail) => detail.actual === detail.text) && !details[2].all.includes("undefined") && !details[2].all.includes("null") && pinsKindedHeadings(product, [["CAP-60", "Product holder"], ["CAP-61", "Constraint holder"]]), JSON.stringify(details));
+  }
+  {
+    const ledger = [
+      "# CAP-70 · Old product", "Purpose: preserve an old product ID.", "Outcome: history remains legible.", "Kind: product", "Retired: CAP-71", "",
+      "# CAP-71 · Live product", "Purpose: hold live product work.", "Outcome: product work continues.", "Kind: product", "",
+      "## FEAT-071 · Live product feature", "Purpose: do live work.", "Status: active", "", table([["R-7001", "implemented"]]),
+      "# CAP-72 · Old kindless", "Purpose: preserve an old kindless ID.", "Outcome: kindless history remains legible.", "Retired: CAP-71, CAP-73", "",
+      "# CAP-73 · Live kindless", "Purpose: hold live legacy work.", "Outcome: legacy work continues.", "",
+      "## FEAT-073 · Live kindless feature", "Purpose: do legacy work.", "Status: active", "", table([["R-7003", "implemented"]]),
+      "# CAP-74 · Live constraint", "Purpose: constrain live product work.", "Outcome: product work is covered.", "Kind: constraint", "Binds: CAP-71", "",
+      "## FEAT-074 · Live constraint feature", "Purpose: check live work.", "Status: active", "", table([["R-7004", "implemented"]]),
+    ].join("\n");
+    const repo = treeFixture("retired-capabilities", ledger);
+    const out = path.join(temp, "retired-capabilities.html");
+    await generateReport({ root: repo.root, out });
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+    const order = capabilityCards(product).map((card) => card.children[0]?.textContent.split(" · ")[0]);
+    const oldProduct = capabilityCard(product, "CAP-70")?.children.find((node) => node.tag === "p" && node.textContent.startsWith("Retired:"));
+    const oldKindless = capabilityCard(product, "CAP-72")?.children.find((node) => node.tag === "p" && node.textContent.startsWith("Retired:"));
+    // req: R-2454
+    check("R-2454: a retired capability's card comes after every other card and names its successors", JSON.stringify(order) === JSON.stringify(["CAP-71", "CAP-73", "CAP-74", "CAP-70", "CAP-72"]) && oldProduct?.textContent === "Retired: replaced by CAP-71 · Live product" && oldKindless?.textContent === "Retired: replaced by CAP-71 · Live product, CAP-73 · Live kindless" && pinsKindedHeadings(product, [["CAP-70", "Old product"], ["CAP-71", "Live product"], ["CAP-74", "Live constraint"]]), JSON.stringify({ order, oldProduct: oldProduct?.textContent, oldKindless: oldKindless?.textContent }));
   }
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;
