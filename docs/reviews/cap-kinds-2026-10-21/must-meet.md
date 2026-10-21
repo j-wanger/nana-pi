@@ -1,0 +1,65 @@
+Feature: FEAT-028 · Maintain requirement identity and trace links
+
+Class: ordinary. No runtime code reads the requirements tree: no hook, pi extension, desk, knowledge pull or nana-setup library. The readers are `scripts/`, their tests, the skills, the template seeds and docs. Ladder: the seat's wrong-code pairs, then one final reviewer of a different model lineage from the builder.
+
+Owner ruling (2026-10-21): capabilities come in two kinds. A product capability is a stage or step of the product, with tangible deliverables. A constraint capability is a cross-cutting property. Each feature belongs to one capability. The owner adopted it with the seat's five amendments:
+1. A constraint capability names the stages it binds, even just one, keeps explicit shares, and carries one tested row per bound stage. There is no implicit "every stage".
+2. A deliverable is a row under the feature that produces it, naming its consumer and its check; a missing check shows as a gap.
+3. Product capabilities are ordered stages only where the next step needs an earlier stage's checked artifact. Elsewhere they are loops, tool families or services.
+4. A feature lives at its main deliverable's stage; its rows in other stages link there as consumers, through the existing `Also applies:` line. Splits stay owner-approved.
+5. Keep the outcome line and keep every field optional; retire old capability IDs with named successors instead of relabelling them.
+
+A placement test then compared stage placement with intent placement on one product tree. Two independent agents agreed equally (100 percent at capability level, 95 at feature level, on both trees), so by the agreed rule no project's tree is regrouped. Existing trees gain the fields in place. This lane adds the format and its checks only. It marks no capability in nana-pi's own ledger and no seed.
+
+Threat model: honest variation in owners' ledgers and in our tools' output is in scope: field lines in any order inside a capability's span, extra spaces, a stray duplicate line, a typo in an ID, a list written as a range, prose lines that happen to start with one of the new labels in a flat ledger. Deliberate forgery, such as a crafted ledger meant to crash the checker, is out.
+
+## The field grammar
+
+Five optional lines, read only inside a capability's own span: from the `# CAP-nn · …` heading to the next heading of any kind, outside code fences, in any order (the same span `Outcome:` uses today).
+
+| Line | Read on | Value |
+|---|---|---|
+| `Kind: product` or `Kind: constraint` | every capability | exactly one of the two words, trimmed, lower case |
+| `Deliverables: R-nnnn, R-nnnn` | a capability with `Kind: product` | requirement row IDs (R or G rows), each homed in a feature, or a feature's subgroup, under this capability |
+| `Needs: CAP-nn, CAP-nn` | a capability with `Kind: product` | earlier `Kind: product` capabilities whose checked artifact this stage needs; document order is the stage order |
+| `Binds: CAP-nn, CAP-nn` | a capability with `Kind: constraint` (required there) | the `Kind: product` capabilities it binds; no `all`, no wildcard |
+| `Retired: CAP-nn, CAP-nn` | every capability | presence means retired; the tokens name its successors |
+
+- Lists split on a comma and spaces, as `Also applies:` does. An empty token, a space-separated list, an en-dash range, a token that is not a single ID of the expected kind, or an ID listed twice is a problem naming the field. Never parse these lines with `expandRowIds`, which throws.
+- On a capability with no `Kind:` line, `Deliverables:`, `Needs:` and `Binds:` lines are prose: not read, not checked. A flat ledger's section prose such as `Needs: a database` therefore still lifts and checks as today.
+- These labels are never read in a feature or subgroup span.
+- A second line of any of the five fields in one capability's span is a problem naming that line (unlike `Purpose:` and `Outcome:`, which keep the first silently).
+- A row's capability is found by rolling up: row → its subgroup or feature → that feature's capability.
+- The consumer of a deliverable is derived, not written: the features that list the row on `Also applies:`. A deliverable that is `untested`, `planned` or `violated` is a gap for the product report to show, never a checker problem.
+- A capability with `Kind:` and no features is legal. Amendment 1's "one tested row per bound stage" is not checked by the tree checker; the product report shows it (next lane).
+- `Retired:` replaces a capability `Status:` line, which the lift, its independent proof and the regroup all refuse (`scripts/requirements-lift.mjs:228`, `scripts/requirements-lift-proof.mjs:546`).
+
+## Must-meet tests
+
+New rows R-2440 to R-2447 go in FEAT-028's existing table, directly after R-294. No new heading: the tree tests pin 68 headings. Every row carries exactly one "shall" (the EARS allowance is 0).
+
+| Row | Requirement (EARS) | Test | Red today |
+|---|---|---|---|
+| R-2440 | WHEN a REQUIREMENTS.md that the tree checker accepts carries `Kind:`, `Deliverables:`, `Needs:`, `Binds:` and `Retired:` lines on its capabilities, the requirements lift's dry run with no mapping shall exit 0 with a clean proof and keep each of those lines byte for byte under the same capability. | `packages/nana-pack/tests/requirements-cap-kinds.test.mjs::R-2440: a ledger carrying every capability field lifts with a clean proof and keeps each field line under its capability` | Guard, green today for these labels (the adversary ran the lift on such a ledger: 0 problems). It goes red on code that adds a new label to the lift's field-label refusal or to its field-block reader. |
+| R-2441 | WHEN a capability's own span holds a `Kind:` line whose trimmed value is not exactly `product` or `constraint`, or more than one line of any of `Kind:`, `Deliverables:`, `Needs:`, `Binds:` or `Retired:`, the tree checker shall report a problem naming the capability, the line and the value. | `…::R-2441: a bad Kind value or a duplicate capability field line is a problem naming the capability and line, and the two kinds and prose lines pass` | RED: no such check exists. The test also asserts that `Kind: product` and `Kind: constraint` pass, and that `Needs:`, `Binds:` and `Deliverables:` on a capability with no `Kind:`, or any of the labels in a feature or subgroup span, raise nothing. |
+| R-2442 | WHEN a capability with `Kind: product` carries a `Deliverables:` line, the tree checker shall report a problem naming each token that is not the ID of a non-retired row homed in a feature, or a feature's subgroup, under that capability, or that the line lists twice, and none for an `untested` or `planned` row. | `…::R-2442: each deliverable must be a live row homed under its own capability, and an untested or planned deliverable is no problem` | RED. Cases: a missing ID, a malformed token, a range, a retired row, a row homed under another capability, an ID listed twice, a `Deliverables:` line on a `Kind: constraint` capability (a problem: one more assertion, no extra shall), a feature-homed row (passes), a subgroup-homed row (passes), an untested and a planned row (pass). |
+| R-2443 | The tree checker shall report a problem for a `Kind: constraint` capability that lacks exactly one `Binds:` line whose every comma-separated token is the ID of a non-retired `Kind: product` capability, and for a `Binds:` line on a `Kind: product` capability. | `…::R-2443: a constraint capability must bind only live product capabilities, and a product capability may not carry Binds` | RED. Cases: `all`, a constraint target, a target with no `Kind:`, a retired target, a missing `Binds:` line, an empty `Binds:` line, a product capability carrying `Binds:`, and a valid one- and two-target line (pass). |
+| R-2444 | WHEN a capability with `Kind: product` carries a `Needs:` line, the tree checker shall report a problem naming each token that is not the ID of a non-retired `Kind: product` capability whose heading comes earlier in REQUIREMENTS.md, and a `Needs:` line on a `Kind: constraint` capability is a problem. | `…::R-2444: a stage may need only earlier live product capabilities, so no Needs cycle can form` | RED. Cases: a later capability (which is also how any cycle shows), itself, a constraint target, a target with no `Kind:`, a retired target, `Needs:` on a constraint capability, and a valid earlier target (passes). Document order is the stage order: the subtraction removes any cycle search. |
+| R-2445 | WHEN a capability carries a `Retired:` line, the tree checker shall report a problem unless every token names another capability with no `Retired:` line, the capability carries no `Deliverables:`, `Needs:` or `Binds:` line, and every feature under it has a `retired` Status. | `…::R-2445: a retired capability names live successors, carries no stage fields and holds only retired features` | RED. Cases: a successor that does not exist, itself, a retired successor, an empty value, a retired capability carrying `Needs:`, one holding an active feature, and a valid one with two successors and only retired features (passes). |
+| R-2446 | WHEN a capability carries a `Kind:`, `Needs:`, `Binds:`, `Deliverables:` or `Retired:` line that the checker reads, `docs/requirements-tree.md` shall list each such value on its own line after that capability's Parent line, while the outline rendered for each of the ledgers at c4332ecb, 4b3846ec and 5548d4c2 still equals the outline committed at that revision. | `…::R-2446: the outline lists each read capability field after the Parent line, and historical outlines render unchanged` | RED for the new lines. The historical half is a guard that goes red on code that renders a placeholder line for every capability, or puts the new lines before Parent. The test also asserts that `checkOutlineFields` reports an outline whose new line was dropped or altered. Deliverables are listed by ID only, with no status, so a status change never makes the committed outline stale. |
+| R-2447 | WHEN a feature present at both revisions sits under a different capability at HEAD, or a capability present at both carries a different Kind, Needs, Binds, Deliverables or Retired value compared as parsed lists, or a capability exists at only one revision, the tree movement command shall print a capability section naming each, even when no row changed, leaving its output byte for byte as today's when none of these occurs. | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2447: a capability move or capability field change prints a capability section, and none leaves the output unchanged` | RED: the early return at `scripts/requirements-moved.mjs:140` prints `tree movement: none` for any change that touches only capabilities. Cases: a feature moved between capabilities, a changed `Kind:`, a reordered `Needs:` list (not a change), a whitespace-only edit (not a change), a new capability, a removed capability, and a row change with no capability change (byte-identical to today). |
+
+## Written, not pinned
+
+These change in this lane, but no must-meet row pins them. The final report says so.
+- `packages/nana-pack/skills/requirements/SKILL.md` describes the two kinds, the five fields, the amendments, the derived consumer, and that every field is optional. Before a regroup that moves features, it says to strip the fields from the capabilities involved, then add them back. Every pinned sentence stays word for word (`packages/nana-pack/tests/templates-render.test.mjs:644-645`, `:685`, `:722`, `:780`). Do not write a new paragraph that mentions the lift next to a flag the lift does not have. Do not backtick a path that rendered scaffolds lack, such as the outline file.
+- `templates/_shared/requirements-organization.md` gains one paragraph and keeps "capability → feature → subgroup" verbatim (R-1153). No seed gains a `Kind:` line; CAP-90 stays kindless.
+- nana-pi's own REQUIREMENTS.md sections "How this file is organized" and "What checks it" describe the new lines and list R-2440 to R-2447.
+- The ruling, in `packages/nana-pack/rules/nana-rulings.md`, written by the seat in the notes commit (one dated bullet; `packages/nana-pack/tests/rulings.test.mjs:212-245`).
+
+## Known limits (carried to HANDOFF)
+
+- A regroup that moves a feature holding another capability's deliverable, or merges two kinded capabilities, is refused by the lift's output check after this lane. The regroup's closed key list cannot set or drop these lines, and its owner page shows only Purpose and Outcome. Each such regroup needs the fields stripped by hand first, then re-added.
+- Lower-case labels (`kind:`) are prose, not fields.
+- Amendment 1's "one tested row per bound stage" and amendment 2's "a missing check shows as a gap" are not checked by the tree checker; the product report shows them in the next lane.
+- The historical outline test needs full git history; a shallow clone cannot run it.
