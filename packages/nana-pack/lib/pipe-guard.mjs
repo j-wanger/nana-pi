@@ -149,6 +149,16 @@ function liveText(command, dialect = "bash") {
 			}
 			continue;
 		}
+		if (ch === "`") {
+			let end = i + 1;
+			while (end < source.length && (source[end] !== "`" || escapedByOddBackslashes(source, end))) end++;
+			if (end < source.length) {
+				text += ` (${liveText(source.slice(i + 1, end))}) `;
+				line += " ";
+				i = end;
+				continue;
+			}
+		}
 		if (ch === "'" || ch === '"') {
 			quote = ch; quoteStart = i; text += " "; line += ch; continue;
 		}
