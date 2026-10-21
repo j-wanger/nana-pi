@@ -36,6 +36,14 @@ The repo stops naming its owner in every current file outside the records, which
 
 A seal test, `seal: identity word digests` in `identity-scan.test.mjs`, pins the four digests and cites R-2511.
 
+**Amendment after round 1 (the land reviewer's MUST, 2026-10-21).** The fifth rubric rule of the trial extractor stopped matching archived reports that name the owner (main's decision golden scored [5, 5, 3]; the tip's scored [4, 4, 3] on the same input). Build 4 adds:
+
+| ID | Requirement (EARS) | Test file::title |
+|---|---|---|
+| R-2521 | WHEN a decision block names the owner by the first identity word or by a role word, the trial extractor shall count the block's fifth rubric part as present. | `packages/nana-pack/tests/writing-trial-extractor.test.mjs::a decision naming the owner by name or by role scores its fifth part` |
+
+Its seal, `seal: the extractor's owner word digest`, pins `OWNER_WORD_DIGESTS` to the scan config's first digest. R-2517 to R-2520 stay reserved for lane B.
+
 ### What each test does, and why it is red on main
 
 - **R-2511.** Runs from the package folder, as the suite does. Asserts the scanned file count equals `git ls-files` at the repo root (3,643 at 906fbb56) and zero findings. Red on main: recorded per-word counts at 906fbb56 with the committed config, all four nonzero (this also proves the four digests, attack M7).
