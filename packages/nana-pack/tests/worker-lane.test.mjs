@@ -13,6 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
 // R-1125: win32 canonicalizes with the native real path, which keeps an 8.3 or differently cased
 // form the way git itself sees it (mirrors pi-worker's own fsReal); POSIX keeps the JS form.
 const real = (p) => (process.platform === "win32" ? fs.realpathSync.native(p) : fs.realpathSync(p));
@@ -119,6 +120,7 @@ check("every pi-worker child receives NANA_ROLE=worker", result.startsWith("work
 check("lane preamble forbids the named package-manager operations at a worktree root", prompt1Text.includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root"));
 const preambleText = prompt1Text;
 const RULE_LINE = {
+	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
 	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
 	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
 	awaitEveryAsyncCase: "A test harness awaits every async case under a per-case limit.",
@@ -133,6 +135,8 @@ const RULE_LINE = {
 	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line with its check count; and what was not done.",
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
+// req: R-2510
+check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
 // req: R-1110
 check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
 // req: R-1110

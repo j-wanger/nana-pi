@@ -13,6 +13,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { KNOWN_BUGS_DIR, UNPLACED_FILE } from "../../../scripts/known-bugs.mjs";
 import { checkTree, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 // The project templates render in BOTH modes, and the requirements-first rail they ship is
 // wired in both:
@@ -415,6 +416,9 @@ function checkNanaPiPartGMirrorsTheSharedFile() {
 }
 checkNanaPiPartGMirrorsTheSharedFile();
 
+// req: R-2509
+check("seal: the known-bugs folder is docs/known-bugs", KNOWN_BUGS_DIR === "docs/known-bugs");
+
 /** Extracts the exact bytes owned by the shared-section markers. */
 function markerBlock(text) {
 	const begin = "<!-- nana:working-under-nana-pi begin -->\n";
@@ -616,6 +620,17 @@ function checkInstructionContracts() {
 		shared.includes("A review with no MUST finding says LAND") &&
 		shared.includes("LAND-WITH-FIXES is retired") &&
 		shared.includes("A confirmation round reviews only the change since the last round"));
+	const sharedBullets = shared.split(/\r?\n/).filter((line) => line.startsWith("- "));
+	const reviewBar = sharedBullets.find((line) => line.startsWith("- Review bar:")) ?? "";
+	const landChecklist = sharedBullets.find((line) => line.startsWith("- Land checklist:")) ?? "";
+	const unplacedStem = path.parse(UNPLACED_FILE).name;
+	// req: R-2509
+	check("R-2509: the shared working pattern records a non-blocking finding in its feature's known-bug file, not HANDOFF",
+		reviewBar.includes(KNOWN_BUGS_DIR) && reviewBar.includes(unplacedStem) &&
+		reviewBar.includes("recorded as one line in the known-bug file of the feature it concerns") &&
+		landChecklist.startsWith("- Land checklist: resolve review findings or record them as known bugs in their feature's file;") &&
+		sharedBullets.every((line) => !(line.includes("HANDOFF") && line.includes("residual"))),
+		`${reviewBar}\n${landChecklist}`);
 	const agentsMd = frontDoors[1];
 	const sharedBegin = "<!-- nana:working-under-nana-pi begin -->";
 	const sharedEnd = "<!-- nana:working-under-nana-pi end -->";

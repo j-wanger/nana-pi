@@ -279,6 +279,8 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 	const repository = run(path.resolve(HERE, "../../../HANDOFF.md")).stdout;
 	// req: R-2473
 	check("R-2473: this repository's HANDOFF.md gets no section-order or read-window finding", control.includes("section-order:") && control.includes("read-window:") && !repository.includes("section-order:") && !repository.includes("read-window:"), `${control}\n${repository}`);
+	// req: R-2504
+	check("R-2504: this repository's HANDOFF.md gets no file-size finding", control.includes("file-size:") && !repository.includes("file-size:"), `${control}\n${repository}`);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 if (fails) process.exitCode = 1;
