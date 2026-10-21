@@ -29,7 +29,8 @@ const POWERSHELL_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\}|\$LASTEXITCODE\b)/iu;
 const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
 const BASH_ERREXIT_TEXT = /errexit/iu;
 const BASH_SET_WORD = /\bset\b/giu;
-const BASH_ERREXIT_OPTION = /(?:^|\s)-[a-z]*e[a-z]*(?![\w-])/iu;
+const BASH_ERREXIT_OPTION_AT_START = /-[a-z]*e[a-z]*(?![\w-])/iyu;
+const BASH_ERREXIT_OPTION_AFTER_SPACE = /\s-[a-z]*e[a-z]*(?![\w-])/giu;
 const BASH_SIMPLE_COMMAND_END = /[;&|\r\n)\]}]/u;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
 const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
@@ -450,18 +451,40 @@ function bracketClosers(live) {
 	return closers;
 }
 
-function bashErrexitActive(text) {
-	if (BASH_ERREXIT_TEXT.test(text)) return true;
-	for (const match of text.matchAll(BASH_SET_WORD)) {
-		const remainder = text.slice((match.index ?? 0) + match[0].length);
-		const command = remainder.split(BASH_SIMPLE_COMMAND_END, 1)[0];
-		if (BASH_ERREXIT_OPTION.test(command)) return true;
+function bashErrexitOptionEnd(command) {
+	let firstSetEnd = -1;
+	let optionEnd = Number.POSITIVE_INFINITY;
+	for (const match of command.matchAll(BASH_SET_WORD)) {
+		const setEnd = (match.index ?? 0) + match[0].length;
+		if (firstSetEnd < 0) firstSetEnd = setEnd;
+		BASH_ERREXIT_OPTION_AT_START.lastIndex = setEnd;
+		const option = BASH_ERREXIT_OPTION_AT_START.exec(command);
+		if (option) optionEnd = Math.min(optionEnd, option.index + option[0].length);
 	}
-	return false;
+	if (firstSetEnd < 0) return optionEnd;
+	BASH_ERREXIT_OPTION_AFTER_SPACE.lastIndex = firstSetEnd;
+	const spacedOption = BASH_ERREXIT_OPTION_AFTER_SPACE.exec(command);
+	return spacedOption
+		? Math.min(optionEnd, spacedOption.index + spacedOption[0].length)
+		: optionEnd;
+}
+
+function bashErrexitPosition(live) {
+	const textMatch = live.match(BASH_ERREXIT_TEXT);
+	let first = textMatch ? (textMatch.index ?? 0) + textMatch[0].length : Number.POSITIVE_INFINITY;
+	let commandStart = 0;
+	for (let i = 0; i <= live.length && commandStart < first; i++) {
+		if (i < live.length && !BASH_SIMPLE_COMMAND_END.test(live[i])) continue;
+		const optionEnd = bashErrexitOptionEnd(live.slice(commandStart, i));
+		if (Number.isFinite(optionEnd)) first = Math.min(first, commandStart + optionEnd);
+		commandStart = i + 1;
+	}
+	return first;
 }
 
 function bashErrexitStates(live, pipes) {
-	return pipes.map((pipe) => bashErrexitActive(live.slice(0, pipe)));
+	const enabledAt = bashErrexitPosition(live);
+	return pipes.map((pipe) => enabledAt <= pipe);
 }
 
 function wordAt(text, at) {
