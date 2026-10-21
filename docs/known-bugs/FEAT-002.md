@@ -14,7 +14,7 @@
 - Handoff cut checks (handoff-cap-surrogate): the independent check ran on the first build only. It held over 11 probes, including pi's own loader and a real session's cut. The second build changed only one test, so nobody re-ran the check. The seat's pairs and that check ran on macOS only.
 - Frontier checks (frontier-first, plan): the live sections hold about 1,900 words, most of them in the Open asks. The word budget stays over until the owner answers or parks asks.
 - Frontier checks (frontier-first, plan): nothing runs the checker at a land or in CI. The suite's R-2473 check is the one automatic pin, and only for this repo's file; other projects' files are checked by no suite.
-- Frontier checks (frontier-first, plan): only the three live names count. The shared seed's Open heading is not Open for Jake, which predates this lane and also applies to the open-tag check.
+- Frontier checks (frontier-first, plan): only the three live names count. The shared seed's Open heading is not Open for the owner, which predates this lane and also applies to the open-tag check.
 - Frontier checks (frontier-first, plan): no test covers the byte count on a file with Windows line endings. The design counts each earlier line's carriage return.
 - Frontier checks (frontier-first, plan): the read window copies pi 1.0.2's defaults; pi 1.3.0 keeps them. A pi upgrade that changes them needs the values retuned, and the two seals then fail naming R-2471 and R-2472.
 - Frontier checks (frontier-first, plan): a single Landed line hundreds of words long is still not flagged; the landed-entry check covers only entries that span lines.

@@ -2,22 +2,22 @@
 
 *One line per known bug that no feature owns yet, moved from HANDOFF.md on 2026-10-21 and kept word for word. Move a line to its feature's file when you next work there.*
 
-- U2: a project-scope policy symlink target is not on the floor. The aml-desk AGENTS.md copy waits for an idle session to refresh.
+- U2: a project-scope policy symlink target is not on the floor. A work project's AGENTS.md copy waits for an idle session to refresh.
 - E1: nothing in the catch ledger may change review practice, models, roles or spend until a seeded-defect control and a clean-patch control run.
 - L5: a broken hook symlink exits 127 before its fail-open code runs; the adoption hook is not role-gated to the seat.
 - S1/S2: display and encoding follow-ups (lossless `Cwd:` encoding, desk path display, escape-token helper, look-alike dashes, display package, 16× pre-cap, CLI rendering test).
-- Requirements: the rail proves marker identity, not clause coverage (open question 6b); aml-desk's rail copy has 193 rows off form; basketball-geek has 2.
+- Requirements: the rail proves marker identity, not clause coverage (open question 6b); a work project's rail copy has 193 rows off form; basketball-geek has 2.
 - Edge desk: nothing bounds the total size of the blocks one tool returns; a narrowed desk spawn drops the MCP servers and pi's other built-ins.
 - pi 1.0: the seed's `asyncByDefault: true` restates upstream (drop it at the next seed revision, R-361 diff first).
 - Review-ledger lane: strengthen the non-mutating-`check` test with a stale sentinel.
 - Tranche 3: the land helper does not defend a branch switch in the main checkout mid-merge; reviews refuse repositories with submodules.
 - Tranche 4: the acceptance gate prints nothing on a pass.
 - Tranche 5: uninstall's preview stops at a loaded desk; its ancestor checks are preflight-only.
-- Tranche 6: per-check SKIPs inside a test file stay invisible to the rail; nothing keeps future pi tests on the locator; Jake's Windows machine passed the install-and-hooks check on 2026-10-16.
+- Tranche 6: per-check SKIPs inside a test file stay invisible to the rail; nothing keeps future pi tests on the locator; the owner's Windows machine passed the install-and-hooks check on 2026-10-16.
 - Knowledge ruling: a review-test fixture can loop forever.
 - Tranche 2: the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
-- Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails.
+- Four-digit IDs: a work project's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails.
 - Review standard: projects other than nana-pi take the new working-pattern text only when `nana-setup project` runs there. `review-ledger run` gets no standard. Nothing stages a pi-review change before it reaches every caller.
 - Process lane reviews left two requirements whose tests check less than their rows say: an unreadable standard file, and each preamble rule on its own line. A third, step 8's trust target, is now checked by the readme-install lane's last-step test.
 - CI pin: the install gate checks the workflow text, not the resolved packages; a check that imports pi after install is the hardening step. The cutoff does not freeze deprecations or retags. The suite's template acceptance test needs the network, and a network hiccup refused one land run.
@@ -28,7 +28,7 @@
 - Gate tests on Windows: the desk leg of the agent-folder parity test and the live-working-folder case skip there.
 - Session start on Windows: the objective test runs 982 checks there against 1,236 on Linux; the difference is whole groups of POSIX-only cases (unreadable files, named pipes, file ownership, directory modes), each declared by one printed SKIP line. A hostile path shown in the objective block doubles each backslash on Windows, the block's quoting rule. CI's macOS leg once failed the shared mutation runner's killed-shard cleanup check on another lane's run; it passes locally and is a candidate flaky check.
 - Claude hooks on Windows: the deleted-working-folder case and the POSIX mode-bit and legacy-migration checks skip there, by design; the render test pins a Windows-legal hostile name in place of the names NTFS refuses.
-- Line endings: a CRLF file a Windows editor saves inside nana-pi becomes LF at commit, by design. The Python template's trace check on CRLF files skips when uv cannot fetch pytest. An existing Windows clone keeps its CRLF files until its owner re-checks it out once (see Open for Jake).
+- Line endings: a CRLF file a Windows editor saves inside nana-pi becomes LF at commit, by design. The Python template's trace check on CRLF files skips when uv cannot fetch pytest. An existing Windows clone keeps its CRLF files until its owner re-checks it out once (see Open for the owner).
 - Feature-first rules: other projects get the new shared section only when `nana-setup project` runs there again; their Claude rules change at once through the links on macOS and Linux, and on Windows at the next install. pi's reviewer seed still asks for edge cases in its plan section, and a machine keeps its old seed. The small-lane builder stopped the lane's first build after five minutes with no commit and no reason; a Claude Sonnet 5 builder finished it.
 - Handoff tests on Windows: NTFS refuses LF, ESC, tab and `:` in a name, so those hostile names are POSIX-only cases. Windows runs a Unicode line separator and a bidi override in their place. Windows cannot hold a home of about 290 characters, so no test checks the long-home pointer cap there. The product never shortens a path that holds `~`. So on a machine whose home folder has a short 8.3 name, the pointer shows the full path. A test must not use `fs.mkdirSync`'s return value as a path: on Windows it comes back as `\\?\C:\...`, which cmd.exe refuses as a working folder. The store test's symlink probe tries only a junction, so on Windows without Developer Mode its file symlink fails instead of skipping.
 - Install on Windows: the retired quoted context hook is never removed on Windows, because no Windows install ever wrote it. The seat's skip audit left smaller items in `docs/reviews/win-install-shape-2026-10-17/seat-skip-audit.md`: some comments and requirement tags in these tests still describe the macOS shape.

@@ -3,7 +3,7 @@
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Install check: it proves install and hooks in a temporary home, not a live Claude Code session. Linux runs no install check.
-- Fresh install: the desk's two install hints in its code and the study README still name no cutoff, since Jake froze the desk. We tested PowerShell 7, and the Windows install check runs the README's pi install in cmd (readme-windows-checklist). PowerShell 5.1 should pass the unquoted cutoff unchanged, but nobody has run it.
+- Fresh install: the desk's two install hints in its code and the study README still name no cutoff, since the owner froze the desk. We tested PowerShell 7, and the Windows install check runs the README's pi install in cmd (readme-windows-checklist). PowerShell 5.1 should pass the unquoted cutoff unchanged, but nobody has run it.
 - readme-install: every macOS install check now installs pi over the network for step 2. A network failure there turns the blocking macOS job red (inferred).
 - readme-install: the rehearsal clones the checkout's last commit but reads the README from the working files. A local run with uncommitted changes tests a mix of the two.
 - readme-install: the rehearsal answers yes to the trust prompt, so no check covers the prompt itself.
