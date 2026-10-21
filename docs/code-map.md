@@ -1806,8 +1806,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/frontier.test.mjs`
 
-- **purpose** — Pins the report-only HANDOFF frontier checker against rewritten and legacy fixtures, structural findings, an injected date, and strict-mode exits.
-- **inputs** — the frontier CLI, fixture HANDOFF files, and temporary oversized input
+- **purpose** — Pins the report-only HANDOFF frontier checker against its read window, section order, rewritten and legacy fixtures, an injected date, and strict-mode exits.
+- **inputs** — the frontier CLI, fixture HANDOFF files, this repository's HANDOFF.md, and temporary inputs
 - **outputs** — named PASS/FAIL checks and a nonzero test exit when an assertion fails
 - **effects** — disk (temporary input); process (spawns the CLI)
 - **errors** — failed assertions are reported and cause exit 1

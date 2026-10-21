@@ -141,6 +141,15 @@ const lineCount = lines.length - (hasFinalEol ? 1 : 0);
 if (bytes > READ_WINDOW_BYTES || lineCount > READ_WINDOW_LINES) {
 	add(1, "file-size", `bytes=${bytes} lines=${lineCount} window=${READ_WINDOW_BYTES} bytes, ${READ_WINDOW_LINES} lines`);
 }
+const firstArchive = headings.find((heading) => ARCHIVE_SECTION_NAMES.some((name) => isNamed(heading.title, name)));
+if (firstArchive) {
+	const archiveName = ARCHIVE_SECTION_NAMES.find((name) => isNamed(firstArchive.title, name));
+	for (const heading of headings) {
+		if (heading.index <= firstArchive.index) continue;
+		const liveName = LIVE_SECTION_NAMES.find((name) => isNamed(heading.title, name));
+		if (liveName) add(heading.index + 1, "section-order", `${liveName} comes after ${archiveName} at line ${firstArchive.index + 1}`);
+	}
+}
 const lineEnds = [];
 const endings = /\r\n|\r|\n/g;
 let ending;
