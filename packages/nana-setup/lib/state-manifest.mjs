@@ -1,14 +1,14 @@
 /**
  * @module packages/nana-setup/lib/state-manifest.mjs
  * @purpose Defines the single classified inventory of nana state and its restoration provenance.
- * @inputs resolveLayout-shaped absolute paths including the Windows copy record, ledgerPaths(home) and nana-pack's RULINGS_FILE.
- * @outputs sealed STATE_CLASSES and stateRows(layout).
+ * @inputs resolveLayout-shaped absolute paths including the Windows copy record, ledgerPaths(home), nana-pack's RULINGS_FILE and steps' PATH_COMMANDS.
+ * @outputs sealed STATE_CLASSES and stateRows(layout), including every PATH_COMMANDS link and `.cmd` shim.
  * @effects none
  * @errors none
  */
 import * as path from "node:path";
 import { ledgerPaths } from "../../nana-pack/bin/review-round.mjs";
-import { PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED } from "./steps.mjs";
+import { PATH_COMMANDS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED } from "./steps.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
 /** Sealed classification vocabulary; chosen by plan 5.5 and critic S2 (2026-10-08). */
@@ -61,8 +61,8 @@ export function stateRows(layout) {
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
   for (const name of ["requirements", "spec", "py-lint", "py-review", "py-test"]) rebuild(`skill link ${name}`, p(layout.skillsDir, name));
-  for (const name of ["pi-review", "pi-worker", "nana-land", "nana-setup"]) rebuild(`bin link ${name}`, p(layout.binDir, name));
-  for (const name of ["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd"]) rebuild(`bin shim ${name}`, p(layout.binDir, name), "shim");
+  for (const [name] of PATH_COMMANDS) rebuild(`bin link ${name}`, p(layout.binDir, name));
+  for (const [name] of PATH_COMMANDS) rebuild(`bin shim ${name}.cmd`, p(layout.binDir, `${name}.cmd`), "shim");
   rebuild("desk plist", layout.plistPath, "plist", "nana-setup");
   rebuild("pi-subagents package manifest", layout.piSubagentsPackage, "file", "pi", "run pi install npm:pi-subagents@0.75.0", modules.pi);
   rebuild("knowledge index", p(layout.knowledgeHome, "index.db"), "generated", "nana-setup", "run nana-knowledge build", modules.knowledge);

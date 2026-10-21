@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/win-shims.test.mjs
  * @purpose Prove the Windows PATH shim renderings preserve supported arguments, exit status, runtime lookup and self-rewrite safety.
  * @inputs lib/win-shims.mjs, the host POSIX shell or Windows Git Bash, cmd.exe and Windows PowerShell, and temporary hostile-path fixtures.
- * @outputs PASS, FAIL or named SKIP lines for the seven shim and PATH-resolution requirements.
+ * @outputs PASS, FAIL or named SKIP lines for the eight shim and PATH-resolution requirements.
  * @effects disk (temporary callers, briefs, bins and shims), process (spawns shells and node through rendered shims).
  * @errors each case is awaited under a timeout; a failed assertion prints FAIL and makes the process exit nonzero.
  */
@@ -46,7 +46,7 @@ for (const directory of [shims, binDir, callerDir, briefDir]) fs.mkdirSync(direc
 const brief = path.join(briefDir, "two line brief.md");
 fs.writeFileSync(brief, "first line  \r\nsecond line\t");
 const bin = path.join(binDir, "probe.mjs");
-fs.writeFileSync(bin, `#!/usr/bin/env node\nimport fs from "node:fs";\nif (process.argv[2] === "--rewrite") {\n  const target = process.env.NANA_REWRITE_SHIM;\n  const line = target.toLowerCase().endsWith(".cmd") ? "@echo NANA_REWRITE_MARKER\\r\\n" : "echo NANA_REWRITE_MARKER\\n";\n  fs.writeFileSync(target, line.repeat(200));\n}\nprocess.stdout.write(JSON.stringify({ argv: process.argv.slice(2), execPath: fs.realpathSync(process.execPath) }) + "\\n");\nprocess.exit(7);\n`);
+fs.writeFileSync(bin, `#!/usr/bin/env node\nimport fs from "node:fs";\nif (process.argv[2] === "--rewrite") {\n  const target = process.env.NANA_REWRITE_SHIM;\n  const line = target.toLowerCase().endsWith(".cmd") ? "@echo NANA_REWRITE_MARKER\\r\\n" : "echo NANA_REWRITE_MARKER\\n";\n  fs.writeFileSync(target, line.repeat(200));\n}\nconst stdin = fs.readFileSync(0, "utf8");\nprocess.stdout.write(JSON.stringify({ argv: process.argv.slice(2), execPath: fs.realpathSync(process.execPath), stdin }) + "\\n");\nprocess.exit(7);\n`);
 const rendered = renderWinShims(bin, shims);
 fs.writeFileSync(path.join(shims, "pi-review"), rendered.sh);
 fs.chmodSync(path.join(shims, "pi-review"), 0o755);
@@ -65,9 +65,10 @@ const shRunner = () => {
 	const key = Object.keys(process.env).find((name) => name.toLowerCase() === "path");
 	return findGitBash(String(key ? process.env[key] : "").split(";"));
 };
-const runShCaller = (args, rewrite = false) => {
+const runShCaller = (args, rewrite = false, stdinFile = null) => {
 	const caller = path.join(callerDir, rewrite ? "rewrite caller.sh" : "argument caller.sh");
-	fs.writeFileSync(caller, `#!/bin/sh\npi-review ${args.map(shq).join(" ")}\n`);
+	const pipeline = stdinFile ? `cat ${shq(stdinFile)} | ` : "";
+	fs.writeFileSync(caller, `#!/bin/sh\n${pipeline}pi-review ${args.map(shq).join(" ")}\n`);
 	const runner = shRunner();
 	if (!runner) return null;
 	return spawnSync(runner, [], { cwd: callerDir, input: fs.readFileSync(caller), encoding: "utf8", env: shellEnv(path.join(shims, "pi-review")), timeout: CASE_TIMEOUT_MS });
@@ -97,6 +98,13 @@ test("sh shim hands node every argument unchanged and returns the bin's exit sta
 	assert.ok(run, "Git Bash not found");
 	assert.equal(run.status, 7, run.stderr);
 	assert.deepEqual(jsonResult(run).argv, args);
+	const stdinText = "first line  \r\nsecond line\t";
+	const stdinFile = path.join(callerDir, "stdin fixture.txt");
+	fs.writeFileSync(stdinFile, stdinText);
+	const stdinRun = runShCaller(["stdin"], false, stdinFile);
+	assert.ok(stdinRun, "Git Bash not found");
+	assert.equal(stdinRun.status, 7, stdinRun.stderr);
+	assert.equal(jsonResult(stdinRun).stdin, stdinText);
 });
 
 // req: R-1617
@@ -138,6 +146,34 @@ test("Windows: PowerShell hands a .cmd shim's bin every spaced argument unchange
 	assert.ok(args.every((arg) => !arg.includes('"') && arg !== "" && !arg.endsWith("\\")));
 	assert.equal(run.status, 7);
 	assert.deepEqual(jsonResult(run).argv, args);
+});
+
+// req: R-2499
+test("Windows: text piped by bare name to nana-writing --report reaches the checker from cmd.exe and PowerShell", "R-2499", "win32", () => {
+	const packageRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+	const cli = path.join(packageRoot, "bin", "nana-setup.mjs");
+	const home = path.join(root, "writing home");
+	fs.mkdirSync(path.join(home, ".pi", "agent", "nana-knowledge"), { recursive: true });
+	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+	const vendor = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
+	fs.mkdirSync(vendor, { recursive: true });
+	fs.writeFileSync(path.join(vendor, "package.json"), JSON.stringify({ version: "0.75.0" }));
+	const install = recordRun("writing setup install", spawnSync(process.execPath, [cli, "install", "--home", home], { cwd: packageRoot, encoding: "utf8", env: process.env, timeout: CASE_TIMEOUT_MS }));
+	assert.equal(install.status, 0, install.stderr);
+	const installedBin = path.join(home, ".local", "bin");
+	const onlyInstalledBinAndNode = withPath(process.env, `${installedBin};${nodeDir}`);
+	onlyInstalledBinAndNode.PATHEXT = ".COM;.EXE;.BAT;.CMD";
+	const reportText = "DONE One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo twentythree twentyfour twentyfive.";
+	const expected = "-:1: length: 26 words (cap 25)\nsummary sentences=1 words=26 over=1 passive=0 banned=0 verdict=1/1 identifiers=0\n";
+	const cmdRun = recordRun("cmd piped writing report", spawnSync(cmdExe, ["/d", "/s", "/c", `"echo ${reportText}|nana-writing --report"`], { cwd: callerDir, encoding: "utf8", env: onlyInstalledBinAndNode, windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS }));
+	const powershellExe = path.win32.join(system32, "WindowsPowerShell", "v1.0", "powershell.exe");
+	const powershellRun = recordRun("PowerShell piped writing report", spawnSync(powershellExe, ["-NoProfile", "-Command", `$text = ${psq(reportText)}; $text | nana-writing --report; exit $LASTEXITCODE`], { cwd: callerDir, encoding: "utf8", env: onlyInstalledBinAndNode, timeout: CASE_TIMEOUT_MS }));
+	for (const run of [cmdRun, powershellRun]) {
+		assert.equal(run.status, 0, run.stderr);
+		const normalized = run.stdout.replaceAll("\r\n", "\n");
+		assert.equal(normalized, expected);
+		assert.equal(normalized.split("\n").filter((line) => line.includes(": length:")).length, 1);
+	}
 });
 
 // req: R-1614

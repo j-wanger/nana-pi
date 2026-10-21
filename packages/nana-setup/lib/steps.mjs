@@ -16,11 +16,11 @@
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
  *  win32), <piHome>/extensions/subagent/config.json,
- *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
+ *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -85,6 +85,14 @@ export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin",
 export const PI_WORKER_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-worker.mjs");
 export const NANA_LAND_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-land.mjs");
 export const NANA_SETUP_BIN = path.join(pkgRoot, "bin", "nana-setup.mjs");
+export const NANA_WRITING_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-writing.mjs");
+export const PATH_COMMANDS = Object.freeze([
+	["pi-review", PI_REVIEW_BIN],
+	["pi-worker", PI_WORKER_BIN],
+	["nana-land", NANA_LAND_BIN],
+	["nana-setup", NANA_SETUP_BIN],
+	["nana-writing", NANA_WRITING_BIN],
+]);
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
@@ -798,15 +806,9 @@ export function stepKnowledge(layout, o) {
 /* ------------------------------------------------------------------------------ PATH bin */
 
 export function stepPath(layout, o) {
-	const commands = [
-		["pi-review", PI_REVIEW_BIN],
-		["pi-worker", PI_WORKER_BIN],
-		["nana-land", NANA_LAND_BIN],
-		["nana-setup", NANA_SETUP_BIN],
-	];
 	let out;
 	if (win()) {
-		out = commands.map(([name, source]) => {
+		out = PATH_COMMANDS.map(([name, source]) => {
 			const rendered = renderWinShims(source, layout.binDir);
 			const writes = [
 				writeBytesWithBackup(path.join(layout.binDir, `${name}${WIN_SHIM_SUFFIXES.sh}`), rendered.sh, { ...o, action: "write" }),
@@ -821,7 +823,7 @@ export function stepPath(layout, o) {
 			return { label: `PATH ${name}`, status, detail };
 		});
 	} else {
-		out = commands.map(([name, source]) => ({ label: `PATH ${name}`, ...linkFile(path.join(layout.binDir, name), source, o) }));
+		out = PATH_COMMANDS.map(([name, source]) => ({ label: `PATH ${name}`, ...linkFile(path.join(layout.binDir, name), source, o) }));
 	}
 	const onPath = win()
 		? (() => {

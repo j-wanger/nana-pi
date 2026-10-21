@@ -7,7 +7,7 @@
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
+ *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail, installLabel? } rows, including a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
@@ -31,7 +31,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -631,7 +631,7 @@ export function diagnose(layout, opts = {}) {
 
 	// --- PATH ---
 	if (win) {
-		for (const [name, source] of [["pi-review", PI_REVIEW_BIN], ["pi-worker", PI_WORKER_BIN], ["nana-land", NANA_LAND_BIN], ["nana-setup", NANA_SETUP_BIN]]) {
+		for (const [name, source] of PATH_COMMANDS) {
 			const state = winShimState(name, source, layout.binDir);
 			add(state.ok ? OK : FAIL, `PATH ${name}`, state.detail);
 		}
@@ -652,14 +652,10 @@ export function diagnose(layout, opts = {}) {
 				: `${foundDetail}; ${remedy}`;
 		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail, installFixes ? "PATH pi-review" : undefined);
 	} else {
-		const link = path.join(layout.binDir, "pi-review");
-		const worker = path.join(layout.binDir, "pi-worker");
-		add(linkOk(link, PI_REVIEW_BIN) ? OK : FAIL, "PATH pi-review", `${link} -> ${PI_REVIEW_BIN}`);
-		add(linkOk(worker, PI_WORKER_BIN) ? OK : FAIL, "PATH pi-worker", `${worker} -> ${PI_WORKER_BIN}`);
-		const landLink = path.join(layout.binDir, "nana-land");
-		add(linkOk(landLink, NANA_LAND_BIN) ? OK : FAIL, "PATH nana-land", `${landLink} -> ${NANA_LAND_BIN}`);
-		const setupLink = path.join(layout.binDir, "nana-setup");
-		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
+		for (const [name, source] of PATH_COMMANDS) {
+			const link = path.join(layout.binDir, name);
+			add(linkOk(link, source) ? OK : FAIL, `PATH ${name}`, `${link} -> ${source}`);
+		}
 		const found = firstOnPath("pi-review");
 		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
 		const entries = String(process.env.PATH ?? "").split(path.delimiter).filter(Boolean);

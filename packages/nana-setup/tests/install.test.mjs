@@ -55,7 +55,7 @@ const check = (n, ok, extra) => {
 };
 
 // req: R-589
-check("steps module outputs contract names the nana-setup PATH link", /<binDir>\/pi-review, pi-worker, nana-land and nana-setup/.test(fs.readFileSync(path.join(pkg, "lib", "steps.mjs"), "utf8")));
+check("steps module outputs contract names the nana-setup PATH link", /<binDir>\/pi-review, pi-worker, nana-land, nana-setup and nana-writing/.test(fs.readFileSync(path.join(pkg, "lib", "steps.mjs"), "utf8")));
 
 const tmps = [];
 /** The pi-subagents vendor package nana-setup only READS (never installs — architecture-ruling
@@ -87,6 +87,46 @@ const NEUTRAL_CWD = tmpDir(path.join(os.tmpdir(), "nana-setup-cwd-"));
 const run = (args, env = process.env) => args[0] === "doctor"
 	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env }))
 	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8", env });
+
+if (process.platform !== "win32") {
+	const source = path.join(repo, "packages", "nana-pack", "bin", "nana-writing.mjs");
+	const sourceRelative = path.relative(repo, source);
+	const gitMode = () => spawnSync("git", ["ls-files", "-s", "--", sourceRelative], { cwd: repo, encoding: "utf8" }).stdout.trim().split(/\s+/u)[0];
+	const sourceBefore = fs.statSync(source);
+	const modeBefore = gitMode();
+	const writingHome = freshHome();
+	const installed = run(["install", "--home", writingHome]);
+	const sourceAfter = fs.statSync(source);
+	const modeAfter = gitMode();
+	const binDir = path.join(writingHome, ".local", "bin");
+	const writingLink = path.join(binDir, "nana-writing");
+	const reportText = "DONE One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo twentythree twentyfour twentyfive.\n";
+	const limitedPath = `${binDir}${path.delimiter}${path.dirname(process.execPath)}`;
+	const reportEnv = { PATH: limitedPath };
+	const report = spawnSync("nana-writing", ["--report"], { cwd: NEUTRAL_CWD, encoding: "utf8", input: reportText, env: reportEnv });
+	const expectedReport = "-:1: length: 26 words (cap 25)\nsummary sentences=1 words=26 over=1 passive=0 banned=0 verdict=1/1 identifiers=0\n";
+	const identical = run(["install", "--home", writingHome]);
+	const identicalTarget = (() => { try { return fs.realpathSync(writingLink); } catch { return null; } })();
+	if (fs.existsSync(writingLink)) fs.unlinkSync(writingLink);
+	const missing = run(["doctor", "--home", writingHome]);
+	if (fs.existsSync(writingLink)) fs.unlinkSync(writingLink);
+	fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), writingLink);
+	const misdirected = run(["doctor", "--home", writingHome]);
+	const evidence = modeBefore === "100755" && modeAfter === "100755" &&
+		(sourceBefore.mode & 0o777) === 0o755 && (sourceAfter.mode & 0o777) === 0o755 &&
+		sourceAfter.ctimeMs === sourceBefore.ctimeMs && Object.keys(reportEnv).length === 1 && reportEnv.PATH === limitedPath &&
+		installed.status === 0 && /\+ PATH nana-writing\b/.test(installed.stdout) &&
+		identical.status === 0 && /PATH nana-writing\s+unchanged\b/.test(identical.stdout) && identicalTarget === source &&
+		report.status === 0 && report.stderr === "" && report.stdout === expectedReport &&
+		report.stdout.split("\n").filter((line) => line.includes(": length:")).length === 1 &&
+		missing.status === 1 && /✗ PATH nana-writing\b/u.test(missing.stdout) &&
+		misdirected.status === 1 && /✗ PATH nana-writing\b/u.test(misdirected.stdout);
+	// req: R-2498
+	check("nana-writing is linked on PATH, runs by bare name, and doctor reads a missing or misdirected link ✗", evidence,
+		JSON.stringify({ modeBefore, modeAfter, sourceModeBefore: sourceBefore.mode & 0o777, sourceModeAfter: sourceAfter.mode & 0o777, sourceCtime: [sourceBefore.ctimeMs, sourceAfter.ctimeMs], install: installed.status, installOut: installed.stdout, identical: identical.status, report: { status: report.status, stdout: report.stdout, stderr: report.stderr }, missing: { status: missing.status, stdout: missing.stdout }, misdirected: { status: misdirected.status, stdout: misdirected.stdout } }));
+} else {
+	console.log("SKIP R-2498 POSIX-only PATH link and mode check");
+}
 
 {
 	const cases = [

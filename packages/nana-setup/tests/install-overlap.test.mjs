@@ -46,7 +46,7 @@ const laterTargets = [
 	layout.piRulings,
 	layout.subagentConfig,
 	layout.reviewerAgent,
-	...(["pi-review", "pi-worker", "nana-land", "nana-setup"].map((name) => path.join(layout.binDir, name))),
+	...(["pi-review", "pi-worker", "nana-land", "nana-setup", "nana-writing"].map((name) => path.join(layout.binDir, name))),
 ].map((target) => path.resolve(target));
 const targetLooks = new Map(laterTargets.map((target) => [target, []]));
 
@@ -121,15 +121,15 @@ const observations = () => ({
 check("R-2260: a second install started at the first install's PATH step exits 2 naming the held settings lock",
 	overlapWrapFired && second?.status === 2 && second.stderr.includes(lock) && second.stderr.includes("locked by another nana-setup run"), observations());
 
-const pathRows = firstResults?.filter((row) => ["PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup"].includes(row.label));
+const pathRows = firstResults?.filter((row) => ["PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "PATH nana-writing"].includes(row.label));
 // req: R-2261
-check("R-2261: the first install finishes with no problem row and all four PATH rows created when a second install starts at its PATH step",
-	overlapWrapFired && !firstThrow && !firstResults?.some((row) => row.status === "problem") && pathRows?.length === 4 && pathRows.every((row) => row.status === "created"), observations());
+check("R-2261: the first install finishes with no problem row and all five PATH rows created when a second install starts at its PATH step",
+	overlapWrapFired && !firstThrow && !firstResults?.some((row) => row.status === "problem") && pathRows?.length === 5 && pathRows.every((row) => row.status === "created"), observations());
 
 const everyTargetLookHeld = [...targetLooks.values()].every((looks) => looks.length > 0 && looks.every(Boolean));
 // req: R-2262
 check("R-2262: the settings lock, taken once, is present at every look of a shared memory, pi config, subagent, reviewer or PATH target",
-	lockOpenCount > 0 && targetLooks.size === 10 && everyTargetLookHeld && lockOpenCount === 1, observations());
+	lockOpenCount > 0 && targetLooks.size === 11 && everyTargetLookHeld && lockOpenCount === 1, observations());
 
 // req: R-2263
 check("R-2263: the settings lock is gone when install starts the knowledge build",
