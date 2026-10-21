@@ -3588,7 +3588,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove stale-copies remains reliable under slow installs and reports checker failures.
 - **inputs** — stale-copies.test.mjs, child-process preloads, and temporary folders.
-- **outputs** — PASS/FAIL/SKIP lines and a summary; nonzero exit on failure.
+- **outputs** — PASS/FAIL lines and one Windows SKIP plus a summary; nonzero exit on failure.
 - **effects** — disk (temporary fixtures only), process (meta-runs stale-copies).
 - **errors** — failed child runs or unexpected fixture output fail their checks.
 - **callers** — —
