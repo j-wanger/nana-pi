@@ -10,7 +10,7 @@ Review `git diff 9e8091e2..HEAD` on `feat/cap-fields-own` (main is 9e8091e2; the
 main at da4d2375). The plan of record is `docs/reviews/cap-fields-own-2026-10-21/must-meet.md`: the field lines per
 capability with the seat's reversible calls, one must-meet check (R-2460) and a known limit. `build-brief-1.md` is
 build 1 (a34fb8aa); the seat's record is `seat-verify-da4d2375.md`, with the wrong-code pairs in `seat-mutate.mjs` and
-`seat-mutate-output-a34fb8aa.txt` (3 of 3 red). CI-PENDING. The land runs the locked suite on the reviewed tip.
+`seat-mutate-output-a34fb8aa.txt` (3 of 3 red). CI run 39562292324 at 6a18aa36 reads 0 failing on all three legs: macOS 198 PASS, 0 FAIL, 2 SKIP of 200 files (8,217 checks pass, 36 skip); Ubuntu 197 PASS, 0 FAIL, 3 SKIP of 200 files (8,156 checks pass, 56 skip); Windows 182 PASS, 0 FAIL, 18 SKIP of 200 files (7,145 checks pass, 115 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-6a18aa36.log in this folder. The land runs the locked suite on the reviewed tip.
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`, run at da4d2375, before the seat's notes
 commit):
