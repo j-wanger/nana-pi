@@ -17,6 +17,7 @@ const R2400 = "R-2400: a build over a random-bytes, a half-truncated or a page-o
 const R2401 = "R-2401: a build over a SQLite file whose docs or files table lacks a used column resolves and a query then hits";
 const R2402 = "R-2402: a pull over a page-overwritten index older than one hour starts a build that heals it, and a later pull hits";
 const R2403 = "R-2403: builds over healthy or page-damaged write-locked indexes fail, keep index.db's inode and bytes, and a fresh handle reads the committed sentinel";
+const R2403_LATE = "R-2403: a writer arriving after recovery takes its lock is blocked before delete, then the damaged index recovers";
 const R2404 = "R-2404: a build that loses the build lock leaves a damaged index.db byte for byte";
 const R2405 = "R-2405: status on a random-bytes, half-truncated or page-overwritten index exits 0 with one line naming the damage and build --rebuild, no stack";
 const R2406 = "R-2406: build on a random-bytes, half-truncated or page-overwritten index exits 0 with one line naming the damage, no stack";
@@ -64,7 +65,8 @@ const KEPT_EXIT = "formatSourcesProblem(s.problem)}`);\n\t\t\treturn 0;";
 const STATUS_EXIT = "— repair: nana-knowledge build --rebuild`);\n\t\treturn 0;";
 
 const DECLARED = [
-	"(build 3, bf003ea1) round 1's land reviewer MUST: recovery deleted a damaged index while another connection held its write lock. Build 3 adds assertRecoveryDeleteSafe before the rebuild and widens R-2403's check with a page-damaged, write-locked index. B15 drops the call, B16 lets a busy lock pass the check. No pair for the zero busy timeout: without it the check waits out openDb's timeout and still fails busy, so R-2403 stays green, only slower. No pair for the window between the check's release and the delete, which a test cannot reach without a hook in the code",
+	"(build 4, 5f3567ef) pairs: 28 of 31 red. B17 survived: the onRecoveryLocked hook runs right after the lock is taken, before build 3's order would release it, so a writer in the hook is busy under both orders; build brief 5 moves the hook to run right before the delete. B15 now reds R-2400 to R-2402, not R-2403: build 4 moved the delete into the check, so dropping the check leaves no delete and the retry fails on the damaged file. (build 4) round 2's land reviewer MUST: a writer could take the lock in the gap between the check's close and the delete. Off Windows, build 4 deletes while its own BEGIN IMMEDIATE is held, then rolls back and closes; on Windows it keeps build 3's order, since an open handle blocks the delete there. A test-only onRecoveryLocked hook in build()'s options lets R-2403's new check try a write in that window. B17 puts the POSIX delete back after the close (build 3's order). The new check is skipped on Windows by design, so no pair can reach the Windows order on macOS. B4 (the retry without rebuild) is expected to survive: on every platform the recovery now deletes the three files itself before the retry opens (off Windows under its lock, on Windows after its close), so the retry builds a fresh index either way; the flag's own delete is redundant, and matters only where the recovery's delete failed, where it would fail too",
+	"(build 3, bf003ea1) round 1's land reviewer MUST: recovery deleted a damaged index while another connection held its write lock. Build 3 adds assertRecoveryDeleteSafe before the rebuild and widens R-2403's check with a page-damaged, write-locked index. B15 drops the call, B16 lets a busy lock pass the check. No pair for the zero busy timeout: openDb sets none and node:sqlite's default is already 0, so the pragma is redundant and dropping it stays green (the final reviewer's round-2 note corrected the seat's first wording)",
 	"(build 2, 20462e77) the table moved from de48bcdb. Build 2 drops build 1's early problemStats return in build() and buildOpen's sources-problem return; under a sources problem buildLocked now checks an existing index on a read-only handle, reopens it read-write (creating it when absent), and finishes as main does: built_at, checkpoint, shown/ prune, every row kept (rows R-2408, R-2409)",
 	"(build 2, 20462e77) B7 now pins the removed early return through R-2409; it survived on de48bcdb. B8 is re-anchored as build 1's buildOpen return (R-2408). B9 to B14 are build 2's sites. B1 no longer names R-2407 and B2 now skips both checks: under a sources problem the read-only check and the reopen's checkIndex each catch damage alone, so B2's old one-check form is GREEN on 20462e77",
 	"(a) every pair runs on macOS; the seat probed each one first on a scratch copy (de48bcdb for build 1's pairs, 20462e77 for build 2's). Pairs that touch the sources-problem path also run sources-file.test.mjs",
@@ -109,9 +111,9 @@ const PAIRS = [
 	{ n: "B3", name: "build() checks and deletes a damaged index before acquireBuildLock", edits: [
 		one(BUILD, LOCK, PRE_LOCK + LOCK),
 	], tests: [T], expectRed: [R2404, R2406, R2407] },
-	{ n: "B4", name: "the retry runs without rebuild: true", edits: [
-		one(BUILD, "const stats = await buildLocked({ rebuild: true }, sources);", "const stats = await buildLocked(opts, sources);"),
-	], tests: [T], expectRed: [R2400, R2401, R2402, R2406] },
+	{ n: "B4", name: "the retry runs without rebuild: true (build 4: off Windows the recovery has already deleted the files, so this matters only on Windows)", edits: [
+		one(BUILD, "const stats = await buildLocked({ rebuild: true, recoveryFilesDeleted: true }, sources);", "const stats = await buildLocked(opts, sources);"),
+	], tests: [T], expectRed: [] },
 	{ n: "B5", name: "the keptDamage branch is dropped: damage under a sources problem retries", edits: [
 		one(BUILD, "\t\t\tif (sources.problem) return problemStats(sources.problem, started, reason);\n", ""),
 	], tests: [T, SF], expectRed: [R2407] },
@@ -143,11 +145,14 @@ const PAIRS = [
 		one(BUILD, "\n\tpruneShown();\n", "\n\tif (!problem) pruneShown();\n"),
 	], tests: [T, SF], expectRed: [R2408] },
 	{ n: "B15", name: "(round 1 MUST, build 2's form) recovery deletes without taking the write lock first", edits: [
-		one(BUILD, "\t\t\tawait assertRecoveryDeleteSafe();\n", ""),
-	], tests: [T], expectRed: [R2403] },
+		one(BUILD, "\t\t\tawait assertRecoveryDeleteSafe(opts.onRecoveryLocked);\n", ""),
+	], tests: [T], expectRed: [R2400, R2401, R2402] },
 	{ n: "B16", name: "a busy or locked failure while taking the write lock lets the delete go ahead", edits: [
 		one(BUILD, "\t\tif (!indexDamage(err)) failure = err;", "\t\tvoid err;"),
 	], tests: [T], expectRed: [R2403] },
+	{ n: "B17", name: "(round 2 MUST, build 3's order) off Windows the lock is released before the delete", edits: [
+		one(BUILD, 'if (process.platform === "win32" || !began) {', "if (true) {"),
+	], tests: [T], expectRed: [R2403_LATE] },
 
 	// bin/nana-knowledge.ts: the build and status lines
 	{ n: "C1", name: "build prints no kept-damage line", edits: [
@@ -173,4 +178,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R2405] },
 ];
 
-process.exitCode = await runMutations({ lane: "knowledge-index-recover", self: import.meta.url, tip: "bf003ea1", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "knowledge-index-recover", self: import.meta.url, tip: "5f3567ef", declared: DECLARED, pairs: PAIRS });
