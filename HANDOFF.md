@@ -14,7 +14,6 @@
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 3. **Queue (the owner, 2026-10-21; two lanes building plus one in planning):**
    - Next to build, in order:
-     - The writing rule's adoption, an install, hook or gate lane. It adds a PATH link, a `writing.enabled` key and one `toWellFormed()` fix. The pre-send check becomes mandatory, and blocking is decided per surface.
      - Known bugs per feature. Known bugs move out of this file into one file per feature, which changes the shared review bar. Until then the frontier checker's size finding stays.
      - The owner-name scrub of the current files, with no history rewrite.
      - The builder launch in the install check.
@@ -61,6 +60,7 @@
 - 2026-10-21: this file now opens with its live sections, and the frontier checker reports what one default read misses. Before, Next started at line 1,022 of a 334 KB file. pi's read tool stops at 50 KB, so a pi seat saw only old landed lines. Now Where things stand, Next and Open for Jake come first, and 153 old landed lines moved to the session archive. The checker reports a live section placed after Landed or Carried residuals. It also reports a live section that ends past one default read, and a file over that read. A suite check keeps this repo's own file in that order. The file stays over the read window until known bugs move to one file per feature.
 - 2026-10-21: the four first-try Windows CI failures now have fixes. The install check retries a failed pi-subagents install up to three times, five seconds apart. Each failed attempt prints a NOTE line with npm's own error code, which the main-push failure had lost. A timeout is never retried. Two test limits now come from measured runs: stale-copies gives an install 20 seconds, and the PowerShell child 60. The launch-limit test accepts a stop up to 7.5 seconds, still below the relay's own backstop. The linked Claude folder failure is diagnosed, not fixed: its failure line now names the hook run's status, time and output.
 - 2026-10-21: on Windows, pi's gate now reads Git Bash's `/tmp` as the folder TMP names, or TEMP when TMP is unset, and `/c/…` as drive C:. It does this for the bash tool's rm targets and cd folders only. So a headless builder's `rm -f /tmp/out.txt` runs again, where it blocked since 2026-10-20. The unchanged temp-folder rule still decides, so a TMP at a drive root or the home folder still asks. PowerShell, macOS and Linux read paths as before.
+- 2026-10-21: the owner's writing rule now runs as adopted. `nana-writing` is on PATH on macOS, Linux and Windows, and the rule requires the check before every report. A user-scope `writing.enabled` key turns pi's writing section off. The suite fails on a long or banned sentence in this file's live sections. The character cap no longer splits an emoji in two.
 
 ## Carried residuals (live; one line each)
 
@@ -943,3 +943,15 @@
 - rm floor (gate-rm-gitbash-tmp, plan): the floor's root check misses Git Bash drive roots. It does not count `rm -rf /c/` or `/c/Users` as a root or home ancestor. It is a non-floor ask today, so an owner allow pattern could exempt it. A gate lane fixes it.
 - Policy-file floor (gate-rm-gitbash-tmp, independent check): the floor does not read Git Bash's `/tmp` spelling. With the agent folder under TMP, `rm -f /tmp/<agent folder>/nana-pack.json` gets no floor ask. Main asked only because it misread the path as `C:\tmp\…`. A gate lane fixes it with the `/c/` floor gap.
 - Windows flakes (win-leg-flakes final review): R-2483's meta-run stays green under the open linked Claude folder flake only if that flake is the checker exiting non-zero. If a 5-second hook kill causes it, the meta-run records no hook status and R-2483 fails on the Windows leg, which blocks release. On macOS and Linux the two meta-runs also triple stale-copies' exposure to its 5-second hook limit. Watch it in the 20-run count.
+- Writing rule (writing-adoption, plan): the pre-send run stays an instruction. Nothing checks that a seat ran it before sending a report.
+- Writing rule (writing-adoption, plan and adversary): the `writing.enabled` key reaches pi only. With it false, Claude Code still loads its linked rule. Reaching Claude Code is its own lane: the stale-copies line, Windows copy ownership, doctor and two install rows.
+- Writing rule (writing-adoption, plan): the HANDOFF check reads nana-pi's live sections only, so the archive sections keep their long sentences. A lane in flight whose live lines run long goes red once it merges main.
+- Writing rule (writing-adoption, plan): Windows PowerShell 5.1 pipes non-ASCII text as `?`, which can end a sentence early (inferred). Passing a file avoids it.
+- Writing rule (writing-adoption, plan): right after a pull, the rule names a command that exists only once install runs. The rule says to run install.
+- Writing rule (writing-adoption, adversary): the frozen desk refuses to save a `nana-pack.json` that holds `writing`, as it refuses `objective`.
+- Writing checker (writing-adoption, plan): it still reads `--help` as a file path.
+- Writing rule (writing-adoption, independent check): a live section that holds only a table fails the HANDOFF check, which wants a sentence there. A banned word inside a link target fails it too.
+- Writing rule (writing-adoption, wrong-code pairs): the seat's pairs ran on macOS. Only the Windows CI leg shows the `.cmd` shim passing piped text.
+- Git Bash paths in the gate (gate-rm-gitbash-tmp, land review): the pack README says other shells and a hand-edited mount table are not translated. The gate still applies the Git for Windows reading there, since it cannot detect either case.
+- Git Bash paths in the gate (gate-rm-gitbash-tmp, two reviews): on Windows without Git Bash, the test header promises 16 pass and 1 skip. The real count there is 15 pass and 2 skip.
+- Git Bash paths in the gate (gate-rm-gitbash-tmp, final review): R-2492 says any spelling that starts with a slash and one letter reads as a drive. The code leaves a spelling with a backslash or a leading double slash unread, so it asks.

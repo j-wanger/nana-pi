@@ -1,0 +1,15 @@
+# CI run 39650393785 at 6a9fa725 (PR #157), suite (windows-latest), job 119396888685: the win-shims lines
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                31 pass  3.7s
+PASS sh shim hands node every argument unchanged and returns the bin's exit status
+PASS an sh shim rewritten by its own bin runs none of the new text
+PASS Windows: cmd.exe hands a .cmd shim's bin every double-quoted argument unchanged on the PATH node and returns its exit status
+PASS Windows: PowerShell hands a .cmd shim's bin every spaced argument unchanged and returns its exit status
+PASS Windows: text piped by bare name to nana-writing --report reaches the checker from cmd.exe and PowerShell
+PASS Windows: a .cmd shim rewritten by its own bin runs none of the new text
+PASS Windows: a .cmd shim without node.exe on PATH exits 1 and writes its not-found message only to stderr
+PASS Windows: doctor reads PATH resolves pi-review ✓ only when the bin directory's .cmd shim is found first
+PASS  packages/nana-setup/tests/win-shims.test.mjs                    8 pass  4.7s
+
+201 files: 183 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7172 pass, 0 fail, 117 skip · 1769.0s

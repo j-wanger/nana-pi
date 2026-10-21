@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane writing-adoption (install, hook or gate lane), written by the seat 2026-10-21 after
-// build 3, on the shared runner. One or more pairs per row, from the must-meet's named wrong versions and the plan
+// build 3, on the shared runner (first run at 0671f92e; re-run at 0d52deb0 after build 4 moved the key check to each turn). One or more pairs per row, from the must-meet's named wrong versions and the plan
 // adversary's attack. R-2499 runs only on Windows, so it rests on the Windows CI leg and has no pair here. Run from
 // the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/writing-adoption-2026-10-21/seat-mutate.mjs
@@ -34,7 +34,7 @@ const PAIRS = [
 		one(EXT, "${head(full, keep)}${notice}", "${full.slice(0, keep)}${notice}"),
 	], tests: [WI], expectRed: [R_2501] },
 	{ n: "P2", name: "the extension ignores writing.enabled", edits: [
-		one(EXT, "if (!cfg.writing.enabled) return;", "if (false) return;"),
+		one(EXT, "if (!loadConfig(ctx).writing.enabled) return undefined;", "if (false) return undefined;"),
 	], tests: [WI], expectRed: [R_2500] },
 	{ n: "P3", name: "a trusted project's writing block is merged in", edits: [
 		one(CFG, 'writing: merge("writing", u.writing),', 'writing: merge("writing", u.writing, project.writing),'),
@@ -62,4 +62,4 @@ const PAIRS = [
 	], tests: [WR], expectRed: [R_2502] },
 ];
 
-process.exitCode = await runMutations({ lane: "writing-adoption", self: import.meta.url, tip: "0671f92e", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "writing-adoption", self: import.meta.url, tip: "0d52deb0", declared: DECLARED, pairs: PAIRS });
