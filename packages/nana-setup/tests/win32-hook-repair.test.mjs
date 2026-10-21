@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/win32-hook-repair.test.mjs
  * @purpose Pin Windows repair of POSIX installer hook settings while preserving owner look-alikes.
  * @inputs nana-setup CLI, desired hook fixtures, the repository layout, and throwaway homes.
- * @outputs PASS/FAIL lines for the eight repair checks and exit 1 when any check fails.
+ * @outputs PASS/FAIL lines for the fourteen repair checks and exit 1 when any check fails.
  * @effects disk (throwaway home layouts), process (spawns install and doctor with forced win32).
  * @errors A failed check prints its observed detail; unexpected setup or filesystem errors propagate.
  */
@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const { hookSettingsRows } = await import(new URL("../lib/hook-health.mjs", import.meta.url).href);
 const { repoRoot } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 const { WIN_VERIFIER_MATCHER, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 
@@ -62,7 +63,14 @@ function seed(home, settings) {
 	fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
 	fs.writeFileSync(settingsPath(home), JSON.stringify(settings, null, 2) + "\n");
 }
+function seedDeepSettings(home, depth, entry) {
+	fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
+	const nestedValue = '{"next":'.repeat(depth) + '"leaf"' + "}".repeat(depth);
+	const entryPrefix = JSON.stringify(entry).slice(0, -1);
+	fs.writeFileSync(settingsPath(home), `{"hooks":{"SessionStart":[{"hooks":[${entryPrefix},"owner":${nestedValue}}]}]}}`);
+}
 const regexEscape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const settingsLine = (output, label) => output.split("\n").find((line) => new RegExp(`[✓✗] settings ${regexEscape(label)}\\s`).test(line));
 
 const foreignSession = { type: "command", command: "echo session-owner", timeout: 17, statusMessage: "owner session" };
 const foreignBeforeVerifier = { type: "command", command: "echo verifier-before", timeout: 10, statusMessage: "owner before" };
@@ -207,5 +215,93 @@ const f4Preserved = f4Install.status === 0 && byteEqual(f4After.hooks.SessionSta
 // req: R-653
 check("win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical", f4Preserved, `${f4Install.stdout}\n${JSON.stringify(f4After.hooks)}`);
 
-console.log(`SUMMARY  PASS=${11 - fails} FAIL=${fails} SKIP=0`);
+const adviceDeadRoot = "C:\\Users\\someone/custom";
+const adviceDeadPaths = [
+	`${adviceDeadRoot}/nana-objective.mjs`,
+	`${adviceDeadRoot}/nana-adoption.mjs`,
+	`${adviceDeadRoot}/nana-shared-memory.mjs`,
+	`${adviceDeadRoot}/nana-roster-notice.mjs`,
+	`${adviceDeadRoot}/verifier-pipe.mjs`,
+	`${adviceDeadRoot}/nana-knowledge.ts`,
+];
+const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
+const vVerifier = { ...clone(byLabel(winWanted, "PreToolUse verifier pipe").entry), args: [adviceDeadPaths[4]] };
+const vKnowledge = { ...clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry), args: [adviceDeadPaths[5], "hook"] };
+const vHome = freshHome();
+seed(vHome, { hooks: {
+	SessionStart: [{ hooks: vEntries }],
+	PreToolUse: [{ matcher: WIN_VERIFIER_MATCHER, hooks: [vVerifier] }],
+	UserPromptSubmit: [{ hooks: [vKnowledge] }],
+} });
+const vInstall = run(["install", "--home", vHome]);
+const vDoctor = run(["doctor", "--home", vHome]);
+const slashPath = (value) => value.replaceAll("\\", "/");
+const installCommand = (wanted) => [wanted.entry.command, ...wanted.entry.args].map(slashPath).join(" ");
+const safeRoute = "remove that entry by hand, then run nana-setup install";
+const vRowsRepairByHand = winWanted.every((wanted, index) => {
+	const line = settingsLine(vDoctor.stdout, wanted.label);
+	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
+	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.slice(line.indexOf("install leaves")).includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);
+});
+const f4Doctor = run(["doctor", "--home", f4Home]);
+const f4ObjectiveLine = settingsLine(f4Doctor.stdout, "SessionStart objective");
+const spacedCheckoutRoot = "C:/Users/Jane Doe/nana-pi";
+const spacedWanted = desiredHooks({ hooksDir: sourceHooksDir, repoRoot: spacedCheckoutRoot, platform: "win32" });
+const spacedDeadPath = "C:/Users/old/custom/nana-objective.mjs";
+const spacedSettings = { hooks: { SessionStart: [{ hooks: [{ ...clone(objective), command: `node '${spacedDeadPath}'`, timeout: 10 }] }] } };
+const oldPlatform = process.env.NANA_SETUP_PLATFORM;
+process.env.NANA_SETUP_PLATFORM = "win32";
+let spacedObjectiveLine;
+try {
+	spacedObjectiveLine = hookSettingsRows({ hooksDir: sourceHooksDir }, spacedSettings, null, { repoRoot: spacedCheckoutRoot })
+		.find((row) => row.label === "settings SessionStart objective")?.detail;
+} finally {
+	if (oldPlatform === undefined) delete process.env.NANA_SETUP_PLATFORM;
+	else process.env.NANA_SETUP_PLATFORM = oldPlatform;
+}
+const spacedTarget = byLabel(spacedWanted, "SessionStart objective").entry.args[0];
+const spacedEditRoute = `to edit instead, run node "${spacedTarget}"`;
+// req: R-2410
+check("win32 doctor: after install, a ✗ settings row names each dead entry install leaves and its hand repair", vInstall.status === 0 && vRowsRepairByHand && f4ObjectiveLine?.trimStart().startsWith("✗ ") && f4ObjectiveLine.includes("/Users/someone/custom/nana-objective.mjs") && f4ObjectiveLine.includes("by hand") && spacedObjectiveLine?.includes(spacedDeadPath) && spacedObjectiveLine.includes(spacedEditRoute) && !spacedObjectiveLine.includes(`run node ${spacedTarget}`), `${vInstall.stdout}\n${vDoctor.stdout}\n${f4Doctor.stdout}\n--- spaced checkout ---\n${spacedObjectiveLine}`);
+
+const guardHome = freshHome();
+const guardObjectivePath = "C:/Users/other/custom/nana-objective.mjs";
+const guardObjectiveLookalike = { ...clone(carriedSession[0]), command: `node '${guardObjectivePath}'`, timeout: 10 };
+seed(guardHome, { hooks: {
+	SessionStart: [{ hooks: [...clone(carriedSession), guardObjectiveLookalike] }],
+	PreToolUse: [{ matcher: "Bash", hooks: [clone(carriedVerifier)] }],
+	UserPromptSubmit: [{ hooks: [clone(carriedKnowledge)] }],
+} });
+const guardDoctor = run(["doctor", "--home", guardHome]);
+const guardLines = winWanted.map((wanted) => settingsLine(guardDoctor.stdout, wanted.label));
+const guardInstallerPaths = [
+	...sessionLabels.map((label) => `${sourceHooksDir}/${byLabel(posixWanted, label).spec.script}`),
+	`${sourceHooksDir}/verifier-pipe.mjs`,
+	`${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`,
+];
+// req: R-2411
+check("win32 doctor: a ✗ settings row names an entry install leaves but never one install repairs", guardLines.every((line, index) => line?.trimStart().startsWith("✗ ") && !line.includes(guardInstallerPaths[index])) && guardLines[0].includes(guardObjectivePath) && guardLines[0].includes(safeRoute) && guardLines.slice(1).every((line) => !line.includes("by hand")), guardDoctor.stdout);
+
+const shapeDeadPath = "C:/Users/someone/refused/nana-objective.mjs";
+const shapeDeadEntry = { ...clone(carriedSession[0]), command: `node '${shapeDeadPath}'`, timeout: 10 };
+const acceptedHome = freshHome();
+seed(acceptedHome, { hooks: { SessionStart: [{ hooks: [clone(shapeDeadEntry)] }] } });
+const acceptedDoctor = run(["doctor", "--home", acceptedHome]);
+const acceptedLines = winWanted.map((wanted) => settingsLine(acceptedDoctor.stdout, wanted.label));
+const refusedHome = freshHome();
+seed(refusedHome, { hooks: {
+	SessionStart: [{ hooks: [clone(shapeDeadEntry)] }],
+	UserPromptSubmit: "not a list",
+} });
+const refusedDoctor = run(["doctor", "--home", refusedHome]);
+const refusedLines = winWanted.map((wanted) => settingsLine(refusedDoctor.stdout, wanted.label));
+const nestedHome = freshHome();
+seedDeepSettings(nestedHome, 3_000, shapeDeadEntry);
+const nestedDoctor = run(["doctor", "--home", nestedHome]);
+const nestedLines = winWanted.map((wanted) => settingsLine(nestedDoctor.stdout, wanted.label));
+const noInspectionCrash = (result) => result.status === 1 && !result.stderr.includes("TypeError") && !result.stderr.includes("RangeError");
+// req: R-2412
+check("win32 doctor: only an accepted settings shape gets dead-entry advice without inspection crashes", acceptedLines.every((line) => line?.trimStart().startsWith("✗ ")) && acceptedLines[0].includes(shapeDeadPath) && acceptedLines[0].includes(safeRoute) && refusedLines.every((line) => line?.trimStart().startsWith("✗ ") && !line.includes(safeRoute)) && nestedLines.every((line) => line?.trimStart().startsWith("✗ ") && !line.includes(safeRoute)) && !refusedLines[0].includes(shapeDeadPath) && !nestedLines[0].includes(shapeDeadPath) && [acceptedDoctor, refusedDoctor, nestedDoctor].every(noInspectionCrash), `${acceptedDoctor.stdout}\n${acceptedDoctor.stderr}\n--- refused shape ---\n${refusedDoctor.stdout}\n${refusedDoctor.stderr}\n--- deeply nested ---\n${nestedDoctor.stdout}\n${nestedDoctor.stderr}`);
+
+console.log(`SUMMARY  PASS=${14 - fails} FAIL=${fails} SKIP=0`);
 process.exit(fails);
