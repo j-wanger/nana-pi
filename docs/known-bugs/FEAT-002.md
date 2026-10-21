@@ -31,3 +31,5 @@
 - Known bugs (known-bugs, plan): the product report does not show known bugs.
 - Known bugs (known-bugs, plan): "residual" survives in the Plans bullet and in the review-round message, so one thing keeps two names.
 - Known bugs (known-bugs, plan adversary): other projects with old known-bug lines in their HANDOFF keep them. The rule applies going forward.
+- Known bugs (known-bugs, final review): in the move's first rule, a named lane with rows but no brief places the line by its own rows before the next named lane's brief is tried. So a tag naming a row-only lane, then a briefed lane, places by the first lane's rows. The move never hit this case.
+- Known bugs (known-bugs, final review): the size check splits lines on a line feed only, and still passes R-2507. It differs only for a lone carriage return.

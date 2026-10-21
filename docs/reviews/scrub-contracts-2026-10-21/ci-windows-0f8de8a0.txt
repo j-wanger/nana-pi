@@ -1,0 +1,13 @@
+# CI run 39685308169 at 0f8de8a0 (PR #159), suite (windows-latest): the lane's test files and the summary line
+2026-10-21T22:21:15.8117729Z PASS  packages/nana-pack/tests/display-surfaces.test.mjs              181 pass  0.6s
+2026-10-21T22:21:18.3970436Z PASS  packages/nana-pack/tests/frontier.test.mjs                      53 pass  2.6s
+2026-10-21T22:21:48.6732795Z PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.1s
+2026-10-21T22:22:16.7114158Z PASS  packages/nana-pack/tests/identity-scan.test.mjs                 4 pass  24.6s
+2026-10-21T22:29:56.4763129Z PASS  packages/nana-pack/tests/product-report.test.mjs                77 pass  48.9s
+2026-10-21T22:37:19.1159956Z PASS  packages/nana-pack/tests/rulings.test.mjs                       10 pass  0.1s
+2026-10-21T22:39:37.3101106Z PASS  packages/nana-pack/tests/templates-render.test.mjs              169 pass, 2 skip  91.3s
+2026-10-21T22:44:56.3616018Z PASS  packages/nana-pack/tests/writing-check.test.mjs                 47 pass  0.7s
+2026-10-21T22:45:10.4172042Z PASS  packages/nana-pack/tests/writing-injection.test.mjs             29 pass, 1 skip  14.1s
+2026-10-21T22:45:10.6363732Z PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs       13 pass  0.2s
+2026-10-21T22:50:23.4564734Z PASS  packages/nana-setup/tests/writing-rule.test.mjs                 4 pass  0.1s
+2026-10-21T22:50:45.9583502Z 203 files: 185 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7188 pass, 0 fail, 117 skip · 1832.4s
