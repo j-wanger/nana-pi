@@ -36,7 +36,7 @@ Nine extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
-| `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
+| `nana-writing` | The adopted writing-for-Jake rule, on by default; user-scope `writing.enabled: false` turns it off | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
 | `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
@@ -362,20 +362,27 @@ node packages/nana-pack/bin/nana-frontier.mjs --strict HANDOFF.md
 
 It prints `file:line: kind: detail` findings and a summary. The default clock uses the current UTC date; `--today` injects a deterministic `YYYY-MM-DD` date. Findings do not change the default exit status; `--strict` exits nonzero when findings exist. A blank line ends a list entry, so a later indented paragraph is not joined to it. Tests: `packages/nana-pack/tests/frontier.test.mjs`.
 
-## Writing checker (`bin/nana-writing.mjs`) — report-only, trial only
+## Writing checker (`bin/nana-writing.mjs`) — adopted, report-only
 
 Zero-dep, Node only, cross-platform; the pure checks live in
 `lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
 `docs/reviews/writing-trial-2026-10-04/design-ruling.md` and its Amendment 1). The rule it is
 named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extension above (an
 append, not a context-file link — Amendment 1 §A1, after astra r1 found a link could both hide
-a user's own `AGENTS.md`/`CLAUDE.md` and be hidden by one); the CHECKER stays manual and
-report-only during the trial — run it by hand, once per report, before you send it.
+a user's own `AGENTS.md`/`CLAUDE.md` and be hidden by one). After `nana-setup install`, the
+checker is on PATH as `nana-writing`. The rule requires this pre-send run for every report,
+but reports stay report-only. The suite fails on an over-cap sentence or banned word in
+nana-pi's own `HANDOFF.md` live sections.
 
 ```bash
-node packages/nana-pack/bin/nana-writing.mjs file.md            # check one or more files
-node packages/nana-pack/bin/nana-writing.mjs --report < draft.txt   # stdin, + verdict + identifier checks
+nana-writing file.md
+nana-writing --report < draft.txt
 ```
+
+Known limits: the pre-send report run remains an instruction; nothing verifies that a seat ran
+it. The user-scope `writing.enabled` key reaches pi only; Claude Code keeps its linked rule.
+Windows PowerShell 5.1 pipes non-ASCII input as `?`, so pass a file there. The frozen desk
+refuses to save a `nana-pack.json` that contains `writing`.
 
 With no path it reads stdin (named `-` in the output). Four checks run always — sentence
 length, passive-voice CANDIDATES (a heuristic, not a parser — see Known limit), a banned word
@@ -394,12 +401,13 @@ carried a listed uppercase verdict as its first token, out of `<n>` checked — 
 
 It exits 0 whatever it finds — this CLI reports, it never blocks.
 
-**Trial tally.** The seat runs one invocation per report sent (`--report`) and a SEPARATE one
-per `HANDOFF.md` edit (no `--report` — verdict and identifiers do not apply there), recording
-the day's counts in `docs/reviews/writing-trial-2026-10-04/tally.md` in two columns, never
-mixed (astra r2 SHOULD 3): reports checked, verdict passes, report sentences/over-cap, HANDOFF
-sentences/over-cap, and any lost-detail complaint. Stop at day 14 or 20 REPORTS (HANDOFF does
-not count toward this), whichever is first, or after two lost-detail complaints.
+**Completed trial tally.** During the trial, the seat ran one invocation per report sent
+(`--report`) and a separate one per `HANDOFF.md` edit (no `--report` — verdict and identifiers
+did not apply there). It recorded the day's counts in
+`docs/reviews/writing-trial-2026-10-04/tally.md` in two columns, never mixed (astra r2 SHOULD 3):
+reports checked, verdict passes, report sentences/over-cap, HANDOFF sentences/over-cap, and any
+lost-detail complaint. The trial stopped at day 14 or 20 reports (HANDOFF did not count toward
+this), whichever came first, or after two lost-detail complaints.
 
 **Markdown-aware splitting (Amendment 1 §A2).** A fence (3+ backticks/tildes) toggles fenced
 state; every check skips a fenced line, banned included. A heading or a table row (`|`-led)
@@ -520,8 +528,8 @@ regardless of `PI_CODING_AGENT_DIR`, so a shell variable cannot reset the tally.
 block** applies live only when it *tightens* (an added extra/protected pattern, a removed
 allow pattern, a stop); anything that *loosens* it (an added allow pattern, a removed deny)
 takes effect at the next session start or **`/reload`**, and is journaled
-`gate_policy_widened`. One exception: **`objective`
-is user-scope only** — project config never contributes to it, trusted or not.
+`gate_policy_widened`. Two exceptions, **`objective` and `writing`, are user-scope only** —
+project config never contributes to either one, trusted or not.
 
 - **Config encodings.** UTF-8 with or without one byte-order mark, or UTF-16LE or UTF-16BE with a mark, is read; other UTF-16 is unparseable.
 - **Project config needs a real trust decision.** *Changed:* it used to be honored whenever
@@ -584,17 +592,17 @@ is user-scope only** — project config never contributes to it, trusted or not.
 	"journal": { "enabled": true, "path": null },
 	"handoff": { "enabled": true, "path": null },
 	"objective": { "enabled": true, "path": null, "projectFile": null },
+	"writing": { "enabled": true },
 	"receipts": { "enabled": true, "dir": null }
 }
 ```
 
 ## Behavior notes
 
-- Writing block: the character cap slices UTF-16 units. A rule over 4,000 chars with an astral character at the cut leaves a lone surrogate in the block. The shipped rule is far shorter; one `toWellFormed()` is due at the adopt verdict.
-- Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
+- Writing block: `writing.enabled` in the active agent dir's user-scope `nana-pack.json` defaults to true and controls pi only. Boolean false removes the section; project scope cannot. Claude Code keeps its linked rule. As a second way, pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
 - Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
 - Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
-- Rulings block: it has no switch of its own (like the writing block), shows a marker on an unusable installed file, reaches builders and reviewers, and adds a separate stale-install section when the injected rulings text is not this checkout's current file.
+- Rulings block: it has no switch of its own, shows a marker on an unusable installed file, reaches builders and reviewers, and adds a separate stale-install section when the injected rulings text is not this checkout's current file.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into

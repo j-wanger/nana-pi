@@ -38,6 +38,7 @@ If it is not his call, decide it and say so.
 
 ## Check
 
-Before you send a report, run
-`node ~/nana-pi/packages/nana-pack/bin/nana-writing.mjs --report` on the text.
-After you edit `HANDOFF.md`, run it on the file. It reports. It does not block.
+Before you send a report, run `nana-writing --report` on its text.
+You must run it every time. Fix each finding, or say in the report why it stays.
+After you edit `HANDOFF.md`, run `nana-writing HANDOFF.md`.
+If your shell cannot find `nana-writing`, run `nana-setup install`, then run the check.

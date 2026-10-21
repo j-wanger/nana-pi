@@ -17,7 +17,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   adopt-ts, adopt-structure, dev workflow); `bin/` — the `pi-review` runner (canonical home since 2026-09-18, on PATH via
   `~/.local/bin/pi-review`) with `review-round`, `review-shape`, `review-ledger` and `pi-worker`
   behind it, `pi-watchdog`, `nana-roster` (the per-machine roster command), the two producers the seat's Claude Code SessionStart hooks run —
-  `nana-objective` and `nana-adoption` — `nana-writing` (the report-only writing checker), and
+  `nana-objective` and `nana-adoption` — `nana-writing` (the writing checker, on PATH; report-only), and
   `nana-frontier` (the report-only HANDOFF structure checker).
 - `packages/nana-knowledge/` — the prompt-time knowledge pull: a zero-dep FTS5/BM25 index
   over the markdown knowledge stores on this machine, read from a Claude Code
@@ -146,6 +146,11 @@ Run the full suite with `npm run test:locked` when worktrees share a machine. Th
 ### Install check before a land
 
 Land checklist, nana-pi only (Jake, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result.
+
+### HANDOFF writing check
+
+The suite fails on a sentence over 25 words in `HANDOFF.md`'s live sections. It also fails on a banned word there.
+The live sections are Where things stand, Next, and Open for Jake. Run `nana-writing HANDOFF.md` after editing it.
 
 ### The tree in briefs, reviews and lands
 

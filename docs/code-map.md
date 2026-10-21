@@ -3696,8 +3696,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/writing-rule.test.mjs`
 
-- **purpose** — Pins that ~/.claude/rules/nana-writing.md is a symlink into the pack's own copy (not nana-setup's), and that the rule itself passes its own checker with zero findings
-- **inputs** — lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's lib/writing-check.mjs, the shipped rule file
+- **purpose** — Pins the shared writing rule's source, sealed Check section, command spelling, and zero-finding result
+- **inputs** — lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's lib/writing-check.mjs, the shipped rule file, and the sealed Check text
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — none (reads the rule file)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

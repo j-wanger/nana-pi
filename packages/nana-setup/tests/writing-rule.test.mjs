@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/writing-rule.test.mjs
- * @purpose Pins that ~/.claude/rules/nana-writing.md is a symlink into the pack's own copy (not nana-setup's), and that the rule itself passes its own checker with zero findings
- * @inputs lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's lib/writing-check.mjs, the shipped rule file
+ * @purpose Pins the shared writing rule's source, sealed Check section, command spelling, and zero-finding result
+ * @inputs lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's lib/writing-check.mjs, the shipped rule file, and the sealed Check text
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects none (reads the rule file)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -11,12 +11,20 @@
 // R-374 and R-375 are REMOVED from this branch (never landed, their IDs stay unused; see
 // REQUIREMENTS.md). What is left for THIS package: the Claude Code half still symlinks
 // ~/.claude/rules/nana-writing.md, but now from the PACK's rules dir, the same file the
-// extension reads — and R-376, the rule's own zero-findings claim.
+// extension reads — plus R-2502's sealed Check section and R-376's zero-findings claim.
 import * as fs from "node:fs";
 import * as path from "node:path";
 
 const { ruleSource, PACK_RULES_DIR } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mjs", import.meta.url).href);
+
+const SEALED_CHECK_TEXT = `## Check
+
+Before you send a report, run \`nana-writing --report\` on its text.
+You must run it every time. Fix each finding, or say in the report why it stays.
+After you edit \`HANDOFF.md\`, run \`nana-writing HANDOFF.md\`.
+If your shell cannot find \`nana-writing\`, run \`nana-setup install\`, then run the check.
+`;
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -32,10 +40,17 @@ const check = (n, ok, extra) => {
 	check("the source file exists there", fs.existsSync(src), src);
 }
 
-/* --- the rule passes its own checker (R-376) ------------------------------------------ */
+/* --- the rule's sealed check and its own checker result ------------------------------- */
 {
 	const src = ruleSource("nana-writing.md");
 	const text = fs.readFileSync(src, "utf8");
+	const checkStart = text.indexOf("## Check\n");
+	const checkSection = checkStart >= 0 ? text.slice(checkStart) : "";
+	const checkIsSealed = checkSection === SEALED_CHECK_TEXT && !text.includes("node ") && !text.includes("~/");
+	const checkDetails = JSON.stringify({ checkSection, hasNode: text.includes("node "), hasTildeHome: text.includes("~/") });
+	// req: R-2502
+	check("the rule's Check section is the sealed check text", checkIsSealed, checkDetails);
+
 	const r = checkText(src, text, { report: false });
 	// req: R-376
 	check("the rule passes nana-writing with zero findings", r.findings.length === 0, JSON.stringify(r.findings));
