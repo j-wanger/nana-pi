@@ -91,6 +91,17 @@ function gitTree(label, entries) {
 
 {
 	const config = JSON.parse(fs.readFileSync(path.join(REPO, "identity-scan.config.json"), "utf8"));
+	const expectedFiles = execFileSync("git", ["-C", REPO, "ls-files", "-z"])
+		.toString("utf8").split("\0").filter(Boolean).length;
+	const result = scanTree({ root: ".", config });
+	// req: R-2511
+	check("no tracked file outside the allowlist carries an identity word",
+		result.scannedFiles === expectedFiles && result.findings.length === 0,
+		JSON.stringify({ scannedFiles: result.scannedFiles, expectedFiles, findings: result.findings.length, totals: result.totals }));
+}
+
+{
+	const config = JSON.parse(fs.readFileSync(path.join(REPO, "identity-scan.config.json"), "utf8"));
 	const expected = [
 		"cdf30c6b345276278bedc7bcedd9d5582f5b8e0c1dd858f46ef4ea231f92731d",
 		"bac080aab1142c3d251ae1ecad795693dce90da3d614178ac6e2baf47d920dd0",

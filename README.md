@@ -71,7 +71,7 @@ nor exact. Generate the capability outline with `npm run req:tree` using `script
 `node scripts/identity-scan.mjs [--root <dir>] [--write-allowlist]` scans tracked paths and content against digest counts, or rewrites record entries while preserving pinned entries.
 `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
 extracts rows from a project that has none yet) into both pi and Claude Code, plus a
-`packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in `~/aml-desk`
+`packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in a work project
 (2026-10-01/02) before it was promoted here.
 
 ## Dependencies

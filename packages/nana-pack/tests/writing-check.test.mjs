@@ -179,13 +179,13 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 {
 	// astra r1 SHOULD 1: the old PREFIX match wrongly excused "is needed" because "needed"
 	// starts with "need". The exception is now whole-word, so "needed" itself is caught.
-	const findings = passiveFindings(splitSentences("The evidence is needed by Jake for the review."));
+	const findings = passiveFindings(splitSentences("The evidence is needed by the owner for the review."));
 	// req: R-745
 	check('passive: "is needed" (the genuine passive astra found missed) is now caught', findings.length === 1 && findings[0].detail.includes("needed"), JSON.stringify(findings));
 }
 {
 	// astra r1's two false positives, now excepted whole-word.
-	const greenOk = passiveCandidate("Jake is green with envy today.") === null;
+	const greenOk = passiveCandidate("the owner is green with envy today.") === null;
 	const woodenOk = passiveCandidate("The desk was wooden and old.") === null;
 	// req: R-745
 	check("passive: \"is green\" and \"was wooden\" (astra r1's false positives) are excepted", greenOk && woodenOk, JSON.stringify({ greenOk, woodenOk }));
@@ -199,7 +199,7 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 }
 {
 	// Amendment 1 §A3: a quoted word is a mention, not a use — outside a code span only.
-	const findings = bannedFindings("Jake banned `dogfood` here.");
+	const findings = bannedFindings("the owner banned `dogfood` here.");
 	// req: R-746
 	check("banned: a banned word INSIDE a code span is not reported (a mention, not a use)", findings.length === 0, JSON.stringify(findings));
 }
@@ -363,7 +363,7 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 	check("line (CLI): a length finding starting after a soft-wrapped boundary gets line 2, not 1", r.stdout.includes("-:2: length: 26 words") && !r.stdout.includes("-:1: length:"), r.stdout);
 }
 {
-	const r = run([], "DONE.\nThe file was edited by Jake.\n");
+	const r = run([], "DONE.\nThe file was edited by the owner.\n");
 	// req: R-743
 	check("line (CLI): a passive finding starting after a soft-wrapped boundary gets line 2, not 1 (astra r2 repro)", r.stdout.includes("-:2: passive:") && !r.stdout.includes("-:1: passive:"), r.stdout);
 }
@@ -423,30 +423,30 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 		// (an irregular participle like "sent"/"done"/"read" never matches the -ed/-en shape,
 		// and an adverb between the auxiliary and the participle is not bridged) — that is
 		// the measured limitation this fixture exists to show, not to hide.
-		["The message was sent by Jake.", true],
-		["The task is done by Jake.", true],
-		["The evidence is needed by Jake.", true],
-		["The build was carefully tested by Jake.", true],
+		["The message was sent by the owner.", true],
+		["The task is done by the owner.", true],
+		["The evidence is needed by the owner.", true],
+		["The build was carefully tested by the owner.", true],
 		["The rule is read by every worker.", true],
 		["The file was edited by the worker.", true],
-		["The plan was approved by Jake.", true],
+		["The plan was approved by the owner.", true],
 		["The report was written by the committee.", true],
 		["The code was reviewed by sol.", true],
 		["The budget was reduced by half.", true],
-		["The change was requested by Jake.", true],
+		["The change was requested by the owner.", true],
 		["The draft was finished by the team.", true],
 		// non-passive (12): 10 active progressives, 2 copular descriptions
 		["The team is working on the fix.", false],
-		["Jake was reading the report.", false],
+		["the owner was reading the report.", false],
 		["The worker is writing the code now.", false],
 		["She was running the tests all night.", false],
 		["The build is passing every check.", false],
-		["Jake was eating lunch during the call.", false],
+		["the owner was eating lunch during the call.", false],
 		["The desk is standing in the corner.", false],
 		["The team was planning the next sprint.", false],
 		["The reviewer is checking the diff.", false],
-		["Jake was watching the build finish.", false],
-		["Jake is green with envy today.", false],
+		["the owner was watching the build finish.", false],
+		["the owner is green with envy today.", false],
 		["The desk was wooden and old.", false],
 	];
 	let tp = 0;

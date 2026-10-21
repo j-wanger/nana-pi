@@ -20,12 +20,12 @@
  * Code SessionStart hook is a thin launcher for bin/nana-objective.mjs, which calls it.
  * No other file resolves or renders the objective.
  *
- * What it prints — Jake's ruling 1 (2026-09-28): the nearest OBJECTIVE.md governs
+ * What it prints — the owner's ruling 1 (2026-09-28): the nearest OBJECTIVE.md governs
  * approved product work; when a product file governs, the program (umbrella)
  * objective AND current priority are shown too, with the precedence stated. When the
  * umbrella itself governs, no duplicate block.
  *
- * Resolution — UNCONDITIONAL, no configuration needed (Jake's 2026-09-18
+ * Resolution — UNCONDITIONAL, no configuration needed (the owner's 2026-09-18
  * decentralization ruling): the nearest <dir>/OBJECTIVE.md walking UP from cwd wins;
  * else the user-scope objective.path (the umbrella). objective.projectFile (user scope
  * only) merely renames the file looked for; null/false/absent = OBJECTIVE.md. A project hit reached through a symlink is refused and the umbrella

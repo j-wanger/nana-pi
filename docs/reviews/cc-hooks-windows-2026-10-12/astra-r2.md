@@ -19,7 +19,7 @@ The production doctor currently behaves correctly; this finding concerns the exp
 
 ### 1. Make Jake’s check safe to repeat and explicit about prerequisites
 
-**File:** `docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md:29–30,58–59,70`
+**File:** `docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md:29–30,58–59,70`
 
 The instructions now provide concrete installer commands, a same-command pipeline/commit, knowledge fixture, probe JSON, version floors and environment checks. However:
 

@@ -36,7 +36,7 @@ function fixture(name = "repo") {
   git(["add", "REQUIREMENTS.md", "HANDOFF.md"]); git(["commit", "-qm", "fixture"]);
   return { root, git };
 }
-function treeFixture(name, ledger, handoff = "# Handoff\n\n## Open for Jake\n") {
+function treeFixture(name, ledger, handoff = "# Handoff\n\n## Open for the owner\n") {
   const root = path.join(temp, name);
   fs.mkdirSync(root, { recursive: true });
   fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), ledger);
@@ -343,18 +343,18 @@ try {
   }
   {
     const { root } = fixture("bad-ask");
-    fs.appendFileSync(path.join(root, "HANDOFF.md"), "\n## Open for Jake\n- **[optional, since 2026-10-10] Missing title grammar\n");
+    fs.appendFileSync(path.join(root, "HANDOFF.md"), "\n## Open for the owner\n- **[optional, since 2026-10-10] Missing title grammar\n");
     const out = path.join(temp, "bad-ask.html"); let error = "";
     try { await generateReport({ root, out }); } catch (caught) { error = caught.message; }
     // req: R-1030
     check("malformed ask is named and refuses output", /HANDOFF.*line/i.test(error) && !fs.existsSync(out));
     const invalidDateRoot = fixture("bad-ask-date").root;
-    fs.appendFileSync(path.join(invalidDateRoot, "HANDOFF.md"), "\n## Open for Jake\n- **[optional, since 2026-99-99] Bad date.** body\n");
+    fs.appendFileSync(path.join(invalidDateRoot, "HANDOFF.md"), "\n## Open for the owner\n- **[optional, since 2026-99-99] Bad date.** body\n");
     const invalidDateOut = path.join(temp, "bad-ask-date.html"); let dateError = "";
     try { await generateReport({ root: invalidDateRoot, out: invalidDateOut }); } catch (caught) { dateError = caught.message; }
     check("malformed ask date is named and refuses output", /HANDOFF.*line/i.test(dateError) && !fs.existsSync(invalidDateOut));
     const unknownKindRoot = fixture("bad-ask-kind").root;
-    fs.appendFileSync(path.join(unknownKindRoot, "HANDOFF.md"), "\n## Open for Jake\n- **[mystery, since 2026-10-10] Unknown kind.** body\n");
+    fs.appendFileSync(path.join(unknownKindRoot, "HANDOFF.md"), "\n## Open for the owner\n- **[mystery, since 2026-10-10] Unknown kind.** body\n");
     const unknownKindOut = path.join(temp, "bad-ask-kind.html"); let kindError = "";
     try { await generateReport({ root: unknownKindRoot, out: unknownKindOut }); } catch (caught) { kindError = caught.message; }
     // req: R-1030
@@ -504,7 +504,7 @@ try {
     const initialCommit = git(["rev-parse", "HEAD"]).stdout.trim();
     const storePath = writeStore(root, [makeAssessment(root, initialCommit, "FEAT-039"), makeAssessment(root, initialCommit, "FEAT-002")]);
     const ledgerPath = path.join(root, "REQUIREMENTS.md");
-    fs.writeFileSync(ledgerPath, fs.readFileSync(ledgerPath, "utf8").replace("Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.", "Purpose: Rebuild one report of the product, its features, requirements and decisions waiting on Jake, from the repo at any commit from its first build on."));
+    fs.writeFileSync(ledgerPath, fs.readFileSync(ledgerPath, "utf8").replace("Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on the owner, from the repo at any commit from its first build on.", "Purpose: Rebuild one report of the product, its features, requirements and decisions waiting on the owner, from the repo at any commit from its first build on."));
     git(["add", "REQUIREMENTS.md"]); git(["commit", "-qm", "change feature purpose"]);
     const firstDir = path.join(temp, "packets-first");
     const secondDir = path.join(temp, "packets-second");
@@ -554,7 +554,7 @@ try {
     const baseline = await (await import("../../../scripts/product-report.mjs")).buildReport({ root });
     check("stamped assessment is current while its ledger matches", baseline.model.features.find((feature) => feature.id === "FEAT-039")?.assessmentState === "current");
     const ledgerPath = path.join(root, "REQUIREMENTS.md");
-    fs.writeFileSync(ledgerPath, fs.readFileSync(ledgerPath, "utf8").replace("Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.", "Purpose: Rebuild one report of the product, its features, their requirements and decisions waiting on Jake, from the repo at any commit from its first build on.").replace("## FEAT-039 · See the product and its decisions in one report\nPurpose: Rebuild one report of the product, its features, their requirements and decisions waiting on Jake, from the repo at any commit from its first build on.\nStatus: active", "## FEAT-039 · See the product and its decisions in one report\nPurpose: Rebuild one report of the product, its features, their requirements and decisions waiting on Jake, from the repo at any commit from its first build on.\nStatus: frozen (fixture)"));
+    fs.writeFileSync(ledgerPath, fs.readFileSync(ledgerPath, "utf8").replace("Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on the owner, from the repo at any commit from its first build on.", "Purpose: Rebuild one report of the product, its features, their requirements and decisions waiting on the owner, from the repo at any commit from its first build on.").replace("## FEAT-039 · See the product and its decisions in one report\nPurpose: Rebuild one report of the product, its features, their requirements and decisions waiting on the owner, from the repo at any commit from its first build on.\nStatus: active", "## FEAT-039 · See the product and its decisions in one report\nPurpose: Rebuild one report of the product, its features, their requirements and decisions waiting on the owner, from the repo at any commit from its first build on.\nStatus: frozen (fixture)"));
     git(["add", "REQUIREMENTS.md"]); git(["commit", "-qm", "later ledger"]);
     const report = await (await import("../../../scripts/product-report.mjs")).buildReport({ root });
     const feature = report.model.features.find((item) => item.id === "FEAT-039");

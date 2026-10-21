@@ -964,7 +964,7 @@ const gitDirCache = new Map();
 /**
  * The repository's IDENTITY: its common git dir, which a linked worktree shares with the main
  * checkout (`git rev-parse --git-common-dir` — verified: from ~/nana-pi-wt/setup it reports
- * /Users/jwang/nana-pi/.git, the same value the main clone reports). Null when the path is not in
+ * /Users/example/nana-pi/.git, the same value the main clone reports). Null when the path is not in
  * a repo, or git is unavailable.
  */
 export function gitCommonDir(dir) {

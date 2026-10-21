@@ -57,7 +57,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
 - Verify against the locally installed pi version (`pi --version`, docs under
   `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`) before citing API details.
 - Every README states its runtime dependencies, including the globally installed pi package
-  the desk resolves at runtime (Jake, 2026-09-09).
+  the desk resolves at runtime (the owner, 2026-09-09).
 - Contract changes are declared where the consumer reads them — `apps/desk/README.md`
   "Contract notes"/"Known limits", the pack README, the design doc — not only in a commit.
 
@@ -82,7 +82,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 ### pi-session guidance
 
 - **Objective:** nana-objective supplies the nearest project objective unless disabled by user configuration; the shared rules above describe pi-only behavior.
-- **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist unresolved work and Jake's open questions in `HANDOFF.md` before a final report or session boundary.
+- **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist unresolved work and the owner's open questions in `HANDOFF.md` before a final report or session boundary.
 - **Journal and notify:** journal records session events; notify is a pi extension and may be disabled or silent headlessly.
 - **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.
 - **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks. Claude Code has no nana per-edit checks.
@@ -145,12 +145,12 @@ Run the full suite with `npm run test:locked` when worktrees share a machine. Th
 
 ### Install check before a land
 
-Land checklist, nana-pi only (Jake, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result.
+Land checklist, nana-pi only (the owner, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result.
 
 ### HANDOFF writing check
 
 The suite fails on a sentence over 25 words in `HANDOFF.md`'s live sections. It also fails on a banned word there.
-The live sections are Where things stand, Next, and Open for Jake. Run `nana-writing HANDOFF.md` after editing it.
+The live sections are Where things stand, Next, and Open for the owner. Run `nana-writing HANDOFF.md` after editing it.
 
 ### The tree in briefs, reviews and lands
 

@@ -32,7 +32,7 @@
 //   * A GRADER failure is never recorded as a model failure.
 //   * Every run leaves evidence on disk: raw stream, stderr, and the workspace diff — a run
 //     whose child finished but whose evidence could not be written still gets its record, then
-//     STOPS the study (R-542; Jake ruled 2026-10-10 docs/sessions/2026-10.md).
+//     STOPS the study (R-542; the owner ruled 2026-10-10 docs/sessions/2026-10.md).
 //   * Spend stops on a cumulative budget or on 3 consecutive harness/grader failures.
 
 import { spawn } from "node:child_process";

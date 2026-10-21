@@ -20,7 +20,7 @@ R-1081 pin (§3).
 
 ## Item 3 — the pinned evidence and the docs (R-1071, R-1075, R-1078, R-1079)
 The tests §5 lists for those rows (pinning, not downgrading); R-1078's renamed title. `packages/nana-setup/README.md`
-no longer says Windows hooks dispatch through or need Git Bash; `docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md`
+no longer says Windows hooks dispatch through or need Git Bash; `docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md`
 step 2 is labelled PowerShell-only (nothing else on that page changes). The two R-1037 tests in
 `doctor-runtime.test.mjs` gain `R-1093` in their markers.
 

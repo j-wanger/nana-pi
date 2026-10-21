@@ -678,7 +678,7 @@ for (const extra of [0, 1]) {
 		ctl.status === 0 && ctl.out.includes("OBJECTIVE UNAVAILABLE") && !ctl.out.includes("ship the widget"), ctl.out);
 }
 
-// ── T2c: the provenance label (Jake's ruling (a), 2026-09-28; fix round: affirmative-only) ──
+// ── T2c: the provenance label (the owner's ruling (a), 2026-09-28; fix round: affirmative-only) ──
 // A repo-supplied governing file is labelled DATA unless ~/.pi/agent/trust.json's NEAREST
 // recorded entry for its folder (or an ancestor) is `true`. A recorded `false`, no record, or
 // any .pi/ resource never clears it; the file still governs (walk-up unconditional). Fail

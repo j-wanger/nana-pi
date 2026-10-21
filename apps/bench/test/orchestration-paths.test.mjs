@@ -508,7 +508,7 @@ try {
 	}
 
 	// ── 8c. a paid run that leaves no evidence stops the study ──────────────────────────────────
-	// Jake ruled 2026-10-10 (docs/sessions/2026-10.md): a study stops when it cannot write its
+	// the owner ruled 2026-10-10 (docs/sessions/2026-10.md): a study stops when it cannot write its
 	// evidence (R-542). The real runPlan and executeRun drive every case here; only the launcher is
 	// a stub. plainProfile ("lean") has no extensions, so no registration probe runs — the probe's
 	// own evidence-write stop (run.mjs:994) gets its own case at the end, unchanged by this lane.

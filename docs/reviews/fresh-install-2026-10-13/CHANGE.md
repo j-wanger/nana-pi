@@ -72,7 +72,7 @@ through and npm exits 1 with `EINVALIDTAGNAME`, installing nothing (VERIFIED); b
 - **Setup README.** `:401` → "The check depends on Node, Git, pi and npm registry access. On any FAIL it prints the installed hooks block and
   the last knowledge-pull record, keeps the temporary home and prints its path." `:403` "dispatches installed hooks through Git Bash" → "runs
   each installed hook directly in exec form (`node` with arguments, no shell)" (`install-check.mjs:262-264`).
-- **Jake's page.** `jake-windows-check.md:19` → "In PowerShell, from the checkout:". Nothing else on the page changes.
+- **Jake's page.** `owner-windows-check.md:19` → "In PowerShell, from the checkout:". Nothing else on the page changes.
 - **Diagnostics (R-1096).** About eight lines at the end of `runInstallCheck`, when `failed`, via `emitLine`, files read fresh:
   `JSON.stringify(JSON.parse(text).hooks ?? null)`; the last non-blank line, else `none`; a throw prints `could not be read (${error.code ?? error.name})`.
   `PULL_LOG_PATH = [".pi", "agent", "nana-knowledge", "pull.log"]` in `install-check-config.mjs` (contract value: `nana-knowledge/lib/paths.ts:17,25`,
@@ -95,7 +95,7 @@ code, study fixture or `envValue` change; no change to the pi-session verdict's 
 **In.** Code (5, one new): `packages/nana-setup/lib/pi-pin.mjs`, `steps.mjs`, `install-check.mjs`, `install-check-config.mjs`,
 `apps/bench/lib/pi-exports.mjs`. Tests (6, one new): `packages/nana-setup/tests/pi-install-pin.test.mjs`, `install-check.test.mjs`,
 `fresh-machine.test.mjs`, `packages/nana-pack/tests/ci-workflow.test.mjs`, `requirements-tree.test.mjs`, `apps/bench/test/usage.test.mjs`.
-Docs: `README.md`, `packages/nana-setup/README.md`, `apps/desk/README.md` (`:25`), `apps/bench/README.md`, `jake-windows-check.md` (`:19`),
+Docs: `README.md`, `packages/nana-setup/README.md`, `apps/desk/README.md` (`:25`), `apps/bench/README.md`, `owner-windows-check.md` (`:19`),
 `docs/sessions/2026-10.md`, `HANDOFF.md`. Ledger and generated: `REQUIREMENTS.md`, `docs/requirements-tree.md`, `docs/code-map.md`. Corpus:
 `docs/reviews/fresh-install-2026-10-13/`. **NOT.** `ci.yml`; `apps/desk/**` beyond that line; `bin/install-check.mjs`; `doctor.mjs`;
 `win-command.mjs`; the `pi-registration` and `doctor-runtime` tests; the study fixture; `templates/`; upstream; a pi upgrade. **Builder:** 5

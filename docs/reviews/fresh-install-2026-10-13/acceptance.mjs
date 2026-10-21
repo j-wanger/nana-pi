@@ -200,7 +200,7 @@ fs.rmSync(noPiBin, { recursive: true, force: true });
   out("(f) setup README: no sentence says hooks dispatch through, or the check needs, Git Bash", gitBash.length === 0, gitBash.map((s) => s.slice(0, 160)).join(" | "));
   out("(f) setup README: the Windows sentence says installed hooks run directly in exec form", /installed hooks? directly in exec form/i.test(setup), "phrase not found");
   out("(f) setup README: it says a FAIL prints the hooks block and the last knowledge-pull record", /FAIL[^.]*hooks block[^.]*knowledge-pull record/i.test(setup), "phrase not found");
-  const jake = read("docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md") ?? "";
+  const jake = read("docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md") ?? "";
   const sec2 = jake.split(/\r?\n## /).find((s) => /^2\. /.test(s)) ?? "";
   const label = sec2.split(/\r?\n/).slice(1).find((l) => l.trim()) ?? "";
   out("(f) Jake's page: step 2 is labelled PowerShell-only", label === "In PowerShell, from the checkout:", JSON.stringify(label));
@@ -216,7 +216,7 @@ const oneLineChange = (rel) => {
   return { ok: diffs === 1, why: diffs < 0 ? `line count ${a.length} → ${b.length}` : `${diffs} lines differ` };
 };
 {
-  const j = oneLineChange("docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md");
+  const j = oneLineChange("docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md");
   out("(f) Jake's page differs from main in exactly one line", j.ok, j.why);
   const d = oneLineChange("apps/desk/README.md");
   out("(f) apps/desk/README.md differs from main in exactly one line (the runtime row)", d.ok, d.why);
@@ -270,7 +270,7 @@ const oneLineChange = (rel) => {
     "packages/nana-setup/tests/fresh-machine.test.mjs", "packages/nana-pack/tests/ci-workflow.test.mjs",
     "packages/nana-pack/tests/requirements-tree.test.mjs", "apps/bench/test/usage.test.mjs",
     "README.md", "packages/nana-setup/README.md", "apps/desk/README.md", "apps/bench/README.md",
-    "docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md", "docs/sessions/2026-10.md", "HANDOFF.md",
+    "docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md", "docs/sessions/2026-10.md", "HANDOFF.md",
     "REQUIREMENTS.md", "docs/requirements-tree.md", "docs/code-map.md",
     // plan review NOTE: the two R-1037 tests gain R-1093 in their markers (§4 listed this file as NOT; the plan
     // review's later decision wins, markers only)

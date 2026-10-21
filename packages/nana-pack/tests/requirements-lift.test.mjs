@@ -585,9 +585,9 @@ if (process.platform !== "win32") {
   // for one either (item 5); the real table right after it still lifts correctly.
   const flatText = [
     "# Desk requirements", "", "Intro line.", "", "# Part A. Desk", "",
-    "Glossary for the desk:", "",
+    "Glossary for the sample:", "",
     "| Term | Meaning | Source | Since |", "|---|---|---|---|",
-    "| SAR | Suspicious activity report | FinCEN | 2001 |", "",
+    "| Widget | Example item | Handbook | 2001 |", "",
     "## Alerts", "", "A row looks like this:", "",
     "```markdown", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "```", "",
     "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
@@ -1106,7 +1106,7 @@ if (process.platform !== "win32") {
 }
 
 {
-  // aml-desk's shape: a properly headered table, then prose, then a HEADLESS fragment (no
+  // A work project's shape: a properly headered table, then prose, then a HEADLESS fragment (no
   // header at all), then more prose, then a PADDED header. All three must stay in file order
   // with an exact header pair restored or inserted.
   const text = [

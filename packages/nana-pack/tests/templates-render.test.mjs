@@ -527,7 +527,7 @@ function checkInstructionContracts() {
 	// req: R-681
 	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles[1].includes(rootStartup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
 	// req: R-682
-	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to Jake on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
+	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to the owner on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
@@ -641,9 +641,9 @@ function checkInstructionContracts() {
 	check("AGENTS.md carries the macOS install check outside the shared region",
 		// one step, scoped to its own line (seat mutation run 2026-10-13: phrases matched anywhere outside the region
 		// let "on macOS", "before `nana-land`" and "or a hook" be deleted with this check green)
-		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Land checklist, nana-pi only (Jake, 2026-10-12): ")).length === 1 &&
+		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Land checklist, nana-pi only (the owner, 2026-10-12): ")).length === 1 &&
 		outsideSharedRegion.replace(/\r/g, "").split("\n").some((line) =>
-			line.startsWith("Land checklist, nana-pi only (Jake, 2026-10-12): ") &&
+			line.startsWith("Land checklist, nana-pi only (the owner, 2026-10-12): ") &&
 			line.includes("a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`")) &&
 		!/install[- ]check/i.test(insideSharedRegion) &&
 		fs.existsSync(path.join(REPO, "packages/nana-setup/bin/install-check.mjs")));
@@ -657,7 +657,7 @@ function checkRequirementsSkillTreeText() {
 	// req: R-1154
 	check("requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner",
 		["The project owner decides every change to the tree", "the table of the feature it serves", CARVE].every((p) => reqSkill.includes(p)) &&
-		!["Jake decides", "In this ledger,", "the numbered sections the worker must cover", "at the end as its own Part"].some((p) => reqSkill.includes(p)));
+		!["the owner decides", "In this ledger,", "the numbered sections the worker must cover", "at the end as its own Part"].some((p) => reqSkill.includes(p)));
 	const FIVE = ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"];
 	// req: R-1155
 	check("scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G",

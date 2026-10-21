@@ -36,7 +36,7 @@ more honest than a downgrade); implement the failure diagnostics (one new row, f
 
 ---
 
-## 2. `docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md` step 2 (astra SHOULD, sol NOTE)
+## 2. `docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md` step 2 (astra SHOULD, sol NOTE)
 
 **Wrong today.**
 - `:19` "In Git Bash or PowerShell, from the checkout:" followed by a `powershell` block
@@ -228,7 +228,7 @@ which exports `PATH`, and run 2026-10-12T17:11 printed `Git Bash: C:\Program Fil
 (scratchpad `ic-ci1-win-ic.log`). `findPi` already reads the key case-insensitively (`packages/nana-pack/lib/win-command.mjs:14-17`, `:30`).
 
 **Consequence.** No hook result changes (item 1: Git Bash runs nothing on win32). But Jake's blocking Windows
-check runs from PowerShell and asks him to paste that line (`jake-windows-check.md:24-25`), so the one person
+check runs from PowerShell and asks him to paste that line (`owner-windows-check.md:24-25`), so the one person
 proving Windows would see a false `not found`.
 
 **Smallest honest fix.** Line 205 → read the value under any letter case and pass the injected `exists`:

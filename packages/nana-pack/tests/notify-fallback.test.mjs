@@ -190,7 +190,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 }
 
 // (b) end to end: the notifier binary cannot be found, so the in-app
-// notification fires and the reason is journalled. This is the case Jake hit on
+// notification fires and the reason is journalled. This is the case the owner hit on
 // Windows — silence before. PATH is an EMPTY dir, so ENOENT is guaranteed on
 // any host rather than assumed from the platform name.
 {

@@ -36,7 +36,7 @@ Nine extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
-| `nana-writing` | The adopted writing-for-Jake rule, on by default; user-scope `writing.enabled: false` turns it off | `session_start` (all reasons) + `before_agent_start` (inject) |
+| `nana-writing` | The adopted writing-for-the-owner rule, on by default; user-scope `writing.enabled: false` turns it off | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
 | `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
@@ -255,7 +255,7 @@ pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider 
 
 #### Lane builder
 
-Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N] [--lane-size <small|larger>]` with no `--` or pi arguments. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must be a readable regular file. It refuses the main checkout, a nested cwd, detached or switched branches, invalid inputs, a roster the roster resolver refuses, a launch with no `--lane-size` once the roster sets `largerBuilder`, and every caller pi argument before acquiring the lock or starting pi. It resolves this machine's roster (see Machine roster below) and builds the complete pi argv itself: `--lane-size larger` starts the roster's larger-lane builder when that slot holds a pi entry (falling back to the builder when it is null, and refusing before the lock when it is a Claude Code entry — start it instead as a subagent from a Claude Code seat, or put a pi entry in `largerBuilder`); `--lane-size small`, or no `--lane-size` while `largerBuilder` is null, starts the builder. Either way it passes that entry's provider and model, `--thinking` when its thinking is set, tools `read,grep,find,bash,edit,write`, the rendered `prompts/builder-preamble.md` path, the validated brief path, and a fixed instruction naming the lane. The preamble precedes the brief. Before starting pi it prints one line to stderr naming the resolved builder and the roster's source: `pi-worker: builder: <provider> <model> <thinking>; source: <default|file>` (`builder (larger lanes):` for a `--lane-size larger` launch whose `largerBuilder` slot is set; plain `builder:` when that slot is null and it falls back to the builder) — the same tokens `nana-roster` prints, so a valid but wrong model is visible on every lane launch. The sealed tool list and default builder are one value in `bin/worker-config.mjs`, following Jake's roster ruling (2026-10-06); changing either is a roster edit requiring a requirements diff. Caller overrides are not supported. The usual non-lane worker invocation is unchanged and reads no roster.
+Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N] [--lane-size <small|larger>]` with no `--` or pi arguments. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must be a readable regular file. It refuses the main checkout, a nested cwd, detached or switched branches, invalid inputs, a roster the roster resolver refuses, a launch with no `--lane-size` once the roster sets `largerBuilder`, and every caller pi argument before acquiring the lock or starting pi. It resolves this machine's roster (see Machine roster below) and builds the complete pi argv itself: `--lane-size larger` starts the roster's larger-lane builder when that slot holds a pi entry (falling back to the builder when it is null, and refusing before the lock when it is a Claude Code entry — start it instead as a subagent from a Claude Code seat, or put a pi entry in `largerBuilder`); `--lane-size small`, or no `--lane-size` while `largerBuilder` is null, starts the builder. Either way it passes that entry's provider and model, `--thinking` when its thinking is set, tools `read,grep,find,bash,edit,write`, the rendered `prompts/builder-preamble.md` path, the validated brief path, and a fixed instruction naming the lane. The preamble precedes the brief. Before starting pi it prints one line to stderr naming the resolved builder and the roster's source: `pi-worker: builder: <provider> <model> <thinking>; source: <default|file>` (`builder (larger lanes):` for a `--lane-size larger` launch whose `largerBuilder` slot is set; plain `builder:` when that slot is null and it falls back to the builder) — the same tokens `nana-roster` prints, so a valid but wrong model is visible on every lane launch. The sealed tool list and default builder are one value in `bin/worker-config.mjs`, following the owner's roster ruling (2026-10-06); changing either is a roster edit requiring a requirements diff. Caller overrides are not supported. The usual non-lane worker invocation is unchanged and reads no roster.
 
 Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`. The gate refuses edit/write targets outside that root and the temporary roots it counts: the real `os.tmpdir()`, and on Windows a differing `TMP` too — except a temp folder that resolves to a drive or filesystem root, the home folder, or a folder above the home folder, which does not count. `/tmp` is a separate rule on every system but Windows: it counts as a temporary root regardless, even when it resolves under the home folder. Each target is judged at the path pi's own edit/write tools actually write it to — pi's `~`, `@` and `file://` forms are expanded first — and every root and target is compared by its true on-disk spelling (case, 8.3 short names, and symlinks all fold to the same real path), not by the literal string typed. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
 
@@ -352,7 +352,7 @@ Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (pr
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 
-This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for Jake, unresolved numbered references, overdue explicit dates, and missing Open for Jake tags. It also checks the document's size against one default read (51,200 bytes or 2,000 lines: pi 1.0.2's read tool limits, the smaller of the two seats' limits), and reports a Where things stand, Next or Open for Jake section placed after a Landed or Carried residuals heading or ending past that read.
+This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for the owner, unresolved numbered references, overdue explicit dates, and missing Open for the owner tags. It also checks the document's size against one default read (51,200 bytes or 2,000 lines: pi 1.0.2's read tool limits, the smaller of the two seats' limits), and reports a Where things stand, Next or Open for the owner section placed after a Landed or Carried residuals heading or ending past that read.
 
 ```bash
 node packages/nana-pack/bin/nana-frontier.mjs HANDOFF.md
@@ -643,7 +643,7 @@ project config never contributes to either one, trusted or not.
   checked in commands AND edit/write targets. rm-text checks scan every command segment,
   including quoted arguments and text-only mentions. Interpreter deletion scans inspect the
   complete interpreter command string.
-- **The plain in-directory `rm` exemption** (L2, 2026-10-19, Jake's ruling): a bash-tool command
+- **The plain in-directory `rm` exemption** (L2, 2026-10-19, the owner's ruling): a bash-tool command
   that is EXACTLY `rm`, flags drawn only from `-r`/`-R`/`-f`/`-v` (alone or combined) or
   `--recursive`/`--force`/`--verbose`, and one or more literal relative targets made of ASCII
   letters, digits, `.`, `_`, `@`, `-` and `/` that each lie strictly inside the session working
@@ -943,7 +943,7 @@ project config never contributes to either one, trusted or not.
     directory" plus that file's path; if no ancestor has one, nothing is added to the
     session — but the fact is not discarded: an unadopted directory is a signal addressed to the
     SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
-    objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
+    objective and start accumulating its knowledge (the owner's ruling 2026-09-28;
     `docs/directory-adoption-design-2026-09-28.md`). L5 landed on 2026-09-29 (**Adoption signal** above) and it is journal-only, so the session still sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
   - **Compatibility change (S1) — some directories lose automatic pickup.** `Cwd:` is written
@@ -990,7 +990,7 @@ project config never contributes to either one, trusted or not.
   journal line records each pickup and which source it came from (`source: "project" | "user"`).
   Five contract points:
   - **A repo speaks its own objective — by default, no configuration.** The nearest
-    `<dir>/OBJECTIVE.md` walking UP from the session cwd wins over `objective.path` (Jake's
+    `<dir>/OBJECTIVE.md` walking UP from the session cwd wins over `objective.path` (the owner's
     2026-09-18 decentralization ruling), followed by labelled `program objective:` /
     `program current priority:` lines and a precedence sentence so the program-level objective
     stays visible. A session in a product repo is charged against that product's two lines —
@@ -1001,7 +1001,7 @@ project config never contributes to either one, trusted or not.
     switch are all user-scope (project config never sets `projectFile`). A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
     back to the user-scope file and journals `objective_project_refused` with the cause; the
     fallback is never silent.
-  - **Provenance label (lane T2c; Jake's ruling (a), 2026-09-28).** When a repo-supplied file
+  - **Provenance label (lane T2c; the owner's ruling (a), 2026-09-28).** When a repo-supplied file
     governs and no usable affirmative trust record could be confirmed for its folder, a two-line
     `UNTRUSTED DATA: …` paragraph is prepended to the governing lines. It says the file is
     repo-supplied, that no usable affirmative trust record could be confirmed for the folder
@@ -1089,7 +1089,7 @@ project config never contributes to either one, trusted or not.
   - **Risk acceptance — the label is defence in depth, NOT a security boundary.** A model can
     still follow attacker-authored text on a governing line, whatever the label says. The
     label does not close prompt injection. sol recommended trust-gating instead: require
-    nana-trust before repo text is injected or called governing. Jake chose the label anyway
+    nana-trust before repo text is injected or called governing. The owner chose the label anyway
     on 2026-09-28, knowing this, and accepted the residual deliberately: an untrusted repo's
     `OBJECTIVE.md` can steer a session before the owner states intent. nana's tool gate
     still limits what that steering can do.

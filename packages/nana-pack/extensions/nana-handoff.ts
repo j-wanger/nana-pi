@@ -163,7 +163,7 @@ export function readHandoff(file: string): HandoffRead {
 /**
  * A repo `.pi/handoff.md`, by path SHAPE: the final two segments are `.pi/handoff.md` (case-
  * insensitive), in any directory, as configured or after resolving the parent's real path.
- * Jake's binding rule — never injected, never migrated, never deleted — so such a path is
+ * the owner's binding rule — never injected, never migrated, never deleted — so such a path is
  * never read or written, whatever handoff.path says.
  */
 export function isLegacyShape(file: string): boolean {

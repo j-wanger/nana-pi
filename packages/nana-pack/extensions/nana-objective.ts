@@ -50,7 +50,7 @@
  * Imported here rather than spawned: session_start stays synchronous, in-process
  * and free of a node-on-PATH dependency. This file only journals, notifies and
  * injects. When a product file governs, the program objective AND current
- * priority are shown with the precedence stated (Jake's ruling 1, 2026-09-28).
+ * priority are shown with the precedence stated (the owner's ruling 1, 2026-09-28).
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";

@@ -141,7 +141,7 @@ Wire it as a Claude Code `UserPromptSubmit` hook in `~/.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "NODE_NO_WARNINGS=1 node /Users/jwang/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts hook",
+            "command": "NODE_NO_WARNINGS=1 node /Users/example/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts hook",
             "timeout": 5,
             "statusMessage": "nana: knowledge pull"
           }

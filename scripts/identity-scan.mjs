@@ -17,6 +17,7 @@ import { pathToFileURL } from "node:url";
 const COMMITTED_WORD_LENGTHS = [4, 5, 4, 3];
 const ALLOWLIST_REASONS = new Set(["record", "byte-pinned", "frozen-desk"]);
 const RECORD_PREFIXES = ["docs/reviews/", "docs/sessions/", "research/", "apps/bench/studies/"];
+const RECORD_PATHS = new Set(["docs/product-report/assessments.json"]);
 
 function hashToken(token) {
 	return createHash("sha256").update(token.toLowerCase()).digest("hex");
@@ -142,7 +143,7 @@ export function scanTree({ root, config, files } = {}) {
 }
 
 function isRecordPath(relative) {
-	return RECORD_PREFIXES.some((prefix) => relative.startsWith(prefix)) ||
+	return RECORD_PATHS.has(relative) || RECORD_PREFIXES.some((prefix) => relative.startsWith(prefix)) ||
 		(relative.startsWith("docs/") && !relative.slice("docs/".length).includes("/"));
 }
 

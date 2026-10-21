@@ -27,19 +27,19 @@ export const PASSIVE = /\b(?:is|are|was|were|be|been|being)\s+(\w{3,}(?:ed|en))\
  *  the old prefix match wrongly excused real passives — "is needed" is genuine passive voice
  *  and must be caught, not excepted; keeping "need" here is now inert, since it is too short
  *  to match PASSIVE on its own, but it costs nothing to leave named). "green", "wooden",
- *  "open", "golden", "even": astra r1 labelled set, 2026-10-04 (its false positives "Jake is
+ *  "open", "golden", "even": astra r1 labelled set, 2026-10-04 (its false positives "the owner is
  *  green with envy", "the rail are green", "The desk was wooden."). */
 export const PASSIVE_EXCEPTIONS = ["need", "speed", "indeed", "green", "wooden", "open", "golden", "even"];
 
-/** chosen: the words HANDOFF.md and the review ledger already use for a verdict, plus Jake's
+/** chosen: the words HANDOFF.md and the review ledger already use for a verdict, plus the owner's
  *  decision-point shape (`packages/nana-pack/rules/nana-writing.md`, "A decision point"). */
 export const VERDICT_WORDS = ["LANDED", "DONE", "BLOCKED", "OPEN", "FAILED", "CARRIED", "YOUR CALL"];
 
-/** Jake, 2026-07-03, feedback_plain_language.md. Case-insensitive; matches "dogfooding" too
+/** the owner, 2026-07-03, feedback_plain_language.md. Case-insensitive; matches "dogfooding" too
  *  (substring, not whole-word). */
 export const BANNED_WORDS = ["dogfood"];
 
-/** chosen: the two identifier shapes Jake named — a backtick span, and a path-with-extension
+/** chosen: the two identifier shapes the owner named — a backtick span, and a path-with-extension
  *  token. Row numbers (e.g. R-451) are [I] too noisy to add before the baseline shows a count. */
 export const IDENTIFIER_CODE_SPAN = /`[^`]*`/g;
 export const IDENTIFIER_PATH = /\S*\/\S+\.\w{1,5}/g;

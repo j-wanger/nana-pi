@@ -81,7 +81,7 @@ Legend: VERIFIED = read or run here; INFERRED = reasoning only.
   paths.ts:17 and :25; the trace rail's untested check at requirements-trace.ts:84 (STALE set, enforced at :429);
   requirements-tree.test.mjs:38, :52, :53 (1,088); fresh-machine.test.mjs:31; usage.test.mjs:300 (untraced; its regex
   turns red once `--ignore-scripts` is in the message); HANDOFF :22, :23, :44, :45, :55, :65, :74; sessions
-  2026-10.md:9 ("before the suite"); jake-windows-check.md:19 and :23; install-check CHANGE:271.
+  2026-10.md:9 ("before the suite"); owner-windows-check.md:19 and :23; install-check CHANGE:271.
 - Marker counts: R-1071 has 9, R-1078 has 1, R-1079 has 5. DOCTOR_NOTES.win32 has 19 labels, so removing two leaves 17,
   and "skill spec" is among them. "skill requirements" is never a NOTE row (not in NEW_CLAUDE_SKILLS), and
   "skill nana-standards" never appears.

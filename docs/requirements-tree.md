@@ -162,7 +162,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-04 · Rows: 150 · IDs: R-341–R-344, R-346, R-362, R-364–R-372, R-377, R-393, R-399, R-586, R-654, R-666, R-667, R-673–R-675, R-937, R-952, R-953, R-990, R-991, R-997–R-999, R-1037, R-1055, R-1057, R-1060, R-1070–R-1077, R-1079–R-1084, R-1096, R-1209, R-1540–R-1545, R-1580–R-1586, R-1600–R-1606, R-1750–R-1752, R-1760–R-1766, R-1790–R-1796, R-1810–R-1812, R-1853–R-1855, R-1972, R-1974, R-1980, R-1983, R-1990–R-1997, R-2000–R-2004, R-2021, R-2070–R-2076, R-2084, R-2085, R-2091, R-2180–R-2183, R-2230–R-2237, R-2280, R-2281, R-2292–R-2294, R-2320–R-2325, R-2410–R-2412
   - **FEAT-016 · Start the local development desk**
     Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-199
     Parent: CAP-04 · Rows: 23 · IDs: R-354–R-356, R-380, R-389, R-390, R-396–R-398, R-400–R-404, R-462, R-464, R-468, R-469, R-650–R-652, R-677, R-678
   - **FEAT-017 · Inspect durable state and follow restoration steps**
@@ -187,17 +187,17 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   Deliverables: R-406, R-422, R-159, R-1194, R-457
   - **FEAT-020 · Find and read previous sessions**
     Purpose: Read, title, navigate and display session history while retaining correct branch identity.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-401, R-458, R-459
     Parent: CAP-05 · Rows: 14 · IDs: R-405–R-413, R-463, R-470–R-473
   - **FEAT-021 · Choose and start an agent session**
     Purpose: Select a working directory, runtime resources, tools and trust options before launching the appropriate child.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-404, R-459, R-944
     Parent: CAP-05 · Rows: 11 · IDs: R-198, R-414–R-418, R-475–R-478, R-685
   - **FEAT-022 · Steer and recover live sessions**
     Purpose: Deliver prompts and RPCs to the intended session, reconcile asynchronous state and handle reload, disconnect and teardown.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-426, R-458, R-459
     Parent: CAP-05 · Rows: 26 · IDs: R-164, R-165, R-419, R-420, R-427, R-429–R-431, R-433–R-436, R-460, R-461, R-467, R-479–R-481, R-484–R-487, R-489, R-490, R-689, R-942
   - **FEAT-023 · Inspect changes and receive useful notices**
@@ -207,7 +207,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-05 · Rows: 50 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382
   - **FEAT-024 · Edit session and project settings safely**
     Purpose: Expose supported configuration and context edits while preserving unknown fields and existing files on failure.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-458, R-459
     Parent: CAP-05 · Rows: 7 · IDs: R-455–R-457, R-466, R-867, R-869, R-941
 - **CAP-06 · Use attributable tool outputs and focused apps**
@@ -222,12 +222,12 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-06 · Rows: 26 · IDs: R-250–R-255, R-260–R-263, R-266–R-272, R-274–R-279, R-282–R-284
   - **FEAT-026 · Verify output provenance across session history**
     Purpose: Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-283, R-284
     Parent: CAP-06 · Rows: 24 · IDs: R-256–R-259, R-264, R-273, R-280, R-281, R-437–R-446, R-451, R-491, R-492, R-945–R-947
   - **FEAT-027 · Connect and isolate focused app surfaces**
     Purpose: Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.
-    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
+    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-461
     Parent: CAP-06 · Rows: 22 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-459, R-465, R-493–R-499, R-940, R-943, R-944
 - **CAP-07 · Keep code and promises checkable**
@@ -266,7 +266,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-756
     Parent: CAP-07 · Rows: 25 · IDs: R-920, R-1301, R-1480, G-001–G-022
   - **FEAT-039 · See the product and its decisions in one report**
-    Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.
+    Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on the owner, from the repo at any commit from its first build on.
     Status: active
     Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
     Parent: CAP-07 · Rows: 43 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454

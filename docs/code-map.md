@@ -1326,7 +1326,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/gate-rm-inside.ts`
 
-- **purpose** — Decide whether a plain recursive/forced rm of literal relative targets strictly inside the session working directory may run with no approval, per Jake's 2026-10-10 ruling.
+- **purpose** — Decide whether a plain recursive/forced rm of literal relative targets strictly inside the session working directory may run with no approval, per the owner's 2026-10-10 ruling.
 - **inputs** — a raw bash command string, the session cwd, an optional home override (default os.homedir()), env PI_CODING_AGENT_DIR (through gate-paths), and the filesystem (realpath and lstat of cwd, home, the active pi agent folder, every target and its intermediate parts, and the HEAD/objects/refs/.git entries along the cwd's ancestor walk and of each existing target part, for the bare-repository shape guard)
 - **outputs** — rmInsideCwd(command, cwd, home?): true only when every guard below passes, false otherwise
 - **effects** — disk (realpath and lstat of cwd, home, the active pi agent folder, each target's parts, and the HEAD/objects/refs/.git entries on the cwd's ancestor walk and each existing target part)

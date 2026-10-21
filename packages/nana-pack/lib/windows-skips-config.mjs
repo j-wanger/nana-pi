@@ -7,7 +7,7 @@
  * @errors none
  */
 // Provenance: measured on CI Windows run 2 at 3bd044e
-// (docs/reviews/win-impact-paths-2026-10-18/ci-windows-run-2.log); declared by Jake 2026-10-17.
+// (docs/reviews/win-impact-paths-2026-10-18/ci-windows-run-2.log); declared by the owner 2026-10-17.
 // These 16 desk files failed there and nowhere else — live-feel and the other nine bench files
 // were green on that same run and keep running. R-1383 holds this list to only test files the
 // runner actually collects from apps/desk/test or apps/bench/test.

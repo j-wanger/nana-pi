@@ -13,7 +13,7 @@
 export const LANE_MAX_SECS = 28_800;
 // contract: .NET TimeSpan.TicksPerSecond, 100-nanosecond ticks (R-1891)
 export const WIN_CPU_TICKS_PER_SECOND = 10_000_000;
-// Jake's roster ruling, 2026-10-06; since the roster lane (2026-10-13) a machine's roster lives in the user-scope nana-pack.json (R-1120-R-1122), and LANE_DEFAULTS is the default builder only.
+// the owner's roster ruling, 2026-10-06; since the roster lane (2026-10-13) a machine's roster lives in the user-scope nana-pack.json (R-1120-R-1122), and LANE_DEFAULTS is the default builder only.
 export const LANE_DEFAULTS = Object.freeze({
   provider: 'openai-codex',
   model: 'gpt-6-luna',
@@ -53,7 +53,7 @@ export const LANE_SIZE_SLOTS = Object.freeze({ small: 'builder', larger: 'larger
 // contract: R-1124 — the builder line's label when a lane starts the larger-lane builder.
 export const LARGER_BUILDER_LABEL = 'builder (larger lanes)';
 
-// provenance: R-1120 — roles: Jake, 2026-10-06; provider and model ids: the seat's. The builder
+// provenance: R-1120 — roles: the owner, 2026-10-06; provider and model ids: the seat's. The builder
 // slot reads LANE_DEFAULTS by name so the two definitions cannot drift; this Mac runs no pi scout
 // (chosen); reviewer and land carry no thinking (INFERRED: the ledger records no thinking).
 // chosen (D1, 2026-10-16): largerBuilder defaults to null — every machine's lineup stays as it is

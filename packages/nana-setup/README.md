@@ -417,8 +417,8 @@ Linking that per project would mean an installer step per repo, forever. Instead
   output cap. The longest descriptions are cut first, trailing entries drop only when titles
   overflow, and a fold line follows.
 
-So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` →
-`-Users-jwang-aml-desk`; `/Users/jwang/.nana-worktrees/x` → `-Users-jwang--nana-worktrees-x`.
+So a brand-new repo links itself on its first session. `/Users/example/a-work-project` →
+`-Users-example-a-work-project`; `/Users/example/.nana-worktrees/x` → `-Users-example--nana-worktrees-x`.
 
 ## Platforms
 

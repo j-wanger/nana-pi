@@ -55,8 +55,8 @@ Workers write honest code and an optimistic ledger. That asymmetry is why §6 ex
 
 ## 3. Sealed tunables — no inline literals
 
-A number stated in a row is a **sealed tunable**, not a config default (ruling from the
-aml-desk C10 call, 2026-10-02, generalised):
+A number stated in a row is a **sealed tunable**, not a config default (ruling from a
+work project's C10 call, 2026-10-02, generalised):
 
 - Defined **once** per package in that package's declared configuration surface
   (`config.mjs` / `config.py` / `config.ts`), read by name everywhere else. Never an inline

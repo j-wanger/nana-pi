@@ -72,7 +72,7 @@ try {
 				"",
 				...rows,
 				"",
-				"For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.",
+				"For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.",
 			);
 		}
 		if (reports.dropped) out.push(...(out.length ? [""] : []), `${reports.dropped} ${reports.dropped === 1 ? "entry was" : "entries were"} not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and ${reports.dropped === 1 ? "was" : "were"} skipped.`);

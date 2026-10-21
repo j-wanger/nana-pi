@@ -27,11 +27,11 @@ const check = (n, ok, extra) => {
 
 /* --- the rule --------------------------------------------------------------------------- */
 const cases = [
-	["/Users/jwang/aml-desk", "-Users-jwang-aml-desk"],
-	["/Users/jwang/.nana-worktrees/x", "-Users-jwang--nana-worktrees-x"],
-	["/Users/jwang/nana-agent-loop", "-Users-jwang-nana-agent-loop"],
-	["/Users/jwang/nana-pi", "-Users-jwang-nana-pi"],
-	["/Users/jwang/the-hive", "-Users-jwang-the-hive"],
+	["/Users/example/a-work-project", "-Users-example-a-work-project"],
+	["/Users/example/.nana-worktrees/x", "-Users-example--nana-worktrees-x"],
+	["/Users/example/nana-agent-loop", "-Users-example-nana-agent-loop"],
+	["/Users/example/nana-pi", "-Users-example-nana-pi"],
+	["/Users/example/the-hive", "-Users-example-the-hive"],
 	["/Users/x/my_repo", "-Users-x-my-repo"], // underscore is outside [A-Za-z0-9]
 	["/Users/x/a b.c", "-Users-x-a-b-c"], // space and dot too
 	["C:\\dev\\repo", "C--dev-repo"],
@@ -41,7 +41,7 @@ for (const [input, want] of cases) check(`key(${input}) = ${want}`, projectKey(i
 
 /* --- over-long paths: truncate at 200 + hash -------------------------------------------- */
 {
-	const long = "/Users/jwang/" + "a".repeat(300);
+	const long = "/Users/example/" + "a".repeat(300);
 	const key = projectKey(long);
 	// req: R-347
 	check("an over-long key is truncated to 200 + a hash", key.length > KEY_MAX && key.startsWith(slug(long).slice(0, KEY_MAX) + "-"));

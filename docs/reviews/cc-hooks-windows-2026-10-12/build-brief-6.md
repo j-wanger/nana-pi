@@ -39,7 +39,7 @@ ANCHOR-MISS on them, report it rather than editing the runner); push; the Window
 the upstream pi-codemode reason; ignore that, but report any lane-file failure that is something else.
 
 ## Rules
-Briefs 1–5 hold. Wrong code first. Do not edit `CHANGE.md`, the seat scripts, `jake-windows-check.md`,
+Briefs 1–5 hold. Wrong code first. Do not edit `CHANGE.md`, the seat scripts, `owner-windows-check.md`,
 `HANDOFF.md` or `docs/sessions/`. When the CI run completes, read it and REPORT.
 
 ## Report

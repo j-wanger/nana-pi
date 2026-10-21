@@ -422,7 +422,7 @@ export function diagnose(layout, opts = {}) {
 	// (R-1061).
 	for (const row of hookSettingsRows(layout, settings, parseError)) add(row.ok ? OK : FAIL, row.label, row.detail);
 	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
-	// problem pi-cmd-launch solved for pi, which is not worth it for a floor Jake already exceeds.
+	// problem pi-cmd-launch solved for pi, which is not worth it for a floor the owner already exceeds.
 	if (win) add(NOTE, "Claude Code hooks floor", `need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later (not checked here — \`claude --version\` is never run)`);
 	const settingsLock = settingsLockPath(layout.claudeSettings);
 	const settingsLockStat = lstatSafe(settingsLock);

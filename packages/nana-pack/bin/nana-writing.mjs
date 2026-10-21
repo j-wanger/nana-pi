@@ -10,7 +10,7 @@
 // nana-writing — report-only, never blocks (design-ruling.md, 2026-10-04, §3).
 //   node bin/nana-writing.mjs [--report] [file...]
 // With no file, reads stdin (named "-" in the output). `--report` turns on the two checks
-// that only matter for a message addressed to Jake: a verdict word in the first sentence,
+// that only matter for a message addressed to the owner: a verdict word in the first sentence,
 // and identifiers (a backtick span, or a slash path) — see
 // packages/nana-pack/rules/nana-writing.md and packages/nana-pack/README.md.
 import * as fs from "node:fs";

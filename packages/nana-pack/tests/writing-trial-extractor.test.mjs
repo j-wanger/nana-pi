@@ -215,7 +215,7 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	f.cleanup();
 }
 {
-	const reports = [{ sessionId: "gold", timestamp: "2026-10-05T12:00:00Z", body: ["YOUR CALL — decision one", "1. What I tested", "2. Result: 3 passed", "3. Trade: speed versus safety", "4. Recommendation: choose A", "5. Why this is Jake's call", "", "YOUR CALL — decision two", "1. What I measured", "2. Result: 2 failures", "3. Risk is lower, but slower", "4. I recommend B", "5. Jake decides", "", "YOUR CALL — incomplete decision", "1. What I tested", "2. Result: 1 failure", "3. Notes: the option preserves time", "4. I recommend C"].join("\n\n") }];
+	const reports = [{ sessionId: "gold", timestamp: "2026-10-05T12:00:00Z", body: ["YOUR CALL — decision one", "1. What I tested", "2. Result: 3 passed", "3. Trade: speed versus safety", "4. Recommendation: choose A", "5. Why this is the owner's call", "", "YOUR CALL — decision two", "1. What I measured", "2. Result: 2 failures", "3. Risk is lower, but slower", "4. I recommend B", "5. The owner decides", "", "YOUR CALL — incomplete decision", "1. What I tested", "2. Result: 1 failure", "3. Notes: the option preserves time", "4. I recommend C"].join("\n\n") }];
 	// req: R-698
 	check("redacted decision golden corpus groups boundaries and preserves ordered rubric parts", () => {
 		const decisions = scoreDecisions(reports);

@@ -258,7 +258,7 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	// req: R-001
 	check("l: the repo's objective is injected", !!r.includes("ship the desk"));
 	check("l: the repo's priority is injected", !!r.includes("the feel pass"));
-	// Jake's ruling 1 (2026-09-28): the product's lines govern, AND the program's objective
+	// the owner's ruling 1 (2026-09-28): the product's lines govern, AND the program's objective
 	// + current priority are shown, labelled, after them, with the precedence stated. (This
 	// replaces an assertion that the umbrella priority was absent — that encoded the defect.)
 	const sp = r ?? "";

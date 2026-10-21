@@ -1,6 +1,6 @@
 # Nana — Writing for the owner
 
-This rule applies to a message addressed to Jake: a report, a decision point, a status
+This rule applies to a message addressed to the owner: a report, a decision point, a status
 update, and a `HANDOFF.md` line. A review, a brief, a worker report, a commit message
 and code are technical records. They are out of scope.
 
@@ -20,7 +20,7 @@ and code are technical records. They are out of scope.
 
 ## Words
 
-- Use everyday words. Do not coin a word. Jake banned `dogfood`.
+- Use everyday words. Do not coin a word. The owner banned `dogfood`.
 - Do not put a file path, an identifier, a code name or a row number in the prose.
   The technical record holds them.
 
@@ -32,7 +32,7 @@ A decision point carries five parts, in this order:
 2. the result in plain numbers
 3. the trade
 4. the recommendation
-5. why it is Jake's call
+5. why it is the owner's call
 
 If it is not his call, decide it and say so.
 

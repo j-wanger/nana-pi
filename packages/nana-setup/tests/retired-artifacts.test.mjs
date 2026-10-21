@@ -119,7 +119,7 @@ try {
 		fs.writeFileSync(juneHook, "# nana June copy retained\n");
 		const foreignBackup = path.join(h, ".claude", "hooks", "foreign.sh.bak-20260918");
 		fs.writeFileSync(foreignBackup, "owner backup mentions nana but is not in the captured manifest\n");
-		const customizedHook = { type: "command", command: "bash ~/.claude/hooks/context-size-check.sh", owner: "Jake", enabled: true };
+		const customizedHook = { type: "command", command: "bash ~/.claude/hooks/context-size-check.sh", owner: "the owner", enabled: true };
 		const nonCommandHook = { type: "prompt", command: "bash ~/.claude/hooks/context-size-check.sh", prompt: "owner text" };
 		const ownerHooks = [
 			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh --owner-variant" },
@@ -197,7 +197,7 @@ try {
 			// req: R-660
 			check("win32: the unrecognised quoted-backslash entry is left in place, and every other entry matches", JSON.stringify(completeContextEntries) === JSON.stringify([quotedBackslashEntry, ...expectedInstalledHooks]), JSON.stringify(completeContextEntries));
 		}
-		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "Jake" || hook.type === "prompt");
+		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "the owner" || hook.type === "prompt");
 		// req: R-660
 		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));
 		// req: R-662

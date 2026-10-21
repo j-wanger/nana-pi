@@ -31,11 +31,11 @@ const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "
   const dir = tmpDir(path.join(os.tmpdir(), "frontier-baseline-"));
   const inputs = {
     current: fs.readFileSync(path.join(HERE, "fixtures/frontier/handoff-current-2026-10-11.md"), "utf8"),
-    noTitle: "## Open for Jake\n- [optional, since 2026-10-10] no grammar here\n",
-    continuation: "## Open for Jake\n- decision\n[optional, since 2026-10-10]\n",
-    missing: "## Open for Jake\n- decision with no tag\n",
-    future: "## Open for Jake\n- [blocking, since 2026-10-12] future\n",
-    fenced: "## Open for Jake\n```md\n- [blocking, since 2026-10-12] fenced\n```\n",
+    noTitle: "## Open for the owner\n- [optional, since 2026-10-10] no grammar here\n",
+    continuation: "## Open for the owner\n- decision\n[optional, since 2026-10-10]\n",
+    missing: "## Open for the owner\n- decision with no tag\n",
+    future: "## Open for the owner\n- [blocking, since 2026-10-12] future\n",
+    fenced: "## Open for the owner\n```md\n- [blocking, since 2026-10-12] fenced\n```\n",
   };
   for (const [name, text] of Object.entries(inputs)) {
     const file = path.join(dir, `${name}.md`);
@@ -98,47 +98,47 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 	// req: R-877
 	check("past explicit date is reported against injected clock", r.stdout.includes("overdue-date:"));
 	// req: R-878
-	check("each bullet or numbered Open for Jake entry without a tag is reported", r.stdout.split("open-tag:").length - 1 === 2, r.stdout);
+	check("each bullet or numbered Open for the owner entry without a tag is reported", r.stdout.split("open-tag:").length - 1 === 2, r.stdout);
 }
 {
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", frozenRewrite], { encoding: "utf8" });
 	// req: R-877
-	check("frozen 2026-10-06 rewrite reports only its three section-order findings on 2026-10-07", r.status === 0 && r.stdout.includes("summary words=1026 budget=1200 findings=3") && r.stdout.split("section-order:").length - 1 === 3, r.stdout);
+	check("frozen 2026-10-06 rewrite reports only its three section-order findings on 2026-10-07", r.status === 0 && r.stdout.includes("summary words=1038 budget=1200 findings=3") && r.stdout.split("section-order:").length - 1 === 3, r.stdout);
 }
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "parenthetical-heading.md");
 	fs.writeFileSync(file, [
-		"## Open for Jake (each ask: blocking, optional or parked, and since when)",
+		"## Open for the owner (each ask: blocking, optional or parked, and since when)",
 		"- LANDED without a tag; deadline 2026-10-05.",
 	].join("\n"));
 	const r = run(file);
 	// req: R-875
-	check("LANDED is detected under the real parenthetical Open for Jake heading", r.stdout.includes("misplaced-landed:"), r.stdout);
+	check("LANDED is detected under the real parenthetical Open for the owner heading", r.stdout.includes("misplaced-landed:"), r.stdout);
 	// req: R-877
-	check("overdue dates are detected under the real parenthetical Open for Jake heading", r.stdout.includes("overdue-date:") && r.stdout.includes("2026-10-05"), r.stdout);
+	check("overdue dates are detected under the real parenthetical Open for the owner heading", r.stdout.includes("overdue-date:") && r.stdout.includes("2026-10-05"), r.stdout);
 	// req: R-878
-	check("missing tags are detected under the real parenthetical Open for Jake heading", r.stdout.includes("open-tag:"), r.stdout);
+	check("missing tags are detected under the real parenthetical Open for the owner heading", r.stdout.includes("open-tag:"), r.stdout);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", preRewrite], { encoding: "utf8" });
 	// req: R-873 R-875 R-878
-	check("frozen pre-rewrite HANDOFF reports 15 findings and key drift categories", r.stdout.includes("summary words=3761 budget=1200 findings=15") && r.stdout.includes("word-budget:") && r.stdout.split("misplaced-landed:").length - 1 === 3 && r.stdout.split("open-tag:").length - 1 === 8, r.stdout);
+	check("frozen pre-rewrite HANDOFF reports 15 findings and key drift categories", r.stdout.includes("summary words=3782 budget=1200 findings=15") && r.stdout.includes("word-budget:") && r.stdout.split("misplaced-landed:").length - 1 === 3 && r.stdout.split("open-tag:").length - 1 === 8, r.stdout);
 }
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "prose.md");
-	fs.writeFileSync(file, "## Next\nA status note is due 2026-10-05.\n## Open for Jake\nA decision is due 2026-10-04.\n");
+	fs.writeFileSync(file, "## Next\nA status note is due 2026-10-05.\n## Open for the owner\nA decision is due 2026-10-04.\n");
 	const r = run(file);
 	// req: R-877
-	check("due cues in non-list Next and Open for Jake prose are scanned", r.stdout.split("overdue-date:").length - 1 === 2, r.stdout);
+	check("due cues in non-list Next and Open for the owner prose are scanned", r.stdout.split("overdue-date:").length - 1 === 2, r.stdout);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "fence.md");
-	fs.writeFileSync(file, "## Where things stand\nExample:\n```md\n## Next\n- LANDED due 2026-10-05\n```\n## Open for Jake\n- Real choice [blocking, since 2026-10-06]\n");
+	fs.writeFileSync(file, "## Where things stand\nExample:\n```md\n## Next\n- LANDED due 2026-10-05\n```\n## Open for the owner\n- Real choice [blocking, since 2026-10-06]\n");
 	const r = run(file);
 	// req: R-874 R-875 R-877
 	check("fenced examples do not create headings or findings", !/(landed-entry|misplaced-landed|overdue-date):/.test(r.stdout), r.stdout);
@@ -158,7 +158,7 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 	const file = path.join(dir, "nested.md");
 	fs.writeFileSync(file, [
 		"## Next", "### Phase", "- LANDED by 2026-10-06", "- Follow-up due 2026-10-05.", "",
-		"## Open for Jake", "### Decision", "- Choose an option without a tag.", "",
+		"## Open for the owner", "### Decision", "- Choose an option without a tag.", "",
 	].join("\n"));
 	const r = run(file);
 	// req: R-875
@@ -180,7 +180,7 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 	// req: R-877
 	check("due dates use range ends and ignore ruling, since, and range-start dates", r.stdout.split("overdue-date:").length - 1 === 1 && r.stdout.includes("2026-10-05"), r.stdout);
 	const mixed = path.join(dir, "mixed-history-future.md");
-	fs.writeFileSync(mixed, "## Next\n- Written by Jake (adopted 2026-10-06); review on 2026-10-20.\n");
+	fs.writeFileSync(mixed, "## Next\n- Written by the owner (adopted 2026-10-06); review on 2026-10-20.\n");
 	const mixedResult = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", mixed], { encoding: "utf8" });
 	// req: R-877
 	check("historical parenthetical date before a future due cue is not overdue", !mixedResult.stdout.includes("overdue-date:"), mixedResult.stdout);
@@ -198,12 +198,12 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 	// req: R-874
 	check("Landed entries include lazy continuation lines", lazyResult.stdout.includes("landed-entry:"), lazyResult.stdout);
 	const multilineTag = path.join(dir, "tag.md");
-	fs.writeFileSync(multilineTag, "## Open for Jake\n- decision\n[optional, since 2026-10-06]\n");
+	fs.writeFileSync(multilineTag, "## Open for the owner\n- decision\n[optional, since 2026-10-06]\n");
 	const tagResult = run(multilineTag);
 	// req: R-878
 	check("Open tags on continuation lines count", !tagResult.stdout.includes("open-tag:"), tagResult.stdout);
 	for (const badSince of ["2026-99-99", "2026-10-07"]) {
-		fs.writeFileSync(multilineTag, `## Open for Jake\n- decision\n[optional, since ${badSince}]\n`);
+		fs.writeFileSync(multilineTag, `## Open for the owner\n- decision\n[optional, since ${badSince}]\n`);
 		const badTagResult = run(multilineTag);
 		// req: R-878
 		check(`Open tag rejects invalid or future since date ${badSince}`, badTagResult.stdout.includes("open-tag:"), badTagResult.stdout);
@@ -254,7 +254,7 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 		return run(file).stdout;
 	};
 	const n = Math.ceil(READ_WINDOW_BYTES / 1203) + 1;
-	const bytesText = ["## Where things stand", "- state", "## Next", "### Detail", ...Array(n).fill(`- ${"é".repeat(600)}`), "## Open for Jake", "- **[optional, since 2026-10-01] Ask.** body"].join("\n");
+	const bytesText = ["## Where things stand", "- state", "## Next", "### Detail", ...Array(n).fill(`- ${"é".repeat(600)}`), "## Open for the owner", "- **[optional, since 2026-10-01] Ask.** body"].join("\n");
 	const bytesOutput = runText("bytes.md", bytesText);
 	const m = READ_WINDOW_LINES + 100;
 	const linesOutput = runText("lines.md", ["## Where things stand", ...Array(m).fill("- s"), "## Next", "1. step"].join("\n"));
@@ -275,10 +275,10 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-order-"));
 	const cases = {
-		"after-landed.md": ["# HANDOFF", "## Landed", "- 2026-10-21: one line.", "## Where things stand", "- state", "## Next", "1. step", "## Open for Jake", "- **[optional, since 2026-10-01] Ask.** body"],
+		"after-landed.md": ["# HANDOFF", "## Landed", "- 2026-10-21: one line.", "## Where things stand", "- state", "## Next", "1. step", "## Open for the owner", "- **[optional, since 2026-10-01] Ask.** body"],
 		"after-residuals.md": ["## Where things stand", "- state", "## Carried residuals (live; one line each)", "- residual", "## Next", "1. step"],
 		"between.md": ["## Landed", "## Where things stand", "## Carried residuals", "## Next"],
-		"frontier-first.md": ["## Where things stand", "## Next", "## Open for Jake", "## Landed (one line each)", "## Carried residuals"],
+		"frontier-first.md": ["## Where things stand", "## Next", "## Open for the owner", "## Landed (one line each)", "## Carried residuals"],
 	};
 	const outputs = {};
 	for (const [name, lines] of Object.entries(cases)) {
@@ -289,7 +289,7 @@ check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 	const sectionFindings = (output) => output.split("\n").filter((line) => line.includes(": section-order:"));
 	const lineNumbers = (output) => sectionFindings(output).map((line) => Number(/:(\d+):/.exec(line)?.[1]));
 	// req: R-2470
-	check("R-2470: a Where things stand, Next or Open for Jake heading after a Landed or Carried residuals heading is reported as section-order", JSON.stringify(lineNumbers(outputs["after-landed.md"])) === JSON.stringify([4, 6, 8]) && sectionFindings(outputs["after-landed.md"]).every((line) => line.includes("comes after Landed at line 2")) && JSON.stringify(lineNumbers(outputs["after-residuals.md"])) === JSON.stringify([5]) && sectionFindings(outputs["after-residuals.md"])[0].includes("comes after Carried residuals at line 3") && JSON.stringify(lineNumbers(outputs["between.md"])) === JSON.stringify([2, 4]) && sectionFindings(outputs["between.md"]).every((line) => line.includes("comes after Landed at line 1")) && sectionFindings(outputs["frontier-first.md"]).length === 0, Object.values(outputs).join("\n"));
+	check("R-2470: a Where things stand, Next or Open for the owner heading after a Landed or Carried residuals heading is reported as section-order", JSON.stringify(lineNumbers(outputs["after-landed.md"])) === JSON.stringify([4, 6, 8]) && sectionFindings(outputs["after-landed.md"]).every((line) => line.includes("comes after Landed at line 2")) && JSON.stringify(lineNumbers(outputs["after-residuals.md"])) === JSON.stringify([5]) && sectionFindings(outputs["after-residuals.md"])[0].includes("comes after Carried residuals at line 3") && JSON.stringify(lineNumbers(outputs["between.md"])) === JSON.stringify([2, 4]) && sectionFindings(outputs["between.md"]).every((line) => line.includes("comes after Landed at line 1")) && sectionFindings(outputs["frontier-first.md"]).length === 0, Object.values(outputs).join("\n"));
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {

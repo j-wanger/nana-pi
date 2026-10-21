@@ -350,7 +350,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	// req: R-1050
 	check("entryInvokes: win32 an exec command of NODE_NO_WARNINGS=1 with node in args reads as not installed", !entryInvokes({ command: "NODE_NO_WARNINGS=1", args: ["node", "/r/packages/nana-knowledge/bin/nana-knowledge.ts", "hook"] }, knowledgeSpec, "win32"));
 	// req: R-1061
-	check("entryInvokes: POSIX reads a copied Windows exec fragment as not installed", !entryInvokes({ command: "node", args: ["C:\\Users\\jake\\nana-pi/packages/nana-setup/claude/hooks/nana-objective.mjs"] }, objSpec, undefined));
+	check("entryInvokes: POSIX reads a copied Windows exec fragment as not installed", !entryInvokes({ command: "node", args: ["C:\\Users\\owner\\nana-pi/packages/nana-setup/claude/hooks/nana-objective.mjs"] }, objSpec, undefined));
 	// req: R-1061
 	check("entryInvokes: an entry carrying args with a shell-form command reads as commandInvokes reads its command (POSIX)", entryInvokes({ command: "node '/h/nana-objective.mjs'", args: ["whatever", "ignored"] }, objSpec, undefined) === commandInvokes("node '/h/nana-objective.mjs'", objSpec));
 }
@@ -439,10 +439,10 @@ check("six active hook entries are wanted", wanted.length === 6);
 	const settings = { hooks: { SessionStart: [{ hooks: [
 		{ type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
 		foreign,
-		{ type: "command", command: "bash '/Users/jwang/.claude/hooks/nana-adoption.sh'", timeout: 5, statusMessage: "nana: unadopted repositories" },
+		{ type: "command", command: "bash '/Users/example/.claude/hooks/nana-adoption.sh'", timeout: 5, statusMessage: "nana: unadopted repositories" },
 	] }] } };
 	// req: R-908
-	check("legacy managed bash hooks replace commands in place", migrateLegacyHooks(settings, { hooksDir: "/Users/jwang/.claude/hooks", claudeHome: "/Users/jwang/.claude" }) && settings.hooks.SessionStart[0].hooks[0].command === "node '/Users/jwang/.claude/hooks/nana-objective.mjs'" && settings.hooks.SessionStart[0].hooks[2].command === "node '/Users/jwang/.claude/hooks/nana-adoption.mjs'" && settings.hooks.SessionStart[0].hooks[1] === foreign && settings.hooks.SessionStart[0].hooks.length === 3);
+	check("legacy managed bash hooks replace commands in place", migrateLegacyHooks(settings, { hooksDir: "/Users/example/.claude/hooks", claudeHome: "/Users/example/.claude" }) && settings.hooks.SessionStart[0].hooks[0].command === "node '/Users/example/.claude/hooks/nana-objective.mjs'" && settings.hooks.SessionStart[0].hooks[2].command === "node '/Users/example/.claude/hooks/nana-adoption.mjs'" && settings.hooks.SessionStart[0].hooks[1] === foreign && settings.hooks.SessionStart[0].hooks.length === 3);
 }
 
 /* --- near-match legacy entries are not migrated -------------------------------------- */
@@ -458,7 +458,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	const settings = { hooks: { SessionStart: [{ hooks: entries }], Stop: [{ hooks: [wrongEvent] }] } };
 	const before = JSON.stringify(settings);
 	// req: R-908
-	check("near-match legacy entries stay byte-identical across keys, fields, command, and event", !migrateLegacyHooks(settings, { hooksDir: "/Users/jwang/.claude/hooks", claudeHome: "/Users/jwang/.claude" }) && JSON.stringify(settings) === before);
+	check("near-match legacy entries stay byte-identical across keys, fields, command, and event", !migrateLegacyHooks(settings, { hooksDir: "/Users/example/.claude/hooks", claudeHome: "/Users/example/.claude" }) && JSON.stringify(settings) === before);
 }
 
 /* --- unit: a disabled look-alike must NOT count as installed -------------------------- */

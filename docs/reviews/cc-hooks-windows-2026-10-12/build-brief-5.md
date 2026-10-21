@@ -41,7 +41,7 @@ scripts (outputs re-committed); `SEAT_MUTATE_OUT=docs/reviews/cc-hooks-windows-2
 new failure in a lane file, fix it and push again before reporting.
 
 ## Rules
-Briefs 1–4 hold. Wrong code first. Do not edit `CHANGE.md`, the seat scripts, `jake-windows-check.md`,
+Briefs 1–4 hold. Wrong code first. Do not edit `CHANGE.md`, the seat scripts, `owner-windows-check.md`,
 `HANDOFF.md` or `docs/sessions/`. When the CI run completes, read it and REPORT.
 
 ## Report

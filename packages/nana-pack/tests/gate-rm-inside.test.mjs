@@ -6,7 +6,7 @@
  * @effects disk (temp HOME, cwd fixtures incl. three symlinks, config files, a temp git-fixture tree), process (sets HOME, USERPROFILE and PI_CODING_AGENT_DIR; spawns git)
  * @errors a failed row prints FAIL with the cases that got the wrong verdict and the run exits 1; an unexpected throw propagates and fails the run, including a missing git
  */
-// L2 (2026-10-19): the one exemption a plain, literal, in-cwd rm gets (Jake's 2026-10-10 ruling)
+// L2 (2026-10-19): the one exemption a plain, literal, in-cwd rm gets (the owner's 2026-10-10 ruling)
 // and every guard that keeps today's verdict otherwise, plus the bare-repository guard added
 // 2026-10-20. Real registered handler, headless fail-closed, one interactive variant pins zero
 // dialogs for the exempt form (gate-corpus's harness: lib gate-shell.ts, gate-paths.ts,
