@@ -26,6 +26,8 @@ const R2447 = /^R-2447: /;
 const RENDER_FIELD = "        if (!entries.length) continue;\n        const values = entries.flatMap((entry) => CAPABILITY_LIST_FIELDS.has(label) ? splitCapabilityList(entry.value) : [entry.value]);\n        out.push(";
 
 const DECLARED = [
+	"(e8132c2f, after the run) 41 of 41 red. D4 turns the file red by a throw (expandRowIds on a non-row token), as its wrong form does in real use. B6 also names R-2445, which stays green: build 2 pinned the retired constraint case under R-2443 only",
+	"(build 2, e8132c2f) on c97ddc66 37 of 41 read red; P2, B6, N2 and N3 survived as test gaps. Build 2 adds a kindless Retired: case (P2) and a retired constraint with no Binds: (B6, with R-2443 reworded to exempt it), and moves the Needs kind and retirement targets earlier than the capability that needs them (N2, N3)",
 	"(build 1, c97ddc66) 41 pairs over the five checker rules, the parser span and kind gate, the lift's refusal and field block, the outline renderer and its field check, and the movement report",
 	"(a) P2 and B6 probe test gaps the must-meet rows claim but no case may exercise: Retired: read on a capability with no Kind:, and a retired constraint capability that carries no Binds:",
 ];
@@ -176,4 +178,4 @@ const PAIRS = [
 	], tests: [MV], expectRed: [R2447] },
 ];
 
-process.exitCode = await runMutations({ lane: "cap-kinds", self: import.meta.url, tip: "c97ddc66", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "cap-kinds", self: import.meta.url, tip: "e8132c2f", declared: DECLARED, pairs: PAIRS });
