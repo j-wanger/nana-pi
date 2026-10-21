@@ -1,0 +1,15 @@
+seat-mutate: lane cap-fields-own, tip a34fb8aa8e40650f8dd74f0e3c0abe6f64e14bcf, table 5e6dd0e1069a0582412606ec628d7e1f5862b417731c34fca0c2a7ad9ea7bc13, merge-base c51bfcd8b411db31a540d14cbde54b624e1f0c3e, 3 pairs in 3 shards (1+1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T06:14:07.191Z
+DECLARED (build 1, a34fb8aa) three pairs over the capability lines this lane adds
+[1/3] seat-mutate: lane cap-fields-own, shard 1/3, tip a34fb8aa8e40650f8dd74f0e3c0abe6f64e14bcf, merge-base c51bfcd8b411db31a540d14cbde54b624e1f0c3e, 1 pairs, darwin, node v22.22.2, 2026-10-21T06:14:07.884Z
+[1/3] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[1/3] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/3] seat-mutate: lane cap-fields-own, shard 2/3, tip a34fb8aa8e40650f8dd74f0e3c0abe6f64e14bcf, merge-base c51bfcd8b411db31a540d14cbde54b624e1f0c3e, 1 pairs, darwin, node v22.22.2, 2026-10-21T06:14:11.886Z
+[2/3] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[2/3] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/3] seat-mutate: lane cap-fields-own, shard 3/3, tip a34fb8aa8e40650f8dd74f0e3c0abe6f64e14bcf, merge-base c51bfcd8b411db31a540d14cbde54b624e1f0c3e, 1 pairs, darwin, node v22.22.2, 2026-10-21T06:14:15.939Z
+[3/3] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[3/3] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED C1 CAP-05 loses its Kind: line (its Deliverables: line becomes prose) — 1/1 named: /^R-2460: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED C2 CAP-08 loses its Deliverables: line — 1/1 named: /^R-2460: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED C3 CAP-03 flipped to product with no deliverables — 1/1 named: /^R-2460: /; 1 FAIL total (1 file changed, 1 insertion(+), 2 deletions(-))
+RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 3 shards
