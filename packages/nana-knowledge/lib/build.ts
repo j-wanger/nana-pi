@@ -258,7 +258,6 @@ async function assertRecoveryDeleteSafe(onRecoveryLocked?: () => void): Promise<
 
 	if (failure === undefined) {
 		try {
-			if (began) onRecoveryLocked?.();
 			if (process.platform === "win32" || !began) {
 				// Windows cannot remove a database another process has open. Release our handle
 				// first; a writer entering this gap makes delete fail, so recovery fails and keeps it.
@@ -266,6 +265,7 @@ async function assertRecoveryDeleteSafe(onRecoveryLocked?: () => void): Promise<
 			} else {
 				// POSIX permits unlinking an open file. Keep BEGIN IMMEDIATE held through every
 				// unlink so no writer can commit to the file recovery is replacing.
+				onRecoveryLocked?.();
 				deleteIndexFiles();
 			}
 		} catch (err) {
@@ -282,7 +282,10 @@ async function assertRecoveryDeleteSafe(onRecoveryLocked?: () => void): Promise<
 		catch (err) { if (!indexDamage(err) && failure === undefined) failure = err; }
 	}
 	if (failure !== undefined) throw failure;
-	if (deleteAfterClose) deleteIndexFiles();
+	if (deleteAfterClose) {
+		onRecoveryLocked?.();
+		deleteIndexFiles();
+	}
 }
 
 export interface BuildOptions {
