@@ -24,6 +24,27 @@ const PS_VALUE_PARAMETERS = ["filter", "include", "exclude"] as const;
 const HOME_SPELLINGS = ["$HOME", "${HOME}"] as const;
 const PS_HOME_SPELLINGS = ["$env:USERPROFILE", "$env:HOME"] as const;
 
+// contract (R-2490): Git for Windows' fstab mounts usertemp at /tmp (git-extra.install.in:116-118, checked 2026-10-21).
+export const GIT_BASH_TEMP = "/tmp";
+// contract (R-2490): GetTempPathW checks TMP then TEMP; omitting later fallbacks makes unset environments fail closed.
+export const GIT_BASH_TEMP_VARIABLES = ["TMP", "TEMP"] as const;
+// contract (R-2492): Git for Windows' cygdrive mount accepts one drive letter followed by / or end (mount.cc:895-917).
+export const GIT_BASH_DRIVE = /^\/([A-Za-z])(?=\/|$)/;
+
+/** Read Git Bash's default temp and cygdrive spellings as Windows paths by textual substitution. */
+export function gitBashPath(spelling: string, { platform, env }: { platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv }): string {
+	if (platform !== "win32" || env === undefined || spelling.startsWith("//") || spelling.includes("\\")) return spelling;
+	const normalized = path.posix.normalize(spelling);
+	if (normalized === GIT_BASH_TEMP || normalized.startsWith(`${GIT_BASH_TEMP}/`)) {
+		const temp = GIT_BASH_TEMP_VARIABLES.map((name) => env[name]).find((value) => value !== undefined && value !== "");
+		if (temp === undefined) return spelling;
+		return `${temp}${normalized.slice(GIT_BASH_TEMP.length)}`;
+	}
+	const drive = GIT_BASH_DRIVE.exec(normalized);
+	if (drive) return `${drive[1].toUpperCase()}:${normalized.slice(drive[0].length) || "/"}`;
+	return spelling;
+}
+
 const REDIRECTION = /(?:\d+)?(?:&>|>&|>>?|<<?)\s*(?:&?\d+|"(?:\\.|[^"])*"|'[^']*'|[^\s;&|]+)/g;
 const DYNAMIC = /[*?\[\]{}$`]/;
 
@@ -94,8 +115,9 @@ type Folder = { typed: string; real: string };
 type Placed = { full: string; compared: string };
 
 /** Canonicalize the target's parent but not its last part, so a final link is judged where it sits. */
-function placedTarget(target: string, folder: Folder, home: string, powershell: boolean): Placed | null {
-	const expanded = homeExpanded(target, home, powershell);
+function placedTarget(target: string, folder: Folder, home: string, powershell: boolean, platform?: NodeJS.Platform, env?: NodeJS.ProcessEnv): Placed | null {
+	const translated = powershell || platform === undefined || env === undefined ? target : gitBashPath(target, { platform, env });
+	const expanded = homeExpanded(translated, home, powershell);
 	if (expanded === null) return null;
 	const spelling = powershell ? expanded.replaceAll("\\", path.sep) : expanded;
 	const full = path.resolve(folder.typed, spelling);
@@ -122,7 +144,7 @@ export function rmOutsideTargets(
 	segments: Segment[],
 	cwd: string,
 	tool: string,
-	{ home, tempRoots, segmentable }: { home: string; tempRoots: string[]; segmentable: boolean },
+	{ home, tempRoots, segmentable, platform, env }: { home: string; tempRoots: string[]; segmentable: boolean; platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv },
 ): Map<Segment, string> {
 	const hits = new Map<Segment, string>();
 	try {
@@ -144,7 +166,8 @@ export function rmOutsideTargets(
 					continue;
 				}
 				if (cdWords.has(command)) {
-					const typed = cdFolder(args, home);
+					const rawTyped = cdFolder(args, home);
+					const typed = rawTyped !== null && !powershell && platform !== undefined && env !== undefined ? gitBashPath(rawTyped, { platform, env }) : rawTyped;
 					if (typed === null || typed.startsWith("$") || typed.startsWith("`") || /^~[^/\\]/.test(typed)) {
 						folders = [];
 						continue;
@@ -168,7 +191,7 @@ export function rmOutsideTargets(
 					const absoluteLike = path.isAbsolute(powershell ? target.replaceAll("\\", path.sep) : target) || target.startsWith("~") || target.startsWith("$HOME") || target.startsWith("${HOME}") || (powershell && target.toLowerCase().startsWith("$env:"));
 					const bases = absoluteLike ? [{ typed: path.resolve(cwd), real: cwdReal }] : folders;
 					for (const folder of bases) {
-						const placed = placedTarget(target, folder, home, powershell);
+						const placed = placedTarget(target, folder, home, powershell, platform, env);
 						if (placed !== null && roots.every((root) => !strictWithin(root, placed.compared))) {
 							hits.set(segment, placed.full);
 							break;

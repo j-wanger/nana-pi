@@ -1856,9 +1856,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/gate-rm-outside.test.mjs`
 
-- **purpose** — Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including the POSIX /tmp root, and preserve the inside and variable-led passes.
+- **purpose** — Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including Git Bash path readings, the POSIX /tmp root, and the inside and variable-led passes.
 - **inputs** — the real nana-gate handler, gate-rm-outside, gate-shell, real-path, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
-- **outputs** — nine named PASS/FAIL checks (or eight and one Windows SKIP) and exit 1 when any requirement fails
+- **outputs** — twelve named PASS/FAIL checks (or eleven and one Windows SKIP) and exit 1 when any requirement fails
 - **effects** — disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables)
 - **errors** — unexpected failures reject through a per-case timeout and fail the process; assertion failures print FAIL
 - **callers** — —

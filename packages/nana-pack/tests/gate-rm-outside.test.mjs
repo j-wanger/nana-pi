@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/tests/gate-rm-outside.test.mjs
- * @purpose Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including the POSIX /tmp root, and preserve the inside and variable-led passes.
+ * @purpose Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including Git Bash path readings, the POSIX /tmp root, and the inside and variable-led passes.
  * @inputs the real nana-gate handler, gate-rm-outside, gate-shell, real-path, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
- * @outputs nine named PASS/FAIL checks (or eight and one Windows SKIP) and exit 1 when any requirement fails
+ * @outputs twelve named PASS/FAIL checks (or eleven and one Windows SKIP) and exit 1 when any requirement fails
  * @effects disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables)
  * @errors unexpected failures reject through a per-case timeout and fail the process; assertion failures print FAIL
  */
@@ -11,7 +11,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { rmOutsideTargets } from "../lib/gate-rm-outside.ts";
+import { gitBashPath, rmOutsideTargets } from "../lib/gate-rm-outside.ts";
 import { detectionSegments, splitCommand } from "../lib/gate-shell.ts";
 import { realPath } from "../lib/real-path.mjs";
 
@@ -88,7 +88,56 @@ function moduleHits(command, tool = "bash") {
 	if (!split.segmentable) for (const [segment, target] of rmOutsideTargets(detectionSegments(command), WORK, tool, options)) hits.set(segment, target);
 	return [...hits.values()];
 }
+function gbHits(command, { platform = "win32", env = { TMP: TEMP_ROOT }, tool = "bash", tempRoots = [TEMP_ROOT] } = {}) {
+	const split = splitCommand(command);
+	const options = { home: HOME, tempRoots, segmentable: split.segmentable, platform, env };
+	const hits = rmOutsideTargets(split.segments, WORK, tool, options);
+	if (!split.segmentable) for (const [segment, target] of rmOutsideTargets(detectionSegments(command), WORK, tool, options)) hits.set(segment, target);
+	return [...hits.values()];
+}
 const full = (value, cwd = WORK) => path.resolve(cwd, value);
+
+{
+	const cases = [
+		["rm -f /tmp/out.txt", { TMP: TEMP_ROOT }, []],
+		["rm /tmp/sub/x", { TMP: TEMP_ROOT }, []],
+		["rm -f /tmp/sub/*.log", { TMP: TEMP_ROOT }, []],
+		["rm -f /tmp", { TMP: TEMP_ROOT }, [TEMP_ROOT]],
+		["rm -f /tmp/out.txt", { TEMP: TEMP_ROOT }, []],
+		["rm -f /tmp/out.txt", { TMP: "", TEMP: TEMP_ROOT }, []],
+		["rm -f /tmp/out.txt", { TMP: TEMP_ROOT, TEMP: OUTSIDE }, []],
+		["rm -f /tmp/out.txt", { TMP: OUTSIDE, TEMP: TEMP_ROOT }, [path.join(OUTSIDE, "out.txt")]],
+		["rm -f /tmp/out.txt", {}, [path.resolve(WORK, "/tmp/out.txt")]],
+	];
+	const results = cases.map(([command, env, expected]) => ({ command, actual: gbHits(command, { env }), expected }));
+	// req: R-2490
+	check("on Windows a Git Bash /tmp target is judged in the folder TMP names, or TEMP when TMP is unset", results.every(({ actual, expected }) => JSON.stringify(actual) === JSON.stringify(expected)), JSON.stringify(results));
+}
+
+{
+	const cases = [
+		["cd /tmp && rm -f out.txt", { TMP: TEMP_ROOT }, []],
+		["pushd /tmp/sub && rm x", { TMP: TEMP_ROOT }, []],
+		["cd /tmp && rm ../x", { TMP: TEMP_ROOT }, [path.join(F, "x")]],
+	];
+	const results = cases.map(([command, env, expected]) => ({ command, actual: gbHits(command, { env }), expected }));
+	// req: R-2491
+	check("on Windows a cd to Git Bash /tmp moves relative rm targets into the temp folder", results.every(({ actual, expected }) => JSON.stringify(actual) === JSON.stringify(expected)), JSON.stringify(results));
+}
+
+{
+	const options = { platform: "win32", env: {} };
+	const cases = [
+		["/c/Users/u/x", "C:/Users/u/x", "C:\\Users\\u\\x"], ["/D/data/x", "D:/data/x", "D:\\data\\x"],
+		["/c", "C:/", "C:\\"], ["/c/", "C:/", "C:\\"],
+		["/cd/x", "/cd/x"], ["/1/x", "/1/x"], ["//c/x", "//c/x"], ["c/x", "c/x"], ["C:/x", "C:/x"], ["x", "x"], ["/c/a\\b", "/c/a\\b"],
+	];
+	const translated = cases.map(([spelling, expected]) => [spelling, gitBashPath(spelling, options), expected]);
+	const platformCases = ["darwin", "linux"].map((platform) => [platform, gitBashPath("/c/x", { platform, env: {} })]);
+	const ok = translated.every(([, actual, expected]) => actual === expected) && cases.slice(0, 4).every(([spelling, , expected]) => path.win32.resolve(gitBashPath(spelling, options)) === expected) && platformCases.every(([, actual]) => actual === "/c/x");
+	// req: R-2492
+	check("on Windows a Git Bash drive spelling such as /c/ reads as that drive's path", ok, JSON.stringify({ translated, platformCases }));
+}
 
 {
 	const rootTarget = path.join(NEVER_ROOT, "x");
