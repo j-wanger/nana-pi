@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @module packages/nana-pack/tests/requirements-cap-kinds.test.mjs
  * @purpose Pin capability field parsing, validation, lift preservation, outline rendering and historical compatibility.
  * @inputs scripts/requirements-tree.mjs, scripts/requirements-lift.mjs, git history, and ledger fixtures built under the OS temp directory.
@@ -133,30 +133,35 @@ const bindsCases = [
 const bindsFailures = bindsCases.map(([name, text]) => [name, checkTree(text).problems]);
 const bindsValidOne = checkTree(bindsCase(["Kind: constraint", "Binds: CAP-01"])).problems;
 const bindsValidTwo = checkTree(bindsCase(["Kind: constraint", "Binds: CAP-01, CAP-02"])).problems;
+const retiredConstraintNoBinds = checkTree(retiredCase(["Kind: constraint", "Retired: CAP-01"])).problems;
 // req: R-2443
-check("R-2443: a constraint capability must bind only live product capabilities, and a product capability may not carry Binds", bindsValidOne.length === 0 && bindsValidTwo.length === 0 && bindsFailures.every(([, problems]) => problems.some((problem) => problem.includes("CAP-03") && problem.includes("Binds:"))), `valid-one=${bindsValidOne.join("; ")} valid-two=${bindsValidTwo.join("; ")}\n${bindsFailures.map(([name, problems]) => `${name}: ${problems.join("; ")}`).join("\n")}`);
+check("R-2443: a constraint capability must bind only live product capabilities, and a product capability may not carry Binds", bindsValidOne.length === 0 && bindsValidTwo.length === 0 && retiredConstraintNoBinds.length === 0 && bindsFailures.every(([, problems]) => problems.some((problem) => problem.includes("CAP-03") && problem.includes("Binds:"))), `valid-one=${bindsValidOne.join("; ")} valid-two=${bindsValidTwo.join("; ")} retired-constraint=${retiredConstraintNoBinds.join("; ")}\n${bindsFailures.map(([name, problems]) => `${name}: ${problems.join("; ")}`).join("\n")}`);
 
 function needsCase(capabilityId, value, fieldsById = {}) {
-  const caps = ["CAP-01", "CAP-02", "CAP-03", "CAP-04", "CAP-05"].map((id, index) => ({
-    id,
-    fields: fieldsById[id] ?? (id === "CAP-03" ? ["Kind: constraint", "Binds: CAP-01"] : id === "CAP-04" ? [] : id === "CAP-05" ? ["Kind: product", "Retired: CAP-01"] : ["Kind: product"]),
-    features: [{ id: `FEAT-00${index + 1}`, status: id === "CAP-05" ? "retired (CAP-01)" : "active", rows: id === "CAP-05" ? [] : [row(`R-00${index + 1}`)] }],
-  }));
+  const caps = ["CAP-01", "CAP-02", "CAP-03", "CAP-04", "CAP-05"].map((id, index) => {
+    const fields = fieldsById[id] ?? (id === "CAP-03" ? ["Kind: constraint", "Binds: CAP-01"] : id === "CAP-04" ? [] : id === "CAP-05" ? ["Kind: product", "Retired: CAP-01"] : ["Kind: product"]);
+    const retired = fields.some((field) => field.startsWith("Retired:"));
+    return {
+      id,
+      fields,
+      features: [{ id: `FEAT-00${index + 1}`, status: retired ? "retired (CAP-01)" : "active", rows: retired ? [] : [row(`R-00${index + 1}`)] }],
+    };
+  });
   caps.find((capability) => capability.id === capabilityId).fields.push(`Needs: ${value}`);
   return fixtureLedger(ledger(caps)).text;
 }
 const needsCases = [
-  ["later", needsCase("CAP-01", "CAP-02")],
-  ["itself", needsCase("CAP-02", "CAP-02")],
-  ["constraint target", needsCase("CAP-02", "CAP-03")],
-  ["kindless target", needsCase("CAP-02", "CAP-04")],
-  ["retired target", needsCase("CAP-02", "CAP-05")],
-  ["constraint carries Needs", needsCase("CAP-03", "CAP-01")],
+  ["later", "CAP-01", "CAP-02", needsCase("CAP-01", "CAP-02")],
+  ["itself", "CAP-02", "CAP-02", needsCase("CAP-02", "CAP-02")],
+  ["constraint target", "CAP-02", "CAP-01", needsCase("CAP-02", "CAP-01", { "CAP-01": ["Kind: constraint", "Binds: CAP-02"] })],
+  ["kindless target", "CAP-02", "CAP-01", needsCase("CAP-02", "CAP-01", { "CAP-01": [] })],
+  ["retired target", "CAP-02", "CAP-01", needsCase("CAP-02", "CAP-01", { "CAP-01": ["Kind: product", "Retired: CAP-02"] })],
+  ["constraint carries Needs", "CAP-03", "CAP-01", needsCase("CAP-03", "CAP-01")],
 ];
-const needsFailures = needsCases.map(([name, text]) => [name, checkTree(text).problems]);
+const needsFailures = needsCases.map(([name, capabilityId, token, text]) => [name, capabilityId, token, checkTree(text).problems]);
 const needsValid = checkTree(needsCase("CAP-02", "CAP-01")).problems;
 // req: R-2444
-check("R-2444: a stage may need only earlier live product capabilities, so no Needs cycle can form", needsValid.length === 0 && needsFailures.every(([, problems]) => problems.some((problem) => problem.includes("Needs:") && problem.includes("CAP-"))), `valid=${needsValid.join("; ")}\n${needsFailures.map(([name, problems]) => `${name}: ${problems.join("; ")}`).join("\n")}`);
+check("R-2444: a stage may need only earlier live product capabilities, so no Needs cycle can form", needsValid.length === 0 && needsFailures.every(([, capabilityId, token, problems]) => problems.some((problem) => problem.includes(capabilityId) && problem.includes("Needs:") && problem.includes(token))), `valid=${needsValid.join("; ")}\n${needsFailures.map(([name, , , problems]) => `${name}: ${problems.join("; ")}`).join("\n")}`);
 
 function retiredCase(retiredFields, featureStatus = "retired (CAP-01)") {
   return fixtureLedger(ledger([
@@ -168,6 +173,7 @@ function retiredCase(retiredFields, featureStatus = "retired (CAP-01)") {
 }
 const retiredCases = [
   ["missing successor", retiredCase(["Kind: product", "Retired: CAP-99"])],
+  ["kindless missing successor", retiredCase(["Retired: CAP-99"])],
   ["itself", retiredCase(["Kind: product", "Retired: CAP-04"])],
   ["retired successor", retiredCase(["Kind: product", "Retired: CAP-03"])],
   ["empty", retiredCase(["Kind: product", "Retired:"])],
@@ -176,8 +182,10 @@ const retiredCases = [
 ];
 const retiredFailures = retiredCases.map(([name, text]) => [name, checkTree(text).problems]);
 const retiredValid = checkTree(retiredCase(["Kind: product", "Retired: CAP-01, CAP-02"])).problems;
+const retiredKindlessValid = checkTree(retiredCase(["Retired: CAP-01"])).problems;
+const retiredKindlessMissing = retiredFailures.find(([name]) => name === "kindless missing successor")[1];
 // req: R-2445
-check("R-2445: a retired capability names live successors, carries no stage fields and holds only retired features", retiredValid.length === 0 && retiredFailures.every(([, problems]) => problems.some((problem) => problem.includes("CAP-04") && problem.includes("Retired:"))), `valid=${retiredValid.join("; ")}\n${retiredFailures.map(([name, problems]) => `${name}: ${problems.join("; ")}`).join("\n")}`);
+check("R-2445: a retired capability names live successors, carries no stage fields and holds only retired features", retiredValid.length === 0 && retiredKindlessValid.length === 0 && retiredKindlessMissing.some((problem) => problem.includes("CAP-04") && problem.includes("Retired:") && problem.includes("CAP-99")) && retiredFailures.every(([, problems]) => problems.some((problem) => problem.includes("CAP-04") && problem.includes("Retired:"))), `valid=${retiredValid.join("; ")} kindless-valid=${retiredKindlessValid.join("; ")}\n${retiredFailures.map(([name, problems]) => `${name}: ${problems.join("; ")}`).join("\n")}`);
 
 const outlineText = fixtureLedger(acceptedFixture()).text;
 const outlineParsed = parseLedger(outlineText);
