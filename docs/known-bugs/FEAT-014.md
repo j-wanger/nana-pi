@@ -1,0 +1,36 @@
+# FEAT-014 — known bugs
+
+*One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
+
+- readme-check-cp1252: no test runs an adopted Python project's readme check or code map under ASCII or cp1252 output, nor the code map's write mode.
+- readme-check-cp1252: since win-post-edit-utf8, post-edit gives Python checks UTF-8 output on every platform. A non-Python checker that writes in a Windows code page is unchanged. Post-edit still reads its output as UTF-8, so a character such as ï or a long dash shows as a replacement mark.
+- readme-check-cp1252: the TypeScript readme check claims only paths spelled in ASCII, while the Python one claims any path.
+- readme-check-cp1252: both Python checkers were already over the template's 500-line cap, and each grew by three lines.
+- Adoption close (adopt-closes-check): the structure-only adopt skill's close also reads ! for its empty post-edit list. A project adopted without the markers still reads ! for the working region. Nothing migrates it; re-adopting it fixes it.
+- Adoption close (adopt-closes-check): the project check does not read the objective's draft lines. So an adoption whose objective the owner never ratified can still close ready.
+- Adoption close (adopt-closes-check): the closing step is advisory skill text, and nothing forces an agent to run it. The new check pins the wording, not what an agent does.
+- Adoption close (adopt-closes-check): the Windows form assumes the nana-pi checkout sits directly in the home folder. Nobody has run it in a Windows pi session, so nobody has seen how the shell expands the home variable there.
+- Adoption close (adopt-closes-check): each adopt skill's first steps still name the bare trust command. Since the win-path-commands lane, that command works on Windows once the owner adds the bin folder to the user Path.
+- Adoption close (adopt-closes-check): a lifted tree that nobody regrouped still passes the tree checker silently. The plan split that warning into its own lane, not yet built.
+- Project check warnings (project-check-quiet): during the project check, the mute drops any module type warning, not only the pack's. The check also starts loading pi's package in the background. Where that package loads, any other warning it raises still prints.
+- Project check warnings (project-check-quiet): the project check now uses doctor's mute. So the four doctor-quiet lines on preloads and saved listeners apply to it too.
+- Project check warnings (project-check-quiet): the checks pin the quiet project check on Node 22 only. The plan infers the same for Node 23 and early 24; nobody has run either.
+- Project check warnings (project-check-quiet): no check pins that project setup prints no warning. It is quiet today. A new TypeScript import there would make it warn, and no check would fail.
+- Project check warnings (project-check-quiet): no check stops the mute from spreading to other commands. Such a change would touch install, doctor or trust, so it belongs in another lane.
+- Adoption markers (adopt-structure-markers): the project check does not see a bare copy of the working section left beside the marked block. Only the skill's wording forbids a second copy, and the check pins only that wording.
+- Adoption markers (adopt-structure-markers): an agent may not tell where an older bare copy ends. Older shared sections held parts that later moved into project sections. The skill tells the agent to ask the owner then.
+- Adoption markers (adopt-structure-markers): an agent that also copies the code-fence lines gets ! for the working region. The project check ignores markers inside a fence. Only the skill's prose warns against it.
+- Adoption markers (adopt-structure-markers): nobody ran the fallback commands in PowerShell or cmd. The check runs each command's script through node directly. It bans the characters those shells read specially, so the plan infers the same output there.
+- Adoption markers (adopt-structure-markers): the fallback check reads a stub file, not a real template render. The template render test checks the render's markers.
+- Adoption markers (adopt-structure-markers): the new checks read the skill's text. They cannot prove that an agent follows it.
+- Adoption markers (adopt-structure-markers): when the shared working-section file is missing, the structure-only adopt skill's fallback commands print the whole marked block, markers included. Its step 4 still says to copy the section and write it between the markers. An agent that pastes the printed block over the placeholder gets two begin and two end markers. The project check then reads ! and setup skips the region. Nothing is lost, and only the fallback path hits it. No check covers it.
+- Adoption markers (adopt-structure-markers, win-path-commands): the win-path-commands lane puts the setup command on the path on Windows once the bin folder is on the user Path. So the closing step's "not on PATH, as on Windows" is now stale in all three adopt skills. They are the structure-only, Python and TypeScript skills. The working pattern's fallback still ties "not on PATH" to Windows too. The Windows checklist lane that follows this one fixes them.
+- Odd seed entries (project-odd-seeds plan): project setup still exits 0 when it leaves a seed alone, while the project check exits 1. An older check pins that exit 0.
+- Odd seed entries (project-odd-seeds plan): project setup prints no row for the project's own CLAUDE.md beside a regular AGENTS.md. Only the project check names it, as a fix by hand.
+- Odd seed entries (project-odd-seeds plan): project setup still follows a live link on a seed's folder path. So it writes a missing seed into the folder that link points to.
+- Odd seed entries (project-odd-seeds plan): a linked AGENTS.md gives two by-hand ✗ lines in the project check. One is for the working region, and one is for the navigation file.
+- Odd seed entries (project-odd-seeds plan): the check's advice to fold the project's own CLAUDE.md into AGENTS.md is advice only. That file reads ✗ until the owner does it by hand.
+- Odd seed entries (project-odd-seeds plan): project setup refuses a dismissed folder, dry run included. The project check then keeps its old last line, which still says to run project setup.
+- Odd seed entries (project-odd-seeds plan, inferred, not probed): project's dry run opens AGENTS.md read-only. So the project check still sends an unwritable AGENTS.md whose working region differs to project setup.
+- Odd seed entries (project-odd-seeds plan): no check pins that project setup runs git init only outside a repository. A check that catches an extra git init needs a sentinel in git's template folder.
+- Odd seed entries (project-odd-seeds, final review): an earlier month's log can sit beside an odd entry where this month's log belongs. Project setup then lists the month log as a fix by hand. The project check reads that log as fine.

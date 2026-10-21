@@ -1,0 +1,39 @@
+# FEAT-001 — known bugs
+
+*One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
+
+- Rulings file: no test proves that a live Claude Code or pi session loads the rulings. The tests stop at the installed file and the prompt section.
+- Rulings file: each machine gets the rulings only after one install run after the pull. Until then pi shows the notice, and Claude Code's session start names the missing copy and the install command.
+- Rulings file: a Windows copy stays stale until the next install. Doctor and each session start flag it meanwhile.
+- Rulings file: on Windows, install now backs up a rulings copy only in four cases (win-copy-backup-noise). The owner edited it, the record is missing or broken, the record does not name it, or the rename fails. Claude Code should not load such a backup as a rule; nobody has tested that.
+- Rulings file: every session, builder and reviewer now carries about 600 more tokens.
+- Rulings file: no test pins how a model reads the scope sentence. A builder or reviewer may still act on a seat-only ruling, such as pushing its branch.
+- Rulings file: the owner and model word lists are short lists, not proofs. Each ruling's wording and scope are the seat's reading of its memory.
+- Rulings file: the seat's memory still states the rulings itself. After the land, the seat points its memory at the file.
+- Rulings file: on macOS and Linux the pi agent folder holds a link into the checkout. An edit through that link changes the checkout.
+- Mutation runner tally (objective-path-shapes, wrong-code pairs): the shared runner's result line counts a pair twice as named title green when its named checks never ran. Two such pairs read as four, so the parts add up past the pair count. The red and survived counts stay right. The seat read this in the runner's code and ran no check of it.
+- Config line (win-config-json-path, gate-stop-names-config): for some errors, such as an unquoted value or an empty file, the parser reports no line and column. The config line and pi's gate stop then name no place.
+- Config line (win-config-json-path, config-advice-fixes): the place and the choice of advice both rest on the wording of Node's parse errors. Since config-advice-fixes, a Node that changes that wording fails two to five checks loudly. The count depends on which message changes. CI runs Node 22 on all three legs. Nobody ran Node 24 in either lane's checks. The plan saw the same wording for a bad escape there. The config-advice-fixes seat saw the same wording for every error kind there.
+- Config line (win-config-json-path; gate-stop-names-config, independent check): pi's config warning and journal line still quote up to 120 characters of the parser's message. For an unexpected character, that message holds text from the file. The gate's stop in pi no longer quotes it.
+- Config line (win-config-json-path): the adoption hook still ignores a broken config without a word. A config file the seats cannot read at all, such as a folder, still gets no config line.
+- Config line (win-config-json-path): a pasted Windows path still parses when each backslash happens to form a valid escape. It then names a wrong path, and the objective reads as missing.
+- Config line (win-config-json-path): the macOS checklist's objective step gained no example.
+- Config line (win-config-json-path): while the config does not parse, doctor's objective file row judges the default objective file.
+- Objective path (objective-path-shapes, independent check): when the objective block itself is not an object, such as a number, doctor shows no objective path row. Main does the same. The lane's promise covers only the path value.
+- Objective path (objective-path-shapes, plan): a tilde alone names the home folder, and on Windows so does a tilde and backslash alone. Doctor's objective file row then reads ✓, because it only checks that the path exists. The objective producer calls it unreadable. Main did the same for a tilde alone.
+- Objective path (objective-path-shapes, plan): doctor prints control characters in an objective path raw, in its objective file row. Main does the same.
+- Objective path (objective-path-shapes, plan): the objective path copies only pi's tilde-backslash rule. A file URL or a Git Bash drive path is not expanded.
+- Objective path (objective-path-shapes, plan): install does not flag an objective path that is not text. Only doctor marks it ✗.
+- Objective path (objective-path-shapes, plan and wrong-code pairs): install's objective file follows the real platform, not the setup tools' test platform switch. A wrong version that reads the switch would survive on macOS. The seat declared it and did not run it.
+- Objective path (objective-path-shapes, final review): doctor's objective path row has a fallback that turns the raw value into text. A value read from JSON never reaches it, so the fallback is dead code. It does no harm.
+- Objective path (objective-path-shapes, final review): two of the lane's checks reach the Windows path rules only through a platform setting passed to the resolver. Only the Windows CI leg's run of a third check proves the whole Windows path end to end.
+- Objective path (objective-path-shapes, final review): no check gives doctor's objective path row a value over 120 characters or a tilde alone. So nothing pins the row's cap on the shown value. The independent check saw a 300-character value cut to 120.
+- Config line (win-config-json-path): the independent check ran on the first build only. The second build split the advice by error kind and added two checks. Nobody re-ran the independent check on it. The seat's wrong-code pairs ran on macOS only.
+- Config line (config-advice-fixes, plan): a raw control character in a config string still gets the forward-slash advice, though no backslash caused it.
+- Config line (config-advice-fixes, independent check): a file cut off inside a backslash-u escape also gets the forward-slash advice. The line and column are still right.
+- Config line (config-advice-fixes, plan): the gate-pattern check looks for the exact words "backslash as two". A reword that keeps the meaning still fails it.
+- Config line (config-advice-fixes, plan): the gate-pattern check types its list of config keys by hand. A key added to the config later goes unchecked until someone adds it there.
+- Config line (config-advice-fixes, plan): doctor's row gets the new advice only through the shared sentence. No check reads doctor's row for a key name or the doubling clause.
+- Config line (config-advice-fixes): the independent check ran on the first build only. The second build changed tests only, adding two checks that pin the advice sentences. Nobody re-ran the independent check on it. The seat's wrong-code pairs ran on macOS only, and only the survivor re-ran on the second build.
+- Config line (config-advice-fixes, land review): the objective producer now accepts no settings at all, but passes them on to a function typed to require them. Nothing fails today, because the suite runs no type check.
+- Config line (config-advice-fixes, review): two requirements still say the forward-slash advice goes only to a bad escape or a raw control character. The code now also gives it for a bad backslash-u escape. A later lane rewords both requirements.
