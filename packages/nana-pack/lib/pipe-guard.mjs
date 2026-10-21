@@ -27,7 +27,10 @@ const BASH_STATUS_CLOSER_WORDS = new Set(["fi", "done", "esac"]);
 const BASH_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\})/u;
 const POWERSHELL_STATUS_EXPANSION = /^(?:\$\?|\$\{\?\}|\$LASTEXITCODE\b)/iu;
 const BASH_BACKGROUND_WAIT = /(?:^|[;&\r\n])\s*wait\b/iu;
-const BASH_ERREXIT_ENABLES = /(?:^|[;&|`(){}\r\n]|\b(?:then|do)\b)\s*set\s+(?:-[a-z]*e[a-z]*|-o\s+errexit)\b/giu;
+const BASH_ERREXIT_TEXT = /errexit/iu;
+const BASH_SET_WORD = /\bset\b/giu;
+const BASH_ERREXIT_OPTION = /(?:^|\s)-[a-z]*e[a-z]*(?![\w-])/iu;
+const BASH_SIMPLE_COMMAND_END = /[;&|\r\n)\]}]/u;
 const POWERSHELL_LAST_EXIT_CODE = /^\$LASTEXITCODE\b/iu;
 const POWERSHELL_CMDLET_NAME = /^[a-z]+-[a-z][\w]*$/iu;
 
@@ -447,18 +450,18 @@ function bracketClosers(live) {
 	return closers;
 }
 
+function bashErrexitActive(text) {
+	if (BASH_ERREXIT_TEXT.test(text)) return true;
+	for (const match of text.matchAll(BASH_SET_WORD)) {
+		const remainder = text.slice((match.index ?? 0) + match[0].length);
+		const command = remainder.split(BASH_SIMPLE_COMMAND_END, 1)[0];
+		if (BASH_ERREXIT_OPTION.test(command)) return true;
+	}
+	return false;
+}
+
 function bashErrexitStates(live, pipes) {
-	const enables = [...live.matchAll(BASH_ERREXIT_ENABLES)]
-		.map((match) => (match.index ?? 0) + match[0].length);
-	let enable = 0;
-	let active = false;
-	return pipes.map((pipe) => {
-		while (enable < enables.length && enables[enable] <= pipe) {
-			active = true;
-			enable++;
-		}
-		return active;
-	});
+	return pipes.map((pipe) => bashErrexitActive(live.slice(0, pipe)));
 }
 
 function wordAt(text, at) {
