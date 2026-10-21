@@ -141,6 +141,7 @@ const GUARD_NOW = "when a masked pipeline's exit status can reach the commit wit
 const GUARD_MAIN = "that pipelines output before `git commit` without earlier active `pipefail`";
 
 const DECLARED = [
+	"(build 12, 96ba3412) round 3's land reviewer MUST: build 9 removed build 6's unquoted backtick group, so a pipeline ending just before a closing backtick after a newline or ; lost its status reader. Build 12 puts the block back unchanged (errexit is global since build 9, so the group carries no scope) and pins four row clauses the final reviewer named. E7 turns the block off. F4, the backtick left neighbour, is equivalent again on tested input, as on builds 6 to 8",
 	"(acb649cb, after the run) 69 of 73 red. F4, the backtick left neighbour, is red again, because build 9 removed build 6's backtick group. S26 (PowerShell ${?}, no row claims it) and K1, K8 and C1 (as in round 1) survive. Pair S1 no longer names 'bash set +e disables errexit before pipeline', which build 9 moved to the consumed cases",
 	"(builds 9 to 11, acb649cb) round 2: both reviewers sent back errexit-scope fail-opens. The seat subtracted the set +e relaxation (build 9); build 10 widened the matcher fail-safe (any errexit text, or a set word with an -e option word anywhere in its simple command), closing five spellings the seat found; build 11 computes the first enable once (build 10 was pipes times length: 3,489 ms on 64 KB of a|b; against 20 ms on round 1). The old E4 to E9 sites (the +e sign, the command-position prefix, the scope walk, the backtick group) are gone, so E2 to E6 are rewritten for the new matcher, E4 now being the old rule put back, and E7 to E9 are dropped. No pair for the simple-command split or for checking only the first set word: each wrong form only adds asks",
 	"(builds 6 to 8, 3b503992) round 1's land reviewer MUSTs. Build 6 scopes an errexit change to its subshell, command substitution, backtick or process substitution, and keeps a PowerShell status read live in an expandable string or here-string. E3, E4 and E8 are re-anchored on its scope walk; E9 and X20 to X23 pin its sites. On 9f155fd2, 69 of 76 read red: E9 and X23 survived, because no check had a backtick substitution or an escaped status in a here-string. Builds 7 and 8 (tests only) added those cases. Declared on 3b503992: F4 (the backtick left neighbour) is now equivalent on tested input, because build 6 wraps an unquoted backtick substitution in parentheses before the finder runs; S26 (PowerShell ${?}) is not claimed by any row and stays unpinned",
@@ -351,6 +352,9 @@ const PAIRS = [
 	{ n: "E6", name: "(build 9's position rule) set counts only at the start of its simple command", edits: [
 		one(PG, "function bashErrexitOptionEnd(command) {\n", "function bashErrexitOptionEnd(command) {\n\tif (!/^\\s*set\\b/iu.test(command)) return Number.POSITIVE_INFINITY;\n"),
 	], tests: [T], expectRed: [CS("bash negated set")] },
+	{ n: "E7", name: "(builds 9 to 11, round 3's MUST) no unquoted backtick group: a pipeline ending before the closing backtick loses its reader", edits: [
+		one(PG, "if (ch === \"`\") {\n\t\t\tlet end = i + 1;", "if (false) {\n\t\t\tlet end = i + 1;"),
+	], tests: [T], expectRed: [CS("bash pipeline in backtick assignment ends before LF and closing backtick"), CS("bash pipeline in backtick assignment ends before semicolon and closing backtick"), CS("bash pipeline in backtick assignment ends before semicolon, closing backtick, and then")] },
 	{ n: "X20", name: "(round 1 MUST 2) a status read in a PowerShell double-quoted string is blanked (build 5's form)", edits: [
 		one(PG, "\t\t\t\tlive += status;\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;", "\t\t\t\tlive += \" \".repeat(status.length);\n\t\t\t\ti += status.length;\n\t\t\t\tcontinue;"),
 	], tests: [T], expectRed: [CS("PowerShell double-quoted question mark")] },
@@ -396,4 +400,4 @@ const PAIRS = [
 	], tests: [IC], expectRed: [] },
 ];
 
-process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "acb649cb", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "verifier-pipe-commit-match", self: import.meta.url, tip: "96ba3412", declared: DECLARED, pairs: PAIRS });
