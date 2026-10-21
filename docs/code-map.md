@@ -624,7 +624,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
 - **inputs** — REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
-- **outputs** — A complete product ledger HTML file, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+- **outputs** — A complete product ledger HTML file with ordered stage, deliverable and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`

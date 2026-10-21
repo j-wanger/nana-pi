@@ -126,6 +126,8 @@ Once the ledger has a tree (capability → feature → subgroup headings), add e
 
 A product capability is a product stage or step with tangible deliverables; a constraint capability is a cross-cutting property. Every capability field is optional. In a capability's own span, outside code fences and in any order, `Kind:` is exactly `product` or `constraint`; `Deliverables:` is a comma-separated list of R or G row IDs; `Needs:` and `Binds:` are comma-separated lists of capability IDs; and `Retired:` is a comma-separated list of live successor capability IDs. Lists contain single IDs, not ranges, wildcards or duplicates. Without `Kind:`, the checker treats `Deliverables:`, `Needs:` and `Binds:` as prose. The consumers of a deliverable are derived from the features whose `Also applies:` lines name its row.
 
+The product report's stage view orders capability kinds, shows product deliverables and constraint coverage with gaps, and puts retired capabilities last.
+
 The capability rules carry five amendments:
 1. A constraint names every product capability it binds, keeps explicit shares, and carries one tested row per bound stage; there is no implicit every-stage target.
 2. A deliverable is a row under the feature that produces it, and its consumer and check stay visible; a missing check is a report gap.

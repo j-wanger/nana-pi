@@ -3,7 +3,7 @@
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
  * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
- * @outputs A complete product ledger HTML file, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @outputs A complete product ledger HTML file with ordered stage, deliverable and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
  */
@@ -199,11 +199,34 @@ export function renderInto(document, model, { hash = "" } = {}) {
     if (questions.length) { const list = el("ul", undefined, root); cls(list, "open-questions"); for (const q of questions) { const li = el("li", undefined, list); text(li, q.number ? `${q.number}. ${q.text}` : q.text); } }
     else paragraph(root, "", NO_OPEN_QUESTIONS);
   }
-  if (view === "product") for (const cap of model.capabilities) { const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome); for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } } }
+  if (view === "product") for (const cap of model.capabilities) {
+    const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome);
+    if (cap.kind) paragraph(card, "Kind", cap.kind);
+    if (!cap.retired && cap.kind === "product") {
+      if (cap.needs.length) paragraph(card, "Needs", cap.needs.map((item) => `${item.id} · ${item.label}`).join(", "));
+      paragraph(card, "Deliverables", "");
+      const list = el("ul", undefined, card);
+      for (const deliverable of cap.deliverables) {
+        const item = el("li", undefined, list); cls(item, `deliverable${deliverable.gap ? " gap" : ""}`);
+        text(item, `${deliverable.id} · ${deliverable.status}${deliverable.gap ? " · gap" : ""} · Home: `);
+        featureLink(item, deliverable.home.id, `${deliverable.home.id} · ${deliverable.home.label}`);
+        text(item, " · Consumers: ");
+        if (deliverable.consumers.length) deliverable.consumers.forEach((consumer, index) => { if (index) text(item, ", "); featureLink(item, consumer.id, `${consumer.id} · ${consumer.label}`); });
+        else text(item, "none");
+      }
+    }
+    if (!cap.retired && cap.kind === "constraint") {
+      paragraph(card, "Binds", "");
+      const list = el("ul", undefined, card);
+      for (const bound of cap.binds) { const item = el("li", undefined, list); cls(item, `bound${bound.gap ? " gap" : ""}`); text(item, `${bound.id} · ${bound.label} · ${bound.gap ? "gap" : bound.rows.join(", ")}`); }
+    }
+    if (cap.retired) paragraph(card, "Retired", `replaced by ${cap.successors.map((item) => `${item.id} · ${item.label}`).join(", ")}`);
+    for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } }
+  }
   if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
     const status = el("span", feature.status, viewHeading); cls(status, "feature-status");
-    paragraph(root, "Purpose", feature.purpose); const badge = el("p", feature.assessmentState === "current" ? "current — matches the stamped ledger, not rechecked against later decisions" : feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
+    paragraph(root, "Purpose", feature.purpose); paragraph(root, "Capability", `${feature.capability.id} · ${feature.capability.label}${feature.capability.kind ? ` · ${feature.capability.kind}` : ""}`); const badge = el("p", feature.assessmentState === "current" ? "current — matches the stamped ledger, not rechecked against later decisions" : feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
     if (feature.assessment) {
       const assessment = feature.assessment; paragraph(root, "What it does", assessment.what_it_does);
       paragraph(root, "Maturity", `${assessment.maturity} — ${assessment.maturity_reason}`);
@@ -403,7 +426,12 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     if (error?.code !== "ENOENT") throw new Error(`${storePath}: ${error.message}`);
   }
   const assessments = new Map(storedFeatures.map((assessment) => [assessment.id, assessment]));
-  const features = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-")).map((feature) => {
+  const capabilityHeadings = parsed.headings.filter((heading) => heading.id.startsWith("CAP-"));
+  const capabilityById = new Map(capabilityHeadings.map((capability) => [capability.id, capability]));
+  const fieldValues = (capability, field) => (capability.capabilityFields?.[field] ?? []).flatMap(({ value }) => field === "Kind" ? [value] : value.split(/,\s*/));
+  const featureHeadings = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-"));
+  const featureCapability = (feature) => { for (let heading = feature.parent; heading; heading = heading.parent) if (heading.id.startsWith("CAP-")) return heading; return null; };
+  const features = featureHeadings.map((feature) => {
     const ownHeadings = descendants(parsed, feature);
     const ownRows = rows.filter((row) => ownHeadings.includes(row.heading));
     const sharedRows = feature.alsoApplies.map((id) => rows.find((row) => row.id === id)).filter(Boolean);
@@ -426,9 +454,36 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     };
     const stale = added.length || removed.length || changed.length || differences.purpose || differences.status;
     const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, assessmentState, assessment, differences, counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
+    const capability = featureCapability(feature);
+    const kind = fieldValues(capability, "Kind")[0] ?? null;
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, assessmentState, assessment, differences, counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
   });
-  const capabilities = parsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => ({ id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, features: features.filter((feature) => descendants(parsed, capability).some((heading) => heading.id === feature.id)).map((feature) => feature.id) }));
+  const capabilityLabel = (id) => ({ id, label: capabilityById.get(id)?.label ?? id });
+  const featureLabel = (feature) => ({ id: feature.id, label: feature.label });
+  const capabilities = capabilityHeadings.map((capability) => {
+    const kind = fieldValues(capability, "Kind")[0] ?? null;
+    const retired = fieldValues(capability, "Retired").length > 0;
+    const capabilityFeatures = featureHeadings.filter((feature) => featureCapability(feature) === capability);
+    const deliverables = fieldValues(capability, "Deliverables").map((id) => {
+      const row = rows.find((candidate) => candidate.id === id);
+      let homeHeading = row?.heading ?? null;
+      while (homeHeading && !homeHeading.id.startsWith("FEAT-")) homeHeading = homeHeading.parent;
+      const homeFeature = features.find((feature) => feature.id === homeHeading?.id);
+      const consumers = featureHeadings.filter((feature) => feature.alsoApplies.includes(id)).map((feature) => features.find((item) => item.id === feature.id)).filter(Boolean);
+      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), consumers: consumers.map(featureLabel) };
+    });
+    const constraintRows = rows.filter((row) => descendants(parsed, capability).includes(row.heading));
+    const binds = fieldValues(capability, "Binds").map((id) => {
+      const boundCapability = capabilityById.get(id);
+      const receivingFeatures = featureHeadings.filter((feature) => featureCapability(feature) === boundCapability && (feature.status === "active" || feature.status.startsWith("frozen (")));
+      const coveringRows = constraintRows.filter((row) => row.status === "implemented" && receivingFeatures.some((feature) => feature.alsoApplies.includes(row.id))).map((row) => row.id);
+      return { ...capabilityLabel(id), rows: coveringRows, gap: coveringRows.length === 0 };
+    });
+    return { id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, kind, retired, successors: fieldValues(capability, "Retired").map(capabilityLabel), needs: fieldValues(capability, "Needs").map(capabilityLabel), deliverables, binds, features: capabilityFeatures.map((feature) => feature.id) };
+  }).sort((left, right) => {
+    const group = (capability) => capability.retired ? 3 : capability.kind === "product" ? 0 : capability.kind === null ? 1 : 2;
+    return group(left) - group(right);
+  });
   const violated = rows.filter((row) => row.status === "violated");
   // R-1650..R-1655: implemented rows this clone's last measured run did not pass, in ledger order
   // and without duplicates (rows is the ledger's own flat, already-deduplicated row list).
