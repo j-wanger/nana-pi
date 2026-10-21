@@ -12,6 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { gitBashPath, rmOutsideTargets } from "../lib/gate-rm-outside.ts";
+import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 import { detectionSegments, splitCommand } from "../lib/gate-shell.ts";
 import { realPath } from "../lib/real-path.mjs";
 
@@ -26,6 +27,7 @@ const TEMP_SIBLING = path.join(F, "tmproot-sibling");
 for (const dir of [path.join(WORK, "sub", "deep"), OUTSIDE, HOME, path.join(TEMP_ROOT, "sub"), WORK_SIBLING, TEMP_SIBLING]) fs.mkdirSync(dir, { recursive: true });
 const linkType = process.platform === "win32" ? "junction" : "dir";
 fs.symlinkSync(OUTSIDE, path.join(WORK, "linkout"), linkType);
+fs.symlinkSync(OUTSIDE, path.join(TEMP_ROOT, "linkout"), linkType);
 fs.symlinkSync(TEMP_ROOT, path.join(WORK, "linktmp"), linkType);
 fs.symlinkSync(path.join(WORK, "sub"), path.join(WORK, "linkin"), linkType);
 const TEMP_LINK = path.join(F, "tmproot-link");
@@ -137,6 +139,44 @@ const full = (value, cwd = WORK) => path.resolve(cwd, value);
 	const ok = translated.every(([, actual, expected]) => actual === expected) && cases.slice(0, 4).every(([spelling, , expected]) => path.win32.resolve(gitBashPath(spelling, options)) === expected) && platformCases.every(([, actual]) => actual === "/c/x");
 	// req: R-2492
 	check("on Windows a Git Bash drive spelling such as /c/ reads as that drive's path", ok, JSON.stringify({ translated, platformCases }));
+}
+
+{
+	const lookalikes = ["/tmpx/y", "/tmp2/y", "/cd/y"];
+	const lookalikeExpected = lookalikes.map((spelling) => [path.resolve(WORK, spelling)]);
+	const lookalikeHits = lookalikes.map((spelling) => gbHits(`rm -f ${spelling}`, { platform: "win32", env: { TMP: TEMP_ROOT } }));
+	const climbOut = gbHits("rm -f /tmp/../outside/x", { platform: "win32", env: { TMP: TEMP_ROOT } });
+	const linkTarget = path.join(TEMP_ROOT, "linkout", "x");
+	const linkHits = gbHits("rm -f /tmp/linkout/x", { platform: "win32", env: { TMP: TEMP_ROOT } });
+	const powershellHits = gbHits("Remove-Item /tmp/x", { platform: "win32", env: { TMP: TEMP_ROOT }, tool: "powershell" });
+	const offWindows = ["darwin", "linux"].map((platform) => gbHits("rm -f /tmp/x", { platform, env: { TMP: TEMP_ROOT } }));
+	const positiveControl = gbHits("rm -f /tmp/x", { platform: "win32", env: { TMP: TEMP_ROOT } });
+	const ok = lookalikeHits.every((hits, index) => JSON.stringify(hits) === JSON.stringify(lookalikeExpected[index]))
+		&& JSON.stringify(climbOut) === JSON.stringify([path.resolve(WORK, "/outside/x")])
+		&& JSON.stringify(linkHits) === JSON.stringify([linkTarget])
+		&& powershellHits.length === 1 && offWindows.every((hits) => hits.length === 1) && positiveControl.length === 0;
+	// req: R-2493
+	check("Git Bash lookalikes, climb-outs, links out of /tmp, PowerShell /tmp and /tmp off Windows still ask", ok, JSON.stringify({ lookalikeHits, lookalikeExpected, climbOut, linkHits, linkTarget, powershellHits, offWindows, positiveControl }));
+}
+
+{
+	const NAME = `nana-rm-gitbash-${process.pid}-${Math.random().toString(36).slice(2)}`;
+	const excluded = [path.parse(WORK).root, HOME, F];
+	const cases = excluded.map((tmp) => {
+		const env = { TMP: tmp };
+		const tempRoots = acceptedTempRoots({ platform: "win32", env, home: HOME, tmpdir: env.TEMP ?? env.TMP });
+		return { tmp, actual: gbHits(`rm -f /tmp/${NAME}`, { platform: "win32", env, tempRoots }), expected: [path.resolve(tmp, NAME)] };
+	});
+	const env = { TEMP: HOME };
+	const tempRoots = acceptedTempRoots({ platform: "win32", env, home: HOME, tmpdir: env.TEMP ?? env.TMP });
+	const tempFallback = gbHits(`rm -f /tmp/${NAME}`, { platform: "win32", env, tempRoots });
+	const positiveEnv = { TMP: TEMP_ROOT };
+	const positiveRoots = acceptedTempRoots({ platform: "win32", env: positiveEnv, home: HOME, tmpdir: positiveEnv.TEMP ?? positiveEnv.TMP });
+	const positiveControl = gbHits(`rm -f /tmp/${NAME}`, { platform: "win32", env: positiveEnv, tempRoots: positiveRoots });
+	const ok = cases.every(({ actual, expected }) => JSON.stringify(actual) === JSON.stringify(expected))
+		&& JSON.stringify(tempFallback) === JSON.stringify([path.resolve(HOME, NAME)]) && positiveControl.length === 0;
+	// req: R-2494
+	check("a Git Bash /tmp target still asks when TMP names a drive root, the home folder or a folder above it", ok, JSON.stringify({ cases, tempFallback, expectedFallback: path.resolve(HOME, NAME), positiveControl }));
 }
 
 {
