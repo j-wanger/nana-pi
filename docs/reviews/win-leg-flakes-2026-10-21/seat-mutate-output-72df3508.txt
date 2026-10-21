@@ -1,27 +1,27 @@
-seat-mutate: lane win-leg-flakes, tip bc3e492dddfc32c9a9c02df7e29d4d0a8a3aac71, table dccfc5f77f987e77b6f7e9a35fa0b5fb5705b83f41d11a71a91d60684560160a, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T15:26:31.631Z
+seat-mutate: lane win-leg-flakes, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, table dccfc5f77f987e77b6f7e9a35fa0b5fb5705b83f41d11a71a91d60684560160a, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T16:17:13.287Z
 DECLARED (build 1, 6c99f999) the brief's five wrong-code tries for R-2480, R-2481, R-2486 and the retry pin
 DECLARED (builds 2-3, bc3e492d) the briefs' six tries for R-2482 to R-2485, re-run by the seat
 DECLARED (adversary) a relay that loses its deadline must still fail R-2020 to R-2022 under the 7.5 s bound
-[1/5] seat-mutate: lane win-leg-flakes, shard 1/5, tip bc3e492dddfc32c9a9c02df7e29d4d0a8a3aac71, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 3 pairs, darwin, node v22.22.2, 2026-10-21T15:26:32.329Z
+[1/5] seat-mutate: lane win-leg-flakes, shard 1/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 3 pairs, darwin, node v22.22.2, 2026-10-21T16:17:14.140Z
 [1/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
 [1/5] BASELINE ok   packages/nana-setup/tests/stale-copies.test.mjs (exit 0, 14 PASS, 0 FAIL, )
 [1/5] BASELINE ok   packages/nana-setup/tests/stale-copies-slow.test.mjs (exit 0, 2 PASS, 0 FAIL, )
 [1/5] BASELINE ok   packages/nana-pack/tests/pack-config-utf16.test.mjs (exit 0, 5 PASS, 0 FAIL, )
 [1/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
-[2/5] seat-mutate: lane win-leg-flakes, shard 2/5, tip bc3e492dddfc32c9a9c02df7e29d4d0a8a3aac71, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 3 pairs, darwin, node v22.22.2, 2026-10-21T15:26:36.381Z
+[2/5] seat-mutate: lane win-leg-flakes, shard 2/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 3 pairs, darwin, node v22.22.2, 2026-10-21T16:17:18.156Z
 [2/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
 [2/5] BASELINE ok   packages/nana-setup/tests/stale-copies-slow.test.mjs (exit 0, 2 PASS, 0 FAIL, )
 [2/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 16 PASS, 0 FAIL, )
 [2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[3/5] seat-mutate: lane win-leg-flakes, shard 3/5, tip bc3e492dddfc32c9a9c02df7e29d4d0a8a3aac71, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:26:40.388Z
+[3/5] seat-mutate: lane win-leg-flakes, shard 3/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 2 pairs, darwin, node v22.22.2, 2026-10-21T16:17:22.232Z
 [3/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
 [3/5] BASELINE ok   packages/nana-setup/tests/stale-copies-slow.test.mjs (exit 0, 2 PASS, 0 FAIL, )
 [3/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[4/5] seat-mutate: lane win-leg-flakes, shard 4/5, tip bc3e492dddfc32c9a9c02df7e29d4d0a8a3aac71, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:26:44.349Z
+[4/5] seat-mutate: lane win-leg-flakes, shard 4/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 2 pairs, darwin, node v22.22.2, 2026-10-21T16:17:26.238Z
 [4/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
 [4/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 16 PASS, 0 FAIL, )
 [4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[5/5] seat-mutate: lane win-leg-flakes, shard 5/5, tip bc3e492dddfc32c9a9c02df7e29d4d0a8a3aac71, merge-base 363df471a2c050455358289b1a11963ed9644dc5, 2 pairs, darwin, node v22.22.2, 2026-10-21T15:26:48.412Z
+[5/5] seat-mutate: lane win-leg-flakes, shard 5/5, tip 72df35086acb809b00da12136aabc3fcc8ceaa90, merge-base bc529014573992a29ccfbae0eda65054c1c0ab63, 2 pairs, darwin, node v22.22.2, 2026-10-21T16:17:30.170Z
 [5/5] BASELINE ok   packages/nana-setup/tests/install-check.test.mjs (exit 0, 133 PASS, 0 FAIL, )
 [5/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 16 PASS, 0 FAIL, )
 [5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived

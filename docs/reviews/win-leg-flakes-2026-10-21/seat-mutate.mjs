@@ -56,4 +56,4 @@ const PAIRS = [
 	], tests: [PL], expectRed: [/^R-2020: /, /^R-2021: /, /^R-2022: /] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-leg-flakes", self: import.meta.url, tip: "bc3e492d", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-leg-flakes", self: import.meta.url, tip: "72df3508", declared: DECLARED, pairs: PAIRS });
