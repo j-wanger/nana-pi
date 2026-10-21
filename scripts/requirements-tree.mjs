@@ -5,7 +5,7 @@
  * @inputs REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md.
  * @outputs Parsed headings and tables, structural problem lists, and rendered outline Markdown.
  * @effects disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
- * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid lifecycle or sharing, nesting, or stale output.
+ * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
  */
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -17,6 +17,9 @@ const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
+// contract: R-2441 — the complete capability field vocabulary, in outline order.
+export const CAPABILITY_FIELD_LABELS = ["Kind", "Needs", "Binds", "Deliverables", "Retired"];
+const CAPABILITY_LIST_FIELDS = new Set(CAPABILITY_FIELD_LABELS.filter((label) => label !== "Kind"));
 export const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
 export const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
 const MARKDOWN_TABLE_DELIMITER_CELL = /^:?-+:?$/;
@@ -86,6 +89,13 @@ export function parseLedger(text) {
         if (opaque[j]) continue;
         if (!heading.purpose && /^Purpose:/.test(lines[j])) heading.purpose = lines[j].slice("Purpose:".length).trim();
         if (heading.id.startsWith("CAP-") && !heading.outcome && /^Outcome:/.test(lines[j])) heading.outcome = lines[j].slice("Outcome:".length).trim();
+        if (heading.id.startsWith("CAP-")) {
+          const label = CAPABILITY_FIELD_LABELS.find((candidate) => lines[j].startsWith(`${candidate}:`));
+          if (label) {
+            heading.capabilityFieldCandidates ??= Object.fromEntries(CAPABILITY_FIELD_LABELS.map((candidate) => [candidate, []]));
+            heading.capabilityFieldCandidates[label].push({ value: lines[j].slice(label.length + 1).trim(), line: j + 1 });
+          }
+        }
         if (heading.id.startsWith("FEAT-") && /^Status:/.test(lines[j])) {
           const value = lines[j].slice("Status:".length).trim();
           heading.statusLines.push({ value, line: j + 1 });
@@ -96,6 +106,12 @@ export function parseLedger(text) {
           heading.alsoAppliesLines.push({ value, line: j + 1 });
           if (value) heading.alsoApplies.push(...value.split(/,\s*/));
         }
+      }
+      if (heading.id.startsWith("CAP-")) {
+        const candidates = heading.capabilityFieldCandidates ?? Object.fromEntries(CAPABILITY_FIELD_LABELS.map((label) => [label, []]));
+        const hasKind = candidates.Kind.length > 0;
+        heading.capabilityFields = Object.fromEntries(CAPABILITY_FIELD_LABELS.map((label) => [label, (label === "Kind" || label === "Retired" || hasKind) ? candidates[label] : []]));
+        delete heading.capabilityFieldCandidates;
       }
     }
   }
@@ -206,6 +222,103 @@ export function checkLifecycleAndShares(parsed) {
   }
   return problems;
 }
+const capabilityEntries = (heading, label) => heading.capabilityFields?.[label] ?? [];
+const capabilityKind = (heading) => capabilityEntries(heading, "Kind")[0]?.value ?? null;
+const isRetiredCapability = (heading) => capabilityEntries(heading, "Retired").length > 0;
+const splitCapabilityList = (value) => value.split(/,\s*/);
+function capabilityOf(heading) {
+  let current = heading;
+  while (current && !current.id?.startsWith("CAP-")) current = current.parent;
+  return current?.id?.startsWith("CAP-") ? current : null;
+}
+
+export function checkCapabilityFields(parsed) {
+  const problems = [];
+  const capabilities = parsed.headings.filter((heading) => heading.id.startsWith("CAP-"));
+  const capabilitiesById = new Map(capabilities.map((heading) => [heading.id, heading]));
+  const rowsById = new Map(readRequirementRows(parsed).map((entry) => [entry.id, entry]));
+  const fieldProblem = (heading, entry, label, detail) => problems.push(`line ${entry?.line ?? heading.line}: ${heading.id} ${label}: ${entry?.value ?? ""} ${detail}`);
+
+  for (const capability of capabilities) {
+    for (const label of CAPABILITY_FIELD_LABELS) {
+      const entries = capabilityEntries(capability, label);
+      if (entries.length > 1) for (const entry of entries) fieldProblem(capability, entry, label, "is a duplicate field line");
+    }
+    for (const entry of capabilityEntries(capability, "Kind")) {
+      if (entry.value !== "product" && entry.value !== "constraint") fieldProblem(capability, entry, "Kind", "must be exactly product or constraint");
+    }
+  }
+
+  const validateCapabilityTargets = (capability, label, entry, predicate, detail) => {
+    const seen = new Set();
+    for (const token of splitCapabilityList(entry.value)) {
+      const target = /^CAP-\d{2}$/.test(token) ? capabilitiesById.get(token) : null;
+      if (seen.has(token)) fieldProblem(capability, entry, label, `${token || "(empty)"} is listed more than once`);
+      if (!target || !predicate(target, token)) fieldProblem(capability, entry, label, `${token || "(empty)"} ${detail}`);
+      seen.add(token);
+    }
+  };
+
+  for (const capability of capabilities) {
+    const kind = capabilityKind(capability);
+    const deliverables = capabilityEntries(capability, "Deliverables");
+    if (deliverables.length && kind !== "product") for (const entry of deliverables) fieldProblem(capability, entry, "Deliverables", "is allowed only on Kind: product");
+    if (kind === "product") for (const entry of deliverables) {
+      const seen = new Set();
+      for (const token of splitCapabilityList(entry.value)) {
+        const item = ID.test(token) ? rowsById.get(token) : null;
+        let detail = "";
+        if (!item) detail = "does not name a requirement row";
+        else if (item.status === "retired") detail = "is retired";
+        else if (capabilityOf(item.heading) !== capability) detail = "is homed under another capability";
+        if (seen.has(token)) fieldProblem(capability, entry, "Deliverables", `${token || "(empty)"} is listed more than once`);
+        if (detail) fieldProblem(capability, entry, "Deliverables", `${token || "(empty)"} ${detail}`);
+        seen.add(token);
+      }
+    }
+
+    const binds = capabilityEntries(capability, "Binds");
+    if (kind === "constraint" && !isRetiredCapability(capability) && binds.length !== 1)
+      fieldProblem(capability, binds[0], "Binds", "must occur exactly once on Kind: constraint");
+    if (binds.length && kind !== "constraint") for (const entry of binds) fieldProblem(capability, entry, "Binds", "is allowed only on Kind: constraint");
+    if (kind === "constraint") for (const entry of binds) validateCapabilityTargets(
+      capability,
+      "Binds",
+      entry,
+      (target) => capabilityKind(target) === "product" && !isRetiredCapability(target),
+      "must name a live Kind: product capability",
+    );
+
+    const needs = capabilityEntries(capability, "Needs");
+    if (needs.length && kind !== "product") for (const entry of needs) fieldProblem(capability, entry, "Needs", "is allowed only on Kind: product");
+    if (kind === "product") for (const entry of needs) validateCapabilityTargets(
+      capability,
+      "Needs",
+      entry,
+      (target) => target.line < capability.line && capabilityKind(target) === "product" && !isRetiredCapability(target),
+      "must name an earlier live Kind: product capability",
+    );
+
+    const retired = capabilityEntries(capability, "Retired");
+    for (const entry of retired) {
+      validateCapabilityTargets(
+        capability,
+        "Retired",
+        entry,
+        (target) => target !== capability && !isRetiredCapability(target),
+        "must name another live capability",
+      );
+      for (const label of CAPABILITY_FIELD_LABELS.filter((candidate) => !["Kind", "Retired"].includes(candidate))) {
+        for (const stageEntry of capabilityEntries(capability, label)) fieldProblem(capability, stageEntry, "Retired", `may not carry ${label}:`);
+      }
+      for (const feature of parsed.headings.filter((heading) => heading.parent === capability && heading.id.startsWith("FEAT-"))) {
+        if (!feature.status?.startsWith("retired (")) fieldProblem(capability, entry, "Retired", `holds live feature ${feature.id}`);
+      }
+    }
+  }
+  return problems;
+}
+
 export function compressRowIds(ids) {
   const prefixes = new Map();
   for (const id of ids) {
@@ -275,6 +388,14 @@ export function renderOutline(parsed) {
       out.push(`${prefix}  Also applies: ${h.alsoApplies.join(", ") || "—"}`);
     }
     out.push(`${prefix}  Parent: ${parent} · Rows: ${rows} · IDs: ${ids}`);
+    if (h.id.startsWith("CAP-")) {
+      for (const label of CAPABILITY_FIELD_LABELS) {
+        const entries = capabilityEntries(h, label);
+        if (!entries.length) continue;
+        const values = entries.flatMap((entry) => CAPABILITY_LIST_FIELDS.has(label) ? splitCapabilityList(entry.value) : [entry.value]);
+        out.push(`${prefix}  ${label}: ${values.join(", ")}`);
+      }
+    }
   }
   const links = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).flatMap((feature) => feature.alsoApplies.map((id) => ({ id, feature: feature.id })));
   const byId = new Map();
@@ -363,6 +484,17 @@ export function checkOutlineFields(outline, parsed) {
     if (!actualDetail.includes(`Rows: ${rows.length} ·`)) problems.push(`${h.id}: outline field row count is missing or altered`);
     if (!actualDetail.endsWith(`IDs: ${compress(rows)}`)) problems.push(`${h.id}: outline field row IDs are missing or altered`);
     if (actualDetail !== expectedDetail && !problems.some((problem) => problem.startsWith(`${h.id}: outline field`))) problems.push(`${h.id}: outline field metadata is altered`);
+    if (h.id.startsWith("CAP-")) {
+      let fieldOffset = detailOffset + 1;
+      for (const label of CAPABILITY_FIELD_LABELS) {
+        const entries = capabilityEntries(h, label);
+        if (!entries.length) continue;
+        const values = entries.flatMap((entry) => CAPABILITY_LIST_FIELDS.has(label) ? splitCapabilityList(entry.value) : [entry.value]);
+        const expected = `${prefix}  ${label}: ${values.join(", ")}`;
+        if (lines[titleIndex + fieldOffset] !== expected) problems.push(`${h.id}: outline ${label}: is missing or altered`);
+        fieldOffset++;
+      }
+    }
   }
   const links = parsed.headings.filter((feature) => feature.id.startsWith("FEAT-")).flatMap((feature) => feature.alsoApplies.map((id) => ({ id, feature: feature.id })));
   const homes = new Map();
@@ -441,7 +573,7 @@ export function checkTree(text) {
   // a tree to check.
   const problems = !hasCapOrFeat && rowCount > 0
     ? [...(nearMiss.length ? nearMiss : [noTreeProblem(rowCount)])]
-    : [...checkRowsUnderFeatures(parsed), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed), ...nearMiss];
+    : [...checkRowsUnderFeatures(parsed), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed), ...checkCapabilityFields(parsed), ...nearMiss];
   return { parsed, problems, outline: renderOutline(parsed) };
 }
 function usage() {

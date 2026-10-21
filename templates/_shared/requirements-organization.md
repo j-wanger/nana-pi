@@ -11,3 +11,9 @@ SUB-904 are reserved for the general-engineering feature below. A new heading ta
 unused ID and a `Purpose:` line. No row sits in a `proposed` or `retired` feature. The
 project owner decides every change to the tree. Check it with
 `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .`.
+
+A capability may describe a product stage with tangible deliverables or a cross-cutting
+constraint. Its optional fields are `Kind: product` or `Kind: constraint`; comma-separated row
+IDs on `Deliverables:`; comma-separated capability IDs on `Needs:` or `Binds:`; and live
+successor capability IDs on `Retired:`. The checker reads these lines only in the capability's
+own span, and treats `Deliverables:`, `Needs:` and `Binds:` as prose when `Kind:` is absent.

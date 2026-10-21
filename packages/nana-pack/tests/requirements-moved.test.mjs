@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/requirements-moved.test.mjs
- * @purpose Pin the tree movement report's feature grouping, merge-base diffing, cross-feature moves and shared-row annotations against a built git fixture.
- * @inputs scripts/requirements-moved.mjs and a fixture git repository built under the OS temp directory.
+ * @purpose Pin the tree movement report's row grouping, merge-base diffing, capability changes and shared-row annotations.
+ * @inputs scripts/requirements-moved.mjs, direct ledger texts and a fixture git repository built under the OS temp directory.
  * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
  * @effects disk (creates a scratch git repository under the OS temp directory; never touches the repository this test runs in), process (spawns node and git as children)
  * @errors A failed check prints its reason and exits non-zero.
@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { treeMovement } from "../../../scripts/requirements-moved.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -198,6 +199,36 @@ check("R-1462: a row moved to another feature is listed there naming the feature
 const mt4 = Boolean(r1.line?.includes("also applies: FEAT-002")) && !r2.line?.includes("also applies");
 // req: R-1463
 check("R-1463: a changed shared row names the feature that lists it", mt4, stdout);
+
+function movementLedger({ moveFeature = false, kind = "product", needs = "CAP-01, CAP-03", binds = null, deliverables = "R-002", retired = null, includeThird = true, includeFourth = false } = {}) {
+  const featureOne = `## FEAT-001 · Alpha\nPurpose: alpha\nStatus: active\n\n${TABLE}| R-001 | Row one. | untested | — |\n`;
+  const fieldLines = [`Kind: ${kind}`, `Needs: ${needs}`, ...(binds === null ? [] : [`Binds: ${binds}`]), `Deliverables: ${deliverables}`, ...(retired === null ? [] : [`Retired: ${retired}`])].join("\n");
+  return `# CAP-01 · First\nPurpose: first\nKind: product\n${moveFeature ? "" : `\n${featureOne}`}\n# CAP-02 · Second\nPurpose: second\n${fieldLines}\n${moveFeature ? `\n${featureOne}` : ""}\n## FEAT-002 · Beta\nPurpose: beta\nStatus: active\n\n${TABLE}| R-002 | Row two. | untested | — |\n\n${includeThird ? "# CAP-03 · Third\nPurpose: third\nKind: product\n" : ""}${includeFourth ? "\n# CAP-04 · Fourth\nPurpose: fourth\nKind: constraint\nBinds: CAP-01\n" : ""}`;
+}
+
+const capabilityBase = movementLedger();
+const capabilityHead = movementLedger({ moveFeature: true, kind: "constraint", needs: "CAP-01", binds: "CAP-01", deliverables: "R-001", retired: "CAP-01", includeThird: false, includeFourth: true });
+const capabilityOutput = treeMovement({ baseText: capabilityBase, headText: capabilityHead, baseRevLabel: "base", headRevLabel: "head" });
+const reorderBase = movementLedger({ needs: "CAP-01, CAP-03" });
+const reorderHead = movementLedger({ needs: "  CAP-03 ,  CAP-01  " });
+const reorderOutput = treeMovement({ baseText: reorderBase, headText: reorderHead, baseRevLabel: "base", headRevLabel: "head" });
+const whitespaceHead = movementLedger({ needs: "  CAP-01 ,  CAP-03  " });
+const whitespaceOutput = treeMovement({ baseText: reorderBase, headText: whitespaceHead, baseRevLabel: "base", headRevLabel: "head" });
+const rowOnlyHead = capabilityBase.replace("| R-001 | Row one. | untested | — |", "| R-001 | Row one. | implemented | — |");
+const rowOnlyOutput = treeMovement({ baseText: capabilityBase, headText: rowOnlyHead, baseRevLabel: "base", headRevLabel: "head" });
+const expectedRowOnly = "tree movement base..head: 1 rows in 1 features\nFEAT-001 · Alpha\n  R-001 untested -> implemented";
+const capabilityClaims = [
+  "FEAT-001 moved CAP-01 → CAP-02",
+  "CAP-02 · Second: Kind product → constraint",
+  "CAP-02 · Second: Needs CAP-01, CAP-03 → CAP-01",
+  "CAP-02 · Second: Binds none → CAP-01",
+  "CAP-02 · Second: Deliverables R-002 → R-001",
+  "CAP-02 · Second: Retired none → CAP-01",
+  "CAP-03 · Third: removed",
+  "CAP-04 · Fourth: new",
+];
+// req: R-2447
+check("R-2447: a capability move or capability field change prints a capability section, and none leaves the output unchanged", capabilityOutput.includes("0 rows in 0 features, 8 capability change(s)") && capabilityOutput.includes("\ncapabilities:\n") && capabilityClaims.every((claim) => capabilityOutput.includes(`  ${claim}`)) && !capabilityOutput.includes("tree movement: none") && reorderOutput === "tree movement: none" && whitespaceOutput === "tree movement: none" && rowOnlyOutput === expectedRowOnly, `capability:\n${capabilityOutput}\nreorder:\n${reorderOutput}\nwhitespace:\n${whitespaceOutput}\nrow-only:\n${rowOnlyOutput}`);
 
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all checks passed");

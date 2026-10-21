@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/requirements-moved.mjs
- * @purpose Report, per feature, how REQUIREMENTS.md rows added, removed, re-statused, reworded or moved since a revision's merge base with HEAD.
+ * @purpose Report requirement-row changes by feature and capability placement or field changes since a revision's merge base with HEAD.
  * @inputs argv (--root <dir> --base <rev>); REQUIREMENTS.md as committed at HEAD and at the merge base of <rev> and HEAD, read through git.
- * @outputs One summary line, then one unindented `FEAT-nnn · <label>` line per affected feature (HEAD order; base-only features last), each followed by one row-change line per changed row, on stdout; a named refusal on stderr.
+ * @outputs One summary line, affected feature blocks, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
  * @effects process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
  * @errors exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
  */
@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseLedger, readRequirementRows } from "./requirements-tree.mjs";
+import { CAPABILITY_FIELD_LABELS, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 
 // Chosen: 64 MiB, the same size requirements-lift.mjs's blob reader (gitBuf) uses for a
 // committed REQUIREMENTS.md blob, so a large ledger's git show output is never truncated.
@@ -70,6 +70,43 @@ function featureOrder(parsed) {
   return parsed.headings.filter((heading) => heading.id?.startsWith("FEAT-")).map((heading) => heading.id);
 }
 
+function capabilityIdOf(heading) {
+  let current = heading;
+  while (current && !current.id?.startsWith("CAP-")) current = current.parent;
+  return current?.id?.startsWith("CAP-") ? current.id : null;
+}
+
+function featureCapabilities(parsed) {
+  const map = new Map();
+  for (const heading of parsed.headings) if (heading.id?.startsWith("FEAT-")) map.set(heading.id, capabilityIdOf(heading));
+  return map;
+}
+
+const SET_FIELDS = new Set(["Needs", "Binds", "Deliverables"]);
+function parsedCapabilityValues(heading, label) {
+  const entries = heading.capabilityFields?.[label] ?? [];
+  return entries.flatMap((entry) => label === "Kind" ? [entry.value.trim()] : entry.value.split(",").map((token) => token.trim()));
+}
+function capabilitySnapshot(parsed) {
+  const map = new Map();
+  for (const heading of parsed.headings) {
+    if (!heading.id?.startsWith("CAP-")) continue;
+    map.set(heading.id, {
+      id: heading.id,
+      label: heading.label,
+      fields: Object.fromEntries(CAPABILITY_FIELD_LABELS.map((label) => [label, parsedCapabilityValues(heading, label)])),
+    });
+  }
+  return map;
+}
+function equalCapabilityValues(label, left, right) {
+  if (!SET_FIELDS.has(label)) return left.length === right.length && left.every((value, index) => value === right[index]);
+  const a = [...new Set(left)].sort();
+  const b = [...new Set(right)].sort();
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+const printedCapabilityValue = (values) => values.length ? values.join(", ") : "none";
+
 /** Row ID -> the feature IDs whose `Also applies:` line names it, in HEAD document order. */
 function alsoAppliesIndex(parsed) {
   const map = new Map();
@@ -95,6 +132,10 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
   const headLabels = featureLabels(headParsed);
   const baseLabels = featureLabels(baseParsed);
   const shares = alsoAppliesIndex(headParsed);
+  const baseFeatureCaps = featureCapabilities(baseParsed);
+  const headFeatureCaps = featureCapabilities(headParsed);
+  const baseCaps = capabilitySnapshot(baseParsed);
+  const headCaps = capabilitySnapshot(headParsed);
 
   const ids = new Set([...baseRows.keys(), ...headRows.keys()]);
   const groups = new Map();
@@ -129,6 +170,24 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
   const trailingKeys = [...groups.keys()].filter((key) => key !== null && !headOrder.includes(key)).sort();
   const orderedKeys = [...noFeature, ...headKeys, ...trailingKeys];
 
+  const capabilityChanges = [];
+  for (const featureId of featureOrder(headParsed)) {
+    if (!baseFeatureCaps.has(featureId) || !headFeatureCaps.has(featureId)) continue;
+    const before = baseFeatureCaps.get(featureId);
+    const after = headFeatureCaps.get(featureId);
+    if (before !== after) capabilityChanges.push(`${featureId} moved ${before ?? "(no capability)"} → ${after ?? "(no capability)"}`);
+  }
+  for (const capabilityId of headParsed.headings.filter((heading) => heading.id?.startsWith("CAP-")).map((heading) => heading.id)) {
+    const before = baseCaps.get(capabilityId);
+    const after = headCaps.get(capabilityId);
+    if (!before) continue;
+    for (const label of CAPABILITY_FIELD_LABELS) {
+      if (!equalCapabilityValues(label, before.fields[label], after.fields[label])) capabilityChanges.push(`${capabilityId} · ${after.label}: ${label} ${printedCapabilityValue(before.fields[label])} → ${printedCapabilityValue(after.fields[label])}`);
+    }
+  }
+  for (const capability of baseCaps.values()) if (!headCaps.has(capability.id)) capabilityChanges.push(`${capability.id} · ${capability.label}: removed`);
+  for (const capability of headCaps.values()) if (!baseCaps.has(capability.id)) capabilityChanges.push(`${capability.id} · ${capability.label}: new`);
+
   let rowCount = 0;
   const lines = [];
   for (const key of orderedKeys) {
@@ -137,8 +196,11 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     const label = key === null ? "(no feature)" : `${key} · ${headLabels.get(key) ?? baseLabels.get(key) ?? ""}`;
     lines.push(label, ...rows);
   }
-  if (rowCount === 0) return "tree movement: none";
-  return [`tree movement ${baseRevLabel}..${headRevLabel}: ${rowCount} rows in ${orderedKeys.length} features`, ...lines].join("\n");
+  if (rowCount === 0 && capabilityChanges.length === 0) return "tree movement: none";
+  const suffix = capabilityChanges.length ? `, ${capabilityChanges.length} capability change(s)` : "";
+  const output = [`tree movement ${baseRevLabel}..${headRevLabel}: ${rowCount} rows in ${orderedKeys.length} features${suffix}`, ...lines];
+  if (capabilityChanges.length) output.push("capabilities:", ...capabilityChanges.map((change) => `  ${change}`));
+  return output.join("\n");
 }
 
 export function main(argv = process.argv.slice(2), git = defaultGit) {
