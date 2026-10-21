@@ -18,3 +18,6 @@
 - Identity scan (scrub-contracts, independent check): the `git ls-files` call keeps the 1 MiB default output buffer. The output is 209,030 bytes now, so the scan would throw near 18,000 tracked files.
 - Identity scan (scrub-contracts, independent check): an R-2511 failure prints per-word counts only. It names no path and does not point to the scan command that lists them.
 - Display test (scrub-contracts, independent check): the Windows path in `display-surfaces.test.mjs` became one with "the owner" and its space, not D1's `C:\Users\example`. The file still passes.
+- Identity scan (scrub-contracts, final review): the command's main-module guard compares the resolved command path with the module's real path. Run through a symlinked path, it prints nothing and exits 0. One other script in the scripts folder uses the same guard; the suite imports the module, so R-2511 is not affected.
+- Identity scan (scrub-contracts, final review): R-2511 scans the folder "." and is right only because the test runner starts inside the repo. Run from outside a git tree, it fails loudly rather than passing.
+- Shipped text (scrub-contracts, final review): some role-word swaps read oddly. "until he reopens it" stays in HANDOFF and the seven frozen Status lines, and "If it is not his call" stays in the shipped writing rule. Several sentences start with a lower-case "the owner".

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane scrub-contracts (gate lane), written by the seat 2026-10-21 after build 3, on the
-// shared runner, at tip 0f8de8a0. They are the plan's pairs M1 (one reader left on the old name, here once per reader),
+// shared runner, at tip 0f8de8a0 and again at 8d0e9363 after build 4, which added m7 and m8 for R-2521. They are the plan's pairs M1 (one reader left on the old name, here once per reader),
 // M4 (a camel split on mixed ids), M5 (a one-sided count check), M6 (a cwd-relative file list) and S2 (no space after
 // "Open for"). Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/scrub-contracts-2026-10-21/seat-mutate.mjs
@@ -13,17 +13,22 @@ const FRONTIER_T = "packages/nana-pack/tests/frontier.test.mjs";
 const ASKS = "packages/nana-pack/lib/handoff-asks.mjs";
 const REPORT_T = "packages/nana-pack/tests/product-report.test.mjs";
 const CONFIG = "packages/nana-pack/lib/frontier-config.mjs";
+const EXTRACTOR = "packages/nana-pack/lib/writing-trial-extractor.mjs";
+const EXTRACTOR_T = "packages/nana-pack/tests/writing-trial-extractor.test.mjs";
 const R_2511 = /^no tracked file outside the allowlist carries an identity word/; // R-2511
 const R_2512 = /^the scan finds identity words in every written form/; // R-2512
 const R_2513 = /^an allowlisted file with one more, one fewer or swapped identity words is reported/; // R-2513
 const R_2514 = /^an Open for heading with any name is read as the asks section/; // R-2514
 const R_2515 = /^an Open for heading with any name gets every live-section check/; // R-2515
+const R_2521 = /^a decision naming the owner by name or by role scores its fifth part/; // R-2521
+const R_2521_SEAL = /^seal: the extractor's owner word digest/; // R-2521
 const OLD = "Open for someone"; // a stand-in for the old heading; never an identity word
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 
 const DECLARED = [
 	"(plan) M1, M4, M5, M6 and S2 from the plan and its adversary, each expected to turn a named row red on macOS",
 	"(seat) M1 runs once per reader of the asks heading: the frontier's misplaced-landed read, its overdue-date read, and the asks split",
+	"(seat) m7 and m8 (after round 1): the fifth rubric rule without the digest branch, and a wrong sealed digest",
 	"(seat) S2 is applied in the shared matcher: a prefix compare that drops the trailing space; dropping the space from the prefix literal alone is equivalent, because the matcher's name branch still needs a space, a parenthesis or a dash after the name",
 ];
 
@@ -49,6 +54,12 @@ const PAIRS = [
 	{ n: "s2", name: "the asks prefix compared without its trailing space", edits: [
 		one(CONFIG, 'if (expected.endsWith(" ")) return actual.startsWith(expected);', 'if (expected.endsWith(" ")) return actual.startsWith(expected.trimEnd());'),
 	], tests: [REPORT_T], expectRed: [R_2514] },
+	{ n: "m7", name: "the fifth rubric rule without the owner-word digest branch", edits: [
+		one(EXTRACTOR, "(rule.test(partBlocks[part]) || (part === 4 && namesOwner(partBlocks[part])))", "rule.test(partBlocks[part])"),
+	], tests: [EXTRACTOR_T], expectRed: [R_2521] },
+	{ n: "m8", name: "a sealed owner-word digest that is not the scan's first digest", edits: [
+		one(EXTRACTOR, 'Object.freeze(["cdf30c6b', 'Object.freeze(["0df30c6b'),
+	], tests: [EXTRACTOR_T], expectRed: [R_2521_SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "scrub-contracts", self: import.meta.url, tip: "0f8de8a0", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "scrub-contracts", self: import.meta.url, tip: "8d0e9363", declared: DECLARED, pairs: PAIRS });
