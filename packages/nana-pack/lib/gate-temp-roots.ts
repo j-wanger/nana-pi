@@ -18,7 +18,7 @@
 // gate-temp-roots — the rule nana-gate.ts's laneWriteHit and, later, the rm-outside-asks lane both
 // need: a temp variable naming a drive root, home, or a folder above home must not open the whole
 // drive or the home folder to lane writes. Kept out of gate-paths.ts, which has another purpose
-// (policy-file and protected-path candidates, not temp-root exemptions). `/tmp` on macOS and Linux
+// (policy-file and protected-path candidates, not temp-root exemptions). `/tmp` on every system but Windows
 // is a separate POSIX rule the caller keeps for itself — it is not a "temp variable" value.
 //
 // The home test is filesystem identity (dev+ino), not text: macOS can reach the same home folder

@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/gate-rm-outside.ts
  * @purpose Find readable non-recursive rm targets outside the working and accepted temp folders.
- * @inputs shell segments, cwd, tool name, home, accepted temp roots, and the command's segmentable verdict
- * @outputs a map from each rm segment with an outside target to that target's full path
+ * @inputs shell segments, cwd, tool name, home, accepted temp roots, injected platform and environment, and the command's segmentable verdict
+ * @outputs a map from each rm segment with an outside target to that target's full path; gitBashPath and the Git Bash temp and drive constants
  * @effects disk (canonicalizes the cwd, temp roots, cd folders, and target parents)
  * @errors never throws; an internal failure marks the segment text as outside
  */

@@ -3,8 +3,8 @@
  * @module packages/nana-pack/tests/gate-rm-outside.test.mjs
  * @purpose Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including Git Bash path readings, the POSIX /tmp root, and the inside and variable-led passes.
  * @inputs the real nana-gate handler, gate-rm-outside, gate-shell, real-path, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
- * @outputs twelve named PASS/FAIL checks (or eleven and one Windows SKIP) and exit 1 when any requirement fails
- * @effects disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables)
+ * @outputs 17 named PASS/FAIL checks: 14 plus 3 SKIP off Windows; 16 plus 1 SKIP on Windows when Git Bash is missing, and exit 1 when any requirement fails
+ * @effects disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables; spawns Git Bash for R-2497's cygpath/mount comparison)
  * @errors unexpected failures reject through a per-case timeout and fail the process; assertion failures print FAIL
  */
 import { tmpDir } from "./tmp-dir.mjs";

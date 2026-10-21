@@ -1317,8 +1317,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/gate-rm-outside.ts`
 
 - **purpose** — Find readable non-recursive rm targets outside the working and accepted temp folders.
-- **inputs** — shell segments, cwd, tool name, home, accepted temp roots, and the command's segmentable verdict
-- **outputs** — a map from each rm segment with an outside target to that target's full path
+- **inputs** — shell segments, cwd, tool name, home, accepted temp roots, injected platform and environment, and the command's segmentable verdict
+- **outputs** — a map from each rm segment with an outside target to that target's full path; gitBashPath and the Git Bash temp and drive constants
 - **effects** — disk (canonicalizes the cwd, temp roots, cd folders, and target parents)
 - **errors** — never throws; an internal failure marks the segment text as outside
 - **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`
@@ -1858,8 +1858,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin prompts for readable non-recursive rm targets outside the working and accepted temp folders, including Git Bash path readings, the POSIX /tmp root, and the inside and variable-led passes.
 - **inputs** — the real nana-gate handler, gate-rm-outside, gate-shell, real-path, and one temporary fixture tree containing working, home, temp, outside, sibling, link and junction spellings
-- **outputs** — twelve named PASS/FAIL checks (or eleven and one Windows SKIP) and exit 1 when any requirement fails
-- **effects** — disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables)
+- **outputs** — 17 named PASS/FAIL checks: 14 plus 3 SKIP off Windows; 16 plus 1 SKIP on Windows when Git Bash is missing, and exit 1 when any requirement fails
+- **effects** — disk (one temporary fixture tree and gate config), process (temporarily sets HOME, USERPROFILE and temp variables; spawns Git Bash for R-2497's cygpath/mount comparison)
 - **errors** — unexpected failures reject through a per-case timeout and fail the process; assertion failures print FAIL
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-rm-outside.ts`, `packages/nana-pack/lib/gate-shell.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`

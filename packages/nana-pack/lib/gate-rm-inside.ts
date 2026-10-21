@@ -64,8 +64,8 @@ function lstatOrNull(p: string): fs.Stats | null {
 }
 
 /** `dir` has git's bare-repository shape: a `HEAD` file, and `objects` and `refs` folders —
- *  lstat only, so a symlinked HEAD/objects/refs is not recognised (declared survivor: it asks
- *  more, never less). Mirrors git's is_git_directory. */
+ *  lstat only, so a symlinked HEAD, objects or refs is not recognised; such an rm runs unasked.
+ *  Mirrors git's is_git_directory. */
 function isBareShape(dir: string): boolean {
 	const head = lstatOrNull(path.join(dir, BARE_HEAD));
 	const objects = lstatOrNull(path.join(dir, BARE_OBJECTS));
