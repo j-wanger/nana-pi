@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/writing-injection.test.mjs
- * @purpose Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (a distinctive base, the objective and the writing block each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, that the UTF-8 tail fix strips only a genuine read-boundary split and never a malformed byte, that the read ceiling is pinned directly, and that none of this ever touches the real shipped rule file
- * @inputs extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, a temp HOME, and (for the two resource-failure fixtures) a Node subprocess with a time limit
+ * @purpose Pins that the writing rule reaches every enabled session's system prompt, follows only the active user config's writing.enabled key on every session start, composes with nana-objective on the installed pi 1.0.2, cuts oversized blocks without splitting a surrogate pair, refuses unusable rule files, and bounds every rule read without touching the shipped rule file
+ * @inputs extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, user and trusted-project nana-pack.json fixtures, a temp HOME, and bounded Node subprocesses
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
+ * @effects disk (temp HOME, agent dirs, journal and disposable rule/config fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE/PI_CODING_AGENT_DIR, clears the worker handoff override; spawns bounded Node subprocesses for config, FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate, amended after astra r2 (BLOCK, 8/10):
@@ -33,7 +33,9 @@ const check = (n, ok, extra) => {
 const home = tmpDir(path.join(os.tmpdir(), "writing-inject-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
-fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+process.env.PI_CODING_AGENT_DIR = path.join(home, ".pi", "agent");
+delete process.env.NANA_HANDOFF;
+fs.mkdirSync(process.env.PI_CODING_AGENT_DIR, { recursive: true });
 
 const writingExtUrl = new URL("../extensions/nana-writing.ts", import.meta.url).href;
 const { default: writingExt, RULE_PATH, HEADING } = await import(writingExtUrl);
@@ -61,6 +63,87 @@ function session(ext, opts) {
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } }, opts);
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };
+}
+
+/* --- writing.enabled: active user scope only, re-read at each session_start (R-2500, R-006) --- */
+{
+	const runner = path.join(tempDir(), "writing-enabled-runner.mjs");
+	fs.writeFileSync(runner, `
+import * as fs from "node:fs";
+import * as path from "node:path";
+const [extUrl, configUrl, rulePath, cwd, trusted, rewrite] = process.argv.slice(2);
+const config = await import(configUrl);
+if (trusted === "yes") config.usePiTrustModule({
+	hasTrustRequiringProjectResources: () => true,
+	ProjectTrustStore: class { get() { return true; } },
+});
+const extension = (await import(extUrl)).default;
+const handlers = {};
+extension({ on: (name, fn) => { handlers[name] = fn; } }, { rulePath });
+const ctx = { cwd, hasUI: false, isProjectTrusted: () => trusted === "yes" };
+async function pickup() {
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const event = { systemPromptOptions: { sections: {} } };
+	await handlers.before_agent_start(event, ctx);
+	return Object.hasOwn(event.systemPromptOptions.sections, "nana-writing");
+}
+const injected = [await pickup()];
+if (rewrite !== "-") {
+	fs.writeFileSync(path.join(process.env.PI_CODING_AGENT_DIR, "nana-pack.json"), Buffer.from(rewrite, "base64"));
+	injected.push(await pickup());
+}
+console.log(JSON.stringify({ injected }));
+`);
+	const utf8 = (value) => Buffer.from(JSON.stringify(value));
+	const utf16le = (value) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(JSON.stringify(value), "utf16le")]);
+	const runCase = ({ label, active, stranded, project, rewrite, trusted = false, expected }) => {
+		const root = tempDir();
+		const caseHome = path.join(root, "home");
+		const agentDir = path.join(root, "active-agent");
+		const cwd = path.join(root, "project");
+		const rulePath = path.join(root, "rule.md");
+		fs.mkdirSync(caseHome, { recursive: true });
+		fs.mkdirSync(agentDir, { recursive: true });
+		fs.mkdirSync(cwd, { recursive: true });
+		fs.writeFileSync(rulePath, "Enabled writing fixture.\n");
+		if (active !== undefined) fs.writeFileSync(path.join(agentDir, "nana-pack.json"), active);
+		if (stranded !== undefined) {
+			const strandedFile = path.join(caseHome, ".pi", "agent", "nana-pack.json");
+			fs.mkdirSync(path.dirname(strandedFile), { recursive: true });
+			fs.writeFileSync(strandedFile, stranded);
+		}
+		if (project !== undefined) {
+			fs.mkdirSync(path.join(cwd, ".pi"), { recursive: true });
+			fs.writeFileSync(path.join(cwd, ".pi", "nana-pack.json"), project);
+		}
+		const child = spawnSync(process.execPath, ["--experimental-strip-types", runner, writingExtUrl, new URL("../lib/config.ts", import.meta.url).href, rulePath, cwd, trusted ? "yes" : "no", rewrite === undefined ? "-" : Buffer.from(rewrite).toString("base64")], {
+			encoding: "utf8",
+			timeout: 5000,
+			env: { ...process.env, HOME: caseHome, USERPROFILE: caseHome, PI_CODING_AGENT_DIR: agentDir },
+		});
+		let observed = null;
+		try { observed = JSON.parse(child.stdout.trim().split("\n").at(-1)); } catch {}
+		return { label, ok: child.status === 0 && !child.signal && JSON.stringify(observed?.injected) === JSON.stringify(expected), status: child.status, signal: child.signal, stdout: child.stdout, stderr: child.stderr, observed };
+	};
+	const cases = [
+		{ label: "boolean false", active: utf8({ writing: { enabled: false } }), expected: [false] },
+		{ label: "UTF-16LE boolean false", active: utf16le({ writing: { enabled: false } }), expected: [false] },
+		{ label: "absent", expected: [true] },
+		{ label: "boolean true", active: utf8({ writing: { enabled: true } }), expected: [true] },
+		{ label: "string false", active: utf8({ writing: { enabled: "false" } }), expected: [true] },
+		{ label: "number zero", active: utf8({ writing: { enabled: 0 } }), expected: [true] },
+		{ label: "null", active: utf8({ writing: { enabled: null } }), expected: [true] },
+		{ label: "writing block false", active: utf8({ writing: false }), expected: [true] },
+		{ label: "invalid JSON", active: Buffer.from("{"), expected: [true] },
+		{ label: "stranded default false", stranded: utf8({ writing: { enabled: false } }), expected: [true] },
+		{ label: "live false to true", active: utf8({ writing: { enabled: false } }), rewrite: utf8({ writing: { enabled: true } }), expected: [false, true] },
+	].map(runCase);
+	// req: R-2500
+	check("enabled: writing.enabled false in the active agent dir leaves the writing section unset", cases.every((c) => c.ok), JSON.stringify(cases));
+
+	const projectCase = runCase({ label: "trusted project false", project: utf8({ writing: { enabled: false } }), trusted: true, expected: [true] });
+	// req: R-006
+	check("enabled: a trusted project's writing.enabled false leaves the rule injected", projectCase.ok, JSON.stringify(projectCase));
 }
 
 /* --- (a) inject: the PRODUCTION DEFAULT — reads the real file, never writes it (R-751) - */
@@ -165,9 +248,26 @@ for (const [label, cause, mk] of [
 	}
 }
 
-/* --- (c) cap: an oversized rule is cut and announced, plus its seal (R-753) — disposable - */
+/* --- (c) cap: oversized rules are cut, announced and kept well-formed (R-753, R-2501) - */
 // req: R-753
 check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
+{
+	const { buildBlock: bb } = await import(writingExtUrl);
+	const notice = `\n\n…(cut at ${WRITING_INJECT_CAP} chars)`;
+	const prefix = `${HEADING}\n\n`;
+	const keep = WRITING_INJECT_CAP - notice.length;
+	const astralPath = path.join(tempDir(), "astral-rule.md");
+	fs.writeFileSync(astralPath, `${"a".repeat(3949)}😀${"z".repeat(200)}`);
+	const astral = bb(astralPath).block ?? "";
+	const asciiPath = path.join(tempDir(), "ascii-rule.md");
+	fs.writeFileSync(asciiPath, "a".repeat(WRITING_INJECT_CAP * 2));
+	const ascii = bb(asciiPath).block ?? "";
+	const expectedAstral = `${prefix}${"a".repeat(3949)}${notice}`;
+	const expectedAscii = `${prefix}${"a".repeat(keep - prefix.length)}${notice}`;
+	const ok = astral === expectedAstral && astral.length <= WRITING_INJECT_CAP && astral.isWellFormed() && ascii === expectedAscii;
+	// req: R-2501
+	check("cap: a rule cut between the two halves of a surrogate pair is injected ending before that pair", ok, JSON.stringify({ astralLength: astral.length, astralWellFormed: astral.isWellFormed(), astralMatches: astral === expectedAstral, asciiMatches: ascii === expectedAscii }));
+}
 {
 	const rulePath = path.join(tempDir(), "rule.md");
 	fs.writeFileSync(rulePath, "A".repeat(WRITING_INJECT_CAP * 2));

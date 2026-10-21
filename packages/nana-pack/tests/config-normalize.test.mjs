@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/config-normalize.test.mjs
- * @purpose Pins that loadConfig never throws for any bytes and always returns a fully typed config, with the user gate block the one leaf that never falls back to a default
+ * @purpose Pins that loadConfig never throws for any bytes and always returns a fully typed config, with the gate's conservative fallback and objective and writing kept user-only
  * @inputs lib/config.ts and arbitrary nana-pack.json bytes under a fresh temp HOME per case
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOMEs and config files), process (sets HOME and USERPROFILE)
@@ -40,6 +40,7 @@ const LEAVES = {
 	journal: { enabled: ["bool", false], path: ["path", path.join(tmpDir(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
 	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"], staleAfterDays: ["days", 3] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
+	writing: { enabled: ["bool", false] },
 	receipts: { enabled: ["bool", false], dir: ["path", "/tmp/nana-r"] },
 };
 const DEFAULTS = {
@@ -49,6 +50,7 @@ const DEFAULTS = {
 	journal: { enabled: true, path: null },
 	handoff: { enabled: true, path: null, staleAfterDays: 7 },
 	objective: { enabled: true, path: null, projectFile: null },
+	writing: { enabled: true },
 	receipts: { enabled: true, dir: null },
 };
 const validFor = (k, v) =>
@@ -76,6 +78,7 @@ function isTyped(c) {
 		&& typeof c.journal.enabled === "boolean" && nul(c.journal.path)
 		&& typeof c.handoff.enabled === "boolean" && nul(c.handoff.path) && typeof c.handoff.staleAfterDays === "number" && c.handoff.staleAfterDays > 0
 		&& typeof c.objective.enabled === "boolean" && nul(c.objective.path) && nul(c.objective.projectFile)
+		&& typeof c.writing.enabled === "boolean"
 		&& typeof c.receipts.enabled === "boolean" && nul(c.receipts.dir);
 }
 
@@ -164,10 +167,16 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 			check(`${tag}: ${block === "gate" && !validFor(kind, v) ? "malformed project gate → conservative stop" : "gate not stopped"}`,
 				block === "gate" && !validFor(kind, v) ? PSTOP.test(r.cfg.gate.stopReason ?? "") : r.cfg.gate.stopReason === null);
 			const ok = validFor(kind, v);
-			// objective is USER SCOPE ONLY; a malformed project gate block contributes nothing
-			const expected = block === "objective" || !ok ? VALID[block][leaf] : v;
-			// req: R-080
-			check(`${tag}: ${block === "objective" ? "ignored (user scope only)" : ok ? "valid → applied" : "invalid → user value kept"}`, eq(r.cfg[block][leaf], expected));
+			// objective and writing are USER SCOPE ONLY; a malformed project gate block contributes nothing
+			const userOnly = block === "objective" || block === "writing";
+			const expected = userOnly || !ok ? VALID[block][leaf] : v;
+			if (block === "writing") {
+				// req: R-080
+				check(`${tag}: ignored (user scope only)`, eq(r.cfg[block][leaf], expected));
+			} else {
+				// req: R-080
+				check(`${tag}: ${block === "objective" ? "ignored (user scope only)" : ok ? "valid → applied" : "invalid → user value kept"}`, eq(r.cfg[block][leaf], expected));
+			}
 		}
 	}
 	for (const v of VALUES) {
@@ -183,7 +192,7 @@ for (const v of VALUES) {
 	// req: R-008
 	check(`project file = ${JSON.stringify(v)}: no throw, typed, user config intact`, !r.threw && isTyped(r.cfg) && eq(r.cfg.notify, VALID.notify));
 }
-console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total} checks (7 blocks × leaves × ${VALUES.length} values, user + trusted project)`);
+console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total} checks (8 blocks × leaves × ${VALUES.length} values, user + trusted project)`);
 for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 
 // ── named cases ──

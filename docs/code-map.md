@@ -1216,13 +1216,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/extensions/nana-writing.ts`
 
-- **purpose** — Append the "Writing for Jake" rule to every session's system prompt, read fresh at every session_start so a reload picks up an edit — the seventh pack extension.
-- **inputs** — pi `session_start` (every reason) and `before_agent_start` events; an injectable rule path (opts.rulePath, defaulting to the shipped packages/nana-pack/rules/nana-writing.md); ctx (cwd)
-- **outputs** — the rule block appended under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
+- **purpose** — Append the "Writing for Jake" rule to each enabled session's system prompt, reading config and the rule fresh at every session_start — the seventh pack extension.
+- **inputs** — pi `session_start` (every reason) and `before_agent_start` events; user-scope writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
+- **outputs** — when writing.enabled is true, the rule block under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
 - **effects** — disk (stats and bounded-reads the rule file; appends the journal)
 - **errors** — none — the handler swallows everything; an unusable rule injects nothing rather than throwing, hanging or exhausting memory
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/prompt-sections.mjs`, `packages/nana-pack/lib/writing-config.mjs`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/prompt-sections.mjs`, `packages/nana-pack/lib/writing-config.mjs`
 
 ### `packages/nana-pack/lib/adoption.mjs`
 
@@ -1268,7 +1268,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Load, normalize and merge the nana-pack user and project config into a fully typed value no file bytes can make throw.
 - **inputs** — <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope, nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted, hasUI, ui, sessionManager)
-- **outputs** — a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, legacy receipts) with gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled allow/extra/protected regexes, and safe shared parse-failure detail in a gate stop or the user-scope objective block
+- **outputs** — a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, writing, legacy receipts) with gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
 - **effects** — disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions and last-valid gate on globalThis)
 - **errors** — never throws — a malformed leaf falls back and is surfaced once per session as a `config_invalid` or `config_agent_dir_mismatch` journal line plus one UI warning, and a malformed gate block with no last-good policy yields gate.stopReason, which blocks every gated tool
 - **callers** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-lifecycle.ts`, `packages/nana-pack/extensions/nana-notify.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`
@@ -1281,7 +1281,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — one bounded rendering per surface — promptPath/uiPath (one line, JSON-escaped when unsafe, ≤ PATH_CAP, middle-elided), promptText/uiText/fileField (controls, breaks and bidi marks replaced by a space), codeSpan (or null when it would close the span), locator ({text, escaped}, exact and never elided)
 - **effects** — none
 - **errors** — none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe code span is refused with null rather than escaped
-- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
+- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/frontier-config.mjs`
@@ -1291,7 +1291,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/frontier.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/gate-paths.ts`
@@ -1756,7 +1756,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/config-normalize.test.mjs`
 
-- **purpose** — Pins that loadConfig never throws for any bytes and always returns a fully typed config, with the user gate block the one leaf that never falls back to a default
+- **purpose** — Pins that loadConfig never throws for any bytes and always returns a fully typed config, with the gate's conservative fallback and objective and writing kept user-only
 - **inputs** — lib/config.ts and arbitrary nana-pack.json bytes under a fresh temp HOME per case
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOMEs and config files), process (sets HOME and USERPROFILE)
@@ -2646,20 +2646,20 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/writing-check.test.mjs`
 
-- **purpose** — Pins the writing checker: stdin and file labelling with correct per-line numbers, the four always-on checks (banned outside a code span), the two --report-only checks with whole-word verdict/identifier handling, Markdown-aware splitting, the summary's exact shape and cross-file verdict share, one seal per exported config value, and the always-0 exit — plus astra r1's four CLI mutations and an unpinned passive precision/recall fixture
-- **inputs** — the writing checker CLI (spawned) and its pure functions (imported directly)
+- **purpose** — Pins the writing checker, its Markdown-aware findings and summary, every sealed writing value, the always-zero CLI exit, and this repository's live HANDOFF sections against length and banned-word findings
+- **inputs** — the writing checker CLI and pure functions, writing and frontier config values, this repository's HANDOFF.md, and disposable text fixtures
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (a throwaway temp dir for the multi-file cases), process (spawns the CLI)
+- **effects** — disk (reads HANDOFF.md and writes a throwaway temp dir for multi-file cases), process (spawns the CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/writing-injection.test.mjs`
 
-- **purpose** — Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (a distinctive base, the objective and the writing block each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, that the UTF-8 tail fix strips only a genuine read-boundary split and never a malformed byte, that the read ceiling is pinned directly, and that none of this ever touches the real shipped rule file
-- **inputs** — extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, a temp HOME, and (for the two resource-failure fixtures) a Node subprocess with a time limit
+- **purpose** — Pins that the writing rule reaches every enabled session's system prompt, follows only the active user config's writing.enabled key on every session start, composes with nana-objective on the installed pi 1.0.2, cuts oversized blocks without splitting a surrogate pair, refuses unusable rule files, and bounds every rule read without touching the shipped rule file
+- **inputs** — extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, user and trusted-project nana-pack.json fixtures, a temp HOME, and bounded Node subprocesses
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
+- **effects** — disk (temp HOME, agent dirs, journal and disposable rule/config fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE/PI_CODING_AGENT_DIR, clears the worker handoff override; spawns bounded Node subprocesses for config, FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`

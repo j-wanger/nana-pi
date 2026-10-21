@@ -1,10 +1,10 @@
 /**
  * @module packages/nana-pack/extensions/nana-writing.ts
- * @purpose Append the "Writing for Jake" rule to every session's system prompt, read fresh at
- *  every session_start so a reload picks up an edit — the seventh pack extension.
- * @inputs pi `session_start` (every reason) and `before_agent_start` events; an injectable rule
- *  path (opts.rulePath, defaulting to the shipped packages/nana-pack/rules/nana-writing.md); ctx (cwd)
- * @outputs the rule block appended under "## Writing for Jake (nana)"; one journal line
+ * @purpose Append the "Writing for Jake" rule to each enabled session's system prompt, reading
+ *  config and the rule fresh at every session_start — the seventh pack extension.
+ * @inputs pi `session_start` (every reason) and `before_agent_start` events; user-scope
+ *  writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
+ * @outputs when writing.enabled is true, the rule block under "## Writing for Jake (nana)"; one journal line
  *  (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when
  *  the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread
  *  remainder, so that is the full extent of the claim, not whole-file validation
@@ -50,6 +50,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { appendJournal, loadConfig } from "../lib/config.ts";
+import { head } from "../lib/display.mjs";
 import { WRITING_INJECT_CAP } from "../lib/writing-config.mjs";
 import { orderNanaSections } from "../lib/prompt-sections.mjs";
 
@@ -135,7 +136,7 @@ function capBlock(full: string, forceCut: boolean): BuildResult {
 	if (!forceCut && full.length <= WRITING_INJECT_CAP) return { block: full, cause: null };
 	const notice = `\n\n…(cut at ${WRITING_INJECT_CAP} chars)`;
 	const keep = Math.max(0, WRITING_INJECT_CAP - notice.length);
-	return { block: `${full.slice(0, keep)}${notice}`, cause: null };
+	return { block: `${head(full, keep)}${notice}`, cause: null };
 }
 
 /**
@@ -193,12 +194,11 @@ export default function (pi: ExtensionAPI, opts: { rulePath?: string } = {}) {
 		// every reason, deliberately — R-754: a reload must re-read the file from disk
 		block = null;
 		try {
+			const cfg = loadConfig(ctx);
+			if (!cfg.writing.enabled) return;
 			const { block: b, cause } = buildBlock(rulePath);
 			block = b;
-			if (cause) {
-				const cfg = loadConfig(ctx);
-				appendJournal(cfg, { ts: new Date().toISOString(), cwd: ctx.cwd, event: "writing_rule_unavailable", cause });
-			}
+			if (cause) appendJournal(cfg, { ts: new Date().toISOString(), cwd: ctx.cwd, event: "writing_rule_unavailable", cause });
 		} catch {
 			// never throw out of a handler
 		}

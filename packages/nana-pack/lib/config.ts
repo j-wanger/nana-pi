@@ -5,9 +5,9 @@
  * @inputs <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope,
  *  nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted,
  *  hasUI, ui, sessionManager)
- * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, legacy receipts) with
+ * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, writing, legacy receipts) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
- *  allow/extra/protected regexes, and safe shared parse-failure detail in a gate stop or the user-scope objective block
+ *  allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
  *  journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions
  *  and last-valid gate on globalThis)
@@ -98,6 +98,8 @@ export interface NanaPackConfig {
 	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
 	objective: { enabled: boolean; path: string | null; projectFile: string | null; configFailure?: { file: string; line?: number; column?: number; repair: "forward-slash" | "manual" } };
+	/** The writing rule prompt section. USER SCOPE ONLY — project config never contributes. */
+	writing: { enabled: boolean };
 	/** Deprecated compatibility keys; accepted and ignored for one release after decision D5, 2026-10-06. */
 	receipts: { enabled: boolean; dir: string | null };
 }
@@ -109,6 +111,7 @@ const DEFAULTS: NanaPackConfig = {
 	journal: { enabled: true, path: null },
 	handoff: { enabled: true, path: null, staleAfterDays: 7 },
 	objective: { enabled: true, path: null, projectFile: null },
+	writing: { enabled: true },
 	receipts: { enabled: true, dir: null },
 };
 
@@ -243,6 +246,7 @@ const SCHEMA: Record<string, Record<string, Leaf>> = {
 	journal: { enabled: bool, path: pathOrNull },
 	handoff: { enabled: bool, path: pathOrNull, staleAfterDays: positiveNumber },
 	objective: { enabled: bool, path: pathOrNull, projectFile: fileNameOrDefault },
+	writing: { enabled: bool },
 	receipts: { enabled: bool, dir: pathOrNull },
 };
 
@@ -581,6 +585,9 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 				...merge("objective", u.objective),
 				...("jsonFailure" in user ? { configFailure: { file: userFile, ...(user.jsonFailure ?? {}) } } : {}),
 			},
+			// USER SCOPE ONLY, for the same reason as objective.enabled: a project cannot
+			// silence an owner-level prompt section, even after the project is trusted.
+			writing: merge("writing", u.writing),
 			receipts: merge("receipts", u.receipts, project.receipts),
 		};
 	} catch (e) {

@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/writing-check.test.mjs
- * @purpose Pins the writing checker: stdin and file labelling with correct per-line numbers, the four always-on checks (banned outside a code span), the two --report-only checks with whole-word verdict/identifier handling, Markdown-aware splitting, the summary's exact shape and cross-file verdict share, one seal per exported config value, and the always-0 exit — plus astra r1's four CLI mutations and an unpinned passive precision/recall fixture
- * @inputs the writing checker CLI (spawned) and its pure functions (imported directly)
+ * @purpose Pins the writing checker, its Markdown-aware findings and summary, every sealed writing value, the always-zero CLI exit, and this repository's live HANDOFF sections against length and banned-word findings
+ * @inputs the writing checker CLI and pure functions, writing and frontier config values, this repository's HANDOFF.md, and disposable text fixtures
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (a throwaway temp dir for the multi-file cases), process (spawns the CLI)
+ * @effects disk (reads HANDOFF.md and writes a throwaway temp dir for multi-file cases), process (spawns the CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate, amended after astra r1 (BLOCK, 6/10) and Fable's Amendment 1 (design-ruling.md,
@@ -19,9 +19,11 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bannedFindings, checkText, extractBlocks, identifierFindings, lengthFindings, passiveCandidate, passiveFindings, splitSentences, summaryLine, verdictFinding } from "../lib/writing-check.mjs";
+import { LIVE_SECTION_NAMES } from "../lib/frontier-config.mjs";
 import { BANNED_WORDS, IDENTIFIER_CODE_SPAN, IDENTIFIER_PATH, MIN_SENTENCE_WORDS, PASSIVE, PASSIVE_EXCEPTIONS, SENTENCE_CAP, VERDICT_WORDS } from "../lib/writing-config.mjs";
 
 const CLI = fileURLToPath(new URL("../bin/nana-writing.mjs", import.meta.url));
+const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -31,6 +33,70 @@ const check = (n, ok, extra) => {
 
 function run(args, input) {
 	return spawnSync(process.execPath, [CLI, ...args], { input: input ?? "", encoding: "utf8" });
+}
+
+/** Slice each named live section through the next heading at its own or a higher level. */
+function liveSections(text, names) {
+	const lines = text.split(/\r\n|\r|\n/);
+	const headings = [];
+	for (let i = 0; i < lines.length; i++) {
+		const match = /^ {0,3}(#{1,6})[ \t]+(.*?)[ \t]*$/.exec(lines[i]);
+		if (!match) continue;
+		const title = match[2].replace(/[ \t]+#+[ \t]*$/, "").trimEnd();
+		headings.push({ line: i, level: match[1].length, title });
+	}
+	const found = new Map(names.map((name) => [name, []]));
+	for (let i = 0; i < headings.length; i++) {
+		const heading = headings[i];
+		const name = names.find((candidate) => heading.title === candidate || new RegExp(`^${candidate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(.+\\)$`).test(heading.title));
+		if (!name) continue;
+		let end = lines.length;
+		for (let j = i + 1; j < headings.length; j++) {
+			if (headings[j].level <= heading.level) { end = headings[j].line; break; }
+		}
+		found.get(name).push(lines.slice(heading.line, end).join("\n"));
+	}
+	return found;
+}
+
+/* --- repository frontier: every named live section is clean; archive controls stay out (R-2503) --- */
+{
+	const longSentence = `${Array.from({ length: SENTENCE_CAP + 1 }, (_, i) => `word${i + 1}`).join(" ")}.`;
+	const control = [
+		"## Where things stand \t",
+		"A short sentence stays here.",
+		"## Next\t",
+		"A short sentence starts this section.",
+		"### Detail \t",
+		longSentence,
+		`${BANNED_WORDS[0]}.`,
+		"## Open for Jake (x) \t",
+		longSentence,
+		`${BANNED_WORDS[0]}.`,
+		"## Landed \t",
+		longSentence,
+		`${BANNED_WORDS[0]}.`,
+	].join("\r\n"); // CRLF, trailing spaces/tabs, and deliberately no final newline
+	const controlSections = liveSections(control, LIVE_SECTION_NAMES);
+	const controlResults = LIVE_SECTION_NAMES.flatMap((name) => (controlSections.get(name) ?? []).map((section) => checkText(name, section)));
+	const controlLength = controlResults.flatMap((result) => result.findings).filter((finding) => finding.check === "length");
+	const controlBanned = controlResults.flatMap((result) => result.findings).filter((finding) => finding.check === "banned");
+
+	const handoff = fs.readFileSync(path.join(REPO_ROOT, "HANDOFF.md"), "utf8");
+	const repoSections = liveSections(handoff, LIVE_SECTION_NAMES);
+	const everyLiveNameFoundOnce = LIVE_SECTION_NAMES.every((name) => repoSections.get(name)?.length === 1);
+	const repoResults = LIVE_SECTION_NAMES.flatMap((name) => (repoSections.get(name) ?? []).map((section) => checkText(name, section)));
+	const everyLiveNameHasSentence = LIVE_SECTION_NAMES.every((name) => {
+		const sections = repoSections.get(name) ?? [];
+		return sections.length === 1 && checkText(name, sections[0]).stats.sentences > 0;
+	});
+	const repoFindings = repoResults.flatMap((result) => result.findings).filter((finding) => finding.check === "length" || finding.check === "banned");
+	const controlOk = LIVE_SECTION_NAMES.every((name) => controlSections.get(name)?.length === 1)
+		&& controlResults.every((result) => result.stats.sentences > 0)
+		&& controlLength.length === 2
+		&& controlBanned.length === 2;
+	// req: R-2503
+	check("this repository's HANDOFF.md live sections hold no over-cap sentence and no banned word", everyLiveNameFoundOnce && everyLiveNameHasSentence && controlOk && repoFindings.length === 0, JSON.stringify({ found: Object.fromEntries([...repoSections].map(([name, sections]) => [name, sections.length])), everyLiveNameHasSentence, controlLength: controlLength.length, controlBanned: controlBanned.length, repoFindings }));
 }
 
 /* ======================================================================================
