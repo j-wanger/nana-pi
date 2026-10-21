@@ -1,18 +1,19 @@
 /**
  * @module packages/nana-pack/lib/handoff-asks.mjs
- * @purpose Splits HANDOFF's Open for Jake section into raw entries with independent tag and title parses.
+ * @purpose Splits HANDOFF's Open for the owner section into raw entries with independent tag and title parses.
  * @inputs HANDOFF Markdown text.
  * @outputs Ordered ask entries with source lines, frontier tags, and report titles and bodies.
  * @effects none
  * @errors None; absent sections and unparseable tags or titles yield empty results.
  */
+import { OPEN_SECTION_PREFIX, isNamed } from "./frontier-config.mjs";
+
 const isHeading = (line) => /^ {0,3}#{1,6}\s+/.test(line);
 const isListItem = (line) => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
-const isOpenHeading = (title) => /^Open for Jake(?:\s|\(|—|$)/i.test(title.trim());
 const TAG = /\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]/i;
 const TITLE = /^\s*(?:[-*+]\s+|\d+[.)]\s+)\*\*\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]\s+(.+?)\.\*\*(.*)$/i;
 
-export function splitOpenForJake(text) {
+export function splitOpenSection(text) {
   const lines = text.split(/\r\n|\r|\n/);
   const outsideFence = [];
   const headings = [];
@@ -29,7 +30,7 @@ export function splitOpenForJake(text) {
     }
   }
   const entries = [];
-  for (const section of headings.filter((heading) => isOpenHeading(heading.title))) {
+  for (const section of headings.filter((heading) => isNamed(heading.title, OPEN_SECTION_PREFIX))) {
     const end = headings.find((heading) => heading.index > section.index && heading.level <= section.level)?.index ?? lines.length;
     for (let index = section.index + 1; index < end; index++) {
       if (!outsideFence[index] || !isListItem(lines[index])) continue;

@@ -1,20 +1,20 @@
 /**
  * @module packages/nana-pack/tests/handoff-asks.test.mjs
- * @purpose Pins Open for Jake entry splitting and the independent frontier-tag and report-title grammars.
+ * @purpose Pins Open for the owner entry splitting and the independent frontier-tag and report-title grammars.
  * @inputs handoff-asks.mjs and temporary HANDOFF text.
  * @outputs named PASS/FAIL checks and a nonzero exit when an assertion fails.
  * @effects disk (writes fixtures under the OS temp directory).
  * @errors failed assertions are reported and cause exit 1.
  */
-import { splitOpenForJake } from "../lib/handoff-asks.mjs";
+import { splitOpenSection } from "../lib/handoff-asks.mjs";
 
 let failures = 0;
 const check = (name, value) => {
   console.log(value ? "PASS" : "FAIL", name);
   if (!value) failures++;
 };
-const entries = splitOpenForJake([
-  "## Open for Jake (asks)",
+const entries = splitOpenSection([
+  "## Open for the owner (asks)",
   "- **[optional, since 2026-10-10] Parsed title.** Full body here.",
   "  second body line.",
   "- [blocking, since 2026-10-10] no report title grammar",

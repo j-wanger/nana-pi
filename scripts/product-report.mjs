@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
-import { splitOpenForJake } from "../packages/nana-pack/lib/handoff-asks.mjs";
+import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
 import { dataPath, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
@@ -363,10 +363,10 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   if (problems.length) throw new Error(`requirements tree checker problems:\n${problems.join("\n")}`);
   const rows = readRequirementRows(parsed);
   const handoff = await readFile(path.join(root, "HANDOFF.md"), "utf8");
-  const asks = splitOpenForJake(handoff);
+  const asks = splitOpenSection(handoff);
   for (const ask of asks) {
     if (!ask.tag || !ask.title || !validDate(ask.tag.since) || ask.tag.kind !== ask.title.kind || ask.tag.since !== ask.title.since) {
-      throw new Error(`HANDOFF.md line ${ask.line}: malformed Open for Jake entry`);
+      throw new Error(`HANDOFF.md line ${ask.line}: malformed Open for the owner entry`);
     }
   }
   const commit = git(gitRunner, root, ["rev-parse", "HEAD"]);

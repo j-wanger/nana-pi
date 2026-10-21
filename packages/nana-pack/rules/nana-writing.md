@@ -1,4 +1,4 @@
-# Nana — Writing for Jake
+# Nana — Writing for the owner
 
 This rule applies to a message addressed to Jake: a report, a decision point, a status
 update, and a `HANDOFF.md` line. A review, a brief, a worker report, a commit message

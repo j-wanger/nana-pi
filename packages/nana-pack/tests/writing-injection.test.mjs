@@ -258,12 +258,13 @@ check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 	const prefix = `${HEADING}\n\n`;
 	const keep = WRITING_INJECT_CAP - notice.length;
 	const astralPath = path.join(tempDir(), "astral-rule.md");
-	fs.writeFileSync(astralPath, `${"a".repeat(3949)}😀${"z".repeat(200)}`);
+	const astralPrefixLength = keep - prefix.length - 1;
+	fs.writeFileSync(astralPath, `${"a".repeat(astralPrefixLength)}😀${"z".repeat(200)}`);
 	const astral = bb(astralPath).block ?? "";
 	const asciiPath = path.join(tempDir(), "ascii-rule.md");
 	fs.writeFileSync(asciiPath, "a".repeat(WRITING_INJECT_CAP * 2));
 	const ascii = bb(asciiPath).block ?? "";
-	const expectedAstral = `${prefix}${"a".repeat(3949)}${notice}`;
+	const expectedAstral = `${prefix}${"a".repeat(astralPrefixLength)}${notice}`;
 	const expectedAscii = `${prefix}${"a".repeat(keep - prefix.length)}${notice}`;
 	const ok = astral === expectedAstral && astral.length <= WRITING_INJECT_CAP && astral.isWellFormed() && ascii === expectedAscii;
 	// req: R-2501
@@ -435,7 +436,7 @@ const TIME_LIMIT_MS = 5000;
    && sections["nana-objective"] === objectiveValue && sections["nana-objective"] !== objectiveSection && sections["nana-objective"].includes("ship the writing trial.")
    && sections["nana-objective"].includes("close astra r2.")
    && sections["nana-handoff"].includes("composition handoff fixture")
-   && sections["nana-writing"].includes("## Writing for Jake (nana)") && sections["nana-writing"].includes("Compose fixture text.")
+   && sections["nana-writing"].includes(HEADING) && sections["nana-writing"].includes("Compose fixture text.")
    && results.every((result) => result === undefined)
    && !("systemPrompt" in event) && !("forceSystemPrompt" in event.systemPromptOptions);
  }

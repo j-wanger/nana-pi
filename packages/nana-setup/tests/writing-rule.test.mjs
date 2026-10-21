@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/writing-rule.test.mjs
  * @purpose Pins the shared writing rule's source, sealed Check section, command spelling, and zero-finding result
- * @inputs lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's lib/writing-check.mjs, the shipped rule file, and the sealed Check text
+ * @inputs lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's writing checker and title prefix, the shipped rule file, and the sealed Check text
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects none (reads the rule file)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -17,6 +17,7 @@ import * as path from "node:path";
 
 const { ruleSource, PACK_RULES_DIR } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mjs", import.meta.url).href);
+const { RULE_TITLE } = await import(new URL("../../nana-pack/lib/writing-trial-extractor.mjs", import.meta.url).href);
 
 const SEALED_CHECK_TEXT = `## Check
 
@@ -53,7 +54,7 @@ const check = (n, ok, extra) => {
 
 	const r = checkText(src, text, { report: false });
 	// req: R-376
-	check("the rule passes nana-writing with zero findings", r.findings.length === 0, JSON.stringify(r.findings));
+	check("the rule passes nana-writing with zero findings", text.startsWith(`${RULE_TITLE} the owner\n`) && r.findings.length === 0, JSON.stringify(r.findings));
 }
 
 process.exit(fails);

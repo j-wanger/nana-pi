@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/writing-trial-extractor.mjs
  * @purpose Recomputes baseline seat-session units and rule-attached after reports from Claude Code transcripts.
  * @inputs Transcript JSONL files, a date window, mode, and optionally a private output directory.
- * @outputs Corpus summaries, per-day verdict counts, optional private text corpus and hash manifest.
+ * @outputs RULE_TITLE plus corpus summaries, per-day verdict counts, optional private text corpus and hash manifest.
  * @effects disk (reads transcripts and writes only to the explicitly selected output directory)
  * @errors Invalid transcript lines are skipped; invalid arguments or output failures exit nonzero.
  */
@@ -11,7 +11,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { checkText, splitSentences } from "./writing-check.mjs";
 
-const RULE_TITLE = "# Nana — Writing for Jake";
+/** Contract (R-2516): accepted attachment titles start with this role-neutral prefix. */
+export const RULE_TITLE = "# Nana — Writing for";
 const RULE_ANCHOR = "Put the verdict in the first sentence. Use one of:";
 const DEFAULT_ROOT = path.join(process.env.HOME ?? "~", ".claude", "projects");
 const WORDS = (text) => text.trim().split(/\s+/u).filter(Boolean).length;

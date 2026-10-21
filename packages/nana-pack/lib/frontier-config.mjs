@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/frontier-config.mjs
- * @purpose Defines the sealed word budget, read window and section names for HANDOFF frontier reports.
+ * @purpose Defines the sealed word budget, read window and shared section-name matching for HANDOFF frontier reports.
  * @inputs none
- * @outputs HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES
+ * @outputs HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, OPEN_SECTION_PREFIX, OPEN_SECTION_NAME, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES, isNamed
  * @effects none
  * @errors none
  */
@@ -13,7 +13,20 @@ export const HANDOFF_WORD_BUDGET = 1200;
 export const READ_WINDOW_BYTES = 51200;
 /** Contract value (R-2471, R-2472): pi 1.0.2 DEFAULT_MAX_LINES = 2000 (dist/core/tools/truncate.js:10), checked 2026-10-21. Sealed. */
 export const READ_WINDOW_LINES = 2000;
+/** Contract (R-2514, R-2515): an asks heading starts with this prefix, including its trailing space. */
+export const OPEN_SECTION_PREFIX = "Open for ";
+/** Chosen: findings use the role-neutral canonical name even when another name appears in a heading. */
+export const OPEN_SECTION_NAME = "Open for the owner";
 /** Contract value (R-2470, R-2471): this repo's frontier headings, and the names nana-soul.md uses. */
-export const LIVE_SECTION_NAMES = ["Where things stand", "Next", "Open for Jake"];
+export const LIVE_SECTION_NAMES = ["Where things stand", "Next", OPEN_SECTION_PREFIX];
 /** Contract value (R-2470): this repo's archive headings. */
 export const ARCHIVE_SECTION_NAMES = ["Landed", "Carried residuals"];
+
+/** Match an exact section name with its accepted suffixes, or a declared trailing-space prefix. */
+export function isNamed(title, name) {
+	const actual = title.trim().toLowerCase();
+	const expected = name.toLowerCase();
+	if (expected.endsWith(" ")) return actual.startsWith(expected);
+	const escaped = expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return actual === expected || new RegExp(`^${escaped}(?:\\s|\\(|—)`).test(actual);
+}

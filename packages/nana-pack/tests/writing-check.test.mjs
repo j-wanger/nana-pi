@@ -19,7 +19,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bannedFindings, checkText, extractBlocks, identifierFindings, lengthFindings, passiveCandidate, passiveFindings, splitSentences, summaryLine, verdictFinding } from "../lib/writing-check.mjs";
-import { LIVE_SECTION_NAMES } from "../lib/frontier-config.mjs";
+import { LIVE_SECTION_NAMES, isNamed } from "../lib/frontier-config.mjs";
 import { BANNED_WORDS, IDENTIFIER_CODE_SPAN, IDENTIFIER_PATH, MIN_SENTENCE_WORDS, PASSIVE, PASSIVE_EXCEPTIONS, SENTENCE_CAP, VERDICT_WORDS } from "../lib/writing-config.mjs";
 
 const CLI = fileURLToPath(new URL("../bin/nana-writing.mjs", import.meta.url));
@@ -55,12 +55,7 @@ function liveSections(text, names) {
 	const found = new Map(names.map((name) => [name, []]));
 	for (let i = 0; i < headings.length; i++) {
 		const heading = headings[i];
-		// Mirror nana-frontier's isNamed section-name matching exactly.
-		const name = names.find((candidate) => {
-			const actual = heading.title.trim().toLowerCase();
-			const expected = candidate.toLowerCase();
-			return actual === expected || new RegExp(`^${expected}(?:\\s|\\(|—)`).test(actual);
-		});
+		const name = names.find((candidate) => isNamed(heading.title, candidate));
 		if (!name) continue;
 		let end = lines.length;
 		for (let j = i + 1; j < headings.length; j++) {
@@ -88,7 +83,7 @@ function liveSections(text, names) {
 		"### Detail \t",
 		longSentence,
 		`${BANNED_WORDS[0]}.`,
-		"## Open for Jake (x) \t",
+		"## Open for the owner (x) \t",
 		longSentence,
 		`${BANNED_WORDS[0]}.`,
 		"## Landed \t",

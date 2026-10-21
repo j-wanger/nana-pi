@@ -1,10 +1,10 @@
 /**
  * @module packages/nana-pack/extensions/nana-writing.ts
- * @purpose Append the "Writing for Jake" rule to each enabled turn's system prompt, reading
+ * @purpose Append the "Writing for the owner" rule to each enabled turn's system prompt, reading
  *  the rule fresh at every session_start and config before every agent start — the seventh pack extension.
  * @inputs pi `session_start` (every reason) and `before_agent_start` events; live user-scope
  *  writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
- * @outputs when writing.enabled is true for the turn, the rule block under "## Writing for Jake (nana)"; one journal line
+ * @outputs when writing.enabled is true for the turn, the rule block under "## Writing for the owner (nana)"; one journal line
  *  (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when
  *  the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread
  *  remainder, so that is the full extent of the claim, not whole-file validation
@@ -58,7 +58,7 @@ import { orderNanaSections } from "../lib/prompt-sections.mjs";
 /** The shipped rule file — the default when no path is injected. */
 export const RULE_PATH = fileURLToPath(new URL("../rules/nana-writing.md", import.meta.url));
 
-export const HEADING = "## Writing for Jake (nana)";
+export const HEADING = "## Writing for the owner (nana)";
 
 /** chosen: the longest a UTF-8 sequence can be, so a read cut at exactly READ_MARGIN past the
  *  cap can still have its possibly-split trailing character trimmed and decoded cleanly. */

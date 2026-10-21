@@ -1236,9 +1236,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/extensions/nana-writing.ts`
 
-- **purpose** — Append the "Writing for Jake" rule to each enabled turn's system prompt, reading the rule fresh at every session_start and config before every agent start — the seventh pack extension.
+- **purpose** — Append the "Writing for the owner" rule to each enabled turn's system prompt, reading the rule fresh at every session_start and config before every agent start — the seventh pack extension.
 - **inputs** — pi `session_start` (every reason) and `before_agent_start` events; live user-scope writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
-- **outputs** — when writing.enabled is true for the turn, the rule block under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
+- **outputs** — when writing.enabled is true for the turn, the rule block under "## Writing for the owner (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
 - **effects** — disk (stats and bounded-reads the rule file; appends the journal)
 - **errors** — none — the handler swallows everything; an unusable rule injects nothing rather than throwing, hanging or exhausting memory
 - **callers** — —
@@ -1306,12 +1306,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/frontier-config.mjs`
 
-- **purpose** — Defines the sealed word budget, read window and section names for HANDOFF frontier reports.
+- **purpose** — Defines the sealed word budget, read window and shared section-name matching for HANDOFF frontier reports.
 - **inputs** — none
-- **outputs** — HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES
+- **outputs** — HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, OPEN_SECTION_PREFIX, OPEN_SECTION_NAME, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES, isNamed
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `scripts/known-bugs.mjs`
+- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `scripts/known-bugs.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/gate-paths.ts`
@@ -1366,13 +1366,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/handoff-asks.mjs`
 
-- **purpose** — Splits HANDOFF's Open for Jake section into raw entries with independent tag and title parses.
+- **purpose** — Splits HANDOFF's Open for the owner section into raw entries with independent tag and title parses.
 - **inputs** — HANDOFF Markdown text.
 - **outputs** — Ordered ask entries with source lines, frontier tags, and report titles and bodies.
 - **effects** — none
 - **errors** — None; absent sections and unparseable tags or titles yield empty results.
 - **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/handoff-asks.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `scripts/product-report.mjs`
-- **callees** — —
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`
 
 ### `packages/nana-pack/lib/json-text.mjs`
 
@@ -1638,10 +1638,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Recomputes baseline seat-session units and rule-attached after reports from Claude Code transcripts.
 - **inputs** — Transcript JSONL files, a date window, mode, and optionally a private output directory.
-- **outputs** — Corpus summaries, per-day verdict counts, optional private text corpus and hash manifest.
+- **outputs** — RULE_TITLE plus corpus summaries, per-day verdict counts, optional private text corpus and hash manifest.
 - **effects** — disk (reads transcripts and writes only to the explicitly selected output directory)
 - **errors** — Invalid transcript lines are skipped; invalid arguments or output failures exit nonzero.
-- **callers** — `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
+- **callers** — `packages/nana-pack/tests/writing-trial-extractor.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
 - **callees** — `packages/nana-pack/lib/writing-check.mjs`
 
 ### `packages/nana-pack/tests/adoption-producer.test.mjs`
@@ -1936,7 +1936,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/handoff-asks.test.mjs`
 
-- **purpose** — Pins Open for Jake entry splitting and the independent frontier-tag and report-title grammars.
+- **purpose** — Pins Open for the owner entry splitting and the independent frontier-tag and report-title grammars.
 - **inputs** — handoff-asks.mjs and temporary HANDOFF text.
 - **outputs** — named PASS/FAIL checks and a nonzero exit when an assertion fails.
 - **effects** — disk (writes fixtures under the OS temp directory).
@@ -2302,7 +2302,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixture repositories); process (git commands).
 - **errors** — failed assertions set a nonzero test exit.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/pwsh-oracle.mjs`
 
@@ -3737,12 +3737,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/tests/writing-rule.test.mjs`
 
 - **purpose** — Pins the shared writing rule's source, sealed Check section, command spelling, and zero-finding result
-- **inputs** — lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's lib/writing-check.mjs, the shipped rule file, and the sealed Check text
+- **inputs** — lib/steps.mjs's ruleSource/PACK_RULES_DIR, nana-pack's writing checker and title prefix, the shipped rule file, and the sealed Check text
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — none (reads the rule file)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callees** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/lib/writing-trial-extractor.mjs`, `packages/nana-setup/lib/steps.mjs`
 
 ### `packages/nana-stage/extensions/nana-stage.ts`
 

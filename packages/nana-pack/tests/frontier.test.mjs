@@ -55,6 +55,28 @@ check("seal: HANDOFF read window is 51,200 bytes", READ_WINDOW_BYTES === 51200);
 check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 
 {
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-open-prefix-"));
+	const findingKinds = [];
+	for (const name of ["Avery", "Rowan"]) {
+		const file = path.join(dir, `${name}.md`);
+		const lines = [
+			"## Landed",
+			"- archived",
+			`## Open for ${name}\t`,
+			"- LANDED; deadline 2026-10-05.",
+			...Array(READ_WINDOW_LINES + 1).fill("continuation "),
+		];
+		fs.writeFileSync(file, lines.join("\r\n"));
+		const output = run(file).stdout;
+		findingKinds.push([...new Set([...output.matchAll(/: ([a-z-]+):/g)].map((match) => match[1]))].sort());
+	}
+	const required = ["open-tag", "misplaced-landed", "overdue-date", "section-order", "read-window"];
+	// req: R-2515
+	check("an Open for heading with any name gets every live-section check", JSON.stringify(findingKinds[0]) === JSON.stringify(findingKinds[1]) && required.every((kind) => findingKinds[0].includes(kind)), JSON.stringify(findingKinds));
+	fs.rmSync(dir, { recursive: true, force: true });
+}
+
+{
 	const rootLayout = fs.readFileSync(path.resolve(HERE, "../../../AGENTS.md"), "utf8");
 	const packReadme = fs.readFileSync(path.resolve(HERE, "../README.md"), "utf8");
 	check("CLI inventory names nana-frontier without stale ordinals", rootLayout.includes("nana-frontier") && packReadme.includes("nana-frontier") && !packReadme.includes("The ninth CLI"));

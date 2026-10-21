@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
+import { RULE_TITLE, checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 let failures = 0;
@@ -32,7 +32,22 @@ function fixture() {
 	};
 	return { root, add, cleanup: () => fs.rmSync(root, { recursive: true, force: true }) };
 }
-const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", attachment: "# Nana — Writing for Jake\nPut the verdict in the first sentence. Use one of:" };
+const shippedRule = fs.readFileSync(new URL("../rules/nana-writing.md", import.meta.url), "utf8");
+const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", attachment: shippedRule };
+
+{
+	const f = fixture();
+	const retitledRule = shippedRule.replace(/^#[^\r\n]*/u, `${RULE_TITLE} Avery`);
+	f.add("-Users-seat", "shipped-title", [entry("user", "2026-10-04T12:00:00Z", "start"), attachment, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
+	f.add("-Users-seat", "retitled", [entry("user", "2026-10-04T12:00:00Z", "start"), { ...attachment, attachment: retitledRule }, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
+	const sessions = collect(f.root, "2026-10-04", "2026-10-05", "after");
+	// req: R-2516
+	check("a rule attached under any Writing for title counts as attached", () => {
+		assert.equal(RULE_TITLE, "# Nana — Writing for");
+		assert.deepEqual(sessions.map((session) => session.sessionId), ["retitled", "shipped-title"]);
+	});
+	f.cleanup();
+}
 
 {
 	const f = fixture();

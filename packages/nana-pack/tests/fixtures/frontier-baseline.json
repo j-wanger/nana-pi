@@ -1,7 +1,7 @@
 {
   "current": {
     "status": 0,
-    "stdout": "<fixture>/current.md:1: word-budget: words=1663 budget=1200\n<fixture>/current.md:38: section-order: Where things stand comes after Landed at line 7\n<fixture>/current.md:42: section-order: Next comes after Landed at line 7\n<fixture>/current.md:51: section-order: Open for Jake comes after Landed at line 7\nsummary words=1663 budget=1200 findings=4\n",
+    "stdout": "<fixture>/current.md:1: word-budget: words=1663 budget=1200\n<fixture>/current.md:38: section-order: Where things stand comes after Landed at line 7\n<fixture>/current.md:42: section-order: Next comes after Landed at line 7\n<fixture>/current.md:51: section-order: Open for the owner comes after Landed at line 7\nsummary words=1663 budget=1200 findings=4\n",
     "stderr": ""
   },
   "noTitle": {
@@ -16,12 +16,12 @@
   },
   "missing": {
     "status": 0,
-    "stdout": "<fixture>/missing.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date\nsummary words=9 budget=1200 findings=1\n",
+    "stdout": "<fixture>/missing.md:2: open-tag: Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date\nsummary words=9 budget=1200 findings=1\n",
     "stderr": ""
   },
   "future": {
     "status": 0,
-    "stdout": "<fixture>/future.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date\nsummary words=9 budget=1200 findings=1\n",
+    "stdout": "<fixture>/future.md:2: open-tag: Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date\nsummary words=9 budget=1200 findings=1\n",
     "stderr": ""
   },
   "fenced": {

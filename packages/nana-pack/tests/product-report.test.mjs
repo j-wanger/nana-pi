@@ -15,7 +15,8 @@ import * as vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { buildReport, generateReport, generatePackets, renderInto, validateStore } from "../../../scripts/product-report.mjs";
-import { splitOpenForJake } from "../lib/handoff-asks.mjs";
+import { OPEN_SECTION_NAME, OPEN_SECTION_PREFIX } from "../lib/frontier-config.mjs";
+import { splitOpenSection } from "../lib/handoff-asks.mjs";
 import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -152,6 +153,20 @@ function renderPageAt(html, hash = "") {
   vm.runInNewContext(bootstrap[2], context);
   const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
   return flatten(rootNode);
+}
+{
+  const entries = splitOpenSection([
+    "## Open for Avery",
+    "- **[optional, since 2026-10-10] First ask.** body",
+    "## Open formats",
+    "- **[optional, since 2026-10-10] Format control.** body",
+    "## Open for Rowan (notes)",
+    "- **[parked, since 2026-10-09] Second ask.** body",
+    "## Open",
+    "- **[blocking, since 2026-10-08] Bare control.** body",
+  ].join("\n"));
+  // req: R-2514
+  check("an Open for heading with any name is read as the asks section", OPEN_SECTION_PREFIX === "Open for " && OPEN_SECTION_NAME === "Open for the owner" && JSON.stringify(entries.map((entry) => entry.title?.title)) === JSON.stringify(["First ask", "Second ask"]));
 }
 try {
   {

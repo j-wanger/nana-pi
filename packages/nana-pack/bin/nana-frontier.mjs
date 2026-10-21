@@ -8,8 +8,8 @@
  * @errors unreadable input and malformed options or dates are reported; errors exit nonzero only in strict mode
  */
 import * as fs from "node:fs";
-import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../lib/frontier-config.mjs";
-import { splitOpenForJake } from "../lib/handoff-asks.mjs";
+import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, OPEN_SECTION_NAME, OPEN_SECTION_PREFIX, READ_WINDOW_BYTES, READ_WINDOW_LINES, isNamed } from "../lib/frontier-config.mjs";
+import { splitOpenSection } from "../lib/handoff-asks.mjs";
 
 const isDate = (value) => {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -79,15 +79,7 @@ const headingStackAt = (index) => {
 	}
 	return stack;
 };
-const isNamed = (title, name) => {
-	const actual = title.trim().toLowerCase();
-	const expected = name.toLowerCase();
-	return actual === expected || new RegExp(`^${expected}(?:\\s|\\(|—)`).test(actual);
-};
-const inSection = (index, title) => headingStackAt(index).some((heading) => {
-	const actual = heading.title.trim().toLowerCase();
-	return actual === title || new RegExp(`^${title}(?:\\s|\\(|—)`).test(actual);
-});
+const inSection = (index, title) => headingStackAt(index).some((heading) => isNamed(heading.title, title));
 const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
 if (wordCount > HANDOFF_WORD_BUDGET) add(1, "word-budget", `words=${wordCount} budget=${HANDOFF_WORD_BUDGET}`);
 const entriesBetween = (start, end) => {
@@ -119,10 +111,10 @@ for (let i = 0; i < lines.length; i++) {
 		const number = Number(ref[1]);
 		if (!nextItems.includes(number)) add(i + 1, "broken-reference", `item ${number} of Next does not resolve`);
 	}
-	if ((inSection(i, "next") || inSection(i, "open for jake")) && /\bLANDED\b/i.test(lines[i])) {
-		add(i + 1, "misplaced-landed", "LANDED appears under Next or Open for Jake");
+	if ((inSection(i, "next") || inSection(i, OPEN_SECTION_PREFIX)) && /\bLANDED\b/i.test(lines[i])) {
+		add(i + 1, "misplaced-landed", "LANDED appears under Next or Open for the owner");
 	}
-	if (inSection(i, "next") || inSection(i, "open for jake")) {
+	if (inSection(i, "next") || inSection(i, OPEN_SECTION_PREFIX)) {
 		const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^;().\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
 		for (const due of lines[i].matchAll(dateCue)) {
 			const date = due[2] ?? due[1];
@@ -130,9 +122,9 @@ for (let i = 0; i < lines.length; i++) {
 		}
 	}
 }
-for (const entry of splitOpenForJake(text)) {
+for (const entry of splitOpenSection(text)) {
 	const tag = entry.tag;
-	if (!tag || !isDate(tag.since) || tag.since > today) add(entry.line, "open-tag", "Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date");
+	if (!tag || !isDate(tag.since) || tag.since > today) add(entry.line, "open-tag", "Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date");
 }
 
 const bytes = Buffer.byteLength(text, "utf8");
@@ -141,13 +133,14 @@ const lineCount = lines.length - (hasFinalEol ? 1 : 0);
 if (bytes > READ_WINDOW_BYTES || lineCount > READ_WINDOW_LINES) {
 	add(1, "file-size", `bytes=${bytes} lines=${lineCount} window=${READ_WINDOW_BYTES} bytes, ${READ_WINDOW_LINES} lines`);
 }
+const displayName = (name) => name === OPEN_SECTION_PREFIX ? OPEN_SECTION_NAME : name;
 const firstArchive = headings.find((heading) => ARCHIVE_SECTION_NAMES.some((name) => isNamed(heading.title, name)));
 if (firstArchive) {
 	const archiveName = ARCHIVE_SECTION_NAMES.find((name) => isNamed(firstArchive.title, name));
 	for (const heading of headings) {
 		if (heading.index <= firstArchive.index) continue;
 		const liveName = LIVE_SECTION_NAMES.find((name) => isNamed(heading.title, name));
-		if (liveName) add(heading.index + 1, "section-order", `${liveName} comes after ${archiveName} at line ${firstArchive.index + 1}`);
+		if (liveName) add(heading.index + 1, "section-order", `${displayName(liveName)} comes after ${archiveName} at line ${firstArchive.index + 1}`);
 	}
 }
 const lineEnds = [];
@@ -163,7 +156,7 @@ for (const heading of headings) {
 	const end = endIndex + 1;
 	const endBytes = Buffer.byteLength(text.slice(0, lineEnds[endIndex] ?? text.length), "utf8");
 	if (endBytes > READ_WINDOW_BYTES || end > READ_WINDOW_LINES) {
-		add(heading.index + 1, "read-window", `${liveName} ends at byte ${endBytes}, line ${end}; a default read shows ${READ_WINDOW_BYTES} bytes or ${READ_WINDOW_LINES} lines`);
+		add(heading.index + 1, "read-window", `${displayName(liveName)} ends at byte ${endBytes}, line ${end}; a default read shows ${READ_WINDOW_BYTES} bytes or ${READ_WINDOW_LINES} lines`);
 	}
 }
 
