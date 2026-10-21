@@ -1,0 +1,24 @@
+# CI run 39636289893 at d46693bd (PR #156), suite (windows-latest), job 119347567643: the gate-rm-outside lines
+
+PASS on Windows a Git Bash /tmp target is judged in the folder TMP names, or TEMP when TMP is unset
+PASS on Windows a cd to Git Bash /tmp moves relative rm targets into the temp folder
+PASS on Windows a Git Bash drive spelling such as /c/ reads as that drive's path
+PASS Git Bash lookalikes, climb-outs, links out of /tmp, PowerShell /tmp and /tmp off Windows still ask
+PASS a Git Bash /tmp target still asks when TMP names a drive root, the home folder or a folder above it
+PASS on Windows a headless rm -f of a Git Bash /tmp file runs unblocked
+PASS on Windows a headless rm of, or after a cd to, a Git Bash drive spelling is judged at that drive's path
+PASS on Windows the gate reads Git Bash drive spellings as Git Bash's own cygpath does, over a usertemp /tmp mount
+PASS plain rm and rm -f outside the working and temp folders ask and name the target
+PASS every honest spelling of an outside rm target asks
+PASS plain rm inside the working folder stays unasked
+PASS plain rm inside a temp folder stays unasked
+SKIP plain rm under /tmp stays unasked on macOS and Linux: /tmp is not a temp root on Windows
+PASS rm through a linked folder that leads outside asks
+PASS a cd earlier in the command line moves where relative targets are judged
+PASS PowerShell Remove-Item and its aliases outside the working folder ask
+PASS rm of a variable-led target such as the builder's message-file cleanup runs unasked
+all PASS
+(node:4900) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/a/nana-pi/nana-pi/packages/nana-pack/lib/gate-rm-outside.ts is not specified and it doesn't parse as CommonJS.
+PASS  packages/nana-pack/tests/gate-rm-outside.test.mjs               16 pass, 1 skip  1.3s
+
+200 files: 182 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7159 pass, 0 fail, 115 skip · 1571.4s

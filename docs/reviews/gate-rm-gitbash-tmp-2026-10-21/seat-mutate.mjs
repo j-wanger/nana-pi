@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane gate-rm-gitbash-tmp (gate lane), written by the seat 2026-10-21 after build 4, on the
-// shared runner. They are the plan's pairs (a) to (i), with (i) redefined by the plan adversary as "translate before
+// shared runner (first run at 731f5a22; re-run at 4cf698ef, after build 5 and the merge of main). They are the plan's pairs (a) to (i), with (i) redefined by the plan adversary as "translate before
 // collapsing ..". Pair (j), nana-gate passing no platform or env, turns only the Windows-only rows R-2495 and R-2496
 // red, so it rests on the Windows CI leg and is not run here. Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/gate-rm-gitbash-tmp-2026-10-21/seat-mutate.mjs
@@ -57,4 +57,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R_2493] },
 ];
 
-process.exitCode = await runMutations({ lane: "gate-rm-gitbash-tmp", self: import.meta.url, tip: "731f5a22", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "gate-rm-gitbash-tmp", self: import.meta.url, tip: "4cf698ef", declared: DECLARED, pairs: PAIRS });
