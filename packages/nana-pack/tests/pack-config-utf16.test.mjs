@@ -22,6 +22,8 @@ const objectiveCli = path.join(here, "..", "bin", "nana-objective.mjs");
 const rosterCli = path.join(here, "..", "bin", "nana-roster.mjs");
 const gateUrl = new URL("../extensions/nana-gate.ts", import.meta.url).href;
 const timeout = 15_000;
+// Measured 2026-10-21: PowerShell passed 15 s once; 60 s is four times that limit.
+const POWERSHELL_LIMIT_MS = 60_000;
 let fails = 0;
 let passes = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (ok) passes++; else fails++; };
@@ -35,6 +37,14 @@ const utf16be = (text) => Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(
 const writeConfig = (home, bytes) => { const file = path.join(home, "nana-pack.json"); fs.writeFileSync(file, bytes); return file; };
 const runNode = (args, home, options = {}) => spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ...args], { cwd: home, encoding: "utf8", timeout, env: cleanEnv(home), ...options });
 const runObjective = (home) => runNode([objectiveCli, "--cwd", home], home);
+const runWindowsPowerShell = (shell, args, env, spawn = spawnSync) => spawn(shell, args, { encoding: "utf8", timeout: POWERSHELL_LIMIT_MS, env });
+
+const powershellTimeoutCalls = [];
+const recordingPowerShellSpawn = (...args) => { powershellTimeoutCalls.push(args); return { status: 0, stdout: "", stderr: "" }; };
+const powershellTimeoutResult = runWindowsPowerShell("powershell.exe", ["-NoProfile"], {}, recordingPowerShellSpawn);
+const recordedPowerShellTimeout = powershellTimeoutCalls[0]?.[2]?.timeout;
+// req: R-2485
+check("R-2485: the pack-config-utf16 test launches Windows PowerShell with the sealed 60-second limit", recordedPowerShellTimeout === POWERSHELL_LIMIT_MS && POWERSHELL_LIMIT_MS === 60_000 && POWERSHELL_LIMIT_MS > timeout, JSON.stringify({ recordedPowerShellTimeout, POWERSHELL_LIMIT_MS, timeout, powershellTimeoutResult }));
 
 const gateChildDir = freshHome("gate-child");
 const gateChild = path.join(gateChildDir, "gate-child.mjs");
@@ -113,7 +123,7 @@ if (process.platform !== "win32") {
 	const script = "$env:NANA_JSON | Out-File -FilePath $env:NANA_OUT; $env:NANA_JSON > $env:NANA_REDIRECT";
 	const encoded = Buffer.from(script, "utf16le").toString("base64");
 	const shell = path.join(process.env.SystemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
-	const produced = spawnSync(shell, ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], { encoding: "utf8", timeout, env: cleanEnv(home, { NANA_JSON: disabledText, NANA_OUT: outFile, NANA_REDIRECT: redirectFile }) });
+	const produced = runWindowsPowerShell(shell, ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], cleanEnv(home, { NANA_JSON: disabledText, NANA_OUT: outFile, NANA_REDIRECT: redirectFile }));
 	const observations = [outFile, redirectFile].map((source) => {
 		const bytes = fs.readFileSync(source);
 		fs.copyFileSync(source, path.join(home, "nana-pack.json"));
