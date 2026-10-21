@@ -1216,9 +1216,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/extensions/nana-writing.ts`
 
-- **purpose** — Append the "Writing for Jake" rule to each enabled session's system prompt, reading config and the rule fresh at every session_start — the seventh pack extension.
-- **inputs** — pi `session_start` (every reason) and `before_agent_start` events; user-scope writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
-- **outputs** — when writing.enabled is true, the rule block under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
+- **purpose** — Append the "Writing for Jake" rule to each enabled turn's system prompt, reading the rule fresh at every session_start and config before every agent start — the seventh pack extension.
+- **inputs** — pi `session_start` (every reason) and `before_agent_start` events; live user-scope writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
+- **outputs** — when writing.enabled is true for the turn, the rule block under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
 - **effects** — disk (stats and bounded-reads the rule file; appends the journal)
 - **errors** — none — the handler swallows everything; an unusable rule injects nothing rather than throwing, hanging or exhausting memory
 - **callers** — —
@@ -2656,7 +2656,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/writing-injection.test.mjs`
 
-- **purpose** — Pins that the writing rule reaches every enabled session's system prompt, follows only the active user config's writing.enabled key on every session start, composes with nana-objective on the installed pi 1.0.2, cuts oversized blocks without splitting a surrogate pair, refuses unusable rule files, and bounds every rule read without touching the shipped rule file
+- **purpose** — Pins that the writing rule reaches every enabled turn's system prompt, follows only the active user config's live writing.enabled key, composes with nana-objective on the installed pi 1.0.2, cuts oversized blocks without splitting a surrogate pair, refuses unusable rule files, and bounds every rule read without touching the shipped rule file
 - **inputs** — extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, user and trusted-project nana-pack.json fixtures, a temp HOME, and bounded Node subprocesses
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOME, agent dirs, journal and disposable rule/config fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE/PI_CODING_AGENT_DIR, clears the worker handoff override; spawns bounded Node subprocesses for config, FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)

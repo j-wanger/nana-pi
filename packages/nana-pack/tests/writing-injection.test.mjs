@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/writing-injection.test.mjs
- * @purpose Pins that the writing rule reaches every enabled session's system prompt, follows only the active user config's writing.enabled key on every session start, composes with nana-objective on the installed pi 1.0.2, cuts oversized blocks without splitting a surrogate pair, refuses unusable rule files, and bounds every rule read without touching the shipped rule file
+ * @purpose Pins that the writing rule reaches every enabled turn's system prompt, follows only the active user config's live writing.enabled key, composes with nana-objective on the installed pi 1.0.2, cuts oversized blocks without splitting a surrogate pair, refuses unusable rule files, and bounds every rule read without touching the shipped rule file
  * @inputs extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, user and trusted-project nana-pack.json fixtures, a temp HOME, and bounded Node subprocesses
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, agent dirs, journal and disposable rule/config fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE/PI_CODING_AGENT_DIR, clears the worker handoff override; spawns bounded Node subprocesses for config, FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
@@ -65,7 +65,7 @@ function session(ext, opts) {
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };
 }
 
-/* --- writing.enabled: active user scope only, re-read at each session_start (R-2500, R-006) --- */
+/* --- writing.enabled: active user scope only, re-read at each before_agent_start (R-2500, R-006) --- */
 {
 	const runner = path.join(tempDir(), "writing-enabled-runner.mjs");
 	fs.writeFileSync(runner, `
@@ -81,16 +81,16 @@ const extension = (await import(extUrl)).default;
 const handlers = {};
 extension({ on: (name, fn) => { handlers[name] = fn; } }, { rulePath });
 const ctx = { cwd, hasUI: false, isProjectTrusted: () => trusted === "yes" };
-async function pickup() {
-	await handlers.session_start({ reason: "startup" }, ctx);
+async function turn() {
 	const event = { systemPromptOptions: { sections: {} } };
 	await handlers.before_agent_start(event, ctx);
 	return Object.hasOwn(event.systemPromptOptions.sections, "nana-writing");
 }
-const injected = [await pickup()];
+await handlers.session_start({ reason: "startup" }, ctx);
+const injected = [await turn()];
 if (rewrite !== "-") {
 	fs.writeFileSync(path.join(process.env.PI_CODING_AGENT_DIR, "nana-pack.json"), Buffer.from(rewrite, "base64"));
-	injected.push(await pickup());
+	injected.push(await turn());
 }
 console.log(JSON.stringify({ injected }));
 `);
@@ -137,6 +137,7 @@ console.log(JSON.stringify({ injected }));
 		{ label: "invalid JSON", active: Buffer.from("{"), expected: [true] },
 		{ label: "stranded default false", stranded: utf8({ writing: { enabled: false } }), expected: [true] },
 		{ label: "live false to true", active: utf8({ writing: { enabled: false } }), rewrite: utf8({ writing: { enabled: true } }), expected: [false, true] },
+		{ label: "live true to false", active: utf8({ writing: { enabled: true } }), rewrite: utf8({ writing: { enabled: false } }), expected: [true, false] },
 	].map(runCase);
 	// req: R-2500
 	check("enabled: writing.enabled false in the active agent dir leaves the writing section unset", cases.every((c) => c.ok), JSON.stringify(cases));

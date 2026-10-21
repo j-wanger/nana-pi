@@ -1,10 +1,10 @@
 /**
  * @module packages/nana-pack/extensions/nana-writing.ts
- * @purpose Append the "Writing for Jake" rule to each enabled session's system prompt, reading
- *  config and the rule fresh at every session_start — the seventh pack extension.
- * @inputs pi `session_start` (every reason) and `before_agent_start` events; user-scope
+ * @purpose Append the "Writing for Jake" rule to each enabled turn's system prompt, reading
+ *  the rule fresh at every session_start and config before every agent start — the seventh pack extension.
+ * @inputs pi `session_start` (every reason) and `before_agent_start` events; live user-scope
  *  writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
- * @outputs when writing.enabled is true, the rule block under "## Writing for Jake (nana)"; one journal line
+ * @outputs when writing.enabled is true for the turn, the rule block under "## Writing for Jake (nana)"; one journal line
  *  (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when
  *  the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread
  *  remainder, so that is the full extent of the claim, not whole-file validation
@@ -20,9 +20,10 @@
  * both hide a user's own file AND be hidden by one. An append replaces nothing: no context
  * file, project prompt or override can remove it.
  *
- * Reads at `session_start` for every reason (R-754 — a reload must pick up an edit to the rule)
- * and sets its named section in `systemPromptOptions.sections` at `before_agent_start`, preserving
- * Pi's structured prompt and transcript delta.
+ * Reads the rule at `session_start` for every reason (R-754 — a reload must pick up an edit)
+ * and reads writing.enabled at each `before_agent_start`, so a live config change applies on the
+ * next turn. It sets its named section in `systemPromptOptions.sections`, preserving Pi's
+ * structured prompt and transcript delta.
  *
  * astra r2 MUST 1: the read must never crash or hang pi, regardless of what sits at the rule
  * path. `buildBlock` therefore (a) `statSync`s first and refuses anything that is not a
@@ -194,20 +195,24 @@ export default function (pi: ExtensionAPI, opts: { rulePath?: string } = {}) {
 		// every reason, deliberately — R-754: a reload must re-read the file from disk
 		block = null;
 		try {
-			const cfg = loadConfig(ctx);
-			if (!cfg.writing.enabled) return;
 			const { block: b, cause } = buildBlock(rulePath);
 			block = b;
-			if (cause) appendJournal(cfg, { ts: new Date().toISOString(), cwd: ctx.cwd, event: "writing_rule_unavailable", cause });
+			const cfg = loadConfig(ctx);
+			if (cfg.writing.enabled && cause) appendJournal(cfg, { ts: new Date().toISOString(), cwd: ctx.cwd, event: "writing_rule_unavailable", cause });
 		} catch {
 			// never throw out of a handler
 		}
 	});
 
-	pi.on("before_agent_start", async (event, _ctx) => {
+	pi.on("before_agent_start", async (event, ctx) => {
 		if (!block) return undefined;
-		(event as any).systemPromptOptions.sections["nana-writing"] = block;
-		orderNanaSections(event as any);
+		try {
+			if (!loadConfig(ctx).writing.enabled) return undefined;
+			(event as any).systemPromptOptions.sections["nana-writing"] = block;
+			orderNanaSections(event as any);
+		} catch {
+			// never throw out of a handler
+		}
 		return undefined;
 	});
 }

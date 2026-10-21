@@ -38,17 +38,29 @@ function run(args, input) {
 /** Slice each named live section through the next heading at its own or a higher level. */
 function liveSections(text, names) {
 	const lines = text.split(/\r\n|\r|\n/);
+	const outsideFence = [];
+	let fence = null;
+	for (let i = 0; i < lines.length; i++) {
+		const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(lines[i]);
+		outsideFence[i] = fence === null;
+		if (marker && (fence === null || (marker[1][0] === fence[0] && marker[1].length >= fence[1]))) {
+			fence = fence === null ? [marker[1][0], marker[1].length] : null;
+		}
+	}
 	const headings = [];
 	for (let i = 0; i < lines.length; i++) {
-		const match = /^ {0,3}(#{1,6})[ \t]+(.*?)[ \t]*$/.exec(lines[i]);
-		if (!match) continue;
-		const title = match[2].replace(/[ \t]+#+[ \t]*$/, "").trimEnd();
-		headings.push({ line: i, level: match[1].length, title });
+		const match = outsideFence[i] && /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(lines[i]);
+		if (match) headings.push({ line: i, level: match[1].length, title: match[2] });
 	}
 	const found = new Map(names.map((name) => [name, []]));
 	for (let i = 0; i < headings.length; i++) {
 		const heading = headings[i];
-		const name = names.find((candidate) => heading.title === candidate || new RegExp(`^${candidate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(.+\\)$`).test(heading.title));
+		// Mirror nana-frontier's isNamed section-name matching exactly.
+		const name = names.find((candidate) => {
+			const actual = heading.title.trim().toLowerCase();
+			const expected = candidate.toLowerCase();
+			return actual === expected || new RegExp(`^${expected}(?:\\s|\\(|—)`).test(actual);
+		});
 		if (!name) continue;
 		let end = lines.length;
 		for (let j = i + 1; j < headings.length; j++) {
@@ -62,11 +74,17 @@ function liveSections(text, names) {
 /* --- repository frontier: every named live section is clean; archive controls stay out (R-2503) --- */
 {
 	const longSentence = `${Array.from({ length: SENTENCE_CAP + 1 }, (_, i) => `word${i + 1}`).join(" ")}.`;
+	const fencedFollower = `${Array.from({ length: SENTENCE_CAP + 2 }, (_, i) => `fenced${i + 1}`).join(" ")}.`;
 	const control = [
-		"## Where things stand \t",
+		"## wHeRe ThInGs StAnD — current \t",
 		"A short sentence stays here.",
 		"## Next\t",
 		"A short sentence starts this section.",
+		"```",
+		"# install on this machine",
+		"## Next",
+		"```",
+		fencedFollower,
 		"### Detail \t",
 		longSentence,
 		`${BANNED_WORDS[0]}.`,
@@ -93,7 +111,7 @@ function liveSections(text, names) {
 	const repoFindings = repoResults.flatMap((result) => result.findings).filter((finding) => finding.check === "length" || finding.check === "banned");
 	const controlOk = LIVE_SECTION_NAMES.every((name) => controlSections.get(name)?.length === 1)
 		&& controlResults.every((result) => result.stats.sentences > 0)
-		&& controlLength.length === 2
+		&& controlLength.length === 3
 		&& controlBanned.length === 2;
 	// req: R-2503
 	check("this repository's HANDOFF.md live sections hold no over-cap sentence and no banned word", everyLiveNameFoundOnce && everyLiveNameHasSentence && controlOk && repoFindings.length === 0, JSON.stringify({ found: Object.fromEntries([...repoSections].map(([name, sections]) => [name, sections.length])), everyLiveNameHasSentence, controlLength: controlLength.length, controlBanned: controlBanned.length, repoFindings }));
