@@ -5,6 +5,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
   Parent: — · Rows: 220 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409
+  Kind: product
+  Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
     Purpose: Provide the governing project objective and preserve its precedence over background context.
     Status: active
@@ -48,6 +50,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-02 · Deliver controlled changes**
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
   Parent: — · Rows: 197 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433, R-1560–R-1565, R-1620–R-1623, R-1634, R-1636, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2270–R-2273, R-2430–R-2432
+  Kind: product
+  Deliverables: R-1400, R-1008, R-1560, R-977
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
     Status: active
@@ -81,6 +85,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
   Parent: — · Rows: 179 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984, R-1062, R-1490–R-1496, R-1730–R-1739, R-1800, R-1801, R-2240–R-2243, R-2330–R-2338, R-2350–R-2357, R-2360–R-2364
+  Kind: constraint
+  Binds: CAP-01, CAP-02, CAP-04, CAP-05, CAP-07
   - **FEAT-009 · Decide which project content is trusted**
     Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
     Status: active
@@ -104,6 +110,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-04 · Bring nana to each project and maintain it**
   Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
   Parent: — · Rows: 537 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300, R-1310–R-1313, R-1320, R-1321, R-1330, R-1340, R-1360, R-1420–R-1426, R-1440–R-1443, R-1530, R-1531, R-1540–R-1546, R-1580–R-1586, R-1590–R-1593, R-1600–R-1606, R-1610–R-1618, R-1670, R-1690, R-1713, R-1750–R-1752, R-1760–R-1766, R-1780–R-1782, R-1790–R-1796, R-1810–R-1812, R-1850–R-1855, R-1860, R-1861, R-1870, R-1871, R-1880–R-1889, R-1900–R-1904, R-1930–R-1932, R-1940–R-1944, R-1972, R-1974, R-1980–R-1985, R-1990–R-1997, R-2000–R-2004, R-2010–R-2015, R-2020–R-2027, R-2050–R-2052, R-2060, R-2061, R-2070–R-2076, R-2080–R-2085, R-2091, R-2130–R-2133, R-2180–R-2184, R-2200–R-2205, R-2230–R-2237, R-2260–R-2263, R-2280–R-2282, R-2290–R-2294, R-2300–R-2303, R-2310–R-2313, R-2315–R-2318, R-2320–R-2325, R-2390–R-2394, R-2397, R-2398, R-2410–R-2412, R-2420–R-2423
+  Kind: product
+  Deliverables: R-301, R-327, R-1150, R-341, R-1070, R-596
   - **FEAT-013 · Install and connect harness runtimes**
     Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
     Status: active
@@ -175,6 +183,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-05 · Follow and steer development**
   Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
   Parent: — · Rows: 108 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382
+  Kind: product
+  Deliverables: R-406, R-422, R-159, R-1194, R-457
   - **FEAT-020 · Find and read previous sessions**
     Purpose: Read, title, navigate and display session history while retaining correct branch identity.
     Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
@@ -203,6 +213,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-06 · Use attributable tool outputs and focused apps**
   Purpose: Give tools a consistent presentation contract and connect apps without confusing their origin or authority.
   Parent: — · Rows: 72 · IDs: R-250–R-284, R-432, R-437–R-454, R-458, R-459, R-465, R-491–R-499, R-940, R-943–R-947
+  Kind: product
+  Deliverables: R-260, R-256, R-257, R-437, R-264
   - **FEAT-025 · Use consistent structured tool output**
     Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
     Status: active
@@ -220,12 +232,14 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-06 · Rows: 22 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-459, R-465, R-493–R-499, R-940, R-943, R-944
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
-  Parent: — · Rows: 327 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, G-001–G-022
+  Parent: — · Rows: 328 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, R-2460, G-001–G-022
+  Kind: product
+  Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239
   - **FEAT-028 · Maintain requirement identity and trace links**
     Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
     Status: active
     Also applies: G-013, G-014, G-015
-    Parent: CAP-07 · Rows: 68 · IDs: R-287–R-294, R-578–R-580, R-583, R-681, R-756, R-757, R-1000, R-1001, R-1157–R-1168, R-1170–R-1179, R-1181–R-1184, R-1187, R-1460–R-1463, R-1630, R-1631, R-1640–R-1643, R-1660–R-1665, R-2440–R-2447
+    Parent: CAP-07 · Rows: 69 · IDs: R-287–R-294, R-578–R-580, R-583, R-681, R-756, R-757, R-1000, R-1001, R-1157–R-1168, R-1170–R-1179, R-1181–R-1184, R-1187, R-1460–R-1463, R-1630, R-1631, R-1640–R-1643, R-1660–R-1665, R-2440–R-2447, R-2460
   - **FEAT-029 · Navigate code and investigate impact**
     Purpose: Maintain a generated module map and find candidate affected requirements through source and test relationships.
     Status: active
@@ -259,6 +273,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
   Parent: — · Rows: 93 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520
+  Kind: product
+  Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active

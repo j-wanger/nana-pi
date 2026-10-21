@@ -2318,7 +2318,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin capability field parsing, validation, lift preservation, outline rendering and historical compatibility.
 - **inputs** — scripts/requirements-tree.mjs, scripts/requirements-lift.mjs, git history, and ledger fixtures built under the OS temp directory.
-- **outputs** — Seven PASS/FAIL lines and a non-zero exit when any check fails.
+- **outputs** — Eight PASS/FAIL lines and a non-zero exit when any check fails.
 - **effects** — disk (creates ledger fixtures under the OS temp directory), process (spawns the lift and read-only git commands)
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —

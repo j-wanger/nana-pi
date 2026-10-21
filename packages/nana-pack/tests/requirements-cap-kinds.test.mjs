@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/requirements-cap-kinds.test.mjs
  * @purpose Pin capability field parsing, validation, lift preservation, outline rendering and historical compatibility.
  * @inputs scripts/requirements-tree.mjs, scripts/requirements-lift.mjs, git history, and ledger fixtures built under the OS temp directory.
- * @outputs Seven PASS/FAIL lines and a non-zero exit when any check fails.
+ * @outputs Eight PASS/FAIL lines and a non-zero exit when any check fails.
  * @effects disk (creates ledger fixtures under the OS temp directory), process (spawns the lift and read-only git commands)
  * @errors A failed check prints its reason and exits non-zero.
  */
@@ -214,5 +214,28 @@ const historical = revisions.map((revision) => {
 // req: R-2446
 check("R-2446: the outline lists each read capability field after the Parent line, and historical outlines render unchanged", outlineOrdered && droppedProblems.some((problem) => problem.includes("CAP-02") && problem.includes("Needs:")) && alteredProblems.some((problem) => problem.includes("CAP-02") && problem.includes("Needs:")) && historical.every((item) => item.ok), `ordered=${outlineOrdered}\ndropped=${droppedProblems.join("; ")}\naltered=${alteredProblems.join("; ")}\nhistorical=${JSON.stringify(historical)}`);
 
+const repositoryLedger = readFileSync(join(REPO_ROOT, "REQUIREMENTS.md"), "utf8");
+const repositoryParsed = parseLedger(repositoryLedger);
+const repositoryLines = repositoryLedger.split(/\r?\n/);
+function capabilityFieldGaps(id, span) {
+  const gaps = [];
+  if (span.some((line) => /^Retired:/.test(line))) return gaps;
+  const kinds = span.filter((line) => /^Kind:/.test(line));
+  if (kinds.length !== 1) gaps.push(`${id}: expected exactly one Kind: line`);
+  if (kinds.length === 1 && kinds[0].trim() === "Kind: product" && !span.some((line) => /^Deliverables:/.test(line))) {
+    gaps.push(`${id}: Kind: product requires a Deliverables: line`);
+  }
+  return gaps;
+}
+const capabilityGaps = [];
+for (const heading of repositoryParsed.headings.filter((item) => item.id.startsWith("CAP-"))) {
+  const nextHeading = repositoryParsed.allHeadings.find((item) => item.line > heading.line);
+  const span = repositoryLines.slice(heading.line, (nextHeading?.line ?? repositoryLines.length + 1) - 1);
+  capabilityGaps.push(...capabilityFieldGaps(heading.id, span));
+}
+const missingKindWithDeliverables = capabilityFieldGaps("CAP-TEST", ["Deliverables: R-0001"]);
+// req: R-2460
+check("R-2460: every live capability in this repository's ledger has a kind, and every product capability lists deliverables", capabilityGaps.length === 0 && missingKindWithDeliverables.some((gap) => gap.includes("CAP-TEST") && gap.includes("Kind:")), [...capabilityGaps, ...missingKindWithDeliverables].join("; "));
+
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
-console.log("all 7 checks passed");
+console.log("all 8 checks passed");

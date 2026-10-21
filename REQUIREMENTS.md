@@ -82,6 +82,8 @@ Outcomes (astra's 2026-10-09 draft, agreed by Jake):
 # CAP-01 · Maintain direction and useful context
 Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
 Outcome: A developer can start or resume work with the relevant goal, decisions, history and knowledge available.
+Kind: product
+Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
 
 ## FEAT-001 · Keep goals and priorities in view
 Purpose: Provide the governing project objective and preserve its precedence over background context.
@@ -382,6 +384,8 @@ A bounded read validates only the bytes it reads. Before decoding it trims a tra
 # CAP-02 · Deliver controlled changes
 Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
 Outcome: A developer can accept a bounded change with understandable review evidence and a controlled integration step.
+Kind: product
+Deliverables: R-1400, R-1008, R-1560, R-977
 
 ## FEAT-006 · Launch builders with execution limits
 Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
@@ -634,6 +638,8 @@ Also applies: R-705, R-708, R-717, R-969, R-992, R-1008
 # CAP-03 · Control trust and tool actions
 Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
 Outcome: A developer can understand which sources and actions are allowed and can recover from a refusal without silently weakening controls.
+Kind: constraint
+Binds: CAP-01, CAP-02, CAP-04, CAP-05, CAP-07
 
 ## FEAT-009 · Decide which project content is trusted
 Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
@@ -849,6 +855,8 @@ Also applies: R-224
 # CAP-04 · Bring nana to each project and maintain it
 Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
 Outcome: A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.
+Kind: product
+Deliverables: R-301, R-327, R-1150, R-341, R-1070, R-596
 
 ## FEAT-013 · Install and connect harness runtimes
 Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
@@ -1504,6 +1512,8 @@ Status: active
 # CAP-05 · Follow and steer development
 Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
 Outcome: A developer can see what agents are doing, inspect their changes and direct the intended session without losing context.
+Kind: product
+Deliverables: R-406, R-422, R-159, R-1194, R-457
 
 ## FEAT-020 · Find and read previous sessions
 Purpose: Read, title, navigate and display session history while retaining correct branch identity.
@@ -1656,6 +1666,8 @@ Also applies: R-458, R-459
 # CAP-06 · Use attributable tool outputs and focused apps
 Purpose: Give tools a consistent presentation contract and connect apps without confusing their origin or authority.
 Outcome: A developer can use focused app surfaces and inspect tool output whose producer and session history remain attributable.
+Kind: product
+Deliverables: R-260, R-256, R-257, R-437, R-264
 
 ## FEAT-025 · Use consistent structured tool output
 Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
@@ -1756,6 +1768,8 @@ Also applies: R-461
 # CAP-07 · Keep code and promises checkable
 Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
 Outcome: A developer can see which promises a change affects and what evidence supports its behavior and engineering quality.
+Kind: product
+Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239
 
 ## FEAT-028 · Maintain requirement identity and trace links
 Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
@@ -1787,6 +1801,7 @@ Also applies: G-013, G-014, G-015
 | R-2445 | WHEN a capability carries a `Retired:` line, the tree checker shall report a problem unless every token names another capability with no `Retired:` line, the capability carries no `Deliverables:`, `Needs:` or `Binds:` line, and every feature under it has a `retired` Status. | implemented | `packages/nana-pack/tests/requirements-cap-kinds.test.mjs::R-2445: a retired capability names live successors, carries no stage fields and holds only retired features` |
 | R-2446 | WHEN a capability carries a `Kind:`, `Needs:`, `Binds:`, `Deliverables:` or `Retired:` line that the checker reads, `docs/requirements-tree.md` shall list each such value on its own line after that capability's Parent line, while the outline rendered for each of the ledgers at c4332ecb, 4b3846ec and 5548d4c2 still equals the outline committed at that revision. | implemented | `packages/nana-pack/tests/requirements-cap-kinds.test.mjs::R-2446: the outline lists each read capability field after the Parent line, and historical outlines render unchanged` |
 | R-2447 | WHEN a feature present at both revisions sits under a different capability at HEAD, or a capability present at both carries a different Kind, Needs, Binds, Deliverables or Retired value compared as parsed lists, or a capability exists at only one revision, the tree movement command shall print a capability section naming each, even when no row changed, leaving its output byte for byte as today's when none of these occurs. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2447: a capability move or capability field change prints a capability section, and none leaves the output unchanged` |
+| R-2460 | Every capability in this repository's REQUIREMENTS.md that has no `Retired:` line shall carry a `Kind:` line, and each such `Kind: product` capability a `Deliverables:` line. | implemented | `packages/nana-pack/tests/requirements-cap-kinds.test.mjs::R-2460: every live capability in this repository's ledger has a kind, and every product capability lists deliverables` |
 | R-1157 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157: --root checks another project's ledger, names its problems and writes no outline`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: a row outside its feature exits 1 naming it`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: --root <dir> --write exits 2 with usage` |
 | R-1158 | The tree checker shall report the same problems, at the same line numbers, for a ledger with CRLF line endings as for the same ledger with LF line endings. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` |
 | R-1159 | WHEN the tree checker reads a REQUIREMENTS.md that holds requirement rows but no capability or feature heading, it shall report one problem, which names the row count, says the ledger has no requirements tree yet and points to the requirements skill for the next step, in place of one problem per row. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with rows and no tree gets one line naming the row count and the next step`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it`, `packages/nana-pack/tests/product-report.test.mjs::a ledger with rows and no tree is refused with one problem line, not one per row` |
@@ -2208,6 +2223,8 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 # CAP-08 · Evaluate agent choices with credible evidence
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
+Kind: product
+Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
 
 ## FEAT-034 · Define reproducible comparisons
 Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
