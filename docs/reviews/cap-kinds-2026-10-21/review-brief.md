@@ -10,7 +10,7 @@ plan of record is `docs/reviews/cap-kinds-2026-10-21/must-meet.md`: eight must-m
 the field grammar, the threat model, a "Written, not pinned" list and known limits. `plan-attack.md` holds adversary
 A's evidence and its wrong-code list. `build-brief-1.md` and `build-brief-2.md` are builds 1 (c97ddc66) and 2
 (e8132c2f); the seat's record is `seat-verify-e8132c2f.md`, with the wrong-code pairs in `seat-mutate.mjs` and its two
-output files (37 of 41 red on build 1, 41 of 41 on build 2). CI-PENDING. The land runs the locked suite on the reviewed
+output files (37 of 41 red on build 1, 41 of 41 on build 2). CI run 39549118818 at f3331b06 reads 0 failing on all three legs: macOS 198 PASS, 0 FAIL, 2 SKIP of 200 files (8,211 checks pass, 36 skip); Ubuntu 197 PASS, 0 FAIL, 3 SKIP of 200 files (8,150 checks pass, 56 skip); Windows 182 PASS, 0 FAIL, 18 SKIP of 200 files (7,139 checks pass, 115 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-f3331b06.log in this folder. The land runs the locked suite on the reviewed
 tip.
 
 Tree movement (`node scripts/requirements-moved.mjs --root . --base main`, run at e8132c2f, before the seat's notes
