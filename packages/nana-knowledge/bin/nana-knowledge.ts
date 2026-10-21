@@ -4,18 +4,16 @@
  * @purpose The knowledge CLI — build, query, hook, status and prune over the local index.
  * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
  *  JSON on stdin (up to STDIN_MAX_BYTES), and sources.json bytes plus the index
- * @outputs build counts and source/root problem markers, query hits or JSON, index/root status, and the
- *  hook pointer block on stdout; usage and query/index failures on stderr
+ * @outputs build counts, source/root and index-damage markers, query hits or JSON, index/root status, and the hook pointer block on stdout; usage and query failures on stderr
  * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
  *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
- * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it,
- *  0 otherwise — including source-file problems, every `hook` failure, and a build that lost the lock
+ * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, and 0 otherwise — including reported index damage, source-file problems, every `hook` failure, and a build that lost the lock
  */
 // nana-knowledge — build / query / hook.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
 import * as fs from "node:fs";
 import { build, pruneShown, BuildLockedError } from "../lib/build.ts";
-import { openDb, getMeta } from "../lib/db.ts";
+import { checkIndex, getMeta, indexDamage, openDb } from "../lib/db.ts";
 import { paths } from "../lib/paths.ts";
 import { search } from "../lib/query.ts";
 import { formatSourcesProblem, loadSources } from "../lib/sources.ts";
@@ -35,12 +33,18 @@ async function cmdBuild(argv: string[]): Promise<number> {
 	const rebuild = argv.includes("--rebuild");
 	try {
 		const s = await build({ rebuild });
+		if (s.keptDamage) {
+			console.log(`  index was damaged (${s.keptDamage}) — not rebuilt while sources.json has a problem; repair it, then run nana-knowledge build`);
+			if (s.problem) console.log(`  ${paths.sources}  ${formatSourcesProblem(s.problem)}`);
+			return 0;
+		}
+		if (s.recovered) console.log(`  index was damaged (${s.recovered}) — rebuilt from the sources`);
 		const pad = Math.max(...s.roots.map((r) => r.root.length), 4);
 		for (const r of s.roots) {
 			console.log(`  ${r.root.padEnd(pad)}  ${String(r.files).padStart(6)} files  ${String(r.rows).padStart(7)} rows  ${r.kind}${r.skipped ? `  (${r.skipped} >1MB skipped)` : ""}`);
 		}
 		if (s.problem) console.log(`  ${paths.sources}  ${formatSourcesProblem(s.problem)}`);
-		const skipped = rebuild ? "(skipped; the rebuild dropped its rows)" : "(skipped, rows kept)";
+		const skipped = rebuild || s.recovered ? "(skipped; the rebuild dropped its rows)" : "(skipped, rows kept)";
 		for (const m of s.missingRoots) console.log(`  ${m}  MISSING ${skipped}`);
 		for (const u of s.unreadable) console.log(`  ${u}  UNREADABLE ${skipped}`);
 		console.log(`\n  files ${s.files} · rows ${s.rows} · reindexed ${s.reindexed} · unchanged ${s.unchanged} · removed ${s.removed} · preserved ${s.preserved} · skipped>1MB ${s.skippedLarge}`);
@@ -120,11 +124,24 @@ async function cmdStatus(): Promise<number> {
 	console.log(`sources ${paths.sources}${problem ? `  ${formatSourcesProblem(problem)}` : ""}`);
 	for (const r of roots) console.log(`  ${rootStatus(r.path)} ${r.kind.padEnd(8)} ${r.path}${r.discovered ? "  (discovered)" : ""}`);
 	if (!fs.existsSync(paths.db)) { console.log(`\nno index at ${paths.db}`); return 0; }
-	const db = await openDb(paths.db, {});
-	const built = Number(getMeta(db, "built_at") || 0);
-	const docs = db.prepare("SELECT COUNT(*) AS n FROM docs").get().n;
-	const files = db.prepare("SELECT COUNT(*) AS n FROM files").get().n;
-	db.close();
+	let db;
+	let built;
+	let docs;
+	let files;
+	try {
+		db = await openDb(paths.db, {});
+		checkIndex(db);
+		built = Number(getMeta(db, "built_at") || 0);
+		docs = db.prepare("SELECT COUNT(*) AS n FROM docs").get().n;
+		files = db.prepare("SELECT COUNT(*) AS n FROM files").get().n;
+	} catch (err) {
+		const reason = indexDamage(err);
+		if (!reason) throw err;
+		console.log(`index ${paths.db} is damaged (${reason}) — repair: nana-knowledge build --rebuild`);
+		return 0;
+	} finally {
+		try { db?.close(); } catch { /* preserve the status result */ }
+	}
 	const ageH = built ? ((Date.now() - built) / 3600000).toFixed(1) : "?";
 	console.log(`\nindex ${paths.db} · ${mb(fs.statSync(paths.db).size)} · ${files} files · ${docs} rows · built ${ageH}h ago`);
 	console.log(`shown sessions ${(() => { try { return fs.readdirSync(paths.shownDir).length; } catch { return 0; } })()} · log ${fs.existsSync(paths.log) ? mb(fs.statSync(paths.log).size) : "none"}`);

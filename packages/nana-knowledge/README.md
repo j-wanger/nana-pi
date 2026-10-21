@@ -83,6 +83,12 @@ are read, and a build keeps every indexed row instead of treating the roots as r
 also applies to `--rebuild`: it preserves the existing database while the file has a problem.
 Repair the file to resume scanning new changes and purging deleted files.
 
+Every build checks the index's SQLite pages before writing. If the file is not a database,
+is truncated, has an overwritten page, or has an incompatible `docs` or `files` table, the
+build replaces it with an index rebuilt from the sources and names the damage. While
+`sources.json` does not parse or cannot be read, a damaged index is not rebuilt or replaced;
+repair the file, then build.
+
 **Discovery (roots by convention).** A product repo only got indexed if someone remembered
 to add it, so `sources.json` also takes an optional `discover` block — written into a
 *freshly seeded* file, never added to an existing one (the owner opts in by editing):
@@ -119,7 +125,9 @@ are unchanged is not even read; one whose mtime moved but whose content hash mat
 re-stat'd and **not** re-indexed. Files that vanish from a root that was actually scanned
 are dropped from the index (see `sources.json` above for what a *missing root* does).
 Measured on the seeded corpus (13,382 files / 182 MB of markdown): **11.0 s cold, 0.1 s
-for a no-op rebuild, 273 MB on disk.**
+for a no-op rebuild, 273 MB on disk.** Both 0.1 s figures here and in the stale-index bullet
+predate the full-page check; the check alone cost about 85 ms on a 50 MB index, measured
+2026-10-20.
 
 ## The hook
 
@@ -165,7 +173,9 @@ Behaviour, in the order it is decided:
 - **Fail-open, always.** Malformed stdin, a missing index, a corrupt database, a
   permission error — the hook prints nothing and exits 0. A corrupt index is logged as
   `db-open-failed` or `query-failed`, never `no-hits`; `nana-knowledge query` reports the
-  failure on stderr and exits 1. A knowledge pull is never the reason a prompt fails to run.
+  failure on stderr and exits 1. A stale damaged index starts the same background build,
+  which rebuilds it from the sources when they can be read. A knowledge pull is never the
+  reason a prompt fails to run.
 - **Budget: normally well under 1500 ms — not a hard bound.** The query itself is measured
   at ~8 ms on the real index, inside a ~60 ms Node start. A `setTimeout(process.exit(0))
   .unref()` timer is armed before stdin is read, and what it bounds is **asynchronous**
@@ -191,9 +201,9 @@ Behaviour, in the order it is decided:
   keyed on the *row*, so one doctrine file can still contribute different lines.
 - **Stale index (missing, or older than 1 h)** spawns a detached background `build` and
   queries the existing index as-is meanwhile. It never builds synchronously. 1 h rather
-  than a day because an incremental no-op rebuild costs 0.1 s and a doc written in the
-  morning has to be pullable that afternoon. The hook does **not** check the lock before
-  spawning — that check was a TOCTOU that let two prompts start two writers. Every build
+  than a day because an incremental no-op rebuild cost 0.1 s before the full-page check,
+  and a doc written in the morning has to be pullable that afternoon. The hook does **not**
+  check the lock before spawning — that check was a TOCTOU that let two prompts start two writers. Every build
   path instead takes `build.lock` atomically (`openSync(..., "wx")`, pid inside, removed
   only by its owner), so a burst costs a few detached node processes that exit in ~60 ms
   and never two concurrent writers. A lock whose pid is no longer alive (`kill(pid, 0)` →
