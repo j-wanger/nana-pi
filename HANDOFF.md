@@ -927,7 +927,7 @@
 - Windows flakes (win-leg-flakes, plan): on Windows a refused pi launch returns status 1, so the install check retries it twice for nothing, about 10 seconds.
 - Windows flakes (win-leg-flakes, plan): npm's error-code lead comes from npm 10.9.7. If npm rewords it, the NOTE line falls back to the last error line. The spawn adapter keeps the first 10,001 characters, so very long npm output could cut the code line.
 - Windows flakes (win-leg-flakes, plan): with the larger limits, stale-copies no longer catches an install that slows from under 1 second to under 20. The launch-limit test now accepts a stop up to 7.5 seconds.
-- Windows flakes (win-leg-flakes, plan): the slowed-install and hook-detail checks skip on Windows by design. The forced-Windows fixtures run on macOS and Linux.
+- Windows flakes (win-leg-flakes, plan): the slowed-install check skips on Windows by design. The forced-Windows fixtures run on macOS and Linux. The hook-detail check runs on every system.
 - Windows flakes (win-leg-flakes, plan): CI re-runs cannot prove the failure rate fell. The proof is the two slowed and failing meta-runs and the call-site checks.
 - Test runner (win-leg-flakes, cause audit): the runner's cleanup of a file's temp folder and home has no guard. In run 39464607963 an EBUSY there killed the runner after 154 of 200 files, so 46 files never ran and no summary printed. A small lane on the runner fixes it.
 - PowerShell config check (win-leg-flakes, cause audit): pack-config-utf16 ends on an uncaught ENOENT when PowerShell writes no file. Its header promises a named failure with PowerShell's status, error and time.
