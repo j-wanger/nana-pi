@@ -177,3 +177,5 @@
 - Claude config folder (claude-config-dir plan): in pi, the gate's guard on Claude settings and hooks still matches only a folder named .claude. A Claude folder with another name gets no such guard.
 - Claude config folder (claude-config-dir plan): the writing-trial extractor still looks in a folder named .claude by default.
 - Claude config folder (claude-config-dir, final review): the setup README says doctor's last line names a relative value of Claude Code's config-folder variable as install's refusal. Doctor does so only when another row is ✗.
+- Windows shims (writing-adoption, final review): uninstall leaves every `.cmd` shim, the new nana-writing one included, as main already does. The setup README says so.
+- Test runs by hand (writing-adoption, seat and final review): the restore test fails before any check when node runs it directly in a seat shell. There npm's global folder resolves elsewhere. Through npm it passes all 14.

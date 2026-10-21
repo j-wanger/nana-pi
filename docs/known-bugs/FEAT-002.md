@@ -22,3 +22,12 @@
 - Provenance label (frontier-first final review): the dropped ask held three known limits. A broken trust.json link gets no diagnosis; writability and staleness are only pre-checks; the Claude hook resolves a relative override against its own folder. The label itself no longer fires in the owner's five repos.
 - Frontier checks (frontier-first final review): the read window's exact edge is not pinned. Three wrong versions keep the 51 checks green: >= for >, the end line's newline counted, and the trailing empty element counted as a line.
 - Frontier checks (frontier-first final review): pi splits lines on the newline only. On a file with Windows line endings, pi's line includes its carriage return. The checker stops before it and can read one byte under pi at the exact edge.
+- Known bugs (known-bugs, plan): the word-budget finding stays. HANDOFF's live sections hold about 2,570 words against 1,200, most of them in the Open asks.
+- Known bugs (known-bugs, plan): the move placed each line by its lane, so a line about another feature stays under its lane's feature. 51 lines sit in the unplaced file.
+- Known bugs (known-bugs, plan): about 117 lines carry no lane tag. Nothing checks the line format, or that each entry is one line.
+- Known bugs (known-bugs, plan): nothing proves a seat files a new finding, or files it in the right feature.
+- Known bugs (known-bugs, plan adversary): a lane in flight whose notes add known bugs to HANDOFF loses them on a careless merge. The move's conserve check catches it only when someone re-runs it.
+- Known bugs (known-bugs, plan adversary): a feature split or retired later turns the folder check red in that lane. Its seat moves the lines in that lane's plan commit, since a builder may not.
+- Known bugs (known-bugs, plan): the product report does not show known bugs.
+- Known bugs (known-bugs, plan): "residual" survives in the Plans bullet and in the review-round message, so one thing keeps two names.
+- Known bugs (known-bugs, plan adversary): other projects with old known-bug lines in their HANDOFF keep them. The rule applies going forward.
