@@ -1,0 +1,38 @@
+seat-mutate: lane ledger-stages, tip a5fbba3778ea823fdc52ec91af01ea6d84f57642, table bfb31069730e34f3021d779ea0a9199705541ac52e66dc51a7252ec1b24d5f4e, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 19 pairs in 5 shards (4+4+4+4+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T05:37:48.468Z
+DECLARED (build 1, a5fbba37) 19 pairs over the card order, constraint coverage, deliverables, the detail line, the retired card and the page rules
+DECLARED (a) P2 probes a test gap: no kinded fixture asserts that each feature line is still followed by its count bar (R-1014 checks that only on the real ledger, which has no kind until lane C)
+[1/5] seat-mutate: lane ledger-stages, shard 1/5, tip a5fbba3778ea823fdc52ec91af01ea6d84f57642, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 4 pairs, darwin, node v22.22.2, 2026-10-21T05:37:49.206Z
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 76 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane ledger-stages, shard 2/5, tip a5fbba3778ea823fdc52ec91af01ea6d84f57642, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 4 pairs, darwin, node v22.22.2, 2026-10-21T05:37:53.187Z
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 76 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (3 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane ledger-stages, shard 3/5, tip a5fbba3778ea823fdc52ec91af01ea6d84f57642, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 4 pairs, darwin, node v22.22.2, 2026-10-21T05:37:57.284Z
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 76 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (2 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane ledger-stages, shard 4/5, tip a5fbba3778ea823fdc52ec91af01ea6d84f57642, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 4 pairs, darwin, node v22.22.2, 2026-10-21T05:38:01.244Z
+[4/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 76 PASS, 0 FAIL, )
+[4/5] RESULT: 3/4 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 1 survived [P2]
+[5/5] seat-mutate: lane ledger-stages, shard 5/5, tip a5fbba3778ea823fdc52ec91af01ea6d84f57642, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 3 pairs, darwin, node v22.22.2, 2026-10-21T05:38:05.364Z
+[5/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 76 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+RED O1 (1) ignore Kind: plain document order — 2/2 named: /^R-2450: / | /^R-2454: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O2 (4) constraint capabilities before kindless ones — 2/2 named: /^R-2450: / | /^R-2454: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O3 (2) order within a group by reverse ID, not document order — 1/1 named: /^R-2450: /; UNNAMED red: [product-report.test.mjs] R-2454: a retired capability's card comes after every other card and names its successors {"order":["CAP-71",…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O4 a product card does not name its needs — 1/1 named: /^R-2450: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O5 (14) a kind badge in the capability h3 — 4/4 named: /^R-2450: / | /^R-2451: / | /^R-2453: / | /^R-2454: /; UNNAMED red: [product-report.test.mjs] R-2452: a product card lists its deliverables in line order with status, home and consumers, and marks every …; 5 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B1 (8) a share of an untested constraint row counts as covered — 1/1 named: /^R-2451: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B2 (9) a share by a feature outside the bound capability counts — 1/1 named: /^R-2451: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B3 (10) a shared implemented row homed outside the constraint capability counts — 1/1 named: /^R-2451: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B4 a proposed feature's share counts — 1/1 named: /^R-2451: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D1 (5) violated is not a gap — 1/1 named: /^R-2452: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D2 deliverables sorted by ID, not in line order — 1/1 named: /^R-2452: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D3 a subgroup-homed deliverable's home is the subgroup — (no named case); named but NOT REACHED: /^R-2452: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH product-report.test.mjs THREW (later checks never ran)
+RED D4 a deliverable lists no consumers — 1/1 named: /^R-2452: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED T1 (15) a kindless capability's detail line prints the empty kind — 1/1 named: /^R-2453: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED T2 the detail line names the label but not the capability ID — 1/1 named: /^R-2453: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R1 a retired card names no successors — 1/1 named: /^R-2454: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R2 (15) a retired capability stays in its kind group — 1/1 named: /^R-2454: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P1 (7) a module-scope constant referenced from renderInto — (no named case); named but NOT REACHED: /^R-2452: /; 0 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-)); CRASH product-report.test.mjs THREW (later checks never ran)
+GREEN P2 (13) a paragraph between a kinded card's feature line and its bar — SURVIVED
+RESULT: 18/19 red (14 exactly their named titles, 4 with a named title green, 2 with an unnamed red), 1 survived [P2], across 5 shards
