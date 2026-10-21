@@ -26,6 +26,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { countIdentityWords } from "../../../scripts/identity-scan.mjs";
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -40,6 +41,7 @@ const { ROSTER_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS } = await import(new URL(".
 
 const SHIPPED_PATH = fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url));
 const SHIPPED_TEXT = fs.readFileSync(SHIPPED_PATH, "utf8"); // READ only — never written in this file
+const IDENTITY_CONFIG = JSON.parse(fs.readFileSync(fileURLToPath(new URL("../../../identity-scan.config.json", import.meta.url)), "utf8"));
 
 const tmps = [];
 function tempDir(prefix = "rulings-") {
@@ -208,14 +210,11 @@ function containsWholeWord(text, word) {
 }
 
 {
-	// R-1415's list holds only words the tracked tree already has (adversary, 2026-10-19).
-	const identityWords = ["Jake", "jwang", "AML", "aml-desk"];
-	const found = identityWords.filter((w) => containsWholeWord(SHIPPED_TEXT, w));
-	const bulletLines = SHIPPED_TEXT.split("\n").filter((line) => line.startsWith("- "));
+	const counts = countIdentityWords({ content: SHIPPED_TEXT, config: IDENTITY_CONFIG });
 	// req: R-1415
 	check("the rulings file names no owner and no work project",
-		found.length === 0 && bulletLines.length >= 1,
-		JSON.stringify({ found, bulletCount: bulletLines.length }),
+		counts.every((count) => count === 0),
+		JSON.stringify({ counts }),
 	);
 }
 
