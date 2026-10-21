@@ -1,0 +1,65 @@
+seat-mutate: lane cap-kinds, tip c97ddc6604ab252193421bdf627bd0f756807940, table a62edfd2eff5408ccbd25e19d9bb96c083049b661f77084584f55947fcc9b21f, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 41 pairs in 5 shards (9+8+8+8+8, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-21T05:11:40.038Z
+DECLARED (build 1, c97ddc66) 41 pairs over the five checker rules, the parser span and kind gate, the lift's refusal and field block, the outline renderer and its field check, and the movement report
+DECLARED (a) P2 and B6 probe test gaps the must-meet rows claim but no case may exercise: Retired: read on a capability with no Kind:, and a retired constraint capability that carries no Binds:
+[1/5] seat-mutate: lane cap-kinds, shard 1/5, tip c97ddc6604ab252193421bdf627bd0f756807940, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 9 pairs, darwin, node v22.22.2, 2026-10-21T05:11:40.791Z
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/5] RESULT: 8/9 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 1 survived [N2]
+[2/5] seat-mutate: lane cap-kinds, shard 2/5, tip c97ddc6604ab252193421bdf627bd0f756807940, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 8 pairs, darwin, node v22.22.2, 2026-10-21T05:11:44.834Z
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[2/5] RESULT: 6/8 red (6 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 2 survived [P2, N3]
+[3/5] seat-mutate: lane cap-kinds, shard 3/5, tip c97ddc6604ab252193421bdf627bd0f756807940, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 8 pairs, darwin, node v22.22.2, 2026-10-21T05:11:48.850Z
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/5] RESULT: 7/8 red (7 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 1 survived [B6]
+[4/5] seat-mutate: lane cap-kinds, shard 4/5, tip c97ddc6604ab252193421bdf627bd0f756807940, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 8 pairs, darwin, node v22.22.2, 2026-10-21T05:11:53.017Z
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[4/5] RESULT: 8/8 red (7 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane cap-kinds, shard 5/5, tip c97ddc6604ab252193421bdf627bd0f756807940, merge-base 5548d4c2c2e136608e9e5ec93ca094431749b84f, 8 pairs, darwin, node v22.22.2, 2026-10-21T05:11:56.943Z
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[5/5] RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED P1 (1) read the labels on every heading, and check every heading — 1/1 named: /^R-2441: /; 1 FAIL total (1 file changed, 3 insertions(+), 3 deletions(-))
+GREEN P2 Retired: is read only on a capability with Kind: — SURVIVED
+RED P3 Deliverables:, Needs: and Binds: are read on a capability with no Kind: — 1/1 named: /^R-2441: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED K1 (2) a prefix, case-insensitive Kind test — 1/1 named: /^R-2441: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED K2 (3) a duplicate field line is not reported (first wins) — 1/1 named: /^R-2441: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D1 (4) compare the row's direct parent heading with the capability — 1/1 named: /^R-2442: /; also (declared): /^R-2440: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D2 (5) a retired deliverable is accepted — 1/1 named: /^R-2442: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D3 (6) an untested deliverable is a problem — 1/1 named: /^R-2442: /; also (declared): /^R-2440: /; 2 FAIL total (1 file changed, 1 insertion(+))
+RED D4 (7) Deliverables: parsed with expandRowIds — (no named case); named but NOT REACHED: /^R-2442: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH requirements-cap-kinds.test.mjs THREW (later checks never ran)
+RED D5 (8) Deliverables: accepted on a constraint capability — 1/1 named: /^R-2442: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D6 a deliverable listed twice is not reported — 1/1 named: /^R-2442: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED D7 a deliverable homed under another capability is accepted — 1/1 named: /^R-2442: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B1 (9) Binds: all is skipped — 1/1 named: /^R-2443: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED B2 (9) a Binds target is checked for existence only, not its kind or retirement — 1/1 named: /^R-2443: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B3 a retired Binds target is accepted — 1/1 named: /^R-2443: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B4 (10) Binds: checked only when the line is present — 1/1 named: /^R-2443: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B5 Binds: accepted on a product capability — 1/1 named: /^R-2443: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN B6 a retired constraint capability must still carry Binds: — SURVIVED
+RED B7 a target that does not exist is accepted — 2/2 named: /^R-2443: / | /^R-2445: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED N1 (11) a later capability is accepted in Needs: — 1/1 named: /^R-2444: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN N2 (12) a Needs target's kind is not checked — SURVIVED
+GREEN N3 a retired Needs target is accepted — SURVIVED
+RED N4 Needs: accepted on a constraint capability — 1/1 named: /^R-2444: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R1 (13) Retired: successors are not validated — 1/1 named: /^R-2445: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R2 a retired successor is accepted — 1/1 named: /^R-2445: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R3 a capability may name itself as its successor — 1/1 named: /^R-2445: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R4 (13) a retired capability may carry stage fields — 1/1 named: /^R-2445: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED R5 (13) a retired capability may hold a live feature — 1/1 named: /^R-2445: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED L1 (14) the lift refuses carried Kind: and Retired: lines — 1/1 named: /^R-2440: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED L2 (14) the lift's field block takes Kind: and regenerates it away — 1/1 named: /^R-2440: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED O1 (15) a Kind: — placeholder on every capability — 1/1 named: /^R-2446: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O2 (15) the field lines go before the Parent line — 1/1 named: /^R-2446: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O3 (16) checkOutlineFields ignores the field lines — 1/1 named: /^R-2446: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED O4 the renderer drops Needs: (no outline line) — 1/1 named: /^R-2446: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M1 (17) the early return stays ahead of the capability section — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M2 (18) Needs, Binds and Deliverables compared in order — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M3 (18) fields compared as raw text — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M4 a feature move between capabilities is not reported — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M5 a new or removed capability is not reported — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED M6 only Kind changes are reported — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED M7 the summary line names no capability count — 1/1 named: /^R-2447: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 37/41 red (36 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 4 survived [P2, B6, N2, N3], across 5 shards
