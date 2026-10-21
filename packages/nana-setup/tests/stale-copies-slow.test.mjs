@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/stale-copies-slow.test.mjs
  * @purpose Prove stale-copies remains reliable under slow installs and reports checker failures.
  * @inputs stale-copies.test.mjs, child-process preloads, and temporary folders.
- * @outputs PASS/FAIL/SKIP lines and a summary; nonzero exit on failure.
+ * @outputs PASS/FAIL lines and one Windows SKIP plus a summary; nonzero exit on failure.
  * @effects disk (temporary fixtures only), process (meta-runs stale-copies).
  * @errors failed child runs or unexpected fixture output fail their checks.
  */
@@ -66,24 +66,23 @@ if (path.basename(process.argv[1] || "") === "nana-setup.mjs" && process.argv[2]
 		JSON.stringify({ status: slowRun.status, signal: slowRun.signal, error: slowRun.error?.message, summary: slowLines.find((line) => line.startsWith("SUMMARY")), failures: slowLines.filter((line) => line.startsWith("FAIL")) }));
 }
 
-if (process.platform === "win32") {
-	skip("R-2483: a second Windows run would re-expose the open linked-claude failure; forced-win32 fixtures are covered off Windows");
-} else {
-	const failedCheckerRun = metaRun("failed linked claude preload.cjs", `const path = require("node:path");
-if (path.basename(process.argv[1] || "") === "stale-copies.mjs" && String(process.env.HOME || "").includes("-linked-claude-home-")) process.exit(1);
+const failedCheckerRun = metaRun("failed linked claude preload.cjs", `const path = require("node:path");
+const basename = path.basename(process.argv[1] || "");
+const matchesScript = process.platform === "win32" ? basename.toLowerCase() === "stale-copies.mjs" : basename === "stale-copies.mjs";
+if (matchesScript && String(process.env.HOME || process.env.USERPROFILE || "").includes("-linked-claude-home-")) process.exit(1);
 `);
-	const output = `${failedCheckerRun.stdout ?? ""}${failedCheckerRun.stderr ?? ""}`;
-	const title = "FAIL R-1761: the stale line names exactly the rule, skill and hook rows doctor marks failed";
-	const line = output.split(/\r?\n/).find((candidate) => candidate.startsWith(title));
-	let facts = [];
-	try { facts = JSON.parse(line.slice(title.length).trim()); } catch {}
-	const linked = facts.filter((item) => item.name === "linked-claude");
-	const ok = failedCheckerRun.status !== 0 && linked.length > 0 && linked.every((item) => item.hookStatus === 0 && item.hookSignal === null && Number.isFinite(item.hookMs) && item.hookMs >= 0 && Array.isArray(item.unavailable) && item.unavailable.length === 1 && item.unavailable[0].startsWith(STALE_UNAVAILABLE_PREFIX));
-	// req: R-2483
-	check("R-2483: when the stale-copies checker fails inside the linked-claude adoption hook, the R-1761 failure names that hook run's status, signal, time and unavailable line",
-		ok,
-		JSON.stringify({ status: failedCheckerRun.status, signal: failedCheckerRun.signal, linked, unavailablePrefix: STALE_UNAVAILABLE_PREFIX }));
-}
+const output = `${failedCheckerRun.stdout ?? ""}${failedCheckerRun.stderr ?? ""}`;
+const title = "FAIL R-1761: the stale line names exactly the rule, skill and hook rows doctor marks failed";
+const line = output.split(/\r?\n/).find((candidate) => candidate.startsWith(title));
+let facts = [];
+try { facts = JSON.parse(line.slice(title.length).trim()); } catch {}
+const linked = facts.filter((item) => item.name === "linked-claude");
+const expectedPlatform = process.platform === "win32" ? "win32" : null;
+const ok = failedCheckerRun.status !== 0 && linked.length > 0 && linked.every((item) => (expectedPlatform === null || item.platform === expectedPlatform) && item.hookStatus === 0 && item.hookSignal === null && Number.isFinite(item.hookMs) && item.hookMs >= 0 && Array.isArray(item.unavailable) && item.unavailable.length === 1 && item.unavailable[0].startsWith(STALE_UNAVAILABLE_PREFIX));
+// req: R-2483
+check("R-2483: when the stale-copies checker fails inside the linked-claude adoption hook, the R-1761 failure names that hook run's status, signal, time and unavailable line",
+	ok,
+	JSON.stringify({ status: failedCheckerRun.status, signal: failedCheckerRun.signal, linked, unavailablePrefix: STALE_UNAVAILABLE_PREFIX }));
 
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);
