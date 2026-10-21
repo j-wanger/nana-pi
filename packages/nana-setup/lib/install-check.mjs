@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS, PI_SUBAGENTS_RETRY } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
@@ -287,7 +287,11 @@ function shellQuote(value) {
   return `'${String(value).replaceAll("'", `'\\''`)}'`;
 }
 
-export async function runInstallCheck({ root, home, platformName, env, spawn, exists, now = () => new Date(), out = () => {} }) {
+export function piSubagentsCodeLine(stderr) {
+  return String(stderr ?? "").split(/\r?\n/).find((line) => PI_SUBAGENTS_RETRY.codeLeads.some((lead) => line.startsWith(lead)))?.trim() ?? null;
+}
+
+export async function runInstallCheck({ root, home, platformName, env, spawn, exists, now = () => new Date(), out = () => {}, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   const lines = [];
   const emitLine = (line) => { lines.push(line); out(line); };
   const childEnv = buildEnvironment(env, home, platformName);
@@ -355,7 +359,15 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     const launch = preparedLaunch ?? winCommand(pi, args, { comspec: childEnv.ComSpec });
     return launch.refused ? { status: 1, stderr: launch.refused } : invoke(launch.command, launch.args, { ...launch.options, ...options, cwd: project, timeout });
   };
-  const sub = await piRun(["install", `npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`]);
+  let sub;
+  for (let attempt = 1; attempt <= PI_SUBAGENTS_RETRY.attempts; attempt++) {
+    sub = await piRun(["install", `npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`]);
+    if (okay(sub) || sub.error || typeof sub.status !== "number" || sub.status === 0) break;
+    const codeLine = piSubagentsCodeLine(sub.stderr);
+    const failureReason = codeLine ?? reason(sub);
+    emitLine(`NOTE pi-subagents attempt ${attempt} of ${PI_SUBAGENTS_RETRY.attempts} failed — ${failureReason}`);
+    if (attempt < PI_SUBAGENTS_RETRY.attempts) await sleep(PI_SUBAGENTS_RETRY.pauseMs);
+  }
   report("pi-subagents", sub.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(sub), okay(sub) ? "" : reason(sub));
   const listed = await piRun(["list"], SPAWN_TIMEOUT_MS.list);
   const parsed = parsePiList(listed.stdout ?? "", root, platformName);

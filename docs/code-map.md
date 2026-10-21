@@ -2838,7 +2838,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Defines the independent sealed contract and tunables for the install check.
 - **inputs** — None.
-- **outputs** — Hook, environment, known-red, doctor-note and filesystem-path contracts.
+- **outputs** — Hook, environment, retry, known-red, doctor-note and filesystem-path contracts.
 - **effects** — none
 - **errors** — None.
 - **callers** — `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`
