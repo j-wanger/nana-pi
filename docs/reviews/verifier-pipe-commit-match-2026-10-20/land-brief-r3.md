@@ -17,12 +17,14 @@ This round reviews only what changed since round 2: `git diff fefbfa4c..HEAD` on
 - `acb649cb` (build 11): build 10 scanned the whole prefix once per pipe (3,489 ms on 64 KB of `a|b;`, against 20 ms on round 1); build 11 finds the first enable once (24.6 ms). No behaviour change.
 - `ad93798f` and the pairs record: the seat's pairs re-anchored and rerun on acb649cb: 69 of 73 red (`seat-mutate-output-acb649cb.txt`). E2 to E6 are rewritten for the new matcher; E4 puts the old `set +e` rule back and turns the round-2 cases red. F4 is red again, since build 9 removed the backtick group. K1, K8, C1 and S26 survive as declared.
 - `9d062e11` merges main `954b8726` (the win-hook-variant-loop land: doctor's Windows hook rows; no pipe-guard file). Review the merge as `git show --remerge-diff 9d062e11`. The seat's merge helper resolved HANDOFF and the session file, keeping both sides' lines, and regenerated the tree and code map.
-- The notes commit: HANDOFF and the session entry record round 2 and builds 9 to 11; the Landed line names the subtraction and dates the relief figures to the fifth build. CI-PENDING.
+- `b62aefd6`: the seat's pairs record and these notes.
+- `c6c59586` merges `bcabe3ce`, the knowledge-index-recover lane's reviewed land tip (both its reviewers said LAND; it lands before this lane, so it becomes main first). It brings only the knowledge package, its rows, the generated tree and code map, HANDOFF, the session file and its own review folder; no pipe-guard, hook or gate file. Review it as `git show --remerge-diff c6c59586`. CI ran on 9d062e11, before this merge.
+- The notes: HANDOFF and the session entry record round 2 and builds 9 to 11; the Landed line names the subtraction and dates the relief figures to the fifth build. CI run 39523089671 at 9d062e11 reads 0 failing on all three legs: macOS 196 PASS, 0 FAIL, 2 SKIP of 198 files (8,185 checks pass, 36 skip); Ubuntu 195 PASS, 0 FAIL, 3 SKIP of 198 files (8,124 checks pass, 56 skip); Windows 180 PASS, 0 FAIL, 18 SKIP of 198 files (7,114 checks pass, 114 skip). The install check passes on macOS and Windows. The Windows leg's log is ci-windows-9d062e11.log in this folder.
 
-Tree movement (`node scripts/requirements-moved.mjs --root . --base main`, run at 9d062e11):
+Tree movement (`node scripts/requirements-moved.mjs --root . --base bcabe3ce`, the next main, run at c6c59586):
 
 ```
-tree movement 954b872..9d062e1: 10 rows in 2 features
+tree movement bcabe3c..c6c5958: 10 rows in 2 features
 FEAT-010 · Guard risky commands and protected resources
   R-982 implemented -> retired
   R-2350 new (implemented)
