@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { HANDOFF_WORD_BUDGET } from "../lib/frontier-config.mjs";
+import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../lib/frontier-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +49,10 @@ const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "
 
 // req: R-873
 check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
+// req: R-2471 R-2472
+check("seal: HANDOFF read window is 51,200 bytes", READ_WINDOW_BYTES === 51200);
+// req: R-2471 R-2472
+check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 
 {
 	const rootLayout = fs.readFileSync(path.resolve(HERE, "../../../AGENTS.md"), "utf8");
@@ -219,5 +223,31 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	check("unreadable input follows default error policy", defaultUnreadable.status === 0 && defaultUnreadable.stdout.includes(":0: error:"), `${defaultUnreadable.status}: ${defaultUnreadable.stdout}`);
 	// req: R-879
 	check("unreadable input follows strict error policy", strictUnreadable.status === 1 && strictUnreadable.stdout.includes(":0: error:"), `${strictUnreadable.status}: ${strictUnreadable.stdout}`);
+}
+{
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-window-"));
+	const runText = (name, text) => {
+		const file = path.join(dir, name);
+		fs.writeFileSync(file, text);
+		return run(file).stdout;
+	};
+	const n = Math.ceil(READ_WINDOW_BYTES / 1203) + 1;
+	const bytesText = ["## Where things stand", "- state", "## Next", "### Detail", ...Array(n).fill(`- ${"é".repeat(600)}`), "## Open for Jake", "- **[optional, since 2026-10-01] Ask.** body"].join("\n");
+	const bytesOutput = runText("bytes.md", bytesText);
+	const m = READ_WINDOW_LINES + 100;
+	const linesOutput = runText("lines.md", ["## Where things stand", ...Array(m).fill("- s"), "## Next", "1. step"].join("\n"));
+	const smallOutput = runText("small.md", "## Where things stand\n- s\n## Next\n1. n\n");
+	const readLines = (output) => output.split("\n").filter((line) => line.includes(": read-window:")).map((line) => Number(/:(\d+):/.exec(line)?.[1]));
+	// req: R-2471
+	check("R-2471: a live section that ends past the read window in bytes or in lines is reported as read-window", JSON.stringify(readLines(bytesOutput)) === JSON.stringify([3, 5 + n]) && JSON.stringify(readLines(linesOutput)) === JSON.stringify([1, m + 2]) && readLines(smallOutput).length === 0, `${bytesOutput}\n${linesOutput}`);
+	const k = Math.ceil(READ_WINDOW_BYTES / 1003) + 1;
+	const bigText = `## Next\n${Array(k).fill(`- ${"é".repeat(500)}\n`).join("")}`;
+	const bigOutput = runText("big-bytes.md", bigText);
+	const manyOutput = runText("many-lines.md", Array(READ_WINDOW_LINES + 1).fill("- s\n").join(""));
+	const atLimitOutput = runText("at-limit.md", Array(READ_WINDOW_LINES).fill("- s\n").join(""));
+	const sizes = (output) => output.split("\n").filter((line) => line.includes(": file-size:"));
+	// req: R-2472
+	check("R-2472: a document over the read window in bytes or in lines gets one file-size finding with its byte and line counts", sizes(bigOutput).length === 1 && sizes(bigOutput)[0].includes(`bytes=${Buffer.byteLength(bigText)}`) && sizes(bigOutput)[0].includes(`lines=${k + 1}`) && sizes(manyOutput).length === 1 && sizes(manyOutput)[0].includes(`lines=${READ_WINDOW_LINES + 1}`) && sizes(atLimitOutput).length === 0, `${bigOutput}\n${manyOutput}`);
+	fs.rmSync(dir, { recursive: true, force: true });
 }
 if (fails) process.exitCode = 1;

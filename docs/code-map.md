@@ -1286,9 +1286,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/frontier-config.mjs`
 
-- **purpose** — Defines the sealed word budget for HANDOFF frontier reports.
+- **purpose** — Defines the sealed word budget, read window and section names for HANDOFF frontier reports.
 - **inputs** — none
-- **outputs** — HANDOFF_WORD_BUDGET
+- **outputs** — HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/frontier.test.mjs`
