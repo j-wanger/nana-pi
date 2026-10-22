@@ -17,8 +17,9 @@ node packages/nana-setup/bin/nana-setup.mjs trust ~/my-thing --yes # record pi p
 ```
 
 Runtime dependencies: **Node ≥ 22.18** and the globally installed `@earendil-works/pi-coding-agent` package (used for pi's exported project-trust API). The floor is set by the installed
-`claude/hooks/nana-objective.mjs` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that
-CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
+`claude/hooks/nana-objective.mjs` hook, which runs `packages/nana-pack/bin/nana-objective.mjs` and
+then the bounded `packages/nana-pack/bin/nana-frontier-summary.mjs` producer under their shared
+output budget; the objective CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
 22.18). On an older Node the hook prints `OBJECTIVE UNAVAILABLE: Node <v> is older than 22.18 …`
 instead of the objective, and `doctor`'s
 `node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register

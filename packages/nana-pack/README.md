@@ -28,7 +28,7 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 
 The Product view lists each deliverable's written maker and reader claims, marks whether code makes and reads it, and shows a named artifact's git age or why no age is available. The `runtime-map` artifact shows its recorded tip, UTC measurement time, uncommitted-file count, and commits and whole days to HEAD instead of the maker file's git age.
 
-Nine extensions giving pi the hook coverage we require (Claude Code parity classes):
+Ten extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -38,6 +38,7 @@ Nine extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
+| `nana-frontier-summary` | Bounded Next titles, open asks and the HANDOFF frontier check | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The adopted writing-for-the-owner rule, on by default; user-scope `writing.enabled: false` turns it off | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
 | `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
@@ -395,6 +396,28 @@ submodule contents, so logs redirected inside a submodule are not detected.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes), `tests/review-launch.test.mjs` (command launch).
+
+## Session-start frontier summary
+
+The `nana-frontier-summary` extension and the existing Claude Code objective hook read
+`HANDOFF.md` from the repository root at every session start. Outside a repository, they read
+it from the session folder. The bounded block quotes only top-level titles from the first Next
+section and Open for the owner asks with their tag or no-tag label. The report-only frontier
+check summary follows those titles.
+Blocking asks get selection priority, while displayed groups keep Next first and then blocking,
+optional, parked and untagged asks.
+
+The block holds at most 4,000 characters and each displayed title holds at most 160 characters.
+The Claude objective and frontier producers share a 9,000-character output budget, leaving the
+objective whole before fitting the frontier. A missing file is silent. Reviewer and worker
+launcher roles receive no frontier block. Other unusable files produce one bounded unavailable
+line. There is no user or project switch, and a symlinked `HANDOFF.md` is followed.
+
+Run the producer directly with:
+
+```bash
+node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd <dir>
+```
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 
