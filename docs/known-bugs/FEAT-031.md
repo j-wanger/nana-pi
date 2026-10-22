@@ -71,3 +71,6 @@
 - Suite records (suite-records, plan): a commit made during a run is not seen. The record names the HEAD the run started at.
 - Suite records (suite-records, plan): a runner crash leaves no record.
 - Suite records (suite-records, plan): runs made before a lane's first commit count to no lane.
+- Suite records (suite-records, final review r1): the land's rerun loop reuses one record file and does not clear it between files. If a rerun child dies before writing, the previous run's record is read, so only the stored record's labels are wrong; the exit code stays nonzero.
+- Suite records (suite-records, final review r1): a prune error after the record is stored, such as EBUSY on Windows, replaces the two closing lines with one problem line. The exit code is unaffected.
+- Suite records (suite-records, final review r1): every stored run re-reads main's whole history with `rev-list --parents`. It is cheap at this repo's size but grows with history.
