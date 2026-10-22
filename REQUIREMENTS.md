@@ -1588,6 +1588,7 @@ Status: active
 | R-2556 | Each `npm test` step of the root CI suite job shall pass `--jobs=${{ env.NANA_CI_JOBS }}` to the runner after npm's `--`. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2556: every CI suite step passes the job count to the runner after npm's separator` |
 | R-2557 | The root CI suite job's `env` shall set `NANA_CI_JOBS` to the sealed value 4, with the word `chosen` in the comment lines directly above it. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2557: the suite job's count of test files at once is sealed at 4 with a chosen comment directly above it` |
 | R-2558 | The root CI workflow shall set `NANA_TEST_TIMEOUT_MS` only in the suite job's `env`, to the sealed value 900000, with the word `chosen` in the comment lines directly above it. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2558: the per-file time limit is set once, in the suite job's env, sealed at 900000 with a chosen comment directly above it` |
+| R-2577 | The root CI suite job shall run `uvx copier --version` as a step before its first `npm test` step. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2577: the suite job warms the copier cache before its first suite step` |
  
 # CAP-05 · Follow and steer development
 Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.

@@ -204,6 +204,16 @@ check("R-2558: the per-file time limit is set once, in the suite job's env, seal
   assert(comments.some((line) => /\bchosen\b/.test(line)), "a chosen provenance comment must directly precede the key");
   assert.doesNotMatch(lines.filter((line) => /NANA_TEST_TIMEOUT_MS=/.test(line)).join("\n"), /NANA_TEST_TIMEOUT_MS=/, "the timeout must not be assigned inline in a run line");
 });
+// req: R-2577
+check("R-2577: the suite job warms the copier cache before its first suite step", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const steps = suite.split("\n").filter((line) => /^      - run:/.test(line));
+  const warmups = steps.filter((line) => line === "      - run: uvx copier --version");
+  assert.equal(warmups.length, 1, "the suite job must run the exact copier version probe once");
+  const firstSuiteStep = steps.findIndex((line) => /npm test/.test(line));
+  assert(firstSuiteStep >= 0, "the suite job must include an npm test step");
+  assert(steps.indexOf(warmups[0]) < firstSuiteStep, "the copier probe must precede the first npm test step");
+});
 // req: R-1078
 check("install check is a blocking macOS and Windows job", () => {
   const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";

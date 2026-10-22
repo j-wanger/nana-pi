@@ -72,6 +72,7 @@ jobs:
         with:
           node-version: 22
       - uses: astral-sh/setup-uv@v5
+      - run: uvx copier --version
       - uses: pnpm/action-setup@v4
         with:
           version: 11
