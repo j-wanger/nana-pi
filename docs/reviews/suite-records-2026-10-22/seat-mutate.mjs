@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane suite-records (ordinary lane), written by the seat 2026-10-22 after build 2, on the
-// shared runner, at tip 01f5aabe; re-run at 514590a8 after build 3. They are the must-meet's pairs ("Seat steps") and the attack's (M1 to M5, S6), one
+// shared runner, at tip 01f5aabe; re-run at 514590a8 after build 3 and at 3db949cd after build 4 (s15, the final review's F1). They are the must-meet's pairs ("Seat steps") and the attack's (M1 to M5, S6), one
 // per wrong build. Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/suite-records-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -24,6 +24,7 @@ const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 
 
 const DECLARED = [
 	"(plan) s1 to s14 are the must-meet's pairs and the attack's: newest ancestor (M3), dirty baseline, untracked files not counted (M5), dirty run called flaky, comparison across job counts, land prefix dropped, off-lane total (M6), unguarded runner write (M2), filtered run stored, store on a stop (S7), coverage label only for a rerun file (M4), the count line first (M1), a record written with the knob unset (S6), a store failure that changes the exit code",
+	"(review) s15 is the final review round 1 F1: the rerun loop that keeps starting files after a stop",
 	"(seat) s8 makes the runner's write failure rethrow instead of print, which is the unguarded write; s12 swaps the two lines, so the counts are no longer last",
 ];
 
@@ -70,6 +71,9 @@ const PAIRS = [
 	{ n: "s14", name: "a store failure changes the exit code", edits: [
 		one(LOCKED, "recordProblem(error?.message ?? \"record could not be stored\");", "recordProblem(error?.message ?? \"record could not be stored\"); throw error;"),
 	], tests: [SR_T], expectRed: [R_2553] },
+	{ n: "s15", name: "a stopped land keeps starting rerun files", edits: [
+		one(LOCKED, "\t\t\t\tif (stopping) break;\n", ""),
+	], tests: [SR_T], expectRed: [R_2548] },
 ];
 
-process.exitCode = await runMutations({ lane: "suite-records", self: import.meta.url, tip: "514590a8", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "suite-records", self: import.meta.url, tip: "3db949cd", declared: DECLARED, pairs: PAIRS });
