@@ -1325,6 +1325,11 @@ try {
     expectClaim("epoch days", zonesView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 2 commits and 1 day before HEAD by ${offset.slice(0, 8)}: offset change`)));
     expectClaim("day clamp", zonesView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 0 days before HEAD by ${future.slice(0, 8)}: future change`)));
 
+    const halfDay = historyFixture("artifact-half-day", ["artifact.txt"], "2026-04-01T00:00:00Z");
+    const halfDayChange = commitAt(halfDay, "half-day change", "2026-04-01T00:00:00Z", { "artifact.txt": "made\n" });
+    commitAt(halfDay, "36 hours later", "2026-04-02T12:00:00Z", { "head.txt": "head\n" });
+    expectClaim("36 hours is one whole day", (await renderedProduct(halfDay, "artifact-half-day")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 1 day before HEAD by ${halfDayChange.slice(0, 8)}: half-day change`)));
+
     const folder = historyFixture("artifact-folder", ["made/"]);
     commitAt(folder, "older folder file", "2026-05-01T00:00:00Z", { "made/old.txt": "old\n" });
     const newest = commitAt(folder, "newest folder file", "2026-05-03T00:00:00Z", { "made/new.txt": "new\n" });
@@ -1362,8 +1367,12 @@ try {
     const failed = historyFixture("artifact-walk-failure", ["artifact.txt"]);
     commitAt(failed, "failed artifact", "2026-10-01T00:00:00Z", { "artifact.txt": "made\n" });
     const failedRunner = (args, options) => args[0] === "log" && args.includes("--name-only") ? { status: 1, stdout: "", stderr: "fixture history failure" } : spawnSync("git", args, options);
-    const failedRender = await renderedProduct(failed, "artifact-walk-failure", failedRunner);
-    expectClaim("walk failure degrades", failedRender.view, (claims) => fs.existsSync(failedRender.out) && claims.some((claim) => claim.includes(`${ageUnknown}${historyFailure}`)));
+    try {
+      const failedRender = await renderedProduct(failed, "artifact-walk-failure", failedRunner);
+      expectClaim("walk failure degrades", failedRender.view, (claims) => fs.existsSync(failedRender.out) && claims.some((claim) => claim.includes(`${ageUnknown}${historyFailure}`)));
+    } catch (error) {
+      failures.push({ label: "walk failure degrades", error: error instanceof Error ? error.message : String(error) });
+    }
 
     // req: R-2544
     check("R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown",
