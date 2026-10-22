@@ -74,3 +74,9 @@ D5 said the lane adds a cache warm-up step if copier's first download failed a r
 - **R-2577.** Reads the suite job's steps in order; exactly one step's `run:` is `uvx copier --version`, and it comes before the first step whose `run:` invokes `npm test`. Red: no such step today.
 - Wrong-code pairs: the step removed; the step placed after the suite steps; a different command in its place.
 - Known limit: the warm-up downloads the newest copier on each leg; a download failure there fails the job before the suite, with copier's own error.
+
+## Amendment after build 2 (the seat, 2026-10-22): a load-sensitive file joins the run-alone list
+
+The first Windows leg at four (run 39785202152 at 0ab804cd) failed one check: post-edit-utf8's "a failing Python check shows the model its own Python child's non-ASCII output as printed". The post-edit check, a Python parent that starts a Python child, has a 3000 ms limit in the test's config and "did not complete (timed out)" under four-way load. The runner's own rule for such a file (`RUN_ALONE`'s comment in `packages/nana-pack/lib/test-runner-config.mjs`): a bound is never loosened to make a file safe for the pool; the file joins the list instead. So `packages/nana-pack/tests/post-edit-utf8.test.mjs` joins `RUN_ALONE` with its reason and this run as provenance. The existing run-alone checks (R-1473, R-1474 and the list's own validation in `test-runner-parallel.test.mjs`) cover the entry; no new row.
+
+- Wrong-code pair: the entry removed — the list's validation stays green, so this pair is evidence-only: the seat counts the Windows legs at the final tip instead.
