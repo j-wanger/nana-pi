@@ -1,0 +1,13 @@
+# CI run 39740755064 at 83a92048 (PR #161)
+
+suite (windows-latest) 205 files: 187 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7213 pass, 0 fail, 119 skip · 1878.4s
+suite (ubuntu-latest) 205 files: 202 PASS, 0 FAIL, 3 SKIP, 0 WARN · checks: 8224 pass, 0 fail, 60 skip · 924.9s
+suite (macos-latest) 205 files: 203 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8285 pass, 0 fail, 40 skip · 1121.0s
+
+Windows leg, the lane's files:
+PASS  packages/nana-pack/tests/land.test.mjs                          54 pass, 1 skip  118.5s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  7 pass, 1 skip  10.0s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   9 pass, 1 skip  9.6s
+PASS  packages/nana-pack/tests/test-locked.test.mjs                   13 pass, 4 skip  3.2s
+
+install-check (windows-latest): pass. install-check (macos-latest): first attempt FAIL readme checklist — timeout: step 6 (pi install npm:pi-subagents@0.75.0): timed out; re-run of the failed job: success.
