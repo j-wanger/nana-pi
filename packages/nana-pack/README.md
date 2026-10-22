@@ -177,13 +177,45 @@ scratch=$(mktemp -d)
 pi-review --item <slug> --role sol --out "$scratch/sol-r1.md" -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
 ```
 
-**The review standard.** Before admission, `pi-review` reads `prompts/review-standard.md` and refuses —
-exit 1, no reservation, no checkout, no pi child — when the file is missing, not a regular file, or blank
-after trimming. Every admitted review receives its TEXT, never its path, as a second
-`--append-system-prompt` appended once, immediately after the immutable-checkout sentence, so a review
-brief states only the threat model and lane class and never repeats the bar. `review-ledger run` wraps
-any other launcher command as given and does **not** inject this text; a hand-rolled review brief must
-paste it itself.
+**The review standard.** Before admission, `pi-review` and `claude-review` read `prompts/review-standard.md` and refuse —
+exit 1, no reservation and no reviewer child — when the file is missing, not a regular file, or blank
+after trimming. `pi-review` appends its text once after the immutable-checkout sentence. `claude-review`
+puts its text once between the brief and its reviewer sentence. A review brief therefore states only
+the threat model and lane class and never repeats the bar. `review-ledger run` wraps any other launcher
+command as given and does **not** inject this text; a hand-rolled review brief must paste it itself.
+
+### Claude Code reviewer (`bin/claude-review.mjs`)
+
+When the roster's `reviewer` slot is a Claude Code entry, run its review through the pack from any seat:
+
+```bash
+scratch=$(mktemp -d)
+node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs" --item <slug> --tree <worktree> --brief <file-relative-to-tree> --out "$scratch/claude-r1.md" [--role R] [--over-cap WHY]
+```
+
+The launcher requires `--item`, `--tree`, `--brief` and `--out`; it resolves the brief against the
+reviewed tree and passes the output path through unchanged. It reads the reviewer model from the
+machine roster, sends the brief, shared review standard and read-only reviewer sentence on standard
+input, then runs `claude -p --model <model> --allowedTools Read,Grep,Glob,Bash --disallowedTools Edit,Write,NotebookEdit`
+through `review-ledger run`. It exits with the ledger's status. A pi reviewer entry is refused before
+admission and must use `pi-review`; there is no fallback model. Set the Claude Code reviewer from a
+terminal or Claude Code shell, not a pi model shell:
+
+```bash
+node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set reviewer claude-code opus
+```
+
+Known limits: the reviewer uses the live tree, not an immutable checkout, so a reviewer or concurrent
+builder edit makes the verdict unverified and consumes the round. It has no liveness watchdog, launcher
+retry or retry beyond Claude Code's own request retries; a hung `claude` hangs the launcher. The ledger
+records the alias such as `opus`, not the resolved model id, and records a null provider. The launcher
+is not on PATH and has no doctor line, so every platform starts it through Node. Read-only is an
+instruction rather than enforcement because Bash is allowed, and `claude -p` loads user rules, hooks
+and memory. Only the reviewer slot is supported; a Claude land model or second-opinion slot needs a
+separate launcher. On Windows the allowed tool list has no PowerShell. A logged-out `claude` exits 1
+and the ledger returns the reservation. A killed launcher can leave `claude` running and a dead-pid
+reservation, which the next admission prunes. Claude print mode supplies only its final assistant turn,
+so a verdict written before a last tool call may be absent from the output.
 
 **Any other launcher** (e.g. a hand-rolled `claude -p … > "$scratch/out.md"`) prefixes the same check —
 `bin/review-ledger.mjs run` reserves the round, runs the command with stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output. It keeps and parses the stdout string it captured, rather than reading `--out` back. It starts the command with `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`, as `pi-review` does, and starts a first word `pi` the way `pi-review` starts pi. If the command cannot start, stderr and `--out` begin `cannot start <command>: <reason>`, and no reservation or round remains. A recorded empty verdict keeps the output and consumed round, prints why `nana-land` will refuse it, and exits 1; a non-empty verdict retains the verdict-recorded line and exit 0. The reviewed tree defaults to the launcher cwd; pass `--tree <path>` when launching from scratch:
@@ -278,15 +310,15 @@ Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any e
 
 A machine's roster lives in a `roster` block in the user-scope `nana-pack.json`, in pi's active agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`) — the same scope as `objective`; nothing seeds it. Print this machine's roster with `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`, which prints one line per slot — `scout`, `builder`, `largerBuilder` (the builder for larger or riskier lanes), `reviewer`, `land`, in that order, `<provider> <model> <thinking>` for a pi entry (`default` for a null thinking) or `claude-code <model>` for a Claude Code entry, `none` for a null scout or `largerBuilder`, and `seat` for a null land — then a `source:` line naming `default` or the file, and exits 0; a malformed roster instead prints the resolver's refusal on stderr and exits 1. With no roster set, the roster is the sealed default: no scout, no `largerBuilder`; the builder above; reviewer `openai-codex gpt-5.6-sol`; land `openai-codex gpt-6-astra`; the last two with pi's default thinking.
 
-A roster replaces every slot, whole — there is no merge and no fallback to the default on a per-field basis. `scout` and `land` may be `null` (no pi scout; the seat writes the land review itself, printed as `seat`); `builder` and `reviewer` are required entries of `provider`, `model` and a `thinking` that is one of pi's seven levels or `null`. `largerBuilder` is optional (an absent slot reads as `null`) and holds either a pi entry of the same shape, a Claude Code entry (`runtime` `claude-code` plus a `model` that is one of the four names the Claude Code seat's Agent tool starts a subagent with — `sonnet`, `opus`, `haiku`, `fable` — never a full model name or a bracketed variant), or `null`. Each pi entry's `provider` and `model` must be non-empty with no whitespace or control character. A roster in a project's `.pi/nana-pack.json` is never read. The file is read bounded (1 MiB) with one leading byte-order mark stripped, including marked UTF-16LE or UTF-16BE; a malformed shape, an unreadable file or one over the cap is refused, naming the file and the failing slot or field. A JSON syntax error in this file also stops pi's gate at its next start: it blocks every gated tool until the file parses again.
+A roster replaces every slot, whole — there is no merge and no fallback to the default on a per-field basis. `scout` and `land` may be `null` (no pi scout; the seat writes the land review itself, printed as `seat`); `builder` is a required pi entry holding `provider`, `model` and a `thinking` that is one of pi's seven levels or `null`. `reviewer` is required and holds either a pi entry of that shape or a Claude Code entry. `largerBuilder` is optional (an absent slot reads as `null`) and holds a pi entry, a Claude Code entry or `null`. A Claude Code entry has `runtime` `claude-code` plus a `model` that is one of `sonnet`, `opus`, `haiku`, `fable` — never a full model name or a bracketed variant. The larger builder passes that name to the Claude Code seat's Agent tool; the reviewer launcher passes it to `claude --model`. Each pi entry's `provider` and `model` must be non-empty with no whitespace or control character. A roster in a project's `.pi/nana-pack.json` is never read. The file is read bounded (1 MiB) with one leading byte-order mark stripped, including marked UTF-16LE or UTF-16BE; a malformed shape, an unreadable file or one over the cap is refused, naming the file and the failing slot or field. A JSON syntax error in this file also stops pi's gate at its next start: it blocks every gated tool until the file parses again.
 
 ```json
 {"roster":{"scout":{"provider":"example-gateway","model":"gpt-6-luna","thinking":"medium"},"builder":{"provider":"example-gateway","model":"gpt-6-luna","thinking":"high"},"largerBuilder":{"runtime":"claude-code","model":"sonnet"},"reviewer":{"provider":"example-gateway","model":"gpt-5.6-sol","thinking":null},"land":null}}
 ```
 
-A seat passes the roster's reviewer and land models to `pi-review` itself, as `pi-review … -- --provider <provider> --model <model> [--thinking <thinking>]`; `pi-review` reads no roster and prints no builder line. `pi-worker`'s lane mode reads `--lane-size <small|larger>` to pick `builder` or `largerBuilder` — see Lane builder above.
+A seat passes a pi reviewer or land entry to `pi-review` itself, as `pi-review … -- --provider <provider> --model <model> [--thinking <thinking>]`; `pi-review` reads no roster and prints no builder line. For a Claude Code reviewer entry, `claude-review` reads the roster and passes its model to `claude --model`. `pi-worker`'s lane mode reads `--lane-size <small|larger>` to pick `builder` or `largerBuilder` — see Lane builder above.
 
-To change one slot without hand-editing the whole file, run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set <slot>[:] <tokens>`, pasting the slot and the tokens a plain run of the command above prints for the entry you want — `set builder example-gateway gpt-6-luna high`, `set largerBuilder claude-code sonnet`, `set land seat`, `set scout none`; a printed line's own trailing colon on the slot is accepted. It writes only that slot, prints the resulting roster the same way a plain run does, and writes `nana-roster: <slot> was: <previous tokens>` to stderr. It keeps every other top-level member (`objective`, `gate`, `postEdit` and an unrecognised key included) and, before replacing an existing file, copies its previous bytes to `nana-pack.json.bak` in the agent dir — copy that file back over `nana-pack.json` to undo a `set`. `set` must be the first argument: `nana-roster --json set …` prints the roster and sets nothing, and only one `.bak` is kept (the next `set`, or an edit by the desk, replaces it).
+To change one slot without hand-editing the whole file, run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set <slot>[:] <tokens>`, pasting the slot and the tokens a plain run of the command above prints for the entry you want — `set builder example-gateway gpt-6-luna high`, `set largerBuilder claude-code sonnet`, `set reviewer claude-code opus`, `set land seat`, `set scout none`; a printed line's own trailing colon on the slot is accepted. It writes only that slot, prints the resulting roster the same way a plain run does, and writes `nana-roster: <slot> was: <previous tokens>` to stderr. It keeps every other top-level member (`objective`, `gate`, `postEdit` and an unrecognised key included) and, before replacing an existing file, copies its previous bytes to `nana-pack.json.bak` in the agent dir — copy that file back over `nana-pack.json` to undo a `set`. `set` must be the first argument: `nana-roster --json set …` prints the roster and sets nothing, and only one `.bak` is kept (the next `set`, or an edit by the desk, replaces it).
 
 `set` refuses, naming what is wrong, and changes no byte, in three cases: run inside a pi model shell (pi sets `PI_SESSION_ID` there for its own bash and powershell tool calls; a terminal, pi's `!`, and a Claude Code shell are all fine); malformed `set` input (no slot, an unknown slot, or tokens that do not form a valid entry for that slot); and a `nana-pack.json` the roster resolver itself refuses (invalid JSON, a directory, over the 1 MiB cap, and the like) — the path is left exactly as it was, never replaced with the default roster.
 

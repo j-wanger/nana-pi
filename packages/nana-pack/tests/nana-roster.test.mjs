@@ -256,7 +256,7 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		["largerBuilder runtime claude-code model with a space", shaped((r) => { r.largerBuilder = { runtime: "claude-code", model: "sonnet five" }; }), "model"],
 		["largerBuilder pi entry missing thinking", shaped((r) => { r.largerBuilder = { provider: "example-gateway", model: "x" }; }), "thinking"],
 		["builder runtime field", shaped((r) => { r.builder.runtime = "claude-code"; }), "runtime"],
-		["reviewer runtime field", shaped((r) => { r.reviewer.runtime = "claude-code"; }), "runtime"],
+		["reviewer runtime field", shaped((r) => { r.reviewer.runtime = "claude-code"; }), "provider"],
 		["scout runtime field", shaped((r) => { r.scout.runtime = "claude-code"; }), "runtime"],
 		["land runtime field", shaped((r) => { r.land = { provider: "example-gateway", model: "x", thinking: null, runtime: "claude-code" }; }), "runtime"],
 		["largerBuilder null is accepted", shaped((r) => { r.largerBuilder = null; }), null],
@@ -272,6 +272,21 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	check("each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field",
 		results.every(([, pass]) => pass),
 		JSON.stringify(results.filter(([, pass]) => !pass)));
+}
+
+{
+	const dir = freshAgentDir("set-reviewer-claude");
+	writeRoster(dir, sampleRoster());
+	const env = { ...process.env, HOME: dir, USERPROFILE: dir, PI_CODING_AGENT_DIR: dir };
+	delete env.PI_SESSION_ID;
+	const setRun = spawnSync(process.execPath, [cli, "set", "reviewer", "claude-code", "opus"], { encoding: "utf8", env });
+	const printed = spawnSync(process.execPath, [cli], { encoding: "utf8", env });
+	const resolved = resolveRoster(dir);
+	// req: R-2563
+	check("R-2563: set reviewer claude-code opus is stored and printed",
+		setRun.status === 0 && printed.status === 0 && printed.stdout.includes("reviewer: claude-code opus\n") &&
+		resolved.ok && JSON.stringify(resolved.roster.reviewer) === JSON.stringify({ runtime: "claude-code", model: "opus" }),
+		JSON.stringify({ setRun, printed, resolved }));
 }
 
 {

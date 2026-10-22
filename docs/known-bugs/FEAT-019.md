@@ -17,3 +17,5 @@
 - CI at four (ci-jobs, plan): seconds in the CI logs are seconds under load.
 - CI at four (ci-jobs, plan): four files off the run-alone list slow down under load: recover (20 s rebuild deadline), post-edit's kill checks, mutation-runner's contention check and agent-dir-hostile (10 s handler bound).
 - CI copier download (ci-jobs, plan; seen in biome-pin's CI at 2d4ec87e and ci-jobs' at 0ab804cd, macOS): template-acceptance's 15-second copier probe timed out while copier downloaded on an empty cache. R-2577's warm-up step now runs copier once before the tests; a failed warm-up download still fails the leg.
+- CI workflow checks (ci-jobs, final review): R-1313's check repeats its first assertion and no longer pins the non-Windows step line. R-2556 covers that step's `--jobs` argument, but no check pins the step's text.
+- CI workflow checks (ci-jobs, final review): R-2577's check counts only `- run:` lines, so a multi-line `run: |` warm-up would fail it while working in CI. That is a false red only.

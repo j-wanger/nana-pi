@@ -127,7 +127,7 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 		["thinking extreme", ["builder", "a", "b", "extreme"], "thinking"],
 		["builder null token", ["builder", SLOT_NULL_TOKENS.scout], "builder"],
 		["land wrong null token", ["land", SLOT_NULL_TOKENS.scout], "land"],
-		["reviewer claude-code", ["reviewer", CLAUDE_CODE_RUNTIME, "sonnet"], "reviewer"],
+		["land claude-code", ["land", CLAUDE_CODE_RUNTIME, "sonnet"], "land"],
 		["largerBuilder bad claude-code model", ["largerBuilder", CLAUDE_CODE_RUNTIME, "gpt-5"], "largerBuilder"],
 	];
 	const results = BAD_CASES.map(([label, args, name]) => {

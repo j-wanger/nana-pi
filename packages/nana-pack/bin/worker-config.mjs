@@ -29,11 +29,10 @@ export const NULLABLE_SLOTS = Object.freeze(['scout', 'land']);
 // absent one reads back as null (R-1121). Since the roster lane (2026-10-16) the only one is the
 // larger-lane builder.
 export const OPTIONAL_SLOTS = Object.freeze(['largerBuilder']);
-// contract: R-1122 — the slots that may hold a Claude Code entry ({runtime, model}) instead of a
-// pi entry. Since the roster lane (2026-10-16) the only one is the larger-lane builder: builder,
-// reviewer, scout and land stay pi-only, so pi-worker can always start builder and pi-review's
-// inputs never change (CHANGE.md 3.1).
-export const CLAUDE_CODE_SLOTS = Object.freeze(['largerBuilder']);
+// contract: R-1122, R-2563 — the slots that may hold a Claude Code entry ({runtime, model}) instead
+// of a pi entry. The larger-lane builder was added by the roster lane on 2026-10-16; the reviewer
+// was added for the Claude Code review launcher under the owner's fleet ruling on 2026-10-22.
+export const CLAUDE_CODE_SLOTS = Object.freeze(['largerBuilder', 'reviewer']);
 // contract: R-1122 — chosen name: it says which runtime starts the entry.
 export const CLAUDE_CODE_RUNTIME = 'claude-code';
 // contract: R-1122 — Claude Code 2.1.299's Agent tool input schema, its `model` field, read from
