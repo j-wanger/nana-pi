@@ -155,7 +155,7 @@ check("R-2579: Precedent entries not tracked at HEAD are refused, each one named
 	].join("\n");
 	const result = runBriefText(text);
 	const sha = git(lane, "rev-parse", "--short", "HEAD").stdout.trim();
-	const namedAll = bad.every((entry) => result.stderr.includes(entry));
+	const namedAll = bad.every((entry) => result.stderr.includes(`${JSON.stringify(entry)} is not tracked`));
 	const goodNotNamed = !result.stderr.includes('"seed" is not tracked') && !result.stderr.includes('"tracked/nested.mjs" is not tracked');
 	const literalPathspec = fs.readFileSync(path.join(root, "lib", "brief-precedent.mjs"), "utf8").includes('"--literal-pathspecs"');
 	git(lane, "reset", "-q", "HEAD", "--", "staged-only.mjs");
