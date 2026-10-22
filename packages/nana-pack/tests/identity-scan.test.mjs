@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { countIdentityWords, scanTree } from "../../../scripts/identity-scan.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -90,14 +90,46 @@ function gitTree(label, entries) {
 }
 
 {
+	const root = tmpDir(path.join(os.tmpdir(), "identity-scan-refuse-"));
+	execFileSync("git", ["init", "-q", root]);
+	const configPath = path.join(root, "identity-scan.config.json");
+	fs.copyFileSync(path.join(REPO, "identity-scan.config.json"), configPath);
+	execFileSync("git", ["-C", root, "add", "identity-scan.config.json"]);
+	const before = fs.readFileSync(configPath);
+	const result = spawnSync(process.execPath, [path.join(REPO, "scripts/identity-scan.mjs"), "--root", root, "--write-allowlist"], { encoding: "utf8" });
+	// req: R-2519
+	check("the scan refuses to rewrite its allowlist", result.status === 2 && before.equals(fs.readFileSync(configPath)),
+		JSON.stringify({ status: result.status, changed: !before.equals(fs.readFileSync(configPath)), stderr: result.stderr }));
+	fs.rmSync(root, { recursive: true, force: true });
+}
+
+{
+	const root = tmpDir(path.join(os.tmpdir(), "identity-scan-large-index-"));
+	execFileSync("git", ["init", "-q", root]);
+	const empty = execFileSync("git", ["-C", root, "hash-object", "-w", "--stdin"], { input: "", encoding: "utf8" }).trim();
+	const paths = Array.from({ length: 9_000 }, (_, index) => `${String(index).padStart(4, "0")}-${"x".repeat(120)}.txt`);
+	const indexInfo = paths.map((relative) => `100644 ${empty}\t${relative}\n`).join("");
+	execFileSync("git", ["-C", root, "update-index", "--index-info"], { input: indexInfo });
+	const word = "quux";
+	const config = { wordDigests: [digest(word)], wordLengths: [word.length], allowlist: [] };
+	let result = null;
+	let error = "";
+	try { result = scanTree({ root, config }); } catch (caught) { error = caught.message; }
+	// req: R-2520
+	check("the scan reads a tracked list over 1 MiB", result?.scannedFiles === paths.length,
+		JSON.stringify({ scannedFiles: result?.scannedFiles, expectedFiles: paths.length, error }));
+	fs.rmSync(root, { recursive: true, force: true });
+}
+
+{
 	const config = JSON.parse(fs.readFileSync(path.join(REPO, "identity-scan.config.json"), "utf8"));
-	const expectedFiles = execFileSync("git", ["-C", REPO, "ls-files", "-z"])
+	const expectedFiles = execFileSync("git", ["-C", REPO, "ls-files", "-z"], { maxBuffer: Infinity })
 		.toString("utf8").split("\0").filter(Boolean).length;
 	const result = scanTree({ root: ".", config });
 	// req: R-2511
 	check("no tracked file outside the allowlist carries an identity word",
 		result.scannedFiles === expectedFiles && result.findings.length === 0,
-		JSON.stringify({ scannedFiles: result.scannedFiles, expectedFiles, findings: result.findings.length, totals: result.totals }));
+		JSON.stringify({ scannedFiles: result.scannedFiles, expectedFiles, findings: result.findings.map(({ path: findingPath, wordIndex }) => ({ path: findingPath, wordIndex })), command: "node scripts/identity-scan.mjs --root .", totals: result.totals }));
 }
 
 {

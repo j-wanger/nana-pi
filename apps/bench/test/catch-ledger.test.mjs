@@ -11,6 +11,7 @@
 // the judge is exercised only through stub executables that FAIL (or succeed with a fixed shape).
 // Run: node apps/bench/test/catch-ledger.test.mjs   (exit 0 = all PASS)
 import { tmpDir } from "./tmp-dir.mjs";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -290,6 +291,37 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("labels: verbatim quote (whitespace-normalised) keeps 'accepted'", v[0].disposition === "accepted" && v[0].quote_verified);
 	// req: R-537
 	check("labels: unverifiable quote forces 'unmatched' and keeps the raw claim", v[1].disposition === "unmatched" && v[1].disposition_raw === "accepted");
+	fs.rmSync(tmp, { recursive: true, force: true });
+}
+{
+	const cli = path.resolve(here, "../catch-ledger.mjs");
+	const study = path.resolve(here, "../studies/catch-ledger-2026-09-28");
+	const tmp = tmpDir(path.join(os.tmpdir(), "catch-study-"));
+	fs.cpSync(study, tmp, { recursive: true });
+	const env = { ...process.env, CATCH_JUDGE_BIN: path.join(tmp, "absent"), CATCH_OUT: tmp };
+	const commands = [["extract"], ["label", "a"], ["label", "b"], ["label", "c"], ["match", "a"], ["match", "b"], ["build"]];
+	const runs = commands.map((args) => ({ args, result: spawnSync(process.execPath, [cli, ...args], { env, encoding: "utf8" }) }));
+	const studyFiles = fs.readdirSync(study).filter((name) => name !== "OUTPUTS.sha256").sort();
+	const changed = studyFiles.filter((name) => !fs.readFileSync(path.join(study, name)).equals(fs.readFileSync(path.join(tmp, name))));
+	const manifest = new Map(fs.readFileSync(path.join(study, "OUTPUTS.sha256"), "utf8").trim().split("\n").map((line) => {
+		const [hash, name] = line.trim().split(/\s+/, 2);
+		return [name, hash];
+	}));
+	const digestFiles = ["results.json", "table.md", "kappa-pairs.json", "reports.json"];
+	const digest = (name) => createHash("sha256").update(fs.readFileSync(path.join(tmp, name))).digest("hex");
+	const digestChanges = digestFiles.filter((name) => digest(name) !== manifest.get(name));
+	// req: R-2517
+	check("the study reproduces its recorded results with no model call",
+		runs.every(({ result }) => result.status === 0) && studyFiles.length === 15 && changed.length === 0 && digestChanges.length === 0,
+		JSON.stringify({ statuses: runs.map(({ args, result }) => [args.join(" "), result.status, result.stderr]), files: studyFiles.length, changed, digestChanges }));
+	const sealed = {
+		"results.json": "026fcd79be31a215afdc05391033a1282e7c42b6b3b06e6ca5af71a02b85c939",
+		"table.md": "1d77455da61c18d1521c3fb62eba1b37f7d93c9e2521616a8d03c4c52359f6da",
+		"kappa-pairs.json": "d3fb28269a34c97b276a2050117caed80c7e1a401e488a7865fde9ccd75eef36",
+		"reports.json": "d2dd7353c73415c53ed013229eb5ea9a112a1072194c7c3285318d5f8c15a43b",
+	};
+	// req: R-2517
+	check("seal: catch-ledger study digests", digestFiles.every((name) => manifest.get(name) === sealed[name]), JSON.stringify(Object.fromEntries(manifest)));
 	fs.rmSync(tmp, { recursive: true, force: true });
 }
 {

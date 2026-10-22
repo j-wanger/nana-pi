@@ -625,7 +625,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **purpose** — Find tracked paths and content whose identity-word counts violate the repository allowlist.
 - **inputs** — a directory inside a git tree, an identity scan config, and an optional tracked-file list
 - **outputs** — pure count and tree-scan results; the CLI prints findings and a summary
-- **effects** — disk and process (reads tracked files and invokes git; the writer CLI updates the config)
+- **effects** — disk and process (reads tracked files and invokes git)
 - **errors** — invalid config, git, or file reads throw; malformed CLI options exit 2; findings exit 1
 - **callers** — `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`
 - **callees** — —

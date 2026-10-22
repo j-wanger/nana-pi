@@ -4,7 +4,7 @@
  * @purpose Find tracked paths and content whose identity-word counts violate the repository allowlist.
  * @inputs a directory inside a git tree, an identity scan config, and an optional tracked-file list
  * @outputs pure count and tree-scan results; the CLI prints findings and a summary
- * @effects disk and process (reads tracked files and invokes git; the writer CLI updates the config)
+ * @effects disk and process (reads tracked files and invokes git)
  * @errors invalid config, git, or file reads throw; malformed CLI options exit 2; findings exit 1
  */
 import { createHash } from "node:crypto";
@@ -16,8 +16,6 @@ import { pathToFileURL } from "node:url";
 /** Census metadata, 2026-10-21: lengths paired by index with the committed digest list. */
 const COMMITTED_WORD_LENGTHS = [4, 5, 4, 3];
 const ALLOWLIST_REASONS = new Set(["record", "byte-pinned", "frozen-desk"]);
-const RECORD_PREFIXES = ["docs/reviews/", "docs/sessions/", "research/", "apps/bench/studies/"];
-const RECORD_PATHS = new Set(["docs/product-report/assessments.json"]);
 
 function hashToken(token) {
 	return createHash("sha256").update(token.toLowerCase()).digest("hex");
@@ -88,7 +86,7 @@ function gitRoot(start) {
 }
 
 function trackedFiles(root) {
-	const output = execFileSync("git", ["-C", root, "ls-files", "-z"]);
+	const output = execFileSync("git", ["-C", root, "ls-files", "-z"], { maxBuffer: Infinity });
 	return output.toString("utf8").split("\0").filter(Boolean);
 }
 
@@ -142,43 +140,22 @@ export function scanTree({ root, config, files } = {}) {
 	return { root: resolvedRoot, findings, scannedFiles: listed.length, totals, countsByFile };
 }
 
-function isRecordPath(relative) {
-	return RECORD_PATHS.has(relative) || RECORD_PREFIXES.some((prefix) => relative.startsWith(prefix)) ||
-		(relative.startsWith("docs/") && !relative.slice("docs/".length).includes("/"));
-}
-
-function writeAllowlist({ root, config, configPath }) {
-	const result = scanTree({ root, config });
-	const kept = config.allowlist.filter((entry) => entry.reason === "byte-pinned" || entry.reason === "frozen-desk");
-	const keptPaths = new Set(kept.map((entry) => entry.path));
-	const records = Object.entries(result.countsByFile)
-		.filter(([relative, counts]) => isRecordPath(relative) && counts.some((count) => count > 0) && !keptPaths.has(relative))
-		.map(([relative, counts]) => ({ path: relative, counts, reason: "record" }));
-	const allowlist = [...kept, ...records].sort((left, right) => left.path.localeCompare(right.path, "en"));
-	const next = { ...config, allowlist };
-	fs.writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`);
-	return next;
-}
-
 function usage() {
-	return "usage: node scripts/identity-scan.mjs [--root <dir>] [--write-allowlist]";
+	return "usage: node scripts/identity-scan.mjs [--root <dir>]";
 }
 
 function parseArgs(argv) {
 	let root = ".";
-	let write = false;
 	let sawRoot = false;
 	for (let index = 0; index < argv.length; index++) {
 		if (argv[index] === "--root" && !sawRoot && argv[index + 1]) {
 			root = argv[++index];
 			sawRoot = true;
-		} else if (argv[index] === "--write-allowlist" && !write) {
-			write = true;
 		} else {
 			throw new Error(usage());
 		}
 	}
-	return { root, write };
+	return { root };
 }
 
 function runCli(argv) {
@@ -191,8 +168,7 @@ function runCli(argv) {
 	}
 	const resolvedRoot = gitRoot(options.root);
 	const configPath = path.join(resolvedRoot, "identity-scan.config.json");
-	let config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-	if (options.write) config = writeAllowlist({ root: options.root, config, configPath });
+	const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 	const result = scanTree({ root: options.root, config });
 	for (const finding of result.findings) {
 		console.log(`${finding.path}: wordIndex=${finding.wordIndex} expected=${finding.expected} actual=${finding.actual} ${finding.kind}`);

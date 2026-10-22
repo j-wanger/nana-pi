@@ -594,7 +594,7 @@ if (process.platform !== "win32") {
     "| R-001 | The desk shall raise an alert. | implemented | t |", "",
     "## Thresholds", "",
     "| Signal | Threshold | Source | Date |", "|---|---|---|---|",
-    "| cash | 10000 | BSA | 2026-01-01 |", "",
+    "| sample | 100 | Handbook | 2026-01-01 |", "",
   ].join("\n");
   const keeps = (out) => out.includes("| Term | Meaning | Source | Since |") && out.includes("| Signal | Threshold | Source | Date |")
     && out.includes("```markdown\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n```");

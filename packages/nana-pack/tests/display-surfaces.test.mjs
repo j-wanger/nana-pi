@@ -52,7 +52,7 @@ const TABLE = [
 	["ANSI (U+001B)", "/repo/\u001b[31mred\u001b[0m", '"/repo/\\u001B[31mred\\u001B[0m"', "/repo/ [31mred [0m", null, '"/repo/\\u001B[31mred\\u001B[0m"'],
 	["C1 CSI (U+009B)", "/repo/\u009b2J", '"/repo/\\u009B2J"', "/repo/ 2J", null, '"/repo/\\u009B2J"'],
 	["lone surrogate", "/repo/a\uD800b", "/repo/a\uFFFDb", "/repo/a\uFFFDb", "`/repo/a\uD800b`", '"/repo/a\\uD800b"'],
-	["Windows path, mixed case", "C:\\Users\\the owner\\Repo\\A.TS", "C:\\Users\\the owner\\Repo\\A.TS", "C:\\Users\\the owner\\Repo\\A.TS", "`C:\\Users\\the owner\\Repo\\A.TS`", "C:\\Users\\the owner\\Repo\\A.TS"],
+	["Windows path, mixed case", "C:\\Users\\example\\Repo\\A.TS", "C:\\Users\\example\\Repo\\A.TS", "C:\\Users\\example\\Repo\\A.TS", "`C:\\Users\\example\\Repo\\A.TS`", "C:\\Users\\example\\Repo\\A.TS"],
 	["legitimately unusual", "/repo/my file (copy) é 日本.ts", "/repo/my file (copy) é 日本.ts", "/repo/my file (copy) é 日本.ts", "`/repo/my file (copy) é 日本.ts`", "/repo/my file (copy) é 日本.ts"],
 	["backtick", "/repo/tick`s", "/repo/tick`s", "/repo/tick`s", null, "/repo/tick`s"],
 	["quote, backslash, BEL", '/repo/a"b\\c\u0007', '"/repo/a\\"b\\\\c\\u0007"', '/repo/a"b\\c ', null, '"/repo/a\\"b\\\\c\\u0007"'],
