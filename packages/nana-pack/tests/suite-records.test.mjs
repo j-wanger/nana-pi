@@ -55,13 +55,15 @@ const snapshot = (dir) => listJson(dir).map((name) => [name, fs.readFileSync(pat
 // never becomes an import specifier.
 const WRAPPER = path.join(TD, "locked-wrapper.mjs");
 fs.writeFileSync(WRAPPER, [
+	'import * as fs from "node:fs";',
 	`import { runLocked } from ${JSON.stringify(pathToFileURL(LOCKED).href)};`,
 	'const options = JSON.parse(process.env.NANA_LOCKED_OPTIONS || "{}");',
 	'if (process.env.NANA_FAKE_NOW) options.now = () => process.env.NANA_FAKE_NOW;',
 	'let timer = null;',
-	'if (process.env.NANA_EMIT_SIGNAL) timer = setTimeout(() => process.emit(process.env.NANA_EMIT_SIGNAL), 150);',
+	'if (process.env.NANA_EMIT_SIGNAL && !process.env.NANA_EMIT_SIGNAL_ON_MARKER) timer = setTimeout(() => process.emit(process.env.NANA_EMIT_SIGNAL), 150);',
+	'if (process.env.NANA_EMIT_SIGNAL_ON_MARKER) timer = setInterval(() => { if (!fs.existsSync(process.env.NANA_EMIT_SIGNAL_ON_MARKER)) return; clearInterval(timer); timer = null; process.emit(process.env.NANA_EMIT_SIGNAL || "SIGTERM"); }, 10);',
 	'process.exitCode = await runLocked(options);',
-	'if (timer) clearTimeout(timer);',
+	'if (timer) clearInterval(timer);',
 	"",
 ].join("\n"));
 
@@ -79,14 +81,16 @@ fs.writeFileSync(FAKE, [
 	'const args = process.argv.slice(2);',
 	'if (process.env.NANA_FAKE_LOG) fs.appendFileSync(process.env.NANA_FAKE_LOG, JSON.stringify({ knob: knob || null, covered, args, mode }) + "\\n");',
 	'const selectedExit = Number(process.env.NANA_FAKE_EXIT || 0);',
-	'const coverageFailure = mode === "coverage-rerun" && covered;',
+	'const coverageFailure = ["coverage-rerun", "coverage-rerun-wait"].includes(mode) && covered;',
 	'const label = coverageFailure || selectedExit !== 0 ? "FAIL" : "PASS";',
 	'const file = args[0] || "packages/probe/tests/example.test.mjs";',
+	'const seconds = Number(process.env[covered ? "NANA_FAKE_COVERED_SECONDS" : "NANA_FAKE_PLAIN_SECONDS"] || (covered ? 2 : 1));',
 	'const supplied = process.env.NANA_FAKE_RECORD ? JSON.parse(process.env.NANA_FAKE_RECORD) : null;',
-	'const record = supplied ?? { schema: RECORD_SCHEMA, files: [{ path: file, label, seconds: covered ? 2 : 1, ...(label === "FAIL" ? { cause: `exit ${coverageFailure ? 1 : selectedExit}` } : {}) }], unnamedFailures: [], exitCode: coverageFailure ? 1 : selectedExit, wallSeconds: covered ? 2 : 1, jobs: 1, platform: process.platform, coverage: covered };',
+	'const record = supplied ?? { schema: RECORD_SCHEMA, files: [{ path: file, label, seconds, ...(label === "FAIL" ? { cause: `exit ${coverageFailure ? 1 : selectedExit}` } : {}) }], unnamedFailures: [], exitCode: coverageFailure ? 1 : selectedExit, wallSeconds: seconds, jobs: 1, platform: process.platform, coverage: covered };',
 	'if (knob && mode !== "missing") { try { if (mode === "garbage") fs.writeFileSync(knob, "not json"); else fs.writeFileSync(knob, JSON.stringify(record)); } catch {} }',
-	'if (covered) { const dir = path.join(process.env[COVERAGE_ENV], "0000"); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, RECORD_FILE), JSON.stringify({ path: file, label, seconds: 2 })); fs.writeFileSync(path.join(process.env[COVERAGE_ENV], COMPLETION_FILE), JSON.stringify({ files: 1, failures: label === "FAIL" ? 1 : 0 })); }',
-	'if (mode === "wait") await new Promise((resolve) => setTimeout(resolve, 5000));',
+	'if (covered) { const dir = path.join(process.env[COVERAGE_ENV], "0000"); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, RECORD_FILE), JSON.stringify({ path: file, label, seconds })); fs.writeFileSync(path.join(process.env[COVERAGE_ENV], COMPLETION_FILE), JSON.stringify({ files: 1, failures: label === "FAIL" ? 1 : 0 })); }',
+	'if (mode === "coverage-rerun-wait" && !covered && process.env.NANA_FAKE_RERUN_MARKER) fs.writeFileSync(process.env.NANA_FAKE_RERUN_MARKER, "started\\n");',
+	'if (mode === "wait" || (mode === "coverage-rerun-wait" && !covered)) await new Promise((resolve) => setTimeout(resolve, 5000));',
 	'process.exitCode = coverageFailure ? 1 : selectedExit;',
 	"",
 ].join("\n"));
@@ -256,15 +260,23 @@ const filtered = runCase({ args: ["packages/probe/tests/example.test.mjs"] });
 const jobsFiltered = runCase({ args: ["--jobs=2"] });
 const stopped = [];
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) stopped.push(runCase({ mode: "wait", extraEnv: { NANA_EMIT_SIGNAL: signal } }));
+const rerunMarker = path.join(TD, "plain-rerun-started");
+const stoppedRerun = runCase({ mode: "coverage-rerun-wait", extraEnv: {
+	[LAND_TIP_ENV]: head,
+	NANA_EMIT_SIGNAL: "SIGTERM",
+	NANA_EMIT_SIGNAL_ON_MARKER: rerunMarker,
+	NANA_FAKE_RERUN_MARKER: rerunMarker,
+} });
 const noRecordLogs = fakeLogEntries().slice(logStart);
 const afterNoRecord = snapshot(store);
 // req: R-2548
 check("R-2548: filtered and stopped locked runs store no record",
 	filtered.result.status === 0 && jobsFiltered.result.status === 0
 		&& stopped.map((entry) => entry.result.status).join(",") === "130,143,129"
+		&& stoppedRerun.result.status === 143 && fs.existsSync(rerunMarker)
 		&& JSON.stringify(beforeNoRecord) === JSON.stringify(afterNoRecord)
 		&& noRecordLogs.slice(0, 2).every((entry) => entry.knob === null),
-	JSON.stringify({ filtered: filtered.result.status, jobs: jobsFiltered.result.status, stopped: stopped.map((entry) => entry.result.status), logs: noRecordLogs }));
+	JSON.stringify({ filtered: filtered.result.status, jobs: jobsFiltered.result.status, stopped: stopped.map((entry) => entry.result.status), stoppedRerun: stoppedRerun.result.status, logs: noRecordLogs }));
 
 const baselineRepo = comparisonRepo("baseline", { mainAhead: true });
 seedRecord(baselineRepo, "2026-01-01T04:00:00.000Z", { tip: baselineRepo.parent, trigger: "run", wallSeconds: 99 });
@@ -280,15 +292,22 @@ const movedRepo = comparisonRepo("moved-main", { mainAhead: true });
 const movedRun = runCompared(movedRepo, runRecord());
 const nextLandRepo = comparisonRepo("next-land");
 const nextLandRun = runCompared(nextLandRepo, runRecord());
+const dirtyBaseRepo = comparisonRepo("dirty-baseline");
+seedRecord(dirtyBaseRepo, "2026-01-01T01:00:00.000Z", { tip: dirtyBaseRepo.parent, wallSeconds: 11 });
+seedRecord(dirtyBaseRepo, "2026-01-01T05:00:00.000Z", { tip: dirtyBaseRepo.mergeBase, dirty: 1, trigger: "land", landTip: dirtyBaseRepo.mergeBase, wallSeconds: 55 });
+const dirtyBaseRun = runCompared(dirtyBaseRepo, runRecord({ wallSeconds: 30 }));
+const dirtyBaseLine = recordLinesOf(dirtyBaseRun)[0] ?? "";
 // req: R-2549
 check("R-2549: a locked run names the nearest clean baseline record, land first, or says none exists and what records one",
 	baselineRun.result.status === 0 && baselineLine.includes(`baseline ${baselineRepo.mergeBase.slice(0, 8)}`)
 		&& baselineLine.includes("age 5h") && baselineLine.includes("coverage yes")
 		&& baselineLine.includes("wall 20s -> 30s") && !baselineLine.includes(baselineRepo.parent.slice(0, 8))
+		&& dirtyBaseLine.includes(`baseline ${dirtyBaseRepo.parent.slice(0, 8)}`) && dirtyBaseLine.includes("wall 11s -> 30s")
+		&& !dirtyBaseLine.includes(dirtyBaseRepo.mergeBase.slice(0, 8))
 		&& outputOf(noMainRun).includes("no baseline exists") && outputOf(noMainRun).includes("no main branch")
 		&& !outputOf(noMainRun).includes("git ")
 		&& outputOf(movedRun).includes("merge main") && outputOf(nextLandRun).includes("next land records one"),
-	JSON.stringify({ baseline: outputOf(baselineRun), noMain: outputOf(noMainRun), moved: outputOf(movedRun), nextLand: outputOf(nextLandRun) }));
+	JSON.stringify({ baseline: outputOf(baselineRun), dirtyBase: outputOf(dirtyBaseRun), noMain: outputOf(noMainRun), moved: outputOf(movedRun), nextLand: outputOf(nextLandRun) }));
 
 const classesRepo = comparisonRepo("classes");
 seedRecord(classesRepo, "2026-01-01T01:00:00.000Z", { trigger: "land", landTip: classesRepo.mergeBase, files: [
@@ -366,14 +385,32 @@ const failingShape = runCompared(shapeRepo, runRecord({ files: [
 ], unnamedFailures: [unnamed] }), { exit: 1 });
 const shapeLines = recordLinesOf(failingShape);
 const shapeTail = outputOf(failingShape).trimEnd().split(/\r?\n/).slice(-2).join("\n");
+const rerunFile = "packages/probe/tests/example.test.mjs";
+const rerunShapeRepo = comparisonRepo("shape-rerun");
+seedRecord(rerunShapeRepo, "2026-01-01T01:00:00.000Z", { trigger: "land", landTip: rerunShapeRepo.mergeBase, files: [{ path: rerunFile, label: "PASS", seconds: 1 }] });
+const rerunShapeEnv = { [LAND_TIP_ENV]: rerunShapeRepo.head, NANA_FAKE_COVERED_SECONDS: "30", NANA_FAKE_PLAIN_SECONDS: "20" };
+const passingRerun = runCase({ cwd: rerunShapeRepo.linked, mode: "coverage-rerun", now: "2026-01-01T06:00:00.000Z", extraEnv: rerunShapeEnv });
+const failingRerun = runCase({ cwd: rerunShapeRepo.linked, mode: "coverage-rerun", exit: 2, now: "2026-01-01T06:30:00.000Z", extraEnv: rerunShapeEnv });
+const passingRerunLines = recordLinesOf(passingRerun);
+const failingRerunLines = recordLinesOf(failingRerun);
+const occurrences = (text, value) => text.split(value).length - 1;
 // req: R-2554
 check("R-2554: a locked run prints at most two record lines and the last restates the PASS and FAIL counts and every failed name",
 	recordLinesOf(passingShape).length <= 2 && shapeLines.length <= 2
 		&& shapeLines.at(-1)?.includes("1 PASS, 3 FAIL")
 		&& shapeTail.includes("1 PASS, 3 FAIL") && shapeTail.includes("first fail.test.mjs")
 		&& shapeTail.includes("second-fail.test.mjs") && shapeTail.includes(unnamed)
-		&& shapeLines[0]?.includes("slower:"),
-	JSON.stringify({ passing: outputOf(passingShape), failing: outputOf(failingShape) }));
+		&& shapeLines[0]?.includes("slower:")
+		&& passingRerun.result.status === 0 && passingRerunLines.length <= 2
+		&& passingRerunLines.at(-1)?.includes("1 PASS, 0 FAIL; failed: none")
+		&& passingRerunLines.at(-1)?.includes(`passed only without coverage: ${rerunFile}`)
+		&& passingRerunLines.every((line) => occurrences(line, rerunFile) === 1)
+		&& failingRerun.result.status === 2 && failingRerunLines.length <= 2
+		&& failingRerunLines.at(-1)?.includes(`0 PASS, 1 FAIL; failed: ${rerunFile} [passing in another clean run at this tip; exit 2]`)
+		&& !failingRerunLines.at(-1)?.includes("exit 1")
+		&& failingRerunLines.at(-1)?.includes("passed only without coverage: none")
+		&& failingRerunLines.every((line) => occurrences(line, rerunFile) === 1),
+	JSON.stringify({ passing: outputOf(passingShape), failing: outputOf(failingShape), passingRerun: outputOf(passingRerun), failingRerun: outputOf(failingRerun) }));
 
 const laneRepo = comparisonRepo("lane-total", { mainAhead: true, laneCommits: 3 });
 seedRecord(laneRepo, "2026-01-01T01:00:00.000Z", { tip: laneRepo.laneTips[0], wallSeconds: 60 });

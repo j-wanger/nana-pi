@@ -167,13 +167,22 @@ function numberText(value) {
 	return Number.isInteger(value) ? String(value) : Number(value.toFixed(2)).toString();
 }
 
+function finalFiles(record) {
+	const byPath = new Map();
+	for (const file of record?.files ?? []) {
+		const entries = byPath.get(file.path) ?? [];
+		entries.push(file);
+		byPath.set(file.path, entries);
+	}
+	return [...byPath.values()].map((entries) => entries.filter((entry) => entry.coverage === false).at(-1) ?? entries.at(-1));
+}
+
 function slowerText(current, baseline) {
 	if (!baseline) return "slower: none";
 	if (current.jobs !== baseline.jobs) return "slower: none (job counts differ)";
-	const oldByPath = new Map();
-	for (const file of baseline.files ?? []) if (!oldByPath.has(file.path)) oldByPath.set(file.path, file);
+	const oldByPath = new Map(finalFiles(baseline).map((file) => [file.path, file]));
 	const slower = [];
-	for (const file of current.files ?? []) {
+	for (const file of finalFiles(current)) {
 		const old = oldByPath.get(file.path);
 		if (!old || !(old.seconds > 0)) continue;
 		const growth = file.seconds - old.seconds;
@@ -226,12 +235,18 @@ export function suiteRecordLines(current, { root, records = readSuiteRecords({ r
 	const graph = mainDistances(root, current.mergeBase, runGit);
 	const baseline = baselineOf(records, graph.distances);
 	const first = `${RECORD_LINE_PREFIX} ${baselineText(current, baseline, { mainTip: graph.mainTip, now })}; ${slowerText(current, baseline)}`;
-	const failedFiles = (current.files ?? []).filter((file) => file.label === "FAIL");
+	const final = finalFiles(current);
+	const failedFiles = final.filter((file) => file.label === "FAIL");
 	const failed = failedFiles.map((file) => `${file.path} [${failureClass(file, current, baseline, records)}; ${file.cause ?? "unknown cause"}]`);
 	for (const name of current.unnamedFailures ?? []) failed.push(`${name} [unnamed]`);
-	const passCount = (current.files ?? []).filter((file) => file.label === "PASS").length;
+	const passedOnlyWithoutCoverage = final.filter((file) => {
+		const labels = (current.files ?? []).filter((entry) => entry.path === file.path);
+		return file.label === "PASS" && file.coverage === false
+			&& labels.some((entry) => entry.coverage === true && entry.label === "FAIL");
+	}).map((file) => file.path);
+	const passCount = final.filter((file) => file.label === "PASS").length;
 	const failCount = failedFiles.length + (current.unnamedFailures ?? []).length;
 	const lane = laneTotals(root, current, records, runGit);
-	const last = `${RECORD_LINE_PREFIX} ${passCount} PASS, ${failCount} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; this lane: ${lane.count} full runs, ${lane.minutes} min`;
+	const last = `${RECORD_LINE_PREFIX} ${passCount} PASS, ${failCount} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; passed only without coverage: ${passedOnlyWithoutCoverage.length ? passedOnlyWithoutCoverage.join(", ") : "none"}; this lane: ${lane.count} full runs, ${lane.minutes} min`;
 	return [first, last];
 }
