@@ -11,7 +11,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
 	COMPLETION_FILE,
@@ -22,6 +22,7 @@ import {
 	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
 	DIRTY_COUNT_ENV,
+	HAND_MEASURE_ENV,
 	LAND_NOTE_PREFIX,
 	LAND_TIP_ENV,
 	MAIN_REF,
@@ -33,6 +34,8 @@ import { tmpDir } from "./tmp-dir.mjs";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const TEST_LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
+const TEST_LOCKED_URL = pathToFileURL(TEST_LOCKED).href;
+const RUNTIME_MEASURE_URL = pathToFileURL(RUNTIME_MEASURE).href;
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-land-test-")));
 const CASE_LIMIT_MS = 30_000;
 let failures = 0;
@@ -94,7 +97,7 @@ fs.writeFileSync(FAKE_SUITE, [
 
 const LOCKED_WRAPPER = path.join(TD, "locked-wrapper.mjs");
 fs.writeFileSync(LOCKED_WRAPPER, [
-	`import { runLocked } from ${JSON.stringify(TEST_LOCKED)};`,
+	`import { runLocked } from ${JSON.stringify(TEST_LOCKED_URL)};`,
 	'const options = JSON.parse(process.env.NANA_LOCKED_OPTIONS ?? "{}");',
 	'if (options.writeFailure) { delete options.writeFailure; options.writeData = () => { throw new Error("injected write refusal"); }; }',
 	'process.exitCode = await runLocked(options);',
@@ -103,8 +106,9 @@ fs.writeFileSync(LOCKED_WRAPPER, [
 
 const HAND_WRAPPER = path.join(TD, "hand-wrapper.mjs");
 fs.writeFileSync(HAND_WRAPPER, [
-	`import { handMeasure } from ${JSON.stringify(RUNTIME_MEASURE)};`,
-	'process.exitCode = handMeasure({ root: process.cwd(), env: process.env });',
+	`import { handMeasure } from ${JSON.stringify(RUNTIME_MEASURE_URL)};`,
+	'const testLocked = process.env.NANA_HAND_TEST_LOCKED;',
+	'process.exitCode = handMeasure({ root: process.cwd(), env: process.env, ...(testLocked ? { testLocked } : {}) });',
 	'',
 ].join("\n"));
 
@@ -150,6 +154,7 @@ await check("land runtime tunables retain their reviewed values", () => {
 	assert.equal(TIP_DIGITS, 8);
 	assert.equal(DIRTY_COUNT_ENV, "NANA_RUNTIME_DIRTY");
 	assert.equal(COVERAGE_OWNER_FILE, "owner.pid");
+	assert.equal(HAND_MEASURE_ENV, "NANA_RUNTIME_HAND_MEASURE");
 });
 
 // req: R-2523
@@ -203,6 +208,8 @@ async function waitForFile(file, limit = 10000) {
 	if (!fs.existsSync(file)) throw new Error(`timed out waiting for ${file}`);
 }
 
+if (process.platform === "win32") console.log("SKIP off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero — R-2526: Windows lands do not measure");
+else {
 // req: R-2527
 await check("off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero", async () => {
 	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
@@ -217,6 +224,7 @@ await check("off Windows, a land suite stopped during its coverage run removes t
 		assert.notEqual(exit.code ?? 1, 0); assert.equal(fs.existsSync(coverageDir), false); assert.equal(fs.existsSync(stale), false); assert.equal(fs.readFileSync(dataFile, "utf8"), initial);
 	}
 });
+}
 
 // req: R-2532
 await check("filtered, wrong-tip and unset-tip runs neither measure nor rerun", () => {
@@ -233,15 +241,18 @@ await check("filtered, wrong-tip and unset-tip runs neither measure nor rerun", 
 
 // req: R-2533
 await check("a hand measure writes its tip, time and dirty-file count inside the lock", () => {
-	const root = fixture("hand-measure"); fs.writeFileSync(path.join(root, "README.md"), "dirty fixture\n");
-	const dataFile = path.join(TD, "hand-data.json"); const logFile = path.join(TD, "hand-starts.jsonl"); const lockDir = path.join(TD, "hand-lock");
-	const env = { ...process.env, NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, FAKE_SUITE]), NANA_SUITE_LOCK_DIR: lockDir, NANA_RUNTIME_MAP_FILE: dataFile, NANA_FAKE_LOG: logFile, NANA_FAKE_MODE: "pass" };
-	delete env[LAND_TIP_ENV]; delete env[DIRTY_COUNT_ENV];
-	const before = Date.now(); const result = spawnSync(process.execPath, [HAND_WRAPPER], { cwd: root, env, encoding: "utf8", timeout: CASE_LIMIT_MS - 1000 }); const after = Date.now();
-	assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`); assert.equal(fs.existsSync(lockDir), false);
-	const data = JSON.parse(fs.readFileSync(dataFile, "utf8")); assert.equal(data.tip, git(root, "rev-parse", "HEAD")); assert.equal(data.dirty, 1);
-	const measured = Date.parse(data.measuredAt); assert.ok(measured >= before && measured <= after);
-	const recordedStarts = starts(logFile); assert.equal(recordedStarts.length, 1); assert.ok(recordedStarts[0].coverage);
+	for (const [name, options] of [["hand-measure", {}], ["hand-measure-win32", { platform: "win32" }]]) {
+		const root = fixture(name); fs.writeFileSync(path.join(root, "README.md"), "dirty fixture\n");
+		const dataFile = path.join(TD, `${name}-data.json`); const logFile = path.join(TD, `${name}-starts.jsonl`); const lockDir = path.join(TD, `${name}-lock`);
+		const env = { ...process.env, NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, FAKE_SUITE]), NANA_SUITE_LOCK_DIR: lockDir, NANA_RUNTIME_MAP_FILE: dataFile, NANA_FAKE_LOG: logFile, NANA_FAKE_MODE: "pass" };
+		if (options.platform) { env.NANA_HAND_TEST_LOCKED = LOCKED_WRAPPER; env.NANA_LOCKED_OPTIONS = JSON.stringify(options); }
+		delete env[LAND_TIP_ENV]; delete env[DIRTY_COUNT_ENV];
+		const before = Date.now(); const result = spawnSync(process.execPath, [HAND_WRAPPER], { cwd: root, env, encoding: "utf8", timeout: CASE_LIMIT_MS - 1000 }); const after = Date.now();
+		assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`); assert.equal(fs.existsSync(lockDir), false);
+		const data = JSON.parse(fs.readFileSync(dataFile, "utf8")); assert.equal(data.tip, git(root, "rev-parse", "HEAD")); assert.equal(data.dirty, 1);
+		const measured = Date.parse(data.measuredAt); assert.ok(measured >= before && measured <= after);
+		const recordedStarts = starts(logFile); assert.equal(recordedStarts.length, 1); assert.ok(recordedStarts[0].coverage);
+	}
 });
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");

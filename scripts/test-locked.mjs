@@ -19,6 +19,7 @@ import {
 	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
 	DIRTY_COUNT_ENV,
+	HAND_MEASURE_ENV,
 	LAND_NOTE_PREFIX,
 	LAND_TIP_ENV,
 	UNMEASURED_PLATFORMS,
@@ -190,7 +191,7 @@ export async function runLocked({
 	try {
 		if (filters.length === 0) await acquireLock();
 		const tip = env[LAND_TIP_ENV];
-		if (tip && UNMEASURED_PLATFORMS.includes(platform)) {
+		if (tip && env[HAND_MEASURE_ENV] === undefined && UNMEASURED_PLATFORMS.includes(platform)) {
 			note("runtime map on Windows was not measured");
 			const code = await runCommand(filters, plainEnv, cwd);
 			if (stopping && termination) await termination;

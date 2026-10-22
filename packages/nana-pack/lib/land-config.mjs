@@ -2,13 +2,16 @@
  * @module packages/nana-pack/lib/land-config.mjs
  * @purpose Declare the land-time runtime-map contract values with their provenance.
  * @inputs none
- * @outputs Environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage owner filename.
+ * @outputs Environment names, hand-measure marker, note prefix, platform policy, main ref, failure policy, display digits, and coverage owner filename.
  * @effects none
  * @errors none
  */
 
 // contract (R-2522, R-2523): the land-to-locked-suite tip channel.
 export const LAND_TIP_ENV = "NANA_LAND_TIP";
+
+// contract (R-2526, R-2533): distinguish a cross-platform hand measure from a Windows land.
+export const HAND_MEASURE_ENV = "NANA_RUNTIME_HAND_MEASURE";
 
 // contract (R-2530); chosen: distinguish notes retained by nana-land from ordinary captured suite output.
 export const LAND_NOTE_PREFIX = "[nana-land]";

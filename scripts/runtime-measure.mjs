@@ -30,7 +30,7 @@ import {
 	TREE_LIST,
 } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { dataPath, hashFile } from "../packages/nana-pack/lib/runtime-map.mjs";
-import { DIRTY_COUNT_ENV, LAND_TIP_ENV } from "../packages/nana-pack/lib/land-config.mjs";
+import { DIRTY_COUNT_ENV, HAND_MEASURE_ENV, LAND_TIP_ENV } from "../packages/nana-pack/lib/land-config.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -268,7 +268,7 @@ export function handMeasure({ root = ROOT, env = process.env, testLocked = path.
 	const result = run(process.execPath, [testLocked], {
 		cwd: root,
 		stdio: "inherit",
-		env: { ...env, [LAND_TIP_ENV]: head.stdout.trim(), [DIRTY_COUNT_ENV]: String(dirty) },
+		env: { ...env, [LAND_TIP_ENV]: head.stdout.trim(), [DIRTY_COUNT_ENV]: String(dirty), [HAND_MEASURE_ENV]: "1" },
 	});
 	return result.status ?? (result.signal ? 128 : 1);
 }

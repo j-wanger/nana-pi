@@ -460,6 +460,8 @@ check("a passing land shows its suite's land notes", () => {
 	assert.doesNotMatch(out.text, /ordinary suite output/);
 });
 
+if (process.platform === "win32") console.log("SKIP after a land the runtime data names main's tip and is not stale — R-2526: Windows lands do not measure");
+else {
 // req: R-2531
 check("after a land the runtime data names main's tip and is not stale", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-runtime-map-")); const main = repo(root, "main");
@@ -482,6 +484,7 @@ check("after a land the runtime data names main's tip and is not stale", () => {
 	const drift = checkoutDrift(data, { tracked, hashOf: (file) => hashFile(path.join(main, file)) });
 	assert.deepEqual(drift, { added: [], removed: [], changed: [], stale: false });
 });
+}
 
 // req: R-977
 check("suite command runs in the source tree", () => {

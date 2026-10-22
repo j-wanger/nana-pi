@@ -1398,7 +1398,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Declare the land-time runtime-map contract values with their provenance.
 - **inputs** — none
-- **outputs** — Environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage owner filename.
+- **outputs** — Environment names, hand-measure marker, note prefix, platform policy, main ref, failure policy, display digits, and coverage owner filename.
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/code-map.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
