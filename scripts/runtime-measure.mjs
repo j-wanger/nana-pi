@@ -4,7 +4,7 @@
  * @purpose Build and atomically write runtime-map data, and route a hand measure through the locked suite's land path.
  * @inputs a repo root, coverage folder, metadata, environment, and injectable process and signal operations
  * @outputs runtime data (schema 1 hashes, tests, tip, measurement time, and optional dirty count) and command exit codes
- * @effects process (spawns git and the locked suite, forwards SIGINT/SIGTERM, lists and kills the suite's
+ * @effects process (spawns git and the locked suite, forwards SIGINT/SIGTERM/SIGHUP, lists and kills the suite's
  *  process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
  * @errors leaves earlier runtime data unchanged and exits non-zero when the suite's completion record is
  *  missing or disagrees with the records read, or when a stop signal arrives before the suite finishes;
@@ -127,12 +127,13 @@ function descendantsOf(rootPid, procs) {
 }
 
 /**
- * End the suite's whole process tree rooted at `rootPid` (R-1277, seat amendment 1): kill by
- * process group every group whose members all lie in the tree, and by pid any tree process
+ * Signal the suite's whole process tree rooted at `rootPid` (R-1277, seat amendment 1), using
+ * SIGKILL by default: signal by process group every group whose members all lie in the tree, and
+ * by pid any tree process
  * whose group also holds a process outside the tree — so a group shared with this command's own
  * caller, which always holds a process outside the tree, is never signalled as a group.
  */
-export function killTree(rootPid, { run = (args) => spawnSync(args[0], args.slice(1), { encoding: "utf8" }), kill = process.kill } = {}) {
+export function killTree(rootPid, { run = (args) => spawnSync(args[0], args.slice(1), { encoding: "utf8" }), kill = process.kill, signal = "SIGKILL" } = {}) {
 	const listing = run(TREE_LIST);
 	if (listing.status !== 0 || !listing.stdout) return;
 	const procs = parseTree(listing.stdout);
@@ -144,10 +145,10 @@ export function killTree(rootPid, { run = (args) => spawnSync(args[0], args.slic
 		const info = procs.get(pid);
 		if (!info) continue;
 		if (groupHasOutsider.has(info.pgid)) {
-			try { kill(pid, "SIGKILL"); } catch {}
+			try { kill(pid, signal); } catch {}
 		} else if (!killedGroups.has(info.pgid)) {
 			killedGroups.add(info.pgid);
-			try { kill(-info.pgid, "SIGKILL"); } catch {}
+			try { kill(-info.pgid, signal); } catch {}
 		}
 	}
 }
@@ -259,19 +260,38 @@ export async function measure({
 }
 
 /** Run a hand measure through the same locked land path, stamping HEAD and tracked dirt. */
-export function handMeasure({ root = ROOT, env = process.env, testLocked = path.join(ROOT, "scripts", "test-locked.mjs"), run = spawnSync } = {}) {
+export async function handMeasure({ root = ROOT, env = process.env, testLocked = path.join(ROOT, "scripts", "test-locked.mjs"), start = spawn } = {}) {
 	const head = spawnSync("git", ["rev-parse", "HEAD^{commit}"], { cwd: root, encoding: "utf8" });
 	if (head.status !== 0) return head.status ?? 1;
 	const status = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=no"], { cwd: root, encoding: "utf8" });
 	if (status.status !== 0) return status.status ?? 1;
 	const dirty = status.stdout.split("\0").filter(Boolean).length;
-	const result = run(process.execPath, [testLocked], {
+	const child = start(process.execPath, [testLocked], {
 		cwd: root,
 		stdio: "inherit",
 		env: { ...env, [LAND_TIP_ENV]: head.stdout.trim(), [DIRTY_COUNT_ENV]: String(dirty), [HAND_MEASURE_ENV]: "1" },
 	});
-	return result.status ?? (result.signal ? 128 : 1);
+	let stopped = false;
+	const handlers = new Map();
+	for (const signal of [...STOP_SIGNALS, "SIGHUP"]) {
+		const handler = () => {
+			if (stopped) return;
+			stopped = true;
+			try { child.kill(signal); } catch {}
+		};
+		handlers.set(signal, handler);
+		process.on(signal, handler);
+	}
+	try {
+		const code = await new Promise((resolve) => {
+			child.once("error", () => resolve(1));
+			child.once("exit", (exitCode, signal) => resolve(exitCode ?? (signal ? 128 : 1)));
+		});
+		return stopped ? (code === 0 ? 1 : code) : code;
+	} finally {
+		for (const [signal, handler] of handlers) process.off(signal, handler);
+	}
 }
 
 const invokedDirectly = process.argv[1] && fs.existsSync(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
-if (invokedDirectly) process.exitCode = handMeasure({ root: ROOT });
+if (invokedDirectly) process.exitCode = await handMeasure({ root: ROOT });

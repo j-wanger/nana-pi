@@ -745,7 +745,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **purpose** — Build and atomically write runtime-map data, and route a hand measure through the locked suite's land path.
 - **inputs** — a repo root, coverage folder, metadata, environment, and injectable process and signal operations
 - **outputs** — runtime data (schema 1 hashes, tests, tip, measurement time, and optional dirty count) and command exit codes
-- **effects** — process (spawns git and the locked suite, forwards SIGINT/SIGTERM, lists and kills the suite's process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
+- **effects** — process (spawns git and the locked suite, forwards SIGINT/SIGTERM/SIGHUP, lists and kills the suite's process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
 - **errors** — leaves earlier runtime data unchanged and exits non-zero when the suite's completion record is missing or disagrees with the records read, or when a stop signal arrives before the suite finishes; otherwise exits with the suite's own exit code
 - **callers** — `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/test-locked.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`
@@ -775,7 +775,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **purpose** — Serialize full suites and measure eligible land or hand runs inside the same machine lock.
 - **inputs** — Filter arguments, land metadata, suite lock and command overrides, and injectable platform and write boundaries.
 - **outputs** — The deciding suite exit code plus prefixed land notes for skipped measures, reruns, and write failures.
-- **effects** — disk (lock and coverage folders, runtime data), process (spawns git and suite commands).
+- **effects** — disk (lock and coverage folders, runtime data), process (spawns git and suite commands, lists and signals the suite process tree).
 - **errors** — Suite failures remain nonzero; runtime write failures after a passing suite become notes without changing its verdict.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `scripts/runtime-measure.mjs`

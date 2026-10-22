@@ -4,7 +4,7 @@
  * @purpose Serialize full suites and measure eligible land or hand runs inside the same machine lock.
  * @inputs Filter arguments, land metadata, suite lock and command overrides, and injectable platform and write boundaries.
  * @outputs The deciding suite exit code plus prefixed land notes for skipped measures, reruns, and write failures.
- * @effects disk (lock and coverage folders, runtime data), process (spawns git and suite commands).
+ * @effects disk (lock and coverage folders, runtime data), process (spawns git and suite commands, lists and signals the suite process tree).
  * @errors Suite failures remain nonzero; runtime write failures after a passing suite become notes without changing its verdict.
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -24,7 +24,7 @@ import {
 	LAND_TIP_ENV,
 	UNMEASURED_PLATFORMS,
 } from "../packages/nana-pack/lib/land-config.mjs";
-import { buildRuntimeData, writeRuntimeData } from "./runtime-measure.mjs";
+import { buildRuntimeData, killTree, writeRuntimeData } from "./runtime-measure.mjs";
 
 // chosen: keep the machine-wide lock in the user's private home, independent of each worktree.
 const DEFAULT_LOCK_DIR = path.join(os.homedir(), ".nana", "suite.lock");
@@ -125,7 +125,7 @@ function runCommand(filters, env, cwd) {
 
 function signalChild(signal, target = child) {
 	if (!target) return;
-	try { if (process.platform !== "win32") process.kill(-target.pid, signal); else target.kill(signal); }
+	try { if (process.platform !== "win32") killTree(target.pid, { signal }); else target.kill(signal); }
 	catch (error) { if (error?.code !== "ESRCH") throw error; }
 }
 

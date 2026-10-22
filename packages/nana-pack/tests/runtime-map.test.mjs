@@ -18,7 +18,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { measure } from "../../../scripts/runtime-measure.mjs";
 import { hashFile } from "../lib/runtime-map.mjs";
 import { runtimeBlock } from "../../../scripts/code-map.mjs";
-import { COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE } from "../lib/runtime-map-config.mjs";
+import { COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE, STOP_WAIT_MS } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
@@ -357,9 +357,16 @@ fs.writeFileSync(LEVEL_SCRIPT, [
 	"const depth = Number(process.argv[2]);",
 	"const outDir = process.argv[3];",
 	"fs.writeFileSync(path.join(outDir, `level-${depth}.pid`), String(process.pid));",
+	`if (depth === 3) fs.writeFileSync(path.join(outDir, "coverage-dir.txt"), process.env.${COVERAGE_ENV} ?? "");`,
 	"if (depth > 1) spawn(process.execPath, [process.argv[1], String(depth - 1), outDir], { detached: true, stdio: \"ignore\" }).unref();",
 	'else fs.writeFileSync(path.join(outDir, "ready"), "1");',
 	"setTimeout(() => {}, 120000);",
+	"",
+].join("\n"));
+const HAND_STOP_WRAPPER = path.join(TD, "hand-stop-wrapper.mjs");
+fs.writeFileSync(HAND_STOP_WRAPPER, [
+	`import { handMeasure } from ${JSON.stringify(RUNTIME_MEASURE)};`,
+	`process.exitCode = await handMeasure({ root: process.cwd(), env: process.env, testLocked: ${JSON.stringify(TEST_LOCKED)} });`,
 	"",
 ].join("\n"));
 const CALLER_SCRIPT = path.join(TD, "fake-caller.mjs");
@@ -367,38 +374,28 @@ fs.writeFileSync(CALLER_SCRIPT, [
 	'import { spawn } from "node:child_process";',
 	'import * as fs from "node:fs";',
 	'import * as path from "node:path";',
-	"const [, , wrapperPath, outDir] = process.argv;",
-	'const wrapper = spawn(process.execPath, [wrapperPath], { stdio: "ignore" });',
+	"const [, , wrapperPath, outDir, root] = process.argv;",
+	'const wrapper = spawn(process.execPath, [wrapperPath], { cwd: root, env: process.env, stdio: "ignore" });',
 	'fs.writeFileSync(path.join(outDir, "measure.pid"), String(wrapper.pid));',
 	'wrapper.on("exit", (code) => { try { fs.writeFileSync(path.join(outDir, "measure-exit.txt"), String(code)); } catch {} });',
 	"setTimeout(() => {}, 120000);",
 	"",
 ].join("\n"));
-const STOP_WAIT_TEST_MS = 400; // chosen: short enough to keep the check fast, long enough for a real SIGKILL tree-kill
-function writeWrapperScript(wrapperPath, { outDir, root, dataFile }) {
-	fs.writeFileSync(wrapperPath, [
-		`import { measure } from ${JSON.stringify(RUNTIME_MEASURE)};`,
-		'import { spawn } from "node:child_process";',
-		'import * as fs from "node:fs";',
-		'import * as path from "node:path";',
-		"function fakeStart({ coverageDir }) {",
-		`	fs.writeFileSync(${JSON.stringify(path.join(outDir, "coverage-dir.txt"))}, coverageDir);`,
-		`	return spawn(process.execPath, [${JSON.stringify(LEVEL_SCRIPT)}, "3", ${JSON.stringify(outDir)}], { detached: true, stdio: "ignore" });`,
-		"}",
-		`await measure({ root: ${JSON.stringify(root)}, dataFile: ${JSON.stringify(dataFile)}, start: fakeStart, stopWaitMs: ${STOP_WAIT_TEST_MS} });`,
-		"process.exit(process.exitCode ?? 0);",
-		"",
-	].join("\n"));
-}
-
 async function runStopCase(signal) {
 	const outDir = path.join(TD, `mm8-${signal}`);
 	fs.mkdirSync(outDir, { recursive: true });
 	const root = mkGitFixture(`mm8-root-${signal}`, { "README.md": "fixture\n" });
 	const dataFile = path.join(TD, `mm8-data-${signal}.json`);
-	const wrapperPath = path.join(TD, `mm8-wrapper-${signal}.mjs`);
-	writeWrapperScript(wrapperPath, { outDir, root, dataFile });
-	const caller = spawn(process.execPath, [CALLER_SCRIPT, wrapperPath, outDir], { stdio: "ignore" });
+	const earlierData = JSON.stringify({ schema: 1, hashes: {}, tests: {}, marker: "earlier" });
+	fs.writeFileSync(dataFile, earlierData);
+	const env = {
+		...process.env,
+		NANA_RUNTIME_MAP_FILE: dataFile,
+		NANA_SUITE_LOCK_DIR: path.join(TD, `mm8-lock-${signal}`),
+		NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, LEVEL_SCRIPT, "3", outDir]),
+	};
+	const caller = spawn(process.execPath, [CALLER_SCRIPT, HAND_STOP_WRAPPER, outDir, root], { env, stdio: "ignore" });
+	const pidFiles = ["level-1.pid", "level-2.pid", "level-3.pid"].map((f) => path.join(outDir, f));
 	try {
 		const readyPath = path.join(outDir, "ready");
 		const readyDeadline = Date.now() + 10000;
@@ -409,15 +406,12 @@ async function runStopCase(signal) {
 		await sleep(10);
 		try { process.kill(measurePid, signal); } catch {}
 
-		const margin = STOP_WAIT_TEST_MS + 4000; // the stop wait plus a margin, named here once
-		const pidFiles = ["level-1.pid", "level-2.pid", "level-3.pid"].map((f) => path.join(outDir, f));
+		const margin = STOP_WAIT_MS + 4000; // the production stop wait plus a margin
 		const deadline = Date.now() + margin;
 		let treeGone = false;
 		while (Date.now() < deadline) {
-			if (pidFiles.every((f) => fs.existsSync(f))) {
-				const pids = pidFiles.map((f) => Number(fs.readFileSync(f, "utf8")));
-				if (pids.every((pid) => gone(pid))) { treeGone = true; break; }
-			}
+			const pids = pidFiles.map((f) => Number(fs.readFileSync(f, "utf8")));
+			if (pids.every((pid) => gone(pid))) { treeGone = true; break; }
 			await sleep(50);
 		}
 		const callerAlive = !gone(caller.pid);
@@ -430,10 +424,14 @@ async function runStopCase(signal) {
 			}
 			await sleep(50);
 		}
-		const coverageDirPath = fs.existsSync(path.join(outDir, "coverage-dir.txt")) ? fs.readFileSync(path.join(outDir, "coverage-dir.txt"), "utf8") : null;
+		const coverageDirPath = fs.readFileSync(path.join(outDir, "coverage-dir.txt"), "utf8");
 		const coverageGone = !!coverageDirPath && !fs.existsSync(coverageDirPath);
-		return treeGone && callerAlive && coverageGone && measureExit !== null && measureExit !== "0";
+		const dataUnchanged = fs.readFileSync(dataFile, "utf8") === earlierData;
+		return treeGone && callerAlive && coverageGone && dataUnchanged && measureExit !== null && measureExit !== "0";
 	} finally {
+		for (const file of pidFiles) {
+			try { process.kill(Number(fs.readFileSync(file, "utf8")), "SIGKILL"); } catch {}
+		}
 		try { process.kill(caller.pid, "SIGKILL"); } catch {}
 	}
 }

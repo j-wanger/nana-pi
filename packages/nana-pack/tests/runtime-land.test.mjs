@@ -109,7 +109,7 @@ const HAND_WRAPPER = path.join(TD, "hand-wrapper.mjs");
 fs.writeFileSync(HAND_WRAPPER, [
 	`import { handMeasure } from ${JSON.stringify(RUNTIME_MEASURE_URL)};`,
 	'const testLocked = process.env.NANA_HAND_TEST_LOCKED;',
-	'process.exitCode = handMeasure({ root: process.cwd(), env: process.env, ...(testLocked ? { testLocked } : {}) });',
+	'process.exitCode = await handMeasure({ root: process.cwd(), env: process.env, ...(testLocked ? { testLocked } : {}) });',
 	'',
 ].join("\n"));
 
@@ -139,6 +139,7 @@ function runCase(name, { args = [], tip = "head", mode = "pass", options = {}, i
 		NANA_FAKE_MODE: mode,
 		NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot, platform: MEASURED_PLATFORM, ...options }),
 	};
+	delete env[HAND_MEASURE_ENV];
 	if (tip === "head") env[LAND_TIP_ENV] = git(root, "rev-parse", "HEAD");
 	else if (tip != null) env[LAND_TIP_ENV] = tip;
 	else delete env[LAND_TIP_ENV];
