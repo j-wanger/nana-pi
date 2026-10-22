@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane precedent-first (ordinary lane), written by the seat 2026-10-22 after build 2, on the
-// shared runner, at tip 14d8c810. They are the must-meet's seat-step pairs: the planner's eleven (p1 to p11), the
+// shared runner, at tip 14d8c810 (18 of 19; p16 survived), re-run at 1c58155f after build 3. They are the must-meet's seat-step pairs: the planner's eleven (p1 to p11), the
 // adversary's seven (p12 to p18) and amendment 1's pair (p19). Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/precedent-first-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -88,4 +88,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R_2580] },
 ];
 
-process.exitCode = await runMutations({ lane: "precedent-first", self: import.meta.url, tip: "14d8c810", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "precedent-first", self: import.meta.url, tip: "1c58155f", declared: DECLARED, pairs: PAIRS });
