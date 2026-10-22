@@ -82,3 +82,16 @@ R-2546 to R-2555 (R-2522 to R-2545 are taken by runtime-map-live, deliverable-fi
 - Two build sessions with the larger builder, on a branch cut after runtime-map-live lands. (1) R-2546, R-2547, R-2548, R-2553, the config, R-1270's text gaining "per-file coverage" before "record". (2) R-2549 to R-2552, R-2554, R-2555, the README's suite paragraph, CAP-07's deliverable lines (`Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs` and `Read by: R-2549 · code: scripts/test-locked.mjs`), map and tree. Between them the seat reads the record build 1's own full locked run left.
 - Wrong-code pairs: the newest ancestor as baseline (M3); an unguarded runner write (M2); a `git diff` dirty count (M5); coverage labels kept at a passing land (M4); the slower list after the verdict line (M1); store a filtered run; call a dirty run flaky; compare across job counts; drop the land prefix; count an off-lane record in the lane total.
 - A draft PR runs the Windows leg. Next lanes: ci-jobs (D11), ci-records (FEAT-019), lane-costs (FEAT-035), report confirmation of a FAIL from records (FEAT-039).
+
+## Amendment after build 2 (the seat, 2026-10-22)
+
+The seat's pairs at 01f5aabe: 12 of 14 red (`seat-mutate-output-01f5aabe.txt`). Two survived, and the seat found one wrong output by reading the code:
+
+- **A land that passed through the rerun prints a failure.** The record of such a land holds the rerun file twice, its coverage FAIL and its plain PASS (D8). The last line counts the FAIL entry, so a passing land prints "N PASS, 1 FAIL; failed: <file> [new; exit 1]". The slower list can also name that file twice. R-2554's text gains the final result:
+
+| ID | Requirement (EARS) | Test file::title |
+|---|---|---|
+| R-2554 | WHEN the locked suite stores a run record, it shall print at most two record lines, the last restating the PASS and FAIL counts of the run's final result and every failed name, and naming once each file that failed under coverage and passed when rerun alone. | `packages/nana-pack/tests/suite-records.test.mjs::R-2554: a locked run prints at most two record lines and the last restates the PASS and FAIL counts and every failed name` (unchanged) |
+
+- **s2 survived:** R-2549's test has no case where a dirty record is the only one at the merge base and a clean one sits at its parent; the land-first rule hides a dirty baseline.
+- **s10 survived:** R-2548's test has no stop during a land's plain rerun, where only the inner guard keeps a stopped run from storing.
