@@ -8,6 +8,7 @@
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
 import { spawnSync } from "node:child_process";
+import { trackedAtHead } from "../packages/nana-pack/lib/brief-precedent.mjs";
 import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 
 // Contract: the owner's 2026-10-22 approval; R-2537.
@@ -54,11 +55,6 @@ function ownFieldLines(parsed, capability) {
     if (match) lines.push({ label: match[1], body: match[2], line: index + 1, text, rawText });
   }
   return lines;
-}
-
-function trackedAtHead(path, tracked) {
-  const folder = path.endsWith("/") ? path.slice(0, -1) : path;
-  return tracked.has(folder) || [...tracked].some((candidate) => candidate.startsWith(`${folder}/`));
 }
 
 /** Row ID -> its exact maker and reader field lines in capability spans, in document order. */

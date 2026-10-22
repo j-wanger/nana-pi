@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 384 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 388 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -628,7 +628,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
-- **callees** — `scripts/requirements-moved.mjs`
+- **callees** — `packages/nana-pack/lib/brief-precedent.mjs`, `scripts/requirements-moved.mjs`
 
 ### `scripts/identity-scan.mjs`
 
@@ -648,7 +648,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (reads the ledger and known-bug entries); process (CLI output and exit status)
 - **errors** — missing or unreadable inputs become name findings; malformed CLI options exit 2
 - **callers** — `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
-- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/product-report.mjs`
 
@@ -1097,12 +1097,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/pi-worker.mjs`
 
 - **purpose** — Run a pi worker under a liveness watchdog, with an optional fail-closed linked-worktree lane mode.
-- **inputs** — argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane mode this machine's roster (the user-scope nana-pack.json in pi's active agent dir)
-- **outputs** — worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane mode one `pi-worker: builder: …; source: …` line (`builder (larger lanes):` for a `--lane-size larger` launch whose largerBuilder slot is set, plain `builder:` when that slot is null and it falls back to the builder) on stderr before pi starts
+- **inputs** — argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane mode the brief, worktree HEAD, feature known bugs, and this machine's user-scope roster
+- **outputs** — worker output written to --out, SUCCESS / FAILED diagnostics, and in lane mode the checked precedent/known-bug line plus the resolved builder/source line on stderr before pi starts
 - **effects** — disk (writes output), process (spawns and may kill the pi child process group)
-- **errors** — exit 1 on bad args, invalid lane, an invalid or disallowed --lane-size, a refused roster, failed worker, or exceeded lane ceiling
+- **errors** — exit 1 on bad args, invalid lane, refused brief precedent, invalid or disallowed --lane-size, refused roster, failed worker, or exceeded lane ceiling
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`
+- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`
 
 ### `packages/nana-pack/bin/review-launch.mjs`
 
@@ -1294,6 +1294,26 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`
 - **callees** — —
 
+### `packages/nana-pack/lib/brief-config.mjs`
+
+- **purpose** — Define the sealed vocabulary and bounded git-list output for lane brief precedent checks.
+- **inputs** — none
+- **outputs** — Precedent section, none-entry and feature-line tokens, accepted trailing punctuation, and git output cap.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`
+- **callees** — —
+
+### `packages/nana-pack/lib/brief-precedent.mjs`
+
+- **purpose** — Parse a lane brief's feature and Precedent entries and judge normalized paths against an injected HEAD tree listing.
+- **inputs** — Brief text and an injected iterable of paths tracked at the lane worktree's HEAD.
+- **outputs** — Parsed brief metadata, normalized precedent entries, and every invalid or untracked path entry.
+- **effects** — none
+- **errors** — None; missing sections and malformed entries are represented in returned data.
+- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `scripts/deliverables.mjs`
+- **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
+
 ### `packages/nana-pack/lib/config.ts`
 
 - **purpose** — Load, normalize and merge the nana-pack user and project config into a fully typed value no file bytes can make throw.
@@ -1321,7 +1341,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, OPEN_SECTION_PREFIX, OPEN_SECTION_NAME, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES, isNamed
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `scripts/known-bugs.mjs`
+- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `scripts/known-bugs.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/gate-paths.ts`
@@ -1382,7 +1402,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — none
 - **errors** — None; absent sections and unparseable tags or titles yield empty results.
 - **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/handoff-asks.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `scripts/product-report.mjs`
-- **callees** — `packages/nana-pack/lib/frontier-config.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/json-text.mjs`
 
@@ -1394,6 +1414,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
 - **callees** — —
 
+### `packages/nana-pack/lib/known-bugs-config.mjs`
+
+- **purpose** — Define the pack-wide known-bug directory and unplaced-entry filename.
+- **inputs** — none
+- **outputs** — KNOWN_BUGS_DIR and UNPLACED_FILE.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `scripts/known-bugs.mjs`
+- **callees** — —
+
 ### `packages/nana-pack/lib/land-config.mjs`
 
 - **purpose** — Declare the land-time runtime-map contract values with their provenance.
@@ -1402,6 +1432,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
+- **callees** — —
+
+### `packages/nana-pack/lib/markdown-list-sections.mjs`
+
+- **purpose** — Scan Markdown outside fences for named heading or label sections and their list entries.
+- **inputs** — Markdown text, a heading-name predicate, and an optional exact label.
+- **outputs** — Ordered sections with source lines and list entries whose continuation lines stay grouped.
+- **effects** — none
+- **errors** — None; absent sections produce an empty array.
+- **callers** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/mutation-runner-config.mjs`
@@ -2746,8 +2786,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/worker-lane.test.mjs`
 
-- **purpose** — Pins fail-closed lane verification, preamble delivery, and the sealed worker ceiling.
-- **inputs** — pi-worker, a temporary git repository/worktree, and a stub pi executable
+- **purpose** — Pins fail-closed lane and brief verification, prompt delivery, and the sealed worker ceiling.
+- **inputs** — pi-worker, brief config, a temporary git repository/worktree, and a stub pi executable
 - **outputs** — named PASS/FAIL checks
 - **effects** — disk (OS temp fixtures), process (git and worker subprocesses)
 - **errors** — failed assertions exit nonzero

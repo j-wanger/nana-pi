@@ -10,12 +10,10 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../packages/nana-pack/lib/frontier-config.mjs";
+import { KNOWN_BUGS_DIR, UNPLACED_FILE } from "../packages/nana-pack/lib/known-bugs-config.mjs";
 import { parseLedger } from "./requirements-tree.mjs";
 
-/** Chosen: docs/known-bugs sits beside docs/reviews and docs/sessions; contract for R-2505, R-2509 and R-2510. */
-export const KNOWN_BUGS_DIR = "docs/known-bugs";
-/** Chosen: a plain name for lines no feature owns. */
-export const UNPLACED_FILE = "unplaced.md";
+export { KNOWN_BUGS_DIR, UNPLACED_FILE };
 
 const FEATURE_FILE = /^(FEAT-\d{3})\.md$/;
 const byName = (left, right) => left.name.localeCompare(right.name, "en");

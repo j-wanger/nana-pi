@@ -402,11 +402,15 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const scriptsDir = join(modesRoot, "scripts");
   const docsDir = join(modesRoot, "docs");
   const traceTemplateDir = join(modesRoot, "templates", "typescript", "template", "tests");
+  const packLibDir = join(modesRoot, "packages", "nana-pack", "lib");
   mkdirSync(scriptsDir, { recursive: true });
   mkdirSync(docsDir, { recursive: true });
   mkdirSync(traceTemplateDir, { recursive: true });
+  mkdirSync(packLibDir, { recursive: true });
   for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "requirements-moved.mjs", "deliverables.mjs"])
     copyFileSync(fileURLToPath(new URL(`../../../scripts/${name}`, import.meta.url)), join(scriptsDir, name));
+  for (const name of ["brief-precedent.mjs", "brief-config.mjs", "frontier-config.mjs", "markdown-list-sections.mjs"])
+    copyFileSync(fileURLToPath(new URL(`../lib/${name}`, import.meta.url)), join(packLibDir, name));
   copyFileSync(fileURLToPath(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url)), join(traceTemplateDir, "requirements-trace.ts"));
   const copiedCli = join(scriptsDir, "requirements-tree.mjs");
   const deliverableTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\nDeliverables: R-001\nMade by: R-001 · manual\nRead by: R-001 · person:\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";

@@ -3,14 +3,12 @@
  * @module packages/nana-pack/bin/pi-worker.mjs
  * @purpose Run a pi worker under a liveness watchdog, with an optional fail-closed linked-worktree lane mode.
  * @inputs argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane
- *  mode this machine's roster (the user-scope nana-pack.json in pi's active agent dir)
- * @outputs worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane
- *  mode one `pi-worker: builder: …; source: …` line (`builder (larger lanes):` for a
- *  `--lane-size larger` launch whose largerBuilder slot is set, plain `builder:` when that slot
- *  is null and it falls back to the builder) on stderr before pi starts
+ *  mode the brief, worktree HEAD, feature known bugs, and this machine's user-scope roster
+ * @outputs worker output written to --out, SUCCESS / FAILED diagnostics, and in lane mode the
+ *  checked precedent/known-bug line plus the resolved builder/source line on stderr before pi starts
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
- * @errors exit 1 on bad args, invalid lane, an invalid or disallowed --lane-size, a refused
- *  roster, failed worker, or exceeded lane ceiling
+ * @errors exit 1 on bad args, invalid lane, refused brief precedent, invalid or disallowed
+ *  --lane-size, refused roster, failed worker, or exceeded lane ceiling
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
@@ -20,6 +18,9 @@ import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mj
 import { LANE_DEFAULTS, LANE_MAX_SECS, CLAUDE_CODE_RUNTIME, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_SECTION } from '../lib/brief-config.mjs';
+import { checkPrecedent, readBrief } from '../lib/brief-precedent.mjs';
+import { KNOWN_BUGS_DIR } from '../lib/known-bugs-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
@@ -70,7 +71,8 @@ function trusted(worktree) {
 
 let childEnv = { NANA_ROLE: 'worker' };
 let maxArg;
-let laneRoot, laneGitDir, briefPath, preambleFile, laneLock;
+let laneRoot, laneGitDir, briefPath, preambleFile, laneLock, knownBugPath;
+let precedentCount = 0, precedentHead = '', knownBugRelative = 'none';
 let validateLaneAttempt = () => null;
 // Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
 // pre-lane launcher (first occurrence wins) — astra land r7 on t3-launcher.
@@ -98,6 +100,37 @@ if (laneMode) {
 		if (!statSync(briefPath).isFile()) laneFailure('brief must be a readable regular file');
 		accessSync(briefPath, constants.R_OK);
 	} catch { laneFailure('brief must be a readable regular file'); }
+	let parsedBrief;
+	try { parsedBrief = readBrief(readFileSync(briefPath, 'utf8')); }
+	catch { laneFailure(`cannot read ${PRECEDENT_SECTION} section from brief`); }
+	const precedent = parsedBrief.precedent;
+	if (precedent === null || precedent.length === 0 || precedent.some((entry) => entry.kind === 'invalid-none')) {
+		laneFailure(`${PRECEDENT_SECTION} section needs one entry in either form: - <path> or - ${PRECEDENT_NONE} <reason>`);
+	}
+	precedentCount = precedent.length;
+	try { precedentHead = git('rev-parse', '--short', 'HEAD'); }
+	catch { laneFailure('cannot resolve HEAD for Precedent entries'); }
+	const precedentPaths = precedent.filter((entry) => entry.kind === 'path').map((entry) => entry.value);
+	let trackedPaths = [];
+	if (precedentPaths.length > 0) {
+		try {
+			const listed = execFileSync('git', ['--literal-pathspecs', 'ls-tree', '-z', '--name-only', 'HEAD', '--', ...precedentPaths], {
+				cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: PRECEDENT_LIST_MAX_BYTES,
+			});
+			trackedPaths = listed.split('\0').filter(Boolean);
+		} catch { laneFailure(`cannot list paths tracked at HEAD ${precedentHead}`); }
+	}
+	const precedentProblems = checkPrecedent(precedent, trackedPaths);
+	if (precedentProblems.length > 0) {
+		const details = precedentProblems.map((entry) => `${JSON.stringify(entry)} is not tracked at HEAD`).join('; ');
+		laneFailure(`Precedent entries at HEAD ${precedentHead}: ${details}; commit the file, or merge main if it landed there`);
+	}
+	if (parsedBrief.feature) {
+		knownBugRelative = path.posix.join(KNOWN_BUGS_DIR, `${parsedBrief.feature}.md`);
+		const candidate = path.join(cwd, ...knownBugRelative.split('/'));
+		try { if (statSync(candidate).isFile()) knownBugPath = fsReal(candidate); else knownBugRelative = 'none'; }
+		catch { knownBugRelative = 'none'; }
+	}
 	if (separator >= 0 && all.slice(separator + 1).length) laneFailure('caller pi arguments are refused in lane mode');
 	const rosterResult = resolveRoster(piAgentDir());
 	if (!rosterResult.ok) laneFailure(`roster refused: ${rosterResult.file}: ${rosterResult.problem}`);
@@ -122,13 +155,14 @@ if (laneMode) {
 		builder = roster[LANE_SIZE_SLOTS.small];
 	}
 	process.stderr.write(`pi-worker: ${builderLabel}: ${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}; source: ${rosterResult.source}\n`);
+	process.stderr.write(`pi-worker: precedent: ${precedentCount} checked at HEAD ${precedentHead}; known bugs: ${knownBugRelative}\n`);
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	laneRoot = cwd; laneGitDir = dirs[0];
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
 	preambleFile = path.join(preambleDir, 'preamble.md');
 	writeFileSync(preambleFile, preamble);
-	const piArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, '-p', `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`];
+	const piArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(knownBugPath ? ['--append-system-prompt', knownBugPath] : []), '-p', `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`];
 	const argvSeparator = argv.indexOf('--');
 	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...piArgs);
 	else argv.push('--', ...piArgs);

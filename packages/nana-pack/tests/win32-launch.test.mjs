@@ -216,7 +216,7 @@ console.log("VERDICT: LAND");
 		git(laneRepo, "add", "seed"); git(laneRepo, "commit", "-qm", "seed");
 		git(laneRepo, "worktree", "add", "-qb", "feat/winlane", laneWt);
 		const brief = path.join(temp, "brief.md");
-		fs.writeFileSync(brief, "brief content\n");
+		fs.writeFileSync(brief, "brief content\n\nPrecedent:\n- seed\n");
 		const laneOut = path.join(temp, "lane-out.md");
 		const laneRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", laneOut, "--lane", "winlane", "--brief", brief], { cwd: laneWt, encoding: "utf8", timeout: 60000, env });
 		const laneCalls = readRecord();

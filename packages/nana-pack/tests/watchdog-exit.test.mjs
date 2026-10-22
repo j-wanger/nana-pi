@@ -248,7 +248,7 @@ const we6Lane = real((() => { const d = path.join(root, "we6-lane"); git(we6Repo
 const we6GitDir = real(path.resolve(we6Lane, git(we6Lane, "rev-parse", "--git-dir").stdout.trim()));
 const we6LockPath = path.join(we6GitDir, "nana-lane.lock");
 const we6Brief = path.join(root, "we6-brief.md");
-fs.writeFileSync(we6Brief, "lane brief content for watchdog-exit WE6\n");
+fs.writeFileSync(we6Brief, "lane brief content for watchdog-exit WE6\n\nPrecedent:\n- none: fixture\n");
 const we6Count1 = path.join(root, "we6-count-1");
 const we6Out1 = path.join(root, "we6-out-1.md");
 const we6Run1 = spawnSync(process.execPath, [

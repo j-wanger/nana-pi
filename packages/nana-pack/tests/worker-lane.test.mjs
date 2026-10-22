@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/worker-lane.test.mjs
- * @purpose Pins fail-closed lane verification, preamble delivery, and the sealed worker ceiling.
- * @inputs pi-worker, a temporary git repository/worktree, and a stub pi executable
+ * @purpose Pins fail-closed lane and brief verification, prompt delivery, and the sealed worker ceiling.
+ * @inputs pi-worker, brief config, a temporary git repository/worktree, and a stub pi executable
  * @outputs named PASS/FAIL checks
  * @effects disk (OS temp fixtures), process (git and worker subprocesses)
  * @errors failed assertions exit nonzero
@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
 // R-1125: win32 canonicalizes with the native real path, which keeps an 8.3 or differently cased
 // form the way git itself sees it (mirrors pi-worker's own fsReal); POSIX keeps the JS form.
@@ -26,11 +26,20 @@ const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=Test", "-c", "u
 const initialized = git(repo, "init", "-q");
 if (initialized.status !== 0) throw new Error(initialized.stderr);
 fs.writeFileSync(path.join(repo, "seed"), "seed\n");
-git(repo, "add", "seed"); git(repo, "commit", "-qm", "seed");
+fs.mkdirSync(path.join(repo, "tracked"), { recursive: true });
+fs.writeFileSync(path.join(repo, "tracked", "nested.mjs"), "export const nested = true;\n");
+fs.writeFileSync(path.join(repo, "old-name.mjs"), "export const moved = true;\n");
+fs.mkdirSync(path.join(repo, "docs", "known-bugs"), { recursive: true });
+fs.writeFileSync(path.join(repo, "docs", "known-bugs", "FEAT-006.md"), "# FEAT-006 known bugs\n\n- fixture bug\n");
+fs.writeFileSync(path.join(repo, "docs", "known-bugs", "unplaced.md"), "# Unplaced known bugs\n\n- unplaced fixture\n");
+git(repo, "add", "seed", "tracked/nested.mjs", "old-name.mjs", "docs/known-bugs/FEAT-006.md", "docs/known-bugs/unplaced.md"); git(repo, "commit", "-qm", "seed");
 git(repo, "worktree", "add", "-qb", "feat/alpha", lane);
+git(lane, "mv", "old-name.mjs", "moved-name.mjs"); git(lane, "commit", "-qm", "move precedent fixture");
 const laneGitDir = real(path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim()));
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
-const brief = path.join(temp, "brief.md"); fs.writeFileSync(brief, "lane brief content");
+const brief = path.join(temp, "brief.md");
+const defaultBriefText = "lane brief content\n\nPrecedent:\n- seed\n";
+fs.writeFileSync(brief, defaultBriefText);
 const pi = path.join(stubDir, "pi");
 const piSpawnMarker = path.join(temp, "pi-spawn-marker");
 // writeStub lays out the fake `pi` for this platform: a POSIX #!/bin/sh script, unchanged from
@@ -65,6 +74,18 @@ const run = (cwd, args, more = {}, piArgs = []) => spawnSync(process.execPath, [
 	env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir, ...more },
 });
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) process.exitCode = 1; };
+const clearLaunchArtifacts = () => {
+	fs.rmSync(piSpawnMarker, { force: true });
+	fs.rmSync(out, { force: true });
+	fs.rmSync(laneLockPath, { force: true });
+	for (let index = 1; index <= 4; index++) fs.rmSync(path.join(temp, `prompt-${index}`), { force: true });
+};
+const runBriefText = (text, file = brief) => {
+	clearLaunchArtifacts();
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.writeFileSync(file, text);
+	return run(lane, ["--lane", "alpha", "--brief", file]);
+};
 const legacyRepeat = run(lane, ["--poll", "invalid"], {}, ["-p", "legacy"]);
 // req: R-960
 check("non-lane repeated worker options keep the legacy first-occurrence behaviour", legacyRepeat.status === 0 && !/duplicate option/.test(legacyRepeat.stderr), legacyRepeat.stderr);
@@ -103,6 +124,137 @@ const briefDirectory = path.join(temp, "brief-directory"); fs.mkdirSync(briefDir
 check("lane mode refuses a brief directory with a named failure", /brief must be a readable regular file/.test(run(lane, ["--lane", "alpha", "--brief", briefDirectory]).stderr));
 // req: R-960
 check("lane mode refuses a switched lane branch before starting pi", (() => { git(lane, "checkout", "-qb", "feat/other"); const result = run(lane, ["--lane", "alpha", "--brief", brief]); git(lane, "checkout", "-q", "feat/alpha"); return /expected feat\/alpha/.test(result.stderr); })());
+// req: R-2578
+check("R-2578: a lane brief with no Precedent section, an empty one or a reasonless none is refused before the lock and before pi starts", (() => {
+	const cases = [
+		"Feature: FEAT-006 · Missing\n",
+		"## Precedent\n\n## Done\n",
+		"Precedent:\r\nprose ends this label section\t\r\n",
+		"\ufeffPrecedent:\n- none:\t",
+	];
+	return cases.every((text) => {
+		const result = runBriefText(text);
+		return result.status === 1 && result.stderr.includes("pi-worker: lane refused:") && result.stderr.includes("Precedent") &&
+			result.stderr.includes("- <path>") && result.stderr.includes("- none: <reason>") &&
+			!fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath);
+	});
+})());
+
+// req: R-2579
+check("R-2579: Precedent entries not tracked at HEAD are refused, each one named", (() => {
+	fs.writeFileSync(path.join(lane, "untracked-present.mjs"), "untracked\n");
+	fs.writeFileSync(path.join(lane, "staged-only.mjs"), "staged\n");
+	git(lane, "add", "staged-only.mjs");
+	const absoluteBad = path.join(temp, "absolute-bad.mjs").replaceAll("\\", "/");
+	const bad = ["untracked-present.mjs", "staged-only.mjs", "old-name.mjs", "../outside.md", absoluteBad, "*.mjs", "tracke", "after-wrap.md"];
+	const text = [
+		"Precedent:",
+		"- seed — a tracked entry", "  whose note wraps onto another line", "- after-wrap.md",
+		"- untracked-present.mjs", "- staged-only.mjs", "- old-name.mjs", "- ../outside.md",
+		`- ${absoluteBad}`, "- *.mjs", "- tracke", "- tracked/nested.mjs", "",
+	].join("\n");
+	const result = runBriefText(text);
+	const sha = git(lane, "rev-parse", "--short", "HEAD").stdout.trim();
+	const namedAll = bad.every((entry) => result.stderr.includes(entry));
+	const goodNotNamed = !result.stderr.includes('"seed" is not tracked') && !result.stderr.includes('"tracked/nested.mjs" is not tracked');
+	const literalPathspec = fs.readFileSync(worker, "utf8").includes("'--literal-pathspecs'");
+	git(lane, "reset", "-q", "HEAD", "--", "staged-only.mjs");
+	fs.rmSync(path.join(lane, "staged-only.mjs"), { force: true });
+	fs.rmSync(path.join(lane, "untracked-present.mjs"), { force: true });
+	if (!(result.status === 1 && namedAll && goodNotNamed && literalPathspec && result.stderr.includes(sha) && !fs.existsSync(piSpawnMarker))) {
+		process.stderr.write(`untracked precedent case failed: status=${result.status} namedAll=${namedAll} goodNotNamed=${goodNotNamed} literalPathspec=${literalPathspec} sha=${sha}\n${result.stderr}\n`);
+		return false;
+	}
+
+	const tree = git(lane, "rev-parse", "HEAD^{tree}").stdout.trim();
+	const common = git(lane, "rev-parse", "--git-common-dir").stdout.trim();
+	const objectPath = path.join(path.resolve(lane, common), "objects", tree.slice(0, 2), tree.slice(2));
+	let objectBytes;
+	try { objectBytes = fs.readFileSync(objectPath); fs.rmSync(objectPath); }
+	catch (error) { process.stderr.write(`listing-failure fixture could not remove ${objectPath}: ${error.message}\n`); return false; }
+	const failedListing = runBriefText("Precedent:\n- seed\n");
+	fs.mkdirSync(path.dirname(objectPath), { recursive: true });
+	fs.writeFileSync(objectPath, objectBytes);
+	const listingPassed = failedListing.status === 1 && failedListing.stderr.includes("cannot list paths tracked at HEAD") && !fs.existsSync(piSpawnMarker);
+	if (!listingPassed) process.stderr.write(`failed-listing precedent case failed: status=${failedListing.status}\n${failedListing.stderr}\n`);
+	return listingPassed;
+})());
+
+// req: R-2580
+check("R-2580: honest Precedent forms pass and the launch line names the checked entry count", (() => {
+	const subfolderBrief = path.join(lane, "brief-fixtures", "nested-brief.md");
+	const cases = [
+		["slash separators", "Precedent:\n- tracked/nested.mjs\n", 1, brief],
+		["backslash separators", "Precedent:\n- tracked\\nested.mjs\n", 1, brief],
+		["backticks", "Precedent:\n- `seed` note\n", 1, brief],
+		["single line suffix", "Precedent:\n- seed:12\n", 1, brief],
+		["range line suffix", "Precedent:\n- tracked/nested.mjs:12-40\n", 1, brief],
+		["trailing comma", "Precedent:\n- seed:12,\n", 1, brief],
+		["trailing semicolon", "Precedent:\n- seed;\n", 1, brief],
+		["trailing full stop", "Precedent:\n- seed.\n", 1, brief],
+		["trailing bracket", "Precedent:\n- seed)\n", 1, brief],
+		["folder", "Precedent:\n- tracked\n", 1, brief],
+		["brief in worktree subfolder", "Precedent:\n- seed\n", 1, subfolderBrief],
+		["wrapped entry", "Precedent:\n- seed — note\n  continued note\n- none: second entry\n", 2, brief],
+		["heading", "## Precedent\n- seed\n## Done\n- missing\n", 1, brief],
+		["plain label", "Precedent:\n- seed\n", 1, brief],
+		["fenced example", "```md\nPrecedent:\n- missing\n```\n\nPrecedent:\n- seed\n", 1, brief],
+		["CRLF", "Precedent:\r\n- seed\t\r\n", 1, brief],
+		["trailing blanks", "Precedent: \t\n\n- seed \t\n", 1, brief],
+		["BOM", "\ufeffPrecedent:\n- seed\n", 1, brief],
+		["no final newline", "Precedent:\n- seed", 1, brief],
+		["none reason", "Precedent:\n- none: no earlier implementation exists\n", 1, brief],
+	];
+	return cases.every(([label, text, count, file]) => {
+		const result = runBriefText(text, file);
+		const line = result.stderr.split(/\r?\n/).find((entry) => entry.startsWith("pi-worker: precedent:"));
+		const beforeAttempt = result.stderr.indexOf("pi-worker: precedent:") < result.stderr.indexOf("[pi-worker] attempt 1/1");
+		if (!(result.status === 0 && fs.existsSync(piSpawnMarker) && line?.startsWith(`pi-worker: precedent: ${count} checked at HEAD`) && beforeAttempt)) {
+			process.stderr.write(`passing precedent case failed: ${label}: ${result.stderr}\n`);
+			return false;
+		}
+		return true;
+	});
+})());
+
+// req: R-2581
+check("R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none", (() => {
+	const bugRelative = "docs/known-bugs/FEAT-006.md";
+	const bugFile = path.join(lane, bugRelative);
+	const bugBytes = fs.readFileSync(bugFile);
+	const cases = [
+		["Feature: FEAT-006 · Worker\n\nPrecedent:\n- seed\n", 3, bugRelative],
+		["Feature: FEAT-006 · Worker\r\n\r\nPrecedent:\r\n- seed\r\n", 3, bugRelative],
+		["Feature: FEAT-012 · Missing\n\nPrecedent:\n- seed\n", 2, "none"],
+		["This prose mentions FEAT-006 but is not a feature line.\n\nPrecedent:\n- seed\n", 2, "none"],
+	];
+	const ordinary = cases.every(([text, promptCount, launchValue]) => {
+		const result = runBriefText(text);
+		const output = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
+		const prompts = output.split("\n").filter((arg) => arg === "--append-system-prompt").length;
+		const copied = promptCount === 3 && fs.existsSync(path.join(temp, "prompt-3")) ? fs.readFileSync(path.join(temp, "prompt-3")) : null;
+		return result.status === 0 && prompts === promptCount && result.stderr.includes(`known bugs: ${launchValue}`) &&
+			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : Buffer.compare(copied, bugBytes) === 0 && output.includes(real(bugFile)));
+	});
+	fs.rmSync(bugFile);
+	fs.mkdirSync(bugFile);
+	const directoryCase = runBriefText("Feature: FEAT-006 · Directory\n\nPrecedent:\n- seed\n");
+	const directoryOutput = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
+	fs.rmSync(bugFile, { recursive: true, force: true });
+	fs.writeFileSync(bugFile, bugBytes);
+	return ordinary && directoryCase.status === 0 && directoryOutput.split("\n").filter((arg) => arg === "--append-system-prompt").length === 2 &&
+		directoryCase.stderr.includes("known bugs: none") && !directoryOutput.includes("unplaced.md");
+})());
+
+// req: R-2578 R-2581
+check("seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature:", (() => {
+	const module = path.join(root, "lib", "brief-config.mjs");
+	const probe = spawnSync(process.execPath, ["--input-type=module", "-e", `import { PRECEDENT_SECTION, PRECEDENT_NONE, FEATURE_LINE_PREFIX, PRECEDENT_TRAILING_PUNCTUATION, PRECEDENT_LIST_MAX_BYTES } from ${JSON.stringify(pathToFileURL(module).href)}; process.exit(PRECEDENT_SECTION === "Precedent" && PRECEDENT_NONE === "none:" && FEATURE_LINE_PREFIX === "Feature: " && PRECEDENT_TRAILING_PUNCTUATION === ",;.)" && PRECEDENT_LIST_MAX_BYTES === 65536 ? 0 : 1);`], { encoding: "utf8", timeout: 5000 });
+	return probe.status === 0;
+})());
+
+fs.writeFileSync(brief, defaultBriefText);
+clearLaunchArtifacts();
 const good = run(lane, ["--lane", "alpha", "--brief", path.relative(lane, brief)]);
 const result = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 const promptPaths = result.split("\n").reduce((all, arg, i, args) => arg === "--append-system-prompt" ? [...all, args[i + 1]] : all, []);
@@ -111,7 +263,7 @@ const prompt1Path = path.join(temp, "prompt-1");
 // throwing ENOENT and crashing the rest of the file.
 const prompt1Text = fs.existsSync(prompt1Path) ? fs.readFileSync(prompt1Path, "utf8") : "";
 // req: R-961
-check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === real(brief) && prompt1Text.includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === "lane brief content", `${good.stderr}${result} paths=${promptPaths.join(",")}`);
+check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === real(brief) && prompt1Text.includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === defaultBriefText, `${good.stderr}${result} paths=${promptPaths.join(",")}`);
 const plainWorker = run(lane, [], { NANA_ROLE: "inherited" }, ["-p", "plain"]);
 const plainResult = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 // req: R-286
