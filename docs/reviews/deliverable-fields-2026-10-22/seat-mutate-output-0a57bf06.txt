@@ -1,0 +1,36 @@
+seat-mutate: lane deliverable-fields, tip 0a57bf06d8341ba03ed75362a5185d8b4da8b989, table 61a36c89a9af15899e4a420927739d91d43ae5bbe9d4b867b7bed0c5f66c83b3, merge-base 08c33d94323a1070b9980153499fb5f205a37a72, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-22T03:59:10.710Z
+DECLARED (plan) p1 to p6 are the must-meet's six wrong builds; b1 to b4 are build brief 2's four; m1 is the seat's for R-2540
+DECLARED (seat) p1 is split into a bare run (p1a) and a bare code or prompt reader (p1b), because each takes its own branch
+DECLARED (seat) p6 renders the lines by adding both labels to the capability field list, which is the one way the outline reads a span line
+[1/5] seat-mutate: lane deliverable-fields, shard 1/5, tip 0a57bf06d8341ba03ed75362a5185d8b4da8b989, merge-base 08c33d94323a1070b9980153499fb5f205a37a72, 3 pairs, darwin, node v22.22.2, 2026-10-22T03:59:11.796Z
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane deliverable-fields, shard 2/5, tip 0a57bf06d8341ba03ed75362a5185d8b4da8b989, merge-base 08c33d94323a1070b9980153499fb5f205a37a72, 3 pairs, darwin, node v22.22.2, 2026-10-22T03:59:16.042Z
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 95 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane deliverable-fields, shard 3/5, tip 0a57bf06d8341ba03ed75362a5185d8b4da8b989, merge-base 08c33d94323a1070b9980153499fb5f205a37a72, 2 pairs, darwin, node v22.22.2, 2026-10-22T03:59:19.936Z
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 95 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane deliverable-fields, shard 4/5, tip 0a57bf06d8341ba03ed75362a5185d8b4da8b989, merge-base 08c33d94323a1070b9980153499fb5f205a37a72, 2 pairs, darwin, node v22.22.2, 2026-10-22T03:59:24.269Z
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 95 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane deliverable-fields, shard 5/5, tip 0a57bf06d8341ba03ed75362a5185d8b4da8b989, merge-base 08c33d94323a1070b9980153499fb5f205a37a72, 2 pairs, darwin, node v22.22.2, 2026-10-22T03:59:28.273Z
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 95 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (1 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+RED p1a a bare automatic run accepted as automatic — 1/1 named: /^a missing or unreadable line, or an automatic claim with no code path, gets one note naming it/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p1b a bare code or prompt reader accepted as code — 1/1 named: /^a missing or unreadable line, or an automatic claim with no code path, gets one note naming it/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 paths listed from the index instead of the HEAD tree — 1/1 named: /^a maker or reader path not tracked at HEAD gets one note naming the row and the path/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 notes printed only under --root — 2/2 named: /^the tree checker prints deliverable notes in every mode and keeps its exit status and outline/ | /^the tree checker counts the deliverables made and read by code in every mode/; 2 FAIL total (1 file changed, 1 deletion(-))
+RED p4 the reason test dropped for makers and readers — 1/1 named: /^a manual maker or a rule or person reader with no reason gets one note naming the row/; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p5 lines read on through feature and subgroup spans to the next capability — 1/1 named: /^a missing or unreadable line, or an automatic claim with no code path, gets one note naming it/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 the lines rendered in the outline as capability fields — 1/1 named: /^the tree checker prints deliverable notes in every mode and keeps its exit status and outline/; UNNAMED red: [requirements-tree.test.mjs] R-288: real ledger has no structural problems line 88: CAP-01 Made by: R-001 · session start: packages/nana-s… | [requirements-tree.test.mjs] R-291: committed outline equals a fresh render committed outline differs from renderOutline | [requirements-tree.test.mjs] R-291: committed outline fields and row IDs match the real ledger CAP-01: outline Made by: is missing or alte… | [requirements-tree.test.mjs] R-291: feature outline carries status and shared IDs CAP-01: outline Made by: is missing or altered; CAP-01: … | [requirements-tree.test.mjs] R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy ["line 15: R-002 is not in a fe… | [requirements-tree.test.mjs] the tree checker counts the deliverables made and read by code in every mode root 1:  line 6: CAP-01 Made by:…; 7 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED b1 a manual maker counted as automatic — 1/1 named: /^the tree checker counts the deliverables made and read by code in every mode/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED b2 a rule or person reader counted as code — 1/1 named: /^the tree checker counts the deliverables made and read by code in every mode/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED b3 the count printed only under --root — 1/1 named: /^the tree checker counts the deliverables made and read by code in every mode/; UNNAMED red: [requirements-tree.test.mjs] the tree checker prints deliverable notes in every mode and keeps its exit status and outline root 0: require…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED b4 one deliverable's maker line dropped from this repository's ledger — 1/1 named: /^every deliverable in this repository's ledger has a Made by and a Read by line/; 1 FAIL total (1 file changed, 1 deletion(-))
+RED m1 the movement report blind to changed maker and reader lines — 1/1 named: /^the movement report lists a row whose Made by or Read by lines changed/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 12/12 red (10 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 5 shards
