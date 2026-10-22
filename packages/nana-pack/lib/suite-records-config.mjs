@@ -6,9 +6,9 @@
  * @effects none
  * @errors none
  */
-import { HAND_MEASURE_ENV, LAND_NOTE_PREFIX, LAND_TIP_ENV, MAIN_REF } from "./land-config.mjs";
+import { HAND_MEASURE_ENV, LAND_NOTE_PREFIX, LAND_TIP_ENV, MAIN_REF, TIP_DIGITS } from "./land-config.mjs";
 
-export { HAND_MEASURE_ENV, LAND_NOTE_PREFIX, LAND_TIP_ENV, MAIN_REF };
+export { HAND_MEASURE_ENV, LAND_NOTE_PREFIX, LAND_TIP_ENV, MAIN_REF, TIP_DIGITS };
 
 // contract (R-2546, R-2548): the runner writes only when this whole-run channel names a file.
 export const RECORD_FILE_ENV = "NANA_SUITE_RECORD_FILE";

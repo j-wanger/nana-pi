@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 import { COVERAGE_ENV, COVERAGE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
-import { storeSuiteRecord, suiteGitFacts } from "../packages/nana-pack/lib/suite-records.mjs";
+import { readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
 import {
 	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
@@ -195,8 +195,12 @@ function finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root, env, rec
 		const facts = suiteGitFacts(root);
 		const landTip = env[LAND_TIP_ENV] ?? null;
 		const trigger = env[HAND_MEASURE_ENV] !== undefined ? "measure" : landTip === facts.tip ? "land" : "run";
-		const record = { ...source, ...facts, schema: RECORD_SCHEMA, trigger, exitCode: suiteCode, landTip };
-		storeSuiteRecord(record, { root, now: () => new Date(recordedAt) });
+		const timestamp = new Date(recordedAt).toISOString();
+		const record = { ...source, ...facts, schema: RECORD_SCHEMA, trigger, exitCode: suiteCode, landTip, recordedAt: timestamp };
+		const earlier = readSuiteRecords({ root });
+		storeSuiteRecord(record, { root, now: () => new Date(timestamp) });
+		const prefix = landTip === facts.tip ? `${LAND_NOTE_PREFIX} ` : "";
+		for (const line of suiteRecordLines(record, { root, records: earlier, now: timestamp })) console.log(`${prefix}${line}`);
 	} catch (error) {
 		recordProblem(error?.message ?? "record could not be stored");
 	} finally {

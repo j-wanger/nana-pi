@@ -1596,9 +1596,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/suite-records.mjs`
 
-- **purpose** — Resolve, atomically retain, prune, and read full-suite run records shared by a clone's worktrees.
+- **purpose** — Resolve, retain, read, compare, and summarize full-suite run records shared by a clone's worktrees.
 - **inputs** — A repository root and run record, with injectable filesystem, git runner, clock, process id, and retention cap.
-- **outputs** — Git facts, a stored record path, or valid current-schema records ordered newest first.
+- **outputs** — Git facts, a stored record path, valid current-schema records, or the two closing record lines.
 - **effects** — disk (git-common-dir suite record files), process (git queries through the injected runner).
 - **errors** — Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
 - **callers** — `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/test-locked.mjs`
@@ -2598,7 +2598,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin whole-run suite records at the runner-to-locked-suite boundary.
 - **inputs** — The real locked suite and runner, temporary git repositories, injected suite commands, locks, platforms, and record paths.
-- **outputs** — Four requirement-tagged PASS or FAIL checks and a nonzero exit when one fails.
+- **outputs** — Nine requirement-tagged PASS or FAIL checks and a nonzero exit when one fails.
 - **effects** — process (runs bounded fixture suites), disk (temporary repositories, a linked worktree, locks, records, and runner fixtures).
 - **errors** — Reports the requirement title whose record behavior differs and exits nonzero.
 - **callers** — —
