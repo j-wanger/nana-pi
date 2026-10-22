@@ -34,3 +34,9 @@
 - Odd seed entries (project-odd-seeds plan, inferred, not probed): project's dry run opens AGENTS.md read-only. So the project check still sends an unwritable AGENTS.md whose working region differs to project setup.
 - Odd seed entries (project-odd-seeds plan): no check pins that project setup runs git init only outside a repository. A check that catches an extra git init needs a sentinel in git's template folder.
 - Odd seed entries (project-odd-seeds, final review): an earlier month's log can sit beside an odd entry where this month's log belongs. Project setup then lists the month log as a fix by hand. The project check reads that log as fine.
+- Template Biome (biome-pin, plan): the scaffold stays on Biome 2.5 until a later lane decides how 2.6 treats Markdown and YAML. A fresh render under 2.6.2 fails 9 files, two written by other tools.
+- Template Biome (biome-pin, plan): `biome.json` uses a key Biome 2.5.15 reports as deprecated (info, not an error).
+- Template Biome (biome-pin, plan): the Python template's `ruff>=0.11` is an open range too. A new ruff rule could fail a fresh scaffold the same way.
+- Template Biome (biome-pin, plan): the render check runs only where pnpm resolves Biome, and runs `pnpm dlx`, not the scaffold's installed `pnpm lint`.
+- Template Biome (biome-pin, plan): an adopted project that already has Biome keeps its own range. The skill sentence is prose; no test proves an agent follows it.
+- Template Biome (biome-pin, plan): an existing project updated with `copier update` must run `pnpm install` once to move its lockfile to 2.5.15.
