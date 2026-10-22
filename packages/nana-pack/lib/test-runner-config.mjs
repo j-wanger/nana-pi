@@ -45,10 +45,12 @@ export const SUITE_JOBS_ENV = "NANA_SUITE_JOBS";
 // Chosen (must-meet.md measured table, 2026-10-19): each file here passed 8 of 8 runs under load
 // at --jobs=8, but its timing bound is load-sensitive by construction — running it alone instead
 // costs about 10s total across the four. A bound here is never loosened to make a file safe for
-// the pool; it joins this list instead.
+// the pool; it joins this list instead. CI run 39785202152 (Windows, four jobs, 2026-10-22)
+// showed the post-edit-utf8 check timing out under load.
 export const RUN_ALONE = Object.freeze({
 	"packages/nana-knowledge/tests/hook.test.mjs": "load-sensitive timing bounds (1500/1800 ms)",
 	"packages/nana-knowledge/tests/extension.test.mjs": "load-sensitive timing bounds (1000/1500 ms)",
 	"packages/nana-pack/tests/bounded-read.test.mjs": "load-sensitive timing bound (1000 ms)",
 	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",
+	"packages/nana-pack/tests/post-edit-utf8.test.mjs": "load-sensitive 3000 ms post-edit check starts a Python parent and child",
 });
