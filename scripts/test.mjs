@@ -574,7 +574,7 @@ if (beforeSnapshot !== null && afterSnapshot !== null) {
 }
 if (coverageDir) {
 	fs.mkdirSync(coverageDir, { recursive: true });
-	fs.writeFileSync(path.join(coverageDir, COMPLETION_FILE), JSON.stringify({ files: files.length, failures: tally.FAIL }));
+	fs.writeFileSync(path.join(coverageDir, COMPLETION_FILE), JSON.stringify({ files: files.length, failures: tally.FAIL + selfTestMismatch.length }));
 }
 console.log(
 	`\n${files.length} files: ${tally.PASS} PASS, ${tally.FAIL} FAIL, ${tally.SKIP} SKIP, ${warns.length} WARN · checks: ${checks.pass} pass, ${checks.fail} fail, ${checks.skip} skip · ${((Date.now() - started) / 1000).toFixed(1)}s`,
