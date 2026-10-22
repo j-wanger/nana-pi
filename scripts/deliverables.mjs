@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
  * @module scripts/deliverables.mjs
- * @purpose Check product-capability maker and reader lines for readable claims, reasons, and paths tracked at HEAD.
- * @inputs A parsed requirements tree and an injected list of ledger-relative paths tracked in the ledger folder's HEAD tree.
- * @outputs Deliverable notes, path claims to check, and counts describing whether deliverables were checked.
- * @effects none
- * @errors Returns report-only notes for malformed claims, missing reasons or paths, and paths not tracked at HEAD; never throws for a claim.
+ * @purpose Parse product-capability deliverable claims and produce the shared checker lines for their code coverage and HEAD-tracked paths.
+ * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, or an injected git runner.
+ * @outputs Per-row claims, code predicates, deliverable notes and counts, and the exact lines printed by the tree checker.
+ * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
+ * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
+import { spawnSync } from "node:child_process";
+import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 
 // Contract: the owner's 2026-10-22 approval; R-2537.
 export const DELIVERABLE_FIELD_LABELS = Object.freeze(["Made by", "Read by"]);
@@ -22,6 +24,8 @@ export const PATH_REQUIRED = Object.freeze([...MAKER_RUNS.filter((run) => run !=
 export const PART_SEPARATOR = " · ";
 // Contract: lane B's machine-local artifact name.
 export const RUNTIME_MAP_ARTIFACT = "runtime-map";
+// Contract (R-2543): shared verbatim by the checker and Product view when HEAD paths cannot be read.
+export const DELIVERABLE_PATHS_NOT_CHECKED = "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree";
 
 const MAKER_SET = new Set(MAKER_RUNS);
 const READER_SET = new Set(READER_KINDS);
@@ -71,6 +75,41 @@ export function deliverableFieldLinesByRow(parsed) {
   return result;
 }
 
+/** The listing capability's own claims by deliverable row, preserving their document order. */
+export function deliverableClaims(parsed, capability) {
+  const listed = deliverableIds(capability);
+  const claims = new Map(listed.map((row) => [row, []]));
+  for (const field of ownFieldLines(parsed, capability)) {
+    const row = ROW_AT_START.exec(field.body)?.[1];
+    if (!row || !claims.has(row)) continue;
+    const parts = field.body.split(PART_SEPARATOR);
+    const claimText = field.body.slice(row.length).trim().replace(/^·\s*/, "");
+    const claim = parts[1]?.trim() ?? "";
+    const colon = claim.indexOf(":");
+    const kind = (colon < 0 ? claim : claim.slice(0, colon)).trim();
+    const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
+    const madeByCode = field.label === "Made by" && parts.length <= 3 && MAKER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
+    const readByCode = field.label === "Read by" && parts.length === 2 && READER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
+    const artifact = field.label === "Made by" && parts.length === 3 && parts[2].trim() ? parts[2].trim() : null;
+    claims.get(row).push({ label: field.label, text: claimText, artifact, madeByCode, readByCode });
+  }
+  return claims;
+}
+
+/** The code-made and code-read state used for both Product marks and the checker count. */
+export function deliverableCodeState(claims) {
+  return {
+    madeByCode: claims.some((claim) => claim.madeByCode),
+    readByCode: claims.some((claim) => claim.readByCode),
+  };
+}
+
+/** The checker's count predicate: one row is counted only when code both makes and reads it. */
+export function isMadeAndReadByCode(claims) {
+  const state = deliverableCodeState(claims);
+  return state.madeByCode && state.readByCode;
+}
+
 /** Check deliverable fields. Pass null for trackedPaths to collect path claims without deciding them. */
 export function checkDeliverables(parsed, trackedPaths = null) {
   const notes = [];
@@ -98,8 +137,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     checkedDeliverables += listed.length;
     const listedSet = new Set(listed);
     const seen = new Map(listed.map((row) => [row, new Set()]));
-    const automaticMakers = new Set();
-    const codeReaders = new Set();
+    const claimsByRow = deliverableClaims(parsed, capability);
 
     for (const field of fields) {
       const rowHint = ROW_AT_START.exec(field.body)?.[1] ?? null;
@@ -138,7 +176,6 @@ export function checkDeliverables(parsed, trackedPaths = null) {
         } else if (!detail) {
           notes.push(note(`${row} Made by: line ${field.line} needs a code path`));
         } else {
-          automaticMakers.add(row);
           for (const path of detail.split(",")) addPath(row, path, field.line, "code path");
         }
         if (parts.length === 3) addPath(row, parts[2], field.line, "artifact");
@@ -162,12 +199,11 @@ export function checkDeliverables(parsed, trackedPaths = null) {
       } else if (!detail) {
         notes.push(note(`${row} Read by: line ${field.line} needs a code path`));
       } else {
-        codeReaders.add(row);
         for (const path of detail.split(",")) addPath(row, path, field.line, "reader path");
       }
     }
 
-    madeAndReadByCode += listed.filter((row) => automaticMakers.has(row) && codeReaders.has(row)).length;
+    madeAndReadByCode += listed.filter((row) => isMadeAndReadByCode(claimsByRow.get(row) ?? [])).length;
     for (const row of listed) {
       for (const label of DELIVERABLE_FIELD_LABELS) {
         if (!seen.get(row)?.has(label)) notes.push(note(`${row} has no readable ${label}: line`));
@@ -183,4 +219,38 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   }
 
   return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, madeAndReadByCode };
+}
+
+/** Return the exact deliverable lines plus the HEAD paths used to derive them. */
+export function deliverableReport(parsed, ledgerFolder, gitRunner = (args, options) => spawnSync("git", args, options)) {
+  const pending = checkDeliverables(parsed, null);
+  let report = pending;
+  let trackedPaths = null;
+  if (pending.pathsToCheck.length > 0) {
+    let result;
+    try {
+      result = gitRunner(["ls-tree", "-r", "-z", "--name-only", "HEAD"], { cwd: ledgerFolder, encoding: "buffer", maxBuffer: MAX_GIT_BUFFER });
+    } catch {
+      result = null;
+    }
+    if (!result || result.error || result.status !== 0) {
+      report = { ...pending, notes: [...pending.notes, DELIVERABLE_PATHS_NOT_CHECKED] };
+    } else {
+      const stdout = Buffer.isBuffer(result.stdout) ? result.stdout.toString("utf8") : String(result.stdout ?? "");
+      trackedPaths = stdout.split("\0").filter(Boolean);
+      report = checkDeliverables(parsed, trackedPaths);
+    }
+  }
+  return {
+    lines: [
+      ...(report.fieldLineCount > 0 ? [`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables} made and read by code`] : []),
+      ...report.notes,
+    ],
+    trackedPaths,
+  };
+}
+
+/** Return the exact deliverable lines the tree checker and Product view share. */
+export function deliverableReportLines(parsed, ledgerFolder, gitRunner = (args, options) => spawnSync("git", args, options)) {
+  return deliverableReport(parsed, ledgerFolder, gitRunner).lines;
 }

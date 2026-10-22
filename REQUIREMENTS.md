@@ -1874,7 +1874,7 @@ Purpose: Make requirements, code structure, checks and engineering rules inspect
 Outcome: A developer can see which promises a change affects and what evidence supports its behavior and engineering quality.
 Kind: product
 Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239, R-2547
-Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does
+Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does · docs/requirements-tree.md
 Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs
 Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes
 Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says
@@ -2391,26 +2391,30 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 | R-1633 | WHEN the product report command (`scripts/product-report.mjs`) is started through a symlinked or junctioned checkout folder, it shall refuse an unknown flag with exit 2 and print exactly what it refuses and prints when started by the checkout's real path. | implemented | `packages/nana-pack/tests/linked-launch.test.mjs::R-1633: the product report started through a linked checkout folder refuses an unknown flag with exit 2 as it does by its real path` |
 | R-2450 | The product report's Product view shall show the live `Kind: product` capabilities first, then the live capabilities with no `Kind:` line, then the live `Kind: constraint` capabilities, each group in REQUIREMENTS.md order, with each product capability's card naming the capabilities on its `Needs:` line. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2450: the Product view orders product, then kindless, then constraint capabilities, in document order within each, and a product card names its needs` |
 | R-2451 | Each live `Kind: constraint` capability's card in the Product view shall list every capability its `Binds:` line names, each with the IDs of the implemented rows homed under the constraint capability that an active or frozen feature under the bound capability lists on its `Also applies:` line, or with a gap mark when there are none. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2451: a constraint card lists each bound capability with its implemented shared constraint rows, or a gap` |
-| R-2452 | Each live `Kind: product` capability's card in the Product view shall list the rows on its `Deliverables:` line in that line's order, each with its status, a link to its home feature and links to the features that list it on `Also applies:`, marking each row whose status is not `implemented` as a gap. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2452: a product card lists its deliverables in line order with status, home and consumers, and marks every one not implemented as a gap` |
+| R-2452 | Each live `Kind: product` capability's card in the Product view shall list the rows on its `Deliverables:` line in that line's order, each with its status and a link to its home feature, marking each row whose status is not `implemented` as a gap. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2452: a product card lists its deliverables in line order with status and home, and marks every one not implemented as a gap` |
 | R-2453 | A feature's detail view in the product report shall name the capability that holds it, and that capability's kind when the capability carries a `Kind:` line. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2453: a feature's detail view names its capability, and the kind only when the capability has one` |
 | R-2454 | The product report's Product view shall show each capability carrying a `Retired:` line after every other capability, with a card naming its successors. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2454: a retired capability's card comes after every other card and names its successors` |
+| R-2542 | WHEN a live `Kind: product` capability's card in the Product view lists a deliverable, the product report shall show under it each `Made by:` and `Read by:` claim for that row from that capability's own span, in ledger order as written after the row ID, with the marks "not made by code" and "not read by code" as the tree checker counts them and "no artifact named" when no maker claim names one, in place of the features that share the row. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's code marks, and no consumers` |
+| R-2543 | The product report's Product view shall show, before the capability cards, the deliverable count line and notes that the tree checker prints for the same ledger and HEAD tree, in the same order. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2543: the Product view shows the tree checker's deliverable count line and notes for the same ledger and HEAD` |
+| R-2544 | WHEN a `Made by:` claim names an artifact path, the product report shall show beside it the commits from the last commit that changed that path to HEAD, counted as `git rev-list --count` counts them, and the whole days between their committer times, with that commit's first 8 characters and subject, or say why the age is unknown. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown` |
+| R-2545 | WHEN a `Made by:` claim names `runtime-map`, the product report shall show beside it the tip, the UTC measurement time and any uncommitted-file count the runtime data records, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or say why it cannot. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot` |
 
 # CAP-08 · Evaluate agent choices with credible evidence
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
 Kind: product
 Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
-Made by: R-509 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
+Made by: R-509 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · apps/bench/studies/tool-profiles-2026-09-08/schedule.json
 Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs
 Made by: R-532 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
 Read by: R-532 · person: a person opens a run's raw folder to audit it; no code reads it
-Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
+Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · apps/bench/studies/tool-profiles-2026-09-08/results.jsonl
 Read by: R-507 · code: apps/bench/aggregate.mjs, apps/bench/lib/plan.mjs
-Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand
+Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand · apps/bench/studies/tool-profiles-2026-09-08/summary.md
 Read by: R-535 · person: the owner reads the summary and verdict files to decide; no code reads them
-Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand
+Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand · apps/bench/studies/catch-ledger-2026-09-28/rows.jsonl
 Read by: R-536 · person: the study write-up was read once for its decision; no code or rule reads it now
-Made by: R-694 · manual: someone runs the writing-trial extractor by hand
+Made by: R-694 · manual: the seat runs the writing-trial extractor by hand and writes its result into after.md · docs/reviews/writing-trial-2026-10-04/after.md
 Read by: R-694 · person: the owner read its output to decide on the writing rule; nothing reads it since
 
 ## FEAT-034 · Define reproducible comparisons

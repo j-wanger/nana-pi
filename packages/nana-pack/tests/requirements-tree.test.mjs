@@ -405,7 +405,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   mkdirSync(scriptsDir, { recursive: true });
   mkdirSync(docsDir, { recursive: true });
   mkdirSync(traceTemplateDir, { recursive: true });
-  for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "deliverables.mjs"])
+  for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "requirements-moved.mjs", "deliverables.mjs"])
     copyFileSync(fileURLToPath(new URL(`../../../scripts/${name}`, import.meta.url)), join(scriptsDir, name));
   copyFileSync(fileURLToPath(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url)), join(traceTemplateDir, "requirements-trace.ts"));
   const copiedCli = join(scriptsDir, "requirements-tree.mjs");
