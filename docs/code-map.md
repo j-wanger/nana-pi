@@ -1047,10 +1047,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/nana-land.mjs`
 
 - **purpose** — Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
-- **inputs** — merge or cleanup arguments, a home directory for the review ledger, and an injectable process runner.
-- **outputs** — Named pure argument helpers and command results or printed CLI records.
+- **inputs** — merge or cleanup arguments, a home directory for the review tally and kept-text store, and an injectable process runner.
+- **outputs** — Named pure argument helpers and command results or printed CLI records naming relied-on, damaged, and uncommitted review texts.
 - **effects** — process (runs git and a suite command), disk (git merge and worktree cleanup).
-- **errors** — Invalid arguments, failed preconditions, suite failures, and git failures return a named refusal without continuing.
+- **errors** — Invalid arguments, missing intact review evidence, failed preconditions, suite failures, and git failures return a named refusal without continuing.
 - **callers** — `packages/nana-pack/tests/land.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/release-status.mjs`
 
@@ -1088,8 +1088,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict only when a review was produced.
 - **inputs** — argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, the reviewed tree's git revision, and prompts/review-standard.md
-- **outputs** — the review text written to --out, a round recorded in the ledger, and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
-- **effects** — disk (writes --out plus the ledger's reservation, tally and audit files), process (the watchdog's `pi` child, the reservation heartbeat, the exit code)
+- **outputs** — the review text written to --out and the kept-text store, a round recorded in the ledger, and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
+- **effects** — disk (writes --out plus the ledger's reservation, kept text, tally and audit files), process (the watchdog's `pi` child, the reservation heartbeat, the exit code)
 - **errors** — exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args, a missing, non-regular or blank review standard), when every attempt stalled or failed, when the round could not be recorded, or when its recorded verdict is empty; exit 0 otherwise
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/real-path.mjs`
@@ -1127,9 +1127,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-ledger.mjs`
 
 - **purpose** — The review round cap as a hook for any launcher — `run` reserves a round around a command and records its verdict, `check` asks whether one would be admitted.
-- **inputs** — argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, the user-scope review ledger, review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
-- **outputs** — the child's stdout written to --out, a recorded round, the projection note on stdout for `check`, and the admission note, warnings, unread-verdict note, cannot-start line and refusals on stderr
-- **effects** — process (resolves and spawns the review command with reviewer child env and stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock, reservation, tally and audit files, including a best-effort cannot-start line)
+- **inputs** — argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>`, `check --item <slug> [--tree <path>] [--revision R]`, or `keep --item <slug> --into <dir> [--repo <path>]`), the reviewed tree's git state, the user-scope review ledger, review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
+- **outputs** — the child's stdout written to --out and the kept-text store, a recorded round, lane-folder copies from `keep`, the projection note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
+- **effects** — process (resolves and spawns the review command with reviewer child env and stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock, reservation, kept text, tally and audit files, including a best-effort cannot-start line)
 - **errors** — exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/bin/worker-config.mjs`
@@ -1137,9 +1137,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-round.mjs`
 
 - **purpose** — The review round ledger — admit, project, complete and release one per-item review round under a user-scope lock.
-- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
-- **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and completion results carrying the recorded verdict plus an unread-verdict note when it is empty
-- **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
+- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr file identities, captured review text, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
+- **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
+- **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
 - **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
 - **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/verdict-config.mjs`
@@ -1156,8 +1156,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/bin/review-timeline.mjs`
 
-- **purpose** — Print one lane's recorded review rounds, in ledger order, with the MUST findings a sent-back review's own recorded file states.
-- **inputs** — argv (--item <slug> [--repo <path>]), the user-scope review ledger (tally and audit log, through readRounds/ledgerPaths), and the review files the audit log recorded
+- **purpose** — Print one lane's recorded review rounds, in ledger order, with the MUST findings a sent-back review's kept text or legacy recorded file states.
+- **inputs** — argv (--item <slug> [--repo <path>]), the user-scope review ledger (tally, kept-text store and audit log through readRounds/ledgerPaths), and legacy review files the audit log recorded
 - **outputs** — markdown on stdout; one stderr message and exit 1 on bad input or nothing to print
 - **effects** — disk (reads the ledger and recorded review files only)
 - **errors** — exit 1 with one message, no stack, on a missing or blank --item, a non-git --repo, a malformed tally, or no recorded review for the selected item and repository

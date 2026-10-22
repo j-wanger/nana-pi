@@ -1,0 +1,33 @@
+seat-mutate: lane ci-jobs, tip c46d85f3eb0840d18a6bfaa63569bea0cc2b7329, table 87fa6852c3ea893461c7f286696f9d1df50d0326b016087ecf7cbd62e25391a6, merge-base b195d89f0881e6ceab40861c8877b9788c9702e6, 14 pairs in 5 shards (3+3+3+3+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-22T13:36:02.807Z
+DECLARED (amendment) c13 and c14: the warm-up step removed; the warm-up step after the suite steps
+DECLARED (plan) c1 to c12 are the must-meet's pairs: a step without --jobs; npm test --jobs with no --; a literal job count; a third npm test step without it; NANA_CI_JOBS at 3; no chosen above it; the limit in the workflow env; the limit inline in a run line; the limit in a step env; the limit at 600000; no chosen above the limit; the Windows step without --verbose
+[1/5] seat-mutate: lane ci-jobs, shard 1/5, tip c46d85f3eb0840d18a6bfaa63569bea0cc2b7329, merge-base b195d89f0881e6ceab40861c8877b9788c9702e6, 3 pairs, darwin, node v22.22.2, 2026-10-22T13:36:03.876Z
+[1/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane ci-jobs, shard 2/5, tip c46d85f3eb0840d18a6bfaa63569bea0cc2b7329, merge-base b195d89f0881e6ceab40861c8877b9788c9702e6, 3 pairs, darwin, node v22.22.2, 2026-10-22T13:36:07.738Z
+[2/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane ci-jobs, shard 3/5, tip c46d85f3eb0840d18a6bfaa63569bea0cc2b7329, merge-base b195d89f0881e6ceab40861c8877b9788c9702e6, 3 pairs, darwin, node v22.22.2, 2026-10-22T13:36:11.741Z
+[3/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[3/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane ci-jobs, shard 4/5, tip c46d85f3eb0840d18a6bfaa63569bea0cc2b7329, merge-base b195d89f0881e6ceab40861c8877b9788c9702e6, 3 pairs, darwin, node v22.22.2, 2026-10-22T13:36:15.709Z
+[4/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane ci-jobs, shard 5/5, tip c46d85f3eb0840d18a6bfaa63569bea0cc2b7329, merge-base b195d89f0881e6ceab40861c8877b9788c9702e6, 2 pairs, darwin, node v22.22.2, 2026-10-22T13:36:19.725Z
+[5/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED c1 a step without --jobs — 1/1 named: /^R-2556: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c2 npm test --jobs with no separator — 1/1 named: /^R-2556: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c3 a literal job count in a step — 1/1 named: /^R-2556: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c4 a third npm test step without --jobs — 1/1 named: /^R-2556: /; 1 FAIL total (1 file changed, 2 insertions(+))
+RED c5 NANA_CI_JOBS at 3 — 1/1 named: /^R-2557: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c6 no chosen comment above the job count — 1/1 named: /^R-2557: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c7 the limit in the workflow-level env — 1/1 named: /^R-2558: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c8 the limit inline in a run line — 1/1 named: /^R-2558: /; UNNAMED red: [ci-workflow.test.mjs] R-2556: every CI suite step passes the job count to the runner after npm's separator the suite job must have …; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c9 the limit in a step env — 1/1 named: /^R-2558: /; UNNAMED red: [ci-workflow.test.mjs] R-1313: the Windows suite leg runs the suite verbose The input did not match the regular expression /^      -…; 2 FAIL total (1 file changed, 2 insertions(+))
+RED c10 the limit at 600000 — 1/1 named: /^R-2558: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c11 no chosen comment above the limit — 1/1 named: /^R-2558: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c12 the Windows step without --verbose — 1/1 named: /^R-1313: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED c13 the warm-up step removed — 1/1 named: /^R-2577: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED c14 the warm-up step after the suite steps — 1/1 named: /^R-2577: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 14/14 red (12 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 5 shards
