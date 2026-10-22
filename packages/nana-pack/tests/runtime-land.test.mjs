@@ -81,10 +81,11 @@ fs.writeFileSync(FAKE_SUITE, [
 	'  fs.mkdirSync(coverage, { recursive: true });',
 	'  if (process.env.NANA_FAKE_COVERAGE_PATH) fs.writeFileSync(process.env.NANA_FAKE_COVERAGE_PATH, coverage);',
 	'  if (mode === "sleep") { setTimeout(() => {}, 120000); } else {',
-	'    const failing = mode === "coverage-fail" || mode === "always-fail";',
+	'    const failing = mode === "coverage-fail" || mode === "always-fail" || mode === "whole-run-fail";',
 	'    const records = [{ path: "fixture/a.test.mjs", label: "PASS", seconds: 1 }, { path: "fixture/b.test.mjs", label: failing ? "FAIL" : "PASS", seconds: 2 }];',
 	'    records.forEach((record, index) => { const dir = path.join(coverage, String(index).padStart(4, "0")); fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, ' + JSON.stringify(RECORD_FILE) + '), JSON.stringify(record)); fs.writeFileSync(path.join(dir, "coverage-1.json"), JSON.stringify({ result: [] })); });',
-	'    if (mode !== "no-completion") fs.writeFileSync(path.join(coverage, ' + JSON.stringify(COMPLETION_FILE) + '), JSON.stringify({ files: mode === "count-mismatch" ? 9 : records.length }));',
+	'    const failures = failing ? (mode === "whole-run-fail" ? 2 : 1) : 0;',
+	'    if (mode !== "no-completion") fs.writeFileSync(path.join(coverage, ' + JSON.stringify(COMPLETION_FILE) + '), JSON.stringify({ files: mode === "count-mismatch" ? 9 : records.length, failures }));',
 	'    process.exit(failing ? 1 : 0);',
 	'  }',
 	'} else { process.exit(mode === "always-fail" || mode === "no-tip-fail" ? 7 : 0); }',
@@ -169,6 +170,12 @@ await check("a land failing under coverage keeps its data and reruns only the fa
 		const data = JSON.parse(fs.readFileSync(c.dataFile, "utf8")); assert.equal(data.tests["fixture/b.test.mjs"].label, "FAIL");
 		assert.match(c.result.stdout, new RegExp(`${LAND_NOTE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*fixture/b\\.test\\.mjs`));
 	}
+	const wholeRun = runCase("covered-file-and-whole-run-fail", { mode: "whole-run-fail" });
+	assert.notEqual(wholeRun.result.status, 0); assert.equal(wholeRun.starts.length, 1); assert.ok(wholeRun.starts[0].coverage);
+	assert.doesNotMatch(wholeRun.result.stdout, /rerunning without coverage/);
+	const writeFailure = runCase("covered-fail-write-refused", { mode: "coverage-fail", options: { writeFailure: true } });
+	assert.equal(writeFailure.result.status, 0); assert.equal(writeFailure.starts.length, 2);
+	assert.match(writeFailure.result.stdout, /runtime map write failed: injected write refusal/);
 });
 
 // req: R-2525

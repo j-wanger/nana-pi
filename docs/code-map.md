@@ -614,11 +614,11 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Run the project template's code-map generator over this repo, adding the measured test files to --impact, so nana-pi's own map is produced by the tool it ships (G-004, G-007, G-009, G-010, G-011).
 - **inputs** — argv (--write | --render | --check | --impact <file...>), code-map.config.json at the repo root, the modules under its roots, and for --impact, git and the runtime data file (NANA_RUNTIME_MAP_FILE override)
-- **outputs** — docs/code-map.md on --write, the summary line plus problem list of --check, the transitive callers and callees plus the measured test files of --impact
+- **outputs** — docs/code-map.md on --write, check findings, or impact callers, callees, freshness and measured test files
 - **effects** — disk (reads the config, the module sources and the runtime data file, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; a thrown Error for a bad config or an unknown mode
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `scripts/blast-radius.mjs`, `scripts/requirement-rows.mjs`
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/blast-radius.mjs`, `scripts/requirement-rows.mjs`
+- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`
 
 ### `scripts/identity-scan.mjs`
 
@@ -1391,7 +1391,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage owner filename.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/code-map.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/mutation-runner-config.mjs`
@@ -1566,13 +1566,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/runtime-map.mjs`
 
-- **purpose** — Read the runtime-map data file and say which measured test files executed given files, marking a drifted checkout stale.
-- **inputs** — the runtime data file (schema 1 JSON), the current tracked-file list and content, and an optional NANA_RUNTIME_MAP_FILE override
-- **outputs** — the resolved data-file path, a file's sha256 hash, the parsed data or a reason it could not be read, the checkout drift, and the formatted --impact runtime block
+- **purpose** — Read runtime-map data and format impact freshness plus per-test execution and staleness.
+- **inputs** — The schema 1 data file, current tracked content, clock and main relation, plus an optional data-file override.
+- **outputs** — The data path, file hashes, parsed data or a reason, checkout drift, freshness lines, and measured test blocks.
 - **effects** — disk (reads a file to hash it or to load the runtime data), process (spawns git for the common directory; every effect is injectable for tests)
 - **errors** — never throws from loadRuntime, hashFile or checkoutDrift; dataPath throws when git itself fails
 - **callers** — `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`
+- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`
 
 ### `packages/nana-pack/lib/test-runner-config.mjs`
 
@@ -2526,13 +2526,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/runtime-map.test.mjs`
 
-- **purpose** — Pin the runtime-map feature's nine must-meet rows (R-1271..R-1278) from OUTSIDE the measure command and the impact reader.
+- **purpose** — Pin runtime measurement, impact freshness and per-test staleness from outside their command boundaries.
 - **inputs** — the real scripts/runtime-measure.mjs, packages/nana-pack/lib/runtime-map.mjs and scripts/code-map.mjs, fixture git repositories this file builds, and the real checkout's own tracked files and hashes for the --impact fixtures
 - **outputs** — one PASS / FAIL line per check and a non-zero exit when any check failed
 - **effects** — process (spawns git, the copied test runner, the real code-map and runtime-measure CLIs, and fake multi-level process trees for the signal case), disk (temp git repositories and data files under one mkdtemp tree, removed at exit)
 - **errors** — a FAIL line naming the broken behaviour; a non-zero exit code
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`
+- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`, `scripts/runtime-measure.mjs`
 
 ### `packages/nana-pack/tests/skill-claims.mjs`
 

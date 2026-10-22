@@ -179,7 +179,7 @@ export function buildRuntimeData({ root, coverageDir, tip, measuredAt, dirty }) 
 	if (tip !== undefined) data.tip = tip;
 	if (measuredAt !== undefined) data.measuredAt = measuredAt;
 	if (dirty !== undefined) data.dirty = dirty;
-	return { ok: true, data };
+	return { ok: true, data, failures: completion.failures };
 }
 
 /** Atomically write one already-built runtime data object through the shared data path. */

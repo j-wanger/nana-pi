@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
-import { dataPath, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
+import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -406,8 +406,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     if (!runtimeData) return null;
     const entry = runtimeData.tests?.[file];
     if (!entry) return null;
-    const covered = [file, ...(Array.isArray(entry.ran) ? entry.ran : [])];
-    const changed = covered.some((candidate) => hashOf(candidate) !== runtimeData.hashes?.[candidate]);
+    const changed = runtimeEntryChanged(runtimeData, file, { hashOf });
     return { label: entry.label, changed };
   }
   const files = new Map();

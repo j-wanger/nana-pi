@@ -563,11 +563,6 @@ if (jobs === 1) {
 		if (record.mismatch) selfTestMismatch.push(record.mismatch);
 	}
 }
-if (coverageDir) {
-	fs.mkdirSync(coverageDir, { recursive: true });
-	fs.writeFileSync(path.join(coverageDir, COMPLETION_FILE), JSON.stringify({ files: files.length }));
-}
-
 const afterSnapshot = trackedSnapshot();
 if (beforeSnapshot !== null && afterSnapshot !== null) {
 	const names = new Set([...beforeSnapshot.keys(), ...afterSnapshot.keys()]);
@@ -576,6 +571,10 @@ if (beforeSnapshot !== null && afterSnapshot !== null) {
 		console.log(`FAIL tracked repository files changed by tests: ${changed.join(", ")}`);
 		tally.FAIL++;
 	}
+}
+if (coverageDir) {
+	fs.mkdirSync(coverageDir, { recursive: true });
+	fs.writeFileSync(path.join(coverageDir, COMPLETION_FILE), JSON.stringify({ files: files.length, failures: tally.FAIL }));
 }
 console.log(
 	`\n${files.length} files: ${tally.PASS} PASS, ${tally.FAIL} FAIL, ${tally.SKIP} SKIP, ${warns.length} WARN · checks: ${checks.pass} pass, ${checks.fail} fail, ${checks.skip} skip · ${((Date.now() - started) / 1000).toFixed(1)}s`,

@@ -58,11 +58,14 @@ disagree, `npm run map:impact -- <file...>` prints a change's blast radius, and
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and
-all three run inside `npm test` as well. `npm run map:measure` (`scripts/runtime-measure.mjs`)
-runs the suite once under per-file coverage and saves, in a file inside the clone's shared git
-folder and outside the repository, which code each test file ran and how long it took; `npm run
-map:impact` then lists those test files under each named file. Copies run from a temporary
-folder and children stopped by a signal are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
+all three run inside `npm test` as well. Every land through the locked suite measures the runtime
+map on the tip it lands. `npm run map:measure` (`scripts/runtime-measure.mjs`) runs the same path by
+hand and stamps the current tip, UTC measurement time and dirty tracked-file count. The data lives
+inside the clone's shared git folder, outside the repository, and records which code each test ran
+and how long it took. `npm run map:impact` lists those tests under each named file, prints the
+measured tip, time, age, checkout drift and main's movement, and marks stale only a test that ran a
+changed, added or removed file. Copies run from a temporary folder and children stopped by a signal
+are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
 nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems or a `0 problems` line. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
 `node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root <dir> --base <rev>` prints, per feature, which rows <dir>'s REQUIREMENTS.md added, removed, re-statused, reworded or moved since the merge base of `<rev>` and HEAD.

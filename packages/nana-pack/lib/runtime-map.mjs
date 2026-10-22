@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/runtime-map.mjs
- * @purpose Read the runtime-map data file and say which measured test files executed given files, marking a drifted checkout stale.
- * @inputs the runtime data file (schema 1 JSON), the current tracked-file list and content, and an optional NANA_RUNTIME_MAP_FILE override
- * @outputs the resolved data-file path, a file's sha256 hash, the parsed data or a reason it could not be read, the checkout drift, and the formatted --impact runtime block
+ * @purpose Read runtime-map data and format impact freshness plus per-test execution and staleness.
+ * @inputs The schema 1 data file, current tracked content, clock and main relation, plus an optional data-file override.
+ * @outputs The data path, file hashes, parsed data or a reason, checkout drift, freshness lines, and measured test blocks.
  * @effects disk (reads a file to hash it or to load the runtime data), process (spawns git for the common directory; every effect is injectable for tests)
  * @errors never throws from loadRuntime, hashFile or checkoutDrift; dataPath throws when git itself fails
  */
@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { TIP_DIGITS } from "./land-config.mjs";
 import {
 	DATA_FILE_ENV,
 	DATA_SUBPATH,
@@ -92,29 +93,58 @@ export function checkoutDrift(data, { tracked, hashOf }) {
 	return { added, removed, changed, stale: added.length > 0 || removed.length > 0 || changed.length > 0 };
 }
 
+/** Whether one measured test entry or any tracked file it ran differs from the measurement (R-1513, R-2534). */
+export function runtimeEntryChanged(data, testPath, { hashOf }) {
+	const entry = data.tests?.[testPath];
+	if (!entry) return false;
+	const covered = [testPath, ...(Array.isArray(entry.ran) ? entry.ran : [])];
+	return covered.some((candidate) => hashOf(candidate) !== data.hashes?.[candidate]);
+}
+
 /** Every measured test entry that ran `targetPath`, longest first and ties by path. */
-function testsFor(data, targetPath) {
+function testsFor(data, targetPath, { hashOf }) {
 	return Object.entries(data.tests ?? {})
 		.filter(([, t]) => (t.ran ?? []).includes(targetPath))
-		.map(([testPath, t]) => ({ testPath, seconds: t.seconds, label: t.label }))
+		.map(([testPath, t]) => ({
+			testPath,
+			seconds: t.seconds,
+			label: t.label,
+			changed: runtimeEntryChanged(data, testPath, { hashOf }),
+		}))
 		.sort((a, b) => b.seconds - a.seconds || (a.testPath < b.testPath ? -1 : 1));
 }
 
+/** Freshness lines for runtime data that carries the land or hand measurement metadata (R-2528, R-2529). */
+export function formatFreshness(data, { drift, mainRelation, now = () => new Date() }) {
+	if (typeof data?.tip !== "string" || !data.tip || typeof data?.measuredAt !== "string") return "";
+	const measured = new Date(data.measuredAt);
+	const current = new Date(now());
+	if (!Number.isFinite(measured.getTime()) || !Number.isFinite(current.getTime())) return "";
+	const ageHours = Math.max(0, Math.floor((current.getTime() - measured.getTime()) / (60 * 60 * 1000)));
+	const differences = drift.added.length + drift.removed.length + drift.changed.length;
+	const ageWord = ageHours === 1 ? "hour" : "hours";
+	const fileWord = differences === 1 ? "file differs" : "files differ";
+	const out = [`${NOTE_PREFIX} measured tip ${data.tip.slice(0, TIP_DIGITS)} at ${measured.toISOString()} is ${ageHours} ${ageWord} old; ${differences} tracked ${fileWord} from this checkout`];
+	if (mainRelation?.kind === "past") out.push(`${NOTE_PREFIX} main is ${mainRelation.commits} commits past the measured tip; the next land measures it`);
+	else if (mainRelation?.kind === "not-on-main") out.push(`${NOTE_PREFIX} the measured tip is not on main; the next land measures it`);
+	return out.join("\n");
+}
+
 /**
- * The --impact runtime block (R-1272, R-1274): one "measured tests for <path> (<n>):" block per
+ * The --impact runtime block (R-1272, R-2534): one "measured tests for <path> (<n>):" block per
  * named path, longest-first lines with seconds and a non-PASS label, a zero line for a file no
- * measured test ran, every block carrying the stale mark when the checkout has drifted, and a
- * closing line naming what is not counted.
+ * measured test ran, a stale mark only on entries whose measured files changed, and a closing
+ * line naming what is not counted.
  */
-export function formatRuntime(data, paths, { drift }) {
+export function formatRuntime(data, paths, { hashOf }) {
 	const out = [];
 	for (const p of paths) {
-		const entries = testsFor(data, p);
-		const staleTag = drift.stale ? ` ${STALE_MARK}` : "";
-		out.push(`measured tests for ${p} (${entries.length}):${entries.length ? "" : " —"}${staleTag}`);
+		const entries = testsFor(data, p, { hashOf });
+		out.push(`measured tests for ${p} (${entries.length}):${entries.length ? "" : " —"}`);
 		for (const e of entries) {
 			const labelTag = e.label === "PASS" ? "" : ` [${e.label}]`;
-			out.push(`  ${e.seconds.toFixed(SECONDS_DIGITS)}s  ${e.testPath}${labelTag}`);
+			const staleTag = e.changed ? ` ${STALE_MARK}` : "";
+			out.push(`  ${e.seconds.toFixed(SECONDS_DIGITS)}s  ${e.testPath}${labelTag}${staleTag}`);
 		}
 	}
 	out.push(`${NOTE_PREFIX} ${NOT_COUNTED}`);

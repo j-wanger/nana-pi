@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/runtime-map.test.mjs
- * @purpose Pin the runtime-map feature's nine must-meet rows (R-1271..R-1278) from OUTSIDE the measure command and the impact reader.
+ * @purpose Pin runtime measurement, impact freshness and per-test staleness from outside their command boundaries.
  * @inputs the real scripts/runtime-measure.mjs, packages/nana-pack/lib/runtime-map.mjs and scripts/code-map.mjs, fixture git repositories this file builds, and the real checkout's own tracked files and hashes for the --impact fixtures
  * @outputs one PASS / FAIL line per check and a non-zero exit when any check failed
  * @effects process (spawns git, the copied test runner, the real code-map and runtime-measure CLIs, and fake multi-level process trees for the signal case), disk (temp git repositories and data files under one mkdtemp tree, removed at exit)
@@ -17,6 +17,7 @@
 import { tmpDir } from "./tmp-dir.mjs";
 import { measure } from "../../../scripts/runtime-measure.mjs";
 import { hashFile } from "../lib/runtime-map.mjs";
+import { runtimeBlock } from "../../../scripts/code-map.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -53,7 +54,7 @@ function mkGitFixture(name, files) {
 		fs.mkdirSync(path.dirname(p), { recursive: true });
 		fs.writeFileSync(p, body);
 	}
-	spawnSync("git", ["init", "-q"], { cwd: root });
+	spawnSync("git", ["init", "-q", "-b", "main"], { cwd: root });
 	spawnSync("git", ["add", "."], { cwd: root });
 	spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: root });
 	return root;
@@ -186,73 +187,106 @@ check("R-1273: with no runtime data, impact prints one note naming npm run map:m
 	staticOk && noData.out.includes("npm run map:measure") && noData.code === 0,
 );
 
-function withOverride(file, overrides) {
-	const data = JSON.parse(fs.readFileSync(mm3Data, "utf8"));
-	overrides(data);
-	fs.writeFileSync(file, JSON.stringify(data));
-}
-const mm5Changed = path.join(TD, "mm5-changed.json");
-withOverride(mm5Changed, (data) => {
-	data.hashes = currentHashes();
-	data.hashes[NAMED_ZERO] = "0".repeat(64); // a tracked file's content differs from its recorded hash
+const freshnessData = path.join(TD, "freshness-data.json");
+const freshnessHashes = currentHashes();
+freshnessHashes[NAMED_A] = "0".repeat(64);
+delete freshnessHashes[NAMED_ZERO];
+const freshnessTime = "2026-10-22T05:00:00.000Z";
+fs.writeFileSync(freshnessData, JSON.stringify({
+	schema: 1,
+	tip: spawnSync("git", ["rev-parse", "HEAD"], { cwd: REPO, encoding: "utf8" }).stdout.trim(),
+	measuredAt: freshnessTime,
+	hashes: freshnessHashes,
+	tests: {},
+}));
+const freshnessOut = runtimeBlock(REPO, ["--impact", NAMED_A], {
+	env: { ...process.env, NANA_RUNTIME_MAP_FILE: freshnessData },
+	now: () => new Date("2026-10-22T10:00:00.000Z"),
 });
-const mm5Added = path.join(TD, "mm5-added.json");
-withOverride(mm5Added, (data) => {
-	data.hashes = currentHashes();
-	delete data.hashes[NAMED_ZERO]; // git tracks it now; the data does not hold it
-});
-const mm5Removed = path.join(TD, "mm5-removed.json");
-withOverride(mm5Removed, (data) => {
-	data.hashes = currentHashes();
-	data.hashes["no/such/file.txt"] = "f".repeat(64); // the data holds a file git no longer tracks
-});
-function bothBlocksStale(out) {
-	return out.includes(`measured tests for ${NAMED_A} (2): [stale]`)
-		&& out.includes(`measured tests for ${NAMED_ZERO} (0): — [stale]`);
-}
-const mm5Cases = [mm5Changed, mm5Added, mm5Removed].map((f) => runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: f }));
+// req: R-2528
+check("impact names the measured tip, its UTC time, its age in hours and how many tracked files differ",
+	freshnessOut.includes(`runtime map: measured tip ${JSON.parse(fs.readFileSync(freshnessData, "utf8")).tip.slice(0, 8)} at ${freshnessTime} is 5 hours old; 2 tracked files differ from this checkout`),
+	freshnessOut,
+);
 
-// A fourth case (sol MUST 3, astra SHOULD 1): an unstaged deletion of a tracked file. git
-// ls-files still names it (only `git rm` would drop it), so hashing it off disk must not throw —
-// a missing file counts as changed, same as any other content mismatch. This never touches THIS
-// checkout (build brief 4): a throwaway fixture repository under the test's own temp folder, the
-// same shape MM9 already builds, holds the one file that gets deleted.
-const mm5DeletedConfig = {
+const relationConfig = {
 	roots: ["probe"],
 	moduleExtensions: [".mjs"],
 	mapPath: "docs/code-map.md",
 	runner: "npm run",
-	packages: [{ id: "mm5-deleted", prefix: "" }],
+	packages: [{ id: "relation", prefix: "" }],
 	layers: [{ id: "all", title: "All", blurb: "x", match: "^probe/" }],
 };
-const rootMM5Deleted = mkGitFixture("mm5-deleted", {
-	"code-map.config.json": JSON.stringify(mm5DeletedConfig),
-	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
-	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
-	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
-	"packages/nana-pack/lib/runtime-map.mjs": fs.readFileSync(RUNTIME_MAP_READER, "utf8"),
-	"probe/other.mjs": "export const O = 1;\n", // the path this case queries; stays on disk throughout
-	"probe/target.mjs": "export const T = 2;\n", // deleted below, unstaged
+const relationRoot = mkGitFixture("main-relation", {
+	"code-map.config.json": JSON.stringify(relationConfig),
+	"probe/a.mjs": "export const A = 1;\n",
 });
-const mm5DeletedData = path.join(TD, "mm5-deleted-data.json");
-fs.writeFileSync(mm5DeletedData, JSON.stringify({
-	schema: 1,
-	hashes: {
-		"probe/other.mjs": hashFile(path.join(rootMM5Deleted, "probe", "other.mjs")),
-		"probe/target.mjs": hashFile(path.join(rootMM5Deleted, "probe", "target.mjs")),
-	},
-	tests: {},
-}));
-fs.unlinkSync(path.join(rootMM5Deleted, "probe", "target.mjs")); // unstaged: still in git ls-files
-const mm5DeletedResult = spawnSync(process.execPath, [path.join(rootMM5Deleted, "scripts", "code-map.mjs"), "--impact", "probe/other.mjs"], {
-	cwd: rootMM5Deleted, encoding: "utf8", env: { ...process.env, NANA_RUNTIME_MAP_FILE: mm5DeletedData },
-});
-const mm5DeletedOut = (mm5DeletedResult.stdout ?? "") + (mm5DeletedResult.stderr ?? "");
-const mm5DeletedOk = mm5DeletedResult.status === 0 && mm5DeletedOut.includes("measured tests for probe/other.mjs (0): — [stale]");
+function fixtureGit(...args) {
+	const result = spawnSync("git", args, { cwd: relationRoot, encoding: "utf8" });
+	if (result.status !== 0) throw new Error((result.stderr ?? "git failed").trim());
+	return result.stdout.trim();
+}
+const baseTip = fixtureGit("rev-parse", "HEAD");
+for (let i = 1; i <= 3; i++) {
+	fs.appendFileSync(path.join(relationRoot, "probe", "a.mjs"), `export const V${i} = ${i};\n`);
+	fixtureGit("add", "probe/a.mjs");
+	fixtureGit("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", `main-${i}`);
+}
+function relationOutput(name, tip) {
+	const file = path.join(TD, `${name}.json`);
+	const hashes = {};
+	for (const tracked of fixtureGit("ls-files").split("\n").filter(Boolean)) hashes[tracked] = hashFile(path.join(relationRoot, tracked));
+	fs.writeFileSync(file, JSON.stringify({ schema: 1, tip, measuredAt: freshnessTime, hashes, tests: {} }));
+	return runtimeBlock(relationRoot, ["--impact", "probe/a.mjs"], {
+		env: { ...process.env, NANA_RUNTIME_MAP_FILE: file },
+		now: () => new Date("2026-10-22T10:00:00.000Z"),
+	});
+}
+const mainPastOut = relationOutput("main-past", baseTip);
+fixtureGit("checkout", "-qb", "ahead-of-main");
+fs.appendFileSync(path.join(relationRoot, "probe", "a.mjs"), "export const AHEAD = true;\n");
+fixtureGit("add", "probe/a.mjs");
+fixtureGit("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "ahead");
+const aheadOut = relationOutput("ahead", fixtureGit("rev-parse", "HEAD"));
+const absentOut = relationOutput("absent", "f".repeat(40));
+// req: R-2529
+check("impact says how far main is past the measured tip, or that the tip is not on main",
+	mainPastOut.includes("runtime map: main is 3 commits past the measured tip; the next land measures it")
+		&& aheadOut.includes("runtime map: the measured tip is not on main; the next land measures it")
+		&& absentOut.includes("runtime map: the measured tip is not on main; the next land measures it")
+		&& !/fatal:|git error/i.test(`${mainPastOut}\n${aheadOut}\n${absentOut}`),
+	`${mainPastOut}\n${aheadOut}\n${absentOut}`,
+);
 
-// req: R-1274
-check("R-1274: impact marks the whole runtime section stale after a tracked file is changed, added or removed, a section with no measured test included",
-	mm5Cases.every((r) => r.code === 0 && bothBlocksStale(r.out)) && mm5DeletedOk,
+const changedTest = "packages/nana-pack/tests/runtime-map.test.mjs";
+const unchangedTests = ["packages/nana-pack/tests/code-map.test.mjs", "packages/nana-pack/tests/blast-radius.test.mjs"];
+function perTestStalenessData(file, kind) {
+	const hashes = currentHashes();
+	const target = kind === "gone" ? "no/such/file.txt" : NAMED_ZERO;
+	if (kind === "changed") hashes[target] = "0".repeat(64);
+	else if (kind === "untracked") delete hashes[target];
+	else hashes[target] = "f".repeat(64);
+	fs.writeFileSync(file, JSON.stringify({
+		schema: 1,
+		hashes,
+		tests: {
+			[changedTest]: { label: "PASS", seconds: 3, ran: [NAMED_A, target] },
+			[unchangedTests[0]]: { label: "PASS", seconds: 2, ran: [NAMED_A] },
+			[unchangedTests[1]]: { label: "PASS", seconds: 1, ran: [NAMED_A] },
+		},
+	}));
+}
+const stalenessOutputs = ["changed", "untracked", "gone"].map((kind) => {
+	const file = path.join(TD, `per-test-${kind}.json`);
+	perTestStalenessData(file, kind);
+	return runCodeMap(["--impact", NAMED_A], { NANA_RUNTIME_MAP_FILE: file }).out;
+});
+// req: R-2534
+check("impact marks stale only the measured tests that ran a changed file",
+	stalenessOutputs.every((out) => out.includes(`3.0s  ${changedTest} [stale]`)
+		&& unchangedTests.every((test) => !out.includes(`${test} [stale]`))
+		&& !out.includes(`measured tests for ${NAMED_A} (3): [stale]`)),
+	stalenessOutputs.join("\n---\n"),
 );
 
 const garbageData = path.join(TD, "garbage-data.json");

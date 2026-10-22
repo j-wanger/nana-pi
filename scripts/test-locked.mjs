@@ -226,7 +226,8 @@ export async function runLocked({
 		if (coverageCode !== 0 && built.ok && COVERAGE_FAILURE_POLICY === "rerun-failed") {
 			const failed = Object.entries(built.data.tests).filter(([, value]) => value.label === "FAIL").map(([file]) => file).sort();
 			cleanupCoverage();
-			if (!failed.length) return coverageCode;
+			if (writeProblem) note(writeProblem);
+			if (!failed.length || built.failures !== failed.length) return coverageCode;
 			for (const file of failed) note(`rerunning without coverage: ${file}`);
 			return await runCommand(failed, plainEnv, cwd);
 		}
