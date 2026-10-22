@@ -760,6 +760,7 @@ if (!version) {
 } else {
 	let crlfOk = true;
 	const crlfWhy = [];
+	const biomePins = { scaffold: null, adopt: null };
 	for (const [language, spec] of Object.entries(LANGS)) {
 		// ---------------------------------------------------------------- scaffold
 		const { dest, ok, out: log } = render(language, { ...spec.answers, adopt: "false" });
@@ -907,7 +908,7 @@ if (!version) {
 			// not full proof of the row for three reasons: (1) they SKIP, silently to the
 			// rail, when uvx/ruff/biome cannot be resolved — sol r1's own PATH-with-only-
 			// Node probe showed both languages SKIP and the suite still exits 0; (2) they
-			// invoke `uvx ruff` / `pnpm dlx @biomejs/biome` directly, not the rendered
+			// invoke `uvx ruff` / `pnpm dlx @biomejs/biome@<rendered version>` directly, not the rendered
 			// project's own installed commands (`uv run ruff` / `pnpm lint`); (3) a marker
 			// here would claim more than that gap allows. The manual fresh-render evidence
 			// (both languages, scaffold + adopt, with the project's own installed commands)
@@ -923,12 +924,16 @@ if (!version) {
 					skip(`${language}: a fresh scaffold passes its own lint/format gates`, "uvx ruff is not resolvable on this machine");
 				}
 			} else {
-				const probe = run("pnpm", ["dlx", "@biomejs/biome", "--version"], REPO);
+				const renderedPackage = JSON.parse(fs.readFileSync(path.join(dest, "package.json"), "utf8"));
+				const biomeVersion = renderedPackage.devDependencies?.["@biomejs/biome"];
+				biomePins.scaffold = biomeVersion;
+				const biomePackage = `@biomejs/biome@${biomeVersion}`;
+				const probe = run("pnpm", ["dlx", biomePackage, "--version"], REPO);
 				if (probe.status === 0) {
-					const lint = run("pnpm", ["dlx", "@biomejs/biome", "check", "."], dest);
+					const lint = run("pnpm", ["dlx", biomePackage, "check", "."], dest);
 					check(`${language}: a fresh scaffold passes biome check with no edits`, lint.status === 0, out(lint).slice(-1000));
 				} else {
-					skip(`${language}: a fresh scaffold passes its own lint/format gates`, "pnpm dlx @biomejs/biome is not resolvable on this machine");
+					skip(`${language}: a fresh scaffold passes its own lint/format gates`, `pnpm dlx ${biomePackage} is not resolvable on this machine`);
 				}
 			}
 
@@ -994,6 +999,11 @@ if (!version) {
 				}
 			}
 			const dir = adopt.dest;
+			if (language === "typescript") {
+				const renderedPackage = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+				const biomeVersion = renderedPackage.devDependencies?.["@biomejs/biome"];
+				biomePins.adopt = biomeVersion;
+			}
 			const adoptTarget = { name: `${language}-adopt`, root: dir };
 			const adoptKey = `${language}-adopt`;
 			const sharedText = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
@@ -1120,6 +1130,8 @@ if (!version) {
 	}
 	// req: R-1321
 	check("R-1321: each template's code-map, readme-check and trace scripts pass on a rendered project rewritten to CRLF", crlfOk, crlfWhy.join(" | "));
+	// req: R-2559
+	check("R-2559: a fresh TypeScript scaffold pins Biome to the sealed exact version 2.5.15", biomePins.scaffold === "2.5.15" && biomePins.adopt === "2.5.15", `scaffold ${JSON.stringify(biomePins.scaffold)}, adopt ${JSON.stringify(biomePins.adopt)}`);
 
 	// -------------------------------------------- R-1440 to R-1443: cp1252/ascii output
 	// Python only: an extra scaffold render carrying a non-ASCII fixture (a README path
