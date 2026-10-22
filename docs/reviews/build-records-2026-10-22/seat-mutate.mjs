@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane build-records (ordinary lane), written by the seat 2026-10-22 after build 1, on the
-// shared runner, at tip 7804e7ed. They are the must-meet's nineteen pairs in its order. p13 uses the real-path half of
+// shared runner, at tip 7804e7ed (baseline red: R-2598 failed under the runner's long temp folder), re-run at cb2d3f0a after build 2. They are the must-meet's nineteen pairs in its order. p13 uses the real-path half of
 // the planned pair: macOS temp folders resolve through /private, while a missing ":" replacement can only show on Windows.
 // Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/build-records-2026-10-22/seat-mutate.mjs
@@ -89,4 +89,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R_2602] },
 ];
 
-process.exitCode = await runMutations({ lane: "build-records", self: import.meta.url, tip: "7804e7ed", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "build-records", self: import.meta.url, tip: "cb2d3f0a", declared: DECLARED, pairs: PAIRS });
