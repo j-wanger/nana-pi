@@ -1,0 +1,10 @@
+CI run 39765317737 at 250c6e30 (PR #163), all jobs success; release skipped (not main).
+suite (macos-latest)	Run npm test	2026-10-22T11:03:23.3824500Z 206 files: 204 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8294 pass, 0 fail, 41 skip · 1127.6s
+suite (ubuntu-latest)	Run npm test	2026-10-22T10:59:26.6340466Z 206 files: 203 PASS, 0 FAIL, 3 SKIP, 0 WARN · checks: 8233 pass, 0 fail, 61 skip · 895.4s
+suite (windows-latest)	Run npm test -- --verbose	2026-10-22T11:20:11.3628639Z 206 files: 188 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7223 pass, 0 fail, 119 skip · 2004.5s
+Windows leg, the lane's test files:
+suite (windows-latest)	Run npm test -- --verbose	2026-10-22T11:07:27.8061371Z PASS  packages/nana-pack/tests/suite-records.test.mjs                 9 pass  24.5s
+suite (windows-latest)	Run npm test -- --verbose	2026-10-22T11:12:13.4168288Z PASS  packages/nana-pack/tests/test-locked.test.mjs                   13 pass, 4 skip  2.9s
+suite (windows-latest)	Run npm test -- --verbose	2026-10-22T11:12:39.9979578Z PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          8 pass  26.6s
+suite (windows-latest)	Run npm test -- --verbose	2026-10-22T11:13:01.6470254Z PASS  packages/nana-pack/tests/test-runner.test.mjs                   47 pass  21.6s
+install-check (macos-latest): pass; install-check (windows-latest): pass

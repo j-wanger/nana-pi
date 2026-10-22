@@ -32,6 +32,8 @@ const TEST_LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const LAND_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "land-config.mjs");
+const SUITE_RECORDS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs");
+const SUITE_RECORDS = path.join(REPO, "packages", "nana-pack", "lib", "suite-records.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
 const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test-runner-config.mjs");
 const RUNTIME_MAP_READER = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map.mjs");
@@ -67,6 +69,8 @@ const MM2_SLEEP_MS = 300; // chosen: a lower bound the recorded seconds must cle
 const rootMM2 = mkGitFixture("mm2", {
 	"scripts/test.mjs": fs.readFileSync(RUNNER, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
+	"packages/nana-pack/lib/suite-records-config.mjs": fs.readFileSync(SUITE_RECORDS_CONFIG, "utf8"),
+	"packages/nana-pack/lib/land-config.mjs": fs.readFileSync(LAND_CONFIG, "utf8"),
 	"packages/nana-pack/lib/windows-skips-config.mjs": fs.readFileSync(WINDOWS_SKIPS_CONFIG, "utf8"),
 	"packages/nana-pack/lib/test-runner-config.mjs": fs.readFileSync(TEST_RUNNER_CONFIG, "utf8"),
 	"packages/probe/moduleA.mjs": "export const A = 1;\n",
@@ -511,6 +515,8 @@ const mainMM9 = mkGitFixture("mm9-main", {
 	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
 	"packages/nana-pack/lib/land-config.mjs": fs.readFileSync(LAND_CONFIG, "utf8"),
+	"packages/nana-pack/lib/suite-records-config.mjs": fs.readFileSync(SUITE_RECORDS_CONFIG, "utf8"),
+	"packages/nana-pack/lib/suite-records.mjs": fs.readFileSync(SUITE_RECORDS, "utf8"),
 	"packages/nana-pack/lib/windows-skips-config.mjs": fs.readFileSync(WINDOWS_SKIPS_CONFIG, "utf8"),
 	"packages/nana-pack/lib/test-runner-config.mjs": fs.readFileSync(TEST_RUNNER_CONFIG, "utf8"),
 	"packages/nana-pack/lib/runtime-map.mjs": fs.readFileSync(RUNTIME_MAP_READER, "utf8"),
@@ -543,7 +549,7 @@ const mm9Run = spawnSync(process.execPath, [path.join(worktreeMM9, "scripts", "r
 
 const dataFileMM9 = path.join(nanaDirMM9, "runtime-map.json");
 const createdNanaMM9 = !existedBeforeMM9 && fs.existsSync(nanaDirMM9);
-const exactlyOneFileMM9 = fs.existsSync(dataFileMM9) && fs.readdirSync(nanaDirMM9).length === 1;
+const runtimeMapPresentMM9 = fs.existsSync(dataFileMM9);
 
 // the real impact command (sol MUST 2): run from the fixture's MAIN checkout, no override, so it
 // has to resolve the same shared data file dataPath would, on its own, to show anything at all.
@@ -556,7 +562,7 @@ const mm9ImpactOut = (mm9Impact.stdout ?? "") + (mm9Impact.stderr ?? "");
 
 // req: R-1278
 check("R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it",
-	mm9Run.status === 0 && createdNanaMM9 && exactlyOneFileMM9
+	mm9Run.status === 0 && createdNanaMM9 && runtimeMapPresentMM9
 		&& mm9Impact.status === 0
 		&& mm9ImpactOut.includes("measured tests for packages/probe/moduleMM9.mjs (1):")
 		&& mm9ImpactOut.includes("packages/probe/tests/a.test.mjs"),
