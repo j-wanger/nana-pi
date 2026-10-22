@@ -33,3 +33,18 @@
 - Known bugs (known-bugs, plan adversary): other projects with old known-bug lines in their HANDOFF keep them. The rule applies going forward.
 - Known bugs (known-bugs, final review): in the move's first rule, a named lane with rows but no brief places the line by its own rows before the next named lane's brief is tried. So a tag naming a row-only lane, then a briefed lane, places by the first lane's rows. The move never hit this case.
 - Known bugs (known-bugs, final review): the size check splits lines on a line feed only, and still passes R-2507. It differs only for a lone carriage return.
+- Frontier block (session-start-frontier, plan): titles only; item bodies, Where things stand, Landed and the known bugs are not shown, so the startup rule to read HANDOFF.md stays.
+- Frontier block (session-start-frontier, plan): a seed-shaped file shows no asks, because the seed's `## Open` heading is not an `Open for ` heading (6 of 14 local files).
+- Frontier block (session-start-frontier, plan): most projects' titles are fallbacks, plain first lines cut at 160 characters rather than at a sentence end.
+- Frontier block (session-start-frontier, plan): read at session start only; an edit shows at the next start, reload, resume, clear or compaction.
+- Frontier block (session-start-frontier, plan): the repository root decides, so a sub-project folder with no `.git` of its own reads the enclosing repository's HANDOFF.md.
+- Frontier block (session-start-frontier, plan): no switch; neither user nor project config turns the block off.
+- Frontier block (session-start-frontier, plan): titles from a repository-writable HANDOFF.md reach pi's system prompt as bounded, quoted data with no trust gate; steering text is outside the threat model.
+- Frontier block (session-start-frontier, plan): a symlinked HANDOFF.md is followed.
+- Frontier block (session-start-frontier, plan): pi-subagents children carry no `NANA_ROLE`, so they get the block.
+- Frontier block (session-start-frontier, plan): the Claude hook's status message still names only the objective; renaming it is a settings change.
+- Frontier block (session-start-frontier, plan): the deliverables count is not shown at session start.
+- Frontier block (session-start-frontier, plan): no journal event records the pi pickup.
+- Frontier block (session-start-frontier, independent check): choosing which titles fit re-renders the block per title, so time grows with the square of the item count; a 900 KB HANDOFF with 15,301 list items took 3.6 s, and 31,452 took 27 s. The Claude hook cuts it at 1.5 s and prints the marker; pi's session start waits. The largest seat-written HANDOFF measured is 24 KB.
+- Frontier block (session-start-frontier, independent check): when the objective passes 9,000 characters, the omitted line reads a negative count ("-518 characters left after the objective").
+- Frontier block (session-start-frontier, independent check): a bold lead holding U+2028 or U+2029 does not match the bold pattern, so that title prints with its `**` marks, still on one clean line.
