@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vm from "node:vm";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { buildReport, generateReport, generatePackets, renderInto, validateStore } from "../../../scripts/product-report.mjs";
 import * as productReportModule from "../../../scripts/product-report.mjs";
@@ -96,10 +96,53 @@ function setRowEvidence(root, id, evidence) {
 // Schema-1 runtime data at the fixture's own .git/nana/runtime-map.json (R-1278's default
 // place), never injected and never the real clone's.
 function writeRuntimeFile(root, data) {
-  const file = path.join(root, ".git", "nana", "runtime-map.json");
+  const common = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  const file = path.join(path.resolve(root, common), "nana", "runtime-map.json");
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(data));
   return file;
+}
+function productLedger(artifacts) {
+  const rows = artifacts.map((_, index) => `R-${8500 + index}`);
+  return [
+    "# CAP-85 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", `Deliverables: ${rows.join(", ")}`,
+    ...artifacts.flatMap((artifact, index) => [`Made by: ${rows[index]} · build: REQUIREMENTS.md · ${artifact}`, `Read by: ${rows[index]} · code: REQUIREMENTS.md`]), "",
+    "## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", "", table(rows.map((id) => [id, "implemented"])).trimEnd(),
+  ].join("\n");
+}
+function historyFixture(name, artifacts, date = "2026-01-01T00:00:00Z", parent = temp) {
+  const root = path.join(parent, name);
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), productLedger(artifacts));
+  fs.writeFileSync(path.join(root, "HANDOFF.md"), "# Handoff\n\n## Open for the owner\n");
+  const run = (args, options = {}) => spawnSync("git", args, { cwd: root, encoding: "utf8", ...options });
+  run(["init", "-q"]); run(["config", "user.email", "test@example.com"]); run(["config", "user.name", "Test"]);
+  run(["add", "REQUIREMENTS.md", "HANDOFF.md"]);
+  run(["commit", "-qm", "fixture ledger"], { env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } });
+  return { root, git: run };
+}
+function commitAt(repo, message, date, files, { messageFile = false } = {}) {
+  for (const [name, content] of Object.entries(files)) {
+    const target = path.join(repo.root, name);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  }
+  repo.git(["add", "-A"]);
+  const env = { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
+  if (messageFile) {
+    const file = path.join(temp, `commit-message-${Math.random().toString(16).slice(2)}`);
+    fs.writeFileSync(file, message);
+    repo.git(["commit", "-qF", file], { env });
+  } else repo.git(["commit", "-qm", message], { env });
+  return repo.git(["rev-parse", "HEAD"]).stdout.trim();
+}
+async function renderedProduct(repo, name, gitRunner) {
+  const out = path.join(temp, `${name}.html`);
+  await generateReport({ root: repo.root, out, ...(gitRunner ? { gitRunner } : {}) });
+  return { out, view: renderHtmlAt(fs.readFileSync(out, "utf8"), "#product") };
+}
+function renderedClaims(view) {
+  return view.nodes.filter((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims").flatMap((node) => node.children.map((item) => item.textContent));
 }
 // The one helper every new check renders through (must-meet.md, report-test-details-2026-10-19):
 // pull the renderer source and the report-data JSON from the HTML generateReport wrote, evaluate
@@ -1160,7 +1203,7 @@ try {
     const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
     const allItems = capabilityCards(product).flatMap((capability) => capability.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")));
     const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
-    const claims = (id) => (byId[id]?.children.find((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent);
+    const claims = (id) => (byId[id]?.children.find((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent.replace(/ · last changed .*$/, ""));
     const mark = (id, value) => byId[id]?.textContent.includes(value) ?? false;
     const expectedClaims = {
       "R-5000": ["Made by: session start: REQUIREMENTS.md · REQUIREMENTS.md", "Read by: code: REQUIREMENTS.md"],
@@ -1227,6 +1270,172 @@ try {
     check("R-2543: the Product view shows the tree checker's deliverable count line and notes for the same ledger and HEAD",
       comparisons.length === 4 && comparisons.every((entry) => entry.ok) && calls.length === 1 && calls[0].options.maxBuffer === MAX_GIT_BUFFER && failureLines.at(-1) === exactFailure && deliverablesModule.DELIVERABLE_PATHS_NOT_CHECKED === exactFailure,
       JSON.stringify({ comparisons, calls: calls.map((call) => ({ args: call.args, maxBuffer: call.options.maxBuffer })), failureLines, exactFailure }));
+  });
+  await withinCaseLimit("R-2544", async () => {
+    const lastChanged = "last changed";
+    const ageUnknown = "age unknown: ";
+    const notTracked = "not tracked at HEAD";
+    const shallowClone = "shallow clone";
+    const historyFailure = "git could not read the history";
+    const failures = [];
+    const expectClaim = (label, view, predicate) => { const claims = renderedClaims(view); if (!predicate(claims)) failures.push({ label, claims }); };
+
+    const core = historyFixture("artifact-core", ["artifact.txt"]);
+    commitAt(core, "make artifact", "2026-01-02T00:00:00Z", { "artifact.txt": "one\n" });
+    commitAt(core, "unrelated", "2026-01-03T00:00:00Z", { "other.txt": "other\n" });
+    const sweep = commitAt(core, "scrub: sweep records", "2026-01-04T00:00:00Z", { "artifact.txt": "two\n", "b.txt": "b\n", "c.txt": "c\n", "d.txt": "d\n" });
+    commitAt(core, "head", "2026-01-05T00:00:00Z", { "head.txt": "head\n" });
+    const calls = [];
+    const capturingRunner = (args, options) => { calls.push({ args, options }); return spawnSync("git", args, options); };
+    const coreView = (await renderedProduct(core, "artifact-core", capturingRunner)).view;
+    expectClaim("sweep and first filename", coreView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 1 day before HEAD by ${sweep.slice(0, 8)}: scrub: sweep records`)));
+    const walk = calls.find((call) => call.args[0] === "log" && call.args.includes("--name-only"));
+    if (!walk || !["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"].every((flag) => walk.args.includes(flag)) || walk.options.maxBuffer !== MAX_GIT_BUFFER) failures.push({ label: "walk flags and buffer", walk });
+
+    const oldLane = historyFixture("artifact-old-lane", ["artifact.txt"]);
+    const oldChange = commitAt(oldLane, "change artifact", "2026-02-05T00:00:00Z", { "artifact.txt": "change\n" });
+    const oldLaneBase = oldLane.git(["branch", "--show-current"]).stdout.trim();
+    oldLane.git(["checkout", "-qb", "lane"]);
+    commitAt(oldLane, "old lane one", "2026-02-02T00:00:00Z", { "lane-one.txt": "one\n" });
+    commitAt(oldLane, "old lane two", "2026-02-03T00:00:00Z", { "lane-two.txt": "two\n" });
+    oldLane.git(["checkout", "-q", oldLaneBase]);
+    commitAt(oldLane, "main work", "2026-02-06T00:00:00Z", { "main.txt": "main\n" });
+    oldLane.git(["merge", "-q", "--no-ff", "lane", "-m", "merge old lane"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-02-07T00:00:00Z", GIT_COMMITTER_DATE: "2026-02-07T00:00:00Z" } });
+    const oldCount = Number(oldLane.git(["rev-list", "--count", `${oldChange}..HEAD`]).stdout.trim());
+    const oldDays = Math.max(0, Math.floor((Number(oldLane.git(["show", "-s", "--format=%ct", "HEAD"]).stdout.trim()) - Number(oldLane.git(["show", "-s", "--format=%ct", oldChange]).stdout.trim())) / (24 * 60 * 60)));
+    expectClaim("parent graph count", (await renderedProduct(oldLane, "artifact-old-lane")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} ${oldCount} commits and ${oldDays} days before HEAD by ${oldChange.slice(0, 8)}: change artifact`)));
+
+    const merged = historyFixture("artifact-merge", ["artifact.txt"]);
+    commitAt(merged, "base artifact", "2026-03-01T00:00:00Z", { "artifact.txt": "base\n" });
+    const mergedBase = merged.git(["branch", "--show-current"]).stdout.trim();
+    merged.git(["checkout", "-qb", "side"]);
+    commitAt(merged, "side artifact", "2026-03-02T00:00:00Z", { "artifact.txt": "side\n" });
+    merged.git(["checkout", "-q", mergedBase]);
+    commitAt(merged, "main artifact", "2026-03-03T00:00:00Z", { "artifact.txt": "main\n" });
+    merged.git(["merge", "-q", "--no-ff", "side", "-m", "merge both artifacts"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-03-04T00:00:00Z", GIT_COMMITTER_DATE: "2026-03-04T00:00:00Z" } });
+    if (merged.git(["status", "--porcelain"]).stdout) { fs.writeFileSync(path.join(merged.root, "artifact.txt"), "merged\n"); merged.git(["add", "artifact.txt"]); merged.git(["commit", "-qm", "merge both artifacts"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-03-04T00:00:00Z", GIT_COMMITTER_DATE: "2026-03-04T00:00:00Z" } }); }
+    const mergeHash = merged.git(["rev-parse", "HEAD"]).stdout.trim();
+    expectClaim("merge change", (await renderedProduct(merged, "artifact-merge")).view, (claims) => claims.some((claim) => claim.includes(`${mergeHash.slice(0, 8)}: merge both artifacts`)));
+
+    const zones = historyFixture("artifact-zones", ["offset.txt", "future.txt"]);
+    const offset = commitAt(zones, "offset change", "2026-04-02T13:30:00+14:00", { "offset.txt": "offset\n" });
+    const future = commitAt(zones, "future change", "2026-04-05T00:00:00Z", { "future.txt": "future\n" });
+    commitAt(zones, "earlier dated head", "2026-04-02T12:30:00-12:00", { "head.txt": "head\n" });
+    const zonesView = (await renderedProduct(zones, "artifact-zones")).view;
+    expectClaim("epoch days", zonesView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 2 commits and 1 day before HEAD by ${offset.slice(0, 8)}: offset change`)));
+    expectClaim("day clamp", zonesView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 0 days before HEAD by ${future.slice(0, 8)}: future change`)));
+
+    const folder = historyFixture("artifact-folder", ["made/"]);
+    commitAt(folder, "older folder file", "2026-05-01T00:00:00Z", { "made/old.txt": "old\n" });
+    const newest = commitAt(folder, "newest folder file", "2026-05-03T00:00:00Z", { "made/new.txt": "new\n" });
+    commitAt(folder, "folder head", "2026-05-04T00:00:00Z", { "head.txt": "head\n" });
+    expectClaim("folder newest", (await renderedProduct(folder, "artifact-folder")).view, (claims) => claims.some((claim) => claim.includes(`${newest.slice(0, 8)}: newest folder file`)));
+
+    const subParent = path.join(temp, "artifact-sub-parent"); fs.mkdirSync(subParent, { recursive: true });
+    const sub = historyFixture("ledger", ["output.txt"], "2026-06-01T00:00:00Z", subParent);
+    const subGit = (args, options = {}) => spawnSync("git", args, { cwd: subParent, encoding: "utf8", ...options });
+    fs.renameSync(path.join(sub.root, ".git"), path.join(subParent, ".git"));
+    sub.root = subParent; sub.git = subGit;
+    const subChange = commitAt(sub, "subfolder artifact", "2026-06-02T00:00:00Z", { "ledger/output.txt": "made\n" });
+    commitAt(sub, "subfolder head", "2026-06-03T00:00:00Z", { "outside.txt": "head\n" });
+    sub.root = path.join(subParent, "ledger");
+    expectClaim("ledger-relative artifact", (await renderedProduct(sub, "artifact-subfolder")).view, (claims) => claims.some((claim) => claim.includes(`${subChange.slice(0, 8)}: subfolder artifact`)));
+
+    const large = historyFixture("artifact-large-walk", ["artifact.txt"]);
+    const largeChange = commitAt(large, "large walk artifact", "2026-07-01T00:00:00Z", { "artifact.txt": "made\n" });
+    for (let index = 0; index < 10; index++) commitAt(large, `${index}-${"x".repeat(110_000)}`, `2026-07-${String(index + 2).padStart(2, "0")}T00:00:00Z`, { [`long-${index}.txt`]: `${index}\n` }, { messageFile: true });
+    expectClaim("large walk buffer", (await renderedProduct(large, "artifact-large-walk")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 10 commits`) && claim.includes(largeChange.slice(0, 8))));
+
+    const unknown = historyFixture("artifact-unknown", ["missing.txt"]);
+    commitAt(unknown, "unknown head", "2026-08-02T00:00:00Z", { "head.txt": "head\n" });
+    expectClaim("not tracked", (await renderedProduct(unknown, "artifact-unknown")).view, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}${notTracked}`)));
+
+    const shallowSource = historyFixture("artifact-shallow-source", ["artifact.txt"]);
+    commitAt(shallowSource, "shallow artifact", "2026-09-01T00:00:00Z", { "artifact.txt": "made\n" });
+    commitAt(shallowSource, "shallow head", "2026-09-02T00:00:00Z", { "head.txt": "head\n" });
+    const shallowRoot = path.join(temp, "artifact-shallow");
+    const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.root).href, shallowRoot], { encoding: "utf8" });
+    const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
+    const isShallow = shallow.git(["rev-parse", "--is-shallow-repository"]).stdout.trim() === "true";
+    expectClaim("shallow clone", (await renderedProduct(shallow, "artifact-shallow")).view, (claims) => isShallow && clone.status === 0 && claims.some((claim) => claim.includes(`${ageUnknown}${shallowClone}`)));
+
+    const failed = historyFixture("artifact-walk-failure", ["artifact.txt"]);
+    commitAt(failed, "failed artifact", "2026-10-01T00:00:00Z", { "artifact.txt": "made\n" });
+    const failedRunner = (args, options) => args[0] === "log" && args.includes("--name-only") ? { status: 1, stdout: "", stderr: "fixture history failure" } : spawnSync("git", args, options);
+    const failedRender = await renderedProduct(failed, "artifact-walk-failure", failedRunner);
+    expectClaim("walk failure degrades", failedRender.view, (claims) => fs.existsSync(failedRender.out) && claims.some((claim) => claim.includes(`${ageUnknown}${historyFailure}`)));
+
+    // req: R-2544
+    check("R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown",
+      failures.length === 0 && productReportModule.LAST_CHANGED_PREFIX === lastChanged && productReportModule.AGE_UNKNOWN_PREFIX === ageUnknown && productReportModule.NOT_TRACKED_AT_HEAD === notTracked && productReportModule.SHALLOW_CLONE_REASON === shallowClone && productReportModule.GIT_HISTORY_FAILURE_REASON === historyFailure && JSON.stringify(productReportModule.ARTIFACT_WALK_FLAGS) === JSON.stringify(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]),
+      JSON.stringify({ failures, exports: [productReportModule.LAST_CHANGED_PREFIX, productReportModule.AGE_UNKNOWN_PREFIX, productReportModule.NOT_TRACKED_AT_HEAD, productReportModule.SHALLOW_CLONE_REASON, productReportModule.GIT_HISTORY_FAILURE_REASON] }));
+  });
+  await withinCaseLimit("R-2545", async () => {
+    const measuredAtTip = "measured at tip";
+    const ageUnknown = "age unknown: ";
+    const noTipOrTime = "the runtime data records no tip or time";
+    const badTime = "the runtime data's time does not parse";
+    const failures = [];
+    const expectRuntime = async (label, repo, data, predicate, runner) => {
+      if (data === null) fs.rmSync(path.dirname(writeRuntimeFile(repo.root, { schema: 1 })), { recursive: true, force: true });
+      else if (typeof data === "string") { const file = writeRuntimeFile(repo.root, { schema: 1 }); fs.writeFileSync(file, data); }
+      else writeRuntimeFile(repo.root, data);
+      const rendered = await renderedProduct(repo, `runtime-${label}`, runner);
+      const claims = renderedClaims(rendered.view);
+      if (!predicate(claims, rendered)) failures.push({ label, claims });
+    };
+    const runtime = historyFixture("runtime-main", ["runtime-map"]);
+    const tip = commitAt(runtime, "measured tip", "2026-11-01T00:00:00Z", { "tip.txt": "tip\n" });
+    commitAt(runtime, "after tip one", "2026-11-03T00:00:00Z", { "one.txt": "one\n" });
+    commitAt(runtime, "after tip two", "2026-11-04T00:00:00Z", { "two.txt": "two\n" });
+    const measured = "2026-10-31T19:00:00-05:00";
+    await expectRuntime("record", runtime, { schema: 1, hashes: {}, tests: {}, tip, measuredAt: measured, dirty: 0 }, (claims) => claims.some((claim) => claim.includes(`${measuredAtTip} ${tip.slice(0, 8)} on ${new Date(measured).toISOString()}, 2 commits and 3 days before HEAD`) && !claim.includes("last changed")));
+    await expectRuntime("dirty", runtime, { schema: 1, hashes: {}, tests: {}, tip, measuredAt: measured, dirty: 2 }, (claims) => claims.some((claim) => claim.includes("with 2 uncommitted files, 2 commits")));
+    await expectRuntime("clamp", runtime, { schema: 1, hashes: {}, tests: {}, tip, measuredAt: "2026-11-10T00:00:00Z", dirty: 0 }, (claims) => claims.some((claim) => claim.includes("2 commits and 0 days before HEAD")));
+
+    const oldLane = historyFixture("runtime-old-lane", ["runtime-map"]);
+    const oldTip = commitAt(oldLane, "runtime tip", "2026-12-05T00:00:00Z", { "tip.txt": "tip\n" });
+    const runtimeLaneBase = oldLane.git(["branch", "--show-current"]).stdout.trim();
+    oldLane.git(["checkout", "-qb", "lane"]);
+    commitAt(oldLane, "runtime lane one", "2026-12-02T00:00:00Z", { "lane-one.txt": "one\n" });
+    commitAt(oldLane, "runtime lane two", "2026-12-03T00:00:00Z", { "lane-two.txt": "two\n" });
+    oldLane.git(["checkout", "-q", runtimeLaneBase]);
+    commitAt(oldLane, "runtime main", "2026-12-06T00:00:00Z", { "main.txt": "main\n" });
+    oldLane.git(["merge", "-q", "--no-ff", "lane", "-m", "runtime merge"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-12-07T00:00:00Z", GIT_COMMITTER_DATE: "2026-12-07T00:00:00Z" } });
+    const oldCount = Number(oldLane.git(["rev-list", "--count", `${oldTip}..HEAD`]).stdout.trim());
+    const oldDays = Math.max(0, Math.floor((Number(oldLane.git(["show", "-s", "--format=%ct", "HEAD"]).stdout.trim()) - Date.parse("2026-12-05T00:00:00Z") / 1000) / (24 * 60 * 60)));
+    await expectRuntime("parent-count", oldLane, { schema: 1, hashes: {}, tests: {}, tip: oldTip, measuredAt: "2026-12-05T00:00:00Z", dirty: 0 }, (claims) => claims.some((claim) => claim.includes(`${oldCount} commits and ${oldDays} days before HEAD`)));
+
+    await expectRuntime("none", runtime, null, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}no runtime data`)));
+    await expectRuntime("schema", runtime, { schema: 99 }, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}runtime data is another schema version`)));
+    await expectRuntime("no-tip", runtime, { schema: 1, hashes: {}, tests: {}, measuredAt: measured }, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}${noTipOrTime}`)));
+    await expectRuntime("no-time", runtime, { schema: 1, hashes: {}, tests: {}, tip }, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}${noTipOrTime}`)));
+    await expectRuntime("bad-time", runtime, { schema: 1, hashes: {}, tests: {}, tip, measuredAt: "not-a-time" }, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}${badTime}`) && !claim.includes("NaN")));
+
+    const side = historyFixture("runtime-side-tip", ["runtime-map"]);
+    commitAt(side, "runtime base", "2027-01-01T00:00:00Z", { "base.txt": "base\n" });
+    const sideBase = side.git(["branch", "--show-current"]).stdout.trim();
+    side.git(["checkout", "-qb", "side"]);
+    const sideTip = commitAt(side, "unmerged runtime tip", "2027-01-02T00:00:00Z", { "side.txt": "side\n" });
+    side.git(["checkout", "-q", sideBase]);
+    commitAt(side, "runtime head", "2027-01-03T00:00:00Z", { "head.txt": "head\n" });
+    await expectRuntime("side-tip", side, { schema: 1, hashes: {}, tests: {}, tip: sideTip, measuredAt: "2027-01-02T00:00:00Z" }, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}tip ${sideTip.slice(0, 8)} is not in HEAD's history`)));
+    const fakeTip = "f".repeat(40);
+    await expectRuntime("fake-tip", side, { schema: 1, hashes: {}, tests: {}, tip: fakeTip, measuredAt: "2027-01-02T00:00:00Z" }, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}tip ${fakeTip.slice(0, 8)} is not in HEAD's history`)));
+
+    const shallowSource = historyFixture("runtime-shallow-source", ["runtime-map"]);
+    const shallowTip = commitAt(shallowSource, "runtime shallow tip", "2027-02-01T00:00:00Z", { "tip.txt": "tip\n" });
+    commitAt(shallowSource, "runtime shallow head", "2027-02-02T00:00:00Z", { "head.txt": "head\n" });
+    const shallowRoot = path.join(temp, "runtime-shallow");
+    const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.root).href, shallowRoot], { encoding: "utf8" });
+    const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
+    const isShallow = shallow.git(["rev-parse", "--is-shallow-repository"]).stdout.trim() === "true";
+    await expectRuntime("shallow", shallow, { schema: 1, hashes: {}, tests: {}, tip: shallowTip, measuredAt: "2027-02-01T00:00:00Z" }, (claims) => clone.status === 0 && isShallow && claims.some((claim) => claim.includes(`${ageUnknown}shallow clone`)));
+
+    // req: R-2545
+    check("R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot",
+      failures.length === 0 && productReportModule.MEASURED_AT_TIP_PREFIX === measuredAtTip && productReportModule.AGE_UNKNOWN_PREFIX === ageUnknown && productReportModule.RUNTIME_NO_TIP_OR_TIME === noTipOrTime && productReportModule.RUNTIME_TIME_INVALID === badTime,
+      JSON.stringify({ failures, exports: [productReportModule.MEASURED_AT_TIP_PREFIX, productReportModule.AGE_UNKNOWN_PREFIX, productReportModule.RUNTIME_NO_TIP_OR_TIME, productReportModule.RUNTIME_TIME_INVALID] }));
   });
   {
     const ledger = [

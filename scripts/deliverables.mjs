@@ -221,10 +221,11 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, madeAndReadByCode };
 }
 
-/** Return the exact deliverable lines the tree checker and Product view share. */
-export function deliverableReportLines(parsed, ledgerFolder, gitRunner = (args, options) => spawnSync("git", args, options)) {
+/** Return the exact deliverable lines plus the HEAD paths used to derive them. */
+export function deliverableReport(parsed, ledgerFolder, gitRunner = (args, options) => spawnSync("git", args, options)) {
   const pending = checkDeliverables(parsed, null);
   let report = pending;
+  let trackedPaths = null;
   if (pending.pathsToCheck.length > 0) {
     let result;
     try {
@@ -236,11 +237,20 @@ export function deliverableReportLines(parsed, ledgerFolder, gitRunner = (args, 
       report = { ...pending, notes: [...pending.notes, DELIVERABLE_PATHS_NOT_CHECKED] };
     } else {
       const stdout = Buffer.isBuffer(result.stdout) ? result.stdout.toString("utf8") : String(result.stdout ?? "");
-      report = checkDeliverables(parsed, stdout.split("\0").filter(Boolean));
+      trackedPaths = stdout.split("\0").filter(Boolean);
+      report = checkDeliverables(parsed, trackedPaths);
     }
   }
-  return [
-    ...(report.fieldLineCount > 0 ? [`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables} made and read by code`] : []),
-    ...report.notes,
-  ];
+  return {
+    lines: [
+      ...(report.fieldLineCount > 0 ? [`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables} made and read by code`] : []),
+      ...report.notes,
+    ],
+    trackedPaths,
+  };
+}
+
+/** Return the exact deliverable lines the tree checker and Product view share. */
+export function deliverableReportLines(parsed, ledgerFolder, gitRunner = (args, options) => spawnSync("git", args, options)) {
+  return deliverableReport(parsed, ledgerFolder, gitRunner).lines;
 }
