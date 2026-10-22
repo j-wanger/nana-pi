@@ -24,3 +24,5 @@
 - Runtime map (runtime-map-live, independent check): the README's product report paragraph still says the labels come from the last `map:measure`; every land now writes them too.
 - Runtime map (runtime-map-live, final review): the coverage rerun returns its own exit code without checking for a stop signal that arrived during it. The result is still non-zero, because the runner exits 130 or 143 on a stop.
 - Runtime map (runtime-map-live, final review): an error from the dead-folder sweep or from making the coverage folder reaches the outer catch, so the land exits 1 before its suite runs. Another user's dead coverage folder in a shared Linux temp folder would do it.
+- Runtime map (runtime-map-live, seat): every locked-suite stop now finds the suite's process tree through `ps`. Where `ps` fails, the stop signals nothing and the suite waits for its child; on main it signalled the child's process group.
+- Runtime map (runtime-map-live, seat): the old `measure()` function has no caller outside tests. R-1271's and R-1275's checks still drive it; the data builder they cover is the one the land and the hand measure use.
