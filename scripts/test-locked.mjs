@@ -291,12 +291,14 @@ export async function runLocked({
 			const plainFiles = [];
 			let finalCode = 0;
 			for (const file of failed) {
+				if (stopping) break;
 				note(`rerunning without coverage: ${file}`);
 				const code = await runCommand([file], plainEnv, cwd);
 				if (code !== 0 && finalCode === 0) finalCode = code;
 				try { plainFiles.push(...readRunRecord(recordFile).files.map((entry) => ({ ...entry, coverage: false }))); }
 				catch (error) { coverageRecordError ??= error; }
 			}
+			if (stopping) return signalExitCode ?? 1;
 			if (coverageRecordError) recordProblem(coverageRecordError.message);
 			else finishRecord(finalCode, { ...coverageRecord, files: [
 				...coverageRecord.files.map((entry) => ({ ...entry, coverage: true })),
