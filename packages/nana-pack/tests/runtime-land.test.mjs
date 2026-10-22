@@ -38,6 +38,7 @@ const TEST_LOCKED_URL = pathToFileURL(TEST_LOCKED).href;
 const RUNTIME_MEASURE_URL = pathToFileURL(RUNTIME_MEASURE).href;
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-land-test-")));
 const CASE_LIMIT_MS = 30_000;
+const MEASURED_PLATFORM = "linux";
 let failures = 0;
 
 async function check(title, fn) {
@@ -136,7 +137,7 @@ function runCase(name, { args = [], tip = "head", mode = "pass", options = {}, i
 		NANA_RUNTIME_MAP_FILE: dataFile,
 		NANA_FAKE_LOG: logFile,
 		NANA_FAKE_MODE: mode,
-		NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot, ...options }),
+		NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot, platform: MEASURED_PLATFORM, ...options }),
 	};
 	if (tip === "head") env[LAND_TIP_ENV] = git(root, "rev-parse", "HEAD");
 	else if (tip != null) env[LAND_TIP_ENV] = tip;
