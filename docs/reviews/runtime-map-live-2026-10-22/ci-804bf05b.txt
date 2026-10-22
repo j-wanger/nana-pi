@@ -1,0 +1,18 @@
+# CI run 39749520397 at 804bf05b (PR #161)
+
+release: skipping https://github.com/j-wanger/nana-pi/actions/runs/39749520397/job/119741371734
+install-check (macos-latest): pass
+install-check (windows-latest): pass
+suite (macos-latest): pass
+suite (ubuntu-latest): pass
+suite (windows-latest): pass
+
+suite (windows-latest) 205 files: 187 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7213 pass, 0 fail, 119 skip · 1955.5s
+suite (macos-latest) 205 files: 203 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8285 pass, 0 fail, 40 skip · 1110.4s
+suite (ubuntu-latest) 205 files: 202 PASS, 0 FAIL, 3 SKIP, 0 WARN · checks: 8224 pass, 0 fail, 60 skip · 896.0s
+
+Windows leg, the lane's files:
+PASS  packages/nana-pack/tests/land.test.mjs                          54 pass, 1 skip  85.4s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  7 pass, 1 skip  7.3s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   9 pass, 1 skip  11.5s
+PASS  packages/nana-pack/tests/test-locked.test.mjs                   13 pass, 4 skip  2.8s
