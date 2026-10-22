@@ -79,3 +79,4 @@
 - Run-alone list (ci-jobs, seat): each CI run at four found one more load-sensitive file (post-edit-utf8 on Windows, review-ledger on macOS). Others may surface; each joins the list with its run as provenance.
 - Run-alone list (ci-jobs, final review): the 350 s to 456 s figure above predates review-outputs-kept's extra review-ledger tests, so it may now be low; the ci-jobs land's suite record read 470.6 s.
 - Parallel suite (claude-review-launcher CI, 2026-10-22): test-runner-parallel's R-1472 check (files that ran together print unbroken blocks) failed once on the Windows leg at four files (run 39817507050, first try at 7d664b98); its re-run passed. If it fails again it joins the run-alone list with its runs as provenance.
+- Suite records (audit re-check, 2026-10-22): no session-start reader shows the last suite record's result.

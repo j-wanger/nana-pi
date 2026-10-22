@@ -43,3 +43,5 @@
 - Precedent check (brief-reader-fixes, plan): only `**` bold is read; `__` emphasis and bold heading titles are not, and `**` inside a path name is removed.
 - Precedent check (brief-reader-fixes, plan): a Markdown link entry is refused by its spelling.
 - Precedent check (brief-reader-fixes, plan): a heading such as `Precedent (audit)` still counts because only a following word excludes a heading.
+- Precedent check (audit re-check, 2026-10-22): only briefs are checked; nothing checks a plan's must-meet for its Precedent section.
+- Known-bug attachment (audit re-check, 2026-10-22): it needs a `Feature:` line, which only nana-pi's own working section asks a brief to carry.

@@ -8,3 +8,4 @@
 - Trust command (trust-finds-pi): when npm itself is missing or fails, the command keeps its older line. That line gives no install command.
 - Trust command (trust-finds-pi): no check tells the load guard from the store guard. A build that swallows a failed load still passes both new checks, because the store guard then refuses. Its line then names no error code.
 - Trust command (trust-finds-pi): a load of pi's trust module can throw something that is not an error object. The line can then print undefined as the cause, or the command can crash. Such a throw is unlikely.
+- Ignored project config (audit re-check, 2026-10-22): the ignored-config lines (930 on the seat's Mac) have no reader, and the trust constraint has no deliverable line that could carry them.
