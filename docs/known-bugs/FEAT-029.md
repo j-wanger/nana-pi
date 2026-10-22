@@ -22,3 +22,5 @@
 - Runtime map (runtime-map-live, independent check): the hand measure counts a staged rename twice, and takes the dirty count before it waits for the lock, not inside it.
 - Runtime map (runtime-map-live, independent check): impact prints "main is 1 commits past".
 - Runtime map (runtime-map-live, independent check): the README's product report paragraph still says the labels come from the last `map:measure`; every land now writes them too.
+- Runtime map (runtime-map-live, final review): the coverage rerun returns its own exit code without checking for a stop signal that arrived during it. The result is still non-zero, because the runner exits 130 or 143 on a stop.
+- Runtime map (runtime-map-live, final review): an error from the dead-folder sweep or from making the coverage folder reaches the outer catch, so the land exits 1 before its suite runs. Another user's dead coverage folder in a shared Linux temp folder would do it.
