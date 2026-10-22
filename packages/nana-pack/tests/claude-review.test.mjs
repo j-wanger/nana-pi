@@ -132,7 +132,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 {
 	const item = "claude-prompt";
 	const repo = makeRepo("prompt-tree");
-	const briefRelative = `brief folder/review \"quote\" and apostrophe's.md`;
+	const briefRelative = process.platform === "win32" ? `brief folder/review quote and apostrophe's.md` : `brief folder/review \"quote\" and apostrophe's.md`;
 	const brief = path.join(repo, briefRelative);
 	fs.mkdirSync(path.dirname(brief), { recursive: true });
 	const briefText = "Brief first.\r\nKeep trailing space. \n";
