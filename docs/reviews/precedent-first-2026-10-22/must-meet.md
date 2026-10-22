@@ -34,6 +34,12 @@ Precedent:
 - **D8 · The plan line and the ruling.** The shared template's Plans bullet gains one sentence after the threat-model sentence: every plan names its precedent, the nearest existing code for each part by path, or none with a reason. AGENTS.md's marker region stays byte-identical (R-859). The local brief section (AGENTS.md "The tree in briefs, reviews and lands") gains one sentence: a lane brief carries a Precedent section, and pi-worker refuses one without it. The ruling lands as text with no row, as every ruling has (R-1415 to R-1417 pin the shape): `- 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. pi-worker refuses a brief without it.`
 - **D9 · Left out.** The review-standard clause (`no`): its first line already makes every non-MUST finding a known bug, it is the text pi-review appends (a review-tool change), and the builder's departure report already reaches the seat. A size guard on the attached known-bug file: the largest is 46,035 bytes, under one read window; recorded as a known limit. Old briefs in docs/reviews are records: no scan, no migration.
 
+## Amendment 1 (seat, after build 1)
+
+The seat ran build 1's reader on this lane's own `build-brief-1.md`: a plain `Precedent:` list, a blank line, then the numbered steps. The reader took steps 1 to 4 as entries, so pi-worker would refuse the brief, naming "Move", "brief-precedent.mjs", "Update" and "Run". D2's label rule caused it: it skipped blank lines inside a label section. That is the standard seat brief shape, so honest briefs fail.
+
+D2 now reads: a label section's entries are one block. It ends at the first blank line after its first entry, at a heading, or at the first line outside a fence that is not blank, not a list item and not a continuation of the entry above. A heading section keeps its rule. R-2580's table gains a case: a label section, a blank line, then a numbered step list; it passes, and N counts only the section's bullets. Known limit added: a loose list (blank lines between bullets) under a plain label loses the entries after its first blank line, which go unchecked; use the heading form for a loose list. Wrong-code pair added: the label section continues past a blank line.
+
 ## Must-meet rows
 
 | ID | Requirement (EARS) | Test file::title |
@@ -82,6 +88,7 @@ Existing tests made false by the change (listed edits, not new tests): the fixtu
 - The brief is read once at launch; an edit after launch is not checked. The first Precedent section and the first Feature line win.
 - Paths only: a commit or a review finding goes in an entry's note after a tracked path, or as `none:`. Line suffixes are not checked against the file. Path case must match git's.
 - On POSIX a tracked file whose name holds a backslash cannot be named.
+- A loose list under a plain `Precedent:` label loses the entries after its first blank line; they go unchecked. The heading form keeps a loose list whole.
 - No size guard on the attached known-bug file; the largest today is 46,035 bytes, under one read window.
 - No tool reads the builder's departure report; it reaches review when the seat puts it in the review brief.
 
