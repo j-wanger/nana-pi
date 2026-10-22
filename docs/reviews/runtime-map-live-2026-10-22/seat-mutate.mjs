@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane runtime-map-live (install, hook or gate lane: it changes nana-land), written by the seat
-// 2026-10-22 after build 2, on the shared runner, at tip 8a3df4bd, and again at 56435b70 after build 3, which added x4 and x5, at a2d72686 after build 4, and at 8dc89838 after build 5, which added x6 and x7. They are the must-meet's nine pairs ("Seat steps"),
+// 2026-10-22 after build 2, on the shared runner, at tip 8a3df4bd, and again at 56435b70 after build 3, which added x4 and x5, at a2d72686 after build 4, at 8dc89838 after build 5, which added x6 and x7, and at 268dddb9 after build 6, which recast x7 and added x8 to x10. They are the must-meet's nine pairs ("Seat steps"),
 // split where one names two wrong builds, plus the seat's two findings on build 1 (F1, F2) and three cheap extras.
 // Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/runtime-map-live-2026-10-22/seat-mutate.mjs
@@ -26,6 +26,7 @@ const R_2531 = /^after a land the runtime data names main's tip and is not stale
 const R_2532 = /^filtered, wrong-tip and unset-tip runs neither measure nor rerun/; // R-2532
 const R_2533 = /^a hand measure writes its tip, time and dirty-file count inside the lock/; // R-2533
 const R_1277 = /^R-1277: off Windows, SIGINT or SIGTERM sent twice to the measure command/; // R-1277
+const R_2527 = /^off Windows, a land suite stopped during its coverage run/; // R-2527
 const R_2534 = /^impact marks stale only the measured tests that ran a changed file/; // R-2534
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 
@@ -35,6 +36,7 @@ const DECLARED = [
 	"(seat) x1 to x3 are cheap extras: Windows measured anyway (R-2526), no tip in the data (R-2523), and main's distance counted the wrong way (R-2529)",
 	"(seat) x4 and x5 (after build 3): the Windows branch ignores the hand-measure marker, and the measure command sets no marker; both leave a win32 hand measure writing nothing",
 	"(seat) x6 and x7 (after round 1, the land reviewer's MUST): the measure command forwards no stop signal, and the locked suite signals only its child's process group, not the tree; R-1277 now drives the production command",
+	"(seat) after build 6 (the land reviewer's round-2 MUST): x7 is recast as main's group-only stop, x8 a kill step that walks the tree again only, x9 a kill step without the child's group, x10 a Windows hand measure that forwards the stop",
 	"(seat) p2 stamps main's old SHA in the land's variable; the locked suite then sees a tip that is not HEAD and measures nothing, so R-2522 goes red with R-2531",
 ];
 
@@ -93,9 +95,20 @@ const PAIRS = [
 	{ n: "x6", name: "the measure command forwards no stop signal", edits: [
 		one(MEASURE, "try { child.kill(signal); } catch {}", "/* no forwarding */"),
 	], tests: [RMAP_T], expectRed: [R_1277] },
-	{ n: "x7", name: "the locked suite signals only its child's process group", edits: [
-		one(LOCKED, "killTree(target.pid, { signal })", "process.kill(-target.pid, signal)"),
+	{ n: "x7", name: "the stop signals only the child's process group, as on main", edits: [
+		one(LOCKED, "if (signal !== \"SIGKILL\") return killTree(target.pid, { signal });", "if (signal !== \"SIGKILL\") { process.kill(-target.pid, signal); return { groups: [], pids: [] }; }"),
+		one(LOCKED, "\t\treturn killTree(target.pid, { signal });\n\t} catch (error) {", "\t\treturn { groups: [], pids: [] };\n\t} catch (error) {"),
 	], tests: [RMAP_T], expectRed: [R_1277] },
+	{ n: "x8", name: "the kill step walks the tree again only", edits: [
+		one(LOCKED, "\t\tsignalTreeTargets(remembered, { signal });\n", ""),
+		one(LOCKED, "\t\ttry { process.kill(-target.pid, signal); } catch (error) { if (![\"ESRCH\", \"EPERM\"].includes(error?.code)) throw error; }\n", ""),
+	], tests: [RMAP_T, RLAND_T], expectRed: [R_1277, R_2527] },
+	{ n: "x9", name: "the kill step signals the remembered targets but not the child's group", edits: [
+		one(LOCKED, "\t\ttry { process.kill(-target.pid, signal); } catch (error) { if (![\"ESRCH\", \"EPERM\"].includes(error?.code)) throw error; }\n", ""),
+	], tests: [RMAP_T, RLAND_T], expectRed: [R_1277, R_2527] },
+	{ n: "x10", name: "the hand measure forwards a stop on Windows", edits: [
+		one(MEASURE, "if (platform !== \"win32\") { try { child.kill(signal); } catch {} }", "try { child.kill(signal); } catch {}"),
+	], tests: [RLAND_T], expectRed: [R_2533] },
 ];
 
-process.exitCode = await runMutations({ lane: "runtime-map-live", self: import.meta.url, tip: "8dc89838", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "runtime-map-live", self: import.meta.url, tip: "268dddb9", declared: DECLARED, pairs: PAIRS });
