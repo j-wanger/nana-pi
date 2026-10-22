@@ -15,6 +15,9 @@ const SESSIONS = {
 		["packages/nana-pack/tests/ci-workflow.test.mjs","R-2558: the per-file time limit is set once, in the suite job's env, sealed at 900000 with a chosen comment directly above it",["R-2558"]],
 		["packages/nana-pack/tests/ci-workflow.test.mjs","R-1313: the Windows suite leg runs the suite verbose",["R-1313"]],
 	],
+	2: [
+		["packages/nana-pack/tests/ci-workflow.test.mjs","R-2577: the suite job warms the copier cache before its first suite step",["R-2577"]],
+	],
 };
 
 const want = process.argv[2] ?? "all";

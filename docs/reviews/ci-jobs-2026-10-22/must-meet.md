@@ -62,3 +62,15 @@ R-1313 keeps its text and title; its check matches the new Windows step line and
 - Wrong-code pairs: a step without `--jobs`; `npm test --jobs=…` with no `--`; a literal job count in a step; a third `npm test` step without it; `NANA_CI_JOBS` at 3 or with no `chosen`; the limit in the workflow-level `env`; the limit inline in a run line; the limit in a step's `env`; the limit at 600000 or with no `chosen`; the Windows step without `--verbose`.
 - CI on the lane's draft PR: all three suite legs and both install checks green at the final tip. The Windows suite leg runs three times there (the push, then two re-runs). Every first-try failure is reported with its file; a re-run counts only after a failure in a file a known-bug line names.
 - Notes in the reviewed change: the HANDOFF queue line out and the first-try count restarted; FEAT-031's and FEAT-019's lines that say CI runs one file at a time removed or reworded; the known limits above.
+
+## Amendment after build 1 (the seat, 2026-10-22): D5 fired
+
+D5 said the lane adds a cache warm-up step if copier's first download failed a run in the evidence. It did, twice on 2026-10-22, both on macOS and both in template-acceptance's 15-second `uvx copier --version` probe ("copier availability probe failed: Downloading pydantic-core"): biome-pin's run 39778150928 at 2d4ec87e (one file at a time) and this lane's run 39785202152 at 0ab804cd (four at a time; that leg took 441 s against about 1,110 s at one). The suite job gains one step before its suite steps that runs the same probe command, so the suite starts on a warm uv cache.
+
+| ID | Requirement (EARS) | Test file::title |
+|---|---|---|
+| R-2577 | The root CI suite job shall run `uvx copier --version` as a step before its first `npm test` step. | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2577: the suite job warms the copier cache before its first suite step` |
+
+- **R-2577.** Reads the suite job's steps in order; exactly one step's `run:` is `uvx copier --version`, and it comes before the first step whose `run:` invokes `npm test`. Red: no such step today.
+- Wrong-code pairs: the step removed; the step placed after the suite steps; a different command in its place.
+- Known limit: the warm-up downloads the newest copier on each leg; a download failure there fails the job before the suite, with copier's own error.
