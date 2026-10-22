@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * @module scripts/test-locked.mjs
- * @purpose Serialize full suites and measure eligible land or hand runs inside the same machine lock.
- * @inputs Filter arguments, land metadata, suite lock and command overrides, and injectable platform and write boundaries.
- * @outputs The deciding suite exit code plus prefixed land notes for skipped measures, reruns, and write failures.
- * @effects disk (lock and coverage folders, runtime data), process (spawns git and suite commands, lists and signals the suite process tree).
- * @errors Suite failures remain nonzero; runtime write failures after a passing suite become notes without changing its verdict.
+ * @purpose Serialize full suites, retain whole-run records, and measure eligible land or hand runs inside the same machine lock.
+ * @inputs Filter arguments, land and record metadata, suite lock and command overrides, and injectable platform and write boundaries.
+ * @outputs The deciding suite exit code plus record problems and prefixed land notes for skipped measures, reruns, and write failures.
+ * @effects disk (lock, record and coverage folders, suite records, runtime data), process (spawns git and suite commands, lists and signals the suite process tree).
+ * @errors Suite failures remain nonzero; record or runtime write failures after a passing suite become notes without changing its verdict.
  */
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -15,6 +15,8 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 import { COVERAGE_ENV, COVERAGE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
+import { storeSuiteRecord, suiteGitFacts } from "../packages/nana-pack/lib/suite-records.mjs";
 import {
 	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
@@ -41,6 +43,7 @@ let activeCoverageDir = null;
 let lockDir = DEFAULT_LOCK_DIR;
 
 const note = (text) => console.log(`${LAND_NOTE_PREFIX} ${text}`);
+const recordProblem = (text) => console.log(`${RECORD_LINE_PREFIX} ${text}`);
 const cleanupCoverage = () => {
 	if (!activeCoverageDir) return;
 	try { fs.rmSync(activeCoverageDir, { recursive: true, force: true }); } catch {}
@@ -175,6 +178,32 @@ function headOf(cwd) {
 	return result.status === 0 ? result.stdout.trim() : null;
 }
 
+function readRunRecord(recordFile) {
+	let text;
+	try { text = fs.readFileSync(recordFile, "utf8"); }
+	catch (error) { throw new Error(`run record is missing or unreadable: ${error?.message ?? "unknown error"}`); }
+	let record;
+	try { record = JSON.parse(text); }
+	catch (error) { throw new Error(`run record is unreadable: ${error?.message ?? "invalid JSON"}`); }
+	if (record?.schema !== RECORD_SCHEMA || !Array.isArray(record.files)) throw new Error("run record is unreadable: unsupported schema or files");
+	return record;
+}
+
+function finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root, env, recordedAt }) {
+	try {
+		const source = runnerRecord ?? readRunRecord(recordFile);
+		const facts = suiteGitFacts(root);
+		const landTip = env[LAND_TIP_ENV] ?? null;
+		const trigger = env[HAND_MEASURE_ENV] !== undefined ? "measure" : landTip === facts.tip ? "land" : "run";
+		const record = { ...source, ...facts, schema: RECORD_SCHEMA, trigger, exitCode: suiteCode, landTip };
+		storeSuiteRecord(record, { root, now: () => new Date(recordedAt) });
+	} catch (error) {
+		recordProblem(error?.message ?? "record could not be stored");
+	} finally {
+		try { fs.rmSync(recordFile, { force: true }); } catch {}
+	}
+}
+
 /** Run one locked suite invocation; dependencies are injectable for platform and write-failure checks. */
 export async function runLocked({
 	filters = process.argv.slice(2),
@@ -197,7 +226,13 @@ export async function runLocked({
 		};
 		handlers.set(signal, handler); process.on(signal, handler);
 	}
-	const plainEnv = { ...env }; delete plainEnv[COVERAGE_ENV];
+	const recordFile = filters.length === 0 ? path.join(tempRoot, `nana-suite-record-${process.pid}-${randomUUID()}.json`) : null;
+	const plainEnv = { ...env };
+	delete plainEnv[COVERAGE_ENV];
+	if (recordFile) plainEnv[RECORD_FILE_ENV] = recordFile;
+	const finishRecord = (suiteCode, runnerRecord) => {
+		if (recordFile && !stopping) finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root: cwd, env, recordedAt: now() });
+	};
 	try {
 		if (filters.length === 0) await acquireLock();
 		const tip = env[LAND_TIP_ENV];
@@ -205,6 +240,7 @@ export async function runLocked({
 			note("runtime map on Windows was not measured");
 			const code = await runCommand(filters, plainEnv, cwd);
 			if (stopping && termination) await termination;
+			if (!stopping) finishRecord(code);
 			return stopping ? (signalExitCode ?? 1) : code;
 		}
 		const head = tip ? headOf(cwd) : null;
@@ -212,6 +248,7 @@ export async function runLocked({
 			if (tip) note(`runtime map was not measured (${filters.length ? "filtered suite" : "land tip does not name HEAD"})`);
 			const code = await runCommand(filters, plainEnv, cwd);
 			if (stopping && termination) await termination;
+			if (!stopping) finishRecord(code);
 			return stopping ? (signalExitCode ?? 1) : code;
 		}
 
@@ -219,12 +256,16 @@ export async function runLocked({
 		fs.mkdirSync(tempRoot, { recursive: true });
 		activeCoverageDir = fs.mkdtempSync(path.join(tempRoot, COVERAGE_PREFIX));
 		fs.writeFileSync(path.join(activeCoverageDir, COVERAGE_OWNER_FILE), `${process.pid}\n`);
-		const coverageEnv = { ...env, [COVERAGE_ENV]: activeCoverageDir };
+		const coverageEnv = { ...plainEnv, [COVERAGE_ENV]: activeCoverageDir };
 		const coverageCode = await runCommand([], coverageEnv, cwd);
 		if (stopping) {
 			if (termination) await termination;
 			return signalExitCode ?? 1;
 		}
+		let coverageRecord = null;
+		let coverageRecordError = null;
+		try { coverageRecord = readRunRecord(recordFile); }
+		catch (error) { coverageRecordError = error; }
 		const dirtyText = env[DIRTY_COUNT_ENV];
 		const dirty = dirtyText !== undefined && /^\d+$/.test(dirtyText) ? Number(dirtyText) : undefined;
 		const built = buildRuntimeData({ root: cwd, coverageDir: activeCoverageDir, tip, measuredAt: now(), dirty });
@@ -238,18 +279,38 @@ export async function runLocked({
 			const failed = Object.entries(built.data.tests).filter(([, value]) => value.label === "FAIL").map(([file]) => file).sort();
 			cleanupCoverage();
 			if (writeProblem) note(writeProblem);
-			if (!failed.length || built.failures !== failed.length) return coverageCode;
-			for (const file of failed) note(`rerunning without coverage: ${file}`);
-			return await runCommand(failed, plainEnv, cwd);
+			if (!failed.length || built.failures !== failed.length) {
+				if (coverageRecordError) recordProblem(coverageRecordError.message);
+				else finishRecord(coverageCode, coverageRecord);
+				return coverageCode;
+			}
+			const plainFiles = [];
+			let finalCode = 0;
+			for (const file of failed) {
+				note(`rerunning without coverage: ${file}`);
+				const code = await runCommand([file], plainEnv, cwd);
+				if (code !== 0 && finalCode === 0) finalCode = code;
+				try { plainFiles.push(...readRunRecord(recordFile).files.map((entry) => ({ ...entry, coverage: false }))); }
+				catch (error) { coverageRecordError ??= error; }
+			}
+			if (coverageRecordError) recordProblem(coverageRecordError.message);
+			else finishRecord(finalCode, { ...coverageRecord, files: [
+				...coverageRecord.files.map((entry) => ({ ...entry, coverage: true })),
+				...plainFiles,
+			] });
+			return finalCode;
 		}
 		cleanupCoverage();
 		if (writeProblem) note(writeProblem);
+		if (coverageRecordError) recordProblem(coverageRecordError.message);
+		else finishRecord(coverageCode, coverageRecord);
 		return coverageCode;
 	} catch (error) {
 		console.error(`[test-locked] ${error.message}`);
 		return 1;
 	} finally {
 		if (termination) await termination;
+		if (recordFile) { try { fs.rmSync(recordFile, { force: true }); } catch {} }
 		cleanupCoverage(); releaseLock();
 		for (const [signal, handler] of handlers) process.off(signal, handler);
 	}

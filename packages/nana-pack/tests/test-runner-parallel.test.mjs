@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/tests/test-runner-parallel.test.mjs
  * @purpose Pin the test runner's --jobs=N parallel-pool contract (R-1470..R-1475, R-1477) from OUTSIDE it.
- * @inputs scripts/test.mjs and every packages/nana-pack/lib/*.mjs module its own import lines name (copied
- *  verbatim into each throwaway root, so the real bytes run, read from its source), the fixture test files
+ * @inputs scripts/test.mjs, every packages/nana-pack/lib/*.mjs module its import lines name, and the suite config's land dependency (copied
+ *  verbatim into each throwaway root, so the real bytes run, read from source), the fixture test files
  *  this file writes, and env PROBE_OUT it hands each child
  * @outputs one PASS / FAIL line per check and a non-zero exit when any check failed
  * @effects process (runs the copied runner as a child per case; two cases leave a running process tree the
@@ -14,8 +14,7 @@
 // R-1477 (R-1476 lives in test-locked.test.mjs instead, beside the command it changes).
 //
 // mkRoot copies the real scripts/test.mjs plus every packages/nana-pack/lib/*.mjs module ITS OWN import
-// lines name (parsed from its source, never a hardcoded list), so this file keeps copying the right
-// modules if the runner's own imports ever change. Fixtures report their observations by writing JSON
+// lines name (parsed from its source) and suite-records-config's required land-config dependency. Fixtures report their observations by writing JSON
 // into $PROBE_OUT rather than printing, and derive overlap from {start, end} timestamps they record
 // themselves — never from guessing at scheduling.
 import { tmpDir } from "./tmp-dir.mjs";
@@ -30,7 +29,10 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const RUNNER_SOURCE = fs.readFileSync(RUNNER, "utf8");
 const LIB_DIR = path.join(REPO, "packages", "nana-pack", "lib");
-const LIB_NAMES = [...RUNNER_SOURCE.matchAll(/from\s+"\.\.\/packages\/nana-pack\/lib\/([\w.-]+\.mjs)"/g)].map((m) => m[1]);
+const LIB_NAMES = [...new Set([
+	...[...RUNNER_SOURCE.matchAll(/from\s+"\.\.\/packages\/nana-pack\/lib\/([\w.-]+\.mjs)"/g)].map((m) => m[1]),
+	"land-config.mjs",
+])];
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-parallel-test-")));
 const posix = process.platform !== "win32";
 

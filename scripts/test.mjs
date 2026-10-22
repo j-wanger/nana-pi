@@ -4,7 +4,7 @@
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
  * @inputs argv (--verbose, --self-test, --jobs=N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
- *  NANA_COVERAGE_DIR (runtime-map's coverage knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
+ *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
@@ -12,12 +12,12 @@
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
  *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
  *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
- *  collected file count
+ *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
  *  fixtures, all removed on every exit path; while NANA_COVERAGE_DIR is set, a record and a completion
- *  file under that folder, never removed by this runner)
+ *  file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
  * @errors exit 1 when any file failed, timed out, died on a signal, matched nothing, or a self-test fixture
  *  missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
  */
@@ -67,6 +67,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
 import { checkoutSpellingSkipReason, JOBS_FLAG, RUN_ALONE } from "../packages/nana-pack/lib/test-runner-config.mjs";
 
@@ -390,6 +391,8 @@ const checks = { pass: 0, fail: 0, skip: 0 };
 const failed = [];
 const warns = [];
 const selfTestMismatch = [];
+const suiteFiles = new Array(files.length);
+const unnamedFailures = [];
 const display = (f) => (fixtureOf.has(f) ? "(self-test) " + path.basename(f) : rel(f));
 const width = Math.max(...files.map((f) => display(f).length));
 const started = Date.now();
@@ -418,6 +421,7 @@ function reportOf(name, r, timeoutMs, fx, secs) {
 	const exitedOk = r.code === 0 && !r.timedOut;
 	const noPassingCheck = exitedOk && p === 0;
 	const ok = exitedOk && !noPassingCheck;
+	const cause = r.timedOut ? "timed out" : noPassingCheck ? "no passing check" : r.signal ? `signal ${r.signal}` : !ok ? `exit ${r.code}` : "";
 	const why = r.timedOut ? `timed out after ${timeoutMs / 1000}s` : noPassingCheck ? "no check passed and no skip was declared" : !ok ? `exit ${r.code ?? r.signal}` : "";
 	const held = r.pipesHeld ? `  (stdio still open ${DRAIN_MS / 1000}s after exit — a descendant holds it; not waited for)` : "";
 	const stat = `${p} pass${f ? `, ${f} fail` : ""}${s ? `, ${s} skip` : ""}  ${secs}s`;
@@ -430,7 +434,7 @@ function reportOf(name, r, timeoutMs, fx, secs) {
 		for (const l of (shown.length ? shown : tail).slice(0, 20)) excerpt.push(`      | ${l}`);
 	}
 	const mismatch = fx && fx.expect !== (ok ? (f ? "PASS+WARN" : "PASS") : "FAIL");
-	return { p, f, s, ok, label, resultLine, excerpt, warn: ok && f, mismatch };
+	return { p, f, s, ok, label, cause, resultLine, excerpt, warn: ok && f, mismatch };
 }
 
 if (jobs === 1) {
@@ -444,6 +448,7 @@ if (jobs === 1) {
 			if (skipReason) {
 				tally.SKIP++;
 				console.log(`SKIP  ${name.padEnd(width)}  ${skipReason}`);
+				suiteFiles[coveragePositionOf.get(file)] = { path: rel(file), label: "SKIP", seconds: 0 };
 				if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
 				continue;
 			}
@@ -466,6 +471,7 @@ if (jobs === 1) {
 			checks.skip += rep.s;
 			tally[rep.label]++;
 			console.log(rep.resultLine);
+			suiteFiles[coveragePositionOf.get(file)] = { path: rel(file), label: rep.label, seconds: Number(secs), ...(rep.cause ? { cause: rep.cause } : {}) };
 			if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
 			if (rep.warn) warns.push(`WARN ${name}: FAIL line with exit 0`);
 			if (rep.mismatch) selfTestMismatch.push(name);
@@ -502,6 +508,7 @@ if (jobs === 1) {
 		if (skipReason) {
 			tally.SKIP++;
 			process.stdout.write(`SKIP  ${name.padEnd(width)}  ${skipReason}\n`);
+			suiteFiles[index] = { path: rel(file), label: "SKIP", seconds: 0 };
 			if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
 			return;
 		}
@@ -526,6 +533,7 @@ if (jobs === 1) {
 		block += rep.resultLine + "\n";
 		if (!verbose) for (const l of rep.excerpt) block += l + "\n";
 		process.stdout.write(block); // one write: the whole block stays together on a shared stdout
+		suiteFiles[index] = { path: rel(file), label: rep.label, seconds: Number(secs), ...(rep.cause ? { cause: rep.cause } : {}) };
 		if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
 		perFile[index] = { warn: rep.warn ? `WARN ${name}: FAIL line with exit 0` : null, failed: !rep.ok ? name : null, mismatch: rep.mismatch ? name : null };
 		if (fx?.holdsPipe) reapPipeHolder();
@@ -568,7 +576,9 @@ if (beforeSnapshot !== null && afterSnapshot !== null) {
 	const names = new Set([...beforeSnapshot.keys(), ...afterSnapshot.keys()]);
 	const changed = [...names].filter((name) => JSON.stringify(beforeSnapshot.get(name) ?? []) !== JSON.stringify(afterSnapshot.get(name) ?? [])).sort();
 	if (changed.length) {
-		console.log(`FAIL tracked repository files changed by tests: ${changed.join(", ")}`);
+		const failure = `tracked repository files changed by tests: ${changed.join(", ")}`;
+		console.log(`FAIL ${failure}`);
+		unnamedFailures.push(failure);
 		tally.FAIL++;
 	}
 }
@@ -582,10 +592,30 @@ console.log(
 for (const w of warns) console.log(w);
 if (failed.length) console.log(`failed: ${failed.join(", ")}`);
 if (selfTest) console.log(selfTestMismatch.length ? `self-test MISMATCH: ${selfTestMismatch.join(", ")}` : "self-test: every fixture got its expected verdict");
+if (selfTestMismatch.length) unnamedFailures.push(`self-test mismatch: ${selfTestMismatch.join(", ")}`);
+const finalExitCode = tally.FAIL || selfTestMismatch.length ? 1 : 0;
+const suiteRecordFile = process.env[RECORD_FILE_ENV];
+if (suiteRecordFile) {
+	try {
+		fs.mkdirSync(path.dirname(suiteRecordFile), { recursive: true });
+		fs.writeFileSync(suiteRecordFile, JSON.stringify({
+			schema: RECORD_SCHEMA,
+			files: suiteFiles.filter(Boolean),
+			unnamedFailures,
+			exitCode: finalExitCode,
+			wallSeconds: Number(((Date.now() - started) / 1000).toFixed(1)),
+			jobs,
+			platform: process.platform,
+			coverage: coverageDir !== null,
+		}));
+	} catch (error) {
+		console.log(`${RECORD_LINE_PREFIX} write failed: ${error?.message ?? "unknown error"}`);
+	}
+}
 // Not process.exit(): on a pipe, a write queued just before an immediate process.exit() can be
 // dropped entirely rather than truncated (confirmed: a 2 MB console.log before process.exit() on
 // darwin delivered ZERO bytes to a reader that attached after the child had already exited).
 // Setting exitCode and letting the event loop drain on its own lets every queued write flush
 // before the process exits — registered SIGINT/SIGTERM/message handlers do not keep it alive once
 // there is nothing left to do (must-meet.md item 3, build-brief-2).
-process.exitCode = tally.FAIL || selfTestMismatch.length ? 1 : 0;
+process.exitCode = finalExitCode;
