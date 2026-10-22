@@ -1584,7 +1584,10 @@ Status: active
 | R-1092 | The repository shall not set npm's `before` configuration through an `npm_config_before` environment variable in its CI workflow, in any letter case, or through a `before` line in the repository-root `.npmrc`. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::npm's before is never set through the environment or a repository-root .npmrc` |
 | R-1313 | The CI workflow's Windows suite leg shall run the suite with `--verbose`. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-1313: the Windows suite leg runs the suite verbose` |
 | R-1320 | The repository's `.gitattributes` shall check out every text file with LF line endings, whatever the machine's `core.autocrlf`. | implemented | `packages/nana-pack/tests/line-endings.test.mjs::R-1320: a clone made with core.autocrlf=true checks out AGENTS.md, the CI workflow and the requirements tree with LF line endings` |
-
+| R-2556 | Each `npm test` step of the root CI suite job shall pass `--jobs=${{ env.NANA_CI_JOBS }}` to the runner after npm's `--`. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2556: every CI suite step passes the job count to the runner after npm's separator` |
+| R-2557 | The root CI suite job's `env` shall set `NANA_CI_JOBS` to the sealed value 4, with the word `chosen` in the comment lines directly above it. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2557: the suite job's count of test files at once is sealed at 4 with a chosen comment directly above it` |
+| R-2558 | The root CI workflow shall set `NANA_TEST_TIMEOUT_MS` only in the suite job's `env`, to the sealed value 900000, with the word `chosen` in the comment lines directly above it. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2558: the per-file time limit is set once, in the suite job's env, sealed at 900000 with a chosen comment directly above it` |
+ 
 # CAP-05 · Follow and steer development
 Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
 Outcome: A developer can see what agents are doing, inspect their changes and direct the intended session without losing context.
