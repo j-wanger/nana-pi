@@ -22,6 +22,7 @@
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
+import { RECORD_FILE_ENV, RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
 import { checkoutSpellingSkipReason } from "../lib/test-runner-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
@@ -33,6 +34,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
+const SUITE_RECORDS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
 const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test-runner-config.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
@@ -56,6 +58,8 @@ function mkRoot(name, files) {
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
 	fs.copyFileSync(RUNTIME_MAP_CONFIG, path.join(root, "packages", "nana-pack", "lib", "runtime-map-config.mjs"));
+	fs.copyFileSync(SUITE_RECORDS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "suite-records-config.mjs"));
+	fs.copyFileSync(path.join(REPO, "packages", "nana-pack", "lib", "land-config.mjs"), path.join(root, "packages", "nana-pack", "lib", "land-config.mjs"));
 	fs.copyFileSync(WINDOWS_SKIPS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "windows-skips-config.mjs"));
 	fs.copyFileSync(TEST_RUNNER_CONFIG, path.join(root, "packages", "nana-pack", "lib", "test-runner-config.mjs"));
 	for (const [rel, body] of Object.entries(files)) {
@@ -510,6 +514,95 @@ const knobUnsetOk = !knobSet.out.includes(KNOB_LINE) && !knobAbsent.out.includes
 	&& knobEnvV8Set?.options === "undefined" && knobEnvV8Set?.coverage === v8CoverageDir;
 // req: R-1270
 check("R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set", knobUnsetOk);
+
+// ── case I2: the whole-run record knob (R-2546) ─────────────────────────────────────────────
+const rootRecord = mkRoot("suite-record", {
+	"packages/probe/tests/a-pass.test.mjs": 'console.log("PASS record pass");\n',
+	"packages/probe/tests/b-exit.test.mjs": 'console.log("PASS reached exit"); process.exit(7);\n',
+	"packages/probe/tests/c-silent.test.mjs": 'console.log("diagnostic only");\n',
+	"packages/probe/tests/d-timeout.test.mjs": 'setTimeout(() => {}, 5000);\n',
+	"packages/probe/tests/e-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
+	"apps/bench/test/study-tasks.test.mjs": TRAP("the declared skip did not skip"),
+});
+function runRecorded(name, args, extra = {}) {
+	const recordFile = path.join(TD, `${name}.json`);
+	fs.rmSync(recordFile, { force: true });
+	const result = run(rootRecord, args, { [RECORD_FILE_ENV]: recordFile, NANA_TEST_TIMEOUT_MS: "800", ...extra }, extra[COVERAGE_ENV] === undefined ? [COVERAGE_ENV] : []);
+	let record = null;
+	try { record = JSON.parse(fs.readFileSync(recordFile, "utf8")); } catch {}
+	return { result, record, recordFile };
+}
+const recordCoverage = path.join(TD, "suite-record-coverage");
+const recordedSerial = runRecorded("record-serial", [], { [COVERAGE_ENV]: recordCoverage });
+const recordedParallel = runRecorded("record-parallel", ["--jobs=2"]);
+const recordByPath = (record) => new Map((record?.files ?? []).map((entry) => [entry.path, entry]));
+const serialFiles = recordByPath(recordedSerial.record);
+const parallelFiles = recordByPath(recordedParallel.record);
+const expectedRecordLabels = new Map([
+	["packages/probe/tests/a-pass.test.mjs", "PASS"],
+	["packages/probe/tests/b-exit.test.mjs", "FAIL"],
+	["packages/probe/tests/c-silent.test.mjs", "FAIL"],
+	["packages/probe/tests/d-timeout.test.mjs", "FAIL"],
+	["packages/probe/tests/e-signal.test.mjs", "FAIL"],
+	["apps/bench/test/study-tasks.test.mjs", "SKIP"],
+]);
+const recordsMatchOutput = (result, record, entries, expectedJobs, covered) => record?.schema === RECORD_SCHEMA
+	&& record.exitCode === result.code && record.jobs === expectedJobs && record.platform === process.platform
+	&& record.coverage === covered && typeof record.wallSeconds === "number" && record.wallSeconds >= 0
+	&& record.files.length === expectedRecordLabels.size
+	&& [...expectedRecordLabels].every(([file, label]) => entries.get(file)?.label === label
+		&& typeof entries.get(file)?.seconds === "number" && entries.get(file).seconds >= 0
+		&& labelFor(result.out, file) === label);
+const causesOk = [serialFiles, parallelFiles].every((entries) =>
+	entries.get("packages/probe/tests/b-exit.test.mjs")?.cause === "exit 7"
+	&& entries.get("packages/probe/tests/c-silent.test.mjs")?.cause === "no passing check"
+	&& entries.get("packages/probe/tests/d-timeout.test.mjs")?.cause === "timed out"
+	&& (posix
+		? entries.get("packages/probe/tests/e-signal.test.mjs")?.cause === "signal SIGKILL"
+		: entries.get("packages/probe/tests/e-signal.test.mjs")?.cause === "exit 1"));
+const rootRecordMutation = mkRoot("suite-record-mutation", {
+	"packages/probe/tests/change.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(new URL("../../../tracked.txt", import.meta.url), "after");',
+		'console.log("PASS changed a tracked file");',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootRecordMutation });
+fs.writeFileSync(path.join(rootRecordMutation, "tracked.txt"), "before");
+spawnSync("git", ["add", "."], { cwd: rootRecordMutation });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootRecordMutation });
+const mutationRecordFile = path.join(TD, "mutation-record.json");
+const recordedMutation = run(rootRecordMutation, [], { [RECORD_FILE_ENV]: mutationRecordFile });
+const mutationRecord = JSON.parse(fs.readFileSync(mutationRecordFile, "utf8"));
+const recordedUnset = run(rootKnob, [], {}, [RECORD_FILE_ENV]);
+function noSuiteRunRecordUnder(dir) {
+	const stack = [dir];
+	while (stack.length) {
+		const current = stack.pop();
+		let entries;
+		try { entries = fs.readdirSync(current, { withFileTypes: true }); } catch { continue; }
+		for (const entry of entries) {
+			const target = path.join(current, entry.name);
+			if (entry.isDirectory()) stack.push(target);
+			else {
+				try {
+					const value = JSON.parse(fs.readFileSync(target, "utf8"));
+					if (value?.schema === RECORD_SCHEMA && Array.isArray(value.files) && typeof value.wallSeconds === "number") return false;
+				} catch {}
+			}
+		}
+	}
+	return true;
+}
+// req: R-2546
+check("R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage",
+	recordsMatchOutput(recordedSerial.result, recordedSerial.record, serialFiles, 1, true)
+		&& recordsMatchOutput(recordedParallel.result, recordedParallel.record, parallelFiles, 2, false)
+		&& causesOk
+		&& mutationRecord.exitCode === 1
+		&& mutationRecord.unnamedFailures?.some((failure) => failure.includes("tracked repository files changed by tests: tracked.txt"))
+		&& noSuiteRunRecordUnder(rootKnob) && noSuiteRunRecordUnder(recordedUnset.tmp) && !recordedUnset.out.includes("suite record:"));
 
 const testRoots = [
 	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })
