@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane runtime-map-live (install, hook or gate lane: it changes nana-land), written by the seat
-// 2026-10-22 after build 2, on the shared runner, at tip 8a3df4bd. They are the must-meet's nine pairs ("Seat steps"),
+// 2026-10-22 after build 2, on the shared runner, at tip 8a3df4bd, and again at 56435b70 after build 3, which added x4 and x5. They are the must-meet's nine pairs ("Seat steps"),
 // split where one names two wrong builds, plus the seat's two findings on build 1 (F1, F2) and three cheap extras.
 // Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/runtime-map-live-2026-10-22/seat-mutate.mjs
@@ -32,6 +32,7 @@ const DECLARED = [
 	"(plan) p1 to p9 are the must-meet's nine pairs; p4 names two wrong builds (rerun every file, rerun under coverage), run as p4a and p4b",
 	"(seat) f1 and f2 are the seat's build-1 findings: a whole-run failure rerun away, and a write problem lost on the rerun path",
 	"(seat) x1 to x3 are cheap extras: Windows measured anyway (R-2526), no tip in the data (R-2523), and main's distance counted the wrong way (R-2529)",
+	"(seat) x4 and x5 (after build 3): the Windows branch ignores the hand-measure marker, and the measure command sets no marker; both leave a win32 hand measure writing nothing",
 	"(seat) p2 stamps main's old SHA in the land's variable; the locked suite then sees a tip that is not HEAD and measures nothing, so R-2522 goes red with R-2531",
 ];
 
@@ -58,7 +59,7 @@ const PAIRS = [
 		one(LAND, "const notes = landNotes(suiteResult);", "const notes = [];"),
 	], tests: [LAND_T], expectRed: [R_2530] },
 	{ n: "p7", name: "a hand measure that passes no tip", edits: [
-		one(MEASURE, "env: { ...env, [LAND_TIP_ENV]: head.stdout.trim(), [DIRTY_COUNT_ENV]: String(dirty) },", "env: { ...env, [DIRTY_COUNT_ENV]: String(dirty) },"),
+		one(MEASURE, "env: { ...env, [LAND_TIP_ENV]: head.stdout.trim(), [DIRTY_COUNT_ENV]: String(dirty), [HAND_MEASURE_ENV]: \"1\" },", "env: { ...env, [DIRTY_COUNT_ENV]: String(dirty), [HAND_MEASURE_ENV]: \"1\" },"),
 	], tests: [RLAND_T], expectRed: [R_2533] },
 	{ n: "p8", name: "a constant age", edits: [
 		one(RMAP, "const ageHours = Math.max(0, Math.floor((current.getTime() - measured.getTime()) / (60 * 60 * 1000)));", "const ageHours = 0;"),
@@ -73,7 +74,7 @@ const PAIRS = [
 		one(LOCKED, "\t\t\tif (writeProblem) note(writeProblem);\n\t\t\tif (!failed.length", "\t\t\tif (!failed.length"),
 	], tests: [RLAND_T], expectRed: [R_2524] },
 	{ n: "x1", name: "Windows measured like any other platform", edits: [
-		one(LOCKED, "if (tip && UNMEASURED_PLATFORMS.includes(platform)) {", "if (false) {"),
+		one(LOCKED, "if (tip && env[HAND_MEASURE_ENV] === undefined && UNMEASURED_PLATFORMS.includes(platform)) {", "if (false) {"),
 	], tests: [RLAND_T], expectRed: [R_2526] },
 	{ n: "x2", name: "runtime data written without its tip", edits: [
 		one(MEASURE, "if (tip !== undefined) data.tip = tip;", "/* no tip */"),
@@ -81,6 +82,12 @@ const PAIRS = [
 	{ n: "x3", name: "main's distance from the tip counted the wrong way", edits: [
 		one(CMAP, 'run(["rev-list", "--count", `${tip}..${MAIN_REF}`])', 'run(["rev-list", "--count", `${MAIN_REF}..${tip}`])'),
 	], tests: [RMAP_T], expectRed: [R_2529] },
+	{ n: "x4", name: "the Windows branch ignores the hand-measure marker", edits: [
+		one(LOCKED, "if (tip && env[HAND_MEASURE_ENV] === undefined && UNMEASURED_PLATFORMS.includes(platform)) {", "if (tip && UNMEASURED_PLATFORMS.includes(platform)) {"),
+	], tests: [RLAND_T], expectRed: [R_2533] },
+	{ n: "x5", name: "the measure command sets no marker", edits: [
+		one(MEASURE, ", [HAND_MEASURE_ENV]: \"1\" },", " },"),
+	], tests: [RLAND_T], expectRed: [R_2533] },
 ];
 
-process.exitCode = await runMutations({ lane: "runtime-map-live", self: import.meta.url, tip: "8a3df4bd", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "runtime-map-live", self: import.meta.url, tip: "56435b70", declared: DECLARED, pairs: PAIRS });
