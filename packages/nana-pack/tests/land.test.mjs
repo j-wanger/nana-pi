@@ -38,16 +38,17 @@ const repo = (root, name) => {
 };
 const commit = (dir, file, data, message) => { writeFileSync(path.join(dir, file), data); git(dir, "add", file); git(dir, "commit", "-m", message); return git(dir, "rev-parse", "HEAD"); };
 const tree = (dir, branch) => { git(dir, "worktree", "add", "-b", branch, path.join(path.dirname(dir), branch)); return path.join(path.dirname(dir), branch); };
-const recordReview = (feature, home, item, verdict = "LAND", captured = `VERDICT: ${verdict}`) => {
+const recordReview = (feature, home, item, verdict = "LAND") => {
 	const admission = admit(["--item", item, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
 	assert.equal(admission.ok, true, admission.message);
-	return complete(admission.res, captured, { home, text: captured });
+	return complete(admission.res, `VERDICT: ${verdict}`, { home });
 };
 const tallyRows = (home) => readFileSync(ledgerPaths(home).tally, "utf8").trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);
 const writeTallyRows = (home, rows) => writeFileSync(ledgerPaths(home).tally, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
 const recordTextReview = (feature, home, item, text) => {
-	const verdict = text.includes("SEND-BACK") ? "SEND-BACK" : "LAND";
-	const completed = recordReview(feature, home, item, verdict, text);
+	const admission = admit(["--item", item, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
+	assert.equal(admission.ok, true, admission.message);
+	const completed = complete(admission.res, text, { home, text });
 	assert.equal(completed.ok, true, completed.message);
 	return tallyRows(home).at(-1);
 };
