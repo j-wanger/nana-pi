@@ -1,0 +1,28 @@
+# Windows leg at dc931d36 (CI run 39727232190, PR #161): the lane's failing checks
+
+suite (macos-latest) 205 files: 203 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8285 pass, 0 fail, 40 skip · 1108.4s
+suite (ubuntu-latest) 205 files: 202 PASS, 0 FAIL, 3 SKIP, 0 WARN · checks: 8224 pass, 0 fail, 60 skip · 855.6s
+suite (windows-latest) 205 files: 186 PASS, 1 FAIL, 18 SKIP, 0 WARN · checks: 7210 pass, 3 fail, 119 skip · 2011.8s
+
+PASS land runtime tunables retain their reviewed values
+FAIL a passing land suite writes runtime data naming the land tip and the time it measured AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(c.starts[0].coverage)
+
+FAIL a land failing under coverage keeps its data and reruns only the failed files AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+FAIL a passing land suite whose runtime data cannot be written exits 0, keeps the earlier data and names why AssertionError [ERR_ASSERTION]: The input did not match the regular expression /runtime map.*(completion|count|write|refusal)/i. Input:
+
+'[nana-land] runtime map on Windows was not measured'
+
+PASS on Windows a land suite runs once without coverage and says the runtime map was not measured
+SKIP off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero — R-2526: Windows lands do not measure
+PASS filtered, wrong-tip and unset-tip runs neither measure nor rerun
+PASS a hand measure writes its tip, time and dirty-file count inside the lock
+
+3 check(s) failed
+FAIL  packages/nana-pack/tests/runtime-land.test.mjs                  4 pass, 3 fail, 1 skip  5.6s  — exit 1
+SKIP after a land the runtime data names main's tip and is not stale — R-2526: Windows lands do not measure
+PASS R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it 
