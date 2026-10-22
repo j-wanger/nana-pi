@@ -1,0 +1,18 @@
+node:fs:2430
+    return binding.writeFileUtf8(
+                   ^
+
+Error: ENOENT: no such file or directory, open 'C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-6796-4T1DxZ\claude-review-test-6i7CD4\prompt-tree\brief folder\review "quote" and apostrophe's.md'
+    at Module.writeFileSync (node:fs:2430:20)
+    at file:///D:/a/nana-pi/nana-pi/packages/nana-pack/tests/claude-review.test.mjs:139:5
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: `C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-6796-4T1DxZ\\claude-review-test-6i7CD4\\prompt-tree\\brief folder\\review "quote" and apostrophe's.md`
+}
+
+Node.js v22.23.3
+FAIL  packages/nana-pack/tests/claude-review.test.mjs                 1 pass  1.4s  — exit 1
