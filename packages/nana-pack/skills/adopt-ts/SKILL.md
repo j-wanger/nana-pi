@@ -114,7 +114,9 @@ First two steps:
      `map:check`, `map:impact`, `readme:check`, and `check` script; rewrite
      `check` to their package manager. Add the missing devDeps
      (typescript/biome/vitest/@types/node) via THEIR package manager so the
-     right lockfile updates — minus biome on the keep-your-linter path.
+     right lockfile updates — minus biome on the keep-your-linter path. Add
+     each missing devDependency at the exact version the rendered `package.json`
+     names.
    - `tsconfig.json`: the pinned strict base lands; carry over compiler
      options their build genuinely needs (jsx, paths, outDir, lib). CJS
      projects: `module`/`moduleResolution` stay theirs — record the deviation.
