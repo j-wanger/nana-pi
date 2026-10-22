@@ -19,6 +19,7 @@ import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
 import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import { GITHUB_REMOTE } from "../packages/nana-pack/lib/land-ci.mjs";
 import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
 import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 
@@ -53,9 +54,6 @@ export const SECONDS_PER_DAY = 24 * 60 * 60;
 export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
-// contract (R-1511): the three origin-remote spellings a GitHub link is read from, each with an
-// optional ".git" suffix, matched strictly so another host or embedded credentials never matches.
-const GITHUB_REMOTE = /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([^/]+)\/([^/]+?)(?:\.git)?$/;
 const exactKeys = (value, keys) => value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const fingerprint = (row) => createHash("sha256").update(JSON.stringify([row.id, row.requirement, row.status])).digest("hex");
 
