@@ -17,6 +17,11 @@ import { writeFakePi } from "./fake-pi.mjs";
 import { parseLandArgs, runLand as executeLand, runCleanup } from "../bin/nana-land.mjs";
 import { admit, complete, withReviewLedgerLock } from "../bin/review-round.mjs";
 import { realPath } from "../lib/real-path.mjs";
+import { LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
+import { checkoutDrift, hashFile } from "../lib/runtime-map.mjs";
+
+const TEST_LOCKED = fileURLToPath(new URL("../../../scripts/test-locked.mjs", import.meta.url));
 
 const PI_REVIEW = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url));
 
@@ -431,6 +436,53 @@ check("main advancing during suite refuses before merge", () => {
 	assert.notEqual(out.code, 0); assert.match(out.text, /HEAD.*captured|main checkout/i);
 	assert.notEqual(advancedMain, initialMain); assert.equal(git(main, "rev-parse", "refs/heads/main"), advancedMain); assert.notEqual(advancedMain, tip);
 });
+// req: R-2522
+check("the land runs its suite with the source tip's full SHA in NANA_LAND_TIP", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-tip-env-")); const main = repo(root, "main");
+	const mainBefore = git(main, "rev-parse", "HEAD");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
+	const output = path.join(root, "suite-tip.txt"); const probe = path.join(root, "write-tip.mjs");
+	writeFileSync(probe, `import { writeFileSync } from "node:fs"; writeFileSync(process.argv[2], process.env.${LAND_TIP_ENV} ?? "");\n`);
+	const suite = `${JSON.stringify(process.execPath)} ${JSON.stringify(probe)} ${JSON.stringify(output)}`;
+	const out = runLand({ tree: feature, main, suite, reviewed: [] });
+	assert.notEqual(tip, mainBefore); assert.equal(out.code, 0, out.text); assert.equal(readFileSync(output, "utf8"), tip);
+});
+
+// req: R-2530
+check("a passing land shows its suite's land notes", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-notes-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
+	const note = `${LAND_NOTE_PREFIX} visible note`;
+	const trailing = `${LAND_NOTE_PREFIX} trailing note \t`;
+	const noFinalNewline = `${LAND_NOTE_PREFIX} stderr note without final newline`;
+	const out = runLand({ tree: feature, main, suite: "injected", reviewed: [], runCommand: () => ({ status: 0, stdout: `${note}\r\n${trailing}\r\nordinary suite output\r\n`, stderr: noFinalNewline }) });
+	assert.equal(out.code, 0, out.text); assert.ok(out.text.includes(`${note}\n`)); assert.ok(out.text.includes(`${trailing}\n`)); assert.ok(out.text.includes(`${noFinalNewline}\n`));
+	assert.doesNotMatch(out.text, /ordinary suite output/);
+});
+
+// req: R-2531
+check("after a land the runtime data names main's tip and is not stale", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-runtime-map-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
+	const dataFile = path.join(root, "runtime-map.json"); const lockDir = path.join(root, "suite.lock");
+	const fakeSuite = path.join(root, "fake-suite.mjs");
+	writeFileSync(fakeSuite, [
+		'import { mkdirSync, writeFileSync } from "node:fs";',
+		'import path from "node:path";',
+		`const coverage = process.env.${COVERAGE_ENV};`,
+		`if (coverage) { mkdirSync(coverage, { recursive: true }); writeFileSync(path.join(coverage, ${JSON.stringify(COMPLETION_FILE)}), JSON.stringify({ files: 0 })); }`,
+	].join("\n"));
+	const out = runLand({ tree: feature, main, suite: "locked fixture", reviewed: [], runCommand: (_command, cwd, options = {}) => spawnSync(process.execPath, [TEST_LOCKED], {
+		cwd, encoding: "utf8", timeout: 15000,
+		env: { ...options.env, NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, fakeSuite]), NANA_SUITE_LOCK_DIR: lockDir, NANA_RUNTIME_MAP_FILE: dataFile },
+	}) });
+	assert.equal(out.code, 0, out.text); const data = JSON.parse(readFileSync(dataFile, "utf8"));
+	assert.equal(data.tip, git(main, "rev-parse", "refs/heads/main")); assert.equal(data.tip, tip);
+	const tracked = git(main, "ls-files").split("\n").filter(Boolean);
+	const drift = checkoutDrift(data, { tracked, hashOf: (file) => hashFile(path.join(main, file)) });
+	assert.deepEqual(drift, { added: [], removed: [], changed: [], stale: false });
+});
+
 // req: R-977
 check("suite command runs in the source tree", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-suite-cwd-")); const main = repo(root, "main");

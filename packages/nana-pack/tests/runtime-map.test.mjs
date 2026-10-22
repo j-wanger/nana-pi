@@ -30,6 +30,7 @@ const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const TEST_LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
+const LAND_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "land-config.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
 const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test-runner-config.mjs");
 const RUNTIME_MAP_READER = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map.mjs");
@@ -433,6 +434,7 @@ const mainMM9 = mkGitFixture("mm9-main", {
 	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
 	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
+	"packages/nana-pack/lib/land-config.mjs": fs.readFileSync(LAND_CONFIG, "utf8"),
 	"packages/nana-pack/lib/windows-skips-config.mjs": fs.readFileSync(WINDOWS_SKIPS_CONFIG, "utf8"),
 	"packages/nana-pack/lib/test-runner-config.mjs": fs.readFileSync(TEST_RUNNER_CONFIG, "utf8"),
 	"packages/nana-pack/lib/runtime-map.mjs": fs.readFileSync(RUNTIME_MAP_READER, "utf8"),

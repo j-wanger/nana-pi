@@ -103,6 +103,7 @@ if (process.platform !== "win32") {
 	const reportText = "DONE One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo twentythree twentyfour twentyfive.\n";
 	const limitedPath = `${binDir}${path.delimiter}${path.dirname(process.execPath)}`;
 	const reportEnv = { PATH: limitedPath };
+	const reportEnvKeysSetByTest = Object.keys(reportEnv);
 	const report = spawnSync("nana-writing", ["--report"], { cwd: NEUTRAL_CWD, encoding: "utf8", input: reportText, env: reportEnv });
 	const expectedReport = "-:1: length: 26 words (cap 25)\nsummary sentences=1 words=26 over=1 passive=0 banned=0 verdict=1/1 identifiers=0\n";
 	const identical = run(["install", "--home", writingHome]);
@@ -114,7 +115,7 @@ if (process.platform !== "win32") {
 	const misdirected = run(["doctor", "--home", writingHome]);
 	const evidence = modeBefore === "100755" && modeAfter === "100755" &&
 		(sourceBefore.mode & 0o777) === 0o755 && (sourceAfter.mode & 0o777) === 0o755 &&
-		sourceAfter.ctimeMs === sourceBefore.ctimeMs && Object.keys(reportEnv).length === 1 && reportEnv.PATH === limitedPath &&
+		sourceAfter.ctimeMs === sourceBefore.ctimeMs && JSON.stringify(reportEnvKeysSetByTest) === JSON.stringify(["PATH"]) && reportEnv.PATH === limitedPath &&
 		installed.status === 0 && /\+ PATH nana-writing\b/.test(installed.stdout) &&
 		identical.status === 0 && /PATH nana-writing\s+unchanged\b/.test(identical.stdout) && identicalTarget === source &&
 		report.status === 0 && report.stderr === "" && report.stdout === expectedReport &&

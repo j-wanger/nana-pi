@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/runtime-measure.mjs
- * @purpose Run the suite once under per-file coverage and write the runtime-map data file.
- * @inputs the repo root, env (passed to the suite, with the coverage knob added), and injectable suite
- *  start, signal source, process listing and kill calls for tests
- * @outputs the runtime data file (schema 1 JSON: tracked-file hashes and per-test label/seconds/ran) and
- *  the suite's own exit code
+ * @purpose Build and atomically write runtime-map data, and route a hand measure through the locked suite's land path.
+ * @inputs a repo root, coverage folder, metadata, environment, and injectable process and signal operations
+ * @outputs runtime data (schema 1 hashes, tests, tip, measurement time, and optional dirty count) and command exit codes
  * @effects process (spawns git and the locked suite, forwards SIGINT/SIGTERM, lists and kills the suite's
  *  process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
  * @errors leaves earlier runtime data unchanged and exits non-zero when the suite's completion record is
@@ -32,6 +30,7 @@ import {
 	TREE_LIST,
 } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { dataPath, hashFile } from "../packages/nana-pack/lib/runtime-map.mjs";
+import { DIRTY_COUNT_ENV, LAND_TIP_ENV } from "../packages/nana-pack/lib/land-config.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,7 +47,7 @@ export function trackedFiles(root, { git = (args) => spawnSync("git", args, { en
 export function suiteCommand(root, env, coverageDir) {
 	return {
 		command: process.execPath,
-		args: [path.join(root, "scripts", "test-locked.mjs")],
+		args: [path.join(root, "scripts", "test.mjs")],
 		options: { cwd: root, env: { ...env, [COVERAGE_ENV]: coverageDir }, stdio: "inherit" },
 	};
 }
@@ -153,10 +152,53 @@ export function killTree(rootPid, { run = (args) => spawnSync(args[0], args.slic
 	}
 }
 
+/** Build runtime data from one completed coverage folder without writing it. */
+export function buildRuntimeData({ root, coverageDir, tip, measuredAt, dirty }) {
+	const tracked = trackedFiles(root);
+	const trackedSet = new Set(tracked);
+	const hashes = {};
+	for (const file of tracked) hashes[file] = hashFile(path.join(root, file));
+	const positions = fs.existsSync(coverageDir)
+		? fs.readdirSync(coverageDir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort()
+		: [];
+	const tests = {};
+	for (const name of positions) {
+		const dir = path.join(coverageDir, name);
+		let record;
+		try { record = JSON.parse(fs.readFileSync(path.join(dir, RECORD_FILE), "utf8")); }
+		catch { continue; }
+		const { ran } = readFolder(dir, root, trackedSet);
+		tests[record.path] = { label: record.label, seconds: record.seconds, ran };
+	}
+	let completion = null;
+	try { completion = JSON.parse(fs.readFileSync(path.join(coverageDir, COMPLETION_FILE), "utf8")); }
+	catch { completion = null; }
+	if (!completion) return { ok: false, reason: "completion record is missing" };
+	if (completion.files !== Object.keys(tests).length) return { ok: false, reason: `completion count ${completion.files} does not match ${Object.keys(tests).length} records` };
+	const data = { schema: RUNTIME_SCHEMA, hashes, tests };
+	if (tip !== undefined) data.tip = tip;
+	if (measuredAt !== undefined) data.measuredAt = measuredAt;
+	if (dirty !== undefined) data.dirty = dirty;
+	return { ok: true, data };
+}
+
+/** Atomically write one already-built runtime data object through the shared data path. */
+export function writeRuntimeData(data, { root = ROOT, env = process.env, dataFile } = {}) {
+	const resolvedDataFile = dataFile ?? dataPath(root, { env });
+	fs.mkdirSync(path.dirname(resolvedDataFile), { recursive: true });
+	const tmp = `${resolvedDataFile}.tmp-${process.pid}`;
+	try {
+		fs.writeFileSync(tmp, JSON.stringify(data));
+		fs.renameSync(tmp, resolvedDataFile);
+	} catch (error) {
+		try { fs.rmSync(tmp, { force: true }); } catch {}
+		throw error;
+	}
+}
+
 /**
- * Run the suite once under per-file coverage and write the runtime data (R-1271, R-1275, R-1277,
- * R-1278). Every dependency is injectable so a check can drive both the happy path and a stop
- * signal without a real suite.
+ * Legacy injectable coverage runner used by the runtime-map unit tests. Production hand measures
+ * enter through handMeasure below, so run and write still share buildRuntimeData/writeRuntimeData.
  */
 export async function measure({
 	root = ROOT,
@@ -169,12 +211,6 @@ export async function measure({
 	run,
 	kill = process.kill,
 } = {}) {
-	const resolvedDataFile = dataFile ?? dataPath(root, { env });
-	const tracked = trackedFiles(root);
-	const trackedSet = new Set(tracked);
-	const hashes = {};
-	for (const f of tracked) hashes[f] = hashFile(path.join(root, f));
-
 	const coverageDir = fs.mkdtempSync(path.join(os.tmpdir(), COVERAGE_PREFIX));
 	const cleanupCoverage = () => { try { fs.rmSync(coverageDir, { recursive: true, force: true }); } catch {} };
 
@@ -211,39 +247,31 @@ export async function measure({
 		process.exit(1);
 	}
 
-	const positions = fs.existsSync(coverageDir) ? fs.readdirSync(coverageDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort() : [];
-	const tests = {};
-	for (const name of positions) {
-		const dir = path.join(coverageDir, name);
-		let record;
-		try {
-			record = JSON.parse(fs.readFileSync(path.join(dir, RECORD_FILE), "utf8"));
-		} catch {
-			continue; // no readable record for this position: it does not count toward "records read"
-		}
-		const { ran } = readFolder(dir, root, trackedSet);
-		tests[record.path] = { label: record.label, seconds: record.seconds, ran };
-	}
-	let completion = null;
-	try {
-		completion = JSON.parse(fs.readFileSync(path.join(coverageDir, COMPLETION_FILE), "utf8"));
-	} catch {
-		completion = null;
-	}
-	if (!completion || completion.files !== Object.keys(tests).length) {
+	const built = buildRuntimeData({ root, coverageDir });
+	if (!built.ok) {
 		cleanupCoverage();
 		process.exitCode = suiteCode !== 0 ? suiteCode : 1;
 		return;
 	}
-
-	const data = { schema: RUNTIME_SCHEMA, hashes, tests };
-	fs.mkdirSync(path.dirname(resolvedDataFile), { recursive: true });
-	const tmp = `${resolvedDataFile}.tmp-${process.pid}`;
-	fs.writeFileSync(tmp, JSON.stringify(data));
-	fs.renameSync(tmp, resolvedDataFile);
+	writeRuntimeData(built.data, { root, env, dataFile });
 	cleanupCoverage();
 	process.exitCode = suiteCode;
 }
 
+/** Run a hand measure through the same locked land path, stamping HEAD and tracked dirt. */
+export function handMeasure({ root = ROOT, env = process.env, testLocked = path.join(ROOT, "scripts", "test-locked.mjs"), run = spawnSync } = {}) {
+	const head = spawnSync("git", ["rev-parse", "HEAD^{commit}"], { cwd: root, encoding: "utf8" });
+	if (head.status !== 0) return head.status ?? 1;
+	const status = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=no"], { cwd: root, encoding: "utf8" });
+	if (status.status !== 0) return status.status ?? 1;
+	const dirty = status.stdout.split("\0").filter(Boolean).length;
+	const result = run(process.execPath, [testLocked], {
+		cwd: root,
+		stdio: "inherit",
+		env: { ...env, [LAND_TIP_ENV]: head.stdout.trim(), [DIRTY_COUNT_ENV]: String(dirty) },
+	});
+	return result.status ?? (result.signal ? 128 : 1);
+}
+
 const invokedDirectly = process.argv[1] && fs.existsSync(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
-if (invokedDirectly) await measure({ root: ROOT });
+if (invokedDirectly) process.exitCode = handMeasure({ root: ROOT });

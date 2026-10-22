@@ -15,10 +15,14 @@ import { fileURLToPath } from "node:url";
 import { canonicalItem, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
+import { LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-const commandDefault = (command, cwd) => spawnSync(command, { cwd, shell: true, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
+const landNotes = (result) => [result.stdout ?? "", result.stderr ?? ""]
+	.flatMap((text) => text.split(/\r?\n/))
+	.filter((line) => line.startsWith(LAND_NOTE_PREFIX));
 const git = (runner, cwd, ...args) => {
 	const r = runner(cwd, args);
 	if (r.error || r.status !== 0) throw new Error(`git ${args.join(" ")} failed in ${cwd} (exit ${r.status ?? r.signal ?? "unknown"}): ${(r.stderr ?? r.error?.message ?? "").trim()}`);
@@ -100,7 +104,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
-		const suiteResult = runCommand(suite, tree);
+		const suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
 		lockReviews(home, ({ rounds, reservations }) => {
@@ -121,7 +125,8 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
-		return { code: 0, text: `push command: git push\nrelease status: ${releaseLine}\n` };
+		const notes = landNotes(suiteResult);
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 
