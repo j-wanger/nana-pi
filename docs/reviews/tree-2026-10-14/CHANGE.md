@@ -8,7 +8,7 @@ renders and other projects' ledger copies the probes read stay in the seat's scr
 
 ## 1. Why
 
-Jake, 2026-10-13: "why does the default behavior today create requirements in row by row ears format instead of tree based design which we adopted?" He agreed: templates seed
+The owner, 2026-10-13: "why does the default behavior today create requirements in row by row ears format instead of tree based design which we adopted?" He agreed: templates seed
 the tree, the adopt step sorts a flat ledger into it, and the report runs in any project (`HANDOFF.md:74`; listed, unqueued, `req-tree-2026-10-09/CHANGE.md:292`).
 **Trigger.** A Windows seat on a work project ran the report on its flat ledger. The report refuses any tree problem, one line per row (`scripts/product-report.mjs:205-206`).
 Ran (`fc-ext/flat1000.mjs`): 1,000 flat rows give 1,005 lines and 54 KB on stderr, past Claude Code's 30,000-character inline window and pi 1.0.2's 2,000-line/50 KB cap
@@ -20,7 +20,7 @@ Ran (`fc-ext/flat1000.mjs`): 1,000 flat rows give 1,005 lines and 54 KB on stder
   problems on the four renders, every row "is not in a feature or subgroup table" (`scripts/requirements-tree.mjs:130`); a tree-shaped render finds 0, and both rails pass it
   (`research-templates.md` §3).
 - **The skills.** Requirements audit workers cover "the numbered sections" (`packages/nana-pack/skills/requirements/SKILL.md:135`); the G block goes "at the end as its own
-  Part" (`:163-166`, wrapped at `:165-166`); the tree rules are nana-pi text, "In this ledger…", "Jake decides" (`:126`). Scaffold: "one EARS `shall` row per behaviour"
+  Part" (`:163-166`, wrapped at `:165-166`); the tree rules are nana-pi text, "In this ledger…", "the owner decides" (`:126`). Scaffold: "one EARS `shall` row per behaviour"
   (`scaffold-py/SKILL.md:45-49`, `scaffold-ts/SKILL.md:45-49`); adopt: "extract EARS rows" (`adopt-py/SKILL.md:143-144`, `adopt-ts/SKILL.md:165-166`); adopt-structure: "add
   the standard `Part G` engineering block" (`:169`).
 - **copier never rewrites an existing ledger** (`copier.yml:16`), so an adopted flat ledger needs a command step (lane `tree-lift`).
@@ -128,7 +128,7 @@ Docs: `README.md` `:64` gains the checker's `--root`; `:243` gains "on any nana 
   1,116 → 1,128. After any merge of main, the outline and code map are regenerated.
 **Release.** New projects get the tree from the next CI tag after the land. Existing projects keep their REQUIREMENTS.md (`copier.yml:16`); on update their
 `REQUIREMENTS-general.md` gains the new headings (R-582 covers the rail). The Windows Claude Code seat's requirements skill is a byte copy (`steps.mjs:218-226`), stale until
-`nana-setup install` re-runs (doctor flags it); HANDOFF gets a line for Jake (§6).
+`nana-setup install` re-runs (doctor flags it); HANDOFF gets a line for the owner (§6).
 
 ## 5. Verification
 
@@ -143,7 +143,7 @@ phrase. Oracles import `checkTree` and `noTreeProblem` by name. R-1156's checker
     subgroup`; `Add each new row to the table of the feature it serves`; `The project owner decides every change to the tree`; the R-1156 checker command).
   - T5 · R-1154 `requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner`. Present: `The project owner decides
     every change to the tree`; `A ledger without a requirements tree keeps its numbered sections`; `then a regroup into capabilities and features that the owner approves`.
-    Absent: `Jake decides`; `In this ledger,`; `the numbered sections the worker must cover`; `at the end as its own Part`.
+    Absent: `Owner decides`; `In this ledger,`; `the numbered sections the worker must cover`; `at the end as its own Part`.
   - T6 · R-1155 `scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G`. Each of the five: present `the table of
     the feature it serves` and T5's two carve-out phrases; absent `` `Part G` ``. Ran (grep): the base skill text holds every absent phrase of T5 and T6 and no present one, so
     both red on the base, T6 per skill.
@@ -174,8 +174,8 @@ phrase. Oracles import `checkTree` and `noTreeProblem` by name. R-1156's checker
 | 3 | G1–G5 become five `## FEAT-90n` headings, each with `Purpose:` and `Status: active` / Part G numbered CAP-02, FEAT-002, SUB-001–SUB-005 | T2 (each) |
 | 4 | adopt FEAT-001 reads `Status: active` | T3 |
 | 5 | SUB-903 loses its `Purpose:` line | T1 (all four) |
-| 6 | the seed says "Jake decides" / drops "the feature it serves" / writes `~/nana-pi/` | T4 (each) |
-| 7 | requirements skill keeps "Jake decides tree changes" / drops the carve-out / keeps "at the end as its own Part" | T5 (each) |
+| 6 | the seed says "the owner decides" / drops "the feature it serves" / writes `~/nana-pi/` | T4 (each) |
+| 7 | requirements skill keeps "the owner decides tree changes" / drops the carve-out / keeps "at the end as its own Part" | T5 (each) |
 | 8 | adopt-structure keeps "add the standard `Part G` engineering block" / scaffold-ts drops "the table of the feature it serves" / adopt-py drops the carve-out | T6 (each) |
 | 9 | the skill writes `~/nana-pi/scripts/product-report.mjs` | T7 |
 | 10 | `--root` ignored (reads `REPO_ROOT`) / `--root` also compares the outline / `--root --write` accepted | T8 (each) |
@@ -204,20 +204,20 @@ clean change (INFERRED; R-582's update test decides).
 
 ## 6. Ruling, decisions, residuals (each becomes one HANDOFF line)
 
-**Jake's ruling (2026-10-14) on what "sort" means for an existing project:** "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding
-existing repo and turn into feature trees, then development really becomes feature oriented". No question for Jake stays open here. The queue it implies:
+**The owner's ruling (2026-10-14) on what "sort" means for an existing project:** "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding
+existing repo and turn into feature trees, then development really becomes feature oriented". No question for the owner stays open here. The queue it implies:
 1. Lane `tree` (this declaration): scope unchanged.
 2. Lane `tree-lift`: one apply-with-proof tool, `scripts/requirements-lift.mjs --root <dir>`. It applies a mapping (old ledger line → tree position, plus inserted headings and purposes) to REQUIREMENTS.md and proves every row kept byte-identical and the ID set equal; its default mapping is the mechanical one (sections → features, "Not yet sorted", Part G → §3.1's reserved shape). Plan and proof by default; `--write` after the owner's yes, only while the file matches HEAD. Draft rows R-1162–R-1169; class GATE.
 3. Lane `regroup`, the core nana feature: a skill and workflow that reads an existing repo (code, docs, tests, the ledger), proposes capabilities → features → subgroups with purposes, maps every row, and lists features with no rows as `proposed`; the owner approves at a checkpoint; lane `tree-lift`'s tool then applies the mapping.
 4. Feature-oriented development: req-tree §8 item 2 (`req-tree-2026-10-09/CHANGE.md:284-287`): the brief declares its Feature, the review and session name it, and the land reports a structure diff.
 
 **Seat decisions (declared, not asked).**
-- S1 Order: `tree`, then `tree-lift`, then `regroup`; `tree` fixes the default Jake asked about and settles the CRLF handling and Part G shape the lift reuses.
+- S1 Order: `tree`, then `tree-lift`, then `regroup`; `tree` fixes the default the owner asked about and settles the CRLF handling and Part G shape the lift reuses.
 - S2 Part G: one feature, five subgroups, reserved IDs, last before the closing heading (§3.1). S3 No tree gate in project suites yet (Python CI would need Node). Carry.
-- S4 The Decisions view stays empty in projects: asks are read only under "Open for Jake" (`handoff-asks.mjs:11`); the seed HANDOFF has `## Open`
-  (`templates/_shared/HANDOFF.md:11`). An untagged "Open for Jake" item makes the report refuse (R-1030; `product-report.mjs:210-213`). Carry both.
+- S4 The Decisions view stays empty in projects: asks are read only under "Open for the owner" (`handoff-asks.mjs:11`); the seed HANDOFF has `## Open`
+  (`templates/_shared/HANDOFF.md:11`). An untagged "Open for the owner" item makes the report refuse (R-1030; `product-report.mjs:210-213`). Carry both.
 - S5 Commands run from the checkout's `scripts/` with `--root`; no bin, PATH link or nana-setup change. S6 No shared-section or AGENTS.md edit. S7 Rows stay EARS.
-- S8 Row homes: SUB-019, FEAT-032, FEAT-028; no new heading or share. S9 Projects say "the project owner" (Jake owns them); nana-pi keeps "Jake" (`REQUIREMENTS.md:34`).
+- S8 Row homes: SUB-019, FEAT-032, FEAT-028; no new heading or share. S9 Projects say "the project owner" (Owner owns them); nana-pi keeps "the owner" (`REQUIREMENTS.md:34`).
 - S10 The adopt seed's feature is `proposed`; purposes start "DRAFT —". S11 CRLF is handled in `parseLedger` only. S12 Projects get no outline. S13 R-1159 and R-1161 sit in `checkTree`; R-1160 sits beside it, shared by the CLI and the report.
 
 **Residuals and carries.**
@@ -234,7 +234,7 @@ existing repo and turn into feature trees, then development really becomes featu
 11. A feature inserted just above the closing heading nests silently under CAP-90; a check for a capability mixing G and R features belongs with S3's gate.
 12. A Claude Code seat, or a project in neither template language, has no seed route: `nana-setup project` writes no REQUIREMENTS.md (`packages/nana-setup/README.md:198-203`). Carry.
 13. Each seed freezes R-1156's `$HOME/nana-pi` checker command into a skip-listed file; a later PATH link will not reach it (`factcheck-external.md` §5). Carry.
-14. HANDOFF line for Jake, written before the final round: re-run `nana-setup install` on the Windows Claude Code seat so its requirements skill copy updates.
+14. HANDOFF line for the owner, written before the final round: re-run `nana-setup install` on the Windows Claude Code seat so its requirements skill copy updates.
 
 ## Seat revision (2026-10-14)
 
@@ -245,8 +245,8 @@ existing repo and turn into feature trees, then development really becomes featu
 5. Part G takes reserved IDs CAP-90, FEAT-900, SUB-900–SUB-904 (the checker accepts them as is); G stays last before the closing heading; J2 is a seat decision.
 6. All six skills gain the flat-ledger carve-out (lift, then regroup; no command named); T5/T6 red on the base; the Claude Code seat gets only the requirements skill; Windows needs a reinstall.
 7. T1 needs a product capability and feature, so pair 1 reds T1 in adopt mode; K3 cites R-598/R-629; residuals 2 and 5 corrected; acceptance uses `--check`; R-1156's checker string is in T4 and T7.
-8. J1–J4 are seat decisions with carries. Jake ruled on the sort question (2026-10-14); §6 records the ruling and its four-lane queue.
-9. R-1153 keeps "the project owner decides"; nana-pi keeps "Jake".
+8. J1–J4 are seat decisions with carries. The owner ruled on the sort question (2026-10-14); §6 records the ruling and its four-lane queue.
+9. R-1153 keeps "the project owner decides"; nana-pi keeps "the owner".
 10. Class FORMAT (two plan-review rounds); builder Sonnet 5.5.
 
 ## Plan review r1 (2026-10-14)

@@ -50,7 +50,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/roster";
+const LANE_REPO = "/Users/example/nana-pi-wt/roster";
 // The tip under test: SEAT_MUTATE_TIP, else the lane branch head (v1 written against c7c7690; v2 against 4686b54).
 const TIP = process.env.SEAT_MUTATE_TIP || "feat/roster";
 const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), "roster-seat-mutate-"));

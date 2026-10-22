@@ -3,11 +3,11 @@
 *Lane `process` · branch `feat/process` · worktree `~/nana-pi-wt/process`, from `main` `9974218` · 2026-10-13. Features: FEAT-014
 SUB-019, FEAT-007 SUB-008, FEAT-008, FEAT-006, FEAT-013 SUB-011; new R-1100–R-1111; no row retires. Class: FORMAT (two plan-review
 rounds at most): it changes what every reviewer is told. Builder: Sonnet 5.5, a seat-spawned Claude subagent in the worktree, its
-brief opening with the rendered preamble (Jake's 10-13 split). Reviews: sol plan and build, astra land. Evidence: `research-*.md`.*
+brief opening with the rendered preamble (Owner's 10-13 split). Reviews: sol plan and build, astra land. Evidence: `research-*.md`.*
 
 ## 1. Why
 
-Jake queued "a small process lane" on 2026-10-11 (HANDOFF "Next" 6). The working pattern fans out to every nana project.
+The owner queued "a small process lane" on 2026-10-11 (HANDOFF "Next" 6). The working pattern fans out to every nana project.
 - **Rulings it lacks.** 10-11 (HANDOFF, archive, memory): threat model per plan; plan caps one (small) or two (gate or format),
   reopened only by a named fail-open bug; no edits after an all-LAND review; urgent fixes alone. 10-12 (shared memory only,
   `feedback_lane_process_2026_10_11.md` item 5): the install check, locally on macOS, before `nana-land`. 10-13 (memory,
@@ -21,9 +21,9 @@ Jake queued "a small process lane" on 2026-10-11 (HANDOFF "Next" 6). The working
 - **README step 8 fails on every fresh machine.** The clone tracks `.pi/nana-pack.json`; untrusted, doctor adds a `!` row
   (`doctor.mjs:451-457`), and any `!` exits 1 with "NOT verified" (`nana-setup.mjs:323-335`).
 
-**Outcome.** Every pi-review child gets one standard; every refreshed project states Jake's plan and review rules; the preamble
+**Outcome.** Every pi-review child gets one standard; every refreshed project states the owner's plan and review rules; the preamble
 carries the recurring rules; step 8 ends at `all good` on a fresh Mac (INFERRED: trust is its only `!`, `restore.test.mjs:157`).
-**Threat model** (Jake's 10-11 words). In: honest variation in our tools' output — a brief asking for a first-line verdict or
+**Threat model** (Owner's 10-11 words). In: honest variation in our tools' output — a brief asking for a first-line verdict or
 LAND-WITH-FIXES; "verdict" in a review body; a prompt file missing or blank after a partial checkout; CRLF on a Windows checkout.
 Out: deliberate forgery — a forged verdict line; a standard file weakened on purpose.
 
@@ -58,14 +58,14 @@ keep their text. Tree total: 1,088 leaf rows on main (counted) → 1,100.
   `template:accept` renders only into temp folders, `nana-setup project .` would seed `OBJECTIVE.md`, `CLAUDE.md` is a symlink.
 - **Install-check step**, outside the markers (in the shared file its path fails R-598 against scaffold renders, and downstream
   repos have no nana-setup), as `AGENTS.md` "### Install check before a land" after "### Shared-machine test runs": "Land
-  checklist, nana-pi only (Jake, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs
+  checklist, nana-pi only (Owner, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs
   `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result."
 - **The review standard.** pi-review declares `REVIEW_STANDARD_URL = new URL('../prompts/review-standard.md', import.meta.url)`
   once at module scope, as `pi-worker.mjs:92` does (a co-shipped asset, not a tunable). It reads the file before building the
   checkout, exits 1 naming the file on any read error or blank text, and passes the TEXT as a second `--append-system-prompt`
   after the immutable sentence: pi 1.0.2 appends a missing PATH as literal text, silently (`resource-loader.js:100-114`). pi
   repeats the flag (`dist/cli/args.js:75-76`) and joins parts with a blank line (`dist/core/agent-session.js:1243`). Text:
-  `review-standard.proposed.md` (157 words; Jake's consequence list; verdict forms checked against `verdictWord`). Contract
+  `review-standard.proposed.md` (157 words; the owner's consequence list; verdict forms checked against `verdictWord`). Contract
   notes: pi-review's header gains the file (`@inputs`) and the refusal (`@errors`); the pack README "Review runner" section gains
   a paragraph on the file, the append, the refusal, and that `review-ledger run` does not inject it.
 - **Builder preamble:** `builder-preamble.proposed.md` (34 lines; `builder-preamble.diff`). Each pinned rule is one line whose
@@ -144,18 +144,18 @@ first-line LAND-WITH-FIXES and a last-line SEND-BACK records an empty verdict: s
 
 ## 6. Decisions, carries and residuals (each becomes one HANDOFF line)
 
-No YOUR CALL remains for Jake in this lane.
+No YOUR CALL remains for the owner in this lane.
 1. **Not pursued: refusing non-standard `--over-cap` reasons.** No ruling asked for it, and other repos pass free text.
-2. **Seat decision: "Maximum three rounds per item" stays** as the code-review cap; Jake's caps are plan-review caps (fact-check P9).
+2. **Seat decision: "Maximum three rounds per item" stays** as the code-review cap; the owner's caps are plan-review caps (fact-check P9).
 3. **Seat decision:** plan SHOULDs after an all-LAND plan review stay out of CHANGE.md; adopted ones go into the build brief.
 4. **Seat decision:** "suite green before commit" means touched tests before each commit and the full suite before the last.
 5. **Seat decision:** the builder split lives in the roster memory only; the shared file names no models.
 6. **Seat decision: the parallel runner is lane `test-jobs`, after this one** (GATE, Sonnet). `scripts/test.mjs` runs 138 files
    one at a time: locked 725 s and 880 s on 10-13, 580 s on 10-10, CI macOS 746 s; four files take 53%, review-ledger 137–200 s,
    at half a core per wall second; four jobs simulate 181–260 s. Its exit code gates land and release, so a lost result fails
-   open; port 4391, five time bounds and `--poll 1` come first, and its plan asks Jake whether the desk freeze covers a test edit.
+   open; port 4391, five time bounds and `--poll 1` come first, and its plan asks the owner whether the desk freeze covers a test edit.
 7. **Carry: downstream copies.** jev-research, the-hive, trading-zone and yokai-world need `nana-setup project` (the last two
-   also take the next CI tag); aml-desk, family-planner, game-world and returner hold unmarked hand copies; basketball-geek has none.
+   also take the next CI tag); work-project, family-planner, game-world and returner hold unmarked hand copies; basketball-geek has none.
 8. **Carry: seat memory and briefs.** `reference_pi_review_procedure.md` takes a last-line verdict without LAND-WITH-FIXES; the
    builder-brief rules name the twelve preamble rules (rule 4 false until `test-jobs`); yokai-world's briefs drop LAND-WITH-FIXES.
 9. **Residual:** `review-ledger run` wraps any command and gets no standard; its briefs paste the file's text.
@@ -168,10 +168,10 @@ No YOUR CALL remains for Jake in this lane.
 1. Over-cap enforcement dropped (old R-1110, R-1113, their tests, pairs and YOUR CALL); old R-1111/R-1112 went too: the refusal was the constant's only reader.
 2. Old R-1105 (consequence list only in the standard file) dropped; the rule is one copy in `review-standard.md`, appended by pi-review.
 3. The new R-719 seal test dropped; the unmarked `cap is 3` check stays; the pattern keeps "Maximum three rounds per item".
-4. Threat model worded as Jake ruled: honest variation in our tools' output in, deliberate forgery out.
+4. Threat model worded as the owner ruled: honest variation in our tools' output in, deliberate forgery out.
 5. Preamble: S5's two additions dropped; every pinned rule on its own line with unique text, so each pair reds one title.
 6. Parallel runner is lane `test-jobs` after this one; measurements in §6 item 6; `scripts/test.mjs` untouched.
-7. Install-check rule dated Jake 2026-10-12, "on macOS" kept, in `AGENTS.md` outside the markers as a land-checklist step.
+7. Install-check rule dated the owner 2026-10-12, "on macOS" kept, in `AGENTS.md` outside the markers as a land-checklist step.
 8. Builder split stays in the roster memory only (§6 item 5).
 9. Fact-check fixes: old R-1109 one `shall`; join cite `agent-session.js:1243`; drift check `requirements-tree.mjs --check`; pairs name every red title; R-1106 directory and pre-admission assertions; pack README and header notes; asset path as `pi-worker.mjs:92`; per-attempt claim dropped; "broken install or hook" restored.
 10. Class FORMAT, two plan rounds; Sonnet 5.5 subagent in `~/nana-pi-wt/process`; rows R-1100–R-1111; tree total 1,100.

@@ -42,11 +42,11 @@ const PAIRS = [
 	{ n: "P4", name: "a loose leaf reads \"false\", 0 and null as off", edits: [
 		one(CFG, "writing: { enabled: bool },", 'writing: { enabled: (v, w, p) => (v === "false" || v === 0 || v === null ? { ok: true, value: false } : bool(v, w, p)) },'),
 	], tests: [WI], expectRed: [R_2500] },
-	{ n: "P5", name: "a 27-word sentence lands in Open for Jake", edits: [
+	{ n: "P5", name: "a 27-word sentence lands in Open for Owner", edits: [
 		one("HANDOFF.md", "Judge them by use.", "Judge them by use, and say in a later session whether any one of them should change, stay as it is, or go away for good now."),
 	], tests: [WC], expectRed: [R_2503] },
 	{ n: "P6", name: "a live section is renamed without the name list", edits: [
-		one(FRONTIER, 'export const LIVE_SECTION_NAMES = ["Where things stand", "Next", "Open for Jake"];', 'export const LIVE_SECTION_NAMES = ["Where things stand", "Next", "Open for the owner"];'),
+		one(FRONTIER, 'export const LIVE_SECTION_NAMES = ["Where things stand", "Next", "Open for Owner"];', 'export const LIVE_SECTION_NAMES = ["Where things stand", "Next", "Open for the owner"];'),
 	], tests: [WC], expectRed: [R_2503] },
 	{ n: "P7", name: "nana-writing left out of the PATH list", edits: [
 		one(STEPS, '\t["nana-writing", NANA_WRITING_BIN],\n', ""),

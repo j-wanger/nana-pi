@@ -20,7 +20,7 @@ I also updated the lane's README paragraph to match. `HANDOFF.md` is untouched.
 
 **Tests:** `npm test` exit 0 — 71 files, 70 pass, 0 fail, 1 skip; 3925 checks pass. The objective golden corpus is 541 pass, 0 fail. One existing check had to change: in the escaped-path test, the folder now appears twice in the label, so the expected count went from 1 to 2.
 
-**Follow-up for Jake (not built):** a single `nana-setup trust <dir>` command that writes pi's store with the correct key would let the owner vouch from anywhere and remove the "start pi in that folder" step. It is a new mechanism, so it is outside this lane.
+**Follow-up for the owner (not built):** a single `nana-setup trust <dir>` command that writes pi's store with the correct key would let the owner vouch from anywhere and remove the "start pi in that folder" step. It is a new mechanism, so it is outside this lane.
 
 **Residuals:**
 - The two template texts say "until the owner vouches". That is looser than the label's own wording, because a fail-closed store also keeps the label.

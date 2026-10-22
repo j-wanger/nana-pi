@@ -35,7 +35,7 @@ This completes the requested consumer-facing contract without changing code.
 
 **Round-1 SHOULD closed: HANDOFF accuracy.**
 
-- `HANDOFF.md:12` now says Jake **requires** Windows testing, not that testing occurred.
+- `HANDOFF.md:12` now says the owner **requires** Windows testing, not that testing occurred.
 - `HANDOFF.md:56` distinguishes the accepted tree from the four-digit change awaiting final review.
 
 ### NOTE — Compatibility ruling
@@ -74,7 +74,7 @@ I did not rerun the full suite or template acceptance. Their successful runs rem
 - Indented rows remain outside recognition.
 - Reserved prefixes apply inside fences and unrelated tables.
 - Downstream rail migrations remain separate.
-- Previously accepted tree limitations and Jake’s outstanding checkpoint decisions remain.
+- Previously accepted tree limitations and the owner's outstanding checkpoint decisions remain.
 
 The documentation fix requires independent acceptance before merging; this verdict does not authorize an unreviewed follow-up commit.
 

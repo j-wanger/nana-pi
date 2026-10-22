@@ -1,6 +1,6 @@
 # Review brief — bounded buffers + client-side races, ROUND 2
 
-You reviewed round 1 and returned VERDICT: BLOCK (your review: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-sol-bufrace-r1.md — read it first; round-1 brief with the claims: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-brief-bufrace.md). Both workers folded. Verify each fold against the code and hunt for regressions the folds introduced. Do not re-litigate accepted design (four caps; drop-not-throttle; one generation counter; content-matched optimistic swap).
+You reviewed round 1 and returned VERDICT: BLOCK (your review: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-sol-bufrace-r1.md — read it first; round-1 brief with the claims: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-brief-bufrace.md). Both workers folded. Verify each fold against the code and hunt for regressions the folds introduced. Do not re-litigate accepted design (four caps; drop-not-throttle; one generation counter; content-matched optimistic swap).
 
 ## Buffers folds (verify)
 A. Each extracted CR-stripped line is length-checked before `JSON.parse` via one `dropOverCapLine()`; the remainder check stays. Comment corrected to ~512 MiB.
@@ -19,8 +19,8 @@ G. `die()` awaits browser/relay/server; `uncaughtException`/`unhandledRejection`
 H. README: bash bound restated; generation bullet lists exactly what is covered, picker named as the exception; byte-identical steer declared.
 
 ## Read
-- Round-2 diffs: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-buffers-r2.patch and diff-races-r2.patch
-- Post-fold merged tree: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/server.mjs`, `apps/desk/apps.mjs`, `apps/desk/public/app.js`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/session-races.e2e.mjs`, `apps/desk/README.md`, `docs/review-punchlist-2026-09-08.md`. (A third lane, stage signing keys, is mid-rewrite in this tree; ignore `stage-keys.mjs` except for interactions with the RPC cap.)
+- Round-2 diffs: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-buffers-r2.patch and diff-races-r2.patch
+- Post-fold merged tree: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/server.mjs`, `apps/desk/apps.mjs`, `apps/desk/public/app.js`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/session-races.e2e.mjs`, `apps/desk/README.md`, `docs/review-punchlist-2026-09-08.md`. (A third lane, stage signing keys, is mid-rewrite in this tree; ignore `stage-keys.mjs` except for interactions with the RPC cap.)
 
 ## Dimensions
 A. Line cap fold: any path where a line is dropped twice or the `desk_event_dropped` fires per chunk instead of once? Does the per-line check change behaviour for a legitimate line just under the cap that arrives with `\r\n`?

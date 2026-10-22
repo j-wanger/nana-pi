@@ -50,7 +50,7 @@ The HANDOFF refresh accurately carries:
 - Partial freezes within the compaction-store and notices features.
 - Deferred brief fields and land-time tree comparison.
 
-It also preserves Jake’s checkpoint: acceptance, confirmation of seven frozen features, and the outstanding sharing decision remain required.
+It also preserves the owner's checkpoint: acceptance, confirmation of seven frozen features, and the outstanding sharing decision remain required.
 
 ### NOTE — preservation proof
 
@@ -63,6 +63,6 @@ The exact requested proof command exited 0:
 
 I did not rerun the full suite. The targeted test, scratch attacks, mutation pair, and preservation proof were independently executed. The immutable checkout remained clean.
 
-This verdict approves the narrow fix; it does not replace Jake’s checkpoint acceptance or the seat’s pre-land checks.
+This verdict approves the narrow fix; it does not replace the owner's checkpoint acceptance or the seat’s pre-land checks.
 
 VERDICT: LAND

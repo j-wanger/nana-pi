@@ -34,7 +34,7 @@ The `PI_BEFORE` key with §3's provenance comment, beside `PI_VERSION` in the wo
 `node docs/reviews/ci-pi-pin-2026-10-13/acceptance.mjs > docs/reviews/ci-pi-pin-2026-10-13/acceptance-output.txt 2>&1`
 → exit 0, `ci-pi-pin acceptance: 0 mismatch(es)` (it installs CI's own pi line into scratch prefixes and runs the
 18 drift files; it fails 23 of 33 at launch — `acceptance-launch.txt`). Commit the output. Then push the branch
-and open a DRAFT pull request against `main` titled "ci-pi-pin (draft, for CI)" (no approval needed — Jake,
+and open a DRAFT pull request against `main` titled "ci-pi-pin (draft, for CI)" (no approval needed — the owner,
 2026-10-11). Wait for its CI run (poll no faster than every 60 s) and report the macOS suite job's summary line
 and failing files, and the Ubuntu and Windows summary lines.
 

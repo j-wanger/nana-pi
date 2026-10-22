@@ -27,7 +27,7 @@
 
 6. **Resolve the contradictory Windows acceptance status.**  
    **File:** `docs/reviews/install-check-2026-10-12/CHANGE.md:391,566-569`  
-   **Evidence:** Section 3 makes Jake’s Windows run part of “done.” The verification section says whether that run is required remains open.  
+   **Evidence:** Section 3 makes the owner's Windows run part of “done.” The verification section says whether that run is required remains open.  
    **Smallest fix:** Delete the stale open statement and consistently mark the machine run as required.
 
 ## SHOULD

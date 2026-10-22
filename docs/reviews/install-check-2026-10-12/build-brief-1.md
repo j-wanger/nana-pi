@@ -1,6 +1,6 @@
 # Lane install-check — build brief 1 (2026-10-12 · feat/install-check · worktree ~/nana-pi-wt/install-check)
 
-**Builder: pi gpt-6-luna** — Jake's measurement lane (cc-hooks-windows is built by Claude Sonnet 5.5);
+**Builder: pi gpt-6-luna** — the owner's measurement lane (cc-hooks-windows is built by Claude Sonnet 5.5);
 the seat records wall clock and rounds to land for each.
 
 **The contract is `CHANGE.md` in this folder** (sol plan r3 LAND 100/100 after r1 82 and r2 78; read
@@ -51,7 +51,7 @@ commit; then from the worktree root on this Mac:
 `node docs/reviews/install-check-2026-10-12/acceptance.mjs > docs/reviews/install-check-2026-10-12/acceptance-output.txt 2>&1`
 (must exit 0 with `install-check acceptance: 0 mismatch(es)`; it fails 25 of 30 at launch —
 `acceptance-launch.txt`). Commit the output. Then push the branch and open a DRAFT pull request against
-`main` titled "install-check (draft, for CI)" (no approval needed — Jake, 2026-10-11); wait for its CI run
+`main` titled "install-check (draft, for CI)" (no approval needed — the owner, 2026-10-11); wait for its CI run
 and report both `install-check` jobs' item lines verbatim with the run ID (poll no faster than every 60 s).
 The Windows job is expected red-first until cc-hooks-windows lands: report which lines FAIL or XFAIL.
 

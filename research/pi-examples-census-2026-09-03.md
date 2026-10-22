@@ -7,7 +7,7 @@ is a complete one-liner index), source read of every shortlisted candidate, and 
 load test: all five shortlist picks loaded together headlessly on 0.84.4 in a git repo,
 zero errors. agent-pi re-checked the same day (bottom).
 
-## Shortlist — RULED 2026-09-03 (Jake)
+## Shortlist — RULED 2026-09-03 (Owner)
 
 Verdicts on the shortlist below: **git-checkpoint ENABLED** (copied to
 `~/.pi/agent/extensions/`). **plan-mode and preset REJECTED as extensions** — the
@@ -19,7 +19,7 @@ claude-rules: available whenever a repo carries `.claude/rules/`.
 
 ## Original shortlist (pre-ruling, all load-verified together)
 
-| Example | What it gives Jake | Notes from source read |
+| Example | What it gives the owner | Notes from source read |
 |---|---|---|
 | `plan-mode/` (390+168 ln) | Claude Code-style plan mode: `/plan` (+ `--plan` flag), write tools disabled, bash allowlisted read-only, numbered-step extraction + progress widget during execution | The one omitted-feature gap left after pi-subagents. Status/widgets render in the desk; Ctrl+Alt+P is TUI-only |
 | `preset.ts` (436 ln) | Named model+thinking+tools+instructions presets: `--preset`, `/preset <name>`, cycle key; `~/.pi/agent/presets.json` + project `.pi/presets.json` | Its own doc example IS a plan/implement pair — pairs with or substitutes plan-mode. `/preset` picker is a custom TUI component (desk can't render it; `/preset <name>` works everywhere) |

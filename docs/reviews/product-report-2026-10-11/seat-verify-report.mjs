@@ -41,7 +41,7 @@ const LEDGER = [
 ].join("\n");
 const HANDOFF = [
   "# Handoff — fixture", "",
-  "## Open for Jake (each ask: blocking, optional or parked, and since when)", "",
+  "## Open for Owner (each ask: blocking, optional or parked, and since when)", "",
   "- **[optional, since 2026-10-10] Narwhal title.** Narwhalbody words that hold the decision.",
   "- **[blocking, since 2026-10-09] Ocelot title.** Ocelotbody words.", "",
 ].join("\n");

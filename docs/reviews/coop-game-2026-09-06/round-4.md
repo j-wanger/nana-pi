@@ -1,6 +1,6 @@
 ### A — Fold check
 
-**FINDING (severity: major):** Reduced-depth pushing, liquid ordering, move directions, start-view ablation, and decision depth were folded; step-up replaces no-jump but remains softened by “Jake may veto,” and symmetry remains underspecified. Most importantly, §3.3 does not imply §3.6’s consistency claim: in collapsed-X view, let the mover’s true destination `(0,1,1)` be solid while the front-most cell at that projected destination `(2,1,1)` is liquid. Step 1 sees the front-most liquid as non-solid, steps 2–3 find no entity, and step 4 moves the entity into the hidden true solid. The same defect applies to a pushed box. Thus checking the projected front-most cell is not checking the true destination, so re-embedding is not vacuous as written.
+**FINDING (severity: major):** Reduced-depth pushing, liquid ordering, move directions, start-view ablation, and decision depth were folded; step-up replaces no-jump but remains softened by “the owner may veto,” and symmetry remains underspecified. Most importantly, §3.3 does not imply §3.6’s consistency claim: in collapsed-X view, let the mover’s true destination `(0,1,1)` be solid while the front-most cell at that projected destination `(2,1,1)` is liquid. Step 1 sees the front-most liquid as non-solid, steps 2–3 find no entity, and step 4 moves the entity into the hidden true solid. The same defect applies to a pushed box. Thus checking the projected front-most cell is not checking the true destination, so re-embedding is not vacuous as written.
 
 ### B — Totality and determinism
 

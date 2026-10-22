@@ -8,7 +8,7 @@ I read these sources on 2026-10-12, read-only:
 - https://code.claude.com/docs/en/env-vars
 - https://code.claude.com/docs/en/tools-reference
 - https://code.claude.com/docs/en/settings
-- https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md (the newest entry is 2.1.296, so Jake's version is current)
+- https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md (the newest entry is 2.1.296, so the owner's version is current)
 
 ## Confirmed claims
 
@@ -81,7 +81,7 @@ I read these sources on 2026-10-12, read-only:
    - Fetching is off when `DISABLE_GROWTHBOOK`, `DISABLE_TELEMETRY`, `DO_NOT_TRACK` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set.
    - It is also off on a third-party provider.
    - The first session after an install or upgrade may lack the flag.
-   - Finding 3 and Jake's machine check should record these variables, and whether the check runs in the first session after an upgrade.
+   - Finding 3 and the owner's machine check should record these variables, and whether the check runs in the first session after an upgrade.
 2. **"Any Bash deny rule ... turns the tool off" overstates the docs.** tools-reference#bash-deny-rules-also-turn-off-the-powershell-tool says this applies "On Windows with Git Bash installed". The tool stays on if `CLAUDE_CODE_USE_POWERSHELL_TOOL=1` is set, or if a settings file has a scoped `PowerShell(...)` permission rule.
 3. **The plan undersells the docs on Windows argument quoting.**
    - The docs promise "each `args` element is one argument exactly as written" and "No shell tokenization happens on any platform". They also give a `C:\Program Files\...` example.

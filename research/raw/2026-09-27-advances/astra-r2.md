@@ -9,7 +9,7 @@ References below are to `~/nana-pi/research/agentic-advances-and-nana-review-202
 | 1 | **FIXED** | L7 distinguishes bypassing the check from exceeding the cap; L8 frames priority authority as unresolved and limits reflog scope; L10 corrects pickup counts. Consequential caveats restored at L9, L11, L64–67. |
 | 2 | **FIXED** | L79 replaces the blanket review waiver with bounded implementation followed by required adversarial review; L28 explicitly preserves independent review. |
 | 3 | **PARTIAL** | L35–36 repair gate exceptions and handoff retention/writer ownership; L44–46 repair review accounting and session identity; L53 and L61 bound WIP/retrieval experiments. **Malformed-config policy remains internally unsafe: see HIGH below.** |
-| 4 | **FIXED** | L13 and L63 identify `/goal` as transcript-only, not a budget or deterministic acceptance; L63/L78/L88 preserve Jake’s receipt-gate deferral. |
+| 4 | **FIXED** | L13 and L63 identify `/goal` as transcript-only, not a budget or deterministic acceptance; L63/L78/L88 preserve the owner's receipt-gate deferral. |
 | 5 | **FIXED** | L30–71 put concrete correctness work before authority/accounting, then queue experiments and instruments. Objective precedence and retrieval baseline are explicit dependencies. Minor sequencing clarification below. |
 | 6 | **FIXED** | L84–90 provide explicit policy choices; L55/L78 prohibit interrupting authorized work; L70 preserves active-run and closure obligations regardless of age. |
 
@@ -23,7 +23,7 @@ References below are to `~/nana-pi/research/agentic-advances-and-nana-review-202
 
 **Required:** distinguish missing configuration from invalid permission configuration. Specify preservation of validated restrictions, or a conservative permission stop with explicit repair/approval when no trustworthy policy is available. Test custom denies/protected paths before and after corruption, including a fresh process. Advisory objective/notification failures need not share that blocking policy.
 
-### Jake’s seven rulings
+### The owner's seven rulings
 
 **All seven are answerable in one line; none belongs wholly to the seat.** L92 correctly retains queue presentation, test details and ordinary sequencing as seat decisions. Ruling 5 authorizes only a bounded trial—not production receipt gating.
 

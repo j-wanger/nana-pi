@@ -57,11 +57,11 @@ Producer-side rejection prevents unactionable reports and ineffective deduplicat
 - **Settings registration: necessary and correct.** Installing a symlink without registering its invocation would not deliver the feature.
 - **Seat-authored final fixes: appropriate.** The timestamp and aging probes confirm the behavioral fixes. The journal artifact is absent, the test now directs its relative path into temporary storage, and the worktree remained clean. Another worker round was not inherently required.
 
-## Does this close Jake’s loop?
+## Does this close the owner's loop?
 
 **It delivers the report and dismissal mechanism, but does not itself close the adoption loop.**
 
-The missing step is a seat-owned action: review the candidate with Jake, assign a substantive objective, and start maintaining directory-level knowledge. Automatic adoption would violate the design, so this human step is appropriate—but it must not be reported as already accomplished. File presence stops reporting; it does not demonstrate that useful knowledge is accumulating.
+The missing step is a seat-owned action: review the candidate with the owner, assign a substantive objective, and start maintaining directory-level knowledge. Automatic adoption would violate the design, so this human step is appropriate—but it must not be reported as already accomplished. File presence stops reporting; it does not demonstrate that useful knowledge is accumulating.
 
 CARRY:
 

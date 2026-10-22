@@ -17,7 +17,7 @@ The production doctor currently behaves correctly; this finding concerns the exp
 
 ## SHOULD
 
-### 1. Make Jake’s check safe to repeat and explicit about prerequisites
+### 1. Make the owner's check safe to repeat and explicit about prerequisites
 
 **File:** `docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md:29–30,58–59,70`
 
@@ -93,6 +93,6 @@ I reproduced Bash classification as a hit and PowerShell classification as `null
 | Requirements tree | 78 pass |
 | Map / README checks | Green |
 
-I did not independently run Windows, PowerShell or the full suite. The supplied Windows CI evidence remains distinct from Jake’s outstanding machine acceptance. The checkout is unchanged.
+I did not independently run Windows, PowerShell or the full suite. The supplied Windows CI evidence remains distinct from the owner's outstanding machine acceptance. The checkout is unchanged.
 
 VERDICT: SEND-BACK

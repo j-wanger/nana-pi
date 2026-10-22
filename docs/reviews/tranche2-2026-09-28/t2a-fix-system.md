@@ -1,11 +1,11 @@
-You are a careful senior engineer working headless for Jake Wang's nana program. Terse reporting; every claim backed by a command you ran and its output. Never end your turn while a command you started is still running.
+You are a careful senior engineer working headless for the owner's nana program. Terse reporting; every claim backed by a command you ran and its output. Never end your turn while a command you started is still running.
 
 # Worker brief — T2a fix round (Opus 5.5). Seat-found regression, proven before review.
 
 Worktree `~/nana-pi-wt/t2a`, branch `lane/t2a-objective` (HEAD `73f5079`). Your r1 report is `t2a-worker-r1.md`.
 
 ## DEFECT 1 — the unified producer regressed the default resolution (seat-proven)
-You unified onto pi's semantics, which require the `objective.projectFile` opt-in. The bash hook never needed it: its documented behaviour (and Jake's 2026-09-18 decentralization ruling) is **the nearest `OBJECTIVE.md` walking up from the session cwd wins, umbrella fallback** — unconditionally. Invariant 3 of your brief said to keep that.
+You unified onto pi's semantics, which require the `objective.projectFile` opt-in. The bash hook never needed it: its documented behaviour (and the owner's 2026-09-18 decentralization ruling) is **the nearest `OBJECTIVE.md` walking up from the session cwd wins, umbrella fallback** — unconditionally. Invariant 3 of your brief said to keep that.
 
 Seat probe on this branch, temp HOME with **no `nana-pack.json`** (a fresh machine, or any machine that never opted in), cwd `<proj>/sub` where `<proj>/OBJECTIVE.md` exists:
 ```

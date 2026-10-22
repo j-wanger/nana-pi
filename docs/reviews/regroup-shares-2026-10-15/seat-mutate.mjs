@@ -34,7 +34,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/regroup-shares";
+const LANE_REPO = "/Users/example/nana-pi-wt/regroup-shares";
 const LANE_BRANCH = "feat/regroup-shares";
 const TIP = process.env.SEAT_MUTATE_TIP || "28d53c7";
 const HERE = path.dirname(fileURLToPath(import.meta.url));

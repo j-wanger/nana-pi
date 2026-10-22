@@ -774,7 +774,7 @@
 2026-10-20T00:42:52.8628473Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-4124-umYZA4\adoption-reader-G5znSl\r4` — has: nothing · last session 2026-10-17
 2026-10-20T00:42:52.8629571Z   | …and 2 more
 2026-10-20T00:42:52.8629886Z   | 
-2026-10-20T00:42:52.8630991Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+2026-10-20T00:42:52.8630991Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 2026-10-20T00:42:52.8632106Z   | 
 2026-10-20T00:42:52.8632500Z PASS c: tagged [nana:adoption], exit 0 
 2026-10-20T00:42:52.8633025Z PASS c: newest first, capped at 5 
@@ -809,7 +809,7 @@
 2026-10-20T00:42:54.0257795Z   | 
 2026-10-20T00:42:54.0258825Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-4124-umYZA4\adoption-reader-G5znSl\under_score-and-[seat](x)-~tildes~` — has: nothing · last session 2026-10-20
 2026-10-20T00:42:54.0259520Z   | 
-2026-10-20T00:42:54.0260133Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+2026-10-20T00:42:54.0260133Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 2026-10-20T00:42:54.0260999Z   | 
 2026-10-20T00:42:54.0261605Z   | 10 entries were not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and were skipped.
 2026-10-20T00:42:54.0262198Z   | 
@@ -1464,7 +1464,7 @@
 2026-10-20T00:43:33.8060641Z PASS table lone surrogate: locator decodes to the exact input 
 2026-10-20T00:43:33.8061573Z PASS table lone surrogate: promptPath one line, ≤ PATH_CAP 
 2026-10-20T00:43:33.8062380Z PASS table lone surrogate: promptText one line, no control 
-2026-10-20T00:43:33.8063287Z PASS table Windows path, mixed case: promptPath "C:\\Users\\Jake\\Repo\\A.TS" 
+2026-10-20T00:43:33.8063287Z PASS table Windows path, mixed case: promptPath "C:\\Users\\Owner\\Repo\\A.TS" 
 2026-10-20T00:43:33.8064207Z PASS table Windows path, mixed case: uiPath is the same rule 
 2026-10-20T00:43:33.8064937Z PASS table Windows path, mixed case: promptText 
 2026-10-20T00:43:33.8065746Z PASS table Windows path, mixed case: uiText / fileField are the same rule 
@@ -1587,7 +1587,7 @@
 2026-10-20T00:43:34.3577560Z   | 
 2026-10-20T00:43:34.3579306Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-4124-sn69PK\display-surfaces-2pv1as\adopt\clean-repo` — has: nothing · last session 2026-10-20
 2026-10-20T00:43:34.3580798Z   | 
-2026-10-20T00:43:34.3582122Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+2026-10-20T00:43:34.3582122Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 2026-10-20T00:43:34.3583541Z   | 
 2026-10-20T00:43:34.3585287Z   | 1 entry was not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and was skipped.
 2026-10-20T00:43:34.3586585Z   | 
@@ -1611,13 +1611,13 @@
 2026-10-20T00:43:34.9193722Z PASS LANDED marker under Next is reported 
 2026-10-20T00:43:34.9194430Z PASS unresolvable item-of-Next reference is reported 
 2026-10-20T00:43:34.9195219Z PASS past explicit date is reported against injected clock 
-2026-10-20T00:43:34.9196087Z PASS each bullet or numbered Open for Jake entry without a tag is reported 
+2026-10-20T00:43:34.9196087Z PASS each bullet or numbered Open for the owner entry without a tag is reported 
 2026-10-20T00:43:34.9842345Z PASS frozen 2026-10-06 rewrite passes on 2026-10-07 
-2026-10-20T00:43:35.0462875Z PASS LANDED is detected under the real parenthetical Open for Jake heading 
-2026-10-20T00:43:35.0463555Z PASS overdue dates are detected under the real parenthetical Open for Jake heading 
-2026-10-20T00:43:35.0464179Z PASS missing tags are detected under the real parenthetical Open for Jake heading 
+2026-10-20T00:43:35.0462875Z PASS LANDED is detected under the real parenthetical Open for the owner heading 
+2026-10-20T00:43:35.0463555Z PASS overdue dates are detected under the real parenthetical Open for the owner heading 
+2026-10-20T00:43:35.0464179Z PASS missing tags are detected under the real parenthetical Open for the owner heading 
 2026-10-20T00:43:35.1100708Z PASS frozen pre-rewrite HANDOFF reports 12 findings and key drift categories 
-2026-10-20T00:43:35.1692160Z PASS due cues in non-list Next and Open for Jake prose are scanned 
+2026-10-20T00:43:35.1692160Z PASS due cues in non-list Next and Open for the owner prose are scanned 
 2026-10-20T00:43:35.2288846Z PASS fenced examples do not create headings or findings 
 2026-10-20T00:43:35.2876969Z PASS nested numbered sub-items cannot resolve item-of-Next references 
 2026-10-20T00:43:35.3485474Z PASS nested Next heading remains in the enclosing section 
@@ -5531,7 +5531,7 @@
 2026-10-20T01:06:15.9647479Z 
 2026-10-20T01:06:15.9648645Z - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-4124-1ftILK\nana-ss1-unadopted-2484` — has: nothing · last session 2026-10-20
 2026-10-20T01:06:15.9649582Z 
-2026-10-20T01:06:15.9650433Z For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+2026-10-20T01:06:15.9650433Z For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 2026-10-20T01:06:15.9650979Z 
 2026-10-20T01:06:16.8592828Z PASS doctor: exit 0 nana-setup doctor — C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-4124-1ftILK\nana-win32-exec-2484-space $x `y %z% o'q & ( ) ; ^
 2026-10-20T01:06:16.8594934Z 
@@ -5952,7 +5952,7 @@
 2026-10-20T01:06:46.9213005Z PASS --not-a-project on a missing folder refuses with the reason 
 2026-10-20T01:06:46.9255855Z all passed
 2026-10-20T01:06:46.9331941Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  1.0s
-2026-10-20T01:06:47.0006777Z PASS key(<home>/aml-desk) = <home-key>-aml-desk 
+2026-10-20T01:06:47.0006777Z PASS key(<home>/work-project) = <home-key>-work-project 
 2026-10-20T01:06:47.0009437Z PASS key(<home>/.nana-worktrees/x) = <home-key>--nana-worktrees-x 
 2026-10-20T01:06:47.0011254Z PASS key(<home>/nana-agent-loop) = <home-key>-nana-agent-loop 
 2026-10-20T01:06:47.0012118Z PASS key(<repo>) = <home-key>-nana-pi 

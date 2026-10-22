@@ -2,7 +2,7 @@
 
 **The feature.** `node scripts/requirements-moved.mjs --root <dir> --base <rev>` prints, under each feature, every requirement row the branch added, removed, re-statused, reworded or moved since it left `<rev>`. It also names the features whose `Also applies:` line lists each changed row. Falsifiable: in a temp repo where a branch flips R-001 from planned to implemented, `R-001 planned -> implemented` appears under `FEAT-001 · Alpha`. Today the command does not exist.
 
-**Why this cut.** This is HANDOFF Next 7 (Jake, 10-11, 10-16 and 10-17): briefs name their feature, reviews read per feature, and each land shows how the tree moved. One read-only report serves all three:
+**Why this cut.** This is HANDOFF Next 7 (Owner, 10-11, 10-16 and 10-17): briefs name their feature, reviews read per feature, and each land shows how the tree moved. One read-only report serves all three:
 - The brief names its feature as `Feature: FEAT-nnn · <label>`. That is plain text and needs no tool.
 - The review brief pastes the report. Its feature lines and each row's `also applies` names are the features the reviewer reads.
 - The seat's land report carries the same output, run before `nana-land`.

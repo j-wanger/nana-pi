@@ -2,7 +2,7 @@ Reviewed `3996c98` + `a5c05ca`; only targeted probes under a temporary `HOME`.
 
 1. **R1 #1 HIGH — PARTIAL** (`nana-handoff.ts:140-165`): default/under-home paths are fixed, but legal custom paths can still become unreadable.
 2. **R1 #2 HIGH — FIXED** (`AGENTS.md:102-107`): guidance now names the user store and rejects maintaining repo `.pi/handoff.md`.
-3. **R1 #3 MED — RULED** (`README.md:236-243`): wording honestly reflects Jake’s L5 ruling; no in-session line is correct.
+3. **R1 #3 MED — RULED** (`README.md:236-243`): wording honestly reflects the owner's L5 ruling; no in-session line is correct.
 4. **R1 #4 MED — FIXED** (`nana-handoff.ts:306-322`): missing provenance is explicitly journaled beside the successful write.
 5. **R1 #5 LOW — FIXED** (`nana-handoff.ts:214-218`): fatal decoding prevents corrupt text injection and journals failure.
 6. **R1 #6 LOW — RULED/SUBTRACTED** (`README.md:251-255`): default-store refusal removed; custom-path refusal retained.

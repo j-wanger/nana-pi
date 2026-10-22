@@ -1,6 +1,6 @@
 # Plan attack: owner-identity scrub (main 906fbb56)
 
-Probe: `git archive` copy in scratch `scrub-adv/`, temp HOME. Placeholders: `<first>`, `<acr>` (work acronym), `<reg-A>`/`<reg-B>` (regulators).
+Probe: `git archive` copy in scratch `scrub-adv/`, temp HOME. Placeholders: `<first>` (code A), `<acr>` (code B), and `<reg-A>`/`<reg-B>` (codes C and D).
 
 ## MUST
 
@@ -11,7 +11,7 @@ Probe: `git archive` copy in scratch `scrub-adv/`, temp HOME. Placeholders: `<fi
 **M3. Census misses.**
 - camelCase `splitOpenFor<First>`: 9 uses in 6 files. snake_case `user_<first>_…` and `<first>_prompts`: 9 uses in 6 files. Work-acronym snake names (`…_<acr>_desk…`): 3. A `\b` regex misses all of them.
 - A tracked file name: `docs/reviews/cc-hooks-windows-2026-10-12/<first>-windows-check.md`. 15 references in 10 files cite it, one of them `acceptance.mjs`. A content scan never sees it.
-- Work domain without the acronym: the lift test fixture (requirements-lift.test.mjs:590-597) has a glossary row for a `<reg-A>` report, a reporting body and a cash-threshold row. Two lift verify records copy it. The design doc lane-brief-template-2026-09-28.md:53 names `<reg-B>` and its report type, which reveals the country. 49 bare-acronym uses in 18 files sit in descriptions such as "`<acr>` investigation desk … case record, alert list", which a token swap leaves readable.
+- Detail text outside the code: the lift test fixture (requirements-lift.test.mjs:590-597) has a glossary row for `<reg-A>`, a body, and a threshold row. Two lift verify records copy it. The design doc lane-brief-template-2026-09-28.md:53 names `<reg-B>` and a detail label. 49 bare-code uses in 18 files sit in descriptions such as "`<acr>` review view … item entry, flagged list", which a token swap leaves readable.
 - Location: writing-trial-extractor.mjs:52 seals an IANA zone that names the owner's region, and one record repeats it.
 
 Fix: add these to the census. Lane B renames the file and its references. Neutral glossary rows keep the four-column test. Paraphrase the design-doc line. Keep the zone (the recorded trial uses it) as a known limit. The proof lists every acronym line for a human pass.

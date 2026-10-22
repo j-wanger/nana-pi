@@ -1,6 +1,6 @@
 {
  "source": {
-  "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
+  "author": "astra (gpt-6-astra), separate session with the owner, 2026-10-09",
   "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
   "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
   "note": "Increment B input (frozen at the increment-B approved commit). Derived from tree.json (increment 1, approved 6b9202a) by: the 17 moves in `moves` (placement review of all 1,009 rows, docs/reviews/req-tree-2026-10-09/placement-review.md), each appended to its target table in ID order; R-292–R-294 appended to FEAT-028 (after Fable's consult: R-291's text gains status and the shared index, so no separate outline row); per-feature `status` and `also_applies` (113 shares over 95 requirements, replacing the three See-also lines, all nine of which the review upheld); `intro_edits` replaces `intro_edit` and amendment A1 (both edits now apply to the original base intro). Fable consult B: frozen reason matches D4's wording; FEAT-025 (nana-stage only) stays active; seven features frozen."

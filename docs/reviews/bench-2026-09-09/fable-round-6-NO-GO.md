@@ -133,7 +133,7 @@ tools.
 ## E. Readiness
 
 Residual risk for rep 0 with A3 fixed: **low**. With a non-adversarial model the evaluator gap cannot
-produce a wrong number; the interrupt race only matters if Jake hits Ctrl-C mid-run. Neither can be
+produce a wrong number; the interrupt race only matters if the owner hits Ctrl-C mid-run. Neither can be
 fixed cheaply *after* rep 0 (evaluator pin → fingerprint), which is why the verdict is NO-GO rather
 than GO-with-notes.
 

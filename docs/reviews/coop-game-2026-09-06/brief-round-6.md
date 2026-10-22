@@ -5,9 +5,9 @@ and fragility are now evaluated on the POST-MOVEMENT snapshot (after stage 1, be
 steps). Judge v6 as a no-agent puzzle game.
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v6, THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/round-5.md — your round-5 findings
-3. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r5.md — how the seat folded it
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v6, THE DESIGN under review
+2. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/round-5.md — your round-5 findings
+3. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r5.md — how the seat folded it
 
 ## Dimensions
 A. **Fold check:** re-run your round-5 fragile-stack room against v6 §3.7 and state the unique

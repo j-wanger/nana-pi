@@ -1,6 +1,6 @@
 #!/bin/bash
 # usage: run.sh <name> <ledger-file> [mapping-file]  -> fresh repo, dry, write, commit, verify
-V=/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate4-verify
+V=/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate4-verify
 CODE=${CODE:-$V/tree}
 N=$1; F=$2; M=$3
 R=$V/repos/$N; rm -rf "$R"; mkdir -p "$R"; cp "$F" "$R/REQUIREMENTS.md"

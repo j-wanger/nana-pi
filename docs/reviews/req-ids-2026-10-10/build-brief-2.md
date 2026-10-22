@@ -6,7 +6,7 @@ blocks. Change nothing else.
 **The bug.** The new row validator rejects VALID rows: (a) the TypeScript rail rejects every row in a
 CRLF ledger (lines split on "\n" keep "\r", so the closing-pipe test fails); (b) both rails reject a
 row whose closing pipe is followed by spaces or a tab. Before this lane both were accepted. This
-breaks Windows, Jake's stated priority.
+breaks Windows, the owner's stated priority.
 
 **Fix.** In both rails, strip trailing whitespace (including "\r") from each line before validating
 and before parsing a row — never leading whitespace (the column-zero rule stays). Apply it to

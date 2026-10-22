@@ -1,7 +1,7 @@
 # Review — the tree for every project, 2026-10-14 (gpt-5.6-sol build review and gpt-6-astra land review, in parallel)
 
 Review `git diff 99a4103..HEAD` on `feat/tree` (main `99a4103`, with the roster and seat-guide lanes, is merged in).
-Jake's words: 2026-10-13, "why does the default behavior today create requirements in row by row ears format instead
+The owner's words: 2026-10-13, "why does the default behavior today create requirements in row by row ears format instead
 of tree based design which we adopted?"; 2026-10-14, "Lift is the tool that enables better regroup, but this is a core
 feature for nana, understanding existing repo and turn into feature trees, then development really becomes feature
 oriented". This lane is the first of the four lanes that ruling queues; the lift, the regroup and feature-oriented
@@ -11,7 +11,7 @@ an old project running `copier update`); deliberate forgery out. Lane class: for
 appends governs the bar and the verdict line.
 
 Records in `docs/reviews/tree-2026-10-14/`: the plan `CHANGE.md` (three research reads, two fact-checks, a seat
-revision with Jake's sorting ruling; sol plan r1 and r2 SEND-BACK, r3 LAND — its appended sections add R-1160 and
+revision with the owner's sorting ruling; sol plan r1 and r2 SEND-BACK, r3 LAND — its appended sections add R-1160 and
 R-1161), the two build briefs for Claude Sonnet 5 (brief 2 merged main and closed six gaps the seat's mutation runner
 and an independent check found: row counting the way the rail does, R-1157's and R-1151's missing pins, a SUB-only
 ledger, wider near-miss headings, T13's "once"), the seat's acceptance (read `acceptance-output.txt`; the three

@@ -26,7 +26,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/regroup";
+const LANE_REPO = "/Users/example/nana-pi-wt/regroup";
 const LANE_BRANCH = "feat/regroup";
 const TIP = process.env.SEAT_MUTATE_TIP || "f9ed5500a950d7b3b9931be8d342908a8c3aac42";
 const HERE = path.dirname(fileURLToPath(import.meta.url));

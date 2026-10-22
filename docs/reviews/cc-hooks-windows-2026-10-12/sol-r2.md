@@ -54,7 +54,7 @@
 - POSIX `desiredHooks` matches main’s fixture, and the committed acceptance run reports Darwin settings equal to main.
 - Every reviewed R-1050–R-1064 row contains exactly one `shall`.
 - AGENTS.md and CLAUDE.md are byte-identical. Their runtime matrix region matches the shared template.
-- HANDOFF, the session entry, and Jake’s runnable Windows page agree about the remaining real-Claude-Code check.
+- HANDOFF, the session entry, and the owner's runnable Windows page agree about the remaining real-Claude-Code check.
 - Checks run: pipe guard 66 pass; settings merge passed; seat acceptance 59/59; title verification 0 gaps.
 - Score: **7/10**. Most round-1 defects are fixed, but the remaining PowerShell lexer bypass blocks landing.
 

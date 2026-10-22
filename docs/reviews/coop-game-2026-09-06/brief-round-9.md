@@ -5,9 +5,9 @@ fragile-supported freeze now takes precedence over buoyancy for every entity (§
 the "four-property" residue is fixed. Judge v9 as a no-agent puzzle game.
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v9, THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/round-8.md — your round-8 findings
-3. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r8.md — how the seat folded it
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v9, THE DESIGN under review
+2. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/round-8.md — your round-8 findings
+3. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r8.md — how the seat folded it
 
 ## Dimensions
 A. **Fold check:** the liquid-over-fragile room against v9 — unique successor? Anything softened?

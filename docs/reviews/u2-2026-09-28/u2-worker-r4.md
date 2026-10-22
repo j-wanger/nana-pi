@@ -6,7 +6,7 @@ All four MUSTs are done and committed as `d4426ca` on `lane/u2-agent-dir`, paren
   - After: `true` → `true`.
 - **Knowledge home** (with `PI_CODING_AGENT_DIR=/tmp/u2-land-custom`, comparing the installer's `resolveLayout().knowledgeHome` with the runtime's `home()`):
   - Before: installer `/tmp/u2-land-custom/nana-knowledge`, runtime `~/.pi/agent/nana-knowledge`.
-  - After: both are `/Users/jwang/.pi/agent/nana-knowledge`.
+  - After: both are `/Users/example/.pi/agent/nana-knowledge`.
 
 **What changed**
 - **MUST 1:** each stage-key record now stores the sessions root it was issued under (`sessionsRoot`, resolved). A desk prunes a record only when that root matches its own. A record with no root is pruned only by a desk on the default `~/.pi/agent/sessions`. A record that can't be read is kept. The empty-enumeration guard is unchanged. The server passes its sessions dir to the store.

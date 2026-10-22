@@ -99,7 +99,7 @@ I did not run the full suite. All mutations used scratch copies; the reviewed ch
 - **HTML blocks/comments:** Low present exposure because the ledger uses none. Future use could make rendered visibility disagree with checked membership. The price is manual review or parser work before introducing them.
 - **Link reference definitions:** Low present exposure. Future definitions can confuse the simplified block interpretation, causing incorrect boundaries or diagnostics. The price is a focused fixture and parser correction when needed.
 - **Indented code:** Low present exposure. Future examples can disagree with the checker’s interpretation. The price is avoiding that syntax here or explicitly supporting it.
-- **Regroups visible, not pinned:** Accepted as Jake’s decision 4. The price is mandatory human review of the outline diff; regeneration alone cannot establish authorization. Increment 2’s declared-feature control remains future work.
+- **Regroups visible, not pinned:** Accepted as the owner's decision 4. The price is mandatory human review of the outline diff; regeneration alone cannot establish authorization. Increment 2’s declared-feature control remains future work.
 - **Wrong-feature placement:** Accepted as owner judgment. The price is navigation mistakes and potentially mis-scoped work, not lost requirement identity. Checkpoint 2 must judge meaning rather than treat green tests as approval.
 
 Neither MUST finding is covered by these accepted residuals.

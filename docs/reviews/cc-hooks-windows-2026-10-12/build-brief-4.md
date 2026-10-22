@@ -2,7 +2,7 @@
 
 **Builder: Claude Sonnet 5.5**, fresh session. THREE items from the final reviews. Read `sol-r1.md` and
 `astra-r1.md` in this folder (the seat copies them in with this brief); fix every MUST, and the SHOULDs named
-below. Work ONLY inside `/Users/jwang/nana-pi-wt/cc-hooks-windows`.
+below. Work ONLY inside `/Users/example/nana-pi-wt/cc-hooks-windows`.
 
 ## Item 1 — the PowerShell lexer can hide a live commit (R-1062; sol MUST 1, astra MUST 1)
 - **Embedded `#`.** `liveText`'s PowerShell branch starts a comment at every unquoted `#`

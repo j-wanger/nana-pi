@@ -1,4 +1,4 @@
-# Jake's Windows check — the Claude Code hooks (after cc-hooks-windows lands)
+# The owner's Windows check — the Claude Code hooks (after cc-hooks-windows lands)
 
 About 20 minutes in PowerShell on your Windows machine. Nothing here touches a real project: the check uses a
 throwaway folder you delete at the end. Paste the results (the four "record" lines and each expect line's

@@ -72,7 +72,7 @@ through a link or junction at a skill path, and no owner file changed or lost; (
 working on macOS, Linux or Windows: install, doctor, the stale-copy line, `install --dry-run`, the install check and
 its note list; (5) the tests write only inside the temp folders and temp homes they own and clean up; (6) HANDOFF and
 the session entry are true, including the edited "Doctor's skill advice" residual, the new win-claude-skills
-residuals and the "Open for Jake" line; (7) any MUST.
+residuals and the "Open for the owner" line; (7) any MUST.
 
 ## Chain note (the seat, after this brief was written)
 

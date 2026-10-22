@@ -2,7 +2,7 @@
 
 Read-only except running tests/probes under a temp HOME. Worktree `~/nana-pi-wt/l1` (branch `lane/l1-config-safety`, commit `c1bc113` + merge of main). Clean diff vs main: `~/nana-pi/docs/reviews/tranche1-2026-09-28/l1-r1.patch` (20 files, +1152/−67). Worker report: `l1-worker-r1.md`. Brief the worker had: `l1-brief.md` (its invariants 1–6 are the contract). Arch contract: `~/nana-pi/research/raw/2026-09-27-advances/opus-arch-tranche1.md` §0 F1, §L1. Installed pi: 0.87.1 (`$(npm root -g)/@earendil-works/pi-coding-agent`).
 
-Seat-verified (don't re-run whole): `npm test` → 59 files, 2568 checks, exit 0. Jake has already ruled (09-28, #8) that project-scope config is ignored per repo until trusted once — do not re-litigate that policy; review its implementation.
+Seat-verified (don't re-run whole): `npm test` → 59 files, 2568 checks, exit 0. The owner has already ruled (09-28, #8) that project-scope config is ignored per repo until trusted once — do not re-litigate that policy; review its implementation.
 
 **Scope role**
 S1. Allowlist: every changed file is on the brief's allowlist; NOT-list untouched (no gate pattern edits, no handoff logic, no objective resolution, no pi-review, no desk). The worker admits 20 files / +408 in `config.ts` vs an advisory ≤16 files / ≤500 LOC: is the size justified by the contract, or is there machinery a smaller diff would avoid (subtraction test on: the globalThis state, the snapshot file, the conservative stop, evidence sharing across module copies)?

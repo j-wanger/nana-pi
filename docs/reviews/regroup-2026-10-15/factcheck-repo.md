@@ -16,7 +16,7 @@ Method: opened every cited file:line at e451c90; "Ran" = run here on scratch cop
 9. basketball-geek's draft untracked, six questions open (C §5) — UNVERIFIABLE from this repo (another project; research-understand.md:104).
 10. 11 builder runs — VERIFIED (build-1..7 + build-b1..b4 logs in docs/reviews/req-tree-2026-10-09/). "About 22 hours" — UNVERIFIABLE (corpus commits span 2026-10-09 20:47 to 2026-10-10 10:04; B:90 counts to a later land).
 11. One-page outline; "Do one review on all 1009 placements"; 12 reviewers — VERIFIED (req-tree-2026-10-09/outline.md; placement-review.md:3; CHANGE-B.md:10).
-12. aml-desk 365 rows, basketball-geek 165 at HEAD — VERIFIED (scratch copies: 365; REQUIREMENTS.HEAD.md 165, 171 dirty).
+12. work-project 365 rows, basketball-geek 165 at HEAD — VERIFIED (scratch copies: 365; REQUIREMENTS.HEAD.md 165, 171 dirty).
 13. trading-zone 197 rows, cited to "C §6" — WRONG cite: C §6 (research-understand.md:107-118) has no trading-zone column; the 197 is docs/reviews/lift-2026-10-14/research-ledgers.md:64 (count VERIFIED on a copy: 197, 0 shares).
 14. None of the three carries a share line (lift CHANGE.md:205-206) — VERIFIED by grep on copies (0/0/0); the cite shows clean dry runs, not a share count.
 15. nana-pi has 31 `Also applies:` lines, which the lift refuses — VERIFIED (31 at line start, 35 anywhere; refusal requirements-lift.mjs:226-227; real-dry.txt).
@@ -67,28 +67,28 @@ Method: opened every cited file:line at e451c90; "Ran" = run here on scratch cop
 52. 5b68a91: 1,004 rows, 0 shares, default refuses at line 1,320 — VERIFIED (Ran).
 53. 5b68a91 holds no tree text outside docs/reviews/ — VERIFIED (`git grep` for CAP-0x/FEAT-0xx: none).
 54. 85.9% / 94.1% (C §2) — VERIFIED (ground-truth-output.json).
-55. "C §2: 72–86% of rows follow their test file's cluster" as the basis for dozens of reasons on a 365-row ledger — WRONG scope. Those figures are over marker-traced rows of nana-pi (849 of 1,136) and basketball-geek (105/145). For aml-desk, C §3 gives 52% (191/365) placeable by test evidence (research-understand.md:57).
-56. 14 aml-desk modules span three or more sections — VERIFIED (research-understand.md:45).
+55. "C §2: 72–86% of rows follow their test file's cluster" as the basis for dozens of reasons on a 365-row ledger — WRONG scope. Those figures are over marker-traced rows of nana-pi (849 of 1,136) and basketball-geek (105/145). For work-project, C §3 gives 52% (191/365) placeable by test evidence (research-understand.md:57).
+56. 14 work-project modules span three or more sections — VERIFIED (research-understand.md:45).
 57. Windows leg runs Git Bash and is non-blocking — VERIFIED (.github/workflows/ci.yml:50, :53). "The PR's" leg — UNVERIFIABLE: by default there is no PR, and CI reports only after a land (HANDOFF.md:106).
 58. Node 22.18 or later — VERIFIED (README.md:80).
 
 ### §6 Decisions and residuals
-59. Jake decides every tree change, shares included (REQUIREMENTS.md:34, :36) — VERIFIED.
+59. The owner decides every tree change, shares included (REQUIREMENTS.md:34, :36) — VERIFIED.
 60. J6: G rows must sit in their seed subgroup (:532-536) — VERIFIED as a refusal, not a placement: identity fails on all 22. Not named: a recorded decision, "G rows stay in FEAT-033 by declared design" (placement-review.md:5). J6 reverses it, and the lift leaves no other route.
 61. J6 "78 changed lines" — UNVERIFIABLE (scratch; research-lift-api.md:47).
-62. Residual 3 = lift residual 2 (aml-desk §36) — VERIFIED (lift CHANGE.md:229).
+62. Residual 3 = lift residual 2 (work-project §36) — VERIFIED (lift CHANGE.md:229).
 63. Residual 7: the Windows seat copies the skill, so a re-install updates it (steps.mjs:217-228) — VERIFIED.
 
 ## Consumers the plan does not name
 A. yokai-world: 1,359 rows, 0 shares, 46 tree headings, partial tree. HANDOFF.md:63 says it needs "a hand-written grouping", which is a regroup proposal. The plan's user list omits it, and `--emit-mapping` refuses it (Ran).
-B. aml-desk has two identical headings, `## 36b. Build at production size`, at lines 484 and 570. `detectMoves` dedups pairs by heading text (:619, :628), and the reason schema also keys by text, so the two sections collapse into one pair. A third element built at first push would drop the second section's rows.
+B. work-project has two identical headings, `## 36b. Build at production size`, at lines 484 and 570. `detectMoves` dedups pairs by heading text (:619, :628), and the reason schema also keys by text, so the two sections collapse into one pair. A third element built at first push would drop the second section's rows.
 C. readme-check gives each line's flags to the first bare `scripts/…` path on that line (template readme-check.mjs:399-407). The lookbehind at :152 skips `$HOME/nana-pi/scripts/…`. README.md:64's first script is `scripts/requirements-tree.mjs`, so `--proposal` or `--out` added there reds readme:check.
 D. T29's flag scan covers every SKILL.md paragraph matching /lift/ (templates-render.test.mjs:490-497). A regroup flag in a separate backtick span in such a paragraph must exist in the lift's source, or T29 reds.
-E. Blind rehearsal leak (INFERRED): ~/.pi/agent/nana-knowledge/sources.json indexes /Users/jwang/nana-pi/docs, which holds docs/requirements-tree.md, the ruled tree. Project memory holds project_requirements_tree.md. A Claude Code main-session rehearsal could be fed the answer.
+E. Blind rehearsal leak (INFERRED): ~/.pi/agent/nana-knowledge/sources.json indexes /Users/example/nana-pi/docs, which holds docs/requirements-tree.md, the ruled tree. Project memory holds project_requirements_tree.md. A Claude Code main-session rehearsal could be fed the answer.
 
 ## WRONGs that change the plan
 1. (43) The reviewer's `--verify <base>` refuses every regroup unless it also passes `--mapping <proposal>`. Fix §3.4 step 6, §5 acceptance and the R-1178 skill text, and add a test that pins the full verify form.
 2. (31, with B) On flat input, folds never print, and no input heading has an ID. R-1172 asks no reason for a merge, and R-1176's rename list is always empty. For all three users and the rehearsal, the page hides which old sections each feature absorbed. Add each node's `from` headings to R-1175, and define flat merge pairs, or record this as a residual.
 3. (25) J5 also breaks the 68-heading literals at requirements-tree.test.mjs:28 and :299. Add both to §4 and T14, or the suite reds on the FEAT-040 heading.
 4. (51) T13's "only after the owner's yes" cannot red. Scope T13's phrases to the regroup paragraph.
-Minor, no plan change: 13 (cite), 19 (fixture mentions only), 39 (evidence, not conclusion), 55 (the reason-count estimate on aml-desk is optimistic).
+Minor, no plan change: 13 (cite), 19 (fixture mentions only), 39 (evidence, not conclusion), 55 (the reason-count estimate on work-project is optimistic).

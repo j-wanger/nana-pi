@@ -283,13 +283,13 @@
     },
     {
      "id": "FEAT-009",
-     "label": "9. Distributional valuation (direction from Jake 2026-10-01, after Ratball's category-effectiveness study)",
-     "purpose": "Not yet sorted: the rows of old section \"9. Distributional valuation (direction from Jake 2026-10-01, after Ratball's category-effectiveness study)\".",
+     "label": "9. Distributional valuation (direction from the owner 2026-10-01, after Ratball's category-effectiveness study)",
+     "purpose": "Not yet sorted: the rows of old section \"9. Distributional valuation (direction from the owner 2026-10-01, after Ratball's category-effectiveness study)\".",
      "status": "active",
      "from": [
       {
        "line": 205,
-       "heading": "## FEAT-009 · 9. Distributional valuation (direction from Jake 2026-10-01, after Ratball's category-effectiveness study)"
+       "heading": "## FEAT-009 · 9. Distributional valuation (direction from the owner 2026-10-01, after Ratball's category-effectiveness study)"
       }
      ],
      "rows": [

@@ -1,12 +1,12 @@
 # Perspective-puzzle game — design (v9)
 
-> **Canonical copy moved to `~/game-world/docs/design.md` (repo named by Jake 2026-09-06). This file is frozen at the round-9 LAND text; the review corpus is copied to `~/game-world/docs/reviews/design-2026-09-06/`.**
+> **Canonical copy moved to `~/game-world/docs/design.md` (repo named by the owner 2026-09-06). This file is frozen at the round-9 LAND text; the review corpus is copied to `~/game-world/docs/reviews/design-2026-09-06/`.**
 
-*2026-09-06. **Status: design LAND — pi round 9 (gpt-5.6-sol) VERDICT LAND on this v9** after eight BLOCK rounds, each adjudicated in `reviews/coop-game-2026-09-06/` (r1 reshaped the plan; r2–r8 each closed one partial or contradictory transition). Jake's rulings: v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (RESERVED, §3.6); commit is never a model tool. Seat defaults awaiting Jake's veto pass are listed in §9.6. NOT built; no repo yet.*
+*2026-09-06. **Status: design LAND — pi round 9 (gpt-5.6-sol) VERDICT LAND on this v9** after eight BLOCK rounds, each adjudicated in `reviews/coop-game-2026-09-06/` (r1 reshaped the plan; r2–r8 each closed one partial or contradictory transition). The owner's rulings: v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (RESERVED, §3.6); commit is never a model tool. Seat defaults awaiting the owner's veto pass are listed in §9.6. NOT built; no repo yet.*
 
 ## 1. Decision
 
-Build a new browser puzzle game (not toy-battle) on a small voxel grid with a few deeply consistent systems: gravity, perspective (3D / 2D side / 2D top), and a material table. Puzzles are generated from the world by scripts and verified by a solver. **v1 has no agent** (Jake, 2026-09-06: "build as a puzzle game first without the agent"). Whether an agent belongs in the game is a question the finished world answers: if players want changes a menu cannot express, the agent's surface is the rule-edit grammar in §5; if not, the game stands alone. Substance before machinery.
+Build a new browser puzzle game (not toy-battle) on a small voxel grid with a few deeply consistent systems: gravity, perspective (3D / 2D side / 2D top), and a material table. Puzzles are generated from the world by scripts and verified by a solver. **v1 has no agent** (Owner, 2026-09-06: "build as a puzzle game first without the agent"). Whether an agent belongs in the game is a question the finished world answers: if players want changes a menu cannot express, the agent's surface is the rule-edit grammar in §5; if not, the game stands alone. Substance before machinery.
 
 ## 2. The agent question, deferred
 
@@ -17,7 +17,7 @@ Test (standing): **the agent is forced if a menu could replace it.** Round 1 sho
 ### 3.1 World
 
 - Rooms of voxels on an integer grid, small (v1 target 12×12×12, §9). The voxel grid is **mutable state** (cells break). **Every cell outside the room's bounds is an implicit, non-fragile SOLID for every rule** (v7): projection, enterability, step-up, support, the vertical step. Positions are confined to the grid by construction; a move into the boundary is BLOCKED by §3.3 step 1. Entities are the player and boxes only; each carries a **true 3D integer position** at all times. **One entity per true cell** (v2, A2). **Fluids are cells, never entities** (v3): a cell whose material `state` is `liquid` is enterable; an entity in it is "in liquid". Entity kind and material are static puzzle metadata.
-- **Material table, v1 = three properties** (v2 F3 subtraction; v8 removed `passableFromTop` — under frozen depth a player above a pool is simply in the `none` cell at surface + 1, enterable by §3.3, and liquid is not support by §3.7; a walk-on-water mechanic, if wanted, returns as a material `state` such as ice — Jake may veto): `state` (solid | liquid | gas | none; solid blocks, the other three are enterable), `hardness` ∈ {0 fragile, 1 solid} with **one outcome** (v3): *when an entity's gravity step is blocked by a fragile cell, that cell becomes `none` and the entity stays put this tick; it falls into the gap on the next*. `density` ∈ {0 floats, 1 sinks} (entities carry it too): *an entity in liquid moves one cell against gravity per tick if it floats, along gravity if it sinks; with gravity off or its axis collapsed, buoyancy vanishes* (the §3.4 rule). Flammability, conductivity, opacity, reflectivity, friction, bounciness are NOT in v1; they arrive with elements and light through a versioned property registry.
+- **Material table, v1 = three properties** (v2 F3 subtraction; v8 removed `passableFromTop` — under frozen depth a player above a pool is simply in the `none` cell at surface + 1, enterable by §3.3, and liquid is not support by §3.7; a walk-on-water mechanic, if wanted, returns as a material `state` such as ice — the owner may veto): `state` (solid | liquid | gas | none; solid blocks, the other three are enterable), `hardness` ∈ {0 fragile, 1 solid} with **one outcome** (v3): *when an entity's gravity step is blocked by a fragile cell, that cell becomes `none` and the entity stays put this tick; it falls into the gap on the next*. `density` ∈ {0 floats, 1 sinks} (entities carry it too): *an entity in liquid moves one cell against gravity per tick if it floats, along gravity if it sinks; with gravity off or its axis collapsed, buoyancy vanishes* (the §3.4 rule). Flammability, conductivity, opacity, reflectivity, friction, bounciness are NOT in v1; they arrive with elements and light through a versioned property registry.
 - Gravity is a vector along one grid axis, one of six directions, on/off. **In v1 gravity is a room property set by the puzzle, never a player action** (v3).
 - **Physics is memoryless and quasi-static** (v2, B2): no velocity; a falling entity moves one cell per tick; nothing carries momentum across ticks or mode switches. A fall interrupted by a mode switch that hides its axis simply resumes when the axis is visible again.
 
@@ -35,7 +35,7 @@ The visible cell at a reduced-mode position is the nearest non-empty cell along 
 3. **Push:** if the true destination holds an entity, that entity is **pushed** one cell in the move direction under this same rule from its own true position (Sokoban; boxes never push boxes); if the push is blocked, so is the move;
 4. otherwise the mover moves into its true destination.
 
-**Step-up (v5; the v1 platformer verb; Jake may veto):** applies only when the mover's TRUE destination is a solid cell (never an entity — a box in the true destination goes to step 3, and a box is never stepped onto). "Above" means against gravity, for any gravity direction; step-up exists only when gravity is on and visible. The move then resolves as a move to the cell above the true destination, which must itself be enterable by steps 1–4 from the mover's position, AND the cell above the mover must be free (true cell, non-solid, no entity). One cell only; a front-most solid at another depth is a wall, never a step. There is no jump beyond this.
+**Step-up (v5; the v1 platformer verb; the owner may veto):** applies only when the mover's TRUE destination is a solid cell (never an entity — a box in the true destination goes to step 3, and a box is never stepped onto). "Above" means against gravity, for any gravity direction; step-up exists only when gravity is on and visible. The move then resolves as a move to the cell above the true destination, which must itself be enterable by steps 1–4 from the mover's position, AND the cell above the mover must be free (true cell, non-solid, no entity). One cell only; a front-most solid at another depth is a wall, never a step. There is no jump beyond this.
 
 ### 3.4 Physics acts only in the visible dimensions
 
@@ -53,7 +53,7 @@ An entity moves in the visible plane; its coordinates along collapsed axes are *
 
 Because every move requires the mover's TRUE destination to be free of solid and of entities (§3.3), no sequence of moves and view changes can put an entity inside solid or on another entity. **In v1 a `switch` changes nothing but the view**; there is nothing to repair. The chasm mechanic survives unchanged: in top view you walk onto a true cell above the gap, switch to side view, and fall on the next `move`/`wait` tick.
 
-**Reserved (Jake's ruling, round-1 A1), for when a cell can change under an entity** (agent edits; elements such as ice): re-embedding is a pure repair with no physics — for every entity in lexicographic order of true position, if its cell is now solid, push it along the last-collapsed axis toward the camera to the nearest free cell, else away; if none on the whole axis, the entity is destroyed, and for the player that is the loss of the puzzle. Until such a system exists, this rule has no trigger.
+**Reserved (Owner's ruling, round-1 A1), for when a cell can change under an entity** (agent edits; elements such as ice): re-embedding is a pure repair with no physics — for every entity in lexicographic order of true position, if its cell is now solid, push it along the last-collapsed axis toward the camera to the nearest free cell, else away; if none on the whole axis, the entity is destroyed, and for the player that is the loss of the puzzle. Until such a system exists, this rule has no trigger.
 
 ### 3.7 Actions and tick order (v3)
 
@@ -88,7 +88,7 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 ## 5. If the agent comes (deferred; constraints carried from day one)
 
 - **The simulation is a pure headless package** (`sim`: `step(state, input) → state`, serializable state, an append-only action log). This is required by the solver anyway, and it is what makes an authoritative game server a wrapper rather than a rewrite.
-- **Resolution of round-1 F1** (Jake, 2026-09-06): when an agent is added, the game runs its sim in its own server process; the browser sends moves same-origin; the agent's tools sit behind the same server. Bespoke on the kit (blocks, ledger, gate bar, listener isolation reused); the kit boundary is not amended.
+- **Resolution of round-1 F1** (Owner, 2026-09-06): when an agent is added, the game runs its sim in its own server process; the browser sends moves same-origin; the agent's tools sit behind the same server. Bespoke on the kit (blocks, ledger, gate bar, listener isolation reused); the kit boundary is not amended.
 - **Commit is never a model tool** (ratified): the model gets `preview`; the player's click on the preview is the commit, bound to preview id + world revision + cost.
 - **The candidate agent surface** is a bounded rule-edit grammar: predicates over contact, material, state and mode joined to engine-defined effects, solver-validated, cost = complexity. Never bare property rows.
 - Authority: schema plus target allowlists, immutable fields, enumerated domains, server-computed cost, revision check, atomic commit, post-commit invariant check. Audit = signed tool provenance plus the sim's action log; no stronger claim.
@@ -111,7 +111,7 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 - **Three.js for rendering only**, loaded from a CDN import map (no build step). One scene; orthographic camera snapped to an axis for 2D, perspective for 3D; instanced meshes for voxels.
 - **No physics library.** Grid physics is a few hundred lines we own.
 
-## 9. Open (Jake's calls)
+## 9. Open (Owner's calls)
 
 1. Repo and working name.
 2. The player's perspective verb: v3 default = all six views reachable at all times; the input (keys / on-screen) is open.
@@ -122,6 +122,6 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 
 ## 10. Gates before build
 
-1. ~~pi review~~ LANDED at round 9. Jake's veto pass over §9.6, then the repo.
+1. ~~pi review~~ LANDED at round 9. The owner's veto pass over §9.6, then the repo.
 2. **Smallest playable:** one room, 3D + side + top, gravity on/off, the three-property table, player + one box, reach the exit; the solver proves the room; twenty minutes of play. **Fixture 1 (round-3 D):** a bounded room, gravity −Y, flat floor, player at (0,1,0), box at (2,1,1), side view from +X, exit beyond the box's projected square, with an alternate route (e.g. via top view) so the room is solvable; the single `+Z` move from the start must resolve to BLOCKED in the renderer's legality preview and in the headless solver alike. **Fixture 2 (round-4 D, "false stair"):** gravity −Y, side view from +X, player at (0,1,0), liquid at the true destination (0,1,1), a solid at (2,1,1) only, free cells at (0,2,0) and (0,2,1); `+Z` must resolve to BLOCKED (the true destination is liquid, so no step-up; the front-most cell at depth 2 is solid, so step 1 blocks) — no stair, no drop.
 3. Ten generated puzzles played. Then, and only then, the agent question (§2) with evidence from play.

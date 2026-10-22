@@ -2,7 +2,7 @@
 
 **Feature.** Under every requirement row, the product report lists each test the row's evidence cites in this repository as its own item. Each item shows the title, the file, a GitHub link (new tab) to the file at the report's commit, and the file's PASS, FAIL or SKIP from the clone's last measured run, marked when the file or code it ran changed since. A row citing no test says so. Today a card shows its evidence as one monospace string; the page's FEAT-039 detail has 0 test-file links and 0 list items.
 
-**Reader.** Jake, on the hosted copy Claude Code seats republish. Per test he needs what it checks, a link that works off this machine, and whether it ran here and passed. When nothing pins a row, he needs a plain word.
+**Reader.** the owner, on the hosted copy Claude Code seats republish. Per test he needs what it checks, a link that works off this machine, and whether it ran here and passed. When nothing pins a row, he needs a plain word.
 
 **Class: ordinary.** Report script, its test, its template, docs. No install, hook, gate, land or review tool.
 

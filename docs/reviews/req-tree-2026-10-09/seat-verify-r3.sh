@@ -1,6 +1,6 @@
 #!/bin/bash
 # Seat check of the two sol r3 fixes, on scratch copies only. Prints one line per attack.
-W=/Users/jwang/nana-pi-wt/req-tree
+W=/Users/example/nana-pi-wt/req-tree
 SHA=6b9202a501a7fe03dfc834ab34cdfc212f6d92ce
 T=$(mktemp -d)
 cd "$W" || exit 2
@@ -8,7 +8,7 @@ node docs/reviews/req-tree-2026-10-09/prove.mjs --approved $SHA REQUIREMENTS.md 
 mk() { python3 - "$1" "$2" <<'EOF'
 import sys,re
 mode,out=sys.argv[1],sys.argv[2]
-L=open('/Users/jwang/nana-pi-wt/req-tree/REQUIREMENTS.md').read().split('\n')
+L=open('/Users/example/nana-pi-wt/req-tree/REQUIREMENTS.md').read().split('\n')
 i=next(k for k,l in enumerate(L) if l.startswith('| R-291 |'))
 cells=L[i].split('|')
 if mode=='trailing': L[i]=L[i]+'UNACCOUNTED-BYTES'

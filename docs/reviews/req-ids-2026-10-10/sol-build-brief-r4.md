@@ -3,12 +3,12 @@
 Over the round cap, for one reason: a confirmation round on the final tip after fixes to named
 findings. Your round 3 (`sol-build-r3.md`) and astra's (`astra-land-r3.md`) sent the lane back. Since
 `d2edd8f`: the seat fixed astra's MUST 3 and SHOULD (`HANDOFF.md` no longer holds HTML pages; the
-session entry says Jake requires Windows testing) and added seat-script cases; build round 5
+session entry says the owner requires Windows testing) and added seat-script cases; build round 5
 (`build-brief-5.md`, `builder-report-5.md`) made the tree checker build its row prefix from the
 rail's re-exported whitespace list, and removed a leading BOM exactly once per file in both rails.
 
 Review `git diff d2edd8f..HEAD` and confirm the whole change `eeeca20..HEAD` holds; your verdict
-covers all of it, and this is the final review before Jake's acceptance.
+covers all of it, and this is the final review before the owner's acceptance.
 
 ## Attack
 1. **Your MUST closed.** U+0085 and U+001F rows: the rail loads them, the tree counts and places

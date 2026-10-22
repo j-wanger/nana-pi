@@ -2,7 +2,7 @@
 
 Round 6 replaced the JSON dump with routed views; the seat's acceptance script passes and the seat
 looked at the page in a browser. It works, but it is a plain list of labelled paragraphs, well below
-the prototype Jake used to decide (`prototype/template.html`), which brief 6 asked you to follow. Jake
+the prototype the owner used to decide (`prototype/template.html`), which brief 6 asked you to follow. The owner
 reads this page to decide what is solid; the feature detail puts the assessment AFTER every requirement
 row, under raw store keys (`what_it_does`, `maturity_reason`), and the features list has no links.
 Keep the DOM surface, the one-source renderer and every text-node rule from brief 6. Do every item:

@@ -10,7 +10,7 @@
 
 1. **The builder rule lives only in the preamble, and it contradicts a live rule.**
    - Only `pi-worker` reads `builder-preamble.md`. It refuses a Claude Code larger-lane builder (`pi-worker.mjs:114-117`), and `nana-seat.md:14` tells the seat not to restate the preamble in a brief.
-   - So when Jake's pending Sonnet larger-lane builder is set, that builder never sees "write no other test". It follows `nana-standards.md` instead, where the "Then the tests" bullet survives.
+   - So when the owner's pending Sonnet larger-lane builder is set, that builder never sees "write no other test". It follows `nana-standards.md` instead, where the "Then the tests" bullet survives.
    - Where the line does arrive, it clashes with `nana-standards.md:24-25` and requirements `SKILL.md:69-70`: one seal test per new tunable. Any feature that adds a timeout or cap forces the builder to break one of the two rules.
    - Fix: put the builder line in `nana-standards.md` under "Requirement first" too, with the seal-test exception (wording in section 3).
 2. **No text says how a pi seat runs the adversary, and the only seeded pi agent asks for edge cases.**

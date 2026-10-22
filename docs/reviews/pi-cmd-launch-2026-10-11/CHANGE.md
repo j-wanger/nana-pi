@@ -7,11 +7,11 @@ and the post-edit feature holding R-105. Order: why → plan → sol plan review
 `pi-cmd-launch-plan`; r1 SEND-BACK 4/10 — version 2 replaced the npm-root design; r2 SEND-BACK 6/10 and
 r3 SEND-BACK 7/10 and r4 SEND-BACK 8/10 (over the cap) answered here) →
 build → a CI run with the Windows leg → seat verification → sol build review → astra land review →
-Jake accepts.*
+The owner accepts.*
 
 ## 1. Why
 
-Jake uses both seats on his Windows work machine (2026-10-11). The first hosted Windows CI run
+The owner uses both seats on his Windows work machine (2026-10-11). The first hosted Windows CI run
 (triage: `docs/reviews/windows-ci-2026-10-11/windows-triage.md`, lane 1) found that `nana-setup
 install` never registers nana-pack or nana-knowledge with pi on Windows: `stepPiRegister` runs a bare
 `spawnSync("pi", …)` with no shell (`packages/nana-setup/lib/steps.mjs:984`, `:988`). Node's child_process
@@ -211,4 +211,4 @@ rules themselves (R-323, R-392 unchanged); escaping instead of refusing.
   `dir/Z` case fails; compare extensions with case → the `pi.CMD` case fails; let doctor run a
   refused `.cmd` pi → the doctor refusal case fails.
 - `npm run test:locked` (macOS) and a CI run on this branch's draft pull request with the three files
-  green on the Windows leg. Pushing the branch needs Jake's approval.
+  green on the Windows leg. Pushing the branch needs the owner's approval.

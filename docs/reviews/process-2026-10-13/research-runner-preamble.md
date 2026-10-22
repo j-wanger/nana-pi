@@ -203,7 +203,7 @@ The report shape adds "the suite summary line with its check count" and "each se
    locked suite once before external review" (`feedback_lane_process_2026_10_11.md:17`). Taken literally, the first
    rule means a 12-15 minute locked suite before every builder commit, plus a queue on the lock. The draft settles
    it this way: touched tests pass before each commit, and the full suite passes before the last commit, which is
-   DONE. This is a seat call; it is not Jake's.
+   DONE. This is a seat call; it is not the owner's.
 2. **Rule 4 ("no npm test file binds a fixed port") is false today** (`origin-rule.test.mjs:17`). Fix the test or
    correct the memory line.
 3. **The memory file's "How to apply" is stale.** It says "the canonical preamble … must carry all six", and there

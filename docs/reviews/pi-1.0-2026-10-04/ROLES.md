@@ -1,6 +1,6 @@
 # pi 1.0 adoption — roles (declared 2026-10-04)
 
-Jake, at session start: "use sonnet as worker, astra for reviewer, and fable for landing/architecture".
+The owner, at session start: "use sonnet as worker, astra for reviewer, and fable for landing/architecture".
 
 | Role | Who | How it runs |
 |---|---|---|

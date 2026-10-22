@@ -37,7 +37,7 @@ Line cites are at main `484329c` unless marked `@5b53ebc`. INFERRED = not read o
   Scaffold and adopt skills are pi-only (`packages/nana-setup/README.md:178-179`), so R-1155 reaches pi only.
   `nana-setup project` seeds no REQUIREMENTS.md (`packages/nana-setup/README.md:198-203`); adopt-structure writes none (`adopt-structure/SKILL.md:170-172`).
   So §3.4's "a project with no seed starts from the adopt render's tree" has no route from the Claude Code seat. It has none for a non-Python/TS project either.
-  Option: one language-neutral seed in `templates/_shared/`, like OBJECTIVE/HANDOFF. That needs a nana-setup change, which §3.5 excludes; Jake's call.
+  Option: one language-neutral seed in `templates/_shared/`, like OBJECTIVE/HANDOFF. That needs a nana-setup change, which §3.5 excludes; the owner's call.
 - On Windows the requirements skill is a byte copy, not a link (`steps.mjs:218-226`). It stays stale until `nana-setup install` re-runs; doctor flags the drift
   (`doctor.mjs:101-104`). §4 "Release" does not say this.
 
@@ -74,17 +74,17 @@ Line cites are at main `484329c` unless marked `@5b53ebc`. INFERRED = not read o
   That file is skip-listed, so no later fix reaches it, e.g. a PATH link from the maintainer-tools lane. The pi `git:` install route has no `~/nana-pi` checkout (`README.md:163-170`).
   Keep the command in the skill (live) and leave it out of the seed.
 
-## 6. Scope against Jake's words ("templates seed the tree, the adopt step sorts a flat ledger into it, the product report runs in any project")
+## 6. Scope against the owner's words ("templates seed the tree, the adopt step sorts a flat ledger into it, the product report runs in any project")
 Traces: R-1150–R-1153 (seed), R-1154–R-1155 (default behaviour the question names), R-1156 (report reachable), R-1158 (Windows trigger).
 Scope creep, one line each:
 - **R-1159 report title from the ledger H1, plus a sealed fallback, a `<title>` placeholder and nana-pi's heading change (S7):** the report already runs elsewhere (`research-tree.md` §4, exit 0); this is cosmetic.
 - **R-1160 clean-check exclusion through git pathspec magic:** the report already runs; only the "dirty" label is wrong. `--out` outside the root, or one ignore line, avoids it.
   Untested on Git for Windows; a case-mismatched `--out` would miss the case-sensitive literal pathspec (INFERRED).
 - **R-1157 standalone `--root` checker with a new stdout contract:** borderline. The report already prints every checker problem. It is justified only as a check that needs no HANDOFF or git.
-- **R-1153 "The project owner decides every change to the tree" in every project:** this extends Jake's nana-pi rule (`REQUIREMENTS.md:34`) to all projects without his words.
+- **R-1153 "The project owner decides every change to the tree" in every project:** this extends the owner's nana-pi rule (`REQUIREMENTS.md:34`) to all projects without his words.
 Not creep: the `How this file is organized` section, the closing H1, and J3/J4 deferrals.
 Frame note: the split DEFERS one of the three agreed parts, and the trigger stays broken (J1). Lane 2's lift renames Parts and sections into CAP and FEAT headings
-with "Not yet sorted" purposes. That gives tree form, not tree design. Whether that is the "sort" Jake meant is unasked.
+with "Not yet sorted" purposes. That gives tree form, not tree design. Whether that is the "sort" the owner meant is unasked.
 
 Sources: [1] https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_character_encoding ·
 [2] https://github.com/anthropics/claude-code/issues/19901 · [3] https://copier.readthedocs.io/en/stable/configuring/ and /updating/ ·

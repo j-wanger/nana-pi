@@ -9,7 +9,7 @@ Boundary fold: PASS. One finding, REAL; the reviewer could construct no other.
   §3.3; whether the pool "holds" them is a support question, and §3.7 already says liquid is not
   support (no gravity in top view; sink or float per density once gravity returns). v8 removes
   `passableFromTop` from the v1 table (three properties remain: state, hardness, density) and
-  deletes the §3.4 sentence that referenced it. **Jake may veto** — it was his addition; if a
+  deletes the §3.4 sentence that referenced it. **The owner may veto** — it was his addition; if a
   walk-on-water mechanic is wanted, it returns as a material `state` (e.g. `ice`) rather than a
   flag that fights the enterability rule.
 

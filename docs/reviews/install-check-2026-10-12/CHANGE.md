@@ -1,12 +1,12 @@
 # Change declaration: one check that installs nana and runs every installed hook the way the docs describe, in CI on macOS and Windows
 
-*Lane `install-check` · branch `feat/install-check` · worktree `~/nana-pi-wt/install-check`, based on `main` at `7e6ce39` · 2026-10-12. Builder: pi gpt-6-luna. This is Jake's measurement lane. It is timed against `cc-hooks-windows`, which Claude Sonnet 5.5 builds (`HANDOFF.md:18`, `:58-59`).*
+*Lane `install-check` · branch `feat/install-check` · worktree `~/nana-pi-wt/install-check`, based on `main` at `7e6ce39` · 2026-10-12. Builder: pi gpt-6-luna. This is the owner's measurement lane. It is timed against `cc-hooks-windows`, which Claude Sonnet 5.5 builds (`HANDOFF.md:18`, `:58-59`).*
 
 *Features and rows:*
 - *FEAT-015 "Diagnose the active environment": new R-1070 to R-1077, R-1079 and R-1080 to R-1084.*
 - *FEAT-019 "Release usable templates and report support": R-597 reworded; R-1032 keeps its text but its test pin moves; new R-1078.*
 
-*Order: why → plan → sol plan review (two rounds at most) → seat acceptance script, red, with probes (f) and (g) run first → build → red-first CI runs on draft pull requests → seat verification → sol build review → astra land review → Jake accepts. Jake ruled on 2026-10-11 that pushing a non-main branch and opening a draft PR for CI need no approval. The ruling is recorded at `~/nana-pi-wt/cc-hooks-windows/docs/reviews/cc-hooks-windows-2026-10-12/CHANGE.md:18`, cited below as "cc CHANGE", at cc tip `2818e03`.*
+*Order: why → plan → sol plan review (two rounds at most) → seat acceptance script, red, with probes (f) and (g) run first → build → red-first CI runs on draft pull requests → seat verification → sol build review → astra land review → the owner accepts. The owner ruled on 2026-10-11 that pushing a non-main branch and opening a draft PR for CI need no approval. The ruling is recorded at `~/nana-pi-wt/cc-hooks-windows/docs/reviews/cc-hooks-windows-2026-10-12/CHANGE.md:18`, cited below as "cc CHANGE", at cc tip `2818e03`.*
 
 *Dependencies:*
 - *`cc-hooks-windows` runs in parallel. Its tip is `2818e03`. Sol plan r3 accepted its plan (LAND 100/100), build brief 1 is issued, and Sonnet 5.5 is building. That lane writes the four Windows hook entries that are missing today. This lane measures them.*
@@ -24,7 +24,7 @@
 
 ## 1. Why
 
-Jake's current priority, due for review on 2026-10-24, reads: "nana working consistently in terminal mode, without the desk, for both seats (Claude Code, or pi with nana-pi), on macOS and Windows, installation and every hook included" (`HANDOFF.md:5`). HANDOFF names this lane as the measure: "the install-and-hooks check on both platforms, built by luna. Green on both is the 2026-10-24 'done'" (`:59`). The Windows install-and-hooks rehearsal has still not been run (`:34`).
+The owner's current priority, due for review on 2026-10-24, reads: "nana working consistently in terminal mode, without the desk, for both seats (Claude Code, or pi with nana-pi), on macOS and Windows, installation and every hook included" (`HANDOFF.md:5`). HANDOFF names this lane as the measure: "the install-and-hooks check on both platforms, built by luna. Green on both is the 2026-10-24 'done'" (`:59`). The Windows install-and-hooks rehearsal has still not been run (`:34`).
 
 Nothing today measures that definition.
 1. **Every suite install uses `--home`** (`packages/nana-setup/README.md:402-403`). That flag has three effects:
@@ -50,7 +50,7 @@ Nothing today measures that definition.
 - Claude Code itself never runs. The check simulates the documented dispatch.
 - The pi seat is measured by registration and one session that loads nana-pack (R-1079; probe (f) held, 2026-10-12). No prompt runs, so no pack hook inside a pi prompt fires.
 
-"Done" on 2026-10-24 is settled (seat decision, §3, after Jake's 2026-10-11 acceptance that his machine is the proof): this check green on both legs on a push to main with an empty win32 known-red list, plus Jake's Claude Code machine check (cc CHANGE:548-564) and Jake's own run of this check on his Windows machine — the only test of this plan's most-likely-wrong claim (section 3). HANDOFF states this limit (section 4).
+"Done" on 2026-10-24 is settled (seat decision, §3, after the owner's 2026-10-11 acceptance that his machine is the proof): this check green on both legs on a push to main with an empty win32 known-red list, plus the owner's Claude Code machine check (cc CHANGE:548-564) and the owner's own run of this check on his Windows machine — the only test of this plan's most-likely-wrong claim (section 3). HANDOFF states this limit (section 4).
 
 **Observable outcomes.**
 1. One command, `node packages/nana-setup/bin/install-check.mjs`, installs nana from its checkout into a new temporary home.
@@ -73,7 +73,7 @@ Nothing today measures that definition.
 6. **Today the Windows leg passes with XFAIL lines** for the items on the sealed win32 known-red list: the hook set and the four entries Windows does not wire (`steps.mjs:505-510`).
    - The 2026-10-24 signal is the `install-check (windows-latest)` job concluding green on a push to main with an empty win32 list.
 
-**Threat model.** This follows Jake's 2026-10-11 rule (`HANDOFF.md:18`).
+**Threat model.** This follows the owner's 2026-10-11 rule (`HANDOFF.md:18`).
 
 Honest variation in hosted runners and machines is in scope:
 - runner image updates (Node, Git, Windows image), and pi and pi-subagents fetched from npm;
@@ -238,7 +238,7 @@ Why these modules sit in nana-setup:
      - the check then uses `<root>\bin\bash.exe`;
      - it never resolves `C:\Windows\System32\bash.exe`, because the `windows-2025` image has WSL enabled.
 
-     INFERRED: skipping the registry finds the same bash on the runner and on Jake's machine. The PowerShell fallback for machines without Git Bash is not covered.
+     INFERRED: skipping the registry finds the same bash on the runner and on the owner's machine. The PowerShell fallback for machines without Git Bash is not covered.
    - **How each entry runs:**
      - the working folder is `<home>/project`, with `CLAUDE_PROJECT_DIR` set to it. INFERRED: Claude Code uses the project folder;
      - stdin is the sample input for the entry's event;
@@ -305,7 +305,7 @@ Why these modules sit in nana-setup:
 
 - **The pi install line** is the checklist's own command: `PI_INSTALL_HINT` (`steps.mjs:815`) plus the version. It is not the suite's `npm i -g` (`ci.yml:38`).
   - `--ignore-scripts` skips the postinstall scripts of pi's dependencies esbuild and protobufjs. INFERRED low risk. Step 6 loads extensions, so a pi-session FAIL considers this cause first.
-- **TEMP and TMP** put the check's temporary home on the checkout's drive, with no 8.3 name. That matches Jake's layout.
+- **TEMP and TMP** put the check's temporary home on the checkout's drive, with no 8.3 name. That matches the owner's layout.
   - `os.tmpdir()` reads TEMP first on win32 (Node docs).
   - The setting is harmless on macOS, where `os.tmpdir()` reads TMPDIR.
   - Children still get `<home>/tmp` (step 3).
@@ -324,7 +324,7 @@ Why these modules sit in nana-setup:
   - Run 38262900510 concluded `success` while `suite (windows-latest)` failed.
 - **Reconciling with cc-hooks-windows.**
   - If cc-hooks-windows lands first, this lane merges main before its final round. The seat then seals the list from that Windows run.
-  - If this lane lands first, cc's next merge of main turns cc's Windows install-check leg red until the list shrinks. That edit is outside cc's declared scope (cc CHANGE:408), so it goes to Jake (Open, below).
+  - If this lane lands first, cc's next merge of main turns cc's Windows install-check leg red until the list shrinks. That edit is outside cc's declared scope (cc CHANGE:408), so it goes to the owner (Open, below).
 - **Cost.** A Windows runner fault now holds a template tag until someone reruns the job.
 - **Decision: gate the release (seat).**
   - Main is unprotected, with no required checks (`gh api repos/j-wanger/nana-pi/branches/main`, 2026-10-12).
@@ -361,22 +361,22 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
   - Its test file is owned by cc.
   - Reopening an accepted plan needs a named fail-open bug (`HANDOFF.md:18`).
 - **Installing Claude Code on the runner.** It is absent from both images (the Windows 2025 image lists none), and a session needs an account login. INFERRED: a headless login is not practical, and it would put a secret in CI.
-- **Redirecting APPDATA and LOCALAPPDATA on win32.** npm, pi and Git read machine settings from there. Redirecting them would move the run further from Jake's machine. The npm cache is redirected on its own instead.
+- **Redirecting APPDATA and LOCALAPPDATA on win32.** npm, pi and Git read machine settings from there. Redirecting them would move the run further from the owner's machine. The npm cache is redirected on its own instead.
 
 **Declared limits and residuals.**
-- **Claude Code itself never runs.** The check simulates the dispatch the docs describe. The real dispatch stays with Jake's machine check in cc-hooks-windows (cc CHANGE:548-564). That covers the workspace trust dialog, the PATH Claude Code passes, the `node` it finds, PowerShell routing and `${CLAUDE_PROJECT_DIR}` substitution in `args`.
+- **Claude Code itself never runs.** The check simulates the dispatch the docs describe. The real dispatch stays with the owner's machine check in cc-hooks-windows (cc CHANGE:548-564). That covers the workspace trust dialog, the PATH Claude Code passes, the `node` it finds, PowerShell routing and `${CLAUDE_PROJECT_DIR}` substitution in `args`.
 - **pi seat: registration plus one session with no prompt.** The pack's prompt-time hooks (gate, objective, knowledge pull, post-edit) are not exercised. nana-knowledge's load inside pi is unproven. Probe (f) held, so the session row stands.
 - **Children's temporary folder is inside the home.** This is a chosen deviation from a real machine. It keeps the fixture project from being a temporary root.
   - POSIX also treats `/tmp` as a temporary root. On Linux the home would sit under `/tmp`, which this lane does not handle. There is no Linux leg.
-- **Writes outside the home on win32 (INFERRED none from nana).** APPDATA and LOCALAPPDATA are not redirected, and machine-level npm and Git config are read. Acceptance (b) runs on macOS only. Jake's Windows run carries this residual.
+- **Writes outside the home on win32 (INFERRED none from nana).** APPDATA and LOCALAPPDATA are not redirected, and machine-level npm and Git config are read. Acceptance (b) runs on macOS only. The owner's Windows run carries this residual.
 - **Plain paths only.** Hostile characters belong to cc-hooks-windows R-1058.
 - **No cross-drive layout.** A home and a checkout on different Windows drives are not covered, because CI puts them on the same drive on purpose.
 - **No Windows checklist.** The checklist the check follows is "Fresh machine (macOS), in order" (`README.md:118`). Step 1 is `xcode-select` and step 5 is `.zprofile`.
-  - On win32 the check runs the same steps without the PATH step, in Git Bash rather than Jake's terminal.
+  - On win32 the check runs the same steps without the PATH step, in Git Bash rather than the owner's terminal.
   - The new README section states those steps. No fresh-machine Windows checklist is written here.
 - **Network.** pi and pi-subagents come from npm. An outage shows red, and nothing retries automatically. Chosen: a retry hides intermittent faults, and a rerun costs minutes.
 - **Blocking acts only after land.** The release gate runs only on pushes to main (`ci.yml:45`). Draft-PR runs cannot exercise it before land. A macOS regression from another lane lands first, and only the release is held afterwards.
-- **CRLF.** The check uses the default Windows checkout as it comes. INFERRED: Jake's clone has the same default.
+- **CRLF.** The check uses the default Windows checkout as it comes. INFERRED: the owner's clone has the same default.
 - **Doctor run from the checkout (finding, confirmed by code, carried).**
   - Checklist step 8 says to run doctor "from `~/nana-pi`; expect `all good`" (`README.md:127`).
   - `doctor.mjs:431-437` adds `!` whenever the folder holds `.pi/nana-pack.json` with no trust record.
@@ -389,14 +389,14 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 - **Product report.** The stored assessments for FEAT-015 and FEAT-019 will read "out of date" after the land. Refreshing them is not in this lane.
 - **The claim most likely to be wrong:** that a temporary HOME and USERPROFILE make `windows-latest` behave like a fresh Windows machine.
   - npm, pi and git still read machine-level settings, for example the image's npm prefix `C:\npm\prefix` and Git's system config.
-  - So the Windows leg can pass where Jake's machine fails, or fail for runner reasons. Jake's own Windows run is the only test of this claim.
+  - So the Windows leg can pass where the owner's machine fails, or fail for runner reasons. The owner's own Windows run is the only test of this claim.
 
 **Decided by the seat (2026-10-12), with the reason.**
-- The 2026-10-24 "done" = this check green on both legs on a push to main with an empty win32 known-red list, PLUS Jake's own run of it on his Windows machine and his Claude Code machine check (cc CHANGE:548-564). Jake accepted on 2026-10-11 that his machine, not a VM or a hosted runner, is the proof for Windows. R-1079 is part of it (probe (f) held, 2026-10-12).
+- The 2026-10-24 "done" = this check green on both legs on a push to main with an empty win32 known-red list, PLUS the owner's own run of it on his Windows machine and his Claude Code machine check (cc CHANGE:548-564). The owner accepted on 2026-10-11 that his machine, not a VM or a hosted runner, is the proof for Windows. R-1079 is part of it (probe (f) held, 2026-10-12).
 - Landing order: `cc-hooks-windows` lands first (it is building; this lane is planning). Whichever lane lands second merges main and edits the win32 known-red list in that merge; the seat owns merges, so no lane's scope has to stretch.
 - Checklist step 8 (doctor's `!` on project trust on every fresh machine) goes to the queued small process lane, not this one.
 
-**Open for Jake** (HANDOFF line, written by the seat):
+**Open for the owner** (HANDOFF line, written by the seat):
 - Should every lane that touches nana-setup or the hooks run this check locally on macOS as part of its land checklist? Main is unprotected and `nana-land` reads no CI result, so today a failing check is seen only after the land.
 
 ## 4. Scope
@@ -426,7 +426,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 - The desk, which is frozen.
 - Test portability and the suite's Windows leg posture (lane 6). R-1031 and R-1032 keep their text.
 - The Support line (R-684), which cc-hooks-windows rewords.
-- A Linux leg; uninstall; Jake's real-home install.
+- A Linux leg; uninstall; the owner's real-home install.
 - A fresh-machine Windows checklist.
 - Fixing the doctor-from-checkout finding.
 - pi extension behaviour inside a prompt.
@@ -575,10 +575,10 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 - **After land:**
   - The first push to main shows release running after both jobs.
   - The seat reads the `install-check (windows-latest)` job conclusion and the list's size from the jobs API on each push to main. It never reads the run conclusion.
-  - Jake runs `node packages/nana-setup/bin/install-check.mjs` once on his Windows machine. That run is the closest bridge from the runner to his machine.
+  - The owner runs `node packages/nana-setup/bin/install-check.mjs` once on his Windows machine. That run is the closest bridge from the runner to his machine.
     - Acceptance (b) shows on macOS that the run leaves the real home alone.
     - On win32 that claim is INFERRED beyond nana, pi, Claude Code and npm-cache state (section 3).
-    - This run is part of "done" (seat decision, §3, after Jake's 2026-10-11 acceptance that his machine is the proof).
+    - This run is part of "done" (seat decision, §3, after the owner's 2026-10-11 acceptance that his machine is the proof).
 
 ## Seat fact-check (2026-10-12)
 
@@ -635,12 +635,12 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 - **Row placement.** "beside R-950" and "beside R-323" are dropped. Those rows sit in FEAT-013.
 - **Knowledge sample constraints.** The prompt needs at least 12 characters and 2 meaningful tokens, the token matches `[a-z0-9_]`, and the note is matched by file name on win32. The 1,500 ms internal budget is noted.
 - **INFERRED marks dropped**, per the Node docs: `os.tmpdir()` reads TEMP first on win32, and `os.homedir()` reads USERPROFILE.
-- **Doctor-from-checkout finding.** It moves from INFERRED to confirmed by code. It is carried as Open for Jake.
+- **Doctor-from-checkout finding.** It moves from INFERRED to confirmed by code. It is carried as Open for the owner.
 - **Why section.**
   - `install.test.mjs:322` checks exit status for all three SessionStart commands.
   - The prior art at `verifier-pipe.test.mjs:34-37` is cited.
 - **Scope.** It adds root `README.md:25`, `:177`, `:210`, `AGENTS.md:39`, and the README statement of the win32 steps (no Windows checklist, a declared gap).
-- **Open for Jake.** Four lines are added: the "done" definition, the cross-lane edit to the known-red list, checklist step 8, and a local land-checklist run.
-- **Process note.** The code check wrote one scratchpad copy of cc CHANGE.md at `71757f4` (`/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/cc-change-71757f4.md`). It is outside the repo. No repo file changed.
-- 2026-10-12, after sol plan r1 (LAND-WITH-FIXES 82/100): each known-red entry carries a sealed expected-failure code and the 2026-10-24 expiry (R-1080), with wrong-reason and expired-entry test cases; the sealed hook table carries the dispatch form per platform (R-1082); probe (f) was run and HELD, with `NANA_TEST_TEMP_ROOTS` set empty for the pi session, so R-1079 stays and the adoption fallback is gone; one spawn function passes the sanitized environment to every child, git and Git Bash discovery included (R-1084), with a recording-spawn test over all of them; R-1072, R-1077 and R-1079 now carry one `shall` each (R-1081, R-1083 split out); the stale "open" sentence on Jake's Windows run is resolved; the check prints the resolved Git Bash and pi paths at its start, so a runner-image change is distinguishable from a hook failure; and the pi-coverage residual is explicit: registration and one model-free session do not exercise pi's prompt-time objective, knowledge, gate or post-edit behaviour. New IDs R-1080–R-1084 extend this lane's range (R-1080–R-1089 reserved; no other lane holds them).
+- **Open for the owner.** Four lines are added: the "done" definition, the cross-lane edit to the known-red list, checklist step 8, and a local land-checklist run.
+- **Process note.** The code check wrote one scratchpad copy of cc CHANGE.md at `71757f4` (`/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/cc-change-71757f4.md`). It is outside the repo. No repo file changed.
+- 2026-10-12, after sol plan r1 (LAND-WITH-FIXES 82/100): each known-red entry carries a sealed expected-failure code and the 2026-10-24 expiry (R-1080), with wrong-reason and expired-entry test cases; the sealed hook table carries the dispatch form per platform (R-1082); probe (f) was run and HELD, with `NANA_TEST_TEMP_ROOTS` set empty for the pi session, so R-1079 stays and the adoption fallback is gone; one spawn function passes the sanitized environment to every child, git and Git Bash discovery included (R-1084), with a recording-spawn test over all of them; R-1072, R-1077 and R-1079 now carry one `shall` each (R-1081, R-1083 split out); the stale "open" sentence on the owner's Windows run is resolved; the check prints the resolved Git Bash and pi paths at its start, so a runner-image change is distinguishable from a hook failure; and the pi-coverage residual is explicit: registration and one model-free session do not exercise pi's prompt-time objective, knowledge, gate or post-edit behaviour. New IDs R-1080–R-1084 extend this lane's range (R-1080–R-1089 reserved; no other lane holds them).
 - 2026-10-12, after sol plan r2 (SEND-BACK 78/100): the verification and design text now carry R-1080's code-and-expiry rule (wrong-code and expired cases), the hook table carries per-platform form columns with shape cases (R-1082), the recording-spawn test enumerates every child (R-1084), the front "done" text states the settled definition, every probe (f) mention states the held result, the resolved paths are in the report and its tests, and the doctor, known-red and knowledge references name R-1081, R-1080 and R-1083.

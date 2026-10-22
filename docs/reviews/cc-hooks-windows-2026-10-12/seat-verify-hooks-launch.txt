@@ -16,7 +16,7 @@ MISS win32: verifier-pipe.mjs is exec form (command "node", args array, no shell
 MISS win32: verifier-pipe.mjs args[0] is an absolute existing script inside this checkout → false (want true)
 ok   win32: verifier-pipe.mjs extra args
 ok   win32: exactly one nana-knowledge.ts entry under UserPromptSubmit
-MISS win32: nana-knowledge.ts is exec form (command "node", args array, no shell key) → ["node '/Users/jwang/nana-pi-wt/cc-hooks-windows/packages/nana-knowledge/bin/nana-knowledge.ts' hook",false,false] (want ["node",true,false])
+MISS win32: nana-knowledge.ts is exec form (command "node", args array, no shell key) → ["node '/Users/example/nana-pi-wt/cc-hooks-windows/packages/nana-knowledge/bin/nana-knowledge.ts' hook",false,false] (want ["node",true,false])
 MISS win32: nana-knowledge.ts args[0] is an absolute existing script inside this checkout → false (want true)
 MISS win32: nana-knowledge.ts extra args → [] (want ["hook"])
 MISS win32: verifier group matcher is Bash|PowerShell → undefined (want "Bash|PowerShell")
@@ -56,6 +56,6 @@ ok   R-1062 not live (no ask): "@'\nnpm test | x\n'@\ngit commit -m x"
 ok   R-1062 not live (no ask): "@\"\nnpm test | x\n\"@\ngit commit -m x"
 ok   R-1062 not live (no ask): "'it''s | x'; git commit -m x"
 ok   bash dialect unchanged: npm test | tail -5; git commit → ask
-ok   darwin: settings.json equals main's (/Users/jwang/nana-pi), paths normalised
+ok   darwin: settings.json equals main's (/Users/example/nana-pi), paths normalised
 cases: 27/59
 seat-verify-hooks: 32 mismatch(es)

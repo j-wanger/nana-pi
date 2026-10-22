@@ -2,7 +2,7 @@
 
 Verdict: AMEND
 
-AMEND: the lane shrinks to the wording change Jake ruled on 2026-10-10, plus one red-today test. The default-export scanner and three of its four rows are cut.
+AMEND: the lane shrinks to the wording change the owner ruled on 2026-10-10, plus one red-today test. The default-export scanner and three of its four rows are cut.
 
 Why the scanner goes:
 1. The ruling does not ask for it. HANDOFF queues "the G-005 pi default-export carve-out" as a small fix that rides along. The audit that raised it (docs/reviews/requirements-proposal-2026-10-09/README.md, C08) filed it as "wording + template tag" and said "The standard is wrong, not the code".
@@ -34,7 +34,7 @@ Other checks:
 - pi 1.0.2 loader.js lines 481–484 and 529–530 confirm the "pi's loader requires one" claim.
 - R-1480–R-1489 are unused on main and in every in-flight worktree.
 
-Most likely wrong: that Jake wants wording only. If he wants the rule enforced, the cut default-export scan becomes its own lane.
+Most likely wrong: that the owner wants wording only. If he wants the rule enforced, the cut default-export scan becomes its own lane.
 
 Files the build touches:
 - REQUIREMENTS.md
@@ -46,4 +46,4 @@ Files the build touches:
 - docs/requirements-tree.md (regenerated)
 - the seat's docs/reviews/g005-carveout-2026-10-19/
 
-Follow-up outside this lane: a trading-zone lane, approved by the user in place of aml-desk, runs copier update after CI cuts the tag. It copies the new G-005 cell into trading-zone's REQUIREMENTS.md:176. Until then its rail prints a non-failing drift line (R-583).
+Follow-up outside this lane: a trading-zone lane, approved by the user in place of work-project, runs copier update after CI cuts the tag. It copies the new G-005 cell into trading-zone's REQUIREMENTS.md:176. Until then its rail prints a non-failing drift line (R-583).

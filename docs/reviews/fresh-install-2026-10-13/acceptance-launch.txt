@@ -39,8 +39,8 @@ MISS (c) PI_VERSION empty: <version> and <cutoff> placeholders, never an empty -
 MISS (f) setup README: no sentence says hooks dispatch through, or the check needs, Git Bash → The check depends on Node, Git, pi, npm registry access, and Git Bash on Windows. | Windows follows the fresh-machine sequence without the PATH-link step: it installs nana into the temporary home, installs pi-subagents, writes the objective fix
 MISS (f) setup README: the Windows sentence says installed hooks run directly in exec form → phrase not found
 MISS (f) setup README: it says a FAIL prints the hooks block and the last knowledge-pull record → phrase not found
-MISS (f) Jake's page: step 2 is labelled PowerShell-only → "In Git Bash or PowerShell, from the checkout:"
-MISS (f) Jake's page differs from main in exactly one line → 0 lines differ
+MISS (f) the owner's page: step 2 is labelled PowerShell-only → "In Git Bash or PowerShell, from the checkout:"
+MISS (f) the owner's page differs from main in exactly one line → 0 lines differ
 MISS (f) apps/desk/README.md differs from main in exactly one line (the runtime row) → 0 lines differ
 MISS (g) R-1093 exists under SUB-011 with exactly one "shall" → no row
 MISS (g) R-1094 exists under SUB-011 with exactly one "shall" → no row

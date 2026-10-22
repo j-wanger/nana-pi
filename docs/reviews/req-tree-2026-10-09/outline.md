@@ -1,8 +1,8 @@
-# The requirements tree — what Jake agrees before any row moves (checkpoint 1)
+# The requirements tree — what the owner agrees before any row moves (checkpoint 1)
 
 *Generated 2026-10-09 from `tree.json` (the checkpoint input) and `REQUIREMENTS.md` at 5b68a91. `tree.json` is astra's draft (`mapping-astra.json`) with the seat's three deviations applied: all 22 G rows in FEAT-033; R-285 and R-286 in FEAT-006; subgroups renumbered flat (SUB-001 to SUB-021). Names and purposes are astra's, unedited. Renaming a heading here is a JSON edit; after the move it is a heading edit.*
 
-## Purpose (proposed: Jake's own words, 2026-10-09)
+## Purpose (proposed: the owner's own words, 2026-10-09)
 
 A customized agentic coding experience that can be used for any development project, and makes development more controlled, robust and effective. Objective (`~/nana-agent-loop/OBJECTIVE.md`): build products with agents, with nana-pi as the shared toolkit and experience.
 

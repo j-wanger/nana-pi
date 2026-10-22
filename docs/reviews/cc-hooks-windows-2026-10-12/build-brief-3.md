@@ -1,6 +1,6 @@
 # Lane cc-hooks-windows — build brief 3 (2026-10-12 · feat/cc-hooks-windows · worktree ~/nana-pi-wt/cc-hooks-windows)
 
-**Builder: Claude Sonnet 5.5**, fresh session. ONE item. Work ONLY inside `/Users/jwang/nana-pi-wt/cc-hooks-windows`.
+**Builder: Claude Sonnet 5.5**, fresh session. ONE item. Work ONLY inside `/Users/example/nana-pi-wt/cc-hooks-windows`.
 
 ## The item — a missing status message is not the installer's (R-1061, R-653, R-923)
 Build 2 (`1876920`) made `installerTarget` reject ANOTHER status message but let an entry with NO

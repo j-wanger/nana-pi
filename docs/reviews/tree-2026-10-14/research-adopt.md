@@ -29,7 +29,7 @@ Stakes: a reorder rewrites every row line's position in a contract file that oth
 
 | Project | Rows | ID forms | Headings | Tree problems | Rail |
 |---|---|---|---|---|---|
-| aml-desk `7dee19b` | 365, no duplicates | R-nnn only | 6 Parts, 41 sections, 2 `###` | 365: every row | hand copy `test/requirements-trace.lib.mjs:24-25`, reads `R-\d{3}` only; tests in `test/` |
+| work-project `7dee19b` | 365, no duplicates | R-nnn only | 6 Parts, 41 sections, 2 `###` | 365: every row | hand copy `test/requirements-trace.lib.mjs:24-25`, reads `R-\d{3}` only; tests in `test/` |
 | basketball-geek `98192e3` | 171 in the working tree (165 at HEAD) | R-nnn only | 9 sections | 171: every row | copier v0.4.0 adopt; decorator markers (`@pytest.mark.req`, 412 uses, 0 comment markers); `tests/conftest.py:29` reads `R-\d{3}` only |
 | yokai-world `8b04969` | 959 (704 R-nnn, 233 R-nnnn, 22 G-nnn; 133 retired) | 3- and 4-digit IDs, G | hand-built tree: 6 CAP, 32 FEAT | 29 | copier v0.6.7 TS; comment markers; `tests/requirements-trace.ts:193-196` |
 | edge-screener, nana-agent-loop | no ledger | — | — | — | none (edge-screener's `tests/conftest.py` has no rail) |
@@ -37,7 +37,7 @@ Stakes: a reorder rewrites every row line's position in a contract file that oth
 
 Details that shape the design:
 
-- **aml-desk.** 27 rows sit in table fragments with no header (lines 149-165, 520-525 and 529-532), split off by prose or a blank line. The rails still count them, but the tree checker sees no table there.
+- **work-project.** 27 rows sit in table fragments with no header (lines 149-165, 520-525 and 529-532), split off by prose or a blank line. The rails still count them, but the tree checker sees no table there.
   - Two sections share the heading `## 36b. Build at production size` (lines 484 and 570), and section 36 sits between them.
   - Part F's general rows are R-600 to R-610 (lines 605-627), not G IDs.
   - 199 rows are off the EARS form by the template rail's count; `HANDOFF.md:34` says 193. The figure has probably grown with later lanes (inferred). The tree and the report do not need the EARS form.
@@ -65,7 +65,7 @@ Details that shape the design:
 7. The proof checks every physical line: an unchanged copy, a rewritten heading, or a declared insertion. This follows `CHANGE.md:199-221`, whose output was "1004 BASE rows preserved once … 1652 physical lines accounted" (`prove-output.txt`).
 
 Size per project:
-- aml-desk: 6 capabilities, 41 features (the two 36b sections get distinct IDs; duplicate labels are allowed, `CHANGE.md:59`) and 2 subgroups, with 3 header insertions.
+- work-project: 6 capabilities, 41 features (the two 36b sections get distinct IDs; duplicate labels are allowed, `CHANGE.md:59`) and 2 subgroups, with 3 header insertions.
 - basketball-geek: 1 capability and 9 features.
 
 Limit: the features would be history-ordered sections, not real features. In nana-pi, 35 of 60 sections mixed features (`CHANGE.md:10-12`). The placeholder purposes keep that honest, and the report could count them as unsorted (inferred design).
@@ -77,7 +77,7 @@ Limit: the features would be history-ordered sections, not real features. In nan
 - B's move and proof then apply the mapping. Here, rows may reorder only as the mapping says.
 - Placement is judgement and is deliberately not pinned (`CHANGE.md:57`).
 - Cost precedent: nana-pi's 1,004 rows took one lane with three plan-review rounds, three build rounds and two owner checkpoints (`CHANGE.md:5-6`, plus the review files in that folder).
-- aml-desk (365 rows, three parts inherited from sibling repos) is the next largest candidate. yokai-world is already sorted.
+- work-project (365 rows, three parts inherited from sibling repos) is the next largest candidate. yokai-world is already sorted.
 
 **D. Never:** an LLM that edits `REQUIREMENTS.md` in place, or regenerates it, without a mapping and a proof.
 
@@ -90,9 +90,9 @@ Inside adopt, for a project with no ledger: the audit's read-only workers should
    - The report stamps sha256(id, requirement, status) (`product-report.mjs:33`), and the template rail cross-checks G Requirement cells against `REQUIREMENTS-general.md` (`templates/typescript/template/tests/requirements-trace.ts:514-551`).
    - Keep CRLF where the file has it. The checker command line splits on LF only (`requirements-tree.mjs:61`; `HANDOFF.md:45`).
 3. **A renumbered row ID, or a new one.** IDs are stable (`requirements/SKILL.md:8-12`).
-   - The aml-desk and basketball-geek rails read 3-digit IDs only, so a new R-1000 there would be invisible rather than red.
+   - The work-project and basketball-geek rails read 3-digit IDs only, so a new R-1000 there would be invisible rather than red.
    - New heading IDs (CAP, FEAT, SUB) are a separate namespace and are safe.
-4. **A new line whose first cell starts with an R- or G- ID.** Examples are an old-section map table or a quoted example. The rails read any such line as a row, a duplicate or a near miss (`CHANGE.md:190-191`; `REQUIREMENTS.md.jinja:48`). All three rails find rows by line shape, not by heading (aml-desk `lib:29-33`, `conftest.py:59-84`, yokai `requirements-trace.ts:193-196`). A heading-only lift is therefore neutral for every rail.
+4. **A new line whose first cell starts with an R- or G- ID.** Examples are an old-section map table or a quoted example. The rails read any such line as a row, a duplicate or a near miss (`CHANGE.md:190-191`; `REQUIREMENTS.md.jinja:48`). All three rails find rows by line shape, not by heading (work-project `lib:29-33`, `conftest.py:59-84`, yokai `requirements-trace.ts:193-196`). A heading-only lift is therefore neutral for every rail.
 5. **A non-tree heading left between a feature and its table.** The rows under it are orphaned (`requirements-tree.mjs:127`).
 6. **Rewriting a dirty or contended ledger.** Refuse uncommitted ledger edits, as the packets already do (`product-report.mjs:265`); basketball-geek has six such lines today. Warn when unmerged branches edit the ledger: yokai-world has three.
 7. **Reordering rows during a lift.** Only an approved mapping (C) reorders.
@@ -108,7 +108,7 @@ Inside adopt, for a project with no ledger: the audit's read-only workers should
 | any adopt, existing ledger | copier skips it (`copier.yml:16`); the skill runs the migration lift, then offers C | adopt-structure needs its no-ledger rule (`:171-173`) amended or a delegated command |
 | basketball-geek (v0.4.0) | migration command in a seat lane | settle the six uncommitted lines first; the report also needs `HANDOFF.md` (`nana-setup project` seeds it); the marker migration is a separate job (`HANDOFF.md:45`) |
 | yokai-world (v0.6.7) | hand fix in a seat lane, no lift | Part G becomes one feature (nana-pi precedent `CHANGE.md:182-185`) or the template's Part G form; place R-399; move the four FEAT blocks above Part G; add two `Status:` lines; land after or rebase over the three branches |
-| aml-desk (not copier-tracked) | migration command in a seat lane | keep Part F rows R-600 to R-610 as R- rows; C later |
+| work-project (not copier-tracked) | migration command in a seat lane | keep Part F rows R-600 to R-610 as R- rows; C later |
 | edge-screener, nana-agent-loop | nothing to sort | they get the seed on adoption |
 | `nana-setup project` | report-only check for a flat ledger, at most | a whole-file rewrite breaks its never-overwrite contract (`project.mjs:30`) |
 

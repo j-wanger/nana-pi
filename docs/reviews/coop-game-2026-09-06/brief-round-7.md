@@ -4,9 +4,9 @@ You are the independent reviewer from rounds 1–6. v7 folds your single round-6
 outside the room are implicit non-fragile solid for every rule. Judge v7 as a no-agent puzzle game.
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v7, THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/round-6.md — your round-6 findings
-3. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r6.md — how the seat folded it
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v7, THE DESIGN under review
+2. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/round-6.md — your round-6 findings
+3. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r6.md — how the seat folded it
 
 ## Dimensions
 A. **Fold check:** boundary room against v7 — unique successor? Anything softened?

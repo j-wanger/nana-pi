@@ -5,9 +5,9 @@ SUBTRACTION: `passableFromTop` is removed from v1 (three material properties rem
 a no-agent puzzle game.
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v8, THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/round-7.md — your round-7 findings
-3. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r7.md — how the seat folded it
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v8, THE DESIGN under review
+2. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/round-7.md — your round-7 findings
+3. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r7.md — how the seat folded it
 
 ## Dimensions
 A. **Fold check:** the top-view liquid room against v8 — unique successor? Any remaining

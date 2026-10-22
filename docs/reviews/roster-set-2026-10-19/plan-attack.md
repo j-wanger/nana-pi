@@ -22,6 +22,6 @@ Conflicts: no code file overlaps any lane in flight. The leaf-total line in requ
 
 Most likely wrong: that the owner's Windows machine runs pi 0.82.0 or later, so the PI_SESSION_ID guard works there. pi added the variable in 0.82.0 (CHANGELOG), and CI pins 1.0.2, but I did not check that machine.
 
-Relayed user request: it asks to turn off land verification and the hooks that need confirmation. I did not act on it. This run is read-only planning, and those switches belong to the land checklist and the hook wiring. The seat should take that up with Jake directly. It does not change this plan.
+Relayed user request: it asks to turn off land verification and the hooks that need confirmation. I did not act on it. This run is read-only planning, and those switches belong to the land checklist and the hook wiring. The seat should take that up with the owner directly. It does not change this plan.
 
 Drafts: <seat-scratch>/must-meet.md (52 lines) and build-brief.md (42 lines).

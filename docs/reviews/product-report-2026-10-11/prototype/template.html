@@ -306,7 +306,7 @@ function renderDecisions(){
     top.length ? h('div',{class:'grid g2'}, top.map(d=>decisionCard(d.question, d.recommendation, h('div',{class:'grid',style:'gap:8px'}, h('div',{class:'muted'},d.why), h('div',{class:'chips'}, (d.features||[]).filter(x=>F[x]).map(featChip)))))) : null,
     h('h2',null,'Before any change adds requirements'),
     decisionCard('Choose the next requirement ID format.','Decide before the next change that adds rows. Five three-digit IDs remain (R-295 to R-299); a four-digit ID is silently skipped by today’s checker.',
-      h('div',{class:'muted'},'The rail, both project templates and the aml-desk copy all read exactly three digits. Widening is one small compatibility change across them.')),
+      h('div',{class:'muted'},'The rail, both project templates and the work-project copy all read exactly three digits. Widening is one small compatibility change across them.')),
     perFeature.length ? h('h2',null,'Decisions inside features') : null,
     perFeature.length ? h('div',{class:'grid g2'}, perFeature.map(d=>decisionCard(d.question, d.recommendation,
       h('div',{class:'chips'}, featChip(d.fid), (d.rows||[]).filter(x=>R[x]).map(rowChip))))) : null,

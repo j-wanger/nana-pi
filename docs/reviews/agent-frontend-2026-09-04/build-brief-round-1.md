@@ -1,27 +1,27 @@
 # Adversarial review — UI-centric frontend, slice 1 (fantasy basketball)
 
-The seat (Claude) built slice 1 of /Users/jwang/nana-pi/docs/agent-frontend-design-2026-09-04.md (a design you reviewed to LAND in 6 rounds). This is the adversarial pass the design requires before the human feel check (§6 deliverable 6): the slice touches session lifecycle and gate surfaces. Be adversarial. Read the code, not the commit messages.
+The seat (Claude) built slice 1 of /Users/example/nana-pi/docs/agent-frontend-design-2026-09-04.md (a design you reviewed to LAND in 6 rounds). This is the adversarial pass the design requires before the human feel check (§6 deliverable 6): the slice touches session lifecycle and gate surfaces. Be adversarial. Read the code, not the commit messages.
 
 ## Read (absolute paths; all committed)
 Contract + extension:
-1. /Users/jwang/nana-pi/packages/nana-stage/lib/blocks.mjs
-2. /Users/jwang/nana-pi/packages/nana-stage/extensions/nana-stage.ts
-3. /Users/jwang/nana-pi/packages/nana-stage/tests/blocks.test.mjs
+1. /Users/example/nana-pi/packages/nana-stage/lib/blocks.mjs
+2. /Users/example/nana-pi/packages/nana-stage/extensions/nana-stage.ts
+3. /Users/example/nana-pi/packages/nana-stage/tests/blocks.test.mjs
 Desk server + per-app listeners:
-4. /Users/jwang/nana-pi/apps/desk/apps.mjs
-5. /Users/jwang/nana-pi/apps/desk/server.mjs — originRejection (~950-975), spawnChild (~125-185), promptChild/answerDialog (~995-1035), the app-listener start at the end
-6. /Users/jwang/nana-pi/apps/desk/test/origin-rule.test.mjs
-7. /Users/jwang/nana-pi/apps/desk/test/app-listener.test.mjs
+4. /Users/example/nana-pi/apps/desk/apps.mjs
+5. /Users/example/nana-pi/apps/desk/server.mjs — originRejection (~950-975), spawnChild (~125-185), promptChild/answerDialog (~995-1035), the app-listener start at the end
+6. /Users/example/nana-pi/apps/desk/test/origin-rule.test.mjs
+7. /Users/example/nana-pi/apps/desk/test/app-listener.test.mjs
 Stage host:
-8. /Users/jwang/nana-pi/apps/desk/public/stage/stage.js
-9. /Users/jwang/nana-pi/apps/desk/public/desk-client.mjs
-10. /Users/jwang/nana-pi/apps/desk/test/stage-page.e2e.mjs
-11. /Users/jwang/nana-pi/apps/desk/test/stage-chain.e2e.mjs
+8. /Users/example/nana-pi/apps/desk/public/stage/stage.js
+9. /Users/example/nana-pi/apps/desk/public/desk-client.mjs
+10. /Users/example/nana-pi/apps/desk/test/stage-page.e2e.mjs
+11. /Users/example/nana-pi/apps/desk/test/stage-chain.e2e.mjs
 App side:
-12. /Users/jwang/basketball-geek/.pi/extensions/nana-basketball.ts
-13. /Users/jwang/basketball-geek/src/basketball_geek/blocks.py
-14. /Users/jwang/.pi/agent/apps/basketball.json (the live manifest)
-pi facts if needed: /Users/jwang/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md (tool_result ~842-875; appendEntry ~1471), docs/rpc.md (get_entries ~717; Extension UI ~1184), docs/usage.md (-t ~212, -a/-na ~245).
+12. /Users/example/basketball-geek/.pi/extensions/nana-basketball.ts
+13. /Users/example/basketball-geek/src/basketball_geek/blocks.py
+14. /Users/example/.pi/agent/apps/basketball.json (the live manifest)
+pi facts if needed: /Users/example/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md (tool_result ~842-875; appendEntry ~1471), docs/rpc.md (get_entries ~717; Extension UI ~1184), docs/usage.md (-t ~212, -a/-na ~245).
 
 ## Dimensions
 A1 Un-bypassability of the ledger tooth: can ANY path put a block on the live stage or in the ledger without passing validateBlock + the produced_by stamp? (tool_result patch semantics, extension load order, applyLiveBlocks, reduceEntries, a second extension re-injecting a carrier, a tool returning content that looks like a block.)

@@ -4,7 +4,7 @@ You reviewed this lane's plan five times (`sol-plan-r1..r5.md`; LAND-WITH-FIXES 
 builder built it in seven rounds (`build-brief*.md`, `builder-report-*.md`): round 1 got the
 behaviour right but deleted 36 land tests and made one suite test run the seat's acceptance script;
 rounds 2–6 restored every test (title map `test-title-map.json`; `seat-verify-tests.mjs`), pinned each
-row with its own tests and exact evidence, and round 7 ran the CHANGE §6 mutation pairs. Jake's
+row with its own tests and exact evidence, and round 7 ran the CHANGE §6 mutation pairs. The owner's
 checkpoint 1 (the R-1008 share with FEAT-008; FEAT-008's purpose) was applied by the seat. The seat
 wrote `HANDOFF.md` and the session entry for the merged state before this round.
 

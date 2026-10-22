@@ -1,7 +1,7 @@
 # Lane regroup — build brief 1 (2026-10-15 · feat/regroup · worktree ~/nana-pi-wt/regroup · base main e451c90)
 
-**Builder: Claude Sonnet 5** (format lane; Jake's core feature). The contract is `CHANGE.md` in this folder, frozen at
-`1066464` after sol plan r2 LAND. Read ALL of it, including "Seat revision" and "Plan review r1". Jake's words it serves
+**Builder: Claude Sonnet 5** (format lane; the owner's core feature). The contract is `CHANGE.md` in this folder, frozen at
+`1066464` after sol plan r2 LAND. Read ALL of it, including "Seat revision" and "Plan review r1". The owner's words it serves
 are in §1 and §7: the regroup is a core nana feature; every placement reviewed by a second model; shares allowed; the
 owner approves a short packet ("Short package", 2026-10-15). New IDs: R-1170–R-1180 and R-1184 only (R-1181–R-1183
 belong to the parallel lane `regroup-shares`, building now on its own branch).
@@ -16,7 +16,7 @@ belong to the parallel lane `regroup-shares`, building now on its own branch).
    claim is `{line, to}`.
 5. **Unknown rows (R-1175).** A review verdict, share target or `placed` entry naming a row the ledger does not hold is
    refused, naming it — add a test case under R-1175's title (the seat's checks found this skipped silently).
-6. **aml-desk's dry run prints 49 heading lines** (6 Parts, 41 sections, 2 `###` subgroups), not the plan's 47.
+6. **work-project's dry run prints 49 heading lines** (6 Parts, 41 sections, 2 `###` subgroups), not the plan's 47.
 7. **Shares.** Leave `shares_added`/`shares_dropped` out of `PROPOSAL_KEYS`; the lane that lands second adds them. The
    "carried" share outcome is pinned by T8's direct call until `regroup-shares` lands.
 

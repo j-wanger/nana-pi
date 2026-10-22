@@ -8,7 +8,7 @@ Glossary for the desk:
 
 | Term | Meaning | Source | Since |
 |---|---|---|---|
-| SAR | Suspicious activity report | FinCEN | 2001 |
+| Widget | Example item | Handbook | 2001 |
 
 ## Alerts
 
@@ -20,7 +20,7 @@ Glossary for the desk:
 
 | Signal | Threshold | Source | Date |
 |---|---|---|---|
-| cash | 10000 | BSA | 2026-01-01 |
+| sample | 100 | Handbook | 2026-01-01 |
 
 ## Open questions
 

@@ -39,8 +39,8 @@ Conflicts:
   - HANDOFF Next 7 puts the Windows fixes and `nana-roster set` ahead of this lane.
   - clean-revision already has build brief 1 on its branch, so this lane may exceed the cap of one lane in planning. That is the seat's call.
 
-Relayed user request: Jake asked to turn off land verification and the hooks that need his confirmation ("power mode"). I did not act on it. This task is read-only, and those are settings and permission changes the seat handles with Jake. The amended lane adds no land gate and no confirmation.
+Relayed user request: the owner asked to turn off land verification and the hooks that need his confirmation ("power mode"). I did not act on it. This task is read-only, and those are settings and permission changes the seat handles with the owner. The amended lane adds no land gate and no confirmation.
 
 Process slip: my first fixture write used a glob that matched another run's stale temp folder (plan.4bwLL2, from 00:59). I created and then removed `r` and `fx` folders there. Nothing else in it changed, and no repository or config was touched. My own temp folder is removed.
 
-The claim most likely wrong: that the four multi-feature lands were legitimate cross-feature changes rather than scope creep Jake would want flagged. I inferred this from row counts and did not read each lane. If he wants the flag, add it later as a report-only marker, not an exit-1 seat check.
+The claim most likely wrong: that the four multi-feature lands were legitimate cross-feature changes rather than scope creep the owner would want flagged. I inferred this from row counts and did not read each lane. If he wants the flag, add it later as a report-only marker, not an exit-1 seat check.

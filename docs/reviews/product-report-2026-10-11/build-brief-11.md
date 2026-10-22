@@ -27,7 +27,7 @@ lane's range; R-1033–R-1039 belong to pi-cmd-launch). Do every item:
   into its own row (`untested`, R-1043 onward) with the reason in Evidence. Never leave an unpinned
   clause under `implemented`.
 - [ ] **E (astra S1) — one stale recommendation.** The installation feature's migrated assessment
-  recommends deferring Windows tests; Jake requires Windows testing now (2026-10-10). Refresh that one
+  recommends deferring Windows tests; the owner requires Windows testing now (2026-10-10). Refresh that one
   assessment through the guide's own loop (packet → candidate with the packet's stamp → validate), as the
   first real use of it. Beside the `current` badge, say in plain words that "current" means "matches the
   stamped ledger", not "rechecked against later decisions".

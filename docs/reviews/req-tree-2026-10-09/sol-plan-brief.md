@@ -9,7 +9,7 @@ you still hold it, argue it as a governance recommendation to the owner, and say
 ELSE would make the plan unsafe to build if he chooses "visible, not pinned". Then review the plan
 as a whole; new findings are welcome.
 
-You review a PLAN, not code. Nothing is built yet. Jake (the owner) decided to reorganize
+You review a PLAN, not code. Nothing is built yet. The owner (the owner) decided to reorganize
 `REQUIREMENTS.md` (1,004 EARS rows) into a capability → feature → subgroup tree drafted by another
 model (astra). He asked the seat to apply a new feature-based process: why first, then the plan,
 then your independent review, then his agreement, then the build. Do NOT re-argue whether the tree
@@ -17,7 +17,7 @@ should exist. Judge whether this declaration is a sound, bounded, verifiable pla
 
 Read, in this worktree (`git show HEAD --stat` lists the commit):
 - `docs/reviews/req-tree-2026-10-09/CHANGE.md` — the declaration under review.
-- `docs/reviews/req-tree-2026-10-09/tree.json` — the tree the move reads; `mapping-astra.json` is astra's unedited draft (the diff is the declared deviations); `outline.md` — what Jake reads at checkpoint 1.
+- `docs/reviews/req-tree-2026-10-09/tree.json` — the tree the move reads; `mapping-astra.json` is astra's unedited draft (the diff is the declared deviations); `outline.md` — what the owner reads at checkpoint 1.
 - `docs/reviews/req-tree-2026-10-09/fable-consult.md` — the seat's adversarial consult and what
   the seat changed in response.
 - `docs/reviews/requirements-proposal-2026-10-09/README.md` — the seat's earlier verification of

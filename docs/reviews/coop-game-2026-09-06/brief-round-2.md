@@ -6,9 +6,9 @@ agent (the agent question is deferred to play; §5 carries the constraints), and
 none of the kit. Do not re-litigate the agent; judge v2 as a no-agent puzzle game.
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v2, THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/round-1.md — your round-1 findings
-3. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r1.md — the seat's adjudication and the owner's rulings
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v2, THE DESIGN under review
+2. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/round-1.md — your round-1 findings
+3. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r1.md — the seat's adjudication and the owner's rulings
 
 ## Dimensions
 A. **Totality + determinism of §3.1–3.7.** Re-check every round-1 A/B counterexample against v2:

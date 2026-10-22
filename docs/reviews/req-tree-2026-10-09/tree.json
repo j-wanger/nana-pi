@@ -1,6 +1,6 @@
 {
  "source": {
-  "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
+  "author": "astra (gpt-6-astra), separate session with the owner, 2026-10-09",
   "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
   "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
   "note": "The tree the move script reads. Derived from mapping-astra.json (astra's draft, unedited) with the seat's declared deviations: (1) all 22 G rows in FEAT-033, R rows first in astra's order then G-001..G-022; (2) R-286 then R-285 appended to FEAT-006; (3) subgroups renumbered flat SUB-001..SUB-021 in tree order; a feature with subgroups carries no ids of its own (the subgroup lists are its rows, in that order). IDs only, never row text. Round-1 additions (sol r1): FEAT-028 ends with R-287..R-290 (text in new_rows, Status/Evidence builder-written); see_also lines, notes_from destinations (declared, not by majority: §13c's majority home is FEAT-002 because of misfiled frontier rows, but its note is about the code map), the one intro_edit, the §10 note to the section map, and the tail heading that keeps `## Open questions` and `## Deliberate omissions` byte-identical. Round-2 addition: old_sections lists every dropped old heading with its declared package; prove.mjs checks the section map against it. Round-2 addition: R-291 (generated outline current) ends FEAT-028 after R-290. Sol r3 fix: R-291 names the outline's required fields."

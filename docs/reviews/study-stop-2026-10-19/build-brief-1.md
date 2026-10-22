@@ -9,7 +9,7 @@
 **1. Rows (REQUIREMENTS.md, FEAT-036, right after R-542).**
 - Add R-1500 to R-1504 with the must-meet text verbatim. Each row cites its one test in backticks as `file::title`.
 - Flip R-542 to `implemented`. Its evidence cell cites every test that carries `R-542`: the four new ones and the five marker-only ones.
-- Replace R-542's "Jake's call" prose with "Jake ruled 2026-10-10: a study stops when it cannot write its evidence".
+- Replace R-542's "the owner's call" prose with "the owner ruled 2026-10-10: a study stops when it cannot write its evidence".
 
 **2. Tests (apps/bench/test/orchestration-paths.test.mjs).** Add a new section between 8b and 9, called "8c. a paid run that leaves no evidence stops the study". Use the shared setup from the must-meet and the real `runPlan` with deps `{ ledger: [], blockKeys: new Map(), log }`.
 - `evidence failure: no further paid child starts after a run's evidence cannot be written`, marker `// req: R-1500 R-542`. Asserts spawns === 1.

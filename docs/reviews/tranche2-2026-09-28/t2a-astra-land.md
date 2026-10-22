@@ -22,7 +22,7 @@ Read the corpus in order, then the patch, implementation, tests and consumer dec
 - Fresh/no-config **pi** sessions newly treat repo objectives as governing; Claude already walked upward. This increases semantic prompt-injection exposure, despite structural narrowing.
 - Claude’s fallback now follows user configuration/default `~/.pi/agent/nana-objective.md`, rather than hardcoding `~/nana-agent-loop/OBJECTIVE.md`.
 - Basename-only `projectFile` breaks previously accepted path-valued settings. That tightening is reasonable but must be diagnosed accurately.
-- The inspected `~/nana-agent-loop/OBJECTIVE.md` Rules rewrite matches the intended hierarchy and retains Jake’s authority over new product lanes. It does not imply code verifies approval.
+- The inspected `~/nana-agent-loop/OBJECTIVE.md` Rules rewrite matches the intended hierarchy and retains the owner's authority over new product lanes. It does not imply code verifies approval.
 - Rules/prose formerly injected by pi are intentionally no longer included.
 
 **D — Consumer declarations are incomplete.**
@@ -33,9 +33,9 @@ Read the corpus in order, then the patch, implementation, tests and consumer dec
 
 **E — Seat conduct.**
 - Correcting “zero attacker bytes” to “no attacker-controlled structure” was justified and explicit—not evidence that semantic injection is solved.
-- Finding the fresh-machine regression before review was valuable. The original brief’s simultaneous walk-up and opt-in language contributed ambiguity; the correction follows Jake’s hierarchy.
+- Finding the fresh-machine regression before review was valuable. The original brief’s simultaneous walk-up and opt-in language contributed ambiguity; the correction follows the owner's hierarchy.
 - Implementation after the sol cap is legitimate; it is not another sol approval. Final fallback/host-rendering claims remain unverified.
-- No basis to declare trust-vs-label settled. Record Jake’s pending decision and the exposure explicitly; do not substitute astra’s preferred trust policy.
+- No basis to declare trust-vs-label settled. Record the owner's pending decision and the exposure explicitly; do not substitute astra’s preferred trust policy.
 - The advisory size ceiling was crossed after r1 without the required checkpoint appearing in these reports.
 
 **F — Parallel landing.**
@@ -50,7 +50,7 @@ MUST:
 - Reconcile `HANDOFF.md`: the clean patch deletes both the live flaky-test entry and policy entry. Preserve the former; replace the latter’s false “Implemented” claim with the pending trust/label decision.
 
 CARRY:
-- **HIGH cost of error:** semantic steering from untrusted “governing” prose; explicit Jake-owned risk decision, not structural-safety closure.
+- **HIGH cost of error:** semantic steering from untrusted “governing” prose; explicit Owner-owned risk decision, not structural-safety closure.
 - **HIGH:** inherited post-edit/handoff injection surfaces; dedicated cross-cutting audit with end-to-end sink tests.
 - **MEDIUM:** unbounded config I/O, filesystem races/stalls, actual-host rendering and Windows parity; avoid universal guarantees.
 - **LOW:** CLI catch remains unexercised; hook failure prints an owner-controlled raw installation path.

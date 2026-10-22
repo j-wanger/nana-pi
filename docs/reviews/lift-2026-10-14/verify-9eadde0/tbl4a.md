@@ -6,7 +6,7 @@ Intro line.
 
 | Signal | Threshold | Source | Date |
 |---|---|---|---|
-| cash | 10000 | BSA | 2026-01-01 |
+| sample | 100 | Handbook | 2026-01-01 |
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|

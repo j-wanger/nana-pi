@@ -3,16 +3,16 @@
 **Roles this lane (reused from the 2026-10-04 declaration):** worker = Sonnet (you), reviewer =
 `pi-review … --model gpt-6-astra`, land ruling = Fable. The seat briefs, verifies and merges.
 
-**Jake's call (2026-10-05): "Fix the map."** The code map cannot see most of nana-pi's tests, so
+**The owner's call (2026-10-05): "Fix the map."** The code map cannot see most of nana-pi's tests, so
 its blast radius (G-011) silently omits them. Fix that, and make `--impact` say what it still
 cannot see. Background and measurements: `research/karpathy-x-2026-10-04.md` §6.1.
 
 ## Where you work
 
-- Worktree `/Users/jwang/nana-pi-wt/map-test-links`, branch `feat/map-test-links` (off main
-  `bb92cc7`). Use ABSOLUTE paths or `cd /Users/jwang/nana-pi-wt/map-test-links && …` in EVERY
+- Worktree `/Users/example/nana-pi-wt/map-test-links`, branch `feat/map-test-links` (off main
+  `bb92cc7`). Use ABSOLUTE paths or `cd /Users/example/nana-pi-wt/map-test-links && …` in EVERY
   shell command — the shell's cwd resets between calls.
-- Never touch `/Users/jwang/nana-pi` (main checkout). No nested sub-agents. Do not tag, push, or
+- Never touch `/Users/example/nana-pi` (main checkout). No nested sub-agents. Do not tag, push, or
   run `copier`. Commit on the branch with explicit paths (never `git add -A`); never pipe a test
   command into `tail` in the same command as `git commit`.
 
@@ -42,7 +42,7 @@ cannot see. Background and measurements: `research/karpathy-x-2026-10-04.md` §6
    - Add to "Open questions": the TypeScript generator still drops a NON-literal dynamic import
      silently, where the Python one fails `--check` on it (`unmapped dynamic import`). Not changed
      in this lane: nana-pi alone has ~56 such sites (pi's entry point, temp files, code inside
-     child-process scripts); failing on them would turn every TS project red. Jake's call later.
+     child-process scripts); failing on them would turn every TS project red. The owner's call later.
 2. **Tests, each with its `// req:` marker directly above** — in nana-pi's suite
    (`packages/nana-pack/tests/code-map.test.mjs` for the TS generator via the shim; find where
    nana-pi already exercises the Python generator — e.g. `templates-render.test.mjs` — and pin the
@@ -72,7 +72,7 @@ cannot see. Background and measurements: `research/karpathy-x-2026-10-04.md` §6
 - If you cannot run the Python template tests (needs `uv`), say so; do not claim them.
 - Template changes ship by tag: do not tag. Record that new projects need the next `v*` tag.
 
-## Report back (technical record, not for Jake)
+## Report back (technical record, not for the owner)
 
 - Commits (hashes) and files changed.
 - Exact numbers on nana-pi after the fix: links before/after, non-test modules with no direct

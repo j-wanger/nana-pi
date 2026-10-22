@@ -2,7 +2,7 @@ SCORE: 7/10
 
 The centralization is sound, and the three repaired paths have credible adversarial evidence. I do not approve landing this HEAD unchanged: the handoff continuity regression is silent and undeclared, and the claimed pack-wide invariant overlooks the gate’s approval display.
 
-I reviewed `c7b60c4..d52fd37`, including the seat’s follow-up. The review documents were absent from this worktree; I read them under `/Users/jwang/nana-pi/docs/reviews/s1-2026-09-29/`. I accept the supplied executed evidence and 5078-check suite result without rerunning them. No files changed.
+I reviewed `c7b60c4..d52fd37`, including the seat’s follow-up. The review documents were absent from this worktree; I read them under `/Users/example/nana-pi/docs/reviews/s1-2026-09-29/`. I accept the supplied executed evidence and 5078-check suite result without rerunning them. No files changed.
 
 ## 1. Boundary: fields versus payload
 

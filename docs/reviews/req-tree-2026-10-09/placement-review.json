@@ -2246,7 +2246,7 @@
       "kind": "share",
       "target": "FEAT-004",
       "upheld": true,
-      "reason": "A grep found exactly one NANA_ROLE consumer: nana-knowledge/lib/hook.ts:160 (`=== \"worker\"`). Renaming or dropping this value silently breaks the builder knowledge suppression that Jake ruled on 10-09."
+      "reason": "A grep found exactly one NANA_ROLE consumer: nana-knowledge/lib/hook.ts:160 (`=== \"worker\"`). Renaming or dropping this value silently breaks the builder knowledge suppression that the owner ruled on 10-09."
      },
      {
       "id": "R-285",
@@ -9531,7 +9531,7 @@
     "kind": "share",
     "target": "FEAT-004",
     "upheld": true,
-    "reason": "A grep found exactly one NANA_ROLE consumer: nana-knowledge/lib/hook.ts:160 (`=== \"worker\"`). Renaming or dropping this value silently breaks the builder knowledge suppression that Jake ruled on 10-09."
+    "reason": "A grep found exactly one NANA_ROLE consumer: nana-knowledge/lib/hook.ts:160 (`=== \"worker\"`). Renaming or dropping this value silently breaks the builder knowledge suppression that the owner ruled on 10-09."
    },
    {
     "id": "R-285",
@@ -10608,7 +10608,7 @@
      "question": "The ledger intro says 'Every row lives in exactly one feature table', and R-287, R-289 and R-291 check that structure. Sharing needs a requirement diff first: how is a share recorded without a second table row, and should R-291's generated outline list shared rows under each feature that shares them?"
     }
    ],
-   "summary": "No upheld move has a worse target than its current home, and no upheld share is merely 'related', so there are no reversals; I spot-checked FEAT-009, FEAT-010, FEAT-011 and FEAT-033 against the code. Inconsistencies are resolved with 31 additions: 2 moves (R-948 and R-945 to FEAT-031, twins of R-949) and 29 shares. The shares cover twin gaps (R-426), the shared watchdog code pi-worker imports (R-700, R-728, R-846), loadConfig consumers missing from R-781 (FEAT-005, FEAT-023), the Part G drift sibling (R-583), G rows the code-map generator enforces (G-007, G-008, G-019, G-020 -> FEAT-029), and doctor and project --check co-actor rows (8). They also cover desk-wide request rules with partial feature lists (R-458, R-459), and cross-cutting trust, gate and path rules that were missing shares (R-778, R-190 x3, R-032, R-081, R-644). Following the R-829 precedent, I gave no share to rows that cannot fail while an already-shared parent holds (R-075, R-077, R-242, R-779, R-083, R-761, R-838). Six borderline questions go to the owner, including the unrowed pi-worker NANA_HANDOFF=off behaviour and how shares coexist with R-287's one-table rule. The final lists are UPHELD plus these additions, with no reversals. Evidence: /Users/jwang/nana-pi-wt/req-tree/templates/typescript/template/scripts/code-map.mjs (lines 3, 364, 467-482), /Users/jwang/nana-pi-wt/req-tree/packages/nana-pack/bin/pi-worker.mjs (lines 14, 61, 129), /Users/jwang/nana-pi-wt/req-tree/packages/nana-pack/bin/nana-land.mjs (line 96), /Users/jwang/nana-pi-wt/req-tree/apps/desk/server.mjs (lines 2110-2430), and loadConfig imports in /Users/jwang/nana-pi-wt/req-tree/packages/nana-pack/extensions/."
+   "summary": "No upheld move has a worse target than its current home, and no upheld share is merely 'related', so there are no reversals; I spot-checked FEAT-009, FEAT-010, FEAT-011 and FEAT-033 against the code. Inconsistencies are resolved with 31 additions: 2 moves (R-948 and R-945 to FEAT-031, twins of R-949) and 29 shares. The shares cover twin gaps (R-426), the shared watchdog code pi-worker imports (R-700, R-728, R-846), loadConfig consumers missing from R-781 (FEAT-005, FEAT-023), the Part G drift sibling (R-583), G rows the code-map generator enforces (G-007, G-008, G-019, G-020 -> FEAT-029), and doctor and project --check co-actor rows (8). They also cover desk-wide request rules with partial feature lists (R-458, R-459), and cross-cutting trust, gate and path rules that were missing shares (R-778, R-190 x3, R-032, R-081, R-644). Following the R-829 precedent, I gave no share to rows that cannot fail while an already-shared parent holds (R-075, R-077, R-242, R-779, R-083, R-761, R-838). Six borderline questions go to the owner, including the unrowed pi-worker NANA_HANDOFF=off behaviour and how shares coexist with R-287's one-table rule. The final lists are UPHELD plus these additions, with no reversals. Evidence: /Users/example/nana-pi-wt/req-tree/templates/typescript/template/scripts/code-map.mjs (lines 3, 364, 467-482), /Users/example/nana-pi-wt/req-tree/packages/nana-pack/bin/pi-worker.mjs (lines 14, 61, 129), /Users/example/nana-pi-wt/req-tree/packages/nana-pack/bin/nana-land.mjs (line 96), /Users/example/nana-pi-wt/req-tree/apps/desk/server.mjs (lines 2110-2430), and loadConfig imports in /Users/example/nana-pi-wt/req-tree/packages/nana-pack/extensions/."
   }
  },
  "critic_additions_verification": [

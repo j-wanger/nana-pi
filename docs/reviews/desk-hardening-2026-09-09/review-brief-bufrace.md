@@ -22,8 +22,8 @@ Threat: a LOCAL producer (pi child, extension inside it, app `data` command, a b
 
 ## Read
 
-- Diffs: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-buffers.patch and diff-races.patch
-- Post-change merged tree: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/server.mjs` (search `STDOUT_LINE_CAP`, `sseWrite`, `MAX_PENDING_RPC`, `droppingLine`), `apps/desk/apps.mjs` (`runData`), `apps/desk/public/app.js` (`stageGen`, `stale(`, `helloSeen`, `bufferBashEvent`, `restore`), `apps/desk/public/desk-client.mjs`, the two tests, `apps/desk/README.md` (Contract notes 2026-09-09 four buffer caps / page races; Known limits), `docs/review-punchlist-2026-09-08.md` (the two FIXED entries).
+- Diffs: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-buffers.patch and diff-races.patch
+- Post-change merged tree: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/server.mjs` (search `STDOUT_LINE_CAP`, `sseWrite`, `MAX_PENDING_RPC`, `droppingLine`), `apps/desk/apps.mjs` (`runData`), `apps/desk/public/app.js` (`stageGen`, `stale(`, `helloSeen`, `bufferBashEvent`, `restore`), `apps/desk/public/desk-client.mjs`, the two tests, `apps/desk/README.md` (Contract notes 2026-09-09 four buffer caps / page races; Known limits), `docs/review-punchlist-2026-09-08.md` (the two FIXED entries).
 - Note: a third sibling lane (stage signing keys) is merged in the same tree and adds a `get_state` RPC to every `/api/entries` read; it is reviewed separately, but flag any interaction with the RPC cap or the stdout cap.
 
 ## Dimensions

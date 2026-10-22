@@ -24,7 +24,7 @@
 5. **The approved share line omits tree contracts the report directly consumes.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:73-78,83-94`  
    The report uses row homes, purposes, heading uniqueness, nesting, and empty proposed or retired features through `checkTree`. Those contracts are R-287–R-290 and R-294, yet the share line names only R-292 and R-293 from that group. A change to an omitted row can alter report interpretation without triggering the required re-read.  
-   **Smallest fix:** add R-287–R-290 and R-294 to the share proposal, then obtain Jake’s approval for the expanded tree change. R-291 need not be shared because the report does not consume the committed outline.
+   **Smallest fix:** add R-287–R-290 and R-294 to the share proposal, then obtain the owner's approval for the expanded tree change. R-291 need not be shared because the report does not consume the committed outline.
 
 6. **A feature with planned work may still be rated solid.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:60`  

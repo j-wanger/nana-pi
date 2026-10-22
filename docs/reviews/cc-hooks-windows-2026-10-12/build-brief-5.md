@@ -3,7 +3,7 @@
 **Builder: Claude Sonnet 5.5**, fresh session. THREE items from final review round 2 (`sol-r2.md` 7/10,
 `astra-r2.md` 90/100, both SEND-BACK; copied into this folder with this brief). The next review is round 3, the
 last one allowed: close every MUST and the SHOULDs below completely. Work ONLY inside
-`/Users/jwang/nana-pi-wt/cc-hooks-windows`.
+`/Users/example/nana-pi-wt/cc-hooks-windows`.
 
 ## Item 1 — `<#` at a token boundary only (R-1062, R-1054; sol r2 MUST 1)
 Both scanners start a block comment at every unquoted `<#` (`pipe-guard.mjs:179`, `:282`). Like `#`, `<#`

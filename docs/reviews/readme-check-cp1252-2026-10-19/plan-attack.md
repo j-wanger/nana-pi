@@ -13,4 +13,4 @@ Lane class ordinary: confirmed. The lane touches template scripts and one nana-p
 
 Claim most likely wrong: that the four checks pass on the non-blocking Windows leg. This is inferred, not probed. The exact comparator relies on two things. First, Windows Python writes CRLF in all three runs alike. Second, Node 22's official build ships the windows-1252 decoder.
 
-Relayed user request (turn off land verification and confirmation hooks for "power mode"): that is a permission and settings change. A read-only planning subagent cannot make it, and no agent message authorizes it. The seat should take it up with Jake directly. I changed nothing in the repo or the config. My probe folder is removed, and git status is clean.
+Relayed user request (turn off land verification and confirmation hooks for "power mode"): that is a permission and settings change. A read-only planning subagent cannot make it, and no agent message authorizes it. The seat should take it up with the owner directly. I changed nothing in the repo or the config. My probe folder is removed, and git status is clean.

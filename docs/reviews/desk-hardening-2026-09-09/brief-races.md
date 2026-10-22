@@ -1,6 +1,6 @@
 # Lane: client-side races in the desk page (branch `fix/races`)
 
-Worktree: `/private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-races`. Read `brief-common.md` next to this file first.
+Worktree: `/private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-races`. Read `brief-common.md` next to this file first.
 
 ## The open item (astra, medium correctness)
 
@@ -22,7 +22,7 @@ Files: `apps/desk/public/app.js` (2333 lines; the page), `apps/desk/public/desk-
 - Bash: the row exists before any stream event for it can arrive (pre-create with a client-side placeholder id and re-key on the response, OR buffer per-id events until the row exists and flush in order — pick one, justify). Output order preserved.
 - Prompt dedup: whatever cases you confirm, close with the same optimistic-then-authoritative shape the existing code uses; do not introduce a second bubble model.
 
-## Tests (deterministic, browser-level, Playwright; `PW_ROOT=/Users/jwang/nana-pi`)
+## Tests (deterministic, browser-level, Playwright; `PW_ROOT=/Users/example/nana-pi`)
 
 Follow `test/double-msg.e2e.mjs` — a real server, a fake child, `page.route()` or a controllable fake child to DELAY or REORDER responses. Timing-based sleeps are not acceptable as the only control; delay the specific response deterministically (hold the fake child's `get_messages` reply until the test releases it).
 - switch mid-resync: hold A's `get_messages`, switch to B, release → B's pane shows only B; A's messages never appear; no page errors.

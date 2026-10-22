@@ -7,7 +7,7 @@ your verdict at that revision, so the seat held the merge (the known first-verdi
 round 6 (`build-brief-6.md`, `builder-report-6.md`) made the tree collect rows only through one row
 test exported by the rail, closed sol's SEND-BACK items, and the seat updated the session entry.
 
-Your verdict covers `git diff eeeca20..HEAD`; this is the final review before Jake's checkpoint-2
+Your verdict covers `git diff eeeca20..HEAD`; this is the final review before the owner's checkpoint-2
 acceptance, after which the seat merges with no further writes. sol reviews the same revision in
 parallel. Rule on: (1) sol's round-4 findings closed; (2) the session entry and `HANDOFF.md` still
 consistent and true for the merged state; (3) anything that should block the merge.

@@ -34,7 +34,7 @@ R-1064, R-1058 and R-1063 now cite run `38333416292`. That closes the previously
 - **Execution evidence:** `hooks-win32-exec.test.mjs:108–175` uses each installed timeout, checks all five entries for successful execution/module errors, checks the seeded index line, and requires one non-empty JSON response line.
 - **Doctor and migration evidence:** R-1055 now cites the restrictive negative cases. `settings-merge.test.mjs:187–207` exercises an existing outside-checkout target. `win32-degrade.test.mjs:146–176` adds recording `claude` stubs. Only the R-937 citation completion above remains.
 - **Documentation:** `packages/nana-setup/README.md:44` now qualifies POSIX migration, restricts repair to installer-shaped entries and escapes the table’s matcher pipe. The obsolete knowledge-only test title is corrected.
-- **Jake’s check:** `owner-windows-check.md:27–80` adds fixture preflight and a per-run folder. It provides checkout-relative commands, the probe JSON, a same-command pipeline/commit and cleanup. HANDOFF and the session correctly leave actual Claude Code dispatch, routing and latency unproven.
+- **The owner's check:** `owner-windows-check.md:27–80` adds fixture preflight and a per-run folder. It provides checkout-relative commands, the probe JSON, a same-command pipeline/commit and cleanup. HANDOFF and the session correctly leave actual Claude Code dispatch, routing and latency unproven.
 
 ### Contract checks
 

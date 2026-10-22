@@ -4,9 +4,9 @@
 residuals, §6 verification.** sol reviewed the plan five times (`sol-plan-r1..r5.md` and the seat's
 responses); read them for the reasons behind each choice. Build all of it in this lane.
 
-**Not in this build (Jake has not yet decided):** the R-1008 share on FEAT-008's `Also applies:` line
-and FEAT-008's purpose rewording (§2 "Tree changes for Jake"). Leave FEAT-008's `Purpose:` and
-`Also applies:` lines exactly as they are; the seat adds them after Jake rules. Do not edit
+**Not in this build (Owner has not yet decided):** the R-1008 share on FEAT-008's `Also applies:` line
+and FEAT-008's purpose rewording (§2 "Tree changes for the owner"). Leave FEAT-008's `Purpose:` and
+`Also applies:` lines exactly as they are; the seat adds them after the owner rules. Do not edit
 `HANDOFF.md` or `docs/sessions/` either — the seat writes them before the final review.
 
 ## What to build (each item maps to CHANGE.md)

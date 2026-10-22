@@ -4,7 +4,7 @@ Corrections and missing items for the cc-hooks-windows draft. I checked every cl
 1. Dependency → the draft says `feat/pi-cmd-launch` is not on main. It landed while I was checking: main and origin/main are now c22bab5, 21 commits past c505601. The lane should start from c22bab5. These line references moved:
    - steps.mjs: :101→:102, :504-508→:505-509, :515→:516, :523→:524, :686→:687
    - doctor.mjs: :295→:296, :320→:335, :364-368→:379-383, :364-377→:379-392
-   - HANDOFF.md: :52→:57 (queue); Jake's rulings are at :18
+   - HANDOFF.md: :52→:57 (queue); the owner's rulings are at :18
    - The golden file in case (d) should be captured from c22bab5, not c505601.
 2. The dependency list was incomplete even before the land.
    - pi-cmd-launch also edited REQUIREMENTS.md (R-1033–R-1039, R-952 reworded, R-1037), docs/requirements-tree.md, requirements-tree.test.mjs (leaf total 1,026→1,033), HANDOFF.md, docs/code-map.md and the pack README.
@@ -16,17 +16,17 @@ Corrections and missing items for the cc-hooks-windows draft. I checked every cl
    - CHANGELOG 2.1.47: "Fixed hooks (PreToolUse, PostToolUse) silently failing to execute on Windows by using Git Bash instead of cmd.exe". So cmd.exe was the hook shell before 2.1.47.
    - cmd.exe cannot run a `VAR=value cmd` prefix either. The title at win32-degrade.test.mjs:85 is incomplete, not wrong.
    - The real reason to test cmd.exe and to refuse `%` is support for Claude Code older than 2.1.47. The plan should say so.
-4. The quote "A hook that matches only `Bash` never fires there" is misapplied. In hooks.md, "there" refers to the bullet just before it: "On Windows without Git Bash … doesn't register the Bash tool at all". For Jake's machine, which has Git Bash, the sentence that applies is the first bullet: "wherever the PowerShell tool is enabled, Claude treats PowerShell as the primary shell and routes shell commands through it."
-5. "On by default for claude.ai accounts … rarely fires on Jake's machine" → this is INFERRED, not established.
+4. The quote "A hook that matches only `Bash` never fires there" is misapplied. In hooks.md, "there" refers to the bullet just before it: "On Windows without Git Bash … doesn't register the Bash tool at all". For the owner's machine, which has Git Bash, the sentence that applies is the first bullet: "wherever the PowerShell tool is enabled, Claude treats PowerShell as the primary shell and routes shell commands through it."
+5. "On by default for claude.ai accounts … rarely fires on the owner's machine" → this is INFERRED, not established.
    - The docs say "on by default for claude.ai and Console accounts". Bedrock, Agent Platform and Foundry users must set `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`.
    - CHANGELOG 2.1.143 says the opposite: "now enabled by default on Windows for Bedrock, Vertex, and Foundry users". 2.1.126 made PowerShell the primary shell when the tool is enabled.
-   - Nobody has recorded the account type or Claude Code version on Jake's corporate machine.
-   - The draft marks only `reference_claude_code_hooks_windows.md:9` as out of date. Two more places say the Bash tool fires on his machine and also need correcting: HANDOFF.md:57 ("so the Bash tool fires there") and `user_jake_windows_both_seats.md:10` ("a PreToolUse `Bash` matcher fires").
+   - Nobody has recorded the account type or Claude Code version on the owner's corporate machine.
+   - The draft marks only `reference_claude_code_hooks_windows.md:9` as out of date. Two more places say the Bash tool fires on his machine and also need correcting: HANDOFF.md:57 ("so the Bash tool fires there") and `user_owner_windows_both_seats.md:10` ("a PreToolUse `Bash` matcher fires").
    - Matching `Bash|PowerShell` is still the right change.
 6. Exec form → the draft says "the research did not find which Claude Code version first accepts `args`". CHANGELOG 2.1.139 says: "Added hook `args: string[]` field (exec form)".
    - The hooks.md exec-form note also endorses `"command": "node", "args": [...]` on Windows: "The `node` plus script-path pattern works on every platform because `node.exe` is a real binary."
    - Exec form would remove the refused characters, the Git Bash profile-output residual (there is no shell) and the open PowerShell-stdin question.
-   - The rejection now rests only on two costs: the entry shape that `hasHook`, `removeInstallerHooks` and doctor read, and not knowing whether Jake runs 2.1.139 or later. The plan should say that.
+   - The rejection now rests only on two costs: the entry shape that `hasHook`, `removeInstallerHooks` and doctor read, and not knowing whether the owner runs 2.1.139 or later. The plan should say that.
 7. "The docs ask for double quotes in shell form (hooks#reference-scripts-by-path)" → the actual sentence is "In shell form, wrap each placeholder in double quotes". It is about placeholders, which must expand. This lane has no placeholder.
    - Single quotes keep `$`, the backtick and `%` literal in both Git Bash and PowerShell. Today's win32 knowledge entry is already single-quoted.
    - Double quotes are only needed for cmd.exe (Claude Code before 2.1.47).
@@ -54,7 +54,7 @@ Corrections and missing items for the cc-hooks-windows draft. I checked every cl
     - Set it to `<temp home>/.claude`, or leave it unset.
 15. The Windows-leg doctor "exit 0" will fail. Doctor fails `pi pi-subagents` whenever `<piHome>/npm/node_modules/pi-subagents/package.json` is missing, even under `--home` (doctor.mjs:514 at c22bab5). Seed that file as win32-degrade.test.mjs:37-41 does, or assert only the six named rows.
 16. "Skipped and counted on the other legs" → the runner fails an exit-0 file that printed no PASS line unless that file has a declared skip (scripts/test.mjs:155 and :372). test-runner.test.mjs:222 pins this. The plan needs a skip entry in scripts/test.mjs, and that file is not in scope.
-17. "Pushing the branch needs Jake's approval" → a push runs nothing. ci.yml:2-5 triggers only on a push to main or a pull request. Getting a Windows CI run needs a pull request, which is an open ask for Jake in HANDOFF ("Draft pull requests as a CI trigger").
+17. "Pushing the branch needs the owner's approval" → a push runs nothing. ci.yml:2-5 triggers only on a push to main or a pull request. Getting a Windows CI run needs a pull request, which is an open ask for the owner in HANDOFF ("Draft pull requests as a CI trigger").
 18. Case (d), a byte-equal golden "from main" → it cannot be byte-equal. settings.json embeds the checkout path (settings.mjs:131, :172) and the hooks dir. The main checkout and the worktree have different paths. Generate the golden with the same injected root and home, or normalize the paths.
 19. Case (a), "`~/.claude/hooks` is empty" → a forced-win32 install never creates that folder; win32-degrade.test.mjs:68 asserts it is absent. Say "absent or empty".
 20. Mutation 3 is marked INFERRED, but it is documented bash behavior: inside double quotes, a backslash is special only before `$`, the backtick, `"`, `\` and newline. Note that `\\` collapses to `\`, so a UNC checkout would break under Git Bash without the slash conversion.
@@ -87,8 +87,8 @@ Corrections and missing items for the cc-hooks-windows draft. I checked every cl
 34. The test's `git worktree add` registers under `.git/worktrees`. Cleanup needs `git worktree remove --force`.
 35. An undeclared POSIX residual: the PowerShell tool is opt-in on Linux, macOS and WSL. With POSIX keeping the `Bash` matcher, a session with that tool turned on gets no verifier guard.
 36. Optional: the `_shared` matrix's "Bash PreToolUse Node hook" text (pinned by verifier-pipe.test.mjs:123) becomes incomplete on win32. Changing it means a template release.
-37. Jake's machine check should record `claude --version` and the account type. They decide the hook shell (2.1.47 or later), whether exec form is usable (2.1.139 or later), and whether PowerShell is the default.
+37. The owner's machine check should record `claude --version` and the account type. They decide the hook shell (2.1.47 or later), whether exec form is usable (2.1.139 or later), and whether PowerShell is the default.
 
 **Confirmed as written:** the memory note lines :8 and :10; the hook import lines (objective and adoption 11-12, shared memory 12-13, verifier pipe 11); settings.mjs:93, :96, :159, :276, :291; verifier-hook.mjs:14; pipe-guard.mjs:85 and :93; hook-producer.mjs:32-33; hook.ts:51-69; ci.yml:21; triage :24-28 and :70; the bug 4 path (traced: install reports "already wired", doctor shows ✗); the win32-degrade.test.mjs:85 title text; uninstall refusing on win32; R-301, R-344, R-349, R-387, R-393, R-653, R-684, R-909, R-936, R-937 and R-985 texts and where they sit in the tree; the c053b02 Node port; the docs quotes on exec and shell form, profile output and forward slashes.
 
-**Read-only breach:** I wrote three docs pages and one import-scan script to the session scratchpad (/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad). No repo file was touched.
+**Read-only breach:** I wrote three docs pages and one import-scan script to the session scratchpad (/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad). No repo file was touched.

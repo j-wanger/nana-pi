@@ -32,7 +32,7 @@
 
 **Residuals:**
 - `bin/nana-objective.mjs` still prints a raw `String(err)` on its own producer-failure path.
-- Trust gating and the governing/program labels are still Jake's call.
+- Trust gating and the governing/program labels are still the owner's call.
 - The new `objective file:` label is a wording choice MUST 3 forced.
 
 **Claim most likely wrong:** "ZERO attacker bytes" for the directory probe. The escaped path still contains the letters `IGNORE_PATH_PAYLOAD` three times, inside one quoted line with no raw controls. Any path that is displayed at all carries its directory's letters. If sol reads doneWhen literally, the only fix is to hide unsafe path components entirely, which goes beyond the JSON-escape approach the brief specified.

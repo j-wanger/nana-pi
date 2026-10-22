@@ -1,6 +1,6 @@
 # gate-rm-workdir: a plain rm inside the working directory runs unasked
 
-**Feature.** In pi's bash tool, a command that is exactly one plain `rm` with only recursive, force or verbose flags and literal relative targets strictly inside the session working directory runs with no approval prompt and no headless block; every other rm form keeps today's verdict (Jake's ruling, 2026-10-10).
+**Feature.** In pi's bash tool, a command that is exactly one plain `rm` with only recursive, force or verbose flags and literal relative targets strictly inside the session working directory runs with no approval prompt and no headless block; every other rm form keeps today's verdict (Owner's ruling, 2026-10-10).
 
 **Class: gate** (pi extension `extensions/nana-gate.ts` plus new `lib/gate-rm-inside.ts`). Ladder: roster reviewer, land reviewer (seat-land.md when the roster prints `land: seat`), seat wrong-code pairs, one independent check, Windows CI on the fix commit.
 **Threat model.** In scope: honest variation in commands, paths, platforms and config (letter case, links and junctions, dot folders, Git Bash, a session started in home, in `~/.pi/agent` or in a relocated agent folder). Out: deliberate forgery; a race with another process.
@@ -56,7 +56,7 @@ gate-corpus: 6 corpus entries and 5 checks; gate-survives-mutation: 11 commands,
 macOS probed. Linux runs the same code; the test's HOME and cwd are sibling temp folders. Windows: links are junctions; Node's lstat reports a junction as a link (libuv, inferred); 8.3 names hold `~` and fail the character set; `path.win32.relative` already folds case, so wrong code (n) shows only on macOS. Windows CI confirms.
 
 ## Known limits
-1. Plain `rm` and `rm -f` keep passing anywhere, as today. Jake's confirmed words were "we really shouldn't be deleting anything outside without user permission/confirming". Making those forms ask is a separate lane: it would block headless builders' temp cleanup. The seat puts this on one Open-for-Jake HANDOFF line in this lane's reviewed change.
+1. Plain `rm` and `rm -f` keep passing anywhere, as today. The owner's confirmed words were "we really shouldn't be deleting anything outside without user permission/confirming". Making those forms ask is a separate lane: it would block headless builders' temp cleanup. The seat puts this on one Open-for-Owner HANDOFF line in this lane's reviewed change.
 2. Absolute paths ask even inside the cwd; dot-named targets (`.venv`, `node_modules/.cache`) and compounds (`rm -rf build && npm test`) ask.
 3. The exemption assumes the command runs as typed in the session cwd. pi adds `shellCommandPrefix` after the gate and an extension `spawnHook` may move the cwd (pi 1.0.2 `dist/core/tools/bash.js`, which runs `bash -c` per call); a prefix that changes directory, `BASH_ENV` or an exported `rm` function voids it.
 4. Only named files are floor, and the `.git` check looks one level down. A target holding a floored file or a `.git` deeper inside (an extension source linked from the agent folder, a nested project's `.claude`, `vendor/lib/.git`), a mount point or inner links goes unchecked (POSIX `rm -r` does not follow inner links; Git Bash on inner junctions inferred the same).

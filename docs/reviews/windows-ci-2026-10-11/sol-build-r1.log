@@ -1,4 +1,4 @@
-pi-review: item "windows-ci" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (sol @ 6a6e5e2dd643)
+pi-review: item "windows-ci" (git:/Users/example/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (sol @ 6a6e5e2dd643)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=0.9s flat=0/40
   [pi-review a1] cpu=1.09s flat=0/40
@@ -70,4 +70,4 @@ pi-review: item "windows-ci" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0
   [pi-review a1] cpu=1.84s flat=7/40
   [pi-review a1] cpu=1.86s flat=0/40
   [pi-review a1] cpu=1.87s flat=0/40
-[pi-review] SUCCESS on attempt 1 (1723 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/wci-sol-build-r1.md; round 1)
+[pi-review] SUCCESS on attempt 1 (1723 chars → /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/wci-sol-build-r1.md; round 1)

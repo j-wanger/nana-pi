@@ -13,7 +13,7 @@ them in `4686b54` (a non-string pi bin refused, never thrown; C1 control charact
 to R-1122's and R-1125's evidence. The runner at `4686b54`: 62/66 red, 0 survived, 4 Windows-leg only.
 
 Records in `docs/reviews/roster-2026-10-13/`: the plan `CHANGE.md` — planning workflow, fact-checks, a seat revision,
-sol plan r1 SEND-BACK 6/10 and r2, then the final "Seat amendment (2026-10-13): Node entry" section, which Jake ruled
+sol plan r1 SEND-BACK 6/10 and r2, then the final "Seat amendment (2026-10-13): Node entry" section, which the owner ruled
 ("Yes switch, but go through plan review") after his work seat hit `spawn pi ENOENT`; sol plan r3 said LAND 9/10. Its §6
 lists every declared residual. Also: Sonnet 5.5's build brief 1, the shared-text proposal, the seat's acceptance
 script (122/122 at the tip; read `acceptance-output.txt` rather than re-running unless you want to), the title check
@@ -27,7 +27,7 @@ Check: (1) the roster reader: defaults byte-identical to today's lane defaults, 
 any spawn with the named refusal line, the stderr builder line, `nana-roster`'s output; (2) the win32 launch: npm global
 and `.bin` layouts start `process.execPath` with the package's `bin` entry only when that entry is a file; `.exe`/`.com`
 directly; every other case refused, named, with nothing started; POSIX unchanged (pi by name); native realpath on
-win32 only; (3) the shared text and its copies in `AGENTS.md` and `nana-soul.md` say what Jake ruled — the pattern is the
+win32 only; (3) the shared text and its copies in `AGENTS.md` and `nana-soul.md` say what the owner ruled — the pattern is the
 default for any change that touches code with tests, and with no land model the seat gives the land review while the
 slice reviewer still covers every land; (4) each new row R-1120–R-1128 is pinned by its cited test; (5) HANDOFF, the
 session entry and the pack README's Windows line are true; (6) any MUST under the standard.

@@ -1,5 +1,5 @@
 pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
-pi-review: item "req-ids-plan" (git:/Users/jwang/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (sol @ 7cc5f6f294d8)
+pi-review: item "req-ids-plan" (git:/Users/example/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (sol @ 7cc5f6f294d8)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=0.95s flat=0/30
   [pi-review a1] cpu=0.96s flat=0/30
@@ -8,4 +8,4 @@ pi-review: item "req-ids-plan" (git:/Users/jwang/nana-pi/.git): 2 round(s) used 
   [pi-review a1] cpu=1.25s flat=0/30
   [pi-review a1] cpu=1.25s flat=1/30
   [pi-review a1] cpu=1.33s flat=0/30
-[pi-review] SUCCESS on attempt 1 (4165 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/sol-ids-plan-r3.md; round 3)
+[pi-review] SUCCESS on attempt 1 (4165 chars → /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/sol-ids-plan-r3.md; round 3)

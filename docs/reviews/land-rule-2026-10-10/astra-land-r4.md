@@ -25,9 +25,9 @@ These are nonblocking documentation and coverage improvements.
 
 Ledger-touching tests used scratch homes. The checkout remained unchanged. I did not repeat the full repository suite.
 
-`HANDOFF.md` describes the intended merged, unpushed state accurately, conditional on Jake’s checkpoint acceptance. The session’s build history accurately includes build 10; its summary sentence needs the correction above.
+`HANDOFF.md` describes the intended merged, unpushed state accurately, conditional on the owner's checkpoint acceptance. The session’s build history accurately includes build 10; its summary sentence needs the correction above.
 
-This verdict does not replace sol’s parallel acceptance or Jake’s checkpoint.
+This verdict does not replace sol’s parallel acceptance or the owner's checkpoint.
 
 ## Accepted residuals
 

@@ -42,7 +42,7 @@ specified:
 - **P4.** Scoped to this corpus, and are the rebuilt numbers consistent with the new graph?
 - **Determinism.** Rebuild in `/tmp` with the committed caches; `results.json`, `rows.jsonl`,
   `table.md`, `ledger.jsonl` byte-identical.
-- **Every number the seat has reported to Jake changed twice.** Say plainly which numbers in the
+- **Every number the seat has reported to the owner changed twice.** Say plainly which numbers in the
   current `RESULTS.md` you verified yourself and which you did not.
 
 ## The ruling this round must produce

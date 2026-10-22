@@ -51,7 +51,7 @@ Executed with an absolute override:
 
 ```text
 installer: /tmp/u2-land-custom/nana-knowledge
-runtime:   /Users/jwang/.pi/agent/nana-knowledge
+runtime:   /Users/example/.pi/agent/nana-knowledge
 ```
 
 Normal hook/query processes therefore read the old index—or no index—while setup installs and diagnoses another. The new setup README accurately describes where installation writes, but its refresh instruction, `nana-knowledge build`, does not select that same directory automatically.
@@ -106,7 +106,7 @@ Consumers must stop constructing nana-pack user paths from `~/.pi/agent`:
 - Desk callers should use server-returned paths, not reconstruct them.
 - Installer callers must handle refusal and doctor’s nonzero warning result.
 
-Updating the shared template does not update already-generated repositories. I found stale config/journal/receipt declarations in **`~/aml-desk/AGENTS.md`** and **`~/jev-research/AGENTS.md`**. These require a bounded downstream refresh, not an assumption that the producer edit propagated.
+Updating the shared template does not update already-generated repositories. I found stale config/journal/receipt declarations in **`~/work-desk/AGENTS.md`** and **`~/jev-research/AGENTS.md`**. These require a bounded downstream refresh, not an assumption that the producer edit propagated.
 
 ### Residuals priced by cost of error
 

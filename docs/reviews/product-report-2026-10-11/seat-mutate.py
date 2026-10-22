@@ -16,7 +16,7 @@ M = [
   ("drop planned from the solid check (R-1024)", PR, '["planned", "untested", "violated"].includes(row?.status)', '["untested", "violated"].includes(row?.status)', T),
   ("ignore the own-or-shared mark (R-1021)", PR, "return old && (old.mark !== value.mark || old.sha256 !== fingerprint(value.row));", "return old && (old.sha256 !== fingerprint(value.row));", T),
   ("drop the ask body (R-1018)", PR, "body: title.body", 'body: ""', T),
-  ("skip a malformed ask instead of refusing (R-1030)", PR, "      throw new Error(`HANDOFF.md line ${ask.line}: malformed Open for Jake entry`);", "      continue;", T),
+  ("skip a malformed ask instead of refusing (R-1030)", PR, "      throw new Error(`HANDOFF.md line ${ask.line}: malformed Open for Owner entry`);", "      continue;", T),
   ("leave < unescaped in the data script (R-1019)", PR, 'JSON.stringify(model).replaceAll("<", "\\\\u003c")', "JSON.stringify(model)", T),
   ("drop the own-property route guard (R-1019)", PR, "const view = Object.prototype.hasOwnProperty.call(views, hash) ? views[hash] :", "const view = views[hash] ? views[hash] :", T),
   ("hardcode the clean flag (R-1013)", PR, "clean: !dirty,", "clean: true,", T),

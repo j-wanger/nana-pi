@@ -18,7 +18,7 @@ Out of scope: deliberate forgery of evidence, results or ledger files.
 - **Three-failure streak.** It never trips while a healthy task is interleaved, because every decided run resets it (R-519).
 - **Probe evidence** (`raw/_probe/<profile>`). It already stops after its ledger row (run.mjs:994). No test pins this.
 - **Already stop:** the ledger, results, keys, fingerprint and schedule writes. Each throws, and `main` exits 1 (run.mjs:1072). Ctrl-C salvage exits 130.
-- **R-542** reads violated, pending Jake. Jake ruled 2026-10-10 (docs/sessions/2026-10.md): a study stops when it cannot write its evidence.
+- **R-542** reads violated, pending the owner. The owner ruled 2026-10-10 (docs/sessions/2026-10.md): a study stops when it cannot write its evidence.
 
 **Design.**
 1. In `executeRun`:

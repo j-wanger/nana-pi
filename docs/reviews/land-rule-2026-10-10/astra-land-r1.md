@@ -21,12 +21,12 @@
 
 ## NOTE
 
-- The main enforcement design matches Jake’s ruling: uncovered commits refuse, exemptions disappear, every completed verdict persists, and non-LAND verdicts cannot hide behind a LAND.
+- The main enforcement design matches the owner's ruling: uncovered commits refuse, exemptions disappear, every completed verdict persists, and non-LAND verdicts cannot hide behind a LAND.
 - Repository identity, snapshot rejection checks, in-flight refusal, and the locked final reading address the important compatibility and concurrency risks.
 - Version-1 records cannot authorize new lands. Old readers refuse a tally containing version-2 records. Before that first record, the documented quiescent cutover remains essential.
-- Jake’s checkpoint-1 decisions appear correctly in both `REQUIREMENTS.md` and the generated tree: the revised merge-feature purpose and R-1008 share.
+- The owner's checkpoint-1 decisions appear correctly in both `REQUIREMENTS.md` and the generated tree: the revised merge-feature purpose and R-1008 share.
 - The shared working pattern requires reviewed handoff/session changes and prohibits unreviewed follow-ups.
-- `HANDOFF.md` describes the intended merged state. Its checkpoint-2 acceptance claim becomes true only after Jake actually accepts; this review does not establish that acceptance.
+- `HANDOFF.md` describes the intended merged state. Its checkpoint-2 acceptance claim becomes true only after the owner actually accepts; this review does not establish that acceptance.
 - The session entry accurately describes the inspected implementation. I did not independently repeat its historical ledger analysis or mutation campaign.
 
 ### Evidence

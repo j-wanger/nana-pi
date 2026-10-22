@@ -7,7 +7,7 @@ one test. That breaks three rules: a row's evidence must pin ITS clauses (the se
 cleanup or suite-time-switch cases, yet R-977 and R-979 now cite only it); the seat's acceptance
 script is the seat's independent check, never the suite's test of record; and coverage may not fall
 (the suite went from 6,783 to 6,657 checks). No mutation pairs were run, and the seat output file was
-not committed. Change nothing else; the seat has since applied Jake's two tree changes (`dfdef86`).
+not committed. Change nothing else; the seat has since applied the owner's two tree changes (`dfdef86`).
 
 ## Do
 1. **Restore every removed land test** (`git show 661f76e:packages/nana-pack/tests/land.test.mjs`),

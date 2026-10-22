@@ -21,7 +21,7 @@ A6. Failure paths never throw: make the store unreadable/unwritable mid-session,
 
 **Compatibility role**
 C1. The documented artifact-location change: README Handoff bullets, `templates/_shared/working-under-nana-pi.md`, the extension header. Does any consumer still expect `<cwd>/.pi/handoff.md`? Grep `apps/desk`, `packages/nana-setup`, `templates/`, and the pack skills. The worker says the desk only references the config field — verify.
-C2. Existing repo handoffs across Jake's machine (the-hive, and any others): after this lands, first session in those repos gets a pointer instead of the old text. Is the pointer's wording enough for an owner to know what happened and where the text went?
+C2. Existing repo handoffs across the owner's machine (the-hive, and any others): after this lands, first session in those repos gets a pointer instead of the old text. Is the pointer's wording enough for an owner to know what happened and where the text went?
 C3. win32: the case-folded key, temp+rename atomicity, the skipped tests. Is the residual honestly scoped in the README?
 C4. `staleAfterDays` default 7: interacts with L1's normalization (0 / -1 / Infinity cases claimed). Verify the validator rejects and falls back correctly.
 

@@ -1,6 +1,6 @@
 # Land review — req-tree increment B (and the lane as a whole), 2026-10-10 (reviewer: gpt-6-astra; role: land ruler)
 
-You drafted the tree and ruled increment 1 LAND (`astra-land-r5.md`, 9/10). Before accepting, Jake
+You drafted the tree and ruled increment 1 LAND (`astra-land-r5.md`, 9/10). Before accepting, the owner
 asked for three more changes: "Do one review on all 1009 placements, also we should allow multiple
 features pointing to the same requirements, those requirements are potentially high impact high
 blast radius, we also need to make sure we have proper governance on the features and requirements
@@ -10,7 +10,7 @@ two more skeptics; 17 moves, 113 shares over 95 rows), sol's plan review (`sol-p
 build reviews (`sol-build-b-r1..r3.md`), the seat's acceptance script and its output
 (`seat-verify-b.sh`, `seat-verify-b-output.txt`). BASE `6b9202a501a7fe03dfc834ab34cdfc212f6d92ce`;
 INPUTS `8c2ec5274662850a6e8173b5ef048aaf5b191548`. This review is the land review for the LANE: both
-increments land together after Jake accepts.
+increments land together after the owner accepts.
 
 ## Rule on
 1. **Your tree, revised.** Read `placement-review.md`. Are the 17 moves improvements over your draft?
@@ -21,7 +21,7 @@ increments land together after Jake accepts.
    contradicts the intro, the requirements skill or the working pattern?
 3. **Statuses.** Seven features read `frozen (D4: …)`. Is that a faithful reading of D4
    (`docs/hardening-plan-2026-10-06.md:94`, `HANDOFF.md`)? FEAT-025 stays active, FEAT-026 frozen —
-   the seat's inference for Jake to confirm.
+   the seat's inference for the owner to confirm.
 4. **Integrity.** Run `node docs/reviews/req-tree-2026-10-09/prove.mjs --approved <BASE> --inputs <INPUTS> REQUIREMENTS.md docs/requirements-sections-2026-10-09.md`
    and `bash docs/reviews/req-tree-2026-10-09/seat-verify-b.sh`; try one or two attacks of your own on
    scratch copies. Consumers: rail test, `npm run map:check`, `npm run readme:check`.

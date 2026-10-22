@@ -24,7 +24,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/install-check";
+const LANE_REPO = "/Users/example/nana-pi-wt/install-check";
 // The tip under test: SEAT_MUTATE_TIP, else the lane branch head (built at 7b6c650 for the first run).
 const TIP = process.env.SEAT_MUTATE_TIP || "feat/install-check";
 const SCRATCH = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ic-seat-mutate-")));

@@ -1,14 +1,14 @@
 # Plan review brief — the land rule, 2026-10-10 (reviewer: gpt-5.6-sol; roles: scope + adversarial + requirements)
 
 Review the change declaration `docs/reviews/land-rule-2026-10-10/CHANGE.md` before anything is
-built. Jake ruled on 2026-10-10: "anything landed on main should be accepted by an independent
+built. The owner ruled on 2026-10-10: "anything landed on main should be accepted by an independent
 reviewer." Fable challenged the first draft (`fable-consult.md`); a seat workflow of four read-only
 checkers and a critic fact-checked the second against the code (`factcheck.md`, critic section
 last), and the plan was rewritten from its confirmed items. Read the code yourself; do not trust
 either record.
 
 ## Attack
-1. **Does the planned design enforce Jake's rule** through `nana-land`, given
+1. **Does the planned design enforce the owner's rule** through `nana-land`, given
    `packages/nana-pack/bin/nana-land.mjs` and `packages/nana-pack/bin/review-round.mjs` as they are?
    Find any path by which a commit no reviewer accepted, or a revision some reviewer rejected, still
    lands after the change — beyond the residuals declared in §5.

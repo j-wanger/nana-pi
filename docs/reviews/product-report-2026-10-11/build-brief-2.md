@@ -11,7 +11,7 @@ the pre-change code (all six byte-identical). Three items this round; do all thr
   packets (next round): options `--root <dir>` (default: the repo root), `--out <file>` (default
   `docs/product-report/out/nana-pi-product-ledger.html`), and an injectable git runner for tests;
   normalise the ledger text before parsing; refuse on tree-checker problems (R-1026) or a malformed
-  "Open for Jake" entry (R-1030), naming them and writing nothing; capabilities (R-1014), features
+  "Open for the owner" entry (R-1030), naming them and writing nothing; capabilities (R-1014), features
   (R-1015), rows (R-1016), violated rows (R-1017), asks with body (R-1018); text inserted only as text
   nodes (R-1019, both halves pinned as CHANGE §4 says); commit hash, `%cI` date and clean flag
   (R-1013, pinned with temporary repositories and an injected failing runner); byte-identical runs

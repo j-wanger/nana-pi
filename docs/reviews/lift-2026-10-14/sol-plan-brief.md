@@ -3,10 +3,10 @@
 Review the change declaration `docs/reviews/lift-2026-10-14/CHANGE.md` on `feat/lift` (based on main `d9cf0bc`, the
 tree lane landed). Nothing is built yet. Read its final "Seat revision" sections: they fold in two fact-checks.
 
-Jake's ruling, 2026-10-14: "Lift is the tool that enables better regroup, but this is a core feature for nana,
+The owner's ruling, 2026-10-14: "Lift is the tool that enables better regroup, but this is a core feature for nana,
 understanding existing repo and turn into feature trees, then development really becomes feature oriented". The queue:
 the lift (this lane) applies a grouping to a project's flat requirements ledger and proves every row survives
-unchanged; the regroup (a later lane) has an agent propose a feature tree that Jake approves and this tool applies.
+unchanged; the regroup (a later lane) has an agent propose a feature tree that the owner approves and this tool applies.
 
 Threat model (§1): honest variation in our tools' output and our users' files in scope — CRLF, a BOM, UTF-16 and ANSI
 bytes from Windows PowerShell 5.1, padded tables, headless table fragments, repeated section labels, uncommitted edits

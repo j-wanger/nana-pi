@@ -5,13 +5,13 @@
 the CI rows R-597, R-686, R-996 and the support line R-684). Order: why → plan → sol plan review (item
 `windows-ci-plan`; r1 LAND-WITH-FIXES 6.5/10, its four MUSTs and two SHOULDs taken below) → build → a
 CI run on a draft pull request → seat verification → sol build review →
-astra land review → Jake accepts. Runs in parallel with the product-report lane (Jake, 2026-10-11:
+astra land review → the owner accepts. Runs in parallel with the product-report lane (Owner, 2026-10-11:
 "Yes start windows ci in parallel").*
 
 ## 1. Why
 
 The current priority (since 2026-10-10) is nana working consistently in terminal mode for both seats
-on macOS AND Windows, installation and every hook included. Jake on 2026-10-10: "Windows has always
+on macOS AND Windows, installation and every hook included. The owner on 2026-10-10: "Windows has always
 been used on my corporate machine, and there are definitely inconsistencies", then "do CI route
 first, note VM as the next thing to test". Yet CI has never run on Windows: the suite matrix is
 `[macos-latest, ubuntu-latest]` (`.github/workflows/ci.yml:19`), and the support line, identical in
@@ -62,7 +62,7 @@ Windows virtual machine; making Windows or Linux blocking.
 
 - A pull-request run is the only way to see the Windows leg before merging (CI runs on pushes to main
   and on pull requests). The lane branch is pushed and a DRAFT pull request opened once the build
-  passes locally — with Jake's approval, since both are outward-facing. The run's result becomes
+  passes locally — with the owner's approval, since both are outward-facing. The run's result becomes
   evidence in the lane.
 - If the first run fails before `npm test` (setup, shell, PATH, a tool install), the lane fixes it and
   pushes again until the leg reaches the suite and prints its totals.

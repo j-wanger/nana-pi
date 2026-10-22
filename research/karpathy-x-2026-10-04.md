@@ -140,11 +140,11 @@ these are judgment calls about fit, not his claims.
   points the other way.*
 
 - **His "verification is now the bottleneck" argument lands directly on nana-pi's review
-  ladder and handoff/receipt text**, which exist precisely because a human (Jake) has to
+  ladder and handoff/receipt text**, which exist precisely because a human (Owner) has to
   read and trust machine-produced summaries (HANDOFF.md entries, review ledgers, post-edit
   receipts, REQUIREMENTS rows). His concrete lever — ask models to write in a tightly
   controlled style when the output is for human verification, not for more agents — is
-  cheap to try on the artifacts Jake personally reads line-by-line. *Inference: this is a
+  cheap to try on the artifacts the owner personally reads line-by-line. *Inference: this is a
   styling lever, not an architecture change, and the review ladder's existing deterministic
   caps (3-round limit, req: markers, code map) already do the harder structural half of
   what he's gesturing at.*
@@ -152,9 +152,9 @@ these are judgment calls about fit, not his claims.
 - **The Sequoia Ascent framing ("agentic engineering = speed without lowering the quality
   bar") describes nana-pi's requirements-first standard almost exactly**, landed
   2026-10-02 in this repo (507 rows, req: markers, module headers, code map, README
-  contract). No action needed — it's corroboration, not news — but worth naming to Jake as
+  contract). No action needed — it's corroboration, not news — but worth naming to the owner as
   an outside data point for "is this the right bet," since the standard was built from
-  internal pressure (Jake's own rules) rather than from watching the field.
+  internal pressure (Owner's own rules) rather than from watching the field.
 
 - **One widely-circulated document — "LOOPS.md: Field Notes on Agents That Run for Days,"
   nine rules for unsupervised agent harnesses (split roles, state on disk not in context,
@@ -169,7 +169,7 @@ these are judgment calls about fit, not his claims.
 ### Suggested actions, ranked by value
 
 1. **(Highest value) Pilot a controlled-writing convention for the human-facing,
-   machine-written artifacts Jake reads to verify work** — HANDOFF.md entries, review
+   machine-written artifacts the owner reads to verify work** — HANDOFF.md entries, review
    ledger summaries, post-edit receipts. *Reason: directly targets the bottleneck Karpathy
    names (human verification of agent-produced text) on exactly the documents nana-pi's
    current priority ("make the experience consistent, coherent and effective") depends on
@@ -230,7 +230,7 @@ these are judgment calls about fit, not his claims.
 
 ## 5. The outputs-consumption post in full, and alternatives to ASD-STE100 (follow-up 2026-10-04)
 
-Jake's follow-up narrows the brief to the one Oct 2 post (not the broader pass) and asks:
+The owner's follow-up narrows the brief to the one Oct 2 post (not the broader pass) and asks:
 get the full text, try the controlled style on this file itself, and survey alternatives to
 ASD-STE100 worth exploring. Method: `x.com` and `xcancel.com` still refuse direct fetch, but
 `api.fxtwitter.com/karpathy/status/2105819303471976479` returned the full post as a JSON
@@ -341,7 +341,7 @@ template), so applying all three where each fits is cheaper than picking one "wi
   claim per sentence) for everything after it. **Cheapest mechanical checker:** a small
   script flagging (a) sentences over 20/25 words, (b) a passive-voice regex
   (`\b(is|are|was|were|been|being)\b\s+\w+ed\b`), (c) whether line 1 contains a verdict
-  keyword (LANDED/BLOCK/DONE/OPEN/CARRIED). This matches Jake's rule — LLMs judge content,
+  keyword (LANDED/BLOCK/DONE/OPEN/CARRIED). This matches the owner's rule — LLMs judge content,
   scripts verify form — and needs no dictionary.
 - **Trial B — new `REQUIREMENTS.md` rows going forward:** EARS templates. **Checker:** a
   regex confirming each row opens with one of the five EARS keywords (While/When/If/Where/
@@ -360,8 +360,8 @@ The writing trial (2026-10-04) covers his first rung only. These are the other t
 placement below is **seat inference**, not his claim.
 
 **Frame check.** His ladder ranks formats by how fast a person *understands* an output. Our
-bottleneck is narrower: Jake *verifying* that a lane landed correctly. A richer format raises
-comprehension and also raises the room for a wrong claim to look right. So: anything Jake checks
+bottleneck is narrower: the owner *verifying* that a lane landed correctly. A richer format raises
+comprehension and also raises the room for a wrong claim to look right. So: anything the owner checks
 against is drawn by code from the evidence; anything an LLM draws is labelled illustration.
 
 | Format | Where it fits here | Who draws it | Use for | Cost |
@@ -372,14 +372,14 @@ against is drawn by code from the evidence; anything an LLM draws is labelled il
 | **Explainer video** | onboarding and fresh-machine explainers ("how the gate decides", "what nana-pi does") | LLM script + local TTS | understanding only | M; local toolchain partial: `ffmpeg` and macOS `say` present, no `manim` |
 
 **Not recommended:** video for land verification (cannot be skimmed or diffed); adding
-format features to the desk (HANDOFF "Open for Jake" item 6: the unfelt surface is the process,
+format features to the desk (HANDOFF "Open for the owner" item 6: the unfelt surface is the process,
 not a desk).
 
 **Confound.** Land reports and decision points are the writing trial's corpus until day 14 or
 20 reports. Adding HTML pages to those reports now blurs its "faster to read" judgement. Surfaces
 outside that corpus (the two diagram rows) can start without touching it.
 
-### 6.1 Jake's calls and the code-map comparison (2026-10-05)
+### 6.1 the owner's calls and the code-map comparison (2026-10-05)
 
 Calls: park pi-durable; HTML pages wait for the writing trial's end; diagrams yes, "but compare
 to our code map first". Comparison, measured with the map's own exports (`buildGraph`,

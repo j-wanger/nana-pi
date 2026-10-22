@@ -115,7 +115,7 @@
   move a plain file or a link at a skill path (R-1903).
 - This lane reverses a written 2026-10-07 design choice, the four skills skipped on Windows (R-665, R-666), under the
   2026-10-10 priority. No owner ruling backs either way; the seat decided it, as reversible and losing no data. An
-  optional line in HANDOFF's "Open for Jake" asks the owner to confirm the Windows Claude Code seat should get the four.
+  optional line in HANDOFF's "Open for the owner" asks the owner to confirm the Windows Claude Code seat should get the four.
 - Rows: R-1900 to R-1904 read `implemented` in REQUIREMENTS.md, in SUB-015 directly after R-1426. The seat helper's
   re-run at the notes commit: `node scripts/requirements-trace.mjs` reads `1464 total (1194 implemented · 1 planned ·
   34 retired · 230 untested · 5 violated)` and `ears: 0 rows off form (allowance 0)`; `npm run map:check` reads 326

@@ -98,7 +98,7 @@ const PAIRS = [
 		one(EXT, "(event as any).systemPromptOptions.sections[RULINGS_SECTION] = block;", "(event as any).systemPromptOptions.sections[\"nana-writing\"] = block;"),
 	], tests: [RT], expectRed: [T1410] },
 	{ n: "F1", name: "the rulings file names the owner", edits: [
-		one(MD, "the desk stays frozen until the owner reopens it.", "the desk stays frozen until Jake reopens it."),
+		one(MD, "the desk stays frozen until the owner reopens it.", "the desk stays frozen until Owner reopens it."),
 	], tests: [RT], expectRed: [T1415] },
 	{ n: "F2", name: "the rulings file gains an undated bullet", edits: [
 		one(MD, LAST_BULLET, `- Rulings carry no date.\n${LAST_BULLET}`),

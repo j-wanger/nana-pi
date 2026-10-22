@@ -1,7 +1,7 @@
 # Adjudication — round 2 (pi gpt-5.6-sol, VERDICT: BLOCK)
 
 Four findings, all REAL, all mechanical. Folded into v3 as follows; the two rules that add
-gameplay (pushing; perspective switches take no time) are seat defaults Jake may veto.
+gameplay (pushing; perspective switches take no time) are seat defaults the owner may veto.
 
 - **A. Liquids / buoyancy / fragile / pushing — REAL.** v2 made fluids entities AND one occupant
   per cell, so nothing could ever be *in* liquid. v3: **fluids are cells** (material `state:
@@ -10,7 +10,7 @@ gameplay (pushing; perspective switches take no time) are seat defaults Jake may
   off or its axis collapsed, buoyancy vanishes (the §3.4 rule, no special case). **Fragile:** when
   an entity's gravity step is blocked by a fragile cell, that cell becomes `none` and the entity
   stays put this tick (it falls into the gap next tick) — one outcome. **Pushing (new, Sokoban
-  rule, Jake may veto):** a player move into a box's cell pushes the box one cell in the move
+  rule, the owner may veto):** a player move into a box's cell pushes the box one cell in the move
   direction if the box's own destination is enterable under §3.3 with the box's frozen
   coordinates; otherwise the move is blocked. Boxes never push boxes.
 - **B. State tuple + action grammar + ablation — REAL.** v3 adds the mutable voxel grid to the
@@ -31,7 +31,7 @@ gameplay (pushing; perspective switches take no time) are seat defaults Jake may
 - **D. Fold check — REAL on A4.** v2's identity invariant was vacuous because every step ran
   gravity. v3: **a perspective switch takes no time** — the switch tick runs re-embedding and the
   loss/goal check only; gravity and buoyancy run on `move` and `wait` ticks. Switch-and-reverse is
-  then identity exactly, and the player reads it as "nothing moves while you look". Jake may
+  then identity exactly, and the player reads it as "nothing moves while you look". The owner may
   veto; the alternative is that switching costs a tick, which makes the invariant false by design.
   C1–C3 folds completed per B above.
 

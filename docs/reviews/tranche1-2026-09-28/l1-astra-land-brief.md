@@ -8,7 +8,7 @@ Read in order: `~/nana-pi/docs/reviews/tranche1-2026-09-28/l1-brief.md` (the con
 
 Seat-verified: `npm test` 60 files / 2625 checks / exit 0; a fresh-process probe with a malformed gate block AND a planted wider snapshot blocks `rm -rf` and `ls`; traversal probe (`~/.pi/agent/../agent/trust.json`, `@.pi/../.pi/nana-pack.json`, `file://…`) all BLOCK while `docs/trust.md`, `.pineapple/nana-pack.json.md` ALLOW; fresh-process probe with malformed gate block + planted wider snapshot → bash `rm -rf` and `ls` blocked with the repair reason; the L4 runner is the acceptance path.
 
-Jake's standing rulings (2026-09-28, binding): #8 project-scope nana config is ignored per repo until trusted once, gate loosening applies only at session start / `/reload`. Do not re-litigate them.
+The owner's standing rulings (2026-09-28, binding): #8 project-scope nana config is ignored per repo until trusted once, gate loosening applies only at session start / `/reload`. Do not re-litigate them.
 
 Rule on:
 A. **Contract satisfied?** Each invariant 1–6 with the test that pins it; any invariant only asserted, not tested.
@@ -16,6 +16,6 @@ B. **Blast-radius acceptance row met?** Positive+negative behavior under malform
 C. **Harm if merged:** every repo relying on auto-trust loses project config until `/trust` (ruled OK) — is the notice sufficient and does `nana-setup`/desk/adopt-structure tell the owner how? The conservative stop on a typo in the user gate block: acceptable? The process-wide `globalThis` state across pi's per-extension module copies: any leak between sessions in one process (desk-spawned pi children are separate processes; the seat's interactive pi is one process per session — confirm).
 D. **Upstream contracts changed** (declare them): README Config section, `working-under-nana-pi.md`, adopt-structure SKILL, the `config.ts` header, any doc that still says "project config honored" or "read live". Anything the consumer reads that was not updated.
 E. **Coupling to L2/L3** (briefs at `l2-brief.md`, `l3-brief.md`): do L1's shapes give L2 (path protection, segment-scoped exceptions, session snapshot) and L3 (one `staleAfterDays` leaf; nana-trust for a custom `handoff.path`) what they assume? Name any mismatch now, before they launch.
-F. **Seat conduct:** was any review claim adopted without verification? Was any assertion weakened? Did the seat's rulings exceed what Jake ruled?
+F. **Seat conduct:** was any review claim adopted without verification? Was any assertion weakened? Did the seat's rulings exceed what the owner ruled?
 
 End with `SCORE: n/10`, a MUST list (empty if none — things that must change before merge), a CARRY list (residuals accepted with their cost of error), the upstream-contract declaration, and `VERDICT: LAND` or `VERDICT: BLOCK`. ≤80 lines.

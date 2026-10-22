@@ -1,11 +1,11 @@
 # Review brief — controlled-writing trial (reviewer: gpt-6-astra)
 
-Roles: Sonnet built it; you review; Fable rules on landing (`/Users/jwang/nana-pi/docs/reviews/pi-1.0-2026-10-04/ROLES.md`).
+Roles: Sonnet built it; you review; Fable rules on landing (`/Users/example/nana-pi/docs/reviews/pi-1.0-2026-10-04/ROLES.md`).
 Worktree `~/nana-pi-wt/writing`, branch `feat/writing-trial`, base `main` `5ef596a`. Review `git diff main..HEAD` in full.
 The contract is `docs/reviews/writing-trial-2026-10-04/design-ruling.md` (Fable). The build brief sits beside it. One known deviation: the installer rows were renumbered to R-373 to R-376, because the pi 1.0 lane took R-360 to R-372. A second known deviation: the rule text no longer names the banned word, and two passive sentences became active, so that the rule passes its own checker (R-376).
 
 ## What it claims
-1. One rule file, `packages/nana-setup/claude/rules/nana-writing.md`, that Claude Code loads as a rule and pi loads as `<agent dir>/AGENTS.md` (a symlink that nana-setup creates; a copy on win32). The rule tells agents to write Jake-facing text with the verdict first, short active sentences and no coinages.
+1. One rule file, `packages/nana-setup/claude/rules/nana-writing.md`, that Claude Code loads as a rule and pi loads as `<agent dir>/AGENTS.md` (a symlink that nana-setup creates; a copy on win32). The rule tells agents to write Owner-facing text with the verdict first, short active sentences and no coinages.
 2. A zero-dependency checker (`packages/nana-pack/bin/nana-writing.mjs` with `lib/writing-check.mjs` and `lib/writing-config.mjs`). It reports long sentences, passive voice, banned words and, with `--report`, a missing verdict and identifier spans. It always exits 0 during the trial.
 3. Rows R-742 to R-750, R-373 to R-376 and an amended R-301 are `implemented`.
 

@@ -7,10 +7,10 @@ discussion; the rest is open. Nothing is built. Be adversarial; pushback is want
 rules as rules: find inputs where they give no answer, two answers, or an absurd one.
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/agent-frontend-design-2026-09-04.md — the kit it sits on: §2 (the reframe), §3.1 (block contract), §3.3 (refresh rule, mutating actions), §5 (transferability + failure rule)
-3. /Users/jwang/nana-pi/apps/desk/public/stage/stage.js — lines 1-60 and grep `show`, `produced_by`, `agent:changed` (how hidden blocks and refresh actually work)
-4. /Users/jwang/toy-battle/packages/core/src/config.ts — the zod + pure-sim pattern the design says it reuses (skim)
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — THE DESIGN under review
+2. /Users/example/nana-pi/docs/agent-frontend-design-2026-09-04.md — the kit it sits on: §2 (the reframe), §3.1 (block contract), §3.3 (refresh rule, mutating actions), §5 (transferability + failure rule)
+3. /Users/example/nana-pi/apps/desk/public/stage/stage.js — lines 1-60 and grep `show`, `produced_by`, `agent:changed` (how hidden blocks and refresh actually work)
+4. /Users/example/toy-battle/packages/core/src/config.ts — the zod + pure-sim pattern the design says it reuses (skim)
 
 ## Dimensions (one section each)
 

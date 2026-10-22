@@ -1,6 +1,6 @@
 # Review corpus — desk UX batch, 2026-09-16
 
-Jake's dogfood feedback on nana code, five items: files-changed bar + floating diff window; a live
+The owner's dogfood feedback on nana code, five items: files-changed bar + floating diff window; a live
 session picking up new skills; `/skill:` triggers no longer dumping the SKILL.md; an activity line
 so a running turn is visibly alive; a streaming thinking card. Built as three Opus-4.8 lanes in
 worktrees (`feat/live-feel`, `feat/changes`, `feat/reload`), merged onto `feat/desk-2026-09-16`,

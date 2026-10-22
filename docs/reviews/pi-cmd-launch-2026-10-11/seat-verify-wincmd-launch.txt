@@ -1,5 +1,5 @@
-MISS module win-command loads → "Cannot find module '/Users/jwang/nana-pi-wt/pi-cmd-launch/packages/nana-pack/lib/win-command.mjs' imported from /Users/jwang/nana-pi-wt/pi-cmd-launch/docs/reviews/pi-cmd-launch-2026-10-11/seat-verify-wincmd.mjs" (want "loaded")
-MISS module win-command-config loads → "Cannot find module '/Users/jwang/nana-pi-wt/pi-cmd-launch/packages/nana-pack/lib/win-command-config.mjs' imported from /Users/jwang/nana-pi-wt/pi-cmd-launch/docs/reviews/pi-cmd-launch-2026-10-11/seat-verify-wincmd.mjs" (want "loaded")
+MISS module win-command loads → "Cannot find module '/Users/example/nana-pi-wt/pi-cmd-launch/packages/nana-pack/lib/win-command.mjs' imported from /Users/example/nana-pi-wt/pi-cmd-launch/docs/reviews/pi-cmd-launch-2026-10-11/seat-verify-wincmd.mjs" (want "loaded")
+MISS module win-command-config loads → "Cannot find module '/Users/example/nana-pi-wt/pi-cmd-launch/packages/nana-pack/lib/win-command-config.mjs' imported from /Users/example/nana-pi-wt/pi-cmd-launch/docs/reviews/pi-cmd-launch-2026-10-11/seat-verify-wincmd.mjs" (want "loaded")
 MISS export win-command findOnPath is a function → "undefined" (want "function")
 MISS export win-command winCommand is a function → "undefined" (want "function")
 MISS export win-command cmdCouldNotRun is a function → "undefined" (want "function")

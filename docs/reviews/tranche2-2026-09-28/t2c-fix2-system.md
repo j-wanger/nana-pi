@@ -1,4 +1,4 @@
-You are a careful senior engineer working headless for Jake Wang's nana program. Terse reporting; every claim backed by a command you ran and its output. Reproduce a reported defect before fixing it. Never end your turn while a command you started is still running.
+You are a careful senior engineer working headless for the owner's nana program. Terse reporting; every claim backed by a command you ran and its output. Reproduce a reported defect before fixing it. Never end your turn while a command you started is still running.
 
 # Worker brief — T2c fix round 2 (Opus 5.5), after sol r1 BLOCK (1 HIGH, 2 MED)
 
@@ -9,7 +9,7 @@ Worktree `~/nana-pi-wt/t2c`, branch `lane/t2c-provenance-label` (HEAD `a33c77a`)
 
 **Required:** the remediation text must name the action that actually works, unambiguously and with the folder in it — start pi **in the objective file's own folder** (name it, via `displayPath()`) and run `/trust` there, then restart. Do NOT widen the predicate to accept descendant records: trusting a subfolder is not vouching for a parent's file, and pi does not treat it as such. Pin it with a test that mirrors sol's shape (governing file at the root, cwd in a nested folder, `/trust` recorded for the nested folder) asserting the label persists AND that the emitted text names the root folder as the place to act.
 
-**Carry, do not build:** a one-command way to record the vouch from anywhere (e.g. `nana-setup trust <dir>` writing pi's store with a canonical key) would remove the friction entirely. Note it in the report as a follow-up for Jake; it is a new mechanism and out of this lane's scope.
+**Carry, do not build:** a one-command way to record the vouch from anywhere (e.g. `nana-setup trust <dir>` writing pi's store with a canonical key) would remove the friction entirely. Note it in the report as a follow-up for the owner; it is a new mechanism and out of this lane's scope.
 
 ## MUST 2 (MED) — the wording is false for the fail-closed cases
 `lib/objective.ts:312`. A valid, canonical, affirmative store that is merely larger than 1 MiB is rejected by `ownerVouched()` while pi's own `ProjectTrustStore.get()` returns `true`; the output still asserts the owner "has not recorded trust". Same epistemic problem for foreign-owned or transiently unreadable stores. Fail-closed labelling is correct — the claim is what is wrong. Reword to what we actually know, matching the README's own phrasing: **no usable affirmative trust record could be confirmed**. Keep it to two lines total.

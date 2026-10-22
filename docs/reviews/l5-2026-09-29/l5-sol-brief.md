@@ -7,7 +7,7 @@ registers the hook in `settings.json`, because the worker's allowlist reached th
 and the feature could never have fired.
 
 ## What this lane is
-Jake's ruling: a git repository nobody has adopted should reach the SEAT, which assigns it an
+The owner's ruling: a git repository nobody has adopted should reach the SEAT, which assigns it an
 objective. The producer writes one journal line; a new `[nana:adoption]` SessionStart reader prints
 open ones to the seat; `nana-setup project <dir> --not-a-project` writes a marker that travels with
 the repo. **Nothing is injected into any session's prompt** and no filesystem is scanned looking for

@@ -37,7 +37,7 @@ natively. Verify on the work machine with `git config --get core.symlinks` and `
    - It is installed and refreshed by `nana-setup install`, and doctor flags a stale copy.
    - `nana-standards.md:3-4` assigns "process" to nana-soul. R-682 is a precedent: a nana-soul process clause with its own test.
    - Proposed text: "Run every change that touches code with tests through the builder, reviewer and land pattern, using
-     this machine's roster. Answer questions and one-line fixes directly (Jake, 2026-10-13)."
+     this machine's roster. Answer questions and one-line fixes directly (Owner, 2026-10-13)."
 2. **Mirror the same rule in the shared working pattern** (`templates/_shared/working-under-nana-pi.md:22-28`) for pi seats
    and adopted projects. Do not rely on it alone, for two reasons:
    - pi seats get no Claude rules.
@@ -52,7 +52,7 @@ natively. Verify on the work machine with `git config --get core.symlinks` and `
 4. **Optional, deferred:** a SessionStart line printing the machine roster. On win32 it is the only surface that is live
    from the checkout and specific to the machine. The cost is a sixth hook:
    - edits to the settings wiring, `install-check-config.mjs` and doctor;
-   - Jake's 2026-10-11 rule then requires a local install check.
+   - The owner's 2026-10-11 rule then requires a local install check.
    Add it only if a seat still misses the rule once it lives in nana-soul.
 5. **The Mac `reference_roster.md` should stop being a second source.** Its "current roster" table should point at the
    file, and its history stays as evidence. This is a memory edit for the seat, not a repo edit.
@@ -89,7 +89,7 @@ Possible separate lane, not this one: make a committed `CLAUDE.md` a regular fil
 | Option | Verdict | Why |
 |---|---|---|
 | (c) Nothing | Reject | Nothing would show whether the second prong happened. That contradicts the Trust model aim: "every completed verdict and override is recorded — a bypass must be explicit". |
-| (b) Note in the land commit | Impossible | A fast-forward land has no land commit (`nana-land.mjs:114`). Any note commit after the final round is an uncovered commit (`:99-103`). The working pattern also says "nothing is written after a land". Putting the note in before sol's final round costs an extra sol round on every land. That defeats Jake's token-allowance reason for an optional land model. |
+| (b) Note in the land commit | Impossible | A fast-forward land has no land commit (`nana-land.mjs:114`). Any note commit after the final round is an uncovered commit (`:99-103`). The working pattern also says "nothing is written after a land". Putting the note in before sol's final round costs an extra sol round on every land. That defeats the owner's token-allowance reason for an optional land model. |
 | (a) Ledger record, role `seat-land` | **Recommend, with one nana-land change** | The ledger already admits any launcher through `review-ledger run` (`review-ledger.mjs:19-21, 71-103`), with no new code. A seat review of the revision sol already reviewed is the same round and consumes nothing (`review-round.mjs:459-461`; README "A land ruling on the revision the last round reviewed consumes nothing"). |
 
 ### The hazard option (a) opens, and what nana-land must accept
@@ -99,7 +99,7 @@ A documented seat-land record **is a LAND that nana-land counts today**. A reali
 2. The seat records its own `seat-land` LAND on the new tip.
 3. The seat runs `nana-land --reviewed <newtip>=<item>`.
 
-The land passes with no independent reviewer. That breaks Jake's land rule (R-978's retirement note, 2026-10-10:
+The land passes with no independent reviewer. That breaks the owner's land rule (R-978's retirement note, 2026-10-10:
 "nothing reaches main unless an independent reviewer accepted it"). So the mechanism must ship with this rule:
 
 - **nana-land shall not count a `seat-land` record as coverage.** At least one verified version-2 LAND with any other role
@@ -150,7 +150,7 @@ Source: `~/.pi/agent/review-ledger.rounds.jsonl` (658 rows) and `review-ledger.j
 |---|---|---|
 | `openai-codex` / `gpt-5.6-sol` | nana-pi 117, trading-zone 86, yokai-world 69, nana-agent-loop 2, one probe repo 1 | 2026-10-08 to 10-13 |
 | `openai-codex` / `gpt-6-astra` | nana-pi 67, trading-zone 86, yokai-world 74 | 2026-10-08 to 10-13 |
-| null / null | nana-pi 132, aml-desk 16, a few scratch paths | 2026-09-28 to 10-08, before metadata existed. Unknown, not recorded |
+| null / null | nana-pi 132, work-project 16, a few scratch paths | 2026-09-28 to 10-08, before metadata existed. Unknown, not recorded |
 
 - Every row with metadata names **both** `--provider openai-codex` and a model.
 - The launcher is always `pi-review`.

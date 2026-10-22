@@ -1,12 +1,12 @@
 # Lane cc-hooks-windows — build brief 1 (2026-10-12 · feat/cc-hooks-windows · worktree ~/nana-pi-wt/cc-hooks-windows)
 
-**Builder: Claude Sonnet 5.5** — Jake's measurement lane (the install-check lane is built by pi luna);
+**Builder: Claude Sonnet 5.5** — the owner's measurement lane (the install-check lane is built by pi luna);
 the seat records wall clock and rounds to land for each.
 
 **The contract is `CHANGE.md` in this folder** (sol plan r3 LAND 100/100 after r1 70 and r2 86; read
 `sol-plan-r1.md`, `sol-plan-r2.md` for why). Threat model: honest variation in a Windows machine is in
 scope; a hostile local user is out. Lane class: gate-adjacent. Build all of it. Work ONLY inside
-`/Users/jwang/nana-pi-wt/cc-hooks-windows` (use absolute paths; `cd` there in every shell command).
+`/Users/example/nana-pi-wt/cc-hooks-windows` (use absolute paths; `cd` there in every shell command).
 
 ## What to build (each item maps to CHANGE.md)
 1. **Rows first** (§2): add R-1050, R-1051, R-1053–R-1064 as listed (R-1052 is withdrawn — do not add it),
@@ -53,7 +53,7 @@ commit, `npm run template:accept`, then from the worktree root:
 `seat-verify-hooks-launch.txt`) and
 `node docs/reviews/cc-hooks-windows-2026-10-12/seat-verify-tests.mjs > docs/reviews/cc-hooks-windows-2026-10-12/seat-verify-tests-output.txt 2>&1`
 (`0 gap(s)`). Commit both output files. Then push the branch and open a DRAFT pull request against
-`main` titled "cc-hooks-windows (draft, for CI)" (no approval needed — Jake, 2026-10-11), wait for its CI
+`main` titled "cc-hooks-windows (draft, for CI)" (no approval needed — the owner, 2026-10-11), wait for its CI
 run, and report the Windows job's lines for `hooks-win32-exec`, `pipe-guard`, `settings-merge`,
 `win32-degrade` and `verifier-pipe` verbatim (`gh run list --branch feat/cc-hooks-windows`, `gh run view
 <id> --log`; poll no faster than every 60 s).

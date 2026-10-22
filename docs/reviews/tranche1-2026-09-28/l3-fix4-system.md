@@ -1,11 +1,11 @@
-You are a careful senior engineer working headless for Jake Wang's nana program. Terse reporting; every claim backed by a command you ran and its output. Reproduce a reported defect before fixing it. Never end your turn while a command you started is still running.
+You are a careful senior engineer working headless for the owner's nana program. Terse reporting; every claim backed by a command you ran and its output. Reproduce a reported defect before fixing it. Never end your turn while a command you started is still running.
 
 # Worker brief — L3 fix round 4 (Opus 5.5). Astra land MUSTs. Implemented under the cap; astra re-rules next. No further sol round.
 
 Worktree `~/nana-pi-wt/l3`, branch `lane/l3-handoff` (HEAD `e1d87fe`). Read `l3-astra-land.md`.
 
-## MUST 1 — a custom path can smuggle the repo file back in, defeating Jake's binding rule
-`extensions/nana-handoff.ts:266-281`: an owner-configured absolute `handoff.path` of `<repo>/.pi/handoff.md` is read and injected — right after the warning that says a repo file was NOT injected — and compaction then overwrites that repo file (`:359-378`). Jake's ruling is binding: **a repo `.pi/handoff.md` is never injected, never migrated, never deleted.** You disclosed this in r1 as a residual; astra is right that a residual cannot silently amend a binding rule.
+## MUST 1 — a custom path can smuggle the repo file back in, defeating the owner's binding rule
+`extensions/nana-handoff.ts:266-281`: an owner-configured absolute `handoff.path` of `<repo>/.pi/handoff.md` is read and injected — right after the warning that says a repo file was NOT injected — and compaction then overwrites that repo file (`:359-378`). The owner's ruling is binding: **a repo `.pi/handoff.md` is never injected, never migrated, never deleted.** You disclosed this in r1 as a residual; astra is right that a residual cannot silently amend a binding rule.
 
 **Required contract:** the legacy exclusion applies by path SHAPE, whatever the configuration says. A resolved handoff path whose final two segments are `.pi/handoff.md` (any directory, not just the session cwd) is a legacy repo file:
 - never injected — the session gets the same one-line "not injected, repo-writable" pointer it gets today for the cwd's own legacy file;

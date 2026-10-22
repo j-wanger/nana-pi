@@ -8,7 +8,7 @@ record) is refreshed. The seat added your case and an indented-quote case to its
 and a 16th mutation (line-leading selection) to `seat-mutate.py`. astra's round 2 was LAND 10/10.
 
 Review `git diff ea1f11a..HEAD` closely and confirm the whole change `1836fa3..HEAD` holds; your
-verdict is the final review before Jake's acceptance. Hunt for any other way a reviewer's final word
+verdict is the final review before the owner's acceptance. Hunt for any other way a reviewer's final word
 can be misread — a verdict in a fenced block after the final line, Unicode look-alikes of `VERDICT`,
 a trailing blank or whitespace-only line, a review with no verdict line at all — and for anything
 still landable that a reviewer rejected. Use a scratch HOME for anything that touches the ledger.

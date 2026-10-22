@@ -1,4 +1,4 @@
 {
- "from": "R-285 and R-286 consumed 2026-10-09 (Jake's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-299 stay the reserve",
- "to": "R-285 and R-286 consumed 2026-10-09 (Jake's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-291 consumed 2026-10-09 (the requirements tree), R-292–R-299 stay the reserve"
+ "from": "R-285 and R-286 consumed 2026-10-09 (Owner's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-299 stay the reserve",
+ "to": "R-285 and R-286 consumed 2026-10-09 (Owner's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-291 consumed 2026-10-09 (the requirements tree), R-292–R-299 stay the reserve"
 }

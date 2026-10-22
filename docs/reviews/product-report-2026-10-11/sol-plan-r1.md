@@ -12,14 +12,14 @@
 
 3. **The report drops the substance of each decision.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:49,83-86`  
-   R-1018 and the parser return kind, date, and title, but not the ask body. Real titles such as “Background subagents” do not contain the question Jake must decide. The body does.  
+   R-1018 and the parser return kind, date, and title, but not the ask body. Real titles such as “Background subagents” do not contain the question the owner must decide. The body does.  
    **Smallest fix:** include the complete ask body in R-1018 and the shared parser result. Render it through the protected text path.
 
 4. **Malformed asks can disappear silently, and parsing remains duplicated.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:83-86`  
    `packages/nana-pack/bin/nana-frontier.mjs:81-96,134-135`  
    The plan says frontier imports only the tag pattern. The report therefore needs separate section and entry parsing. The plan also does not define what happens when a list entry lacks a parseable title or tag. R-1018 promises every ask, so silently dropping one violates the row.  
-   **Smallest fix:** make the shared library return every Open-for-Jake entry with parsed fields or named parse errors. Have frontier consume that shared entry parser while retaining its wall-clock validation. Make the report refuse malformed entries before writing output.
+   **Smallest fix:** make the shared library return every Open-for-Owner entry with parsed fields or named parse errors. Have frontier consume that shared entry parser while retaining its wall-clock validation. Make the report refuse malformed entries before writing output.
 
 5. **The refresh mechanism has no requirement.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:32-36,76-77,97-98`  
@@ -60,7 +60,7 @@
 
 5. **Resolve the open share decision before build admission.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:63-67,138`  
-   The feature cannot be built to its declared tree shape until Jake decides checkpoint 1b.  
+   The feature cannot be built to its declared tree shape until the owner decides checkpoint 1b.  
    **Smallest fix:** record the decision before handing the plan to a builder.
 
 ## NOTE

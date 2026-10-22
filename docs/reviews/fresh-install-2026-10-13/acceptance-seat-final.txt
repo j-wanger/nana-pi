@@ -39,8 +39,8 @@ ok   (c) PI_VERSION empty: <version> and <cutoff> placeholders, never an empty -
 ok   (f) setup README: no sentence says hooks dispatch through, or the check needs, Git Bash
 ok   (f) setup README: the Windows sentence says installed hooks run directly in exec form
 ok   (f) setup README: it says a FAIL prints the hooks block and the last knowledge-pull record
-ok   (f) Jake's page: step 2 is labelled PowerShell-only
-ok   (f) Jake's page differs from main in exactly one line
+ok   (f) the owner's page: step 2 is labelled PowerShell-only
+ok   (f) the owner's page differs from main in exactly one line
 ok   (f) apps/desk/README.md differs from main in exactly one line (the runtime row)
 ok   (g) R-1093 exists under SUB-011 with exactly one "shall"
 ok   (g) R-1094 exists under SUB-011 with exactly one "shall"

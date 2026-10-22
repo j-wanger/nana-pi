@@ -2,7 +2,7 @@
 
 **Builder: Claude Sonnet 5.5** (GATE lane: lane mode gains a refusal and a Windows launch). The contract is
 `CHANGE.md` in this folder, INCLUDING its final "Seat amendment (2026-10-13): Node entry" section — sol plan r3 LAND
-9/10 (`sol-plan-r1.md`…`sol-plan-r2.md` record the earlier rounds). Jake's rulings it implements (2026-10-13): a
+9/10 (`sol-plan-r1.md`…`sol-plan-r2.md` record the earlier rounds). The owner's rulings it implements (2026-10-13): a
 change that touches code with tests goes through the worker/reviewer pattern, a direct answer for questions and
 one-line fixes; "land can be optional due to token allowance, seat will take on landing review if no land model
 set". Threat model: honest variation in our tools' output in scope (a machine with another provider; a typo'd

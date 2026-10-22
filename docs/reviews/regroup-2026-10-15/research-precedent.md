@@ -6,7 +6,7 @@ memory `project_requirements_tree.md` line n. "(ran)" = computed in this session
 
 ## 1. What astra's draft contained
 
-- Origin: Jake asked astra (separate session) for "requirements categories" because he could not read the
+- Origin: the owner asked astra (separate session) for "requirements categories" because he could not read the
   flat 1,004-row ledger (MEM:11-13; RP/README.md:10-15). Built at e9ecc90; kept unedited in
   `RT/mapping-astra.json`, IDs only, never row text (its `source.note`).
 - Shape: one purpose ("Help a developer turn project goals into useful software ... reusable across
@@ -23,12 +23,12 @@ memory `project_requirements_tree.md` line n. "(ran)" = computed in this session
 - Beyond the tree: a 15-issue register (C02–C18) and a delivery process (two checkpoints per increment, WIP
   limit, acceptance package) (RP/README.md:3-5,71-79). Its explorer HTML is not in the repo (MEM:13); not read.
 
-## 2. What the seat did before Jake saw it
+## 2. What the seat did before the owner saw it
 
 - Scripted fact-check plus a 10-agent workflow: rows verbatim at e9ecc90, but "one home per ID" was FALSE
   at HEAD within 4 h (R-285, R-286 unmapped; R-231 text changed) (RP/README.md:17-26).
 - Sample: 0 wrong placements in 40; 90.1% of rows sit in their old section's main capability
-  (RP/README.md:59-60). The seat used that overlap to call the tree low-value; Jake corrected it — his
+  (RP/README.md:59-60). The seat used that overlap to call the tree low-value; the owner corrected it — his
   comprehension need is his to judge (RP/README.md:10-15; shared feedback `joy_control_north_star`:16).
 - Constraints kept: one copy inside the ledger; a reorder is rail-safe, a file split is not (RP/README.md:65-68).
 - Deviations declared as the diff astra draft → `RT/tree.json` (RT/CHANGE.md:124-127): G rows whole in
@@ -41,7 +41,7 @@ memory `project_requirements_tree.md` line n. "(ran)" = computed in this session
   (RT/sol-plan-r1..r3-response.md). Fable's one insisted change: review names and grouping BEFORE the
   build, while a change is a JSON edit (RT/fable-consult.md:8,17).
 
-## 3. How Jake reviewed it — two checkpoints planned, three in practice
+## 3. How the owner reviewed it — two checkpoints planned, three in practice
 
 Checkpoint 1 (before any row moved; RT/CHANGE.md:240-243):
 - He read `RT/outline.md`: top purpose in his own words, astra's outcomes, a 38-row table (rows, status mix,
@@ -52,7 +52,7 @@ Checkpoint 1 (before any row moved; RT/CHANGE.md:240-243):
   approved commit that freezes the inputs (RT/CHANGE.md:274-280; MEM:22).
 
 Checkpoint 2, first attempt (planned ~15 min: proof line, deviations, verdicts; RT/CHANGE.md:245-247):
-- Jake did not accept: "Do one review on all 1009 placements, also we should allow multiple features
+- The owner did not accept: "Do one review on all 1009 placements, also we should allow multiple features
   pointing to the same requirements ... proper governance on the features and requirements life cycle"
   (RT/CHANGE-B.md:10-13). The mapping had been checked for fidelity, never for correctness (:15-16).
 
@@ -62,9 +62,9 @@ Increment B, then checkpoint 2 (~20 min; RT/CHANGE-B.md:159-165):
 - Rules: home = the feature whose purpose the row most directly serves (what breaks if it is violated), not
   where its code lives; share only when the row directly constrains the other feature (:5).
 - Result: 17 moves, 113 shares over 95 rows in 30 features, 992 kept; refuted items and 6 critic questions
-  with seat rulings, listed for Jake (:7,131-180).
+  with seat rulings, listed for the owner (:7,131-180).
 - Plus `Status:` per feature (7 frozen from his desk ruling; seat inferences named for him) and
-  governance text: Jake decides every tree change (RT/CHANGE-B.md:104-113; RT/fixed-text-b.md:22-26).
+  governance text: the owner decides every tree change (RT/CHANGE-B.md:104-113; RT/fixed-text-b.md:22-26).
 - Ruling: "accept the work"; tree, increment B and four-digit IDs landed together at 1836fa3 (MEM:41).
 
 ## 4. What the proof checked
@@ -126,5 +126,5 @@ Gap first: nana-pi carries 31 `Also applies:` lines (ran). The lift refuses any 
 (`scripts/requirements-lift.mjs:155-156`; R-1167 at LIFT/CHANGE.md:36). Shares must become a mapping field,
 proved like rows, before nana-pi can be regrouped.
 
-Not read or not recorded: Jake's actual minutes per checkpoint (only planned times exist); the internals
+Not read or not recorded: the owner's actual minutes per checkpoint (only planned times exist); the internals
 of the 10-agent proposal workflow (`RP/verifier-output.json` read only via its README summary).

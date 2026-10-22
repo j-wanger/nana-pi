@@ -32,7 +32,7 @@ Commit with explicit paths; message file under `$TMPDIR`. Keep gate-trigger text
 
 ## Done — do not report DONE until all of these pass on your last commit
 `node docs/reviews/fresh-install-2026-10-13/seat-titles.mjs 1` → `0 missing` (23 missing at launch);
-`SEAT_PWSH=/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/plan-fresh-install/pwsh/pwsh node docs/reviews/fresh-install-2026-10-13/acceptance.mjs > docs/reviews/fresh-install-2026-10-13/acceptance-output.txt 2>&1`
+`SEAT_PWSH=/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/plan-fresh-install/pwsh/pwsh node docs/reviews/fresh-install-2026-10-13/acceptance.mjs > docs/reviews/fresh-install-2026-10-13/acceptance-output.txt 2>&1`
 → exit 0, `fresh-install acceptance: 0 mismatch(es)` (30/82 at launch — `acceptance-launch.txt`);
 `npm run test:locked` (0 failed); `npm run map:check`; `npm run readme:check`;
 `node scripts/requirements-tree.mjs --check`; the local install check `node packages/nana-setup/bin/install-check.mjs`

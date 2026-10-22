@@ -465,7 +465,7 @@ out("(g) R-961 reworded: CHANGE §2's text, one \"shall\", the dated evidence no
 const r684 = cells("R-684");
 out("(g) R-684 reworded: the launcher clause runs through node with an npm-installed pi, one \"shall\"",
 	[(r684[2] ?? "").includes("and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd macOS-only"), (r684[2] ?? "").includes("launchers unavailable"), ((r684[2] ?? "").match(/\bshall\b/gi) ?? []).length], [true, false, 1], r684[2]);
-out("(g) evidence notes: R-1120 names Jake's roles, R-1125 names review-ledger run as not covered", [(cells("R-1120")[4] ?? "").includes("Jake named the roles (2026-10-06)"), (cells("R-1125")[4] ?? "").includes("review-ledger run")], [true, true]);
+out("(g) evidence notes: R-1120 names Owner's roles, R-1125 names review-ledger run as not covered", [(cells("R-1120")[4] ?? "").includes("Owner named the roles (2026-10-06)"), (cells("R-1125")[4] ?? "").includes("review-ledger run")], [true, true]);
 const SECTION = { "R-1120": "FEAT-006", "R-1121": "FEAT-006", "R-1122": "FEAT-006", "R-1123": "FEAT-006", "R-1124": "FEAT-006", "R-1125": "FEAT-006", "R-1126": "SUB-019", "R-1127": "SUB-019", "R-1128": "SUB-012" };
 out("(g) each new row sits under the heading §2 names", Object.entries(SECTION).filter(([id, h]) => rowAt(id) < 0 || headingOf(rowAt(id)) !== h).map(([id]) => id), []);
 const AFTER = [["R-1120", "R-961"], ["R-1124", "R-1123"], ["R-1125", "R-1124"], ["R-1126", "R-1104"], ["R-1127", "R-1126"], ["R-1128", "R-301"]];

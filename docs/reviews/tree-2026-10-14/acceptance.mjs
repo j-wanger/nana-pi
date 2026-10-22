@@ -227,7 +227,7 @@ try {
 		const flat = collapse(req);
 		out(`(b) ${tag}: REQUIREMENTS.md carries R-1153's four phrases`,
 			["capability → feature → subgroup", "Add each new row to the table of the feature it serves", "The project owner decides every change to the tree", CHECKER_SKILL_CMD].filter((p) => !flat.includes(p)), []);
-		out(`(b) ${tag}: REQUIREMENTS.md names no Jake, no ~/nana-pi/ and no Part G (S9, §3.1)`, ["Jake", "~/nana-pi/", "Part G"].filter((p) => flat.includes(p)), []);
+		out(`(b) ${tag}: REQUIREMENTS.md names no Owner, no ~/nana-pi/ and no Part G (S9, §3.1)`, ["Owner", "~/nana-pi/", "Part G"].filter((p) => flat.includes(p)), []);
 
 		// §3.1's shape.
 		const firstCap = t.headings.find((h) => h.level === 1);
@@ -417,8 +417,8 @@ const skillText = (name) => collapse(text(`packages/nana-pack/skills/${name}/SKI
 const reqSkill = skillText("requirements");
 out("(s) the requirements skill names the owner, the feature a row serves and §3.4's flat-ledger carve-out (R-1154)",
 	["The project owner decides every change to the tree", "the table of the feature it serves", CARVE].filter((p) => !reqSkill.includes(p)), []);
-out("(s) the requirements skill drops \"Jake decides\", \"In this ledger,\", the numbered-sections audit brief and the separate Part (R-1154)",
-	["Jake decides", "In this ledger,", "the numbered sections the worker must cover", "at the end as its own Part"].filter((p) => reqSkill.includes(p)), []);
+out("(s) the requirements skill drops \"Owner decides\", \"In this ledger,\", the numbered-sections audit brief and the separate Part (R-1154)",
+	["Owner decides", "In this ledger,", "the numbered sections the worker must cover", "at the end as its own Part"].filter((p) => reqSkill.includes(p)), []);
 out("(s) the requirements skill quotes R-1159's line, `no requirements tree yet` (§3.4)", reqSkill.includes("no requirements tree yet"), true);
 out("(s) the requirements skill names both R-1156 commands exactly (R-1156)", [CHECKER_SKILL_CMD, REPORT_SKILL_CMD].filter((p) => !reqSkill.includes(p)), []);
 const FIVE = ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"];

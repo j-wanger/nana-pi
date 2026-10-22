@@ -68,7 +68,7 @@ This answers the reader-path question: `hasHook`, stale repair, doctor, and pure
 
 It does not prove Claude Code’s executable lookup, argument reconstruction, workspace-trust behavior, matcher dispatch, or environment. The plan correctly acknowledges this elsewhere.
 
-**Smallest fix:** Call R-1058’s CI evidence “direct exec-form conformance.” Record Jake’s real Claude Code run as acceptance evidence for the broader “hooks run on Windows” claim.
+**Smallest fix:** Call R-1058’s CI evidence “direct exec-form conformance.” Record the owner's real Claude Code run as acceptance evidence for the broader “hooks run on Windows” claim.
 
 ## NOTE
 
@@ -101,7 +101,7 @@ The POSIX golden test and R-1061 cases are appropriate regression protection.
 
 ### Matcher selection
 
-`Bash|PowerShell` is correct. Official matcher rules treat it as alternatives of exact tool names, not a general regular expression. It handles Jake’s machine whether PowerShell is enabled or Git Bash remains primary.
+`Bash|PowerShell` is correct. Official matcher rules treat it as alternatives of exact tool names, not a general regular expression. It handles the owner's machine whether PowerShell is enabled or Git Bash remains primary.
 
 ### Remaining requirement rows
 
@@ -119,7 +119,7 @@ The plan correctly treats these as residuals rather than blockers:
 - POSIX users who opt into PowerShell bypass the Bash-only matcher.
 - `CLAUDE_CONFIG_DIR` remains a pre-existing installer gap.
 - The Windows leg is non-blocking.
-- Real Claude Code execution still requires Jake’s machine check.
+- Real Claude Code execution still requires the owner's machine check.
 
 The threat model and two-round gate-adjacent lane classification are stated correctly.
 

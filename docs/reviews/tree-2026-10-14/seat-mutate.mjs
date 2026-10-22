@@ -88,7 +88,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/tree";
+const LANE_REPO = "/Users/example/nana-pi-wt/tree";
 const LANE_BRANCH = "feat/tree";
 const TIP = process.env.SEAT_MUTATE_TIP || "be19808";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -193,11 +193,11 @@ const PAIRS = [
 	{ n: "3/2", name: "Part G numbered CAP-02, FEAT-002, SUB-001–SUB-005", edits: [one(INCL, "# CAP-90 · Keep", "# CAP-02 · Keep"), one(INCL, "## FEAT-900 · Adopt", "## FEAT-002 · Adopt"), regex(INCL, /^### SUB-90(\d) · /gm, (_m, d) => `### SUB-00${Number(d) + 1} · `, 5)], tests: INCL_T, expectRed: each(T2) },
 	{ n: "4", name: "adopt FEAT-001 reads `Status: active` (both seeds)", edits: SEEDS.map((f) => one(f, "Status: proposed\n", "Status: active\n")), tests: SEED_T, expectRed: LANGS.map(T3) },
 	{ n: "5", name: "SUB-903 loses its `Purpose:` line", edits: [one(INCL, "### SUB-903 · Documentation\n\nPurpose: the README states and honours what the project is, and how to install, run and test it.\n", "### SUB-903 · Documentation\n")], tests: INCL_T, expectRed: each(T1) },
-	{ n: "6/1", name: "the seed says \"Jake decides\" (shared organization block, so both seeds, both branches)", edits: [one(ORG, "The\nproject owner decides every change to the tree.", "Jake\ndecides every change to the tree.")], tests: SEED_T, expectRed: each(T4) },
+	{ n: "6/1", name: "the seed says \"Owner decides\" (shared organization block, so both seeds, both branches)", edits: [one(ORG, "The\nproject owner decides every change to the tree.", "Owner\ndecides every change to the tree.")], tests: SEED_T, expectRed: each(T4) },
 	{ n: "6/2", name: "the seed drops \"Add each new row to the table of the feature it serves.\" (shared organization block, so both seeds, both branches)", edits: [one(ORG, "Add each new row to the table of the\nfeature it serves. ", "")], tests: SEED_T, expectRed: each(T4) },
 	{ n: "6/3", name: "the seed writes `~/nana-pi/` (shared organization block, so both seeds, both branches)", edits: [one(ORG, CHECKER_CMD, "`node ~/nana-pi/scripts/requirements-tree.mjs --root .`")], tests: SEED_T, expectRed: each(T4) },
 	// Skills (7-9)
-	{ n: "7/1", name: "requirements skill keeps \"Jake decides tree changes\"", edits: [one(REQ_SKILL, "The project owner decides every change to the tree; the seat proposes a change and declares it.", "Jake decides tree changes; declare them.")], tests: REQSKILL_T, expectRed: [T5] },
+	{ n: "7/1", name: "requirements skill keeps \"Owner decides tree changes\"", edits: [one(REQ_SKILL, "The project owner decides every change to the tree; the seat proposes a change and declares it.", "Owner decides tree changes; declare them.")], tests: REQSKILL_T, expectRed: [T5] },
 	{ n: "7/2", name: "requirements skill drops the carve-out", edits: [one(REQ_SKILL, CARVE_REQ, "")], tests: REQSKILL_T, expectRed: [T5] },
 	{ n: "7/3", name: "requirements skill keeps \"at the end as its own Part\" (the base's wrapped text)", edits: [one(REQ_SKILL, "The seed's general-engineering feature (configuration and provenance,\nmodule boundaries, the code map, documentation — the README contract, G-012 — and the\nrequirement set itself) already holds the G rows; the audit does not add them again.", "Put a general-engineering block (G1 configuration and provenance, G2 module\nboundaries, G3 the code map, G4 documentation — the README contract, G-012) at the end as its own\nPart, so the engineering bar is rows too.")], tests: REQSKILL_T, expectRed: [T5] },
 	{ n: "8/1", name: "adopt-structure keeps \"add the standard `Part G` engineering block\"", edits: [one(SK("adopt-structure"), "   workers, place the `req:` markers, each row in the table of the feature it\n", "   workers, add the standard `Part G` engineering block, place the `req:`\n   markers, each row in the table of the feature it\n")], tests: SKILL_T, expectRed: [T6] },

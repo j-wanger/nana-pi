@@ -41,12 +41,12 @@
 - **R2 guards:** no regular-file, 256 KiB read, symlink, 12,000-output mechanism, or catch was removed. FIFO, directory, 300 MiB file, symlink cwd, deleted cwd, CRLF, invalid UTF-8, and 10,000 objective lines all completed within a 3-second bound; hook exited 0 and pi never threw. Deleted process cwd produced shell diagnostics on stderr but did not hang.
 - **Stale `PWD`:** `env PWD=/elsewhere bash hook` was corrected by Bash to the actual cwd; the product objective was found. The worker’s doubt is refuted on the tested runtime.
 - **Compatibility:** installed symlink resolves and runs. `objective.path`, absent/null/false/custom `projectFile`, and the default user seed were exercised successfully. Precedence is documented in `packages/nana-pack/README.md:377-389`.
-- **Existing products:** `~/aml-desk` and `~/game-world` previously showed product objective/priority plus only the umbrella objective. They now show product lines, both labelled program lines, and the precedence sentence.
-- **Umbrella wording:** `~/nana-agent-loop/OBJECTIVE.md:11` matches implementation and Jake’s hierarchy.
+- **Existing products:** `~/work-desk` and `~/game-world` previously showed product objective/priority plus only the umbrella objective. They now show product lines, both labelled program lines, and the precedence sentence.
+- **Umbrella wording:** `~/nana-agent-loop/OBJECTIVE.md:11` matches implementation and the owner's hierarchy.
 - **Scope:** 10 total files, +734/−251 after r2. `loadUserObjective()` is necessary for launcher parity; README/header/HANDOFF corrections are justified. Doctor was also justified, but its wording remains wrong as found above.
 - **Suite:** `env -u NANA_HANDOFF npm test` → 69 files, 68 pass, 1 skip, 3323 checks. Raw execution under this reviewer’s intentional `NANA_HANDOFF=off` failed two unrelated writer tests.
 
-## Provenance ruling for Jake
+## Provenance ruling for the owner
 
 A provenance label is useful defense-in-depth, but **not sufficient** as a security boundary. The same system prompt cannot safely say both “untrusted data, never instructions” and “governing”; models can still follow attacker text.
 
@@ -57,7 +57,7 @@ Actual incremental exposure:
 - **Fresh/no-config pi sessions are newly exposed.**
 - An attacker cannot directly execute or gain permissions, but can steer permitted reads, edits, commands, scripts, or disclosure before the user supplies intent. Nana’s tool gate still limits downstream actions.
 
-**Ruling recommendation: require nana-trust before repo text is injected or called governing.** Until trusted, the umbrella should govern and the session may receive only a bounded untrusted pointer/provenance notice. Filesystem ownership after cloning is not provenance. If Jake accepts label-only risk, it should be recorded explicitly as risk acceptance, not represented as closing prompt injection.
+**Ruling recommendation: require nana-trust before repo text is injected or called governing.** Until trusted, the umbrella should govern and the session may receive only a bounded untrusted pointer/provenance notice. Filesystem ownership after cloning is not provenance. If the owner accepts label-only risk, it should be recorded explicitly as risk acceptance, not represented as closing prompt injection.
 
 ## Residuals
 

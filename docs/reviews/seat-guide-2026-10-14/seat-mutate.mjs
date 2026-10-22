@@ -51,7 +51,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/seat-guide";
+const LANE_REPO = "/Users/example/nana-pi-wt/seat-guide";
 const TIP = process.env.SEAT_MUTATE_TIP || "cac50d7";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRATCH = fs.mkdtempSync(path.join(HERE, "work-"));

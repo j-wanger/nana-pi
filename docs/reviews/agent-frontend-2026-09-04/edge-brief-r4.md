@@ -1,6 +1,6 @@
 # Adversarial review, ROUND 4 — UI-centric frontend slice 2 (the edge desk)
 
-Round-3 findings: `/Users/jwang/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-r3.md` (REWORK: one-shot readiness; conditional JSON guard on the data POST; 200-with-waiting on a dying child). Original brief: `edge-brief.md` in the same directory.
+Round-3 findings: `/Users/example/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-r3.md` (REWORK: one-shot readiness; conditional JSON guard on the data POST; 200-with-waiting on a dying child). Original brief: `edge-brief.md` in the same directory.
 
 ## What changed (nana-pi HEAD)
 
@@ -12,4 +12,4 @@ Round-3 findings: `/Users/jwang/nana-pi/docs/reviews/agent-frontend-2026-09-04/e
 
 Verify each round-3 finding against the code (table: FIXED / PARTIAL / NOT FIXED, file:line). Then one last adversarial pass on the changed lines only: the detached watcher (unhandled rejection if `ctx.ui.setStatus` throws after the session ends? two watchers after a `new_session` RPC? the 2 s window between a tool disappearing and the downgrade — is a prompt in that window an accepted residual?), the content-type check ordering vs `originRejection`, and the 502 path. Output the table, `## New findings` with severities, `VERDICT: LAND | REWORK`, and one paragraph. MINOR residuals should be listed, not block.
 
-Files: `/Users/jwang/nana-pi/packages/nana-stage/extensions/nana-stage.ts`, `/Users/jwang/nana-pi/apps/desk/apps.mjs`, `/Users/jwang/nana-pi/apps/desk/server.mjs` (spawnChild, handleChildEvent, originRejection), `/Users/jwang/nana-pi/apps/desk/test/app-listener.test.mjs`, `/Users/jwang/nana-pi/docs/agent-frontend-design-2026-09-04.md` §11.7.
+Files: `/Users/example/nana-pi/packages/nana-stage/extensions/nana-stage.ts`, `/Users/example/nana-pi/apps/desk/apps.mjs`, `/Users/example/nana-pi/apps/desk/server.mjs` (spawnChild, handleChildEvent, originRejection), `/Users/example/nana-pi/apps/desk/test/app-listener.test.mjs`, `/Users/example/nana-pi/docs/agent-frontend-design-2026-09-04.md` §11.7.

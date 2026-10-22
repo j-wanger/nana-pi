@@ -3,13 +3,13 @@
 *Lane `seat-guide` · branch `feat/seat-guide` · worktree `~/nana-pi-wt/seat-guide`, based on `main` AFTER roster
 lands (planned against `5b53ebc`; conflicts in §4) · 2026-10-13. Features: FEAT-006 (new R-1140, R-1141), SUB-019
 (new R-1142); reworded R-301. Lane class SMALL: one plan-review round; it touches `packages/nana-setup/`, so the
-install check runs locally before `nana-land` (Jake, 2026-10-12). Builder: **Sonnet 5.5**, a subagent in the lane
-worktree (about 16 files with tests; Jake's 10-13 split sends multi-file lanes to Sonnet); the brief still names every
+install check runs locally before `nana-land` (Owner, 2026-10-12). Builder: **Sonnet 5.5**, a subagent in the lane
+worktree (about 16 files with tests; the owner's 10-13 split sends multi-file lanes to Sonnet); the brief still names every
 test by exact title. Evidence: `research-*.md`, `factcheck-*.md`, `sim/`, `sim-guide-v2.mjs`.*
 
 ## 1. Why
 
-Jake, 2026-10-13, verbatim: "We also need to add instructions on how to be a good seat, the opus seat on windows
+The owner, 2026-10-13, verbatim: "We also need to add instructions on how to be a good seat, the opus seat on windows
 is checking the work done by the worker every turn".
 
 - **Builders and reviewers get instructions; the seat gets none.** `pi-worker.mjs:92-93` and `pi-review.mjs:37` append
@@ -20,7 +20,7 @@ is checking the work done by the worker every turn".
   one-time copy (`project.mjs:241-264`), maybe a one-line text file (`HANDOFF.md:81`); doctor checks rules byte for byte.
 
 **Observable outcome.** After one install, every Claude Code session on both machines loads `nana-seat.md` (doctor
-`✓ rule nana-seat.md`). Whether the Windows seat stops checking a running worker is visible only to Jake (§6 item 1).
+`✓ rule nana-seat.md`). Whether the Windows seat stops checking a running worker is visible only to the owner (§6 item 1).
 
 **Threat model.** In: honest variation — an edit that drops the rule from one list, drops, duplicates or adds a guide
 bullet, or edits the template but not `AGENTS.md`; CRLF; a stale Windows copy. Out: forgery, and a seat that ignores the rule.
@@ -79,12 +79,12 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.
 ```
 
-- **Sources.** Bullets 1–4, 6, 7: Jake's queued content (`reference_roster.md:28`); bullet 2 names what his complaint
+- **Sources.** Bullets 1–4, 6, 7: the owner's queued content (`reference_roster.md:28`); bullet 2 names what his complaint
   names. Bullet 3's monitor clause: his 07-24 and 08-06 rulings. Bullet 5: seat rule, 2026-10-13
   (`feedback_lane_process_2026_10_11.md:26`). Bullet 8: research §2.
 - **Scope sentence (R-1141).** One sentence, two clauses joined by a semicolon. User rules load into subagents too
   (VERIFIED: this planning subagent received them), so a Sonnet builder must be told to skip.
-- **Values.** "Two lanes": the seat's own rule, stated to Jake 2026-10-11 (`feedback_lane_process_2026_10_11.md:17`),
+- **Values.** "Two lanes": the seat's own rule, stated to the owner 2026-10-11 (`feedback_lane_process_2026_10_11.md:17`),
   not his ruling; the guide calls it a nana default. "Eight": R-1140's count. R-1140 pins both; provenance also in its evidence.
 
 **Stays unchanged (pairs in §5).** S1 `nana-soul.md` (R-1128; the guide repeats neither roster bullet). S2 the matrix
@@ -154,18 +154,18 @@ R-1143–R-1149 unused; (f) `git diff --name-only` base..tip ⊆ §4 In. Then th
 
 ## 6. Residuals and open questions (each becomes one HANDOFF line; none is YOUR CALL)
 
-1. **Jake's action — install on Windows, then watch one lane.** `git pull`, then `node packages/nana-setup/bin/nana-setup.mjs install`;
+1. **The owner's action — install on Windows, then watch one lane.** `git pull`, then `node packages/nana-setup/bin/nana-setup.mjs install`;
    doctor should show `✓ rule nana-seat.md`. Re-run install after any later rule edit (Windows rules are copies).
 2. **Seat, at land — Mac.** Run `nana-setup install` once (doctor shows ✗ until then).
-3. **Monitors stay:** Jake's 07-24 and 08-06 rulings require a failure-signature monitor and a liveness heartbeat on long background runs, and a passive monitor costs nothing until it fires.
-4. **Options, cut as untraceable to Jake's words for this lane:** acceptance seen failing before the build; the brief's ID range, seat checks and titles; no writes in a running worktree; a fresh session after PARTIAL; cheap checks green before review; HANDOFF next steps before the final round; a one-line-slip exception to bullet 6.
+3. **Monitors stay:** the owner's 07-24 and 08-06 rulings require a failure-signature monitor and a liveness heartbeat on long background runs, and a passive monitor costs nothing until it fires.
+4. **Options, cut as untraceable to the owner's words for this lane:** acceptance seen failing before the build; the brief's ID range, seat checks and titles; no writes in a running worktree; a fresh session after PARTIAL; cheap checks green before review; HANDOFF next steps before the final round; a one-line-slip exception to bullet 6.
 5. **Option — a pi seat extension** appending the guide to pi sessions with no `NANA_ROLE`. `nana-writing.ts` appends
    to every session, children included, so the role filter would be new; the file would move into the pack.
 6. **Known limits.** Unattended Claude Code sessions (`-p`, Agent SDK, CI, cloud) end background commands after
    30 minutes by default (2 hours at most; 10 minutes for `-p` with a text prompt), while lane mode allows 8 hours
    (R-963); a seat there loses its builder by following bullet 1. A pi seat's `bash` blocks on its launch (two lanes may
    need two pi sessions; `pi-subagents` may background: UNVERIFIED). PowerShell follows Bash's background rules per the
-   docs; that and the win32 watchdog's CPU read are unproven on Jake's machine. Jake's Windows clone path is unknown.
+   docs; that and the win32 watchdog's CPU read are unproven on the owner's machine. The owner's Windows clone path is unknown.
 7. **NOTE.** Doctor's ✗ rule row names no fix (existing R-341 gap). Moving roster's soul bullets into the guide would
    reopen R-1128. Only acceptance (b) runs the writing checker on the guide (compare R-376).
 
@@ -173,7 +173,7 @@ R-1143–R-1149 unused; (f) `git diff --name-only` base..tip ⊆ §4 In. Then th
 
 1. Monitors stay; the guide forbids reading, judging or re-checking a running worker and acting before completion or a monitor's signal; the probe-memory step and its HANDOFF line are gone.
 2. Six untraceable bullets and the one-line-slip exception moved to §6 item 4 as options; "the seat does not build" folds into bullet 6 and MUST triage into the bullet 8 pointer; eight remain; "two lanes" is the seat's 10-11 rule, worded as a nana default.
-3. Builder: Sonnet 5.5 (about 16 files; Jake's 10-13 split); exact titles still listed.
+3. Builder: Sonnet 5.5 (about 16 files; the owner's 10-13 split); exact titles still listed.
 4. Fixed: install-check ruling dated 10-12; frontmatter citation dropped; "background" claim; R-1141 one sentence (M6b); readme-check claim; `nana-writing.ts` option; M8 measured; M13 added; restore note dropped; unattended background limit in §6.
 5. Rows: R-1140 (eight rules), R-1141, R-1142 (pointer reworded to match bullet 2), R-301 reworded; per-bullet tests pin the eight bullets only.
 6. Writing check: over=0 passive=0 banned=0 identifiers=0; `--report` still prints one verdict finding, since a rule file opens with no report verdict word.
@@ -189,6 +189,6 @@ unused; the leaf total is 1,113 and moves to 1,116; roster's "Seat land review" 
 
 sol LAND (`sol-plan-r1.md`). Its two SHOULDs stay as residuals; no plan edit after LAND. (1) The runtime matrix's
 "Both Claude rules" sits in the nana-soul / nana-standards column, so it stays true; the pointer names the new rule.
-(2) Bullet 5 is conditional: it covers a one-line fix the seat makes under Jake's 2026-10-13 ruling, and bullet 6 still
+(2) Bullet 5 is conditional: it covers a one-line fix the seat makes under the owner's 2026-10-13 ruling, and bullet 6 still
 sends build findings back. Seat verify of the seat scripts added two cases: the build must be committed, and the five
 rows read `implemented`.

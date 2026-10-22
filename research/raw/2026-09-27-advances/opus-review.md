@@ -1,11 +1,11 @@
 # Critical review — nana implementation (nana-pi + nana-agent-loop), 2026-09-27
 
-Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the artifact (file:line, a command I ran, or a machine log). Where two helper agents did the reading, I name it and spot-checked the highest-ranked items myself. Grades: **PRIMARY** means source code, a machine log, or a command I ran. **INFERRED** means I reasoned from code but did not execute it. Scratch probes are in `/private/tmp/claude-501/-Users-jwang-nana-agent-loop/3beaf51b-…/scratchpad/w3/` (`pull.mjs`, `cite.mjs`, `rounds.mjs`, `journal.mjs`, `usage.mjs`, `ctx.mjs`, plus the helper agents' `gate-probe.mjs`, `kn-probe.mjs`, `round-probe.mjs`).
+Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the artifact (file:line, a command I ran, or a machine log). Where two helper agents did the reading, I name it and spot-checked the highest-ranked items myself. Grades: **PRIMARY** means source code, a machine log, or a command I ran. **INFERRED** means I reasoned from code but did not execute it. Scratch probes are in `/private/tmp/claude-501/-Users-example-nana-agent-loop/3beaf51b-…/scratchpad/w3/` (`pull.mjs`, `cite.mjs`, `rounds.mjs`, `journal.mjs`, `usage.mjs`, `ctx.mjs`, plus the helper agents' `gate-probe.mjs`, `kn-probe.mjs`, `round-probe.mjs`).
 
 ## The finding in five lines
 
 1. **Since 09-18, none of the recorded spend touched the current priority.** The priority is "make the nana-pi experience consistent, coherent and effective". The last commit in either nana repo is 2026-09-18 14:23. From 09-19 to 09-27 the work was the-hive (13 session entries) and jev-research (22 entries). The 09-18 decentralization made this invisible by design: in a product repo, the objective hook prints the product's own priority and only the umbrella *objective* line, never the umbrella *priority*.
-2. **The 09-16 fixes for Jake's diagnosis are written, not enforced.**
+2. **The 09-16 fixes for the owner's diagnosis are written, not enforced.**
    - *Session scoring decayed within three days.* 2 of ~13 the-hive entries and 0 of 22 jev-research entries carry a score.
    - *The round cap lives only in `pi-review`, and it is filename-parsed.* When the Codex quota ran out on 09-20, reviews moved to a hand-rolled `claude -p` launcher with no cap at all.
    - *The "pre-spend check" and "decision collector in nana-pi" from the 09-16 plan were never built.*
@@ -46,9 +46,9 @@ Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the 
   - `nana-setup/claude/hooks/nana-objective.sh:9-18` picks the nearest OBJECTIVE.md walking up from cwd and appends only `sed -n '/^\*\*Objective/p'` from the umbrella, i.e. the umbrella objective line, never its priority line.
   - pi's `nana-objective.ts:160-171` does the same (`umbrellaLine`).
   - So in the-hive and jev-research no session is ever shown "make the nana-pi experience consistent", and none could score against it.
-- **Caveat:** this may be Jake's intended steering (objective line 1 is "build products with agents"). The artifacts do not record Jake re-ranking nana-pi below the products after 09-18. HANDOFF (umbrella) still names the nana-pi priority as current.
+- **Caveat:** this may be the owner's intended steering (objective line 1 is "build products with agents"). The artifacts do not record the owner re-ranking nana-pi below the products after 09-18. HANDOFF (umbrella) still names the nana-pi priority as current.
 - **Cheapest fix:** print the umbrella *priority* line too in both producers, plus a one-line "last commit in nana-pi: N days ago".
-- **Falsifier:** Jake says the product lanes were the intended priority. Then change OBJECTIVE.md's priority line, which is the documented one-commit way to open a lane.
+- **Falsifier:** the owner says the product lanes were the intended priority. Then change OBJECTIVE.md's priority line, which is the documented one-commit way to open a lane.
 
 **A2 — Mechanisms that demonstrably serve the priority, and those that don't.**
 
@@ -61,7 +61,7 @@ Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the 
 | nana-handoff (pi) | 143 pickups, 40 writes | Injects stale imperatives (E1) | Net negative in the-hive today |
 | nana-gate (pi) | runs in every pi session | Most pi sessions are read-only reviewers (`-t read,grep,find`); builders are `claude -p` | Low exposure, but see C1–C3 |
 | nana-setup + doctor | `doctor` → "all good" (PRIMARY) | Detail text is inverted (C8) | Keep; fix the instrument |
-| Desk "nana code" | launchd loaded | Unfelt since 09-16 (HANDOFF "Open for Jake" #6); dashboards :7320/:7321 unfelt since 09-04/05 | Habit; see the turn-it-off test below |
+| Desk "nana code" | launchd loaded | Unfelt since 09-16 (HANDOFF "Open for the owner" #6); dashboards :7320/:7321 unfelt since 09-04/05 | Habit; see the turn-it-off test below |
 | Loop runner + trust ladder + ceremony hooks (nana-agent-loop) | 0 governed runs since 08-25 (HANDOFF:29); 0 `loops/*.loop.yaml` enable `trustLadder` (loop-side agent, Grep) | None this month | Retired lane still charging every seat session (A4) |
 
 **A3 — The knowledge pull points mostly at narrative archives (MED-HIGH, PRIMARY: `pull.mjs`, `cite.mjs`).**
@@ -81,7 +81,7 @@ Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the 
 - **Test:** exclude `docs/sessions/**` from the index for one week, then rerun `cite.mjs`.
 
 **A4 — The retired lane still taxes every session in nana-agent-loop, which is where the seat runs (MED, PRIMARY + loop-side agent).**
-- The seat's working dir is nana-agent-loop (this very task's path: `…/-Users-jwang-nana-agent-loop/…`).
+- The seat's working dir is nana-agent-loop (this very task's path: `…/-Users-example-nana-agent-loop/…`).
 - `.claude/settings.json:3-58` wires the hooks:
   - SessionStart runs `loop-status --hook-session-start`, which re-bundles a 4,115-line `loop-status.ts` with esbuild and reads 416 run journals (`loop-status.mjs:64-86`).
   - Stop runs `loop-status --hook-stop`, which **blocks turn-end** on loop-ledger debts: unclosed runs, QUEUE drift, graduation, land-check-evidence (`loop-status.ts:3621`). It also runs `system-map --hook-stop`.
@@ -96,7 +96,7 @@ Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the 
 - (a) **Loop-status SessionStart/Stop hooks.** Disable them for a week; count sessions that needed them. Expected: 0 (no runs since 08-25).
 - (b) **pi post-edit receipts.** Receipts dir absent; Tier-2 "/nana-verify" deferred. Test: delete the receipts code path. Expected change: none observable, because nothing reads receipts.
 - (c) **Monthly session logs in the knowledge index** (A3).
-- (d) **Dashboards :7320/:7321.** Unfelt for 3+ weeks. Test: stop them; wait for Jake to notice.
+- (d) **Dashboards :7320/:7321.** Unfelt for 3+ weeks. Test: stop them; wait for the owner to notice.
 - (e) **`context-size-check.sh`** (C7). It has been silent in nana-agent-loop since 08-06. Nobody noticed, which is itself the turn-it-off result.
 
 ---
@@ -135,7 +135,7 @@ Reviewer: Opus 5.5 headless, read-only. I re-derived every claim below from the 
   - the reflog shows `merge tooling-portable` twice on 09-18;
   - `discovery.test.mjs:156-161` pins the nested-root case and passes (31/31).
 - Next #3 ("a week of pull.log, then decide the citation checker") passed its date with no decision.
-- The umbrella HANDOFF duplicates product "Open for Jake" items (#2, #3, #3b, #8) that line 16 says moved out. That gives two homes, which will drift.
+- The umbrella HANDOFF duplicates product "Open for the owner" items (#2, #3, #3b, #8) that line 16 says moved out. That gives two homes, which will drift.
 - **Enforcement:** "The handoff-shape advisory (400 lines)" is the only tooth, and it measures length, not staleness.
 - **Cheapest test:** a lint that flags HANDOFF lines containing "right now / in flight / today" older than 48 h by `git blame`.
 
@@ -318,7 +318,7 @@ Ranked by (cost-of-error × confidence) ÷ cost.
 | # | Recommendation | Evidence | Cost | Test / falsifier |
 |---|---|---|---|---|
 | 1 | Bound `.pi/handoff.md` pickup: skip if older than 3 days or older than HANDOFF.md's last commit; skip in read-only reviewer sessions; require project trust | E1, C4 (`nana-handoff.ts:93-110`; the-hive file dated 09-13, 56 pickups) | ~20 lines + 2 tests | A 15-day-old file is not injected; an untrusted repo's file is not injected |
-| 2 | Show the umbrella **priority** line (not just the objective) in product-repo sessions, plus "nana-pi: last commit N days ago" | A1 (`nana-objective.sh:17-18`, `nana-objective.ts:160-171`; 0 nana commits since 09-18) | ~10 lines × 2 producers (or 1 after rec 7) | Jake reads one the-hive session start and confirms the steering, or re-ranks by editing the priority line |
+| 2 | Show the umbrella **priority** line (not just the objective) in product-repo sessions, plus "nana-pi: last commit N days ago" | A1 (`nana-objective.sh:17-18`, `nana-objective.ts:160-171`; 0 nana commits since 09-18) | ~10 lines × 2 producers (or 1 after rec 7) | the owner reads one the-hive session start and confirms the steering, or re-ranks by editing the priority line |
 | 3 | Protect `nana-pack.json` (both scopes) and the Claude hooks/settings; run the danger check before allow patterns and per command segment | C1, C2 (executed) | ~15 lines + 4 tests | `write ~/.pi/agent/nana-pack.json` → BLOCK; `git status; rm -rf ~` with an allow pattern → BLOCK |
 | 4 | Make the round cap per-item and launcher-independent: required `--item`, persistent counter, null round refused; the Claude-side reviewer launcher calls the same check | B2 (`review-round.mjs:14-21`; jev `launch-opus-review-r4.sh` bypass; `over-cap` 0 hits) | ~60 lines | 4th call with `--out sol-final.md --item x` refuses; two weeks of corpora show no r4 without an over-cap line |
 | 5 | Add an advisory session-close check that the newest `docs/sessions` entry carries a CLEAR/STRETCH/CANNOT token, in both runtimes (Stop / `session_shutdown`) | B1 (2/35 scored since 09-19) | ~30 lines | Score rate > 80% over the next 10 entries; if it stays low, the rule is not wanted — drop it from OBJECTIVE.md |
@@ -335,7 +335,7 @@ Ranked by (cost-of-error × confidence) ÷ cost.
 VERDICT: DONE
 
 Most-likely-wrong (the five claims I'd bet against first):
-1. "No recorded spend has served the priority line since 09-18." Nana-pi work may have happened uncommitted, in other worktrees, or be Jake's intended steering. I checked reflogs, session headers and pi session dirs, not every branch.
+1. "No recorded spend has served the priority line since 09-18." Nana-pi work may have happened uncommitted, in other worktrees, or be the owner's intended steering. I checked reflogs, session headers and pi session dirs, not every branch.
 2. "0 downstream citations" of pulled pointers. The basename-in-session-log proxy misses in-session reads and citations in commits or briefs.
 3. "Post-edit receipts never produced." The receipts dir may have been deleted, or `receipts.dir` pointed elsewhere at some point. I did not read journal history for post-edit events.
 4. "All 21 app-suite failures are cwd artifacts." The error messages point that way, but I did not rerun from `app/` to prove the suite is green.

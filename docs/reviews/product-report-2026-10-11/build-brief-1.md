@@ -1,7 +1,7 @@
 # Lane product-report — build round 1: the foundations (2026-10-11 · feat/product-report)
 
 The contract is `CHANGE.md` in this folder (sol reviewed the plan three times; r3 LAND-WITH-FIXES 9/10,
-fixes applied; Jake approved the share line). The build runs in short rounds; this round is the
+fixes applied; the owner approved the share line). The build runs in short rounds; this round is the
 foundations only. Three items; do all three before you report.
 
 - [ ] **A. The ledger.** Under `# CAP-07` add `## FEAT-039 · See the product and its decisions in one
@@ -19,7 +19,7 @@ foundations only. Three items; do all three before you report.
   reader (text with a `|`-free cell, a G row, a four-digit row, a shared row's owning heading) and
   for `outcome`.
 - [ ] **C. The shared HANDOFF entry splitter** (`packages/nana-pack/lib/handoff-asks.mjs`, FEAT-002
-  SUB-005; six-tag header) exactly as CHANGE §3: every raw entry of "Open for Jake" with its lines and
+  SUB-005; six-tag header) exactly as CHANGE §3: every raw entry of "Open for the owner" with its lines and
   start line, plus an independent tag result (frontier's existing rule) and title result (the report's
   grammar). FIRST capture golden outputs of the CURRENT `nana-frontier.mjs` on fixture HANDOFFs
   (today's real HANDOFF, an entry with a valid tag and no parseable title, a tag on a continuation

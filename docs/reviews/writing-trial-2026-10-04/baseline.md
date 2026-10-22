@@ -1,6 +1,6 @@
 # Writing trial — baseline (landing day, 2026-10-04)
 
-The report corpus is seat sessions only: project dirs without `-wt-`, entries with `isSidechain` false. Worker sessions report to the seat, not to Jake, and they write differently (8% over cap against the seat's 31%). Re-baseline and the comparable strict/lenient verdict counts: [rebaseline.md](rebaseline.md).
+The report corpus is seat sessions only: project dirs without `-wt-`, entries with `isSidechain` false. Worker sessions report to the seat, not to the owner, and they write differently (8% over cap against the seat's 31%). Re-baseline and the comparable strict/lenient verdict counts: [rebaseline.md](rebaseline.md).
 
 ## Measured with the landed checker
 
@@ -17,8 +17,8 @@ The report corpus is seat sessions only: project dirs without `-wt-`, entries wi
 - Reports: 8% or fewer over the cap.
 - A verdict word in the first sentence of 90% of reports.
 - Zero banned words.
-- Identifiers per report have no target. The count is recorded, and Jake judges it.
+- Identifiers per report have no target. The count is recorded, and the owner judges it.
 
 ## Stop condition
 
-The trial stops on the first of these: 2026-10-18 (day 14), the twentieth report checked, or Jake's second complaint that a report dropped detail he needed. Then `after.md` measures the `HANDOFF.md` lines added since landing and the reports since landing. The verdict is one of: adopt, extend once (14 more days), or drop (remove the rule, the extension and the checker).
+The trial stops on the first of these: 2026-10-18 (day 14), the twentieth report checked, or the owner's second complaint that a report dropped detail he needed. Then `after.md` measures the `HANDOFF.md` lines added since landing and the reports since landing. The verdict is one of: adopt, extend once (14 more days), or drop (remove the rule, the extension and the checker).

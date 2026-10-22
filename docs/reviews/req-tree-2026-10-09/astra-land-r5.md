@@ -101,10 +101,10 @@ I did **not** run the full suite. The seat still owns the locked pre-land run. M
 | HTML blocks/comments are unmodeled | Low current exposure; potentially hidden rows or misleading boundaries if introduced. Review or extend the parser before using them. |
 | Link reference definitions are unmodeled | Low current exposure; future definitions can distort boundary detection. Require a focused fixture before introducing them. |
 | Indented code is unmodeled | Low current exposure; examples could disagree with checked structure. Avoid that syntax here until supported. |
-| Regroups are visible, not pinned | Accept Jake’s decision 4. Human review must distinguish authorized regrouping from drift; regeneration does not establish authorization. |
+| Regroups are visible, not pinned | Accept the owner's decision 4. Human review must distinguish authorized regrouping from drift; regeneration does not establish authorization. |
 | Wrong-feature placement is owner judgment | Accept navigation and scope-selection risk. Checkpoint 2 must judge meaning, not merely green checks. |
 
-The fifth review round is the explicit exception requested here, not a precedent extending the normal cap. This ruling does not replace Jake’s checkpoint-2 acceptance.
+The fifth review round is the explicit exception requested here, not a precedent extending the normal cap. This ruling does not replace the owner's checkpoint-2 acceptance.
 
 **Score: 9/10.** The migration is faithful, the named verification holes are closed, and the remaining limitations are explicit.
 

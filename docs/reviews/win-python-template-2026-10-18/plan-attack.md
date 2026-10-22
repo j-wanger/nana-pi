@@ -58,6 +58,6 @@ SHOULD:
   - run it in both the scaffold block (right after the render check) and the adopt block.
 - Regenerate the requirements tree and bump the R-291 total.
 - In the HANDOFF line, cut only the Python sentences. Add residuals for the readme_check UnicodeEncodeError and the module cap.
-- If Jake keeps scope to trace tests only, record the `PYTHONIOENCODING=utf-8` code-map failure as a residual instead of calling it an artifact.
+- If the owner keeps scope to trace tests only, record the `PYTHONIOENCODING=utf-8` code-map failure as a residual instead of calling it an artifact.
 
 Evidence (outputs and patched copies): <os-temp>/adv-cp1252-RXeE. The files are `*-forced.out`, `*-locale.out`, `*-both.out`, `fixed-mismatch.out`, `wide-*.out`, `adopt-*.out` and `rc.out`, next to the `proj`, `fixed`, `mut`, `wide` and `adopt` folders.

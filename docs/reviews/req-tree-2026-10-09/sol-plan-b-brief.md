@@ -1,7 +1,7 @@
 # Review brief — req-tree increment B plan, 2026-10-10 (reviewer: gpt-5.6-sol; roles: scope + adversarial + compatibility)
 
 You review a PLAN, not code. You reviewed increment 1's plan (`sol-plan-r1..r3.md`) and build
-(`sol-build-r1..r3.md`); astra ruled it LAND (`astra-land-r5.md`). Before accepting, Jake asked for
+(`sol-build-r1..r3.md`); astra ruled it LAND (`astra-land-r5.md`). Before accepting, the owner asked for
 three more changes: a review of all 1,009 placements, requirements shared by several features
 (flagged high blast radius), and lifecycle governance for features and requirements. Do NOT re-argue
 whether. Judge whether this plan is sound, bounded and verifiable.
@@ -29,7 +29,7 @@ and `move.mjs`, `docs/requirements-tree.md`.
    weaken any of them (e.g. an R-/G- ID at the start of a line, a table, a heading)?
 5. **Scope.** Allowlist sufficient and disjoint from NOT? Any needed item missing, any item not
    needed (subtraction test)?
-6. **Facts.** Counts, IDs, paths, statuses vs the repo and Jake's D4 ruling (`HANDOFF.md`,
+6. **Facts.** Counts, IDs, paths, statuses vs the repo and the owner's D4 ruling (`HANDOFF.md`,
    `docs/hardening-plan-2026-10-06.md`).
 
 ## Output

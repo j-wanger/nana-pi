@@ -161,7 +161,7 @@ built, below) the SAME field is provably absent — see the e2e result under "Te
 
 ### e — the user-scope `memory` server
 
-**[V]** `ps` taken mid-session showed a **new** `/Users/jwang/.claude/memory_server/.venv/bin/
+**[V]** `ps` taken mid-session showed a **new** `/Users/example/.claude/memory_server/.venv/bin/
 python3 -m memory_server` process (pid distinct from every pre-existing one, started at the same
 wall-clock second as the probe session) alongside the new `edge_screener.desk.mcp_server`
 process — so `memory` **does connect**. `pi.getActiveTools()` and `pi.getAllTools()` at every
@@ -450,7 +450,7 @@ identical.
 {
   "port": 7321,
   "title": "edge desk",
-  "cwd": "/Users/jwang/edge-screener",
+  "cwd": "/Users/example/edge-screener",
   "tools": [
     "mcp__edge__screen_panel",
     "mcp__edge__screen_detail",
@@ -460,16 +460,16 @@ identical.
     "mcp__edge__explore_screen"
   ],
   "extensions": [
-    "/Users/jwang/edge-screener/.pi/extensions/edge-mcp.ts",
+    "/Users/example/edge-screener/.pi/extensions/edge-mcp.ts",
     "builtin:mcp",
-    "/Users/jwang/nana-pi/packages/nana-stage/extensions/nana-stage.ts"
+    "/Users/example/nana-pi/packages/nana-stage/extensions/nana-stage.ts"
   ],
   "skills": [],
   "mutating": [
     "mcp__edge__explore_screen"
   ],
   "trust": "no-approve",
-  "page": "/Users/jwang/edge-screener/desk",
+  "page": "/Users/example/edge-screener/desk",
   "data": {
     "tape": ["uv", "run", "python", "-m", "edge_screener.desk.data", "tape"],
     "shelf": ["uv", "run", "python", "-m", "edge_screener.desk.data", "shelf"],

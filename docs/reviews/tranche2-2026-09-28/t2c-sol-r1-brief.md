@@ -2,7 +2,7 @@
 
 Read-only except probes under a temp HOME (scratch only under /tmp; never modify a worktree). Worktree `~/nana-pi-wt/t2c`, branch `lane/t2c-provenance-label`, commits `3bec2d0` + `a33c77a` on main `72c55d1`. Diff: `t2c-r2.patch`. Reports: `t2c-worker-r1.md`, `t2c-worker-r2.md`. Contract: `t2c-brief.md` + `t2c-fix-brief.md`.
 
-**What this is.** Jake ruled (2026-09-28) that a governing `OBJECTIVE.md` whose folder the owner never vouched for carries a provenance label framed as untrusted DATA — **not** trust-gating. He was shown your r1 recommendation from lane T2a (require nana-trust) and chose the label knowing it is defence in depth, not a boundary. Do not re-litigate the ruling; review the implementation and whether the risk acceptance is recorded honestly.
+**What this is.** the owner ruled (2026-09-28) that a governing `OBJECTIVE.md` whose folder the owner never vouched for carries a provenance label framed as untrusted DATA — **not** trust-gating. He was shown your r1 recommendation from lane T2a (require nana-trust) and chose the label knowing it is defence in depth, not a boundary. Do not re-litigate the ruling; review the implementation and whether the risk acceptance is recorded honestly.
 
 **The seat already found and sent back one defect** — my own specification error. I had defined "vouched" as "pi would have asked (a trust-requiring `.pi/` resource exists) OR the owner recorded trust". That disjunction is right inside L1's config loader, where it is ANDed with pi's live `isProjectTrusted()`, but used alone it means "pi would have asked", not "you said yes". Seat probe proved the consequence: a folder with `.pi/settings.json` was unlabelled even when `trust.json` recorded **false**. The predicate is now: only a recorded affirmative for the folder or its nearest recorded ancestor clears the label; a recorded `false`, no record, or any unusable store all label. The resource list, the `.agents/skills` walk and `isProjectTrusted()` play no part — which also removes the pi-version drift the worker named as its doubt.
 
@@ -21,8 +21,8 @@ A4. Does the label survive the sanitizer correctly — is every path in it throu
 A5. Fail-closed direction: find any input where an unusable or ambiguous trust store results in NO label. That would be the defect that matters most.
 
 **Compatibility role**
-C1. The behaviour change: repos trusted only in-session now carry the label until `/trust` is run. Spot-check what a session start prints today in two real product repos (`~/aml-desk`, `~/the-hive`) — labelled or not, and is that the right answer for each?
-C2. Is the risk acceptance recorded honestly in the pack README — that the label is defence in depth, NOT a boundary, that a model can still follow attacker-authored text, that sol recommended trust-gating and Jake accepted the residual deliberately? Quote what you find and say whether it overclaims.
+C1. The behaviour change: repos trusted only in-session now carry the label until `/trust` is run. Spot-check what a session start prints today in two real product repos (`~/work-desk`, `~/the-hive`) — labelled or not, and is that the right answer for each?
+C2. Is the risk acceptance recorded honestly in the pack README — that the label is defence in depth, NOT a boundary, that a model can still follow attacker-authored text, that sol recommended trust-gating and the owner accepted the residual deliberately? Quote what you find and say whether it overclaims.
 C3. Anything else that documents the objective contract and now needs the label mentioned (`AGENTS.md`, `templates/_shared/`, doctor).
 
 End with findings severity-sorted, `file:line`, role tag per finding; residuals; `VERDICT: LAND` or `VERDICT: BLOCK`.

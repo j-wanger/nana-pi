@@ -18,7 +18,7 @@ None.
 
 - **Regression checks passed.** Pipe guard: **84**; verifier hook: **29**; settings merge: **213**; title verification: **0 gaps**. All **25 changed requirement sentences** contain exactly one `shall`.
 
-- **Residuals remain explicit — `HANDOFF.md:41`.** Actual Claude Code dispatch and latency still require Jake’s machine check. PowerShell tokenizer differential testing remains follow-up hardening. The committed mutation record reports **37/37 red**; I did not rerun mutations or the full suite.
+- **Residuals remain explicit — `HANDOFF.md:41`.** Actual Claude Code dispatch and latency still require the owner's machine check. PowerShell tokenizer differential testing remains follow-up hardening. The committed mutation record reports **37/37 red**; I did not rerun mutations or the full suite.
 
 No remaining merge blocker. Checkout unchanged.
 

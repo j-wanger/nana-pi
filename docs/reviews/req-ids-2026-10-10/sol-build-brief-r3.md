@@ -7,9 +7,9 @@ union of both languages' own, so no row either rail reads today becomes hidden â
 leading U+FEFF per file. The seat chose the union over your ASCII-only suggestion because ASCII-only
 would silently hide rows that both rails read today (e.g. a no-break space before the ID).
 
-Since round 2 the seat also wrote, before this final round, everything the merge carries (Jake's
+Since round 2 the seat also wrote, before this final round, everything the merge carries (Owner's
 rule: nothing is written to main after a land): the seven desk features' frozen status now cites
-Jake's 2026-10-10 ruling; R-1000 and R-1001 also apply to project setup (FEAT-014); `HANDOFF.md`
+The owner's 2026-10-10 ruling; R-1000 and R-1001 also apply to project setup (FEAT-014); `HANDOFF.md`
 and the session entry in `docs/sessions/2026-10.md` describe the merged state.
 
 Review `git diff 5c266a2..HEAD` closely and confirm the whole change `eeeca20..HEAD` holds; your

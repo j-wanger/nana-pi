@@ -16,7 +16,7 @@ No MUSTs: no line or row is lost, duplicated, changed or invented with exit 0 at
 8. **(4) The flat intro split is not material.** A flat ledger's intro field line is still refused, as T22 pins. With that check turned off in a scratch copy, the line is carried verbatim in the head and verifies, so the refusal is false. It still fails closed, and none of the 5 flat local ledgers has a field-labelled line.
 9. **Claim most likely wrong:** that the item 2 refusal matters in practice. It depends on someone lifting a freshly adopted ledger before its first feature gets rows.
 
-Scratch files are in `/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5-verify/`: `fuzz5.mjs`, `fuzz-acct.mjs`, `p/`, `b/`, `treefix/` (the one-line fix). The lane worktree is untouched and clean at f6b34d4.
+Scratch files are in `/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5-verify/`: `fuzz5.mjs`, `fuzz-acct.mjs`, `p/`, `b/`, `treefix/` (the one-line fix). The lane worktree is untouched and clean at f6b34d4.
 
 ## Mutation runner
 
@@ -53,7 +53,7 @@ ANCHOR-MISS 5/5 Open questions becomes a feature — scripts/requirements-lift.m
 The lane worktree is untouched (`git status` clean), and the scratch worktree was removed.
 
 Files:
-- /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/seat-mutate.mjs (edited copy, with DECLARED (j) recording the build 5 changes)
-- /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/run.txt (full run log)
-- /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/logs/ (per-pair test output)
-- /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/dry1.txt, dry2.txt (dry runs before and after the edits)
+- /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/seat-mutate.mjs (edited copy, with DECLARED (j) recording the build 5 changes)
+- /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/run.txt (full run log)
+- /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/logs/ (per-pair test output)
+- /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate5/dry1.txt, dry2.txt (dry runs before and after the edits)

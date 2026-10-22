@@ -1,6 +1,6 @@
 # Review — the lift, 2026-10-15 (gpt-5.6-sol build review and gpt-6-astra land review, in parallel)
 
-Review `git diff d9cf0bc..HEAD` on `feat/lift` (main `d9cf0bc`). Jake's ruling, 2026-10-14: "Lift is the tool that
+Review `git diff d9cf0bc..HEAD` on `feat/lift` (main `d9cf0bc`). The owner's ruling, 2026-10-14: "Lift is the tool that
 enables better regroup, but this is a core feature for nana, understanding existing repo and turn into feature trees,
 then development really becomes feature oriented". The lift applies a grouping to a project's requirements ledger and
 proves every row and line survives; the regroup lane will apply an agent-proposed, owner-approved grouping through it.

@@ -9,7 +9,7 @@ also closed your SHOULD (R-287 evidence) and NOTE (the normalized-text contract)
 the session entry's build count.
 
 Review `git diff 6a74cfd..HEAD` and confirm the whole change `eeeca20..HEAD` holds; your verdict
-covers all of it, and it is the final review before Jake's acceptance.
+covers all of it, and it is the final review before the owner's acceptance.
 
 ## Attack
 1. **Your MUST closed.** Missing closing pipe, a non-whitespace suffix, five cells, whitespace

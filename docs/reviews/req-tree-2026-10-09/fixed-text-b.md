@@ -19,7 +19,7 @@ a compact diff. Where the old numbered sections went is in
 
 ## How the tree is governed
 
-Who decides. Jake decides every change to the tree: creating, renaming, moving, splitting,
+Who decides. The owner decides every change to the tree: creating, renaming, moving, splitting,
 merging, freezing, unfreezing or retiring a capability, feature or subgroup; moving a row to
 another home; and adding or removing a share. The seat proposes these changes, and the change
 declaration lists them; the next increment adds a field for them to the lane brief. A builder adds
@@ -50,11 +50,11 @@ lister, and that frozen features took no discretionary change.
 ## Purpose and outcomes
 
 Purpose: a customized agentic coding experience that can be used for any development project,
-and makes development more controlled, robust and effective (Jake, 2026-10-09). It serves the
+and makes development more controlled, robust and effective (Owner, 2026-10-09). It serves the
 objective in `~/nana-agent-loop/OBJECTIVE.md`: build products with agents, with nana-pi as the
 shared toolkit and experience.
 
-Outcomes (astra's 2026-10-09 draft, agreed by Jake):
+Outcomes (astra's 2026-10-09 draft, agreed by the owner):
 
 1. **Understand what the product enables.** Find a capability, understand why it matters, and reach its relevant obligations without reading the whole ledger.
 2. **Delegate one coherent change.** Distinguish the agreed increment from adjacent discoveries, blockers and future work.

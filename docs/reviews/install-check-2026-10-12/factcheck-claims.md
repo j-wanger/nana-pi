@@ -14,8 +14,8 @@
    - On the pi seat, no hook runs: not the gate, objective, knowledge pull, post-edit, handoff or lifecycle hooks. `pi list` "shows configured packages" (pi `docs/packages.md:17`), not loaded ones.
    - The 10-24 goal says both seats and every hook. The plan inherits "green on both is done" without challenging it.
    - Fix: reword outcome 3 as "passes a simulation of the documented dispatch". State in section 1 that CI green is necessary, not sufficient. Done also needs:
-     - Jake's machine check from cc CHANGE:541-557;
-     - Jake's run of install-check on Windows, made required rather than optional, because it is the only test of the plan's own most-likely-wrong claim;
+     - The owner's machine check from cc CHANGE:541-557;
+     - The owner's run of install-check on Windows, made required rather than optional, because it is the only test of the plan's own most-likely-wrong claim;
      - the pi load row from item 6.
 
 3. **The adoption check is silent by design, so its PASS proves only that the hook exits 0.**
@@ -95,10 +95,10 @@
 
 13. **"Writes nothing outside that home" is unproven on Windows.**
     - APPDATA and LOCALAPPDATA are not redirected, and npm's cache lives under LOCALAPPDATA.
-    - (b) runs on macOS only, yet the plan cites it to reassure Jake before his Windows run.
+    - (b) runs on macOS only, yet the plan cites it to reassure the owner before his Windows run.
     - Fix: narrow the claim, or redirect `npm_config_cache` and LOCALAPPDATA on win32.
 
-14. **No documented procedure for the Windows leg.** The checklist the plan follows is "Fresh machine (macOS), in order" in the root `README.md:118` (step 1 is `xcode-select`, step 5 is `.zprofile`). The Windows leg follows a procedure no README states, and it runs in Git Bash rather than Jake's terminal. Fix: write the Windows steps the check follows into the README, or declare the gap.
+14. **No documented procedure for the Windows leg.** The checklist the plan follows is "Fresh machine (macOS), in order" in the root `README.md:118` (step 1 is `xcode-select`, step 5 is `.zprofile`). The Windows leg follows a procedure no README states, and it runs in Git Bash rather than the owner's terminal. Fix: write the Windows steps the check follows into the README, or declare the gap.
 
 15. **Three README lines go stale.** Root `README.md:25`, `:177` and `:210` say the release runs after the blocking macOS suite leg. The new `needs` line makes that incomplete, and the README is a contract. Fix: add those three lines to the scope.
 

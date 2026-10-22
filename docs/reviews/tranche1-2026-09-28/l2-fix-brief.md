@@ -16,7 +16,7 @@ Worktree `~/nana-pi-wt/l2`, branch `lane/l2-gate` (HEAD `8e822b6`). Read `~/nana
 - `diskutil quiet eraseDisk …` (option between verb and subcommand).
 Add each as a corpus row under an allow pattern that would otherwise exempt it.
 
-**RULING C — keep the project-scope `.claude/**` protection (sol MED #4 says revert; overruled).** A project `.claude/settings.json` carries hooks that execute code, and Jake's own repos have them; leaving project-scope writes ungated would be a real hole the same review just demonstrated matters. It stays, and it is **declared** as a ratified expansion in the README and to the land reviewer, not smuggled.
+**RULING C — keep the project-scope `.claude/**` protection (sol MED #4 says revert; overruled).** A project `.claude/settings.json` carries hooks that execute code, and the owner's own repos have them; leaving project-scope writes ungated would be a real hole the same review just demonstrated matters. It stays, and it is **declared** as a ratified expansion in the README and to the land reviewer, not smuggled.
 
 **RULING D — the appetite.** sol judges the full contract genuinely needs ~800–900 LOC even after subtraction, so the ceiling was wrong, not your judgment. The size is accepted retroactively. The process failure stands: the rule was to STOP and report when the ceiling proved insufficient, and that did not happen. Do not grow the lane further — this round should be net-small.
 

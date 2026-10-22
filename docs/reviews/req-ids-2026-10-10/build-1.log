@@ -83,4 +83,4 @@
   [pi-worker a1] cpu=14.86s flat=0/90
   [pi-worker a1] cpu=14.89s flat=0/90
   [pi-worker a1] cpu=15.13s flat=0/90
-[pi-worker] SUCCESS on attempt 1 (7498 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/ids-build-1.md)
+[pi-worker] SUCCESS on attempt 1 (7498 chars → /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/ids-build-1.md)

@@ -1,7 +1,7 @@
 // Read-only scan of sibling ledgers: row counts, ID forms, headings, tree checker problems.
 import { readFileSync } from "node:fs";
-import { checkTree } from "/Users/jwang/nana-pi/scripts/requirements-tree.mjs";
-import { requirementRowId, loadRequirements, shallCounts, earsOffForm } from "/Users/jwang/nana-pi/templates/typescript/template/tests/requirements-trace.ts";
+import { checkTree } from "/Users/example/nana-pi/scripts/requirements-tree.mjs";
+import { requirementRowId, loadRequirements, shallCounts, earsOffForm } from "/Users/example/nana-pi/templates/typescript/template/tests/requirements-trace.ts";
 
 const files = process.argv.slice(2);
 for (const f of files) {

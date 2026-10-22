@@ -91,12 +91,12 @@ MISS (p) then each move and share target on its own line by row and target, with
 MISS (p) then each rejected claim with its reason, identifying the claim (R-1179, T16) → [false,false] (want [true,true])
 MISS (p) then each text-placed row with its ID, opening GIST_WORDS words, home and reason on one line (R-1179, T16) → [null,["R-003","R-005","R-006","R-008","G-001","G-002","G-004"]] (want [12,[]])
 MISS (p) and only then the appendix: each row's full text appears once, after the lists, under its new node (R-1179, T16) → [false,["R-001","R-002","R-003","R-004","R-005","R-006","R-007","R-008","R-009","R-010","G-001","G-002","G-004"]] (want [true,[]])
-ok   (harness) the seat's aml-desk and basketball-geek HEAD copies under /Users/jwang/.cache/nana-lift-ledgers exist and match their pinned SHA-256
-ok   (harness) aml-desk's copy: the lift emits its default mapping (exit 0)
-ok   (harness) aml-desk: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows
-MISS (x) aml-desk: the proposal's dry run exits 0 and prints exactly its 50 reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5) → [0,1,false,[]] (want [0,0,true,[484,570]]) [## 36. Sprint 2026-10: synthetic data from real distributions, presented on the desk -> SUB-002]
-MISS (x) aml-desk: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance) → [1,true,false,true,[false,false]] (want [0,false,true,true,[true,true]]) [node:internal/modules/cjs/loader:1386 | throw err; | ^]
-ok   (guard) aml-desk, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)
+ok   (harness) the seat's work-project and basketball-geek HEAD copies under /Users/example/.cache/nana-lift-ledgers exist and match their pinned SHA-256
+ok   (harness) work-project's copy: the lift emits its default mapping (exit 0)
+ok   (harness) work-project: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows
+MISS (x) work-project: the proposal's dry run exits 0 and prints exactly its 50 reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5) → [0,1,false,[]] (want [0,0,true,[484,570]]) [## 36. Sprint 2026-10: synthetic data from real distributions, presented on the desk -> SUB-002]
+MISS (x) work-project: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance) → [1,true,false,true,[false,false]] (want [0,false,true,true,[true,true]]) [node:internal/modules/cjs/loader:1386 | throw err; | ^]
+ok   (guard) work-project, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)
 ok   (harness) basketball-geek's HEAD copy: the lift emits its default mapping (exit 0)
 MISS (y) basketball-geek HEAD: a proposal merging FEAT-002 into FEAT-001 and moving R-013 to FEAT-004: the check exits 0 and writes its page (§5 seat acceptance) → [1,true,false] (want [0,false,true]) [node:internal/modules/cjs/loader:1386 | throw err; | ^]
 ok   (guard) basketball-geek HEAD in a scratch git copy: the committed proposal writes with --write, and after the commit `--verify <base> --mapping <proposal>` exits 0 while plain `--verify <base>` exits 1 (§3.5 step 6, FR 43)
@@ -157,7 +157,7 @@ ok   (guard) node scripts/requirements-tree.mjs --check exits 0 (§5 Suite)
 ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0 (§5 Suite)
 ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0 (§5 Suite)
 MISS (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In, the land checklist) → ["HANDOFF.md","docs/sessions/2026-10.md"] (want [])
-MISS (f) HANDOFF.md gains residual 8's line for Jake, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8) → false (want true)
+MISS (f) HANDOFF.md gains residual 8's line for the owner, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8) → false (want true)
 ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
 ok   (harness) uvx copier is available (templates-render.test.mjs runs with NANA_TEST_REQUIRE_COPIER=1)
 ok   (guard) packages/nana-pack/tests/requirements-lift.test.mjs exits 0 (§5 Suite)

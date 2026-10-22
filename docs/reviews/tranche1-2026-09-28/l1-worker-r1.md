@@ -43,7 +43,7 @@
 - pi's `maybeSaveImplicitProjectTrustAfterReload` can write `trust:true` on its own, without an owner act.
 - If `nana-lifecycle` is not loaded, trust is resolved at first use.
 - Not tested on win32; canonicalisation is delegated to pi's own functions.
-- Documented change: repos that relied on auto-trust lose project config until the owner runs `/trust` (README says this). Jake needs to be told before this lands.
+- Documented change: repos that relied on auto-trust lose project config until the owner runs `/trust` (README says this). The owner needs to be told before this lands.
 
 **Most likely wrong:** that the conservative stop (which blocks every bash and edit call when a user's first-ever gate block is malformed) is acceptable in practice rather than being too harsh on a typo.
 

@@ -12,7 +12,7 @@ The provenance label is built and committed as `3bec2d0` on `lane/t2c-provenance
   - **Against pi's own trust module:** 24 cases agree; three have no comparison (see below).
 - **Another user's store:** fails closed. This is checked in-process only, by faking `getuid`, because making a file owned by someone else needs root.
 - **Spoofing:** an objective line containing the label's wording, plus forged continuation lines. In a trusted folder no label appears. In an undecided folder exactly one real label appears. The spoof text shows only inside the parsed `**Objective` line, and the forged lines are gone.
-- **Risk acceptance** (pack README, next to the objective contract): "the label is defence in depth, NOT a security boundary. A model can still follow attacker-authored text … The label does not close prompt injection. sol recommended trust-gating instead … Jake chose the label anyway on 2026-09-28, knowing this, and accepted the residual deliberately".
+- **Risk acceptance** (pack README, next to the objective contract): "the label is defence in depth, NOT a security boundary. A model can still follow attacker-authored text … The label does not close prompt injection. sol recommended trust-gating instead … the owner chose the label anyway on 2026-09-28, knowing this, and accepted the residual deliberately".
 - **Checks that the tests bite:** dropping the recorded-trust check gave 11 failures; letting a recorded `false` fall through to the parent gave 3.
 - **`git diff --stat`:** README +21, `lib/objective.ts` +84, `objective-golden.test.mjs` +154; 3 files, 250 insertions, 9 deletions. That's within the ≤8 files / ≤350 LOC appetite, so no checkpoint was needed.
 

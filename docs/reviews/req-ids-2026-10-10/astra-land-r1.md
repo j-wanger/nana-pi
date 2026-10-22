@@ -39,14 +39,14 @@ Add regression tests for both ledger files and both rails, covering three- and f
 
 In `HANDOFF.md`:
 
-- Replace “Windows is tested now” with an explicit instruction, such as “Jake requires Windows testing now.” Native Windows execution remains an acknowledged residual.
+- Replace “Windows is tested now” with an explicit instruction, such as “the owner requires Windows testing now.” Native Windows execution remains an acknowledged residual.
 - Update “Both passed review” after the actual build and land verdicts. It cannot describe the current revision after this finding.
 
 The surrounding queue correctly treats Windows CI, installation checks, and land-helper enforcement as unfinished work.
 
 ### NOTE — Requested scope and identity preservation
 
-The core ID change matches Jake’s request:
+The core ID change matches the owner's request:
 
 - All **1,012 existing requirement rows remain byte-for-byte unchanged**.
 - Exactly two rows were added: `R-1000` and `R-1001`.
@@ -75,13 +75,13 @@ The release plan matches the implementation:
 
 No release is claimed complete.
 
-The downstream follow-ups are appropriately separate: aml-desk needs its hand-maintained rail updated; basketball-geek needs a marker migration and Part G adoption, not a routine update alone.
+The downstream follow-ups are appropriately separate: work-project needs its hand-maintained rail updated; basketball-geek needs a marker migration and Part G adoption, not a routine update alone.
 
 ### NOTE — Objective, governance, and prior record
 
 I compared HANDOFF with `~/nana-agent-loop/OBJECTIVE.md`. Its objective, terminal-first priority, two seats, platforms, installation/hooks scope, and October 24 review date agree.
 
-HANDOFF preserves Jake’s acceptance checkpoint and outstanding sharing decisions. The previous tree-review record adds no production behavior and retains its narrow scope and limitations.
+HANDOFF preserves the owner's acceptance checkpoint and outstanding sharing decisions. The previous tree-review record adds no production behavior and retains its narrow scope and limitations.
 
 ### Evidence
 

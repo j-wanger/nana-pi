@@ -94,13 +94,13 @@ I labelled 12 passive sentences and 12 non-passive sentences containing “is”
 **Results:** TP 7, FN 5, FP 2, TN 10 — **77.8% precision, 58.3% recall** on this small diagnostic set.
 
 Misses included:
-- “The message was sent by Jake.”
-- “The task is done by Jake.”
-- “The evidence is needed by Jake.”
-- “The build was carefully tested by Jake.”
+- “The message was sent by the owner.”
+- “The task is done by the owner.”
+- “The evidence is needed by the owner.”
+- “The build was carefully tested by the owner.”
 - “The rule is read by every worker.”
 
-False positives included “Jake is green with envy” and “The desk was wooden.” The real handoff also flags “the rail are green.”
+False positives included “the owner is green with envy” and “The desk was wooden.” The real handoff also flags “the rail are green.”
 
 **Smallest fix:** Call these *passive candidates*, document the measured limitation, and retain the labelled fixtures. Reconsider the prefix exception that exempts genuine passives such as “is needed.” That change needs a contract/test revision.
 
@@ -142,7 +142,7 @@ Neither pack runner disables context loading, so `pi-review` and `pi-worker` inh
 
 **File:** `REQUIREMENTS.md:485`
 
-The cited test exists, runs the real checker and passes with zero findings in normal, non-report mode. That is valid evidence for the literal row. Using non-report mode is appropriate; the rule is not itself a Jake-facing report.
+The cited test exists, runs the real checker and passes with zero findings in normal, non-report mode. That is valid evidence for the literal row. Using non-report mode is appropriate; the rule is not itself an owner-facing report.
 
 The wording deviations are reasonable for Fable to ratify. However, the evidence does **not** establish compliance with the human sentence cap: the 27-word sentence escapes through wrapping. Keep the test citation; move the deviation ruling into the review record and shorten that sentence when fixing the measure.
 

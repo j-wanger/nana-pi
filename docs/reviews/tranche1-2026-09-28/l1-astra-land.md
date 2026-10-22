@@ -40,7 +40,7 @@ Approve the declared scope amendments: policy-path protection, its resolver and 
 No existing assertion weakening found in the clean patch; robustness seeding explicitly establishes the replacement last-good precondition.
 Snapshot subtraction, unconditional diagnostics and traversal normalization are independently supported by source/tests; no evidence these fixes were adopted merely on reviewer authority.
 However, “no planted file anywhere can widen” exceeds the tested claim, and the new test’s `check(..., true)` is bookkeeping, not a composed regression.
-These implementation choices do not exceed Jake’s rulings. Silently narrowing “never widens” to malformed **user** policy would.
+These implementation choices do not exceed the owner's rulings. Silently narrowing “never widens” to malformed **user** policy would.
 
 **SCORE: 7/10**
 

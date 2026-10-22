@@ -1,6 +1,6 @@
 # Review — share support in the lift, 2026-10-16 (gpt-5.6-sol build review and gpt-6-astra land review, in parallel)
 
-Review `git diff e451c90..HEAD` on `feat/regroup-shares` (main `e451c90`, the lift landed). Jake's ruling, 2026-10-10:
+Review `git diff e451c90..HEAD` on `feat/regroup-shares` (main `e451c90`, the lift landed). The owner's ruling, 2026-10-10:
 "we should allow multiple features pointing to the same requirements". The lift today refuses every `Also applies:`
 line; this lane lets it carry, add and drop shares under proof, for the regroup lane (on its own branch) and any owner's
 grouping. Threat model: honest variation in our tools' output and our users' files in scope (share lines in field
@@ -15,7 +15,7 @@ the seat's checks of build 1 (`seat-verify-28d53c7.md`: no share lost, duplicate
 `acceptance-output.txt`), the title check (0 missing), and the seat's mutation runner at `f6bb0bd` (36 of 36 caught;
 `seat-mutate-output.txt`; do not run it). CI on draft PR #12 at `f6bb0bd`: green on the blocking jobs. The cross-lane
 step that adds two keys to the regroup checker belongs to whichever of this lane and the regroup lane lands second; the
-regroup lane is not on main, so this lane leaves it. Also `HANDOFF.md` (which also closes Jake's Windows check, passed
+regroup lane is not on main, so this lane leaves it. Also `HANDOFF.md` (which also closes the owner's Windows check, passed
 2026-10-16) and the session entry.
 
 Check: (1) a share can never be lost, duplicated, retargeted or invented with `--write` or `--verify` exiting 0; (2) one

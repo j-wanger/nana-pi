@@ -36,7 +36,7 @@ import path from a template string.
 - R-862 `implemented` — the same for the Python generator. Pinned against a fresh Python scaffold
   (`4 of 5`) in `templates-render.test.mjs`; python3 and uvx present, so it ran.
 - Open question 10: TS still drops a NON-literal dynamic import silently; Python fails `--check` on
-  it. ~56 sites in nana-pi. Jake's call later.
+  it. ~56 sites in nana-pi. The owner's call later.
 - Open question 11 (worker's find): the Python generator does not resolve a bare `import code_map`
   made through `sys.path`, so a fresh Python scaffold shows 4 of 5 tests untraced.
 

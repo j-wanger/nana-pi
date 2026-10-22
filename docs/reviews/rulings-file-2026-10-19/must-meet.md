@@ -54,7 +54,7 @@ Seal: RT::seal: RULINGS_READ_CAP is 8192 (req R-1411).
 - R-1411: a file of exactly the cap injects, and cap+1 gets the marker. No fixture text leaks. The FIFO case runs in a subprocess under a time limit.
 - R-1412 runs `install --home H --pi-home P`, with P outside H/.pi/agent.
 - R-1415 and R-1417 match whole words in any case.
-- R-1415's list holds only words the tracked tree already has (Jake, jwang, AML, aml-desk).
+- R-1415's list holds only words the tracked tree already has (Owner, the owner, the work project, work-project).
 - R-1417's words are each ROSTER_DEFAULTS model id, its last hyphen part (luna, sol, astra), and CLAUDE_CODE_SUBAGENT_MODELS.
 
 **Red-today probes (adversary, 2026-10-19, temp HOME, repo untouched).**
@@ -77,7 +77,7 @@ Seal: RT::seal: RULINGS_READ_CAP is 8192 (req R-1411).
 9. Uninstall still refuses on Windows.
 10. On POSIX the agent-dir link points into the checkout, so an edit through it changes the checkout.
 
-**Seed.** The seat re-checks it against memory and Jake's power-mode answer before the build. The builder then copies it byte for byte.
+**Seed.** The seat re-checks it against memory and the owner's power-mode answer before the build. The builder then copies it byte for byte.
 ```markdown
 # Nana — Standing rulings
 

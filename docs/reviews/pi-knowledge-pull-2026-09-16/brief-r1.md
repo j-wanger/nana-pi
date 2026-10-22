@@ -4,7 +4,7 @@ You are an independent code reviewer. Read-only. Be adversarial: find what break
 
 ## What changed and why
 
-`packages/nana-knowledge` (in `/Users/jwang/nana-pi`, landed 2026-09-16 as `f611e3f`…`46befcc`) pulls knowledge pointers at prompt time — but only for Claude Code, through a `UserPromptSubmit` hook that runs `bin/nana-knowledge.ts hook` with `{prompt, session_id, cwd}` JSON on stdin. pi had no pull. The premise carried in the handoff ("pi's agent-start event has no prompt text; it would need a tool") was WRONG: pi 0.84.4's `before_agent_start` event carries `event.prompt` (verified in the installed `dist/core/extensions/types.d.ts` ~line 539). So the change is a thin pi extension, uncommitted in the working tree (`git diff` + untracked files under `packages/nana-knowledge/`):
+`packages/nana-knowledge` (in `/Users/example/nana-pi`, landed 2026-09-16 as `f611e3f`…`46befcc`) pulls knowledge pointers at prompt time — but only for Claude Code, through a `UserPromptSubmit` hook that runs `bin/nana-knowledge.ts hook` with `{prompt, session_id, cwd}` JSON on stdin. pi had no pull. The premise carried in the handoff ("pi's agent-start event has no prompt text; it would need a tool") was WRONG: pi 0.84.4's `before_agent_start` event carries `event.prompt` (verified in the installed `dist/core/extensions/types.d.ts` ~line 539). So the change is a thin pi extension, uncommitted in the working tree (`git diff` + untracked files under `packages/nana-knowledge/`):
 
 - `packages/nana-knowledge/extensions/nana-knowledge.ts` (NEW): on `before_agent_start`, spawns the SAME `hook` CLI out-of-process (`execFile(process.execPath, [bin, "hook"], { timeout: 2000, maxBuffer: 64 KiB })`) with `{prompt (sliced to 8 KiB), session_id: ctx.sessionManager.getSessionId(), cwd, source: "pi"}` on stdin, and injects the printed block as a persistent custom message `{ customType: "nana-knowledge", display: true }`. Fail-open on everything. Exports `makePull({bin, timeoutMs})` for tests.
 - `lib/hook.ts` + `lib/tokenize.ts`: `PROMPT_MAX_CHARS` moved to `tokenize.ts` (no sqlite imports) and re-exported; the `pull.log` line gains a `source` field.
@@ -26,12 +26,12 @@ G. **Docs.** Does the README section state the bound honestly (a bound on the ch
 
 ## Files to read
 
-- `/Users/jwang/nana-pi/packages/nana-knowledge/extensions/nana-knowledge.ts`
-- `/Users/jwang/nana-pi/packages/nana-knowledge/lib/hook.ts`, `lib/tokenize.ts`, `lib/paths.ts`, `bin/nana-knowledge.ts`
-- `/Users/jwang/nana-pi/packages/nana-knowledge/tests/extension.test.mjs`, `tests/hook.test.mjs`
-- `/Users/jwang/nana-pi/packages/nana-knowledge/README.md`, `package.json`; `/Users/jwang/nana-pi/package.json`
-- Precedents: `/Users/jwang/nana-pi/packages/nana-pack/extensions/nana-objective.ts`, `nana-notify.ts`
-- pi API: `/Users/jwang/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md` (`before_agent_start`, `input`, `pi.sendMessage`), `dist/core/extensions/types.d.ts` (`BeforeAgentStartEvent`, `BeforeAgentStartEventResult`, `ExtensionContext`)
+- `/Users/example/nana-pi/packages/nana-knowledge/extensions/nana-knowledge.ts`
+- `/Users/example/nana-pi/packages/nana-knowledge/lib/hook.ts`, `lib/tokenize.ts`, `lib/paths.ts`, `bin/nana-knowledge.ts`
+- `/Users/example/nana-pi/packages/nana-knowledge/tests/extension.test.mjs`, `tests/hook.test.mjs`
+- `/Users/example/nana-pi/packages/nana-knowledge/README.md`, `package.json`; `/Users/example/nana-pi/package.json`
+- Precedents: `/Users/example/nana-pi/packages/nana-pack/extensions/nana-objective.ts`, `nana-notify.ts`
+- pi API: `/Users/example/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md` (`before_agent_start`, `input`, `pi.sendMessage`), `dist/core/extensions/types.d.ts` (`BeforeAgentStartEvent`, `BeforeAgentStartEventResult`, `ExtensionContext`)
 
 ## Output
 

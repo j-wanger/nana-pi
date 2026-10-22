@@ -68,7 +68,7 @@ do the same there or say in the report that none exists.
   lane is not doing.
 - Do not add the relocated `settings.json` / `auth.json` to the policy floor (separate urgent item).
 - Do not change the deleted-cwd STOP, the desk pin, or the installer refusal — all three are ruled.
-- Do not touch the already-generated `AGENTS.md` in other repositories (`~/aml-desk`,
+- Do not touch the already-generated `AGENTS.md` in other repositories (`~/work-desk`,
   `~/jev-research`); the seat carries that as a downstream refresh.
 
 ## Allowlist

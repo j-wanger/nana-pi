@@ -8,7 +8,7 @@ Logs: `fc-*.log`; guide-check simulation: `fc-sim-guide.mjs`.
 
 W1. **R-1141 vs the guide text.** The row says the guide opens with "one sentence" that scopes it
     and says builders and reviewers skip it. The proposed scope line is two sentences
-    ("...for Jake. A session started as a builder or reviewer skips it."). The planned test checks
+    ("...for the owner. A session started as a builder or reviewer skips it."). The planned test checks
     "exactly one prose line", not one sentence, so it stays green while the row's "one sentence"
     clause is false. Fix the row ("one line"/"two sentences") or merge the text into one sentence.
 
@@ -50,12 +50,12 @@ U6. **Line cites shift once roster lands.** `pi-worker.mjs:92-93` becomes `:100-
 
 ## GAP
 
-G1. **The monitor and log-read ban reverses a standing Jake ruling, decided by the seat.** Jake asked
+G1. **The monitor and log-read ban reverses a standing the owner ruling, decided by the seat.** the owner asked
     for it four times (`feedback_probe_all_background_work.md`: monitor at launch, a 30-minute
     heartbeat, and a v2 heartbeat that reads worktree file activity). It also says "Passive log
     reading doesn't violate the wait-for-the-runner rule". The guide bans exactly that, and §6 says
-    "none is YOUR CALL". Either cite Jake's 10-13 request as the superseding ruling, word for word,
-    or put the reversal to Jake as YOUR CALL. Do not leave the seat to narrow the memory itself.
+    "none is YOUR CALL". Either cite the owner's 10-13 request as the superseding ruling, word for word,
+    or put the reversal to the owner as YOUR CALL. Do not leave the seat to narrow the memory itself.
 G2. **R-1142's "a file present in this checkout" has no discriminating mutation.** M12 goes red on the
     text-equality clause first. A pair that keeps the pointer text and moves the guide file would pin
     the existence clause, though R-1140 also goes red then.
@@ -67,7 +67,7 @@ G4. **The conflict list omits `packages/nana-pack/tests/templates-render.test.mj
     branches after roster lands, as planned.
 G5. **The writing bar for the guide is acceptance (b) only.** No suite test runs it. Compare R-376 for the
     writing rule. A later edit can push a sentence past 25 words and nothing fails. The scope rule
-    may exempt it, because the guide is not addressed to Jake.
+    may exempt it, because the guide is not addressed to the owner.
 G6. **Placement and matrix (notes).** FEAT-006 is "Launch builders with execution limits", following the
     R-1110 precedent. The Claude rules live elsewhere: R-301 in SUB-012 and R-376 in FEAT-005. The matrix row for the
     Claude Code seat still lists only "Both Claude rules" and the writing rule. R-680 covers only hooks and

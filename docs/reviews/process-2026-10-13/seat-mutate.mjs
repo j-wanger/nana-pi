@@ -22,7 +22,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/process";
+const LANE_REPO = "/Users/example/nana-pi-wt/process";
 // The tip under test: SEAT_MUTATE_TIP, else the lane branch head (written against fdfe9fe).
 const TIP = process.env.SEAT_MUTATE_TIP || "feat/process";
 const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), "proc-seat-mutate-"));
@@ -89,7 +89,7 @@ const goOn = (cond) => [
 ];
 
 // ── the shipped text anchors ────────────────────────────────────────────────────────────────
-const INSTALL_STEP = "### Install check before a land\n\nLand checklist, nana-pi only (Jake, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result.\n\n";
+const INSTALL_STEP = "### Install check before a land\n\nLand checklist, nana-pi only (Owner, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`, because `nana-land` reads no CI result.\n\n";
 const REGION_END = "<!-- nana:working-under-nana-pi end -->";
 const STEP8 = "8. Run `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor` from `~/nana-pi`; expect `all good`.";
 const pre = (line) => `- ${line}\n`;

@@ -1,6 +1,6 @@
 # Review brief — stage signing keys persisted per session (design B), ROUND 2
 
-You reviewed round 1 of this change and returned VERDICT: BLOCK (your review: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-astra-stagekey-r1.md — read it first; the round-1 brief with the mechanism background is /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-brief-stagekey.md). The worker folded every finding. Verify each fold against the code; look for regressions the folds introduced; do not re-litigate accepted design (any-of-recorded-keys on the ledger path; live path single key; pre-change blocks stay redacted).
+You reviewed round 1 of this change and returned VERDICT: BLOCK (your review: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-astra-stagekey-r1.md — read it first; the round-1 brief with the mechanism background is /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-brief-stagekey.md). The worker folded every finding. Verify each fold against the code; look for regressions the folds introduced; do not re-litigate accepted design (any-of-recorded-keys on the ledger path; live path single key; pre-change blocks stay redacted).
 
 ## Folds claimed (verify each)
 
@@ -14,8 +14,8 @@ You reviewed round 1 of this change and returned VERDICT: BLOCK (your review: /p
 
 ## Read
 
-- Round-2 diff (fdbaace..26b2683): /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-stagekey-r2.patch
-- Post-fold merged tree: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/stage-keys.mjs`, `apps/desk/server.mjs` (`sendRpc`, `sendRpcRaw`, `noteStageSession`, `ledgerKeys`, `stageKeyForSpawn`), `apps/desk/apps.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/README.md`, `docs/agent-frontend-design-2026-09-04.md`, `docs/review-punchlist-2026-09-08.md`.
+- Round-2 diff (fdbaace..26b2683): /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-stagekey-r2.patch
+- Post-fold merged tree: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/stage-keys.mjs`, `apps/desk/server.mjs` (`sendRpc`, `sendRpcRaw`, `noteStageSession`, `ledgerKeys`, `stageKeyForSpawn`), `apps/desk/apps.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/README.md`, `docs/agent-frontend-design-2026-09-04.md`, `docs/review-punchlist-2026-09-08.md`.
 
 ## Dimensions
 

@@ -2,7 +2,7 @@
 
 **The contract is `CHANGE.md` in this folder: §1 outcomes, §2 rows, §3 design and declared limits,
 §4 scope, §5 verification.** sol reviewed the plan five times (`sol-plan-r1..r4.md` here; r5 LAND
-10/10). Read them for the reasons. Jake uses the pi seat on Windows daily: this lane makes install
+10/10). Read them for the reasons. The owner uses the pi seat on Windows daily: this lane makes install
 register nana with pi there.
 
 ## Interfaces (pinned — the seat's acceptance script calls exactly these)

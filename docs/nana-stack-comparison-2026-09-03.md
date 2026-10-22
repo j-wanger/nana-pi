@@ -1,6 +1,6 @@
 # nana-dev-kit vs nana-agent-loop vs nana-pi — capability comparison (2026-09-03)
 
-Requested by Jake after the examples census. Question: what do the two older stacks
+Requested by the owner after the examples census. Question: what do the two older stacks
 have that the pi build doesn't, and which of those gaps are real. Grounded in:
 nana-dev-kit `modules.json` + README (25 skills, 18 hooks, 7 layers), nana-agent-loop
 CLAUDE.md + system map, and the current nana-pi tree. This EXTENDS shippable-options
@@ -20,7 +20,7 @@ interactive side.
 | Plan lifecycle | /dev-plan → /dev-debrief → /dev-check (wiki-coupled, subagent dispatch) | HANDOFF + session logs + ceremony | nothing | **GAP (ruled 2026-09-03): plan belongs as a lean SKILL, not a mode** — a wiki-free plan/debrief skill pair is the candidate; port only on felt need after dogfood |
 | Session continuity | pre-compact hook + debrief | HANDOFF.md ceremony + journal resume + compaction-boundary discipline | **nana-handoff (built 2026-09-03)**: compaction → `.pi/handoff.md`, fresh session auto-injects | **CLOSED today** — the loop's HANDOFF pattern, automated |
 | Memory | MCP server + auto-store bridges (plan→memory, spec→memory) + /memory-consolidate | memory discipline rules (session-start recall, store-on-correction) | memory server BRIDGED via pi-mcp-adapter (verified); **no usage discipline** | **HALF-CLOSED**: plumbing yes, habits no. Candidate: one lean `~/.pi/agent/AGENTS.md` block (recall at session start, store corrections) — prompt-level, no code |
-| Identity/rules | nana-soul/nana-personal synced to CLAUDE.md etc. | inherited | nothing (loop workers isolated BY DESIGN; interactive pi runs bare) | **OPEN QUESTION for Jake**: carry a lean identity into interactive pi via global AGENTS.md? Deliberate non-port so far |
+| Identity/rules | nana-soul/nana-personal synced to CLAUDE.md etc. | inherited | nothing (loop workers isolated BY DESIGN; interactive pi runs bare) | **OPEN QUESTION for the owner**: carry a lean identity into interactive pi via global AGENTS.md? Deliberate non-port so far |
 | Knowledge wikis | 10 wiki skills, FTS5, episodic consolidation | research/ + DOCTRINE/IDEAS ledgers | deferred (D4 Tier-3) | **correctly deferred** — no felt need yet; revisit after dogfood |
 | Review flows | py-review 8-point | reviewer-in-loop + non-Anthropic independent review | py-review ported; no ts-review | **minor gap**: ts-review skill (known since assessment) |
 | Observability | session-start state hook, audit hooks | journal + desk feed + loop-status roll-call | nana-lifecycle journal + nana code (sessions, approvals via dialogs) | **parity** for the seat |
@@ -30,7 +30,7 @@ interactive side.
 | MCP/tools | kit MCP config | fetch-provenance host tools | pi-mcp-adapter proxy (memory bridged) + desk MCP tab | **parity+** |
 | Native Windows | **NO** (bash hooks; WSL2 only) | partial (windows-native-shell lane) | **YES** — native win32 across pack/templates/desk (compat pass 2026-09-03) | **pi SUPERIOR — strategic**: the pi stack is the only nana surface that runs native on the Windows box |
 | Eval harness | 52-scenario eval + LongMemEval benchmark | feel-first + doctrine ledger | none | **deliberate** (feel-first invariant); the kit's eval stays kit-side |
-| UI | — | loop desk (loops ONLY, per AML rule) | nana code (sessions, spawn, settings, titles) | complementary by design; keep the two desks separate |
+| UI | — | loop desk (loops ONLY, per the work project rule) | nana code (sessions, spawn, settings, titles) | complementary by design; keep the two desks separate |
 
 ## What this nets out to
 
@@ -43,7 +43,7 @@ interactive side.
 3. **Lean plan/debrief skills** (per today's ruling: skills, not modes) — the
    dev-plan pattern minus wiki coupling. Build after dogfood shows the shape.
 4. **ts-review skill** — symmetry with py-review; small.
-5. **Identity into interactive pi** — Jake's call, not a default: global AGENTS.md
+5. **Identity into interactive pi** — the owner's call, not a default: global AGENTS.md
    with a condensed nana-soul. The loop-side isolation stays untouched either way.
 
 **Non-gaps to resist rebuilding in pi-land:** governed loops, enforcement teeth,

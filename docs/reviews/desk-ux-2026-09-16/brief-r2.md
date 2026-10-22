@@ -1,8 +1,8 @@
-# Review brief r2 — fold of your r1 findings (branch feat/desk-2026-09-16, /Users/jwang/nana-pi)
+# Review brief r2 — fold of your r1 findings (branch feat/desk-2026-09-16, /Users/example/nana-pi)
 
 You reviewed this branch once (your r1 is at sol-r1.md; verdict BLOCK: B-HIGH sync untracked reads, C-HIGH prompt during reload; MEDs A, B-sym, D, F, G). Four commits fold them. Judge the FOLD only; do not re-review what you passed.
 
-Read: sol-r1.md · fold.diff (the fold, 4 commits) · then the touched files whole: /Users/jwang/nana-pi/apps/desk/changes.mjs, /Users/jwang/nana-pi/apps/desk/public/app.js (grep runReload, awaitPendingReload, checkResources, send, stopActivity), /Users/jwang/nana-pi/apps/desk/public/desk-client.mjs (parseSkillMessage), /Users/jwang/nana-pi/apps/desk/README.md (Reload bullet, Changes bullet, Known limits).
+Read: sol-r1.md · fold.diff (the fold, 4 commits) · then the touched files whole: /Users/example/nana-pi/apps/desk/changes.mjs, /Users/example/nana-pi/apps/desk/public/app.js (grep runReload, awaitPendingReload, checkResources, send, stopActivity), /Users/example/nana-pi/apps/desk/public/desk-client.mjs (parseSkillMessage), /Users/example/nana-pi/apps/desk/README.md (Reload bullet, Changes bullet, Known limits).
 
 Fold summary from the author: B-HIGH → countUntracked(): fs.promises lstat/readFile through a pool of 8, budget walk in path order, DESK_UNTRACKED_TOTAL_CAP 16 MiB default, partial:true + partialReason, bytes-based line count; B-MED → lstat raw path first, 409 symlinked path; C-HIGH → runReload publishes S.reloadPromise, send() awaits it (stage rule) then checkResources; {pending:true} → awaitPendingReload() polls get_commands every 500 ms up to 15 s for a CHANGED list (get_state.isStreaming was rejected as a stop signal: pi 0.84.4 runs extension commands before any agent run, so it reads not-streaming throughout — author cites dist/core/agent-session.js:616 and :830-833; /rpc cannot carry prompt: RPC_ALLOWED excludes it by design); A-MED → stale tick clears only its own handle; D-MED → lastIndexOf('\n</skill>'); G-MED → README corrected.
 

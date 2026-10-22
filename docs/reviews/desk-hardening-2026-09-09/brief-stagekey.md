@@ -1,6 +1,6 @@
 # Lane: persisted per-session stage signing key — design B (branch `fix/stagekey`)
 
-Worktree: `/private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-stagekey`. Read `brief-common.md` next to this file first. This lane touches a PROVENANCE BOUNDARY: it gets an adversarial review before landing. Design for the reviewer.
+Worktree: `/private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-stagekey`. Read `brief-common.md` next to this file first. This lane touches a PROVENANCE BOUNDARY: it gets an adversarial review before landing. Design for the reviewer.
 
 ## What exists (read all of it before designing)
 

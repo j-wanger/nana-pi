@@ -33,7 +33,7 @@
 - POSIX writing, reading, and matcher-independent repair match main.
 - R-1055, R-1056, R-1060, and R-937 now cite clause-bearing tests.
 - Every reviewed requirement contains one `shall`; Windows-only rows identify that limitation.
-- Support lines, runtime-matrix copies, HANDOFF, session notes, and Jake’s repeatable check agree.
+- Support lines, runtime-matrix copies, HANDOFF, session notes, and the owner's repeatable check agree.
 - Verified locally: pipe guard 69 pass, settings merge 213 pass, forced-win32 87 pass, seat acceptance 59/59.
 - The committed mutation result is 37/37 red. The recorded locked suite is 137 files with zero failures.
 - **Score: 8/10.** The remaining lexer bypass blocks this gate-adjacent change.

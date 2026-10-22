@@ -7,7 +7,7 @@ Source priority: (1) primary — Anthropic engineering blog + Claude Code change
 Themes to cover (each gets a section; if a theme has nothing new since 09-02, say so in one line):
 1. Harness engineering: hooks/rules/tools composition, permission and sandbox models, verification-in-the-loop (tests, linters, receipts), stop/turn-end gates, headless worker patterns, multi-agent orchestration that shipped (not demos), review-loop designs (author vs reviewer separation, round caps), cost governors.
 2. Context engineering: what the frontier labs now say about context budgets, compaction, memory (persistent, retrieval at prompt time vs session start), instruction-file bloat, skills/progressive disclosure, tool-result pruning, sub-agent context isolation. Measured results only.
-3. Agentic engineering practice: how teams that ship with agents structure objectives, specs, acceptance tests, and handoffs; evidence about autonomy vs consistency (Jake's problem: more autonomy did not buy better results).
+3. Agentic engineering practice: how teams that ship with agents structure objectives, specs, acceptance tests, and handoffs; evidence about autonomy vs consistency (Owner's problem: more autonomy did not buy better results).
 4. Model-level changes that matter for harness design (e.g. Opus 5.5 / Fable 5.1 / GPT-5.6 / GPT-6 features: effort controls, extended context, native compaction, structured decision endpoints) — only where the harness would change.
 5. Anything that speaks directly to nana's open questions: the dormant governed-loop runner vs driving pi directly; the 3-round review cap; prompt-time knowledge pull; per-repo OBJECTIVE/HANDOFF; two-tier memory; seat-briefs-Opus-works split; independent different-model review.
 

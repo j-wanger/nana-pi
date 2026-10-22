@@ -12,7 +12,7 @@ The model can still mislead by choosing a selectively scoped query, omitting rel
 
 ## R4 Slice 1 (§6) — FINDING (MAJOR)
 
-The implementation order is broadly sound—extract client, establish contract, add constrained spawning, then tools and host—but the feel check can pass through live events while the claimed durable product is broken. Before Jake’s check, slice 1 needs an end-to-end test that produces a real block, reloads through `get_entries`, follows the active `leafId` ancestry, and verifies replacement/clear semantics; the current byte-stable fixture and one collapsed-drawer gate test do not exercise those paths (`agent-frontend-design-2026-09-04.md:143-151`; `docs/rpc.md:717-746`). It also needs manifest tool-denial and app-route isolation tests because this slice modifies session and gate surfaces despite being described as “zero blast radius.”
+The implementation order is broadly sound—extract client, establish contract, add constrained spawning, then tools and host—but the feel check can pass through live events while the claimed durable product is broken. Before the owner's check, slice 1 needs an end-to-end test that produces a real block, reloads through `get_entries`, follows the active `leafId` ancestry, and verifies replacement/clear semantics; the current byte-stable fixture and one collapsed-drawer gate test do not exercise those paths (`agent-frontend-design-2026-09-04.md:143-151`; `docs/rpc.md:717-746`). It also needs manifest tool-denial and app-route isolation tests because this slice modifies session and gate surfaces despite being described as “zero blast radius.”
 
 ## R5 Subtraction — FINDING (MINOR)
 

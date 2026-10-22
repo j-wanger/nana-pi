@@ -369,8 +369,8 @@
 2026-10-18T00:58:18.6181283Z       | PASS table newline + forged heading: uiPath is the same rule 
 2026-10-18T00:58:20.5760041Z FAIL  packages/nana-pack/tests/frontier.test.mjs                      42 pass, 3 fail  2.0s  — exit 1
 2026-10-18T00:58:20.5761022Z       | FAIL frontier golden: current output is byte-identical <fixture>\current.md:1: word-budget: words=1663 budget=1200
-2026-10-18T00:58:20.5762425Z       | FAIL frontier golden: missing output is byte-identical <fixture>\missing.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
-2026-10-18T00:58:20.5763926Z       | FAIL frontier golden: future output is byte-identical <fixture>\future.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
+2026-10-18T00:58:20.5762425Z       | FAIL frontier golden: missing output is byte-identical <fixture>\missing.md:2: open-tag: Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
+2026-10-18T00:58:20.5763926Z       | FAIL frontier golden: future output is byte-identical <fixture>\future.md:2: open-tag: Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
 2026-10-18T00:58:20.7841925Z PASS  packages/nana-pack/tests/gate-config-robustness.test.mjs        4 pass  0.2s
 2026-10-18T00:58:39.1490644Z FAIL  packages/nana-pack/tests/gate-corpus.test.mjs                   224 pass, 3 fail  18.4s  — exit 1
 2026-10-18T00:58:39.1491311Z       | FAIL deny drop STOPs (extraPatterns, 2 entries): benign ls BLOCKed naming file + entry 
@@ -647,7 +647,7 @@
 2026-10-18T01:07:57.0025257Z       | Node.js v22.23.3
 2026-10-18T01:08:03.7697263Z FAIL  packages/nana-setup/tests/retired-artifacts.test.mjs            37 pass, 10 fail  6.8s  — exit 1
 2026-10-18T01:08:03.7698332Z       | FAIL recognized Claude skill and empty flag move under dated backups nana-setup install
-2026-10-18T01:08:03.7702649Z       | FAIL install removes released quoted context hook and preserves the expected variants [{"type":"command","command":"bash 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-4836-AZfPWf\\nana-retired-9mUOej\\.claude\\hooks\\context-size-check.sh'"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh --owner-variant"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh","owner":"Jake","enabled":true},{"type":"prompt","command":"bash ~/.claude/hooks/context-size-check.sh","prompt":"owner text"},{"type":"command","command":"node","args":["D:\\a\\nana-pi\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]
+2026-10-18T01:08:03.7702649Z       | FAIL install removes released quoted context hook and preserves the expected variants [{"type":"command","command":"bash 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-4836-AZfPWf\\nana-retired-9mUOej\\.claude\\hooks\\context-size-check.sh'"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh --owner-variant"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh","owner":"Owner","enabled":true},{"type":"prompt","command":"bash ~/.claude/hooks/context-size-check.sh","prompt":"owner text"},{"type":"command","command":"node","args":["D:\\a\\nana-pi\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]
 2026-10-18T01:08:03.7705781Z       | FAIL managed pack skill replaces the backed-up legacy spec 
 2026-10-18T01:08:03.7706201Z       | FAIL doctor reads a canonical pack skill link as healthy 
 2026-10-18T01:08:03.7706888Z       | FAIL rerun after completed moves succeeds and keeps the dated backup nana-setup install

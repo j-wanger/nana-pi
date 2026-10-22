@@ -1,9 +1,9 @@
 # Research brief — open-source evaluation methods we can REUSE for nana (Opus 5.5, web)
 
-Date 2026-09-28. Jake ruled an evaluation lane, and ruled it should **leverage open-source eval methods and question banks where we can** rather than invent our own. You are the research half; a build lane follows from your findings. Your output decides what we adopt, so favour "runnable on our machine against our own work" over "famous".
+Date 2026-09-28. The owner ruled an evaluation lane, and ruled it should **leverage open-source eval methods and question banks where we can** rather than invent our own. You are the research half; a build lane follows from your findings. Your output decides what we adopt, so favour "runnable on our machine against our own work" over "famous".
 
 ## The problem being measured
-Jake's standing complaint (2026-09-16, still unanswered): autonomy rose over three months, consistency and quality did not. Everything built since is a MECHANISM; nothing measures whether the mechanisms changed outcomes. We need instruments, and we would rather borrow a validated method than invent a shaky one.
+The owner's standing complaint (2026-09-16, still unanswered): autonomy rose over three months, consistency and quality did not. Everything built since is a MECHANISM; nothing measures whether the mechanisms changed outcomes. We need instruments, and we would rather borrow a validated method than invent a shaky one.
 
 Three questions the instruments must answer:
 1. **Consistency** — is the same kind of task done well one day and badly the next? (Not mean pass rate.)

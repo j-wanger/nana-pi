@@ -1,10 +1,10 @@
 # UI-centric agent frontend — design
 
-*2026-09-04. Status: design LAND (pi gpt-5.6-sol, round 6). **Slice 1 BUILT the same day** (nana-pi `8e8bc5e`…`d0d6ef2`, basketball-geek `44e5e58`…`c6dcaa3`); adversarial build review rounds in §10. **Slice 2 (the edge desk, §11) BUILT 2026-09-04/05 and review-LANDED after four adversarial rounds (§11.7).** Awaiting Jake's feel check at http://127.0.0.1:7320 (basketball) and http://127.0.0.1:7321 (edge desk).*
+*2026-09-04. Status: design LAND (pi gpt-5.6-sol, round 6). **Slice 1 BUILT the same day** (nana-pi `8e8bc5e`…`d0d6ef2`, basketball-geek `44e5e58`…`c6dcaa3`); adversarial build review rounds in §10. **Slice 2 (the edge desk, §11) BUILT 2026-09-04/05 and review-LANDED after four adversarial rounds (§11.7).** Awaiting the owner's feel check at http://127.0.0.1:7320 (basketball) and http://127.0.0.1:7321 (edge desk).*
 
 ## 1. Decision
 
-Build a second frontend shape where the screen belongs to the application (a dashboard, a case file, a league board) and chat is the primary way to drive it. One transferable kit serves three products: fantasy basketball, the AML investigator, family-planner.
+Build a second frontend shape where the screen belongs to the application and chat is the primary way to drive it. One transferable kit serves three examples: a planning view, a review view, and a league view.
 
 The kit is a **contract plus two thin runtimes**, not a dashboard component library:
 
@@ -20,12 +20,12 @@ Every target screen holds two kinds of content with different plumbing:
 
 | Kind | Examples | Who paints it | How the agent affects it |
 |---|---|---|---|
-| **Durable state the app owns** | fridge stock, chores, case record, league roster | the app, from its store | mutates data through the app's tools; the view re-renders from the store |
+| **Durable state the app owns** | item stock, tasks, entries, roster | the app, from its store | changes data through the app's tools; the view re-renders from the store |
 | **Analysis the agent produces** | strength analysis, trade insight, entity network for this case, "what expires and what to cook" | the stage, from blocks | calls a query tool; the tool returns a block; the block lands on stage |
 
 The agent never paints durable state. The layout is fixed and app-owned. The agent has exactly one kind of action: **call a tool**. Some tools mutate (the app refreshes), some tools answer with a block (the stage shows it). There is no "draw this" tool.
 
-**One input channel, three ways to author a turn.** Chat is primary (Jake, 2026-09-04). A turn is authored by typing, by clicking (the UI composes the prompt: click an entity → "explore counterparties of X"), or by schedule/event (morning briefing, new league data). Direct manipulation survives only where a click is a complete write (check off a chore). Scheduled turns run with no browser open, so the stage renders from the ledger to a static page as well as live.
+**One input channel, three ways to author a turn.** Chat is primary (Owner, 2026-09-04). A turn is authored by typing, by clicking (the UI composes the prompt: click an entity → "explore counterparties of X"), or by schedule/event (morning briefing, new league data). Direct manipulation survives only where a click is a complete write (check off a chore). Scheduled turns run with no browser open, so the stage renders from the ledger to a static page as well as live.
 
 ## 3. Architecture
 
@@ -197,18 +197,18 @@ Routes carry no app name and no child id: the listener *is* the app, and it hold
 
 ## 5. Transferability, stated so it can fail
 
-The claim is that the **mechanism** transfers, not the taxonomy: block contract + `nana-stage` + stage host + per-app listener + manifest are reused unchanged by the second and third apps, and each app adds only (a) its tools returning blocks, (b) its manifest, (c) its page. The claim is judged at slice 2 (now the edge desk, §11 — Jake redirected it from AML on 2026-09-04), which must exercise everything slice 1 avoids: MCP-bridged tools with the `details.mcpResult` path, mutation refresh, cell-level evidence, and lifecycle recovery on a real artifact set. If slice 2 needs a change to `nana-stage` or the host beyond adding a block type, the design failed and that app goes bespoke. *Amended 2026-09-05 (slice-2 review, §11.7):* the app-page and app-data seam — which §3's drawing named ("app API / store", the app's own page) but the kit never specified — is now part of the kit: manifest `page` (the app's `index.html`/`app.js`/`app.css`, served in place of the kit page; kit modules unchanged), `data` (fixed-argv commands behind `GET /api/data/<key>`, same-origin or direct requests only), `quick` (starter prompts), and the stage's `agent:changed` event for the §3.3 refresh rule. The failure rule stands for the block/ledger/stamp/listener-isolation mechanism, which slice 2 did not change.
+The claim is that the **mechanism** transfers, not the taxonomy: block contract + `nana-stage` + stage host + per-app listener + manifest are reused unchanged by the second and third apps, and each app adds only (a) its tools returning blocks, (b) its manifest, (c) its page. The claim is judged at slice 2 (now the edge desk, §11 — the owner redirected it from the work project on 2026-09-04), which must exercise everything slice 1 avoids: MCP-bridged tools with the `details.mcpResult` path, mutation refresh, cell-level evidence, and lifecycle recovery on a real artifact set. If slice 2 needs a change to `nana-stage` or the host beyond adding a block type, the design failed and that app goes bespoke. *Amended 2026-09-05 (slice-2 review, §11.7):* the app-page and app-data seam — which §3's drawing named ("app API / store", the app's own page) but the kit never specified — is now part of the kit: manifest `page` (the app's `index.html`/`app.js`/`app.css`, served in place of the kit page; kit modules unchanged), `data` (fixed-argv commands behind `GET /api/data/<key>`, same-origin or direct requests only), `quick` (starter prompts), and the stage's `agent:changed` event for the §3.3 refresh rule. The failure rule stands for the block/ledger/stamp/listener-isolation mechanism, which slice 2 did not change.
 
 | | App-owned views | Blocks (v0 types) | Composed prompts | Scheduled |
 |---|---|---|---|---|
 | **fantasy basketball** | none in slice 1 | `card` player (players + season stats + contract + injuries), `table` board / nine-cat | click player → "evaluate trading X" | nightly after `scripts/nightly.py` |
-| **edge desk (edge-screener)** — slice 2, Jake 2026-09-04, §11 | tape card (vintage, span, as-of), reports shelf, persona roster | `table` screen panel / construction / direction board, `card` screen detail, **`chart`** OOS curve (first new block type) | click screen → "detail for X"; click row → "explore X on this universe" (mutating) | weekly tape pull + panel explore → static page |
-| **AML investigator** (deferred behind the edge desk) | case record, alert list (aggregate-only tools exist) | `card` entity, `table` red-flag hits with evidence, later `graph` + `timeline` | click red flag → "show the transactions behind this" | new-alert trigger |
+| **edge desk (edge-screener)** — slice 2, the owner 2026-09-04, §11 | tape card (vintage, span, as-of), reports shelf, persona roster | `table` screen panel / construction / direction board, `card` screen detail, **`chart`** OOS curve (first new block type) | click screen → "detail for X"; click row → "explore X on this universe" (mutating) | weekly tape pull + panel explore → static page |
+| **review view** (deferred behind the second example) | item entry, flagged list | `card` item, `table` flagged rows with evidence, later `graph` + `timeline` | click flagged row → "show the details behind this" | new-item trigger |
 | **family-planner** | everything it has now; direct manipulation stays | `table` proposed meal plan, later `kpi` expiring | "plan next week around what expires" | morning briefing (phase 6) |
 
 ## 6. Slice 1: fantasy basketball, two blocks, one page
 
-Why first: single user (Jake), analysis-shaped output, data that exists today. It judges **feel**, not transferability (slice 2's job). It is **not** zero blast radius: it touches session lifecycle and gate surfaces, so per this repo's invariant it ships with deterministic tests and an adversarial review pass before the feel check.
+Why first: single user (Owner), analysis-shaped output, data that exists today. It judges **feel**, not transferability (slice 2's job). It is **not** zero blast radius: it touches session lifecycle and gate surfaces, so per this repo's invariant it ships with deterministic tests and an adversarial review pass before the feel check.
 
 Data that exists in `~/basketball-geek` (README is stale on this): `data/basketball.sqlite` (players, player_season_stats, contracts, salaries, injuries, news, crosswalk), `data/intel.sqlite` (claims, sources), 50 dossiers under `data/dossiers/`, `src/basketball_geek/ninecat.py`, boards under `reports/`. **No league or roster data exists**; league import is a stated dependency, not in scope, and the page says so.
 
@@ -220,7 +220,7 @@ Deliverables, in order, each with its tests before the next starts:
 3. Per-app listeners + manifest loader. Tests: an app listener serves none of the desk routes (spawn, live, session/:id, bash, settings → 404); the spawn ignores any body fields; the child runs with `-t` from the manifest (assert the spawn arguments) and, at runtime, a test-only extension loaded by the manifest reports `pi.getActiveTools()` without `bash`, `edit`, or `write` (`get_state` has no tools field); two manifests → two ports, and a request to port A can only ever reach A's child (there is no route that names another); cross-origin POST from port A's origin to port B → 403; the Origin rule is one middleware applied to every non-GET route on every listener, tested by enumerating the route table (including body-less `DELETE`s on 7317); `trust` maps to `-a`/`-na`; manifest `session` is written atomically after spawn.
 4. Basketball pi extension with two tools: `player_card(name)` and `board_table(board)`; each returns `details.blocks` + text content with the same data, and a required `scope`. Actions: card → "evaluate trading {name}" (read-only), table row → `player_card {name}`.
 5. Stage host page + `stage-render.mjs` (reducer + DOM renderer; the HTML-string renderer lands in 1b). Tests, browser E2E through the real child: a prompt produces a block live; reload rebuilds the same block array through `get_entries` + `leafId` ancestry; a second call with the same block `id` replaces in place; a malformed block from a real tool never appears on stage; the branch test runs the reducer over a **pre-recorded session-file fixture** containing an abandoned branch (app listeners expose no fork route) and asserts only the leaf branch's blocks; gate bar shows a pending select with the drawer collapsed and after reload.
-6. Adversarial pass (pi) on 0, 2–3 and 5, then feel check by Jake: ask for a board → table → click a player → card → click the action → reading in the drawer. Verdict decides slice 2 (AML).
+6. Adversarial pass (pi) on 0, 2–3 and 5, then feel check by the owner: ask for a board → table → click a player → card → click the action → reading in the drawer. Verdict decides slice 2 (Work).
 7. **Slice 1b (after the feel check, before slice 2):** `/api/run`, headless mode, missed-gate ledger + `ack`, HTML-string renderer. Tests: `/api/run` with no live child spawns headless, a dialog is cancelled and recorded, the child is killed only after `agent_settled` (fixture: a run whose `agent_end` carries `willRetry: true` must not be killed early; a run with a queued follow-up must complete it); `/api/run` with a live child and a connected client leaves the dialog pending; the timeout kills and records; the static page's block array equals the live reducer's over the same session file; `ack` clears a missed gate.
 
 ## 7. Subtraction test
@@ -280,7 +280,7 @@ Built in the deliverable order of §6, each step with its tests before the next.
 
 ## 11. Slice 2 (revised 2026-09-04): the edge desk over edge-screener
 
-*Jake's redirect: the second use case is a trading dashboard built from what `~/edge-screener` has today; AML moves behind it. Status: design, not built. Awaits the slice-1 feel check as before.*
+*The owner's redirect: the second use case is a trading dashboard built from what `~/edge-screener` has today; the work project moves behind it. Status: design, not built. Awaits the slice-1 feel check as before.*
 
 ### 11.1 What edge-screener actually has (checked on this Mac, 2026-09-04)
 
@@ -323,7 +323,7 @@ Failure rule unchanged: if `nana-stage` or the host needs a change beyond the bl
 2. edge-screener: `src/edge_screener/blocks.py` (pure block builders over reports + `explore`) + MCP server; tests per builder (evidence refs resolve; explore writes only under `reports/explore/`; NOT-A-VERDICT note present).
 3. Manifest `~/.pi/agent/apps/edge.json` (port 7321, cwd edge-screener, tools = the five above, `mutating: ["explore_screen"]`, no bash/edit/write) + page with the three app-owned views.
 4. Tests through the real child: MCP block → stage; oversize → error naming the cap; mutation → shelf refresh; reload replay; chart cap.
-5. Adversarial pi round on the build → Jake's feel check: ask for the panel → click amihud → detail + chart → click "explore" → shelf gains a report → reading in the drawer.
+5. Adversarial pi round on the build → the owner's feel check: ask for the panel → click amihud → detail + chart → click "explore" → shelf gains a report → reading in the drawer.
 6. Slice 1b (scheduled path) then runs the weekly tape pull + panel explore as its first real job.
 
 ### 11.5 Blast radius
@@ -359,7 +359,7 @@ Built the same evening the redirect landed. Commits: nana-pi (kit: `chart`, list
 - MINOR panel numbers re-rounded (`1.000` → `1.00`) → accepted for the table (typed numbers align and sort; the scope says so and the source column names the printed figure); cards carry printed figures.
 - MAJOR no browser assertion that `agent:changed` reaches `app.js` → **fixed**: `stage-page-edge.e2e.mjs` (stub pi, the real edge page) asserts shelf refetch on a mutating tool, no refetch on a non-mutating one, chart render, table view, reload replay. MINOR data-timeout path untested → **fixed** (injectable timeout, 504 asserted).
 - MAJOR transferability: reviewer's ruling — record the host seam as a design gap the design named but failed to specify, not an app-bespoke failure; record the missing Python validator as a deviation from the written contract → **both amended in §1/§5** (one canonical validator; the page/data seam is now specified kit).
-- MINOR subtraction: persona roster panel and chart table view questioned → roster kept for Jake's feel verdict (his personas are the firm's mental model; one click composes the direction-board prompt); table view kept — the dataviz rule requires a table view for every chart.
+- MINOR subtraction: persona roster panel and chart table view questioned → roster kept for the owner's feel verdict (his personas are the firm's mental model; one click composes the direction-board prompt); table view kept — the dataviz rule requires a table view for every chart.
 
 **Round 2 → REWORK** (`edge-r2.md`): all chart/evidence/test fixes confirmed FIXED; two of the round-1 fixes were themselves fail-open:
 - MAJOR readiness defaulted to `ready` when no report arrived → **fixed**: the desk owns the state — a child spawned with expected tools is `waiting` until nana-stage reports, `unreported` after the bound (35 s), never assumed ready; prompts are 409-refused unless `ready`; the listener test spawns a SILENT child and asserts `unreported` + 409; both browser stubs now emit the `waiting → ready` transition and the edge page test asserts send is enabled only after it.

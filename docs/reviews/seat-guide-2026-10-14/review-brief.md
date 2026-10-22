@@ -1,6 +1,6 @@
 # Review — the seat guide, 2026-10-14 (gpt-5.6-sol build review and gpt-6-astra land review, in parallel)
 
-Review `git diff 484329c..HEAD` on `feat/seat-guide` (main `484329c`). Jake's request, 2026-10-13: "We also need to add
+Review `git diff 484329c..HEAD` on `feat/seat-guide` (main `484329c`). The owner's request, 2026-10-13: "We also need to add
 instructions on how to be a good seat, the opus seat on windows is checking the work done by the worker every turn".
 Threat model: honest variation in our tools' output in scope (an edit that drops, duplicates or adds a guide bullet or
 drops the rule from a list; CRLF; a stale Windows copy); deliberate forgery and a seat that ignores the rule out. Lane
@@ -18,7 +18,7 @@ and both install-check jobs green; on the non-blocking Windows leg `seat-rule.te
 passes, while `templates-render.test.mjs` stops at a known line-ending fault before the R-1142 checks, as on main. The
 seat's local install check passed 12/12. Also `HANDOFF.md` and the session entry.
 
-Check: (1) the guide says what Jake asked and nothing that contradicts his standing rulings (passive monitors stay;
+Check: (1) the guide says what the owner asked and nothing that contradicts his standing rulings (passive monitors stay;
 any change that touches code with tests goes through the pattern); (2) a Claude Code seat on macOS (link) and Windows
 (copy) gets the rule from one install, doctor shows it, and uninstall removes it; (3) the pointer is third person and
 safe in every project's AGENTS.md, including builder and reviewer children; (4) R-1140–R-1142 and the R-301 reword are

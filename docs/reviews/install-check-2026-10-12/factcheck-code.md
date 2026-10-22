@@ -1,6 +1,6 @@
 VERDICT: the plan can run on hosted macOS and Windows runners after the fixes below. Six things are wrong or will not work as written: the Windows pi launches, the expected first Windows result, the attribution of the macOS failure, the stale state of cc-hooks-windows, the promise to share samples with that lane, and the claim that the check writes nothing outside its home.
 
-Process slip: I broke the read-only rule once. A `git show … >` redirect wrote `/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/cc-change-71757f4.md`. It is a copy of cc CHANGE.md at `71757f4`. I left it in place, because deleting it is also not allowed. No repo file was touched.
+Process slip: I broke the read-only rule once. A `git show … >` redirect wrote `/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/cc-change-71757f4.md`. It is a copy of cc CHANGE.md at `71757f4`. I left it in place, because deleting it is also not allowed. No repo file was touched.
 
 **Steps that cannot work as written (each with the smallest fix)**
 
@@ -16,10 +16,10 @@ Process slip: I broke the read-only rule once. A `git show … >` redirect wrote
    - The PowerShell hit `npm test | Select-Object -Last 1; git commit -m done` is not verbatim in that file. The closest is `npm test | Select-Object -Last 5; git commit -m x`.
    - The cc lane holds R-1050 to R-1069, not R-1064. `build-brief-1.md` reserves R-1065 to R-1069 for its own splits.
 5. **The sample-sharing promise conflicts with the cc contract.** The cc brief has no instruction to import from `install-check-config.mjs`. Its Windows test is `packages/nana-setup/tests/hooks-win32-exec.test.mjs`.
-   - "cc imports them at its next merge" reopens a plan sol accepted. Jake allows that only for a named fail-open bug.
+   - "cc imports them at its next merge" reopens a plan sol accepted. The owner allows that only for a named fail-open bug.
    - "This lane moves that test's samples" edits a cc-owned file that is not in this lane's scope.
    - Fix: drop the promise and carry the duplication as a residual.
-6. **"Writes nothing outside that home" is false on Windows.** npm's cache is `%LOCALAPPDATA%\npm-cache`, which ignores USERPROFILE. Both platforms also write to the system temp folder. The same goes for "Jake's run touches only a temporary home".
+6. **"Writes nothing outside that home" is false on Windows.** npm's cache is `%LOCALAPPDATA%\npm-cache`, which ignores USERPROFILE. Both platforms also write to the system temp folder. The same goes for "the owner's run touches only a temporary home".
    - Fix: set `npm_config_cache=<home>/.npm` for the pi-subagents step and strip `npm_config_*`.
    - Or reword the claim to "no nana, pi or Claude Code state outside the home".
 
@@ -68,7 +68,7 @@ Process slip: I broke the read-only rule once. A `git show … >` redirect wrote
 
   State that in HANDOFF, or turn the rpc `get_commands` probe into a row.
 - Nothing runs install-check on cc's code before either lane lands. A throwaway branch that merges both, opened as a draft PR, would show Windows green before 2026-10-24.
-- The flip needs two consecutive pushes to main, and Jake pushes main by hand. Say so, or count PR runs at main's tip.
+- The flip needs two consecutive pushes to main, and the owner pushes main by hand. Say so, or count PR runs at main's tip.
 - `--ignore-scripts` skips the postinstall scripts of pi's dependencies esbuild and protobufjs. The risk is low because the check never loads extensions, but the plan does not state it.
 
 **Verified correct**

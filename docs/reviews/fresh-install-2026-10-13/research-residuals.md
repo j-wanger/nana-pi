@@ -1,13 +1,13 @@
 # Research — install-check residuals for lane fresh-install (main @ 9974218, 2026-10-13)
 
-Source list: `~/.claude/projects/-Users-jwang-nana-pi/memory/project_pending_residuals_2026_10_13.md`.
+Source list: `~/.claude/projects/-Users-example-nana-pi/memory/project_pending_residuals_2026_10_13.md`.
 Final reviews read verbatim: scratchpad `ic-sol-r1.md` (sol 9/10 LAND) and `ic-astra-r1.md` (astra 95/100 LAND);
 ledger rounds `~/.pi/agent/review-ledger.rounds.jsonl:649-650` (both LAND at 9974218).
 Already recorded in HANDOFF today: only the doctor-note-list item (`HANDOFF.md:44`). Every other item is unrecorded.
 
 Recommendation in one line: fix everything in code/docs; pin the three rows with four named tests (cheaper and
 more honest than a downgrade); implement the failure diagnostics (one new row, four tests); fix the Git Bash
-`Path` lookup because Jake's PowerShell run would otherwise print `Git Bash: not found`.
+`Path` lookup because the owner's PowerShell run would otherwise print `Git Bash: not found`.
 
 ---
 
@@ -45,7 +45,7 @@ more honest than a downgrade); implement the failure diagnostics (one new row, f
   `packagesnana-setupbininstall-check.mjs` and fails with module-not-found.
 - `:23` "runs every hook as Claude Code would" overstates: the check simulates the documented dispatch
   (sol NOTE; CHANGE §3 "Declared limits": "Claude Code itself never runs").
-- `:24-25` asks Jake to paste "the first lines naming the resolved Git Bash, pi and node". From PowerShell,
+- `:24-25` asks the owner to paste "the first lines naming the resolved Git Bash, pi and node". From PowerShell,
   item 6 below makes that line read `Git Bash: not found` (INFERRED, not run on Windows).
 
 **Smallest honest fix.**
@@ -227,7 +227,7 @@ first line reads `Git Bash: not found`. CI is unaffected: it launches node from 
 which exports `PATH`, and run 2026-10-12T17:11 printed `Git Bash: C:\Program Files\Git\bin\bash.exe`
 (scratchpad `ic-ci1-win-ic.log`). `findPi` already reads the key case-insensitively (`packages/nana-pack/lib/win-command.mjs:14-17`, `:30`).
 
-**Consequence.** No hook result changes (item 1: Git Bash runs nothing on win32). But Jake's blocking Windows
+**Consequence.** No hook result changes (item 1: Git Bash runs nothing on win32). But the owner's blocking Windows
 check runs from PowerShell and asks him to paste that line (`owner-windows-check.md:24-25`), so the one person
 proving Windows would see a false `not found`.
 
@@ -264,12 +264,12 @@ Then drop the second sentence of `HANDOFF.md:44`.
 
 ---
 
-## 8. HANDOFF ruling line for Jake's 2026-10-13 builder split
+## 8. HANDOFF ruling line for the owner's 2026-10-13 builder split
 
 **Missing today.** `HANDOFF.md:18` still reads "Builders: time one lane with Sonnet 5.5 and one with luna before
 any roster change." `:22` records the 10-13 review ruling but not the builder split. The shared roster memory has
 it (`~/.claude/nana-memory/shared/reference_roster.md:21-23`).
-**Proposed Landed line (after :22):** "- 2026-10-13: Jake's builder split. Sonnet 5.5 builds larger or riskier
+**Proposed Landed line (after :22):** "- 2026-10-13: the owner's builder split. Sonnet 5.5 builds larger or riskier
 lanes. luna builds small lanes, and every brief names each required test by exact title."
 **Cost.** One line; run `nana-writing.mjs --report` on HANDOFF after the edit.
 

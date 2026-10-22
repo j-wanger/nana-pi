@@ -190,7 +190,7 @@ lane` and replace both of its bullets — the A1 "BUILT … awaiting one review 
 with this one. `<close sha>` is the close commit. Checker (`nana-writing.mjs`): 9 sentences, 140
 words, 0 over, 0 passive, 0 banned `[V]`.
 
-> - **EARS form lane LANDED 2026-10-04** (`<close sha>`, `docs/reviews/ears-form-2026-10-04/lane-close-ruling.md`): every row carries one `shall`. The rail reads `ears: 0 rows off form (allowance 0)`, sealed at 0 and held equal to the measured count (R-757). G-013 reads `implemented`. 788 rows: 499 implemented, 279 untested, 8 violated, 2 planned. The lane split 200 origins into 244 rows and downgraded 53 origins. Its 214 untested rows are Open question 6b's worklist; each cell names its batch and, where astra found one, the uncovered words. Standards differ by batch: A3 and B per named condition, A1 and A2 one red mutation per row, C's origins unjudged; 6b says which. Both templates carry the check; new projects get it at `v0.6.1`. Out of scope: aml-desk's rail copy (193 off form) and basketball-geek (2 off form, which fails at allowance 0 on its next `copier update`).
+> - **EARS form lane LANDED 2026-10-04** (`<close sha>`, `docs/reviews/ears-form-2026-10-04/lane-close-ruling.md`): every row carries one `shall`. The rail reads `ears: 0 rows off form (allowance 0)`, sealed at 0 and held equal to the measured count (R-757). G-013 reads `implemented`. 788 rows: 499 implemented, 279 untested, 8 violated, 2 planned. The lane split 200 origins into 244 rows and downgraded 53 origins. Its 214 untested rows are Open question 6b's worklist; each cell names its batch and, where astra found one, the uncovered words. Standards differ by batch: A3 and B per named condition, A1 and A2 one red mutation per row, C's origins unjudged; 6b says which. Both templates carry the check; new projects get it at `v0.6.1`. Out of scope: work-project's rail copy (193 off form) and basketball-geek (2 off form, which fails at allowance 0 on its next `copier update`).
 
 Also drop HANDOFF line 35 ("The next `v*` tag must also carry the seven-extension wording …") once
 the tag is pushed: `templates/_shared/working-under-nana-pi.md` reads "seven pi extensions" on main
@@ -233,7 +233,7 @@ the rendered suites from them pass (§3 step 4).
   `[tool.pytest.ini_options]` — the shape verified today `[V]` — or splits two rows. The same update
   is its marker migration (`@pytest.mark.req` → `# req:`) `[I]`. Record it in the HANDOFF line (§5
   does) and open it as its own lane, not here.
-- **aml-desk** is unaffected by the tag: its own rail copy, 193 rows off form, its own lane.
+- **work-project** is unaffected by the tag: its own rail copy, 193 rows off form, its own lane.
 - **R-760** (`violated`, lane-born in A1): `objective.ts:479-480` tells the owner to "move it aside
   first" for an obstructed lock path, and `packages/nana-pack/README.md:725` documents the same
   wording. The row's cell records it; the README describes the behaviour the row calls wrong. A

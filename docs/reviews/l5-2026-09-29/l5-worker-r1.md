@@ -15,7 +15,7 @@ Sessions ran in these git repositories, which have no OBJECTIVE.md, no handoff a
 - …/r0 — has: AGENTS.md, docs/sessions/ · last session 2026-09-29
 - …/r1 … r2 … r4 … r5 — has: nothing
 …and 2 more
-For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+For each: adopt it with `nana-setup project <dir>` and set its objective with Owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 ```
 An empty or absent journal gives empty stdout and exit 0, from both the bin and the hook.
 

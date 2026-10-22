@@ -1,4 +1,4 @@
-seat-mutate: lane fresh-install, tip 7a4fcba6a341280c3a507d954d13bc2ee4b730d9, 45 pairs, node v22.22.2, npm prefix /Users/jwang/.local, pwsh seat, 2026-10-13T19:34:53.600Z
+seat-mutate: lane fresh-install, tip 7a4fcba6a341280c3a507d954d13bc2ee4b730d9, 45 pairs, node v22.22.2, npm prefix /Users/example/.local, pwsh seat, 2026-10-13T19:34:53.600Z
 BASELINE ok   packages/nana-setup/tests/pi-install-pin.test.mjs (exit 0, 7 PASS, 0 FAIL, 0.1s)
 BASELINE ok   packages/nana-setup/tests/fresh-machine.test.mjs (exit 0, 4 PASS, 0 FAIL, 0.0s)
 BASELINE ok   packages/nana-setup/tests/doctor-runtime.test.mjs (exit 0, 21 PASS, 0 FAIL, 2.9s)

@@ -4,7 +4,7 @@
 is `CHANGE.md` in this folder, frozen at `afb4c01` after sol plan r3 LAND — read ALL of it, including the "Seat
 revision", "Plan review r1", "r2" and "r3" sections at the end: R-1160 (a shared `ledgerReadProblem` that the checker
 command and the report both call) and R-1161 (near-miss tree headings) were added there, R-1157 lost its refusal
-clause, and the leaf total is the base + 12. Jake's words it serves are in §1 and §6. Threat model (§1): honest
+clause, and the leaf total is the base + 12. The owner's words it serves are in §1 and §6. Threat model (§1): honest
 variation in scope, including CRLF, a BOM and a UTF-16 file from Windows PowerShell 5.1; forgery out. New IDs:
 R-1150–R-1161 only; R-1162–R-1169 stay unused.
 

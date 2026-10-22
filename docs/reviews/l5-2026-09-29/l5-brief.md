@@ -1,7 +1,7 @@
 # Lane L5 — an unadopted repository is a signal that reaches the seat
 (2026-09-29 · repo `~/nana-pi` · worktree `~/nana-pi-wt/l5` · branch `lane/l5-directory-adoption`, off `main` `eca3de4`)
 
-Design: `docs/directory-adoption-design-2026-09-28.md`. Jake's ruling: *"A directory with no handoff
+Design: `docs/directory-adoption-design-2026-09-28.md`. The owner's ruling: *"A directory with no handoff
 should be reported to seat, and have seat assign an objective and start accumulating directory-level
 knowledge."* He then ruled the three open questions: **repository roots only · dismissal is a marker
 file in the repo · an `OBJECTIVE.md` ends the reporting.**

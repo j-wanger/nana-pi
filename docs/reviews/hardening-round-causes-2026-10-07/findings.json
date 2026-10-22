@@ -869,7 +869,7 @@
   "severity": "MUST",
   "category": "BUILDER_BUG",
   "firstPassAvoidable": "unclear",
-  "summary": "Open-for-Jake tag checked on the entry's first line only; impossible since-date 2026-99-99 accepted.",
+  "summary": "Open-for-Owner tag checked on the entry's first line only; impossible since-date 2026-99-99 accepted.",
   "why": "Brief said 'entries', not lines; date-validity part is a minor edge."
  },
  {
@@ -923,7 +923,7 @@
   "severity": "MUST",
   "category": "BUILDER_BUG",
   "firstPassAvoidable": "likely",
-  "summary": "Exact heading match skips the real 'Open for Jake (\u2026)' heading; the frozen fixture's zero findings hid it.",
+  "summary": "Exact heading match skips the real 'Open for the owner (\u2026)' heading; the frozen fixture's zero findings hid it.",
   "why": "Builder had the real HANDOFF fixture since r1/r3; obvious on a careful read."
  },
  {
@@ -932,7 +932,7 @@
   "severity": "SHOULD",
   "category": "FIX_REGRESSION",
   "firstPassAvoidable": "unclear",
-  "summary": "Permissive cue-to-date gap lets the r3-added 'by' cue consume historical dates such as 'by Jake (adopted \u2026)'.",
+  "summary": "Permissive cue-to-date gap lets the r3-added 'by' cue consume historical dates such as 'by the owner (adopted \u2026)'.",
   "why": "Defect surfaced by the previous rounds' cue regex and cue expansion."
  },
  {

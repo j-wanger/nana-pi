@@ -1,6 +1,6 @@
 # Review brief — desk pi-session adoption, sol RE-CHECK after your BLOCK (and a new safety-surface touch)
 
-Your first review is at /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/review-sol-deskpi.md (BLOCK: resolution not tied to PI_BIN; SHOULDs: unstable v1 ids, header id, null entries, README wording, tests). Re-check ONLY the folds and one new item. Read-only; no server on 7317.
+Your first review is at /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/review-sol-deskpi.md (BLOCK: resolution not tied to PI_BIN; SHOULDs: unstable v1 ids, header id, null entries, README wording, tests). Re-check ONLY the folds and one new item. Read-only; no server on 7317.
 
 ## Folds (verify)
 1. Resolution (apps/desk/pi-session.mjs, now also owns resolvePiBin): DESK_PI_ROOT exclusive and spawns nothing (warns if the binary lives in a different package); else walk-up from realpath(PI_BIN); else shim path: `PI_BIN --version`, enumerate npm root -g / npm_config_prefix / volta which + image / node prefix / bun / ~/.local / ~/.npm-global / %APPDATA%\npm / Homebrew / /usr/local / /usr, accept exactly one root whose package.json version equals; zero, two indistinguishable, or a mute binary → REFUSE listing candidates and naming DESK_PI_ROOT. PI_MIN_VERSION 0.84.4 is now a hard floor. Startup logs which path won.
@@ -10,8 +10,8 @@ Your first review is at /private/tmp/claude-501/-Users-jwang-nana-agent-loop/ben
 5. NEW SAFETY-SURFACE TOUCH: DESK_PORT=0 support — the listen callback records BOUND_PORT and the Host/Origin rules read it (previously a port-0 desk 403'd everything incl. itself). host-rule.test.mjs gained 5 port-0 cases via raw sockets (own bound port allowed; rebound Host, loopback name on wrong port, and the configured port 0 all 403).
 
 ## Read
-- Diff (server.mjs + host-rule test): /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/diff-desk-pi2.patch
-- New module copy: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/new-pi-session2.mjs
+- Diff (server.mjs + host-rule test): /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/diff-desk-pi2.patch
+- New module copy: /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/new-pi-session2.mjs
 - Post-change: ~/nana-pi/apps/desk/server.mjs, apps/desk/pi-session.mjs, apps/desk/test/pi-resolution.test.mjs, pi-session-parity.test.mjs, host-rule.test.mjs, apps/desk/README.md, ~/nana-pi/README.md
 
 ## Dimensions

@@ -2,11 +2,11 @@
 
 **Commits:** `73f5079` on `lane/t2a-objective` (not pushed). The edit to `~/nana-agent-loop/OBJECTIVE.md` is saved but not committed, because the brief allowed that one edit and did not authorise commits in that repo.
 
-**Before/after for three cases** (both runtimes run with Jake's live settings: `path` = umbrella, `projectFile: OBJECTIVE.md`):
+**Before/after for three cases** (both runtimes run with the owner's live settings: `path` = umbrella, `projectFile: OBJECTIVE.md`):
 - **cwd `~/nana-agent-loop`:**
   - Before: the hook printed the objective and priority lines. Pi printed the whole file (Rules included) and then added an `Umbrella (nana):` line repeating the same file's objective.
   - After: `cmp` finds the two outputs identical. They show `governing: …/OBJECTIVE.md` with the objective and priority, and no program block is repeated.
-- **cwd `~/aml-desk/src`:**
+- **cwd `~/work-desk/src`:**
   - Before: the hook printed the product's lines plus the umbrella objective only. Pi printed the whole product file plus the umbrella objective only. Neither showed the umbrella priority.
   - After: identical. The product's lines come first, then `program objective: …` and `program current priority: …make the nana-pi experience consistent…`, then the precedence sentence and the charge line.
 - **cwd with no OBJECTIVE.md** (`/tmp/…/nodir`): before, the hook printed 2 lines and pi printed the whole file. After, both print the same umbrella block.
@@ -23,7 +23,7 @@
 - Added limits: files are read up to 256 KiB and only if they are regular files, so a FIFO can't stall the hook. There is a 12000-char cap on total output. The code never throws.
 
 **The OBJECTIVE.md Rules rewrite** (replaces "A new lane opens only by editing the priority line above"):
-> **Which objective governs** (Jake 2026-09-18 decentralization, 2026-09-28 ruling 1): the nearest `OBJECTIVE.md` governs. A product's own `OBJECTIVE.md` governs that product's approved work; the priority above says what the toolkit lane (nana-pi) is for, and both are printed at every product session start so a trade-off between them is visible. **Opening a NEW product lane is still Jake's call.** Work that serves no governing line is a discussion with Jake, not a session.
+> **Which objective governs** (Owner 2026-09-18 decentralization, 2026-09-28 ruling 1): the nearest `OBJECTIVE.md` governs. A product's own `OBJECTIVE.md` governs that product's approved work; the priority above says what the toolkit lane (nana-pi) is for, and both are printed at every product session start so a trade-off between them is visible. **Opening a NEW product lane is still the owner's call.** Work that serves no governing line is a discussion with the owner, not a session.
 
 **`npm test`:** `69 files: 68 PASS, 0 FAIL, 1 SKIP, 0 WARN · checks: 3280 pass, 0 fail, 6 skip`, exit 0. The hook takes about 0.07s.
 
@@ -37,7 +37,7 @@
 - I added a `loadUserObjective()` function to `config.ts` so the command-line side reads the same user settings as pi. It does not write to the journal like the full config loader does.
 
 **Residuals:**
-- **Behaviour change for machines without Jake's settings:** the Claude Code hook now uses the pi settings (`objective.path`, `projectFile` opt-in). With no `nana-pack.json`, it no longer looks for OBJECTIVE.md up the directory tree or falls back to `~/nana-agent-loop`. It reads `~/.pi/agent/nana-objective.md`, which nana-setup seeds, and shows it if present, otherwise the marker.
+- **Behaviour change for machines without the owner's settings:** the Claude Code hook now uses the pi settings (`objective.path`, `projectFile` opt-in). With no `nana-pack.json`, it no longer looks for OBJECTIVE.md up the directory tree or falls back to `~/nana-agent-loop`. It reads `~/.pi/agent/nana-objective.md`, which nana-setup seeds, and shows it if present, otherwise the marker.
 - The Claude side still writes nothing to the journal; only pi does.
 - The `Umbrella (nana)` wording in `HANDOFF.md` is out of date; I left it alone because it was out of scope.
 

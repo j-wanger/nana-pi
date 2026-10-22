@@ -4,7 +4,7 @@
 `CHANGE.md` in this folder, frozen at `2a859ef` after sol plan r3 LAND — read ALL of it, including both "Seat revision"
 sections and "Plan review r1" and "r2": they change R-1163, R-1167, check 9 of §3.5 (placement: in default mode the
 proof derives the whole expected heading sequence from the input; in mapping mode it checks the mapping's declared
-placement), T6 and T20, and the mutation table. Jake's ruling it serves is in §1. Threat model in §1. New IDs:
+placement), T6 and T20, and the mutation table. The owner's ruling it serves is in §1. Threat model in §1. New IDs:
 R-1162–R-1169 only.
 
 ## Two seat clarifications (2026-10-14; not plan changes)

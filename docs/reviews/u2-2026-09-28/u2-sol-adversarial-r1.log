@@ -1,5 +1,5 @@
 pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
-pi-review: item "u2-agent-dir" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (adversarial @ c602c6819404)
+pi-review: item "u2-agent-dir" (git:/Users/example/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (adversarial @ c602c6819404)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=0.89s flat=0/15
   [pi-review a1] cpu=0.94s flat=0/15
@@ -38,4 +38,4 @@ pi-review: item "u2-agent-dir" (git:/Users/jwang/nana-pi/.git): 0 round(s) used 
   [pi-review a1] cpu=2.59s flat=0/15
   [pi-review a1] cpu=2.8s flat=0/15
   [pi-review a1] cpu=3s flat=0/15
-[pi-review] SUCCESS on attempt 1 (8392 chars → /Users/jwang/nana-pi/docs/reviews/u2-2026-09-28/u2-sol-adversarial-r1.md; round 1)
+[pi-review] SUCCESS on attempt 1 (8392 chars → /Users/example/nana-pi/docs/reviews/u2-2026-09-28/u2-sol-adversarial-r1.md; round 1)

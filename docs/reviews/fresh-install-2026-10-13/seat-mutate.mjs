@@ -16,7 +16,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/fresh-install";
+const LANE_REPO = "/Users/example/nana-pi-wt/fresh-install";
 // The tip under test: SEAT_MUTATE_TIP, else the lane branch head (built at 454a801 for the first run).
 const TIP = process.env.SEAT_MUTATE_TIP || "feat/fresh-install";
 const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), "fi-seat-mutate-"));
@@ -24,7 +24,7 @@ const WT = path.join(SCRATCH, "wt");
 const RUNS = path.join(SCRATCH, "runs");
 const TIMEOUT_MS = 10 * 60 * 1000;
 const ACC_TIMEOUT_MS = 45 * 60 * 1000;
-const SEAT_PWSH = "/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/plan-fresh-install/pwsh/pwsh";
+const SEAT_PWSH = "/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/plan-fresh-install/pwsh/pwsh";
 
 // test files
 const PIN = "packages/nana-setup/tests/pi-install-pin.test.mjs"; // T1-T6 + the malformed-cutoff title

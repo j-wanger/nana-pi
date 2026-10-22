@@ -5673,7 +5673,7 @@
 2026-10-19T13:19:45.6115791Z PASS --not-a-project on a missing folder refuses with the reason 
 2026-10-19T13:19:45.6159114Z all passed
 2026-10-19T13:19:45.6251403Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  1.0s
-2026-10-19T13:19:45.6914708Z PASS key(<home>/aml-desk) = <home-key>-aml-desk 
+2026-10-19T13:19:45.6914708Z PASS key(<home>/work-project) = <home-key>-work-project 
 2026-10-19T13:19:45.6917529Z PASS key(<home>/.nana-worktrees/x) = <home-key>--nana-worktrees-x 
 2026-10-19T13:19:45.6919843Z PASS key(<home>/nana-agent-loop) = <home-key>-nana-agent-loop 
 2026-10-19T13:19:45.6921342Z PASS key(<repo>) = <home-key>-nana-pi 

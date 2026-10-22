@@ -11,7 +11,7 @@ Checked from outside the plan, read-only, at `main` `d9cf0bc`. "Ran" means run o
    Ran: a row with the cp1252 byte `0xE9` decodes to U+FFFD with no NUL. `Buffer.from(text,"utf8")` then differs from the
    raw bytes (43 → 45 bytes). The lift would write `EF BF BD` into that row and still print "rows kept byte-identical".
    This is honest variation, not forgery. Windows PowerShell 5.1 `Add-Content` appends in ANSI to a UTF-8 file with no BOM.
-   `Set-Content` on a new or empty file is ANSI too [MS-enc]. Real ledgers carry non-ASCII in many rows (Ran: aml-desk 154/365,
+   `Set-Content` on a new or empty file is ANSI too [MS-enc]. Real ledgers carry non-ASCII in many rows (Ran: work-project 154/365,
    basketball-geek 25/171, trading-zone 28/197, yokai-world 826/1106). **Fix:** refuse a ledger whose raw bytes differ from
    the re-encoded text. That test is exact, with no false positives; add it to R-1167 and to T22, and add a mutation.
 2. **The gate is per checkout, and the skill sends the run to a fresh worktree where the gate always passes.** The flow
@@ -75,12 +75,12 @@ Checked from outside the plan, read-only, at `main` `d9cf0bc`. "Ran" means run o
 - The flow's guard against "uncommitted edits" is blind in a worktree (top issue 2). `$HOME/nana-pi` assumes the checkout's
   location. That is pre-existing (tree residual 13).
 
-## Scope against Jake's words
+## Scope against the owner's words
 
-Traced to Jake (`HANDOFF.md:29,78-79`) and the tree sketch (`tree CHANGE.md:210`): applying a mapping, the mechanical default,
+Traced to the owner (`HANDOFF.md:29,78-79`) and the tree sketch (`tree CHANGE.md:210`): applying a mapping, the mechanical default,
 proof by default, `--write` after the yes while the ledger matches HEAD, reserved G nodes, and head and tail
 (`research-adopt.md:58-64`). The separate proof module follows req-tree's standard. Scope creep:
-1. `--verify <rev>` (R-1168, T28). Neither Jake nor the sketch asks for it. It is a third mode with blob reads and the Windows
+1. `--verify <rev>` (R-1168, T28). Neither the owner nor the sketch asks for it. It is a third mode with blob reads and the Windows
    path bug in top issue 3. The reviewer can rerun the dry run at the base instead.
 2. A mapping applied to a ledger that already has a tree, with move lines (R-1166 "with or without a tree", R-1162, T20).
    This is regroup-lane work pulled forward; HANDOFF:78 says "to a flat ledger". It is also the plan's own claim most likely wrong.

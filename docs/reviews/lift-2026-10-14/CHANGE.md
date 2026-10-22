@@ -8,13 +8,13 @@ file; ledger copies and probes stay in the seat's scratch, uncommitted. Cites ar
 
 ## 1. Why
 
-Jake, 2026-10-14: "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding existing repo and turn into feature trees, then development
+The owner, 2026-10-14: "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding existing repo and turn into feature trees, then development
 really becomes feature oriented". The queue puts the lift first (`HANDOFF.md:78-79`; tree `CHANGE.md:210-212`).
 - **The gap.** A flat ledger gets one line from the checker and report: no tree yet, see the skill (`requirements-tree.mjs:416-418`). The skill names "a lift into the tree, with
   every row kept byte-identical" and no command (`SKILL.md:128`); copier never rewrites a ledger (tree `CHANGE.md:26`); a hand sort has no proof (tree residual 1, `:224`).
-- **The users (Ran, `research-ledgers.md` §1–§5).** Flat: aml-desk (365 rows, Parts A–F, 3 headless fragments), basketball-geek (171 rows, 6 uncommitted), trading-zone (197 rows,
+- **The users (Ran, `research-ledgers.md` §1–§5).** Flat: work-project (365 rows, Parts A–F, 3 headless fragments), basketball-geek (171 rows, 6 uncommitted), trading-zone (197 rows,
   a template general block mid-file, 7 product sections after it). yokai-world is a hand-built partial tree with 35 problems.
-- **The regroup needs it.** The regroup lane's agent proposes a tree; Jake approves; this tool applies it (`HANDOFF.md:79`). So one mapping format must serve the mechanical
+- **The regroup needs it.** The regroup lane's agent proposes a tree; the owner approves; this tool applies it (`HANDOFF.md:79`). So one mapping format must serve the mechanical
   default and the agent's proposal, and the tool must take a tree as input.
 
 **Threat model.** In scope: honest variation in our tools' output and our users' files — CRLF, a BOM, a UTF-16 file (Windows PowerShell 5.1 `>`), an ANSI ledger line or mapping
@@ -67,7 +67,7 @@ mapping, writing it only when proved and matching HEAD." It builds the default m
 - **Reads.** Ledger and mapping, files or blobs, are read as bytes; bytes that differ from `Buffer.from(text, "utf8")` refuse, naming the first such line (R-1167; a cp1252 `0xE9`
   row decodes to U+FFFD with no NUL, and the proof alone passes the changed bytes; factcheck-external top 1). A mapping's BOM is then stripped before `JSON.parse` (R-1166).
 - **Old headings** are every ATX heading at levels 1–3 outside a fence. Each is named exactly once: inside `head`, in a node's `from`, in `tail.from` or in `tail.keep`. `{line,
-  heading}` keeps repeated labels apart (aml-desk's two `## 36b.`); the heading text must equal that line, so a shifted line is named.
+  heading}` keeps repeated labels apart (work-desk's two `## 36b.`); the heading text must equal that line, so a shifted line is named.
 - **Nodes** carry `id`, `label`, `purpose`; a capability adds `outcome`, `features`; a feature adds `status`, optional `also_applies`, `rows` and `subgroups`; a subgroup, `rows`.
   `rows` lists IDs or en-dash ranges (`expandRowIds`) in authoritative order. An empty `from` is a new heading; a rowless `proposed` feature is a regroup plan (R-294).
 - **Reserved nodes** (CAP-90, FEAT-900, SUB-900 to SUB-904) carry only `id`, `from`, `rows` and children. Their headings, purposes, outcome and status come from the seed's parse
@@ -77,7 +77,7 @@ mapping, writing it only when proved and matching HEAD." It builds the default m
 - **Identity (R-1162).** On a passing tree, `--emit-mapping` maps each heading to itself, rows in file order — the regroup's start; it round-trips a lifted ledger (T31).
 
 **3.3 The default mapping (R-1165).** Flat ledgers only: `checkTree(text).problems` deep-equals `[noTreeProblem(n)]`, `n` from `countRequirementRowLines(parsed)`
-(`readRequirementRows` gives aml-desk 338 of 365; factcheck G1), and no SUB heading (`:428-446`), so R-1161's near-miss heading is not flat. Rules keep file order; no row moves.
+(`readRequirementRows` gives work-project 338 of 365; factcheck G1), and no SUB heading (`:428-446`), so R-1161's near-miss heading is not flat. Rules keep file order; no row moves.
 1. **Head.** The title (a level-1 first heading) and all lines before the outermost non-title heading above the first row stay verbatim, so a prose-only `## The product` stays.
 2. **Levels.** Each later `#` heading becomes `# CAP-nn`, `##` becomes `## FEAT-nnn`, `###` becomes `### SUB-nnn`, numbered from 01, 001 and 001 in file order. The label is the
    parser's label, verbatim (`36b. Build at production size`, `Part F. …`), so files that cite "section 8" or "Part F" still find it. Each node gets `Purpose: <UNSORTED_TEXT>`; a
@@ -86,7 +86,7 @@ mapping, writing it only when proved and matching HEAD." It builds the default m
    trading-zone gets CAP-01 (sections 1–4), CAP-90, then CAP-02 (5–11). No product feature nests under CAP-90, a case the checker passes silently today (tree residual 11,
    `CHANGE.md:234`; the sim's trading-zone run, `research-ledgers.md` §4).
 4. **General sections.** The `##` sections holding G rows must form one run with no R row; each maps to the seed subgroup holding its G rows. A `#` heading with only prose between
-   it and the run becomes CAP-90, its prose going to FEAT-900 as the seed places it; otherwise CAP-90 and FEAT-900 open before the run. aml-desk's Part F holds R rows and no G
+   it and the run becomes CAP-90, its prose going to FEAT-900 as the seed places it; otherwise CAP-90 and FEAT-900 open before the run. work-project's Part F holds R rows and no G
    row, so it stays a product capability (`research-ledgers.md` §7 item 4).
 5. **Closing.** `## Open questions` and `## Deliberate omissions` move under `CLOSING_HEADING` verbatim, in file order; `SKILL.md:126` names the first, the seeds both.
 6. **Refused, naming the line** (R-1167): a tree heading, a row before the first section or directly under a `#`, a `###` with no `##` above it, G rows outside one run, mixed with
@@ -95,10 +95,10 @@ mapping, writing it only when proved and matching HEAD." It builds the default m
 **3.4 Apply and layout.** Raw segments come from `body.split(/(?<=\n)/)` after the BOM strip, which lines up 1:1 with `parsed.lines` for LF and CRLF+BOM (Ran, `research-code.md`
 §3.1). Copied lines keep their own bytes and ending; generated lines take the input's first line ending; the BOM stays.
 - Each node prints its heading, `Purpose:`, then `Outcome:` or `Status:`, an optional `Also applies:`, then its body. A leaf whose rows equal its `from` sections' rows in old
-  order keeps those bodies **in place**: prose stays between its table fragments (aml-desk §36's six lane notes keep their rows), a padded header pair becomes `TABLE_HEADER` plus
+  order keeps those bodies **in place**: prose stays between its table fragments (work-project §36's six lane notes keep their rows), a padded header pair becomes `TABLE_HEADER` plus
   `CANONICAL_DELIMITER`, and a headless fragment gets that pair inserted (`:68` needs the byte-exact header). Any other leaf is **re-laid**: its `from` prose first, every line kept,
   blank lines included, in old order, then one generated blank line and one table in mapping order. An old tree heading's own field lines are replaced with it. Every default node is in place, so its diff is heading
-  rewrites plus inserted lines (Ran, simulated without `Outcome:`: aml-desk 49 rewritten, 147 inserted, 0 problems; `research-ledgers.md` §2).
+  rewrites plus inserted lines (Ran, simulated without `Outcome:`: work-project 49 rewritten, 147 inserted, 0 problems; `research-ledgers.md` §2).
 
 **3.5 The proof (R-1163; `proveLift(input, mapping, output, seedText, { fromDefault })`).** Its standard is req-tree's — independent of the writer, every line accounted (req-tree
 `CHANGE.md:199-217`) — in full for every leaf (plan r1 MUST 2: blank lines included). It checks: (1) BOM out iff BOM in; (2) the sorted
@@ -148,7 +148,7 @@ runs `--verify <base>`; lift when no other lane edits the ledger (unpinned). Onl
 (T29 in `checkRequirementsSkillTreeText`, `:452-470`), `requirements-tree.test.mjs` (R-291's literal, `:40,54,55`). `README.md` names both new scripts — `:64` gains the lift
 command, its git need and the proof module by name — so readme-check's every-script rule passes (`readme-check.mjs:456-463`; factcheck W2). `REQUIREMENTS.md`, regenerated
 `docs/requirements-tree.md` and `docs/code-map.md`, `HANDOFF.md`, `docs/sessions/2026-10.md`, this corpus.
-**NOT.** §3.8; the report's subfolder residual (tree residual 2); downstream ledgers — each project's lift is its own lane with Jake's yes on its dry run.
+**NOT.** §3.8; the report's subfolder residual (tree residual 2); downstream ledgers — each project's lift is its own lane with the owner's yes on its dry run.
 **Overlap.** None in flight (`git worktree list`); the stale `feat/t3-land-b` (2026-10-08) edits REQUIREMENTS.md and the code map, outside this lane.
 
 ## 5. Verification
@@ -202,7 +202,7 @@ another session's lines`; every `--flag` the skill shows for the lift appears in
 | 6 | skill drops "only after the owner's yes" / skill drops "in every worktree" / skill shows a flag the script lacks / a row added without the literal update | T29 / T29 / T29 / T30 |
 
 **Seat acceptance** (on copies in the seat's scratch, never in the projects; seen failing at the base).
-- Dry runs: aml-desk → 6 capabilities, 41 features, 2 subgroups, 3 header pairs, proof clean; basketball-geek's HEAD copy → 1/9/0; trading-zone → CAP-01, CAP-90, CAP-02 with
+- Dry runs: work-project → 6 capabilities, 41 features, 2 subgroups, 3 header pairs, proof clean; basketball-geek's HEAD copy → 1/9/0; trading-zone → CAP-01, CAP-90, CAP-02 with
   FEAT-005–FEAT-011 under CAP-02, 0 checker problems; yokai-world → refused naming its tree-heading count; a prose-only ledger → no rows.
 - basketball-geek's CRLF, BOM+CRLF and mixed copies keep 171/171 rows byte-identical; a scratch git copy: `--write`, commit, `--verify <base>` exits 0. An ANSI-appended copy is
   refused naming its line; with its six uncommitted rows in a scratch main checkout, `--write` from a lane worktree refuses, naming it. **Regroup rehearsal:** hand-edit the lifted
@@ -211,13 +211,13 @@ another session's lines`; every `--flag` the skill shows for the lift appears in
   §3.8's files. Windows: the PR's non-blocking leg must pass T1–T28 and T31 (T3 skipped); it runs Git Bash, not PowerShell, and alone runs the `/`-joined git paths on win32.
 
 **The claim most likely wrong:** that every default node is in place, so the full-line proof covers the whole default lift. Rule 4 re-homes a Part's prose under FEAT-900, and
-aml-desk's 19 padded delimiters under exact headers (factcheck G4) must stay in place; a default node re-laid instead reopens residual 1 for the default. The trading-zone and
-aml-desk dry runs test it. Next: the matches-HEAD test under `eol=` attributes on Git for Windows (unrun).
+work-project's 19 padded delimiters under exact headers (factcheck G4) must stay in place; a default node re-laid instead reopens residual 1 for the default. The trading-zone and
+work-project dry runs test it. Next: the matches-HEAD test under `eol=` attributes on Git for Windows (unrun).
 
 ## 6. Decisions and residuals (each becomes one HANDOFF line)
 
-**Jake's ruling (2026-10-14)** set the direction (§1). No question stays open for him in this plan. Each project's lift is his call at its own dry run, by the tool's design:
-aml-desk, basketball-geek once its six uncommitted rows are settled, then trading-zone.
+**The owner's ruling (2026-10-14)** set the direction (§1). No question stays open for him in this plan. Each project's lift is his call at its own dry run, by the tool's design:
+work-project, basketball-geek once its six uncommitted rows are settled, then trading-zone.
 **Seat decisions (declared, not asked).** S1 Two modules; the proof never imports the lift module. S2 JSON mapping pinned to the LF form, old headings by line and text, no row
 text. S3 Labels keep the old heading text and number; the regroup renames. S4 Reserved nodes take the seed's text at run time. S5 Product sections after the general run get a new
 capability and no row moves, so CAP-90 is not last until the regroup (tree S2 stays for seeds). S6 In place for an unchanged leaf, else prose first and one table. S7 Shares,
@@ -226,16 +226,16 @@ nana-pi root refusal: `--root` is required, the default refuses any tree, and a 
 Generated lines take the first line ending. S11 Lifted features read `active`.
 **Residuals and carries.**
 1. (Closed by plan r1: every leaf's blank lines are accounted.)
-2. A regroup that splits a section with prose between fragments puts that prose above one table; aml-desk §36's lane notes would lose their rows' position.
+2. A regroup that splits a section with prose between fragments puts that prose above one table; work-project §36's lane notes would lose their rows' position.
 3. A ledger with `Also applies:` lines is refused, so a ledger with shares (nana-pi's form) cannot be regrouped by this tool yet. Tree residuals 5 and 6 stay.
 4. yokai-world needs its hand fix or a hand-written mapping (tree residual 10). trading-zone keeps CAP-90 mid-file until its regroup. FEAT numbers stop matching section numbers
-   once a section is lettered or repeated (aml-desk from 36b on); the labels keep the old numbers.
+   once a section is lettered or repeated (work-project from 36b on); the labels keep the old numbers.
 5. A flat branch merged after a lift leaves its new `## N.` section outside the tree; the checker names its rows (INFERRED). Lift when no lane edits the ledger. The worktree scan
    sees worktrees only; an edit in a separate clone surfaces at its merge.
 6. A Windows rename may fail while antivirus or the indexer holds the fresh file (likelier than an editor; Node will not retry, nodejs/node#29481); the tool refuses by name and
    removes the temp file. ASCII-only ANSI is valid UTF-8 and passes. Project rails are heading-blind (`research-adopt.md` §5.4); no project suite has run on a lifted ledger.
 8. An edit another session makes between the lift's final re-read and its rename is lost; HEAD keeps the pre-lift ledger (plan r1 SHOULD 1).
-7. HANDOFF line for Jake, written before the final round: re-run `nana-setup install` on the Windows Claude Code seat so its requirements skill copy updates (`steps.mjs:217-226`);
+7. HANDOFF line for the owner, written before the final round: re-run `nana-setup install` on the Windows Claude Code seat so its requirements skill copy updates (`steps.mjs:217-226`);
    the PowerShell form of the command has not run on Windows.
 - **Scope kept (seat; factcheck-external's list).** `--mapping` on a tree input: the regroup lane applies its mapping to a lifted, tree-form ledger through this tool.
 - `--verify`: the reviewer's deterministic check of a committed lift, req-tree's `prove.mjs --approved` role.

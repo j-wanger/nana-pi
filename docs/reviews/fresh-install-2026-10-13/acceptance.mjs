@@ -200,10 +200,10 @@ fs.rmSync(noPiBin, { recursive: true, force: true });
   out("(f) setup README: no sentence says hooks dispatch through, or the check needs, Git Bash", gitBash.length === 0, gitBash.map((s) => s.slice(0, 160)).join(" | "));
   out("(f) setup README: the Windows sentence says installed hooks run directly in exec form", /installed hooks? directly in exec form/i.test(setup), "phrase not found");
   out("(f) setup README: it says a FAIL prints the hooks block and the last knowledge-pull record", /FAIL[^.]*hooks block[^.]*knowledge-pull record/i.test(setup), "phrase not found");
-  const jake = read("docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md") ?? "";
-  const sec2 = jake.split(/\r?\n## /).find((s) => /^2\. /.test(s)) ?? "";
+  const owner = read("docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md") ?? "";
+  const sec2 = owner.split(/\r?\n## /).find((s) => /^2\. /.test(s)) ?? "";
   const label = sec2.split(/\r?\n/).slice(1).find((l) => l.trim()) ?? "";
-  out("(f) Jake's page: step 2 is labelled PowerShell-only", label === "In PowerShell, from the checkout:", JSON.stringify(label));
+  out("(f) Owner's page: step 2 is labelled PowerShell-only", label === "In PowerShell, from the checkout:", JSON.stringify(label));
 }
 
 // ---- scope helpers (committed diff against the merge base with main; (h) adds uncommitted and untracked paths)
@@ -217,7 +217,7 @@ const oneLineChange = (rel) => {
 };
 {
   const j = oneLineChange("docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md");
-  out("(f) Jake's page differs from main in exactly one line", j.ok, j.why);
+  out("(f) Owner's page differs from main in exactly one line", j.ok, j.why);
   const d = oneLineChange("apps/desk/README.md");
   out("(f) apps/desk/README.md differs from main in exactly one line (the runtime row)", d.ok, d.why);
 }

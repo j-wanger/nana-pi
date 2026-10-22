@@ -14,7 +14,7 @@ Amendments:
 3. New R-1418, a scope sentence. Builders and reviewers in both runtimes receive the file. This is verified: this planner is a Claude Code subagent and its context carries all four installed rules. Seat-only rulings would otherwise steer builders, such as "pushing another branch or opening a draft PR needs no approval" and "lane counts". This follows the seat guide's R-1141.
 4. R-1411 narrowed. "Cannot be read" was dropped because no test can pin it: chmod does nothing on Windows and root reads anything on Linux CI. "Empty" was added. "Naming the cause" moved from the row to the brief. The marker now speaks to the user, so a pi builder child is not told to run `nana-setup install` itself.
 5. The R-1412 test uses `--pi-home P` outside H/.pi/agent. Otherwise code that hard-codes `<base>/.pi/agent` would pass.
-6. R-1415 lists only words the tracked tree already holds: Jake (496 files), jwang, AML and aml-desk. Adding the given name (0 files), the email (0 files) or work-domain phrases would publish them in a public test file, against the owner's 10-16 ruling.
+6. R-1415 lists only words the tracked tree already holds: the owner (496 files), the owner, the work project and work-project. Adding the given name (0 files), the email (0 files) or work-domain phrases would publish them in a public test file, against the owner's 10-16 ruling.
 7. R-1417 matches whole words, because "sol" sits inside "resolve" and "console". The row now defines "short name" as the last hyphen part of each model id. R-1416 is narrowed to the shape the test checks: "a date", not "its ruling's date".
 8. The seed is repo-scoped. Claude rules load in every project on the machine, so nana-pi-only rulings start with "In nana-pi,". These are the desk freeze, pushing main, the install check and Windows testing. The seat owns the seed text in the must-meet and checks it before the build, not after it.
 9. File list: root package.json and root README.md also say "eight extensions" (lines 11 and 170). docs/requirements-tree.md must be regenerated with `npm run req:tree`. prompt-sections.mjs is removed from the list.
@@ -33,8 +33,8 @@ Conflicts:
 - win-objective-golden: no overlap. No ID overlap with any lane.
 
 Seat notes:
-(a) This machine's roster prints "largerBuilder: none, source: default". By AGENTS.md the builder is then the roster builder (pi luna through pi-worker), not a Claude Sonnet subagent. Setting Sonnet needs largerBuilder set with Jake's yes.
-(b) The relayed user request ("turn off land verification and hooks that require my confirmation until then... power mode") is not handled here. This read-only planner changed nothing. If the seat applies it, it may change this lane's ladder. It may also contradict the seeded 10-10 ruling (an independent reviewer accepts every revision that reaches main). Reconcile the seed with Jake's answer before the build.
+(a) This machine's roster prints "largerBuilder: none, source: default". By AGENTS.md the builder is then the roster builder (pi luna through pi-worker), not a Claude Sonnet subagent. Setting Sonnet needs largerBuilder set with the owner's yes.
+(b) The relayed user request ("turn off land verification and hooks that require my confirmation until then... power mode") is not handled here. This read-only planner changed nothing. If the seat applies it, it may change this lane's ladder. It may also contradict the seeded 10-10 ruling (an independent reviewer accepts every revision that reaches main). Reconcile the seed with the owner's answer before the build.
 
 Most likely wrong: that the scope sentence keeps a builder or reviewer from acting on a seat-only ruling, for example pushing its branch because the ruling says it needs no approval. This is inferred. No test can pin how a model reads it.
 

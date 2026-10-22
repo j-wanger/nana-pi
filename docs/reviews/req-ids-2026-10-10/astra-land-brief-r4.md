@@ -8,12 +8,12 @@ entry's Windows wording); build round 5 (`build-brief-5.md`, `builder-report-5.m
 (one BOM removal per file, once) and MUST 2 (the tree checker builds its row prefix from the rail's
 re-exported whitespace list and removes one leading BOM).
 
-Your verdict covers `git diff eeeca20..HEAD`; this is the final review before Jake's checkpoint-2
+Your verdict covers `git diff eeeca20..HEAD`; this is the final review before the owner's checkpoint-2
 acceptance, after which the seat merges with no further writes. sol reviews the same revision in
 parallel.
 
 Rule on: (1) each of your round-3 findings closed, at file:line; (2) the frontier (`HANDOFF.md`) and
-the session entry now consistent with each other and with Jake's 2026-10-10 rulings; (3) anything
+the session entry now consistent with each other and with the owner's 2026-10-10 rulings; (3) anything
 that should block the merge.
 
 Answer with the full review as your final message: MUST / SHOULD / NOTE, accepted residuals, score,

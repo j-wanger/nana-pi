@@ -24,8 +24,8 @@
 
 5. **[scope · compatibility] Replacing the unit test also removed a still-consumed public export and weakened one pure assertion.**  
    `packages/nana-pack/tests/review-round.test.mjs:1-31`  
-   `/Users/jwang/nana-agent-loop/app/scripts/review-round.mjs:7`  
-   `/Users/jwang/nana-agent-loop/app/tests/review-round.test.ts:4,36-39`  
+   `/Users/example/nana-agent-loop/app/scripts/review-round.mjs:7`  
+   `/Users/example/nana-agent-loop/app/tests/review-round.test.ts:4,36-39`  
    After landing, nana-agent-loop’s forwarder will fail module linking because `roundFromOutPath` no longer exists. Separately, `roundCapVerdict(4, "   ")` now returns `override`; wrapper parsing masks this, but the exported function’s former contract was weakened. The replacement correctly pins the new arbitrary-name invariant, and the handoff assertion was not weakened, but the cross-repo API migration is incomplete.
 
 ### MEDIUM

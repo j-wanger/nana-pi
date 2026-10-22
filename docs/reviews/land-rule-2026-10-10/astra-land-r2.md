@@ -24,7 +24,7 @@ Reviewed `git diff 1836fa3..ea1f11a1e0121acecdd64ab3a2fc764a87baa4d3`. All four 
 
 ## NOTE
 
-- **Handoff:** `HANDOFF.md:14`, `:34`, and `:53` remain suitable for the intended merged, unpushed state. The checkpoint-2 acceptance claim requires Jake’s actual acceptance. This verdict neither establishes that acceptance nor substitutes for sol’s parallel verdict.
+- **Handoff:** `HANDOFF.md:14`, `:34`, and `:53` remain suitable for the intended merged, unpushed state. The checkpoint-2 acceptance claim requires the owner's actual acceptance. This verdict neither establishes that acceptance nor substitutes for sol’s parallel verdict.
 - **Session entry:** `docs/sessions/2026-10.md:11–13` accurately describes the implementation and build-8 corrections. The description of post-merge checks outside the lock is substantively correct; immediate branch/ref checks also remain inside.
 - **Mutation evidence:** the committed build-8 output records **14/15 red**, with one missing anchor. Your subsequent **15/15** result is supplied evidence, not an independently repeated result here. I did not run the mutating script against this immutable checkout.
 

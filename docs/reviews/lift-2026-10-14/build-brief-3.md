@@ -9,7 +9,7 @@ files, never `test:locked` or a command that waits on a background job; the seat
 ## A. The proof must account every line (MUST 1)
 Today it checks lines under each mapping `from` heading and the first `head.through` lines by position, and never the
 tail, lines outside any declared region, or extra lines. Reproduced: a committed mapping with `head.through: 1` (true
-value 4) let `--write` delete basketball-geek's 3-line intro with a clean proof; dropping aml-desk's 42-line Open
+value 4) let `--write` delete basketball-geek's 3-line intro with a clean proof; dropping work-project's 42-line Open
 questions body, a Deliberate omissions bullet, duplicating a kept section, or appending a stray line all pass. Make the
 proof partition the input: every input line — head, every node's region, tail, kept sections, blank lines — is assigned
 to exactly one region from the input and the mapping, and appears exactly once in the output in its region's order,

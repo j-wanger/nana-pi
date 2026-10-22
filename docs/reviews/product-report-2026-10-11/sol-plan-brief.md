@@ -1,7 +1,7 @@
 # Plan review brief — the product report as a feature, 2026-10-11 (reviewer: gpt-5.6-sol; roles: scope + adversarial + requirements)
 
 Review the change declaration `docs/reviews/product-report-2026-10-11/CHANGE.md` before anything is
-built. Jake, 2026-10-10: "we need to make that product report a feature, and not a one time assembly
+built. The owner, 2026-10-10: "we need to make that product report a feature, and not a one time assembly
 thing." Fable challenged the first draft (`fable-consult.md`); a seat workflow of four read-only
 checkers and a critic fact-checked the second against the code (`factcheck.md`, critic section last),
 and the plan was rewritten from its confirmed items. `prototype/` holds the hand-built page it

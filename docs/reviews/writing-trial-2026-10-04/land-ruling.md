@@ -14,7 +14,7 @@ One reason. Every clause astra opened in three rounds is closed by execution, no
 eight items closed in round 2 `[A]`. Round 2's seven closed in round 3 `[A]`. Round 3's three closed
 in `eae2f76`: the seat re-ran astra's own probes `[A, seat-verify]`, and I ran the suite today `[V]`.
 No fourth round is needed. No subtraction earns its place: the one candidate, dropping pi delivery,
-would remove the desk and TUI from the trial, and those are Jake's own sessions.
+would remove the desk and TUI from the trial, and those are the owner's own sessions.
 
 My runs in the worktree `[V]`:
 
@@ -47,7 +47,7 @@ My runs in the worktree `[V]`:
   `project.test.mjs` pins the section verbatim and passes `[V]`. Copier consumers render from the
   latest `v*` tag (v0.6.0), so scaffolded projects say "six" until the next tag (§5).
 - **R-376 wording — RATIFIED.** The decision point is a numbered list (A2). The banned word sits in
-  a code span after "Jake banned" (A3). The evidence cell's note "For Fable to rule on at landing"
+  a code span after "the owner banned" (A3). The evidence cell's note "For Fable to rule on at landing"
   is answered; the seat trims the cell (§4).
 - **`READ_MARGIN` lives in the extension, not `writing-config.mjs` — RATIFIED.** It is the longest
   UTF-8 sequence, a protocol constant, not a tunable. It is sealed by one test anyway `[V]`.
@@ -94,7 +94,7 @@ The residual line is in §5.
 1. **`HANDOFF.md`**, under "## Landed 2026-10-02" or a new "## Landed 2026-10-04" heading. This
    text passes the checker in normal mode: 6 sentences, 0 over, 0 passive `[V]`.
 
-   > - **Writing trial LANDED 2026-10-04** (`<merge sha>`): one rule for the seat's messages to Jake
+   > - **Writing trial LANDED 2026-10-04** (`<merge sha>`): one rule for the seat's messages to the owner
    > and for `HANDOFF.md` lines. Claude Code reads it as a rule file; every pi session gets it from
    > the seventh pack extension. The checker `packages/nana-pack/bin/nana-writing.mjs` reports and
    > never blocks. Baseline, daily tally and the stop condition live in
@@ -138,7 +138,7 @@ coordinate, the standing limits, the red readme check) and two under REQUIREMENT
 | nana-pack README · Known limit | The checker reads any argument but `--report` as a file path; `--help` prints one error line and an empty summary `[V]`. |
 | nana-setup README · pi packages row | `registrationState` recognises string `packages` entries only; an object-form entry (pi's resource filter) reads as unregistered, doctor ✗, and install would run `pi install` again. |
 | HANDOFF · the v0.6.0 line | The seven-extension wording in `templates/_shared/working-under-nana-pi.md` reaches copier consumers only at the next `v*` tag; `nana-setup project` reads the repo file and emits it at once `[V, project.mjs:121]`. |
-| `baseline.md` header | The report corpus is seat sessions only: project dirs without `-wt-`, entries with `isSidechain` false. Worker sessions report to the seat, not Jake, and write differently (8% over cap against the seat's 31%) `[V]`. |
+| `baseline.md` header | The report corpus is seat sessions only: project dirs without `-wt-`, entries with `isSidechain` false. Worker sessions report to the seat, not the owner, and write differently (8% over cap against the seat's 31%) `[V]`. |
 
 ## 6. Fresh-eyes findings astra did not raise — none block
 
@@ -182,9 +182,9 @@ coordinate, the standing limits, the red readme check) and two under REQUIREMENT
 5. `tally.md`: fill the landing date; the first row is zeros.
 6. Targets, per Amendment 1 A2 (a quarter of the measured share): `HANDOFF.md` added lines over cap
    at or under 11%; reports over cap at or under 8%; a verdict word first in 90% of reports; zero
-   banned words. Identifiers per report have no target; record the count and let Jake judge.
+   banned words. Identifiers per report have no target; record the count and let the owner judge.
 7. **Stop condition, plainly.** The trial stops on the first of: 2026-10-18 (day 14), the twentieth
-   report checked, or Jake's second complaint that a report dropped detail he needed. Then
+   report checked, or the owner's second complaint that a report dropped detail he needed. Then
    `after.md` over the lines `git diff <landing>..HEAD -- HANDOFF.md` added and over the reports
    since landing, and one verdict: adopt (PATH link, the pre-send check becomes mandatory in the
    rule, blocking decided per surface, a `writing.enabled` key), extend once (14 more days), or drop
@@ -195,4 +195,4 @@ coordinate, the standing limits, the red readme check) and two under REQUIREMENT
 That reviewer and worker sessions read the rule without harm. The scope paragraph excludes their
 output, but a model under a 25-word cap may still drop the path a finding needs. The first
 `pi-review` corpus after landing is where it would show. If it does, one `hasUI` line in the
-extension moves delivery to Jake's own sessions, and the trial continues.
+extension moves delivery to the owner's own sessions, and the trial continues.

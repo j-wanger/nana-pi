@@ -1,6 +1,6 @@
 # Review brief — nana-pi apps/bench, astra GO/NO-GO (sixth look) at HEAD 09e6f4b
 
-Your fifth review (NO-GO) is at /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/review-astra-bench5.md. A FRESH worker folded every finding and committed 09e6f4b (`git -C ~/nana-pi show --stat HEAD` + message). This is a benchmark-grader verification review: state which robustness properties the implementation guarantees, with file:line; gaps are test-coverage findings. Read-only; no model spend; never run run.mjs with --go/--smoke. Do not re-open A (nested detectors), D (decision procedure) or C-pricing wiring from earlier rounds unless regressed.
+Your fifth review (NO-GO) is at /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/review-astra-bench5.md. A FRESH worker folded every finding and committed 09e6f4b (`git -C ~/nana-pi show --stat HEAD` + message). This is a benchmark-grader verification review: state which robustness properties the implementation guarantees, with file:line; gaps are test-coverage findings. Read-only; no model spend; never run run.mjs with --go/--smoke. Do not re-open A (nested detectors), D (decision procedure) or C-pricing wiring from earlier rounds unless regressed.
 
 ## What changed (verify each)
 E. loadProbe stray `onBuffer` removed; six stubbed loadProbe cases. c8 runs the new test against the FIXED source again (unconditional-fail / unparseable / import-throw tests → fail; honest pair passes both halves).

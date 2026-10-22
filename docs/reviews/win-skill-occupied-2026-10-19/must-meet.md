@@ -2,7 +2,7 @@
 
 **Feature.** On Windows, install and `--dry-run` exit 1 and leave the requirements skill folder byte-identical when nana-setup did not make it, and doctor marks it ✗ with the move fix. Copies nana-setup made, marked or older and unmarked, keep refreshing as today. This is macOS's behaviour on the Windows copy path.
 
-**Class: install.** Changes `nana-setup install` (`linkSkill`, win32 branch) and `doctor` (`skillLinkState`, win32 branch). Default ladder: the roster reviewer, the land reviewer (or a seat land review), wrong-code pairs, one independent check, and `install-check.mjs` on macOS before `nana-land`. Applying any ruling from Jake on land verification is the seat's job, not this plan's.
+**Class: install.** Changes `nana-setup install` (`linkSkill`, win32 branch) and `doctor` (`skillLinkState`, win32 branch). Default ladder: the roster reviewer, the land reviewer (or a seat land review), wrong-code pairs, one independent check, and `install-check.mjs` on macOS before `nana-land`. Applying any ruling from the owner on land verification is the seat's job, not this plan's.
 
 **Threat model.** In scope: honest variation in our own output. That covers a copy written by today's or an older nana-setup, LF or CRLF, `.bak-` files from earlier repairs, files an owner added, and an owner's own `requirements` skill. Out of scope: forgery, such as a planted marker or a byte-copied nana SKILL.md in a foreign folder.
 
@@ -46,7 +46,7 @@ All are in `packages/nana-setup/tests/skills-and-standards.test.mjs`. R-1420 to 
 - The marker counts by presence alone; a planted marker is forgery. A marked copy that an owner later rewrites is backed up and refreshed, as today.
 - R-304, R-381, R-382 and R-388 are untested and worded for every platform. On Windows they now hold only for nana-setup's own copy. Recorded as a residual, not rewritten here.
 - A hand-written Windows rule file is still backed up and replaced. macOS does the same, so it is out of scope.
-- Real Windows proof comes from CI's Windows leg (non-blocking) and Jake's machine.
+- Real Windows proof comes from CI's Windows leg (non-blocking) and the owner's machine.
 
 ## Rows the builder adds as `planned` first (seat, 2026-10-19)
 

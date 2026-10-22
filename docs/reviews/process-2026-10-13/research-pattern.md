@@ -22,16 +22,16 @@ Read-only research against `main` at 9974218. Inferred claims are marked "(infer
 | Plan-review caps 1 / 2; only a named fail-open bug reopens | `docs/sessions/2026-10.md:75`; `HANDOFF.md:18`; memory `:11` | Memory names the 2-round class as "gate / ledger-format / cross-repo-parser lanes". HANDOFF says "gate and format lanes". |
 | No edits after every reviewer says LAND | same three | |
 | Urgent fixes ship alone, hardened later | same three | |
-| Install check locally before landing a nana-setup or hook lane | memory `feedback_lane_process_2026_10_11.md:15` only | Dated **(Jake, 2026-10-12, "Yes")** there, not 2026-10-11 as the task says. Not in HANDOFF or the session archive. The rationale is recorded: `nana-land` reads no CI result. |
+| Install check locally before landing a nana-setup or hook lane | memory `feedback_lane_process_2026_10_11.md:15` only | Dated **(Owner, 2026-10-12, "Yes")** there, not 2026-10-11 as the task says. Not in HANDOFF or the session archive. The rationale is recorded: `nana-land` reads no CI result. |
 | Materiality bar; LAND only; LAND-WITH-FIXES retired; delta confirmation rounds | `docs/sessions/2026-10.md:29`; `HANDOFF.md:22`; memory `feedback_review_materiality.md:11-14` | Memory's consequence list: data lost or corrupted, a security or review boundary bypassed in practice, wrong output someone acts on, a broken install or hook, a regression of main's behaviour. The task adds "CI gate". |
-| Builder split | memory `reference_roster.md:21-24` (Jake, 2026-10-13, "agreed on the worker split"); evidence `docs/sessions/2026-10.md:15` | Not in HANDOFF. Sonnet 5.5 runs as a seat-spawned Claude subagent in the lane worktree, not through `pi-worker`. |
+| Builder split | memory `reference_roster.md:21-24` (Owner, 2026-10-13, "agreed on the worker split"); evidence `docs/sessions/2026-10.md:15` | Not in HANDOFF. Sonnet 5.5 runs as a seat-spawned Claude subagent in the lane worktree, not through `pi-worker`. |
 
 Consistency check: `nana-land` accepts only `LAND` (`packages/nana-pack/bin/nana-land.mjs:91-93`); the verdict reader records `LAND-WITH-FIXES` as its own verdict (`packages/nana-pack/tests/review-ledger.test.mjs:192`). So "LAND-WITH-FIXES is retired" matches the code.
 
 ## 3. Interpretation call: what happens to "Maximum three rounds per item"
 
-Jake's cap ruling is about PLAN reviews. "Maximum three rounds per item" (shared line 26) is the code-review cap pi-review enforces: `REVIEW_ROUND_CAP = 3` at `packages/nana-pack/bin/review-round.mjs:68`, row R-719 ("The cap shall be three rounds per item", `REQUIREMENTS.md:392`, untested). Memory line 20 says the text "still says 'max three rounds' — change it", but no ruling changes the code-review cap.
-Recommendation: keep the three-round sentence (code reviews) and ADD the plan caps beside it. This also keeps R-683's literal `"three rounds"` check green (`templates-render.test.mjs:314`). If the drafter reads the memory line as a cap change, that is a YOUR CALL for Jake, not a seat edit.
+The owner's cap ruling is about PLAN reviews. "Maximum three rounds per item" (shared line 26) is the code-review cap pi-review enforces: `REVIEW_ROUND_CAP = 3` at `packages/nana-pack/bin/review-round.mjs:68`, row R-719 ("The cap shall be three rounds per item", `REQUIREMENTS.md:392`, untested). Memory line 20 says the text "still says 'max three rounds' — change it", but no ruling changes the code-review cap.
+Recommendation: keep the three-round sentence (code reviews) and ADD the plan caps beside it. This also keeps R-683's literal `"three rounds"` check green (`templates-render.test.mjs:314`). If the drafter reads the memory line as a cap change, that is a YOUR CALL for the owner, not a seat edit.
 
 ## 4. Proposed text change (smallest form)
 
@@ -66,7 +66,7 @@ Proposed: a new subsection in `AGENTS.md` after `### Shared-machine test runs` (
 ```
 ### Install check before a land
 
-A lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally before `nana-land`, because `nana-land` reads no CI result (Jake, 2026-10-12).
+A lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally before `nana-land`, because `nana-land` reads no CI result (Owner, 2026-10-12).
 ```
 
 The command is already documented and readme-checked in `packages/nana-setup/README.md:399-401`. AGENTS.md is not in `readme-check.config.json` scope, so the new row's test should also assert the path exists.
@@ -104,7 +104,7 @@ Scanned every `~/*/AGENTS.md` on this machine:
 | jev-research, the-hive | `nana-setup project <dir>` (marker pair present; `CLAUDE.md` symlink) | Already drifted: 20 changed lines vs the current shared file. Last AGENTS commit 2026-10-07 |
 | trading-zone | markers plus copier template (`_commit: v0.6.8`) | Drifted, 2 lines |
 | yokai-world | markers plus copier template (`_commit: v0.6.7`); no CLAUDE.md | Drifted, 6 lines; last AGENTS commit 2026-10-13 |
-| aml-desk, family-planner, game-world, returner | Hand copies with the heading but NO markers; `nana-setup project` skips them (`project.mjs:186-190`) | Need a one-time marker wrap. aml-desk's is a known carry (`HANDOFF.md:27` U2) |
+| work-project, family-planner, game-world, returner | Hand copies with the heading but NO markers; `nana-setup project` skips them (`project.mjs:186-190`) | Need a one-time marker wrap. work-project's is a known carry (`HANDOFF.md:27` U2) |
 | basketball-geek | copier `v0.4.0`, no section at all | Gets it only on `copier update` past the tag that introduced the section |
 | Future scaffolds and adoptions | jinja include; adopt-structure copy | Get the new text automatically |
 | nana-agent-loop | no section | None |
@@ -119,5 +119,5 @@ The riskier part of the lane is pi-review: the over-cap reason refusal, plus the
 
 ## 8. The claim most likely to be wrong
 
-The reading in section 3: that Jake's caps leave the three-round code-review cap in place. Memory line 20 can be read the other way.
+The reading in section 3: that the owner's caps leave the three-round code-review cap in place. Memory line 20 can be read the other way.
 Second: the date of the install-check ruling. Memory records 2026-10-12; the task says 2026-10-11.

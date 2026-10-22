@@ -1,7 +1,7 @@
 # EARS form — architecture ruling
 
 Ruler: Fable (architecture + landing, read-only), 2026-10-04. Roles: `../pi-1.0-2026-10-04/ROLES.md`.
-Decided by Jake: a lane adds a form check and splits the rows that carry more than one `shall`.
+Decided by the owner: a lane adds a form check and splits the rows that carry more than one `shall`.
 
 ## The rulings in one screen
 
@@ -106,7 +106,7 @@ One seal test per surface names G-015. nana-pi's reads `seal: EARS_ALLOWANCE is 
 | bench R-500–599 | 56 | 34 | none |
 | Part G | open-ended | 3 for the check, 7 split-born | G-013 to G-015 the check; G-016 to G-022 the split |
 
-R-960 to R-999 stay unallocated. After the lane about 150 three-digit IDs remain repo-wide. The repo added 28 rows in two days. Widening IDs to four digits is a rail change in both languages and in aml-desk's copy. It is an open question for the seat, not this lane's work.
+R-960 to R-999 stay unallocated. After the lane about 150 three-digit IDs remain repo-wide. The repo added 28 rows in two days. Widening IDs to four digits is a rail change in both languages and in work-project's copy. It is an open question for the seat, not this lane's work.
 
 **Who judges, what verifies.**
 
@@ -146,7 +146,7 @@ Batch 0 runs the split procedure on the smallest block first. If its mapping for
 
 | Repo | Rail | Rows | Off form | How the check reaches it |
 |---|---|---|---|---|
-| aml-desk | its own copy, `test/requirements-trace.lib.mjs`, `R-` IDs only; not copier-managed | 335 | 193 | only by a hand port of the count. Its split is its own lane |
+| work-project | its own copy, `test/requirements-trace.lib.mjs`, `R-` IDs only; not copier-managed | 335 | 193 | only by a hand port of the count. Its split is its own lane |
 | basketball-geek | copier `v0.4.0`, Python, adopt mode; an older marker style (`@pytest.mark.req`) | 165 | 2 | `uvx copier update` to the next pushed tag rewrites `conftest.py`. The default allowance 0 then fails on two rows. The owner declares `requirements_ears_allowance = 2` or splits two rows. That update is already a marker migration **[I]** |
 
 Both reach nothing until the seat pushes a tag after the lane. `v0.6.1` is local. R-740 stays `planned` until then.
@@ -208,7 +208,7 @@ R-756 is the first ID of the pack's new block. Without it the two copies drift s
 - `docs/reviews/ears-form-2026-10-04/batch-<n>.json` and the rounds
 - `HANDOFF.md` — the one line, rewritten
 
-**Do not touch.** Any assertion in any test. Any row that is on form. Any source module under `packages/**`, `apps/**` or `templates/**/scripts`. `~/.claude/*`, `~/.pi/*`, `~/aml-desk`, `~/basketball-geek`. The tag: the seat cuts and pushes it after batch C.
+**Do not touch.** Any assertion in any test. Any row that is on form. Any source module under `packages/**`, `apps/**` or `templates/**/scripts`. `~/.claude/*`, `~/.pi/*`, `~/work-desk`, `~/basketball-geek`. The tag: the seat cuts and pushes it after batch C.
 
 **Acceptance, end of lane.**
 
@@ -227,7 +227,7 @@ R-756 is the first ID of the pack's new block. Without it the two copies drift s
 - The rail's older behaviours have no rows in any project. Only the form check gets rows. The unevenness is named in 6b's successor.
 - Three-digit IDs: about 150 remain after the lane. Open question for the seat.
 - The Python self-tests run only inside a rendered project with dependencies installed. nana-pi's suite does not run them. Acceptance step 4 covers it by hand.
-- aml-desk's rail copy and its 193 rows. basketball-geek's marker migration on its next template update.
+- work-project's rail copy and its 193 rows. basketball-geek's marker migration on its next template update.
 
 ## The claim I would most expect to be wrong
 

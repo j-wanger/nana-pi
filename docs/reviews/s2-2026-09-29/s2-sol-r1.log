@@ -1,5 +1,5 @@
 pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
-pi-review: item "s2-knowledge-renderer" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (scope-adversarial @ 0eae18e32035)
+pi-review: item "s2-knowledge-renderer" (git:/Users/example/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (scope-adversarial @ 0eae18e32035)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=1.17s flat=0/15
   [pi-review a1] cpu=1.2s flat=0/15
@@ -22,4 +22,4 @@ pi-review: item "s2-knowledge-renderer" (git:/Users/jwang/nana-pi/.git): 0 round
   [pi-review a1] cpu=1.48s flat=0/15
   [pi-review a1] cpu=1.49s flat=0/15
   [pi-review a1] cpu=1.69s flat=0/15
-[pi-review] SUCCESS on attempt 1 (7547 chars → /Users/jwang/nana-pi/docs/reviews/s2-2026-09-29/s2-sol-r1.md; round 1)
+[pi-review] SUCCESS on attempt 1 (7547 chars → /Users/example/nana-pi/docs/reviews/s2-2026-09-29/s2-sol-r1.md; round 1)

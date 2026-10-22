@@ -1,7 +1,7 @@
 # Architecture ruling — pi 1.0 adoption + subagent behaviour (2026-10-04)
 
 Ruler: Fable (read-only; this file is the only write). Inputs: CLAUDE.md, `compat-audit.md`,
-`subagent-diagnosis.md` incl. the seat addendum, Jake's ask, the ground-truth packages
+`subagent-diagnosis.md` incl. the seat addendum, the owner's ask, the ground-truth packages
 (pi-coding-agent 1.0.2, pi-subagents 0.75.0, pi-mcp-adapter 5.0.0), `packages/nana-setup/lib/*`,
 `REQUIREMENTS.md`. `[V]` = read by me; `[I]` = inferred, to be verified in acceptance.
 
@@ -9,7 +9,7 @@ Stakes: high-blast (every pi session on the machine), reversible (seed files + o
 
 ## 0. The frame, corrected
 
-Jake's symptom has two causes and neither is a concurrency cap. [V] The one organic session was
+The owner's symptom has two causes and neither is a concurrency cap. [V] The one organic session was
 already a background launch; the parent was occupied because the builtin `reviewer` has no shell and
 its prompt tells it to ask the supervisor for `git`/test output (`agents/reviewer.md:4,57,65`). "Only
 one child" was the model's choice under a one-child request — no cap was hit. So the fix is (i) make
@@ -41,7 +41,7 @@ part of the fix.
   unknown proof RETAINS the slot; the abandoned-slot reclaim is 20 min and applies only to failed runs
   with a dead PID. [V] `:383-403`: spawn claims "are never released or refunded". Both introduce a
   session-blocking failure mode (leaked slots / exhausted budget → every launch refused until
-  restart) to guard against runaway fan-out that no session on this machine has ever shown. Jake's
+  restart) to guard against runaway fan-out that no session on this machine has ever shown. The owner's
   complaint is the opposite of runaway. `globalConcurrencyLimit` 20 and per-call budgets remain.
   Changes my mind: one measured session where children fanned out beyond what was asked.
 - **Leave unset:** `toolDescriptionMode` [V] `:103-110` — any explicit value drops the
@@ -135,7 +135,7 @@ silently enabling a QuickJS scripting tool); confirm `settings.json` has no `-bu
 (R-263) targets the adapter's `details.mcpResult.structuredContent.blocks` shape; blocks over
 built-in MCP are not stamped. R-263 stays `implemented` (its WHERE clause is still true when the
 adapter is present). Changes my mind: a second server with a large tool list, a server needing
-elicitation/UI, or Jake measuring token cost on `memory`.
+elicitation/UI, or the owner measuring token cost on `memory`.
 
 ## 4. pi 1.0.2 adoption specifics
 
@@ -150,7 +150,7 @@ elicitation/UI, or Jake measuring token cost on `memory`.
 - **`npm root -g` tests: residual, not now.** It is seven, not six (add
   `apps/desk/test/spawn-and-persist.test.mjs`). After the global upgrade the suite runs against
   1.0.2 directly; the patch only serves a future scratch-install lane. One HANDOFF line.
-- **TUI: leave upstream defaults** (fullscreen, revised `dark`). Jake's feel call; the revert is
+- **TUI: leave upstream defaults** (fullscreen, revised `dark`). The owner's feel call; the revert is
   `"tuiMode": "regular"`. Pin nothing.
 
 ## 5. Requirements (installer block; next free id R-360)

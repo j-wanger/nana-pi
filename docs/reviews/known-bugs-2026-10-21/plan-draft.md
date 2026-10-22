@@ -20,12 +20,12 @@ Known bugs leave HANDOFF.md and live one line each in `docs/known-bugs/FEAT-nnn.
 - review-standard.md:1 says only "the seat records them as known bugs" (R-1108, review-standard.test.mjs:47).
 - builder-preamble.md:7 says "Never edit `HANDOFF.md` or session archives". That line is unpinned, and it means the seat makes the move commit.
 - Unaffected consumers:
-  - product-report.mjs:365–366 (Open for Jake only)
+  - product-report.mjs:365–366 (Open for the owner only)
   - writing-check.test.mjs:103–117 (live sections only)
   - review-round.mjs:21,657 (a message only), and nana-land
   - requirements SKILL.md:17,47 (violated-row sense)
   - the HANDOFF seed, which has no residual section (project.mjs:170, adopt-structure SKILL.md:159)
-- The HANDOFFs of nana-agent-loop, basketball-geek, trading-zone and aml-desk have no residual heading.
+- The HANDOFFs of nana-agent-loop, basketball-geek, trading-zone and work-project have no residual heading.
 - code-map.config.json forbids package→scripts imports, so the check lives in `scripts/`. requirements-moved.mjs:4–5 only diffs HEAD against a merge base, so the move script reads per-commit REQUIREMENTS.md diffs.
 
 ## 3. Open design choices

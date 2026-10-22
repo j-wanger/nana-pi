@@ -50,7 +50,7 @@ Since round three, the only production change is the comment-boundary correction
 
 `HANDOFF.md:41` correctly retains the real-Claude-dispatch limitation and the tokenizer differential-test follow-up. The latter remains useful hardening, not completed evidence.
 
-`docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md:8–80` provides setup capture, install/doctor, fixture preflight, a throwaway project, an exec-form probe, a same-command pipeline/commit check and cleanup. Actual Claude Code routing and latency remain Jake’s acceptance check.
+`docs/reviews/cc-hooks-windows-2026-10-12/owner-windows-check.md:8–80` provides setup capture, install/doctor, fixture preflight, a throwaway project, an exec-form probe, a same-command pipeline/commit check and cleanup. Actual Claude Code routing and latency remain the owner's acceptance check.
 
 The committed build-6 mutation record reports **37/37 red**, with no anchor misses. I did not run the mutation runner. This confirms the seeded regressions, not exhaustive PowerShell correctness.
 

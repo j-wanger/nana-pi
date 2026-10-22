@@ -26,8 +26,8 @@
 - **Runtime parity:** CLI and pi output were byte-identical across all custom trust-shape cases, including labelled and unlabelled cases.
 - **Spoofing:** objective text, filename, directory name, and crafted `projectFile` could not create or suppress a real label; control-bearing paths were escaped. Both label paths pass through `displayPath()`.
 - **Canonical keys:** rejecting hand-written non-canonical keys is correct pi parity. Pi canonicalizes keys when `/trust` writes them and performs exact lookup afterward.
-- **Real repos:** with no real `~/.pi/agent/trust.json`, the candidate labels both `~/aml-desk` and `~/the-hive` while continuing to make their objectives govern. That is correct under the affirmative-record-only rule; `the-hive` also still explicitly marks its objective DRAFT.
-- **Risk acceptance:** `packages/nana-pack/README.md:556-562` plainly says the label is “defence in depth, NOT a security boundary,” that a model may follow attacker text, that sol recommended trust-gating, and Jake deliberately accepted the residual. It does not materially overclaim.
+- **Real repos:** with no real `~/.pi/agent/trust.json`, the candidate labels both `~/work-desk` and `~/the-hive` while continuing to make their objectives govern. That is correct under the affirmative-record-only rule; `the-hive` also still explicitly marks its objective DRAFT.
+- **Risk acceptance:** `packages/nana-pack/README.md:556-562` plainly says the label is “defence in depth, NOT a security boundary,” that a model may follow attacker text, that sol recommended trust-gating, and the owner deliberately accepted the residual. It does not materially overclaim.
 - **Tests:** objective golden corpus: 524 pass, 0 fail. A full run under the mandated synthetic HOME hit two unrelated handoff tests; both failures reproduce on main under that HOME. The seat’s normal-environment run remains 71 files / 3908 checks / exit 0.
 
 ## Residuals

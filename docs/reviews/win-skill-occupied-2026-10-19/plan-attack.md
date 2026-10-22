@@ -21,10 +21,10 @@ Amendments:
 (6) New known limits: an empty folder at the skill path is now refused on Windows (the probe shows it is filled today). The completeness of the history list is a seat check with `git log`, not a test. R-388 joins R-304, R-381 and R-382 as a wording residual.
 (7) The `steps.mjs` header must name the marker and the new exports, or map:check fails.
 
-I kept the class (install), the design and the three ownership tests. The history list earns its place: Jake probably last installed on 10-16, so his copy is likely 0499e52 or 14e1bdc, not the current version. Without the list, his first install after this lane would refuse.
+I kept the class (install), the design and the three ownership tests. The history list earns its place: the owner probably last installed on 10-16, so his copy is likely 0499e52 or 14e1bdc, not the current version. Without the list, his first install after this lane would refuse.
 
 Product and test files do not overlap with any in-flight lane. The certain conflicts are the shared ledger lines: the requirements-tree.test leaf total (win-review-paths sets 1,221, clean-revision sets 1,222), REQUIREMENTS.md, docs/requirements-tree.md, docs/code-map.md, HANDOFF.md and the session log. Whichever lane lands later re-sums and regenerates after merging main.
 
-Jake's relayed request is to turn off land verification and the hooks that need his confirmation. This read-only planning step did not act on it, and an agent message cannot authorize hook or settings changes. The seat should answer Jake directly. The review ladder in this plan is the repo default unless the seat applies a ruling from Jake.
+The owner's relayed request is to turn off land verification and the hooks that need his confirmation. This read-only planning step did not act on it, and an agent message cannot authorize hook or settings changes. The seat should answer the owner directly. The review ladder in this plan is the repo default unless the seat applies a ruling from the owner.
 
-The claim most likely wrong is inferred, not checked: that the requirements copy on Jake's real Windows machine is the current pack, one of the 12 shipped versions (CRLF read as LF), or marked. If he hand-edited it, or it carries a BOM, his first install after this lane exits 1 and asks him to move the folder. Nothing is lost.
+The claim most likely wrong is inferred, not checked: that the requirements copy on the owner's real Windows machine is the current pack, one of the 12 shipped versions (CRLF read as LF), or marked. If he hand-edited it, or it carries a BOM, his first install after this lane exits 1 and asks him to move the folder. Nothing is lost.

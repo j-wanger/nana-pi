@@ -34,7 +34,7 @@ node (proof:476-497). A count-based line accounting backs this up (proof:557-607
 blobs and runs every check again (:1012-1113).
 **What the owner sees (:971-980).** One line per node, `<id>: <n> row(s)`. One line per old-heading → new-node row move or merge (detectMoves :605-635; merge line :619). Then the
 proof line. **No label, purpose, status or share is printed.** Ran: a sample regroup renamed FEAT-033 and added FEAT-040; the plan showed `FEAT-040: 0 row(s)` and no rename.
-Jake's approval therefore needs a rendered proposal (tree with labels, purposes, statuses, moves, share changes) that the regroup lane builds. The lift does not provide one.
+The owner's approval therefore needs a rendered proposal (tree with labels, purposes, statuses, moves, share changes) that the regroup lane builds. The lift does not provide one.
 
 ## 3. The regroup's starting point
 
@@ -45,7 +45,7 @@ Jake's approval therefore needs a rendered proposal (tree with labels, purposes,
 - nana-pi: tree check 0 problems, 1,136 rows, 39 features (Ran). Even with shares supported, its emit is refused on the G-row rule. Ran: a 20-line script built the identity from
   the exported `buildIdentityMapping`, moved the 22 G rows into CAP-90 › FEAT-900 › SUB-900..904 (5/8/3/3/3), and the patched lift passed. Exit 0, `1136 rows kept
   byte-identical`, tree check 0 problems. The diff against the input was only the G rows and the new CAP-90 block (78 changed lines).
-- Moving the G rows out of FEAT-033 is a tree change Jake decides (REQUIREMENTS.md:34-37). FEAT-033's note (REQUIREMENTS.md:1539-1543) frames those rows as a mirror of the shared seed.
+- Moving the G rows out of FEAT-033 is a tree change the owner decides (REQUIREMENTS.md:34-37). FEAT-033's note (REQUIREMENTS.md:1539-1543) frames those rows as a mirror of the shared seed.
   The alternative is a validator exception for nana-pi; I would not take it, because the seed placement is what every rendered project uses.
 
 ## 4. What the regroup can and cannot express today
@@ -73,7 +73,7 @@ exception: a pair is dropped when its row's new home is that same feature, which
 a feature's `also_applies` passes. Ran: FEAT-001's eight shares were dropped, the run exited 0 with a clean proof, and the plan printed nothing. With only (a)+(b), the lab also showed:
 moving R-756 into FEAT-033, which shares it, was refused by the tree check ("is homed in this feature"); after the mapping dropped that share, the run exited 0.
 (d) Policy: carry-only (A) refuses every other share change. Declared changes (B) allow adds and drops, with one plan line per change and the recount covering them. nana-pi
-governance makes share adds and drops Jake's call (REQUIREMENTS.md:36). B fits a regroup that moves rows out of a feature that still depends on them. A is smaller.
+governance makes share adds and drops the owner's call (REQUIREMENTS.md:36). B fits a regroup that moves rows out of a feature that still depends on them. A is smaller.
 (e) Ledger and tests: R-1167 loses "an `Also applies:` line" and gains "outside a tree-form feature's field block". R-1163 gains the share-count clause, and R-1166 gains
 "carrying each feature's declared shares". Ran: with (a)+(b), the lift suite went **55 pass, 1 fail**. The one failure is T22b's six-mode share refusal (test:1386), which must be
 rewritten as tree-form shares lifting. The flat-ledger share refusal (T22, test:1276-1300) still passed. New mutation pairs are needed for (c) and for the field-block edge cases.
@@ -83,8 +83,8 @@ rewritten as tree-form shares lifting. The flat-ledger share refusal (T22, test:
 
 It belongs in the regroup program, but as its **own first slice or lane, class GATE**. It reopens the exact MUST that T22b closed (astra r1, silent share drop; test:1304-1309) in the
 proof, which is the tool's safety core. It is about 15 lines plus a test rewrite. The agent's proposal and its rendering are a different review class. The downstream flat ledgers
-(aml-desk, basketball-geek, trading-zone) lift without shares (CHANGE:205-206), so their regroups do not wait on it (INFERRED for their post-lift regroup). Only nana-pi needs
-it. nana-pi also needs Jake's ruling on the G rows (§3). Land the share slice first, then the regroup applies to nana-pi.
+(work-project, basketball-geek, trading-zone) lift without shares (CHANGE:205-206), so their regroups do not wait on it (INFERRED for their post-lift regroup). Only nana-pi needs
+it. nana-pi also needs the owner's ruling on the G rows (§3). Land the share slice first, then the regroup applies to nana-pi.
 
 ## 7. What still speaks the old contract
 
@@ -92,7 +92,7 @@ it. nana-pi also needs Jake's ruling on the G rows (§3). Land the share slice f
 - nana-pi only: after `--write`, `docs/requirements-tree.md` (outline plus share index) must be regenerated with `npm run req:tree`, because the suite fails on a stale outline
   (REQUIREMENTS.md:26-29; tree:357, :376). The lift does not do this. A "where it went" record like `docs/requirements-sections-2026-10-09.md` (REQUIREMENTS.md:30) would come from the move lines.
 - FEAT and SUB IDs cited in HANDOFF, review corpora and briefs go stale on a renumber. `req:` markers cite row IDs only, so they are unaffected (INFERRED; not grepped across docs).
-- The proof summary's "lines inserted" counts regenerated headings, fields and table headers. Ran: 359 for a 78-line diff. It is not a diff measure for Jake.
+- The proof summary's "lines inserted" counts regenerated headings, fields and table headers. Ran: 359 for a 78-line diff. It is not a diff measure for the owner.
 
 ## 8. Claim most likely wrong
 

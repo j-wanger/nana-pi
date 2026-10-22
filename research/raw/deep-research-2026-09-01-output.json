@@ -107,7 +107,7 @@
         "sources": [
           "https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md (Sessions/Branching sections)",
           "https://mariozechner.at/posts/2025-11-30-pi-coding-agent/",
-          "local binary /Users/jwang/.local/bin/pi v0.80.9 --help (verifier-checked)"
+          "local binary /Users/example/.local/bin/pi v0.80.9 --help (verifier-checked)"
         ],
         "evidence": "README: \"Sessions auto-save to ~/.pi/agent/sessions/ organized by working directory\" and \"Sessions are stored as JSONL files with a tree structure... enabling in-place branching without creating new files\"; only counter-evidence ever found was #320 (--resume wrong dir), closed with a one-line fix in Dec 2025."
       },
@@ -2165,7 +2165,7 @@
       "tokens": 36212,
       "toolCalls": 6,
       "durationMs": 49565,
-      "resultPreview": "{\"refuted\":false,\"evidence\":\"Claim confirmed by three independent primary sources: (1) the cited blog post (verified dated 2025-11-30) lists \\\"Session management with continue, resume, and branching\\\" as a shipped feature plus \\\"HTML export of sessions\\\"; (2) the currently installed pi CLI v0.80.9 (/Users/jwang/.local/bin/pi, the binary this repo actually uses) exposes --continue/-c (\\\"Continue pr…"
+      "resultPreview": "{\"refuted\":false,\"evidence\":\"Claim confirmed by three independent primary sources: (1) the cited blog post (verified dated 2025-11-30) lists \\\"Session management with continue, resume, and branching\\\" as a shipped feature plus \\\"HTML export of sessions\\\"; (2) the currently installed pi CLI v0.80.9 (/Users/example/.local/bin/pi, the binary this repo actually uses) exposes --continue/-c (\\\"Continue pr…"
     },
     {
       "type": "workflow_agent",

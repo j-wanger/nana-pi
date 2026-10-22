@@ -3,20 +3,20 @@
 *Lane `product-report` · branch `feat/product-report` · worktree `~/nana-pi-wt/product-report`, based
 on `main` at `0818b72` (the tree, four-digit IDs and the land rule) · 2026-10-11. Features:
 **new — FEAT-039 · See the product and its decisions in one report** under CAP-07 (home of every new
-row; Jake confirmed its name and home on 2026-10-10); FEAT-028 (its tree-checker module gains one
+row; the owner confirmed its name and home on 2026-10-10); FEAT-028 (its tree-checker module gains one
 exported row reader and a capability `outcome` field — code only, no row changes); FEAT-002 SUB-005
 (the HANDOFF ask tag moves into a shared lib that `nana-frontier` imports — code only). Order: why →
 plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan review (item
 `product-report-plan`; r1 and r2 SEND-BACK, answered in `sol-plan-r1-response.md` and
-`sol-plan-r2-response.md`; r3 LAND-WITH-FIXES 9/10) → Jake's decision on the expanded share line
+`sol-plan-r2-response.md`; r3 LAND-WITH-FIXES 9/10) → the owner's decision on the expanded share line
 (2026-10-11: "Yes") → build → seat verification → sol build review →
-astra land review → Jake accepts.*
+astra land review → the owner accepts.*
 
 ## 1. Why
 
-Jake, 2026-10-10: "we need to make that product report a feature, and not a one time assembly thing."
+The owner, 2026-10-10: "we need to make that product report a feature, and not a one time assembly thing."
 
-The decision page Jake used that day ("nana-pi Product Ledger") was assembled by hand: an extraction
+The decision page the owner used that day ("nana-pi Product Ledger") was assembled by hand: an extraction
 script and template in the seat's scratch folder, a 17-agent workflow for the assessments, a manual
 publish (`prototype/` keeps them). Nobody can rebuild it the same way or tell which parts are out of
 date.
@@ -51,7 +51,7 @@ date.
 | R-1015 | The product report shall show every feature with its purpose, its status, its requirement counts by status, the requirements shared into it and the features that list its requirements. |
 | R-1016 | The product report shall show every requirement row under its feature or subgroup with its requirement text, status and evidence. |
 | R-1017 | The product report shall list every requirement whose status is violated. |
-| R-1018 | The product report shall list every entry in HANDOFF.md's "Open for Jake" section with its kind, its since-date, its title and its full body. |
+| R-1018 | The product report shall list every entry in HANDOFF.md's "Open for the owner" section with its kind, its since-date, its title and its full body. |
 | R-1019 | The product report shall insert ledger, HANDOFF and assessment text into the page only as text nodes, never parsed as HTML or run as script. |
 | R-1020 | Each stored assessment shall carry a stamp of the commit it was written against, its feature's purpose and status, and for each row it covers — the feature's own rows and the rows shared into it, each marked own or shared — the row's status and a SHA-256 over its ID, requirement text and status. |
 | R-1021 | WHEN a stored assessment's stamped row set, any stamped row's own-or-shared mark or fingerprint, or its feature's stamped purpose or status differs from the current ledger, the product report shall mark the assessment out of date and name each added, removed or changed row and any changed purpose or status. |
@@ -63,23 +63,23 @@ date.
 | R-1027 | The suite shall fail when the assessment store breaks its declared schema (§3): exact keys and types at every level, full commit hashes, valid feature and row IDs, the status, mark and rating enums, SHA-256 hex fingerprints, ISO dates, one assessment per feature and each row once per stamp. |
 | R-1028 | The product report shall show a feature that has no stored assessment as unassessed. |
 | R-1029 | WHEN run with `--packets <dir>` on an empty or absent directory, the report command shall write exactly one versioned JSON packet per out-of-date or unassessed feature — its current purpose and status, its own and shared rows with text, status and evidence, its current assessment, its stale differences and a ready stamp for the current commit computed as R-1026 rebuilds stamps — byte-identical across runs at one commit, and refuse a non-empty directory. |
-| R-1030 | IF an entry in HANDOFF.md's "Open for Jake" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. |
+| R-1030 | IF an entry in HANDOFF.md's "Open for the owner" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. |
 
 (Dropped in r2: the draft's "cites a row outside its stamp" — the schema has no row citations, and
 R-1026 already verifies the whole stamped set. R-1023 checks digits only: every capability, feature, subgroup and requirement ID holds a digit, so
 a separate ID clause could never fail on its own — sol plan r1. R-1014–R-1018 replace the draft's two bundled rows: capabilities have a purpose and an outcome but no
 status or shares; the draft's "every open question" is dropped — the open questions are free text with
-no grammar, and HANDOFF's "Open for Jake" already carries the ask about them.)
+no grammar, and HANDOFF's "Open for the owner" already carries the ask about them.)
 
-**Tree changes for Jake (checkpoint 1b — Jake, 2026-10-11: "Yes").** FEAT-039 is `Status:
+**Tree changes for the owner (checkpoint 1b — the owner, 2026-10-11: "Yes").** FEAT-039 is `Status:
 active` with `Purpose: Rebuild one report of the product, its features, their requirements and the
-decisions waiting on Jake, from the repo at any commit from its first build on.` Proposed share line:
+decisions waiting on the owner, from the repo at any commit from its first build on.` Proposed share line:
 `Also applies: R-292, R-293, R-878, R-1000` — the report reads the share grammar, the feature status
 grammar, the HANDOFF ask tag and the ID grammar, so a change to any of them must re-read the report.
 sol plan r2: the report also consumes, through `checkTree`, row homes, purposes, unique heading IDs,
 nesting and empty proposed or retired features — R-287, R-288, R-289, R-290 and R-294 — so the
 proposed line grows to `Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000`
-(R-291, the committed outline, is not consumed). Jake, 2026-10-11, approved the expanded line: "Yes".
+(R-291, the committed outline, is not consumed). The owner, 2026-10-11, approved the expanded line: "Yes".
 The builder adds `Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000` with
 FEAT-039.
 
@@ -99,7 +99,7 @@ FEAT-039.
   `Outcome:` as `outcome`; export the descendant walk the report needs. R-291's outline stays byte for
   byte.
 - `packages/nana-pack/lib/handoff-asks.mjs` (FEAT-002 SUB-005; new, six-tag header): ONE section and
-  entry splitter for "Open for Jake" returning every raw entry (all its lines, start line) plus two
+  entry splitter for "Open for the owner" returning every raw entry (all its lines, start line) plus two
   independent results per entry — the tag result (frontier's existing rule: a case-insensitive
   `[blocking|optional|parked, since YYYY-MM-DD]` anywhere in the entry, continuation lines included)
   and the title result (the report's grammar: the entry's first line is `- **[<kind>, since
@@ -194,13 +194,13 @@ module-type warning Node prints when a script imports the TypeScript rail.
 - **Fingerprint serialisation:** SHA-256 over the JSON array `[id, requirement, status]` of the
   normalised row (no delimiter ambiguity). Dates in the store must be real calendar dates.
 
-## 5. Checkpoint 1 (Jake, decided 2026-10-10)
+## 5. Checkpoint 1 (Owner, decided 2026-10-10)
 
-Jake: "agreed on all your recommendations, and yes lift the hold for html". So: (1) the report is
+The owner: "agreed on all your recommendations, and yes lift the hold for html". So: (1) the report is
 queued after the land rule (done); (2) the new feature is FEAT-039 "See the product and its
 decisions in one report" under CAP-07; (3) the confirmed audit issues go to the ledger's open
 questions in a separate small lane, not into this report; (4) the 2026-10-05 hold on HTML pages is
-lifted. Checkpoint 1b (the share line in §2): Jake, 2026-10-11, "Yes".
+lifted. Checkpoint 1b (the share line in §2): the owner, 2026-10-11, "Yes".
 
 ## 6. Verification (doneWhen)
 

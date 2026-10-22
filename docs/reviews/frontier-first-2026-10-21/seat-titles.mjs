@@ -44,7 +44,7 @@ const SESSIONS = {
 	"2": [
 		[
 			"packages/nana-pack/tests/frontier.test.mjs",
-			"R-2470: a Where things stand, Next or Open for Jake heading after a Landed or Carried residuals heading is reported as section-order",
+			"R-2470: a Where things stand, Next or Open for Owner heading after a Landed or Carried residuals heading is reported as section-order",
 			[
 				"R-2470"
 			]

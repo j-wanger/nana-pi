@@ -9,17 +9,17 @@ grouping costs a git revert, the owner's time, and every later feature-oriented 
 
 ## 1. Why
 
-Jake, 2026-10-14: "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding existing repo and turn into feature trees, then development
-really becomes feature oriented". The queue puts the regroup first (`HANDOFF.md:80`), then feature-oriented development (`:81`). Jake, 2026-10-10 (`docs/reviews/req-tree-2026-10-09/CHANGE-B.md:10-13`):
+The owner, 2026-10-14: "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding existing repo and turn into feature trees, then development
+really becomes feature oriented". The queue puts the regroup first (`HANDOFF.md:80`), then feature-oriented development (`:81`). The owner, 2026-10-10 (`docs/reviews/req-tree-2026-10-09/CHANGE-B.md:10-13`):
 "Do one review on all 1009 placements, also we should allow multiple features pointing to the same requirements". Both rulings bind this program.
 - **The gap.** The skill stops at the lift: "name no regroup command until that lane lands" (`packages/nana-pack/skills/requirements/SKILL.md:132`). A lifted ledger's every
   purpose reads "Not yet sorted:" (`scripts/requirements-lift.mjs:24`; reserved nodes take the seed's text, `:731-746`). A hand mapping already applies with proof (A §4, Ran),
   but the plan prints only `<id>: <n> row(s)` and move lines (`:968-978`). Worse, `detectMoves` keys pairs by heading text and reads merges only from tree IDs (`:610`, `:619`,
-  `:628`): on a flat ledger a folded section prints nothing (FR 31, Ran), and aml-desk's two identical `## 36b. Build at production size` headings (lines 484, 570) collapse into one pair (FR B).
+  `:628`): on a flat ledger a folded section prints nothing (FR 31, Ran), and work-project's two identical `## 36b. Build at production size` headings (lines 484, 570) collapse into one pair (FR B).
 - **What failed before.** basketball-geek's markdown draft (6 CAP, 25 FEAT) is still untracked five days on, six questions open (C §5). nana-pi's own tree took about 22 hours
-  by git times and 11 builder runs, because placement correctness came after the name checkpoint (B §5). Jake approved names from a 163-line outline (`outline.md`, 3,072 words),
+  by git times and 11 builder runs, because placement correctness came after the name checkpoint (B §5). The owner approved names from a 163-line outline (`outline.md`, 3,072 words),
   then refused a fidelity-only checkpoint and got a 27-run placement review (B §3).
-- **The users.** Flat, unlifted: aml-desk (365 rows), basketball-geek (165 at HEAD), trading-zone (197; `docs/reviews/lift-2026-10-14/research-ledgers.md:64`). None carries a
+- **The users.** Flat, unlifted: work-project (365 rows), basketball-geek (165 at HEAD), trading-zone (197; `docs/reviews/lift-2026-10-14/research-ledgers.md:64`). None carries a
   share line (grep on copies, FR 14). yokai-world (1,359 rows, 46 tree headings, a partial tree) has no starting mapping: `--emit-mapping` refuses it (Ran), so it needs a hand
   fix to its ledger first (`HANDOFF.md:63`). nana-pi itself is not a user of this lane (§7).
 
@@ -81,14 +81,14 @@ passes), so `statsu` beside `status` passes it. The checker holds every object t
     "claims": [{ "node": "FEAT-012", "field": "purpose", "text": "…", "verdict": "accept", "reason": "…" }, { "line": 484, "to": "FEAT-012", "text": "…", "verdict": "reject", "reason": "…" }] },
   "refuted": [{ "id": "R-051", "to": "FEAT-008", "reason": "…" }], "questions": [{ "ask": "…", "recommendation": "…", "about": [{ "id": "R-051", "to": "FEAT-007" }, { "line": 484, "to": "FEAT-012" }] }] }
 ```
-- **Reasons per reported line (R-1173).** One reason per line R-1170 prints, keyed by `(line, to)`, so aml-desk's two `## 36b.` sections are reasoned apart. aml-desk: 47
+- **Reasons per reported line (R-1173).** One reason per line R-1170 prints, keyed by `(line, to)`, so work-project's two `## 36b.` sections are reasoned apart. work-project: 47
   heading lines (6 Parts, 41 sections) plus its row moves; a section-preserving proxy gives 19 move pairs (FE §1, Ran). Kept rows inherit their node's purpose.
 - **The review record (R-1175)** mirrors the precedent's per-row form (`placement-review.json`: id, verdict, target, reason). `at` is the home the reviewer judged; a re-homed
   row's `at` goes stale and needs re-review. Each move or share target holds its own reason and resolves alone, keyed by `(id, to)`: carried (the target's `also_applies` names
   the row), refuted or asked, so R-051 can be asked for FEAT-007 and refuted for FEAT-008. A `same-family` record is printed as such, never as another lineage.
 - **Claim review (R-1184).** One quoted `accept` or `reject` with a reason per purpose, outcome and section reason; reserved nodes need none; a kept reject becomes a question.
 - **Text-placed rows (R-1176).** A row whose Evidence cell names no path under `<dir>` was placed by text alone. Each needs the drafter's reason, and the packet lists them.
-  aml-desk 174 (C §6: 74 local, 100 sibling-cited), basketball-geek 20, trading-zone about 32 (Ran, a rough path test on a copy).
+  work-project 174 (C §6: 74 local, 100 sibling-cited), basketball-geek 20, trading-zone about 32 (Ran, a rough path test on a copy).
 - **Gaps** only where the draft needs one: a `proposed` feature, `rows: []`, with an existing evidence path (R-1174). The lift and checker already refuse rows under it
   (`:538`; `requirements-tree.mjs:189-191`). Gap discovery stays with the audit mode (`SKILL.md:134-150`). The regroup is move-only, so the lift's byte proof covers it whole.
 
@@ -115,8 +115,8 @@ regroup command's backtick span; every lift flag it names (`--mapping`, `--write
    yokai-world needs a hand fix to the ledger first.
 2. **Read (J1).** Evidence cells and `req:` markers; test files and titles; module `@purpose` headers or first docstrings and the code map; the README's first paragraph and
    `OBJECTIVE.md`; HANDOFF rulings that freeze or retire work. Not session archives or review corpora. List them in `regroup.read` (shown, not checked).
-3. **Draft.** A ledger with Parts gets one drafter per Part (aml-desk six, C §6); the seat assembles. Cluster rows by cited test file and seed one feature per cluster (C §3;
-   aml-desk places 52% this way, basketball-geek 88%). Place the rest by text, each with a `placed` reason. Write purposes from module purposes, never the old label alone.
+3. **Draft.** A ledger with Parts gets one drafter per Part (work-project six, C §6); the seat assembles. Cluster rows by cited test file and seed one feature per cluster (C §3;
+   work-project places 52% this way, basketball-geek 88%). Place the rest by text, each with a `placed` reason. Write purposes from module purposes, never the old label alone.
    Split a sprint or lane section by what its rows serve. A gap goes in only as a `proposed` feature with evidence.
 4. **Review every placement (J3)** before the owner sees anything, in batches of about 80 rows (the precedent's 1,009 over 12). Reviewer: another model lineage through `pi-review` (on Windows
    `node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"`, pack `README.md:228`). With no second lineage on the seat (a Claude Code seat without pi or a roster), a fresh subagent reviews,
@@ -181,47 +181,47 @@ Kept green: the rest of the lift suite, R-1162's three move-line tests included 
 
 **Seat acceptance** (copies in the seat's scratch, never the projects; seen failing at the base). Each run records runs, wall clock, packet words and minutes against its budget (§7 J2), naming any overrun.
 - basketball-geek's HEAD copy, end to end on a Claude Code seat: check exits 0; the lift proves; in a scratch git copy, `--write`, commit, `--verify <base> --mapping <proposal>` exits 0.
-- aml-desk's copy, straight from flat: check exits 0; both `## 36b.` sections print apart, each with its reason; §36's lane notes land where residual 3 says.
+- work-project's copy, straight from flat: check exits 0; both `## 36b.` sections print apart, each with its reason; §36's lane notes land where residual 3 says.
 - **Blind rehearsal (grouping quality, measured, not gated).** nana-pi's pre-tree ledger (`5b68a91`, 1,004 rows, 0 share lines, Ran), a `git archive` without `docs/reviews/` in the
   seat's scratch. Run it in a pi worker session (`NANA_ROLE=worker` turns the knowledge pull off; pi has no shared auto-memory), never a Claude Code session in nana-pi: the knowledge
-  index holds `docs/requirements-tree.md`, Jake's ruled tree, and project memory names it (FR E). Score R rows only; the lift forces G rows into the seed subgroups while Jake's tree
+  index holds `docs/requirements-tree.md`, the owner's ruled tree, and project memory names it (FR E). Score R rows only; the lift forces G rows into the seed subgroups while the owner's tree
   keeps them in FEAT-033. Score = share of rows whose drafted feature's majority ruled feature is their ruled feature; also at capability level. **Pass mark: feature ≥ 85% and
   capability ≥ 93%** (chosen: the test-file signal alone, the drafter's own first step, scores 85.9% and 94.1%, C §2, so the judgment steps must not do worse). Record both scores
   before and after the placement review, and each role's billed tokens from pi's usage (§6's multipliers). Budget: 60 minutes (chosen: the largest accepted, for the most rows).
 - Suite: `npm run test:locked`, `map:check`, `readme:check`, `node scripts/requirements-tree.mjs --check`, `node scripts/requirements-trace.mjs`, and an empty merge-base diff on
   §3.6's files. Windows: nothing runs there before the land; CI's Git Bash leg runs after it and is non-blocking (`.github/workflows/ci.yml:50`, `:53`).
 
-**The claim most likely wrong:** that aml-desk's packet, about 10,000 words, half of it the 174 text-placed rows, fits its 45–60-minute budget (the 17,742-word appendix, FE, is outside). The
-precedent's 9,518-word packet was planned at 20 minutes, but Jake's actual minutes were never recorded (B, "Not read"). The rehearsal and the first checkpoint record them against it.
+**The claim most likely wrong:** that work-project's packet, about 10,000 words, half of it the 174 text-placed rows, fits its 45–60-minute budget (the 17,742-word appendix, FE, is outside). The
+precedent's 9,518-word packet was planned at 20 minutes, but the owner's actual minutes were never recorded (B, "Not read"). The rehearsal and the first checkpoint record them against it.
 
 ## 6. Cost per project (all INFERRED, anchored on the nana-pi precedent)
 
-**Raw input** = what each run reads once, at about 4 characters a token (Ran, sizes read-only): read sets aml-desk 450 KB (FE §5), trading-zone 271 KB, basketball-geek about
+**Raw input** = what each run reads once, at about 4 characters a token (Ran, sizes read-only): read sets work-project 450 KB (FE §5), trading-zone 271 KB, basketball-geek about
 170 KB, 5b68a91 about 1.1 MB; ledgers 258, 86, 72 and 452 KB. Drafters together read the read set once; reviewers, and likewise skeptics, the ledger once plus the proposal per
-run (about 12% of the ledger: aml-desk's emitted mapping is 31 KB, Ran); the critic every verdict (about the ledger) and the proposal. **Billed** = each role's raw input × its
+run (about 12% of the ledger: work-project's emitted mapping is 31 KB, Ran); the critic every verdict (about the ledger) and the proposal. **Billed** = each role's raw input × its
 re-read multiplier, as each agent turn re-sends its context: drafter ×5, reviewer ×3, skeptic ×3, critic ×2 (chosen, INFERRED; the rehearsal measures them). Runs = the four roles summed.
 
 | Project | Rows | Drafters | Reviewers / skeptics / critic | Agent runs | Raw input tokens (drafters / reviewers / skeptics / critic) | Billed input tokens | Wall clock | Packet words (before appendix) | Owner minutes (budget) |
 |---|---|---|---|---|---|---|---|---|---|
-| aml-desk | 365 | 6 (one per Part) | 5 / 5 / 1 | 17 | about 0.39M (113k / 103k / 103k / 72k) | about 1.3M | 4–6 h | about 10,000 | 45–60 |
+| work-project | 365 | 6 (one per Part) | 5 / 5 / 1 | 17 | about 0.39M (113k / 103k / 103k / 72k) | about 1.3M | 4–6 h | about 10,000 | 45–60 |
 | basketball-geek | 165 | 1 (its draft exists) | 2 / 2 / 1 | 6 | about 0.11M (43k / 22k / 22k / 20k) | about 0.39M | 2–3 h | about 4,000 | 20–30 |
 | trading-zone | 197 | 1 | 3 / 3 / 1 | 8 | about 0.15M (68k / 29k / 29k / 24k) | about 0.56M | 2–3 h | about 4,100 | 20–30 |
 | rehearsal (5b68a91) | 1,004 | 4 (one per Part) | 12 / 12 / 1 | 29 | about 0.96M (278k / 276k / 276k / 127k) | about 3.3M | 6–8 h | about 10,000 | 60, the largest (the seat reads) |
 | nana-pi precedent | 1,009 | astra, one draft | 12 / 14 / 1 | 27, plus 11 builder runs | not recorded | not recorded | about 22 h | 9,518 | about 20 planned for the last packet; never recorded |
 
 The precedent's 22 hours included building its move and proof scripts, now the lift; scaling it by rows (8 h, 3.6 h, 4.3 h) is the upper bound. Owner minutes = packet words
-at 238 a minute (FE §1) plus one amendment round; Jake accepted them as the budget (§7 J2). Weakest guesses: rows per drafter, batch size, the re-read multipliers.
+at 238 a minute (FE §1) plus one amendment round; the owner accepted them as the budget (§7 J2). Weakest guesses: rows per drafter, batch size, the re-read multipliers.
 
 ## 7. Decisions and residuals (each becomes one HANDOFF line)
 
-**Jake's decisions (product; non-blocking, the build starts on the recommendations).**
+**The owner's decisions (product; non-blocking, the build starts on the recommendations).**
 - **J1 What the agent reads.** Rec: §3.5 step 2. Not session archives or review corpora. Why his: it defines "grounded in the repo" for every project.
-- **J2 The owner's packet — RULED by Jake 2026-10-15: "Short package".** As recommended: reproduce the packet he approved for nana-pi (B §3, §6 item 7; planned there at 15–20 minutes),
-  in §3.4 item 3's order, row list only as an appendix. **Budget:** the owner minutes Jake accepted with §6's table (aml-desk 45–60, basketball-geek and trading-zone 20–30); runs
-  report words, minutes and any overrun; nothing enforces it. Expected: aml-desk about 10,000 words (42 minutes), basketball-geek about 4,000 (17). Why his: he reads it.
+- **J2 The owner's packet — RULED by the owner 2026-10-15: "Short package".** As recommended: reproduce the packet he approved for nana-pi (B §3, §6 item 7; planned there at 15–20 minutes),
+  in §3.4 item 3's order, row list only as an appendix. **Budget:** the owner minutes the owner accepted with §6's table (work-project 45–60, basketball-geek and trading-zone 20–30); runs
+  report words, minutes and any overrun; nothing enforces it. Expected: work-project about 10,000 words (42 minutes), basketball-geek about 4,000 (17). Why his: he reads it.
 - **J3 The checkpoint form.** Rec: one checkpoint, after the every-row review his 2026-10-10 ruling requires; answers by number in chat; approval is the proposal committed
   with his words quoted. Why his: it sets his review time per project.
-**Decided by Jake's rulings, applied here.** Every placement reviewed by a different lineage before he sees the packet (2026-10-10). Shares in scope (2026-10-10), as the
+**Decided by the owner's rulings, applied here.** Every placement reviewed by a different lineage before he sees the packet (2026-10-10). Shares in scope (2026-10-10), as the
 parallel GATE lane `regroup-shares`; this lane carries shares as a verdict and a packet section.
 **Seat decisions (declared, not asked).** S1 The proposal is a lift mapping plus one `regroup` object. S2 Move-only; gaps hold no rows and need evidence. S3 One reason per line
 the lift reports, keyed by old line. S4 The checker spawns the lift's dry run and imports `detectMoves`. S5 The page is regenerated; the committed proposal is the approval
@@ -230,21 +230,21 @@ no FEAT-040, no tree change. S10 Class FORMAT, Sonnet builder. S11 The every-row
 **Residuals and carries.**
 1. The checker proves form, grounding and review coverage, not good grouping or true claims; the rehearsal is one data point. A same-family review is weaker, and the packet says so.
 2. Until `regroup-shares` lands, a proposal cannot carry shares; upheld share targets wait in one question, and only T8's direct call pins the carried outcome.
-3. Lift residual 2 stands: a split section with prose between table fragments puts that prose above one table (aml-desk §36). Prose moves only as whole sections (A §4).
+3. Lift residual 2 stands: a split section with prose between table fragments puts that prose above one table (work-project §36). Prose moves only as whole sections (A §4).
 4. FEAT and SUB IDs cited in HANDOFF, briefs and corpora go stale when a regroup merges them; the lift prints each merge, and nothing rewrites citations.
 5. A failed run removes an earlier review page at `<page>` but leaves any other file there; a copy of a page saved elsewhere survives, and its header's proposal hash tells it apart.
 6. The node form of `pi-review` has not run a placement review on a Windows seat, nobody has run the PowerShell form there, and lineage labels are self-reported.
 7. nana-pi's own regroup is out of scope. Its 31 shares wait for lane 2, and the recorded decision "G rows stay in FEAT-033 by declared design" (`placement-review.md:5`)
-   stands, while the lift demands G rows in their seed subgroups (`:532-536`). Revisiting either is Jake's call in a later lane. yokai-world needs a hand fix first (§1).
-8. HANDOFF line for Jake, written before the final round: re-run `nana-setup install` on the Windows Claude Code seat so its requirements skill copy updates (`steps.mjs:217-228`).
+   stands, while the lift demands G rows in their seed subgroups (`:532-536`). Revisiting either is the owner's call in a later lane. yokai-world needs a hand fix first (§1).
+8. HANDOFF line for the owner, written before the final round: re-run `nana-setup install` on the Windows Claude Code seat so its requirements skill copy updates (`steps.mjs:217-228`).
 
 ## Seat revision (2026-10-15)
 
-1. Factcheck WRONGs fixed: `--verify <base> --mapping <proposal>` in skill and acceptance; lift reports each old section by line, flat included (R-1170, T1); rows in FEAT-028; T17 scoped to the paragraph; R-1170 fixture noted; `steps.mjs:58` five skills; aml-desk 52%; yokai-world, readme-check first path, T29 scan, G-row decision named; J6 dropped; rehearsal off the knowledge pull.
-2. Owner's packet reproduces the approved nana-pi packet, full row list only as an appendix (R-1178, R-1179, J2 ruled by Jake 2026-10-15: "Short package"); expected length aml-desk about 10,000 words, basketball-geek about 4,000.
+1. Factcheck WRONGs fixed: `--verify <base> --mapping <proposal>` in skill and acceptance; lift reports each old section by line, flat included (R-1170, T1); rows in FEAT-028; T17 scoped to the paragraph; R-1170 fixture noted; `steps.mjs:58` five skills; work-project 52%; yokai-world, readme-check first path, T29 scan, G-row decision named; J6 dropped; rehearsal off the knowledge pull.
+2. Owner's packet reproduces the approved nana-pi packet, full row list only as an appendix (R-1178, R-1179, J2 ruled by the owner 2026-10-15: "Short package"); expected length work-project about 10,000 words, basketball-geek about 4,000.
 3. Every row reviewed by a different lineage before the owner sees the packet; a per-row record the checker counts (R-1175); `same-family` fallback named plainly; Windows uses `node …/pi-review.mjs`.
-4. Shares in scope by Jake's 2026-10-10 ruling: parallel GATE lane `regroup-shares` (R-1181 to R-1183); this lane carries shares as a verdict and packet section.
-5. Per-project cost table for aml-desk, basketball-geek and trading-zone, plus the rehearsal, anchored on the 22-hour, 1,009-row precedent; all INFERRED (§6).
+4. Shares in scope by the owner's 2026-10-10 ruling: parallel GATE lane `regroup-shares` (R-1181 to R-1183); this lane carries shares as a verdict and packet section.
+5. Per-project cost table for work-project, basketball-geek and trading-zone, plus the rehearsal, anchored on the 22-hour, 1,009-row precedent; all INFERRED (§6).
 6. Cut: gap discovery pass (gaps kept only as `proposed` features with evidence), byte-identical page across encodings, non-empty self-report checks, ID re-point check.
 7. Blind rehearsal kept on 5b68a91 with pass mark feature ≥ 85%, capability ≥ 93%, and the packet's words and reading minutes recorded.
 
@@ -255,7 +255,7 @@ sol, SEND-BACK (`sol-plan-r1.md`). Counts after: 12 rows (R-1184 new), leaf tota
 2. MUST, mixed share outcomes: R-1175 gives each move or share target its own reason and one outcome keyed by row and target; R-1179 prints each; T7, T8, T16.
 3. MUST, unreviewed purposes and reasons: new R-1184, one counted accept or reject per purpose, outcome and section reason, quoting it; rejects go to questions; T22, T23.
 4. MUST, `--out` over an input: R-1171 writes only when `<page>`'s real path is none of the run's inputs (the review record lives in the proposal); T19 (direct path), T20 (symlink alias).
-5. SHOULD, packet length: the budget is the owner minutes Jake accepted with §6's table; runs report words, minutes and overruns. Not enforced, by the seat's ruling (J2, §5).
+5. SHOULD, packet length: the budget is the owner minutes the owner accepted with §6's table; runs report words, minutes and overruns. Not enforced, by the seat's ruling (J2, §5).
 6. SHOULD, stale page: a failed run removes an earlier review page and touches no other file (R-1171, T21 starts with one); residual 5 rewritten.
 7. SHOULD, token method: §6 shows raw input per role and billed tokens apart, with each role's re-read multiplier; the rehearsal measures the multipliers.
 

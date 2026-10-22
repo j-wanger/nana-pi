@@ -3,16 +3,16 @@
 *Lane `roster` · `feat/roster` · `~/nana-pi-wt/roster`, from `main` `9974218`; rebases on `feat/process` after it lands (§4) · 2026-10-13.
 Features: FEAT-006 (FEAT-007 also applies), FEAT-013 SUB-012, FEAT-014 SUB-019, FEAT-019; new R-1120–R-1128 (range R-1120–R-1139);
 reworded R-961 and R-684; process's R-1105 keeps its text; none retires. Class: GATE: lane mode gains a refusal, and a fail-open
-fallback would run the default provider where the roster names another. Plan rounds: r1 SEND-BACK 6/10, r2 LAND 9/10; Jake ordered a
+fallback would run the default provider where the roster names another. Plan rounds: r1 SEND-BACK 6/10, r2 LAND 9/10; the owner ordered a
 third for the Windows launch switch ("Yes switch, but go through plan review", 2026-10-13; last section).
-Builder: Sonnet 5.5 subagent in the worktree, per the 10-13 split (Jake "agreed on the worker split"; its wording is the seat's): four
+Builder: Sonnet 5.5 subagent in the worktree, per the 10-13 split (Owner "agreed on the worker split"; its wording is the seat's): four
 code files, nine rows, a lane refusal, the Windows launch. Reviews: sol plan and build, astra land. Install check before `nana-land`:
-`nana-soul.md` and the nana-setup README live under `packages/nana-setup/` (Jake, 2026-10-12). Evidence: this folder's research and
+`nana-soul.md` and the nana-setup README live under `packages/nana-setup/` (Owner, 2026-10-12). Evidence: this folder's research and
 fact-checks, `research-node-entry.md` for the Windows launch and its two fact-checks, `factcheck-node-entry-external.md` and
 `factcheck-node-entry-repo.md`; sol's rounds 1–2 (last sections).*
 
 ## 1. Why
-A Claude Code seat on Jake's Windows work machine treated the builder/reviewer/land pattern as opt-in. Jake's rulings, verbatim:
+A Claude Code seat on the owner's Windows work machine treated the builder/reviewer/land pattern as opt-in. The owner's rulings, verbatim:
 "sure" (to the seat's proposal: the pattern for any change that touches code with tests, a direct answer for questions and one-line
 fixes); "land can be optional due to token allowance, seat will take on landing review if no land model set".
 - **The roster has no home off this Mac.** `AGENTS.md:66` points at shared memory `reference_roster.md`, which a fresh machine
@@ -22,16 +22,16 @@ fixes); "land can be optional due to token allowance, seat will take on landing 
   (`model-resolver.js:307-318`); a bad `--thinking` only warns (`args.js:125-135`). The work machine's pi version is unverified (E16).
 - **No rule covers an unset land model.** `nana-land` needs only the slice reviewer's LAND (`nana-land.mjs:91`): the seat's needs a place.
 - **A Windows seat cannot start either launcher** (sol r1 MUST 1). Both start pi only at `pi-watchdog.mjs:107`, `spawn('pi')` with no
-  shell, which cannot start npm's `pi.cmd` (`windows-triage.md:466-469`, hosted CI). Jake's work machine showed it on 2026-10-13:
+  shell, which cannot start npm's `pi.cmd` (`windows-triage.md:466-469`, hosted CI). The owner's work machine showed it on 2026-10-13:
   pi-worker failed twice with `spawn pi ENOENT` while a direct `pi` worked (his Claude Code seat's diagnosis, photographed). Running
   the shim through `cmd.exe` breaks a multi-line argument (`shell: true` joins arguments unescaped; `winCommand` refuses a line feed,
   `win-command.mjs:49-58`) and makes `cmd.exe` the watched process. pi's own Windows launcher runs pi's Node entry with
-  `process.execPath` instead (pi.dev `install.ps1:1456-1489`), and Jake's seat ran a worker end to end that way (§3). Lane mode also
+  `process.execPath` instead (pi.dev `install.ps1:1456-1489`), and the owner's seat ran a worker end to end that way (§3). Lane mode also
   compares `realpathSync` forms, which keep an 8.3 or differently cased cwd while git returns the long form (triage :463-469).
 
 **Outcome.** Every seat reads the default pattern; one command prints this machine's roster; pi-worker builds with it and names that
 builder on every lane launch; a Windows seat with an npm-installed pi runs both launchers as `node "$HOME/…"`; with no land model the
-seat writes its land review into the reviewed change. **Threat model** (Jake's 10-11 words). In: honest variation — a typo in a
+seat writes its land review into the reviewed change. **Threat model** (Owner's 10-11 words). In: honest variation — a typo in a
 provider, model or thinking; a valid but unintended model in the roster (shown on every lane launch, R-1124, not refused); a BOM from
 PowerShell 5.1's `-Encoding UTF8` or UTF-16LE from its `>` (E10); CRLF; an 8.3 or differently cased Windows path; npm's `pi.cmd` in
 its global or `.bin` layout; a pnpm global, Volta or pi.dev-managed pi on Windows (refused, named); a roster, a project
@@ -43,7 +43,7 @@ Main's highest ID is R-1092; process holds R-1100–R-1111. Each row carries one
 | ID | Change | Text (draft) |
 |---|---|---|
 | R-961 | reworded (FEAT-006) | WHEN pi-worker runs in lane mode, it shall refuse every caller argument after --, --retries greater than zero and a roster the roster resolver refuses, and construct pi arguments using the resolved builder's provider and model, its thinking level when one is set, the tools read,grep,find,bash,edit,write, the rendered preamble path, validated brief path, and fixed lane instruction. Evidence note: "reworded 2026-10-13 (roster lane) from 'using the roster openai-codex, gpt-6-luna, high, …'". |
-| R-1120 | added, FEAT-006 after R-961 | WHILE the user-scope nana-pack.json in pi's active agent dir is absent or holds no roster key, the roster resolver shall return the default roster: no scout, builder openai-codex gpt-6-luna high, reviewer openai-codex gpt-5.6-sol, and land openai-codex gpt-6-astra, the last two with pi's default thinking. Evidence note: Jake named the roles (2026-10-06); the provider and model ids are the seat's. |
+| R-1120 | added, FEAT-006 after R-961 | WHILE the user-scope nana-pack.json in pi's active agent dir is absent or holds no roster key, the roster resolver shall return the default roster: no scout, builder openai-codex gpt-6-luna high, reviewer openai-codex gpt-5.6-sol, and land openai-codex gpt-6-astra, the last two with pi's default thinking. Evidence note: the owner named the roles (2026-10-06); the provider and model ids are the seat's. |
 | R-1121 | added, FEAT-006 | WHEN the user-scope nana-pack.json in pi's active agent dir holds a valid roster, the roster resolver shall return its scout, builder, reviewer and land exactly as written, taking no slot or field from the default and reading no roster from a project's .pi/nana-pack.json. |
 | R-1122 | added, FEAT-006 | IF the user-scope nana-pack.json is present but unreadable, not a regular file, over the bounded-read cap, or not a JSON object after one leading byte-order mark is removed, or its roster is not an object holding exactly scout, builder, reviewer and land, where builder and reviewer are entries, scout and land are entries or null, and each entry holds exactly a provider and model that are non-empty with no whitespace or control character and a thinking that is one of pi's seven levels or null, THEN the roster resolver shall return a refusal naming the file and the failing slot or field. |
 | R-1123 | added, FEAT-006 | WHEN the roster command runs, it shall either print one line per slot giving provider, model and thinking (`default` for null), `none` for a null scout and `seat` for a null land, then a source line naming `default` or the file, and exit 0, or print the resolver's refusal on stderr and exit 1. |
@@ -70,8 +70,8 @@ land review; `scout: null` = no pi scout; builder and reviewer mandatory. README
 
 **Sealed values (`bin/worker-config.mjs`, the pack's declared surface for launcher values).** `LANE_DEFAULTS` keeps its four values
 byte-identical, the one definition of the default builder and the sealed tool list; its comment names it the default builder that a
-machine roster replaces, with provenance "roles: Jake, 2026-10-06; provider and model id: the seat's". `ROSTER_DEFAULTS`, deep-frozen
-(provenance: R-1120, Jake's roles, the seat's ids): `scout: null` (chosen: this Mac runs no pi scout); `builder` reads `LANE_DEFAULTS`
+machine roster replaces, with provenance "roles: the owner, 2026-10-06; provider and model id: the seat's". `ROSTER_DEFAULTS`, deep-frozen
+(provenance: R-1120, the owner's roles, the seat's ids): `scout: null` (chosen: this Mac runs no pi scout); `builder` reads `LANE_DEFAULTS`
 provider, model and thinking by name; `reviewer` openai-codex gpt-5.6-sol and `land` openai-codex gpt-6-astra, each `thinking: null`
 (INFERRED: the ledger records no thinking). `ROSTER_SLOTS`, `NULLABLE_SLOTS` (contract: R-1122); `THINKING_LEVELS` off…max (contract:
 pi 1.0.2 `args.js:6`); the one-token rule is chosen (one argv token, one printed line). The Windows launch adds pi's package
@@ -94,7 +94,7 @@ model is visible before any work (sol r1 MUST 2). The argv takes the builder's p
 roster and the line; new lines never contain `admit` or `complete` (R-732's regex, `review-ledger.test.mjs:128`, which also scans
 block comments). pi-review reads no roster (the seat passes models from the roster command), so it gets no such line.
 
-**Windows launch (sol r1 MUST 1; R-1125; Jake's switch, 2026-10-13).** Both launchers start pi only in `pi-watchdog.mjs` `runOnce`
+**Windows launch (sol r1 MUST 1; R-1125; the owner's switch, 2026-10-13).** Both launchers start pi only in `pi-watchdog.mjs` `runOnce`
 (`:107`), so the change lives there and `pi-review.mjs` is unchanged. Evidence: `research-node-entry.md` (this folder).
 - New export `piLaunch(piArgs, { platform, env, cwd, exists, isFile, readText, execPath })` → `{ command, args }` or
   `{ refused }`. Not win32: `{ command: 'pi', args: piArgs }`, today's spawn. win32, every path in `path.win32`:
@@ -110,7 +110,7 @@ block comments). pi-review reads no roster (the seat passes models from the rost
 - **The rule is pi's own.** pi's managed Windows launcher does the same bin lookup, containment check, `statSync(entry).isFile()`
   test and `process.execPath` spawn (pi.dev `install.ps1:1456-1489`, `:1480` for the file test, fetched 2026-10-13), and npm's
   `pi.cmd` runs `node` with the same entry first (cmd-shim 7.0.0's template). Only the folder locator is ours. Real-machine
-  evidence: Jake's seat built the same approach on his work machine (node plus pi's `cli.js` for npm's global and `.bin` layouts on
+  evidence: the owner's seat built the same approach on his work machine (node plus pi's `cli.js` for npm's global and `.bin` layouts on
   win32, bare `pi` elsewhere) and a worker returned READY, exit 0, where it had failed with `spawn pi ENOENT`; that branch is not
   visible to us, so its details are INFERRED. Seat prototype (macOS): an argv holding LF, CRLF, `%`, `!`, `"` and a trailing `\`
   reached the entry byte-identical with the launcher as its parent; an escaping bin, a missing entry and a Volta-shaped folder were
@@ -156,7 +156,7 @@ block comments). pi-review reads no roster (the seat passes models from the rost
 change before the final round, like HANDOFF and session notes; the slice reviewer's final round covers that tip, and `nana-land` needs
 only its LAND. The seat passes reviewer and land models from the roster command as `pi-review … -- --provider P --model M [--thinking T]`.
 
-**Carriers (E8).** The shared region is the primary carrier: a pi seat reads it through `AGENTS.md` (Jake runs both seats on Windows),
+**Carriers (E8).** The shared region is the primary carrier: a pi seat reads it through `AGENTS.md` (Owner runs both seats on Windows),
 a Claude seat through the `CLAUDE.md` symlink where it resolves. nana-soul is the Claude-side copy: it reaches only Claude Code seats
 where `nana-setup install` ran (R-301 symlink; R-350 win32 copy, refreshed by re-running install).
 - The shared file's "Working pattern" list gains the two bullets of `shared-text.proposed.md` ("Default pattern", "Seat land review";
@@ -175,7 +175,7 @@ where `nana-setup install` ran (R-301 symlink; R-350 win32 copy, refreshed by re
   global or `.bin` layout, a `pi.exe` directly; a pnpm global install, Volta and the pi.dev installer refused, named; arguments
   passed unchanged; from PowerShell, a brief passed as a quoted `"@<full path>"`; `review-ledger run -- pi …` not covered).
 
-**Jake's work machine after the land:** drop his local launch branch (it takes R-1044; R-1125 now carries that launch);
+**The owner's work machine after the land:** drop his local launch branch (it takes R-1044; R-1125 now carries that launch);
 `git -C "$HOME/nana-pi" pull`; `node "$HOME/nana-pi/packages/nana-setup/bin/nana-setup.mjs" install`;
 one file edit, a `roster` block in `<agent dir>\nana-pack.json` with his gateway's name where the repo shows `example-gateway` (scout
 luna medium, builder luna high, reviewer sol, `"land": null`); check it with the roster command; build and review with
@@ -331,16 +331,16 @@ Windows title's INFO line decides it; if it shows `+snap`, §6 item 15 becomes a
 says so. Next most likely: that Windows delivers LF, `"` and a trailing `\` byte for byte (VERIFIED from libuv's quoting and
 Microsoft's argument rules, not yet observed); the non-lane Windows title decides it.
 
-## 6. Residuals and open questions (each becomes one HANDOFF line; no YOUR CALL for Jake in this lane)
-1. **Open for Jake (work machine):** `git config --get core.symlinks`, `type CLAUDE.md` in the clone; a 9-byte stub = nana-soul only.
+## 6. Residuals and open questions (each becomes one HANDOFF line; no YOUR CALL for the owner in this lane)
+1. **Open for the owner (work machine):** `git config --get core.symlinks`, `type CLAUDE.md` in the clone; a 9-byte stub = nana-soul only.
 2. **Residual — Windows evidence is a fake pi.** The leg proves the launch with a fake pi package that real npm installs; no real pi
-   has run a lane or review through this code on Windows. Jake's seat ran the same approach on his work machine (a worker returned
+   has run a lane or review through this code on Windows. The owner's seat ran the same approach on his work machine (a worker returned
    READY, exit 0): real-machine evidence for the design, its details INFERRED. That a Windows seat obeys the rule after the land stays
    INFERRED.
 3. **Residual — BOM elsewhere.** Doctor (`steps.mjs:606`) and `adoption.mjs:94` strip no BOM: a BOM-saved file fails doctor only.
 4. **Seat decision — roster home.** A `roster` block in the user-scope `nana-pack.json`, not a seeded file, and the seat passes reviewer
    and land models from the roster command, `pi-review` unchanged: a seed cannot carry a per-machine provider and never merges
-   (`fsops.mjs:114-126`), and a roster-reading `pi-review` collides with process's edits. Both ideas were the seat's, not Jake's ruling.
+   (`fsops.mjs:114-126`), and a roster-reading `pi-review` collides with process's edits. Both ideas were the seat's, not the owner's ruling.
 5. **Residual — model typo.** A typo under a known provider runs as a custom id with only a warning (`model-resolver.js:441-455`); the
    builder line (R-1124) shows it on every lane launch; pi-review's models are the seat's own typed arguments.
 6. **Residual — desk.** The frozen desk's settings editor refuses to save a user file holding `roster`, as for `objective` today.
@@ -349,12 +349,12 @@ Microsoft's argument rules, not yet observed); the non-lane Windows title decide
    is `win32-launch.test.mjs` and `nana-roster.test.mjs`.
 9. **Carry — downstream.** Projects get the two bullets when their region is refreshed (process lane's carry 7 names them).
 10. **After the land, a seat memory edit:** `reference_roster.md` points at the roster command; the seeded-file wording is marked the seat's.
-11. **Jake's option, no repo change:** `"land": null` on this Mac drops astra and saves tokens the same way.
+11. **The owner's option, no repo change:** `"land": null` on this Mac drops astra and saves tokens the same way.
 12. **Carry, top — the pi.dev managed install.** pi's README lists it first for Windows. A `pi update` that updates an npm install
     advises migrating to it after its "Updated pi from X to Y" line; an up-to-date or failed run prints nothing (pi 1.0.2
     `package-manager-cli.js:952-963`, VERIFIED). After a migration the launchers refuse, named. Support is a
     second locator (`<agent dir>\install\managed-install.json` → `install\releases\<current-version>\node_modules\<PI_PACKAGE>`, same
-    bin rule) plus `PI_MANAGED_INSTALL_ROOT` in the child env, as pi's launcher sets. Out of this lane: Jake's machine runs npm, and
+    bin rule) plus `PI_MANAGED_INSTALL_ROOT` in the child env, as pi's launcher sets. Out of this lane: the owner's machine runs npm, and
     the Windows leg cannot install it without the network.
 13. **Note — no console window.** libuv v1.x starts a `detached` child with `DETACHED_PROCESS`, so pi gets no console (libuv
     `src/win/process.c:1128`; Microsoft, "Process creation flags"); Node's doc sentence (`child_process.md:920-923`) does not hold here.
@@ -371,7 +371,7 @@ Microsoft's argument rules, not yet observed); the non-lane Windows title decide
     two match for the Node installer (its prefix holds no `node.exe`, VERIFIED) and nvm-windows (one prefix per Node version, beside
     the active `node.exe`; the match INFERRED). A command line over 32,767 characters fails at spawn (VERIFIED, Microsoft's
     `CreateProcessW` page); a quoted `"@<full path>"` carries a brief of any size (§3).
-17. **Open for Jake — his local launch branch.** It takes R-1044 for the same launch; this lane does not use R-1044, so he drops that
+17. **Open for the owner — his local launch branch.** It takes R-1044 for the same launch; this lane does not use R-1044, so he drops that
     branch before pulling main.
 18. **Residual — a refusal is retried.** A launch refusal counts as a failed attempt, as today's `spawn pi ENOENT` does: pi-review's
     default three attempts print it three times, both launchers write it to `--out`, and both end "FAILED after N attempt(s)
@@ -404,7 +404,7 @@ sol r2: LAND 9/10, no MUST; one SHOULD, a Windows test that launches from an exp
 path. Folded in by the amendment below (item 11).
 
 ## Seat amendment (2026-10-13): Node entry
-Jake's ruling: "Yes switch, but go through plan review" (2026-10-13). Windows evidence: his Claude Code seat's photographed diagnosis
+The owner's ruling: "Yes switch, but go through plan review" (2026-10-13). Windows evidence: his Claude Code seat's photographed diagnosis
 (pi-worker failed twice with `spawn pi ENOENT`; npm installs `pi`, `pi.cmd`, `pi.ps1` and no `.exe`; a direct `pi` works; `shell: true`
 breaks the multi-line brief), and his seat's local run of the same approach (a worker returned READY, exit 0; details INFERRED).
 1. R-1125 rewritten: on win32 a `.cmd`/`.bat` pi starts as `process.execPath` plus its npm package's `pi` bin entry, arguments unchanged.
@@ -417,7 +417,7 @@ breaks the multi-line brief), and his seat's local run of the same approach (a w
 8. Dropped: residual 12's refused characters and the README's refused-character list; the 32,767-character limit stays in residual
    16, and `@<path>` returns only as the README's PowerShell line (§3, §6).
 9. Added: `PI_PACKAGE`, `PI_BIN_NAME` and `NPM_DIRS` in `worker-config.mjs`, with contract provenance (§3).
-10. Added: npm's `.bin` layout beside the global one, as Jake's local resolver does (INFERRED detail; bin-links `bin-target.js`).
+10. Added: npm's `.bin` layout beside the global one, as the owner's local resolver does (INFERRED detail; bin-links `bin-target.js`).
 11. Added: sol r2's SHOULD as the sixth Windows title, a lane launch from a short or differently cased worktree path (§5).
 12. Added: a tests-first Windows run whose ten reds go on record before the code (§5).
 13. Changed: a refusal is decided before the capture dir exists, so nothing needs removing (§3).
@@ -425,11 +425,11 @@ breaks the multi-line brief), and his seat's local run of the same approach (a w
 15. Changed: forced-win32 titles rewritten (four); Windows titles now run a real npm install of a fake pi package (six) (§5).
 16. Changed: pairs 40–50 replace 40–47; the R-1126 extras become 51–52; K7 adds the non-win32 title (§5).
 17. Changed: the claim most likely wrong is now Windows reviews landing; it becomes carry 15 if the INFO line shows `+snap` (§5, §6).
-18. Residuals: managed install as the top carry (12), the console-window note (13), other installs (16), Jake's branch (17).
+18. Residuals: managed install as the top carry (12), the console-window note (13), other installs (16), the owner's branch (17).
 19. Not taken: the research's split into R-1125, R-1129 and R-1130, which would make eleven rows against the nine-row budget.
 20. R-1125 keeps one `shall`; its status is its weakest clause, the Windows-leg titles.
 21. Unchanged: nine rows R-1120–R-1128, four code files, tree 1,100 → 1,109 after process and 1,088 → 1,097 on main.
-22. Fact-check X17: the console-window decision and its question for Jake are dropped; `DETACHED_PROCESS` gives pi no console (§6 item 13).
+22. Fact-check X17: the console-window decision and its question for the owner are dropped; `DETACHED_PROCESS` gives pi no console (§6 item 13).
 23. Fact-check X18: `-p "$(cat brief.md)"` fails in PowerShell; the pack README's Windows paragraph names a quoted `"@<full path>"` (§3).
 24. Fact-check X13: Volta 1.x through 1.1.1 made `pi.exe` a symlink to its shim; `.cmd` shims arrived in 2.0.0 (§6 item 16).
 25. Fact-check X10: only a `pi update` that updates an npm install advises migrating; other runs print nothing (§6 item 12).

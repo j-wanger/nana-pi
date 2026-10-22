@@ -2,7 +2,7 @@
 
 Review `git diff 0818b72..HEAD` on `feat/product-report` (based before the Windows CI, verdict-reader
 and pi-launch lanes; `main` is merged in after this review, under a confirmation round). Threat model
-(Jake, 2026-10-11): honest variation in our own ledger, HANDOFF and assessment text — CRLF, hostile-
+(Owner, 2026-10-11): honest variation in our own ledger, HANDOFF and assessment text — CRLF, hostile-
 looking markup in a row, malformed asks, a stale stamp — is in scope; a person deliberately forging a
 store entry to deceive the page is out. Lane class: format (a stored schema checked by the suite).
 
@@ -12,7 +12,7 @@ seat's acceptance script (`seat-verify-report.mjs`; renders every view through a
 mismatches), title check (0 gaps), mutation runner (`seat-mutate.py`, 21/21 red — do NOT run it: it
 rewrites files), the 38 migrated assessments (`docs/product-report/assessments.json`), the refresh
 guide (`docs/product-report/assess-brief.md`), and the seat's `HANDOFF.md` lines and session entry.
-Generate the page (`node scripts/product-report.mjs --out <tmp file>`) and read it as Jake would.
+Generate the page (`node scripts/product-report.mjs --out <tmp file>`) and read it as the owner would.
 
 Check: (1) `scripts/product-report.mjs` and `scripts/product-report/template.html` against CHANGE
 §2–§4 and rows R-1012–R-1030 and R-1040–R-1042 — determinism, the stamp rebuilt with `git show`,

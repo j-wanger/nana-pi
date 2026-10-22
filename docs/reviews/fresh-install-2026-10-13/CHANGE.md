@@ -3,8 +3,8 @@
 *Lane `fresh-install` · branch `feat/fresh-install` · worktree `~/nana-pi-wt/fresh-install`, from `main` at `9974218` · 2026-10-13 · seat revision
 2 (last section). Features: FEAT-013 (SUB-011), FEAT-015, FEAT-019, FEAT-034. New R-1093 to R-1096 (R-1097 on unused); no reworded or retired
 row; no tree change, no share. SMALL by risk (docs, hints, tests, one 30-line pure module; no gate, hook or format change): one plan-review
-round; builder luna (Jake's 2026-10-13 split): §5 names every test by exact title, frozen in `seat-titles.mjs` (DONE = `0 missing`). Touches
-nana-setup: the seat runs the install check locally before landing (Jake 2026-10-12). Touches `apps/desk/README.md`: the desk is quiesced before
+round; builder luna (Owner's 2026-10-13 split): §5 names every test by exact title, frozen in `seat-titles.mjs` (DONE = `0 missing`). Touches
+nana-setup: the seat runs the install check locally before landing (Owner 2026-10-12). Touches `apps/desk/README.md`: the desk is quiesced before
 `nana-land` (setup README `:66`). Order: plan → one plan review → rows and tests (red) → code and docs → seat checks → one draft-PR push →
 different-lineage build review → `nana-land`. Evidence: `research-*.md`, `factcheck-*.md`, `pwsh/` here.*
 
@@ -33,7 +33,7 @@ retune or README edit; a missing or malformed `ci.yml`; a `Path` key. Out: forge
 
 Evidence gains titles: R-1071 (1), R-1075 (1), R-1079 (2); R-1078 swaps its renamed title and gains one; R-951 and R-1081 keep theirs. No
 existing row changes status or text. R-1093 lives in SUB-011 with no share: doctor's use of the hint is R-1037's (FEAT-015), and a share is
-Jake's tree decision. Leaf total 1,088 → **1,092** (1,088 VERIFIED with `scripts/requirements-tree.mjs` on main), then `npm run req:tree`.
+The owner's tree decision. Leaf total 1,088 → **1,092** (1,088 VERIFIED with `scripts/requirements-tree.mjs` on main), then `npm run req:tree`.
 **Pin, not downgrade, on purpose:** the 2026-10-13 materiality default downgrades such rows; here each clause costs one small test and stays honest.
 
 ## 3. Design
@@ -68,11 +68,11 @@ through and npm exits 1 with `EINVALIDTAGNAME`, installing nothing (VERIFIED); b
 
 **Desk freeze — seat-decided: the README line is allowed, desk code is not.** `REQUIREMENTS.md:41-42` freezes "rows or code"; a README is neither.
 
-**3.4 Install-check residual fixes — each decided here; none is Jake's call.**
+**3.4 Install-check residual fixes — each decided here; none is the owner's call.**
 - **Setup README.** `:401` → "The check depends on Node, Git, pi and npm registry access. On any FAIL it prints the installed hooks block and
   the last knowledge-pull record, keeps the temporary home and prints its path." `:403` "dispatches installed hooks through Git Bash" → "runs
   each installed hook directly in exec form (`node` with arguments, no shell)" (`install-check.mjs:262-264`).
-- **Jake's page.** `owner-windows-check.md:19` → "In PowerShell, from the checkout:". Nothing else on the page changes.
+- **The owner's page.** `owner-windows-check.md:19` → "In PowerShell, from the checkout:". Nothing else on the page changes.
 - **Diagnostics (R-1096).** About eight lines at the end of `runInstallCheck`, when `failed`, via `emitLine`, files read fresh:
   `JSON.stringify(JSON.parse(text).hooks ?? null)`; the last non-blank line, else `none`; a throw prints `could not be read (${error.code ?? error.name})`.
   `PULL_LOG_PATH = [".pi", "agent", "nana-knowledge", "pull.log"]` in `install-check-config.mjs` (contract value: `nana-knowledge/lib/paths.ts:17,25`,
@@ -81,7 +81,7 @@ through and npm exits 1 with `EINVALIDTAGNAME`, installing nothing (VERIFIED); b
 - **Git Bash lookup (`:205`).** Read the path variable under any letter case and pass the injected `exists` (production passes none).
 - **Doctor note list.** Remove `"skill requirements"` and `"skill nana-standards"` from `DOCTOR_NOTES.win32`, a declared retune of R-1081's
   sealed value: doctor never prints either as a `·` note (`doctor.mjs:340-342`, `:360-366`). Provenance gains the date and reason; 17 stay.
-- **Seat notes, in the reviewed change.** HANDOFF: after `:22`, "2026-10-13: Jake's builder split. Sonnet 5.5 builds larger or riskier lanes.
+- **Seat notes, in the reviewed change.** HANDOFF: after `:22`, "2026-10-13: the owner's builder split. Sonnet 5.5 builds larger or riskier lanes.
   luna builds small lanes, and every brief names each required test by exact title."; this lane's Landed line; drop only `:44`'s third sentence
   ("Linux runs no install check." stays true); remove queue item `:65`; `:74` gains "CI's half is green (main run 38414636460)"; §6's lines.
   Session: this lane's entry plus "Correction to the install-check entry below: CI runs it as its own blocking job on macOS and Windows,
@@ -151,7 +151,7 @@ file throws → T13; (28) `error.code` only, (29) empty log prints nothing → T
 
 **Seat acceptance script** (`docs/reviews/fresh-install-2026-10-13/acceptance.mjs`, red at launch, then green): titles T1–T20 once each with
 the right `// req:`, old R-1078 and tree titles gone; one "shall" per new row; R-1097 unused; evidence cites the titles; leaf total 1,092.
-Diffs: `.github/` empty; `apps/desk` only `README.md`; `doctor.mjs`, `win-command.mjs`, `bin/install-check.mjs` unchanged; Jake's page one
+Diffs: `.github/` empty; `apps/desk` only `README.md`; `doctor.mjs`, `win-command.mjs`, `bin/install-check.mjs` unchanged; the owner's page one
 line. README spans equal §3.3's two commands; `PI_INSTALL_HINT` (`node -e`) equals step 2's. Scratch installs of both: eight `@earendil-works`
 packages at 1.0.2, same `npm ls -g --all`, entry imports; `pwsh/t3.ps1` re-run green, placeholder exit 1.
 `map:impact` taken (callers: `steps.mjs` 30, `install-check.mjs` 2, `install-check-config.mjs` 3, `pi-exports.mjs` 8); install check all PASS
@@ -165,12 +165,12 @@ green. **Most likely wrong:** that Windows PowerShell 5.1 and cmd behave as Powe
 3. **Windows shells:** PowerShell 7.6 VERIFIED on macOS through npm's own `npm.ps1`; Windows PowerShell 5.1 and cmd INFERRED.
 4. **Nothing a user runs detects a mismatched pi tree.** Candidate: a doctor row importing pi's main entry; it joins HANDOFF `:45`.
 5. **The pi-session verdict also accepts `reload-runtime` on stderr** (VERIFIED); pi's RPC doc reserves stdout (`docs/rpc.md:29,56`).
-6. **Kept on purpose:** the bench study fixture README (`fixture/README.md:29`) keeps an unversioned line. No open question for Jake.
+6. **Kept on purpose:** the bench study fixture README (`fixture/README.md:29`) keeps an unversioned line. No open question for the owner.
 
 ## Seat revision (2026-10-13)
 
 1. Dropped the R-1079 stdout-only verdict change; R-1079 gains two negative tests only (§6.5 records the looseness).
-2. Dropped Jake's step 2b (his page changes only step 2's label), the HANDOFF `:23` rewording, the bench import-failure fix line, the policy sentence.
+2. Dropped the owner's step 2b (his page changes only step 2's label), the HANDOFF `:23` rewording, the bench import-failure fix line, the policy sentence.
 3. Commands gain the cutoff only, unquoted (VERIFIED, PowerShell 7.6). To confirm: no flag added or removed, so step 2 keeps `--ignore-scripts` (§3.3).
 4. R-1093 and R-1094 merged into one R-1093; pi-pin kept, its patterns `$`-anchored over `/\r?\n/` lines.
 5. Fact-check fixes: W1, W3–W7, map:impact for the config module, the exact tree title, the R-1078 rename, two headers, the CI-run fact.

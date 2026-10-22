@@ -53,7 +53,7 @@ Equal results show nothing positive; they do not rule out benefits on harder wor
    which if anything flatters C's cost.
 
 ## What this decides
-- Default profile stays **A (pi defaults)**; `defaultTools` unset. (Jake may still choose B for
+- Default profile stays **A (pi defaults)**; `defaultTools` unset. (Owner may still choose B for
   its tool mix — the price is known: ~3.5% on this workload.)
 - pi-web-access is **not** user-installed; the `.ext` install stays for future studies.
 - Next study candidates: (a) failure-capable code tasks; (b) research tasks with web-only keys;

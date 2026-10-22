@@ -1,6 +1,6 @@
 // Seat's independent attack battery for the req-tree build (scratch only; never writes the worktree).
 import { readFileSync } from "node:fs";
-const W = "/Users/jwang/nana-pi-wt/req-tree";
+const W = "/Users/example/nana-pi-wt/req-tree";
 const { checkTree } = await import(`${W}/scripts/requirements-tree.mjs`);
 const base = readFileSync(`${W}/REQUIREMENTS.md`, "utf8");
 const L = base.split("\n");

@@ -50,7 +50,7 @@
 
    The named repositories also contain established shapes this grammar refuses:
 
-   - `~/aml-desk/docs/reviews/slice3-2026-09-16-sol-r2.md:69` uses a middle heading verdict.
+   - `~/work-desk/docs/reviews/slice3-2026-09-16-sol-r2.md:69` uses a middle heading verdict.
    - `~/game-world/docs/reviews/design-2026-09-06/round-9.md:17` ends with `VERDICT: LAND — <reason>`.
    - `~/jev-research/docs/reviews/local-tool-judge-2026-09-19/contract3-astra-r1.md:4` uses a middle emphasized verdict.
    - Yokai’s current reviews use the intended first-line bare-score form.

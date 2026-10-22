@@ -5,13 +5,13 @@ frontend shape for pi-based agents: the app owns the screen, chat drives it. Rev
 soundness against the actual code it claims to build on. Be adversarial; pushback is wanted.
 
 ## Read first (all paths absolute)
-1. /Users/jwang/nana-pi/docs/agent-frontend-design-2026-09-04.md — THE DESIGN under review
-2. /Users/jwang/nana-pi/apps/desk/server.mjs — lines 1-60 (API surface), 95-200 (RPC allowlist, spawn), grep for MAX_CHILDREN, tool_execution
-3. /Users/jwang/nana-pi/apps/desk/public/app.js — grep for tool_execution_end, extension_ui_request, renderWidgets, custom
-4. /Users/jwang/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/rpc.md — "Extension UI Protocol" section and tool_execution events
-5. /Users/jwang/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md — registerTool, details, renderCall/renderResult, sendMessage, compaction
-6. /Users/jwang/family-planner/mcp_server.py — the existing app tools the design says it reuses
-7. /Users/jwang/basketball-geek/README.md — the first-slice data source
+1. /Users/example/nana-pi/docs/agent-frontend-design-2026-09-04.md — THE DESIGN under review
+2. /Users/example/nana-pi/apps/desk/server.mjs — lines 1-60 (API surface), 95-200 (RPC allowlist, spawn), grep for MAX_CHILDREN, tool_execution
+3. /Users/example/nana-pi/apps/desk/public/app.js — grep for tool_execution_end, extension_ui_request, renderWidgets, custom
+4. /Users/example/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/rpc.md — "Extension UI Protocol" section and tool_execution events
+5. /Users/example/.local/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md — registerTool, details, renderCall/renderResult, sendMessage, compaction
+6. /Users/example/family-planner/mcp_server.py — the existing app tools the design says it reuses
+7. /Users/example/basketball-geek/README.md — the first-slice data source
 
 ## Dimensions
 D1 Mechanism truth: does every seam the doc relies on exist as described (desk API, RPC events carrying tool `details`, extension dialogs in RPC mode, renderCall/renderResult, session reattach via /api/live)? Name any claim the code/docs do not support.

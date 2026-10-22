@@ -12,7 +12,7 @@ No exit-0 lost, duplicated, retargeted or invented share was found, and no non-f
 - Rows: R-1181 (amended, one `shall`), R-1182 and R-1183 match §2 exactly and sit right after R-1168. R-1167 equals the base plus §2's two clause edits. The lift suite shows 63 PASS, the tree suite passes, and R-291 reads 1,139.
 - Note: with two input features sharing one ID, both lift and proof look shares up by ID, so the last one's shares count for both. Validator messages then mislead, but the line accounting gave exit 1 in every combination I tried.
 - Note (pre-existing kind of false refusal): a `---` or `===` line right under a feature heading turns the moved share line into a setext heading. Status already does the same today. The run exits 1, so nothing passes silently.
-Files are in /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/shares-mutate-verify/: `nm/run.mjs` and `nm/*.log` (this lane's pairs), `mut/out-{a,b,c}.txt` (rerun lift pairs), `fuzz/fuzz.mjs`, `adv/p1.mjs`, `adv/p2.mjs`, `a1/a1.mjs`.
+Files are in /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/shares-mutate-verify/: `nm/run.mjs` and `nm/*.log` (this lane's pairs), `mut/out-{a,b,c}.txt` (rerun lift pairs), `fuzz/fuzz.mjs`, `adv/p1.mjs`, `adv/p2.mjs`, `a1/a1.mjs`.
 
 ---
 
@@ -67,11 +67,11 @@ GREEN B2/2 validator accepts a repeated ID in shares_added — SURVIVED; FAIL de
 **Code that contradicts a row**
 - No behaviour I read contradicts R-1167 or R-1181 to R-1183.
 - Two comments still say shares are refused in every ledger form, which contradicts R-1181 and R-1167's reworded clause. §4 put those comments in scope.
-  - `/Users/jwang/nana-pi-wt/regroup-shares/scripts/requirements-lift.mjs:155-157` (the comment above `fieldBlockAt`)
-  - `/Users/jwang/nana-pi-wt/regroup-shares/scripts/requirements-lift.mjs:1199-1200` (in the verify path)
+  - `/Users/example/nana-pi-wt/regroup-shares/scripts/requirements-lift.mjs:155-157` (the comment above `fieldBlockAt`)
+  - `/Users/example/nana-pi-wt/regroup-shares/scripts/requirements-lift.mjs:1199-1200` (in the verify path)
 - The code refuses a repeated ID in the share lists (`shareProblems`' repeat check, lift :674 and :683-685), but R-1167's text does not list that refusal. This is a gap in the row rather than a contradiction.
 
-Files are in `/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/shares-mutate/`:
+Files are in `/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/shares-mutate/`:
 - `seat-mutate.mjs` (the runner)
 - `seat-mutate-output.txt` (full output)
 - `logs/` (each pair's test output)

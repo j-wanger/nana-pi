@@ -14,7 +14,7 @@ None.
 - R-937 cites the four skipped-skill rows. R-1058, R-1063, and R-1064 remain explicitly Windows-leg-only and cite the final code-tip run.
 - Each reviewed row R-1050, R-1051, and R-1053–R-1064 contains exactly one `shall`.
 - The three Support lines are identical. `CLAUDE.md` remains linked to `AGENTS.md`, and the runtime-matrix cell matches its template.
-- Jake’s Windows instructions include setup capture, install and doctor, fixture checks, a throwaway project, real Claude Code dispatch, verifier routing, latency inspection, and cleanup.
+- The owner's Windows instructions include setup capture, install and doctor, fixture checks, a throwaway project, real Claude Code dispatch, verifier routing, latency inspection, and cleanup.
 - Local checks passed: pipe guard 84, settings merge 213, verifier pipe 29, forced-win32 degradation 87, retired artifacts 47, seat acceptance 59/59, title verification 0 gaps, requirements tree, code map, and README checks.
 - The committed mutation result remains 37/37 red. I did not run the mutation runner.
 - Working tree remained clean after verification.

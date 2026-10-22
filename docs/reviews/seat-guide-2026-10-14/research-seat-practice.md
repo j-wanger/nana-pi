@@ -15,9 +15,9 @@ Memory paths are under `~/.claude/nana-memory/shared/`; repo paths are relative 
 
 | # | Behaviour | Source (file:line) |
 |---|---|---|
-| E1 | Jake's complaint: the Windows Opus seat checks the worker's work every turn; queued guide content: background launch, end turn, never poll or read a running worker's transcript or diff its partial work, act on completion, verify once at the end, findings in the next brief, at most two lanes | `reference_roster.md:28` |
+| E1 | the owner's complaint: the Windows Opus seat checks the worker's work every turn; queued guide content: background launch, end turn, never poll or read a running worker's transcript or diff its partial work, act on completion, verify once at the end, findings in the next brief, at most two lanes | `reference_roster.md:28` |
 | E2 | Do not poll with echo commands; wait for the notification; fall back only on a real failure, "not because it's taking long" | `feedback_wait_for_reviewers.md:14` |
-| E3 | Token waste Jake flagged: a sleep+tail helper AND reading launcher output by hand; one producer per piece of evidence, read its exit code once | `feedback_no_duplicate_mechanical_checks.md:3-5,11-16` |
+| E3 | Token waste the owner flagged: a sleep+tail helper AND reading launcher output by hand; one producer per piece of evidence, read its exit code once | `feedback_no_duplicate_mechanical_checks.md:3-5,11-16` |
 | E4 | The seat's value is brief, integration, verification, ruling; seat's own tool calls = reads of results, small edits, commits, status | `feedback_seat_instructs_opus_works.md:16-18,20-23` |
 | E5 | Roster role: seat briefs, verifies, merges, decides; writes HANDOFF/sessions/memory | `reference_roster.md:12` |
 | E6 | Acceptance script before the build; mutation run on build 1's tip; look at every page/CLI output itself; at most two lanes in flight | `feedback_lane_process_2026_10_11.md:17` |
@@ -30,16 +30,16 @@ Memory paths are under `~/.claude/nana-memory/shared/`; repo paths are relative 
 | E13 | After ANY seat-authored code or test change, re-run the mutation runner before review (cost a round on fresh-install) | `feedback_lane_process_2026_10_11.md:26` |
 | E14 | PARTIAL rate climbs with context; split build 1 into fresh sessions of at most three items | `feedback_builder_brief_rules.md:19` |
 | E15 | Cheap rails (trace, map, README, whitespace) green before any review round; a red rail found by a reviewer is a wasted round | `feedback_prereview_cheap_rails.md:10-11` |
-| E16 | Triage each MUST against the bar before briefing a build; a failing MUST becomes a residual with one line of reasoning; if the reviewer insists, YOUR CALL for Jake | `feedback_review_materiality.md:17` |
+| E16 | Triage each MUST against the bar before briefing a build; a failing MUST becomes a residual with one line of reasoning; if the reviewer insists, YOUR CALL for the owner | `feedback_review_materiality.md:17` |
 | E17 | Never commit into a worktree under review (voids the verdict, consumes the round); stage seat edits elsewhere until the review ends | `feedback_stage_explicit_paths_while_agents_run.md:17`; see also `:15` |
 | E18 | Passive log reading does not break wait-for-the-runner; writes to its tree do | `feedback_probe_all_background_work.md:14` |
 | E19 | A standing go chains across steps; never convert a settled go into "want me to keep going?"; a "next report at X" is honest only if X already runs | `feedback_autonomous_phase_execution.md:16` |
-| E20 | One-line turn-ends read as absence to Jake in long remote sessions; a turn with a state change gets a real update | `feedback_confirm_parallel_candidates.md:17-19` |
+| E20 | One-line turn-ends read as absence to the owner in long remote sessions; a turn with a state change gets a real update | `feedback_confirm_parallel_candidates.md:17-19` |
 | E21 | When a lane lands, every next increment its CHANGE lists goes into HANDOFF's queue or is dropped there | `feedback_lane_process_2026_10_11.md:24` |
 | E22 | A headless print-mode worker that backgrounds a command and "waits for the notification" exits; there is no next turn | `reference_claude_cli_headless_isolation.md:23` |
 | E23 | pi-watchdog kills a run whose CPU stays flat for `--stall-secs` and retries; pi-worker retries 0 by default; lane ceiling 8 h | `packages/nana-pack/bin/pi-watchdog.mjs:20-23,48,148`; `reference_pi_review_procedure.md:32-33`; `packages/nana-pack/bin/worker-config.mjs:9-10` |
 | E24 | pi 1.0.2's `bash` tool blocks until the command exits: "Timeout in seconds (optional, no default timeout)"; pi docs name no background facility | `$(npm root -g)/@earendil-works/pi-coding-agent/dist/core/tools/bash.js:30` |
-| E25 | Jake 2026-10-13: a change touching code with tests goes through the pattern; questions and one-line fixes get a direct answer | `reference_roster.md:26`; already in the roster lane's shared bullet and nana-soul bullet (see section 6) |
+| E25 | the owner 2026-10-13: a change touching code with tests goes through the pattern; questions and one-line fixes get a direct answer | `reference_roster.md:26`; already in the roster lane's shared bullet and nana-soul bullet (see section 6) |
 
 ## 2. Already said elsewhere (the guide must not restate it)
 
@@ -63,7 +63,7 @@ Proposed file: `nana-seat.md`. Each bullet's source is in the table below (not p
 ```
 # Nana — Running builders and reviewers
 
-You are the seat: the interactive session Jake talks to. A builder or reviewer session skips this rule.
+You are the seat: the interactive session Owner talks to. A builder or reviewer session skips this rule.
 
 - Plan, write acceptance scripts and briefs, verify, decide and report; builders build and reviewers review.
 - Write the lane's acceptance script before the build and see it fail on the base revision.
@@ -75,7 +75,7 @@ You are the seat: the interactive session Jake talks to. A builder or reviewer s
 - Never write or commit in a worktree while its builder or reviewer runs.
 - Keep at most two lanes in flight; while one runs, work the other or end your turn.
 - End a waiting turn with one line: what runs, and what you will do when it exits.
-- When a job exits, act in that turn: verify, then brief the next build or launch the review, without asking Jake to continue.
+- When a job exits, act in that turn: verify, then brief the next build or launch the review, without asking Owner to continue.
 - Verify once per build: re-run the lane's seat checks yourself, read the builder's report, and look at every page or command output it produces. Seat checks are the acceptance script, title check and mutation runner.
 - Believe no pass or mutation you did not re-run, and read each check's exit code once from the tool that owns it.
 - On a PARTIAL report, start a fresh builder session for the remaining items, at most three per session.
@@ -83,7 +83,7 @@ You are the seat: the interactive session Jake talks to. A builder or reviewer s
 - After any code or test change of your own, re-run the lane's mutation runner before the review.
 - Run the project's cheap checks (requirements trace, code map, README check) green before any review round.
 - Triage each MUST against the review standard before briefing a rebuild; answer one that fails the bar as a residual with one line of reasoning.
-- If a reviewer insists on a MUST you answered as a residual, put it to Jake as YOUR CALL.
+- If a reviewer insists on a MUST you answered as a residual, put it to Owner as YOUR CALL.
 - After a land, move every next step the lane's change declaration lists into HANDOFF's queue, or drop it there by name.
 - A seat run headless (print mode) has no next turn: wait for every job in the foreground.
 ```
@@ -96,7 +96,7 @@ You are the seat: the interactive session Jake talks to. A builder or reviewer s
 | ID range + seat checks = DONE | E10; preamble `:8,:28` consumes both |
 | Exact titles for small-lane builder | E9 (wording avoids the model name: the roster is per machine) |
 | Start once, wait for exit | E1, E2, E24 (pi wording), E22 |
-| Never poll / read output / diff partial work | E1 (Jake verbatim), E2, E3 |
+| Never poll / read output / diff partial work | E1 (Owner verbatim), E2, E3 |
 | No monitor or heartbeat | E23, E2 ("not because it's taking long"); conflicts with the probe memory, see C1 |
 | No writes in a running worktree | E17, E18 |
 | Two lanes in flight | E6 |
@@ -114,8 +114,8 @@ You are the seat: the interactive session Jake talks to. A builder or reviewer s
 | Headless seat | E22 |
 
 Optional line, only as a swap for another bullet (the cap is reached; older ruling, 07-08):
-`- Before opening a new parallel lane, give Jake the candidates with a recommendation; he picks.`
-(`feedback_confirm_parallel_candidates.md:16-17`.) Left out by default: lanes are now queued with Jake in
+`- Before opening a new parallel lane, give Owner the candidates with a recommendation; he picks.`
+(`feedback_confirm_parallel_candidates.md:16-17`.) Left out by default: lanes are now queued with the owner in
 HANDOFF, so the selection step rarely arises.
 
 ## 4. Shared-region pointer
@@ -135,13 +135,13 @@ Why a pointer and not the whole guide:
    (`NANA_HANDOFF=off` row of the region's table). Seat-only text there costs every child tokens, and
    "end your turn" read by a headless builder is the exact failure in E22.
 3. One source: the Claude Code seat already gets the rule file; a full copy in the region duplicates it.
-4. The Windows Claude Code seat may not see AGENTS.md at all: `HANDOFF.md:81` warns that Jake's Windows
+4. The Windows Claude Code seat may not see AGENTS.md at all: `HANDOFF.md:81` warns that the owner's Windows
    clone's `CLAUDE.md` may be a one-line text file reading `AGENTS.md`. The rule file is the only sure route
    for that seat, so the region cannot be the Claude delivery path anyway.
 
 Why the pointer carries one behaviour inline: prior art says a pi session does not open a file a rule
 merely names (`docs/reviews/writing-trial-2026-10-04/design-ruling.md:326`, A3). The inline clause
-delivers Jake's actual complaint even if the pi seat never opens the guide. Keep its words aligned with
+delivers the owner's actual complaint even if the pi seat never opens the guide. Keep its words aligned with
 guide bullets 5-6 so one thing has one name. The pointer passes `nana-writing.mjs` with zero findings.
 
 Stronger option for the plan's options section (not this lane by default): a pack extension appending
@@ -167,24 +167,24 @@ The alternative, `packages/nana-setup/claude/rules/`, reads as Claude-only and i
 | F8 | The Claude seat reads AGENTS.md through `CLAUDE.md` | Windows clone may hold a one-line `CLAUDE.md` text file (`HANDOFF.md:81`) | The rule file, not the region, is the Claude route |
 | F9 | nana-pi commands: `npm run test:locked`, install check "on macOS", `map:check` | The rule is global (every project) | Line names the checks generically: "requirements trace, code map, README check" |
 | F10 | Ending the turn while a job runs | A headless seat (`claude -p`, `pi -p`) exits (E22) | Last line |
-| F11 | Bash tool background tasks | On Windows the PowerShell tool may be the primary shell (`user_jake_windows_both_seats.md:10`); whether it accepts a background flag is UNVERIFIED. The Bash tool (Git Bash, installed on Jake's machine) does | "as a background task", tool-neutral |
+| F11 | Bash tool background tasks | On Windows the PowerShell tool may be the primary shell (`user_owner_windows_both_seats.md:10`); whether it accepts a background flag is UNVERIFIED. The Bash tool (Git Bash, installed on the owner's machine) does | "as a background task", tool-neutral |
 
 ## 6. Conflicts and open items
 
-- C1 (needs a decision; Open for Jake if the planner agrees): `feedback_probe_all_background_work.md:10,16-24`
-  is Jake's 07-24 and 08-06 ruling: arm an event monitor plus a 30-minute liveness heartbeat on every long
+- C1 (needs a decision; Open for the owner if the planner agrees): `feedback_probe_all_background_work.md:10,16-24`
+  is the owner's 07-24 and 08-06 ruling: arm an event monitor plus a 30-minute liveness heartbeat on every long
   background process. Its index line loads in every Mac Claude session (shared `MEMORY.md`, "Probe all
   background work"). Guide bullet 7 contradicts it for launcher runs. The memory itself named the fix:
   "loop-status/watchdog should own this probe" (`:14`); pi-watchdog now does (E23), and pi-review's retries
   mean mid-run STALL lines would wake the seat for nothing. Recommend: scope that memory to runs with no
-  watchdog (governed loops), and state the narrowing to Jake in one line. Without it, the Mac seat holds
+  watchdog (governed loops), and state the narrowing to the owner in one line. Without it, the Mac seat holds
   two rules that fight.
 - C2: `nana-soul.md:42` "Progress over silence. During long tasks, send brief status updates" can read
   as "go check progress". Guide bullet 10 resolves it (the update says what runs, not how far it got).
   Do not edit nana-soul in this lane (the roster lane edits the same section).
 - C3: "builders build" is stricter than recent practice: the seat rewrote the README scanner itself on
   fresh-install (`feedback_lane_process_2026_10_11.md:26`), and that cost a round. "Fix only a one-line
-  slip" extends Jake's 10-13 "one-line fixes get a direct answer" (E25) from his requests to lane work.
+  slip" extends the owner's 10-13 "one-line fixes get a direct answer" (E25) from his requests to lane work.
   That is the seat's inference; the plan should say so.
 - C4: the default-pattern sentence (E25) is NOT in the guide; the roster lane carries it in both
   `nana-soul.md` and the shared region.

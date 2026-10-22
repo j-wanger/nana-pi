@@ -18,10 +18,10 @@ The refreshed mutation record reports **16/16 red**, including the new line-sele
 
 ## NOTE
 
-- **Handoff:** `HANDOFF.md` accurately describes the intended merged, unpushed state. Its checkpoint-2 acceptance claim remains conditional on Jake’s actual acceptance.
+- **Handoff:** `HANDOFF.md` accurately describes the intended merged, unpushed state. Its checkpoint-2 acceptance claim remains conditional on the owner's actual acceptance.
 - **Session:** `docs/sessions/2026-10.md:5–15` accurately records build 9, the old parser’s live misrecording, and the seat holding the merge. The earlier 15-pair mutation statement remains historically correct.
 - **Deployment:** use the updated helper and obtain version-2 review records. The old parser’s recorded acceptance cannot establish approval.
-- This verdict does not substitute for sol’s parallel verdict or Jake’s checkpoint.
+- This verdict does not substitute for sol’s parallel verdict or the owner's checkpoint.
 
 ### Independent verification
 

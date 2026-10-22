@@ -1,4 +1,4 @@
-pi-review: item "land-rule-plan" (git:/Users/jwang/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (sol @ f031ecdd8ecc)
+pi-review: item "land-rule-plan" (git:/Users/example/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (sol @ f031ecdd8ecc)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=0.88s flat=0/5
   [pi-review a1] cpu=0.98s flat=0/5
@@ -7,4 +7,4 @@ pi-review: item "land-rule-plan" (git:/Users/jwang/nana-pi/.git): 2 round(s) use
   [pi-review a1] cpu=1.16s flat=0/5
   [pi-review a1] cpu=1.17s flat=0/5
   [pi-review a1] cpu=1.38s flat=0/5
-[pi-review] SUCCESS on attempt 1 (4674 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/landrule-sol-plan-r3.md; round 3)
+[pi-review] SUCCESS on attempt 1 (4674 chars → /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/landrule-sol-plan-r3.md; round 3)

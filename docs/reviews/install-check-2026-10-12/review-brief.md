@@ -5,7 +5,7 @@ CI pin — is merged in). Threat model: honest variation in hosted runners and m
 present, PowerShell primary, backslash paths, a caller environment carrying our override variables); deliberate
 forgery out. Lane class: CI workflow shape plus a new command.
 
-**Materiality bar (Jake, 2026-10-13) — apply it to every finding.** A MUST is a defect a real user or one of our
+**Materiality bar (Owner, 2026-10-13) — apply it to every finding.** A MUST is a defect a real user or one of our
 own tools would plausibly hit under the threat model above, with a consequence that matters: data lost or
 corrupted, a security or review boundary bypassed in practice, wrong output someone acts on, a broken install,
 hook or CI gate, the check passing when nana is broken (or failing when it works), or a regression of behaviour
@@ -27,6 +27,6 @@ Check: (1) `packages/nana-setup/lib/install-check.mjs`, `lib/install-check-confi
 the `install-check` job in `.github/workflows/ci.yml` against CHANGE §2–§3 and rows R-1070–R-1084, R-597 and
 R-1032 — above all, could the check report PASS while install or a hook is broken on a real machine, or FAIL
 while it works; (2) each row has one `shall` and a cited test that pins it; (3) the README "Install check"
-section and every command it names; (4) the HANDOFF lines, the session entry and Jake's check page are true;
+section and every command it names; (4) the HANDOFF lines, the session entry and the owner's check page are true;
 (5) any MUST under the bar. Answer with MUST / SHOULD / NOTE, file:line, evidence and the smallest fix; a score;
 the last line exactly `VERDICT: LAND` or `VERDICT: SEND-BACK`.

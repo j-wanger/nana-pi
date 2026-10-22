@@ -8,7 +8,7 @@ caps are generous (20 children) or unlimited, and the packaged skill already tel
 "use async by default, yield, let Pi wake you on completion." The gap is that the model
 retains full discretion: nothing on this machine *forces* background. The only two real
 `subagent` tool invocations in every session file on this machine (1,023 `.jsonl` files
-scanned) both pass `async:false` explicitly and launch one child at a time — exactly Jake's
+scanned) both pass `async:false` explicitly and launch one child at a time — exactly the owner's
 symptom — and both are a scripted desk e2e test, not organic use; there is no evidence either
 way for how the model behaves in casual delegation. The fix is a seeded
 `~/.pi/agent/extensions/subagent/config.json` that sets `forceTopLevelAsync:true` (a hard
@@ -31,7 +31,7 @@ surface has never been exercised organically, win or lose.
 (`~/.pi/agent/sessions/--private-var-folders-lg-h9m6nvvd2_9d7s3hyjvdlqxr0000gn-T-desk-subagent-e2e-Qg4v5j--/2026-09-09T13-03-10-572Z_01a08643-e0ec-71c1-998a-ba261ac68e25.jsonl`,
 entries 7 and 9), the model called the plain single-child form
 `{ "agent": "delegate", "task": "...", "async": false }` twice, sequentially, never in
-parallel, never via `workflowScript`/`runs.all`. This is the exact shape of Jake's complaint
+parallel, never via `workflowScript`/`runs.all`. This is the exact shape of the owner's complaint
 — one subagent, blocking — but it comes from a deterministic test prompt ("subagent go"),
 not from natural delegation language, so it proves the *shape is reachable*, not that it is
 the model's normal habit.
@@ -56,7 +56,7 @@ of pi-subagents: pi 1.0.2, `docs/extensions.md:123` — "Tool calls from one ass
 can run in parallel." Nothing requires the model to batch calls this way; it is exactly as
 optional as Claude Code's own "send one message with multiple tool uses" convention.
 
-**[V]** The native wake/queue mechanism Jake wants (target behaviour 3) is a real pi primitive,
+**[V]** The native wake/queue mechanism the owner wants (target behaviour 3) is a real pi primitive,
 not something pi-subagents invents: pi 1.0.2 `dist/core/extensions/types.d.ts:330-335` —
 `pi.sendMessage(message, { triggerTurn?, deliverAs?: "steer" | "followUp" | "nextTurn" })` and
 `pi.sendUserMessage(content, { deliverAs?: "steer" | "followUp" })`. A completion delivered
@@ -70,7 +70,7 @@ shows the opposite behaviour reachable under a scripted prompt — the most defe
 that nothing is *structurally* broken, but nothing *guarantees* the target behaviour either:
 the model is free to pass `async:false` or to launch children one tool-call at a time instead
 of through `runs.all`, and at least once, under test conditions, it did exactly that. "Maybe a
-config issue" (Jake's own words) is roughly right: there is no config that forces the correct
+config issue" (Owner's own words) is roughly right: there is no config that forces the correct
 behaviour today, so the correct behaviour is probabilistic, not guaranteed. The fix below
 converts the top-level case from "model's choice" to "hard default."
 
@@ -91,7 +91,7 @@ converts the top-level case from "model's choice" to "hard default."
 |---|---|---|
 | `asyncByDefault` | `true` | Already the upstream default (`src/extension/config.ts:233-234`); declared explicitly so a future upstream default flip can't silently change behaviour here — chosen, not measured. |
 | `forceTopLevelAsync` | `true` | The one key that converts "model's choice" into a hard floor: "Forces depth-0 internal single, parallel, and chain runs into background mode and bypasses launch UI by forcing `clarify:false`" (0.75.0 `docs/configuration.md:329-335`, identical wording in the installed 0.64.0 copy). This is what closes the exact gap the two real test invocations exposed — a model can no longer launch a top-level child in foreground even if it tries. |
-| `maxActiveAsyncRunsPerSession` | `6` | Default is **unlimited**. Caps concurrently-active background runs comfortably above "2-3 at once" (Jake's framing) as a circuit breaker against runaway fan-out — chosen, not measured. |
+| `maxActiveAsyncRunsPerSession` | `6` | Default is **unlimited**. Caps concurrently-active background runs comfortably above "2-3 at once" (Owner's framing) as a circuit breaker against runaway fan-out — chosen, not measured. |
 | `maxSubagentSpawnsPerSession` | `40` | Default is **unlimited**. Last-resort cap on cumulative children per session; high enough not to interfere with this repo's own multi-round review-ladder usage (`pi-review`, worker/reviewer lanes) — chosen, not measured. |
 
 **Deliberately NOT set:**
@@ -257,7 +257,7 @@ existing instrumentation rather than standing up a bespoke RPC client.
 
 ## Open questions
 
-1. Whether the model Jake actually drives (`gpt-5.6-sol`, default per
+1. Whether the model the owner actually drives (`gpt-5.6-sol`, default per
    `~/.pi/agent/settings.json`) reliably batches fan-out or uses `runs.all` once
    `forceTopLevelAsync` removes the foreground escape hatch — unverified; only the acceptance
    procedure above will tell.
@@ -281,7 +281,7 @@ existing instrumentation rather than standing up a bespoke RPC client.
 
 **Correction [V]:** §1's claim that both files containing a `subagent` call sit under the desk e2e
 directory is wrong. One of the two is a real work session:
-`~/.pi/agent/sessions/--Users-jwang-basketball-geek--/2026-09-03T19-13-44-151Z_*.jsonl` (Jake,
+`~/.pi/agent/sessions/--Users-example-basketball-geek--/2026-09-03T19-13-44-151Z_*.jsonl` (Owner,
 "use a 5.6 sol subagent to do a proper review", pi-subagents 0.64.0 installed that day). Re-derived
 with a per-call scan (`scratchpad/scan.mjs`: every assistant `toolCall` whose name contains
 `subagent`, or a `bash` command launching `pi -p`/`pi-worker`/`pi-review`/`claude -p`): 35 calls in
@@ -307,7 +307,7 @@ the whole store; 10 in that session, the rest in the e2e fixture and a nana-agen
 use shell commands … Report any test command that a supervisor must run", and (`:65`) "If … you are
 blocked or need a decision, use `contact_supervisor` with `reason: "need_decision"` and wait for the
 reply." A review that needs a diff or a test run therefore cannot finish without pulling the parent
-in, repeatedly. That — not foreground mode — is the "occupies the main agent" Jake felt on this machine.
+in, repeatedly. That — not foreground mode — is the "occupies the main agent" the owner felt on this machine.
 
 **Consequence for the fix:** `forceTopLevelAsync` alone would not have changed that session at all
 (it was already async). The fix must also stop review children from needing the parent for evidence:

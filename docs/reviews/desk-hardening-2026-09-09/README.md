@@ -1,6 +1,6 @@
 # Desk hardening 2026-09-09 — the three remaining astra items closed
 
-Jake: "lets close these three" — unbounded server buffers, client-side races, per-spawn stage signing key. Three Opus 4.8 workers, one per item, each in its own worktree off `034be76`; the seat wrote briefs, merged, ran the suite sequentially (the desk tests use fixed ports and cannot run across worktrees at once), and folded every review round. Reviewers: gpt-6-astra on the stage-key lane (a provenance boundary), gpt-5.6-sol on buffers + races. All reviews static (no execution tool); the seat ran the suite after every merge: 32 files green at every checkpoint (baseline 30 + three new test files).
+The owner: "lets close these three" — unbounded server buffers, client-side races, per-spawn stage signing key. Three Opus 4.8 workers, one per item, each in its own worktree off `034be76`; the seat wrote briefs, merged, ran the suite sequentially (the desk tests use fixed ports and cannot run across worktrees at once), and folded every review round. Reviewers: gpt-6-astra on the stage-key lane (a provenance boundary), gpt-5.6-sol on buffers + races. All reviews static (no execution tool); the seat ran the suite after every merge: 32 files green at every checkpoint (baseline 30 + three new test files).
 
 Briefs: `brief-common.md` + `brief-{buffers,races,stagekey}.md` (round 1); `review-brief-*` per round.
 

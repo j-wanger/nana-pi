@@ -12,7 +12,7 @@ Read-only over both repos. Grades: **PRIMARY** = source/docs I read or a command
 - Consequences:
   - (a) The Opus C4 probe used `isProjectTrusted: () => false` (`w3/gate2-probe.mjs:27`). Real pi returns `true` for that exact evil-repo shape. A fix that only calls `ctx.isProjectTrusted()` would pass the probe and still inject the file.
   - (b) The same applies to `lib/config.ts:77-78`. A cloned repo that ships only `.pi/nana-pack.json` gets its `gate.allowPatterns` honored (the gate is off), and its `postEdit.commands` run on the first edit. That is repo-supplied shell execution with no trust prompt. pi itself refuses repo code (`.pi/extensions`) without a prompt, so nana is weaker than its host here. INFERRED from code, not run end-to-end in a live pi session.
-  - (c) There is no `~/.pi/agent/trust.json` on this machine (PRIMARY: Read → does not exist), and `settings.json` does not set `defaultProjectTrust`. So every project-scope nana behaviour Jake has today runs on auto-trust. Any fix that requires a real trust decision switches project config off in every repo until Jake trusts it once.
+  - (c) There is no `~/.pi/agent/trust.json` on this machine (PRIMARY: Read → does not exist), and `settings.json` does not set `defaultProjectTrust`. So every project-scope nana behaviour the owner has today runs on auto-trust. Any fix that requires a real trust decision switches project config off in every repo until the owner trusts it once.
 - **What it changes:** item 1 must define nana's own trust predicate, and item 3 should move handoff storage to user scope rather than "require trust". The contracts below do both.
 
 **F2 — Blast radius on existing tests, PRIMARY.** 12 of the 13 nana-pack test files build a nana-only `.pi/` fixture and pass `isProjectTrusted: () => true` (Grep). Every one of those fixtures changes meaning once the predicate is fixed. Budget for it: the fixture churn is where most of the cost of lane 1 sits.
@@ -137,7 +137,7 @@ Why this order and not parallel: L1 changes what every fixture means (F2). Runni
 - Handler throws BLOCK the tool (`AGENTS.md:51`; `extensions.md:2922`).
 
 **Breaks and replacement contract.**
-- (1) *Every repo that relies on a nana-only `.pi/nana-pack.json` loses its project config until Jake trusts it once.* INFERRED: the-hive (Opus A2 says it configures `.gd` checks; I could not list it, since it is outside my allowed dirs). Practical loss is small: 0 receipts on this machine (Opus A2). Replacement: a one-time owner act, plus the visible "project config ignored — trust with …" notice. The seat must tell Jake this in one line **before** landing.
+- (1) *Every repo that relies on a nana-only `.pi/nana-pack.json` loses its project config until the owner trusts it once.* INFERRED: the-hive (Opus A2 says it configures `.gd` checks; I could not list it, since it is outside my allowed dirs). Practical loss is small: 0 receipts on this machine (Opus A2). Replacement: a one-time owner act, plus the visible "project config ignored — trust with …" notice. The seat must tell the owner this in one line **before** landing.
 - (2) `config-trust.test.mjs` "trusted: project config honored" now needs a trust-requiring fixture.
 - (3) The README sentence "read live on every event" still holds for L1.
 
@@ -218,14 +218,14 @@ Why this order and not parallel: L1 changes what every fixture means (F2). Runni
 
 **Cheapest falsifier.** Rerun `w3/gate-probe.mjs` and `gate2-probe.mjs` against the landed gate. Any ALLOW on their dangerous rows means the lane did not land.
 
-**Most likely wrong.** That the session-snapshot approach is acceptable to Jake. It removes live loosening, a documented convenience. If he rejects it, the fallback is path protection only, and then the survives-mutation test can only cover writes the path check sees.
+**Most likely wrong.** That the session-snapshot approach is acceptable to the owner. It removes live loosening, a documented convenience. If he rejects it, the fallback is path protection only, and then the survives-mutation test can only cover writes the path check sees.
 
 ---
 
 ### L3 ⚠ — Handoff: user-scope store, provenance, staleness, non-writer role
 
 **Recommendation on storage: user scope, keyed by canonical cwd, not "require trust".**
-- Under F1, "require trust" either does nothing (via `ctx.isProjectTrusted()`) or switches handoff off in all of Jake's repos (via real trust).
+- Under F1, "require trust" either does nothing (via `ctx.isProjectTrusted()`) or switches handoff off in all of the owner's repos (via real trust).
 - A user-scope store (e.g. `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md`, with the cwd recorded inside) removes the repo-supplied vector entirely, and needs no trust.
 - It also removes the sibling-`.gitignore` code and the "tidy agent deleted it" risk.
 
@@ -267,7 +267,7 @@ Why this order and not parallel: L1 changes what every fixture means (F2). Runni
 **Must not touch.**
 - `lib/config.ts` beyond adding the `handoff.staleAfterDays` leaf through L1's schema. If L1 has landed, this is a one-leaf addition reviewed with L3.
 - Gate, objective, desk.
-- The-hive's existing `.pi/handoff.md`: don't delete it. The pointer handles it, and deleting is Jake's call.
+- The-hive's existing `.pi/handoff.md`: don't delete it. The pointer handles it, and deleting is the owner's call.
 
 **Pi constraints.**
 - `session_compact` carries `compactionEntry` and `reason` (`extensions.md:477-482`).
@@ -288,9 +288,9 @@ Why this order and not parallel: L1 changes what every fixture means (F2). Runni
 - Tests: about 300 LOC new or rewritten.
 - Effort: 1–2 worker sessions and 1–2 adversarial rounds.
 
-**Cheapest falsifier.** Run `handoff-trust.test.mjs` against today's code: it fails, because the string is injected with trust `true`, and after the lane it must pass. If Jake says he edits `.pi/handoff.md` by hand in-repo and wants it versioned, user scope is wrong. The fallback is repo-local plus L1's nana-trust, accepting that handoff goes dark until `/trust`.
+**Cheapest falsifier.** Run `handoff-trust.test.mjs` against today's code: it fails, because the string is injected with trust `true`, and after the lane it must pass. If the owner says he edits `.pi/handoff.md` by hand in-repo and wants it versioned, user scope is wrong. The fallback is repo-local plus L1's nana-trust, accepting that handoff goes dark until `/trust`.
 
-**Most likely wrong.** The staleness pointer. The synthesis falsifier says a stale summary shows "with its constraints still visible". A pointer makes them one read away, not visible. If the seat reads "visible" literally, (d) must inline a bounded excerpt, which reintroduces the stale-imperative problem that motivated it. The seat should pick one and state it to Jake.
+**Most likely wrong.** The staleness pointer. The synthesis falsifier says a stale summary shows "with its constraints still visible". A pointer makes them one read away, not visible. If the seat reads "visible" literally, (d) must inline a bounded excerpt, which reintroduces the stale-imperative problem that motivated it. The seat should pick one and state it to the owner.
 
 ---
 
@@ -328,7 +328,7 @@ Why this order and not parallel: L1 changes what every fixture means (F2). Runni
 |---|---|---|---|
 | L4 | 1 | 0 (ordinary review) | Machine-dependent tests surfacing |
 | L1 | 1–2 | 1 (+1 fix round likely) | Fixture churn; trust predicate without a pi API |
-| L2 | 1–2 | 1–2 | False-positive tuning; Jake accepting snapshot semantics |
+| L2 | 1–2 | 1–2 | False-positive tuning; the owner accepting snapshot semantics |
 | L3 | 1–2 | 1–2 | Staleness-pointer semantics; migration messaging |
 | **Total** | **4–7** | **3–5** | Serial L4→L1 critical path; L2 and L3 in parallel after |
 
@@ -352,5 +352,5 @@ Most-likely-wrong (claims in this report I would bet against first):
 1. `/trust` cannot record trust for a nana-only directory. Unverified; if it can, L1 needs no user-scope list.
 2. F1(b) end-to-end (a hostile nana-only repo turns off the gate or runs `postEdit` commands in a live pi session). Derived from source and a unit probe, not a live `pi` run.
 3. Every current test passes under L4's isolated HOME.
-4. Jake accepts losing live gate loosening (the L2 snapshot).
+4. The owner accepts losing live gate loosening (the L2 snapshot).
 5. The desk runs pi with `hasUI` true, which is my reason for rejecting hasUI as a role signal. Unverified.

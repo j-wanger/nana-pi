@@ -5,7 +5,7 @@ variation in our tools and registries in scope (an upstream release breaking a d
 drops the flag or adds an install line without it); deliberate forgery out. Lane class: small, urgent, CI
 workflow shape.
 
-**Materiality bar (Jake, 2026-10-13) — apply it to every finding.** A MUST is a defect a real user or one of our
+**Materiality bar (Owner, 2026-10-13) — apply it to every finding.** A MUST is a defect a real user or one of our
 own tools would plausibly hit under the threat model above, with a consequence that matters: data lost or
 corrupted, a security or review boundary bypassed in practice, wrong output someone acts on, a broken install,
 hook or CI gate, or a regression of behaviour main has today. Name the realistic input and the consequence; if

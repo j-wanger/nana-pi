@@ -17,7 +17,7 @@ Attendance and lifecycle remain under-specified. `attended` is a static manifest
 
 ## C4 — FINDING (MAJOR)
 
-The functional order is substantially improved: extraction, contract tests, constrained spawning, real tools, live/reload/fork/headless parity, adversarial review, then feel check is the right sequence (`agent-frontend-design-2026-09-04.md:157-164`). It is not yet trustworthy because step 3’s tests miss both actual escape paths: app A calling `/api/apps/B/...` on the shared origin and app pages issuing cross-origin state-changing requests to `:7317`. Those must be deterministic negative tests before the gate/session slice reaches Jake.
+The functional order is substantially improved: extraction, contract tests, constrained spawning, real tools, live/reload/fork/headless parity, adversarial review, then feel check is the right sequence (`agent-frontend-design-2026-09-04.md:157-164`). It is not yet trustworthy because step 3’s tests miss both actual escape paths: app A calling `/api/apps/B/...` on the shared origin and app pages issuing cross-origin state-changing requests to `:7317`. Those must be deterministic negative tests before the gate/session slice reaches the owner.
 
 **VERDICT: REWORK**
 

@@ -7,7 +7,7 @@ Review `git diff ad49b9b..HEAD` on `feat/report-test-details`. `git merge-base H
 Round 1 (Opus) said LAND 9/10 on `ad49b9b`. Since then:
 
 - `db094b0` merges `b7df8d8`, the g005-carveout lane's reviewed tip. Lands go in order bench-win (main `ab5c3e8`), rulings-file, g005-carveout, then this lane; each is a fast-forward, so `b7df8d8` becomes main before this lane lands, and it contains main `ab5c3e8` and rulings-file's tip `ed38cb4`. The merge brings watchdog-exit, win-skill-occupied, linux-path-spelling, bench-win, rulings-file and g005-carveout. HANDOFF and the session file kept both sides; the R-291 leaf total (now 1,273), the tree and the code map were regenerated.
-- The seat's follow-up commit: the HANDOFF Next bullet that both this lane and rulings-file edited now reads as one line naming the remaining adoption refresh (basketball-geek and trading-zone, the owner's 2026-10-19 call in place of aml-desk); round 1's SHOULD (the runtime-data override variable can turn two checks falsely red) and three notes are recorded as residuals.
+- The seat's follow-up commit: the HANDOFF Next bullet that both this lane and rulings-file edited now reads as one line naming the remaining adoption refresh (basketball-geek and trading-zone, the owner's 2026-10-19 call in place of work-project); round 1's SHOULD (the runtime-data override variable can turn two checks falsely red) and three notes are recorded as residuals.
 
 The lane's own code and tests are unchanged since round 1.
 

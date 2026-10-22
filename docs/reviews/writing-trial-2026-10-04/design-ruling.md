@@ -1,11 +1,11 @@
 # Writing trial — architecture ruling
 
 Ruler: Fable (architecture + landing, read-only), 2026-10-04. Roles: `../pi-1.0-2026-10-04/ROLES.md`.
-Decided by Jake: try Karpathy's standard; start with "Reports and handoffs"; EARS is already the row standard.
+Decided by the owner: try Karpathy's standard; start with "Reports and handoffs"; EARS is already the row standard.
 
 ## The rulings in one screen
 
-1. **Surfaces.** The trial covers two things: the seat's messages to Jake, and `HANDOFF.md` lines. The pi handoff store waits.
+1. **Surfaces.** The trial covers two things: the seat's messages to the owner, and `HANDOFF.md` lines. The pi handoff store waits.
 2. **Home.** One file, `packages/nana-setup/claude/rules/nana-writing.md`. Claude Code reads it as a rule. pi reads it as `<agent dir>/AGENTS.md`, a symlink to the same file.
 3. **Checker.** One zero-dependency CLI in the pack, report-only, exit 0 always. No hook, no post-edit, no PATH link during the trial. The seat counts before and after, and the trial ends on day 14 with a verdict.
 4. **EARS check.** Report-only, yes. Its own lane, in parallel. Not this one.
@@ -20,16 +20,16 @@ Legend: **[V]** verified by reading the file or running the command today. **[I]
 
 **Decision.** The first trial covers two surfaces.
 
-- The seat's text to Jake: the end-of-task report, the decision point, and the status update. In every repo, not only nana-pi.
+- The seat's text to the owner: the end-of-task report, the decision point, and the status update. In every repo, not only nana-pi.
 - `HANDOFF.md` lines, starting with nana-pi's. Other repos follow as the seat edits them.
 
-The trial excludes the pi handoff store. It excludes code, commit messages, review corpora, briefs and worker reports. Those are technical records. The seat reads them, Jake does not.
+The trial excludes the pi handoff store. It excludes code, commit messages, review corpora, briefs and worker reports. Those are technical records. The seat reads them, the owner does not.
 
 **Reason.** Both surfaces exist today, and one writer produces both. The seat writes the report and edits `HANDOFF.md`. One writer learns one rule, and we can count the result.
 
 The pi handoff store has no corpus. `~/.pi/agent/handoffs/` does not exist on this machine [V]. pi's compaction prompt writes that text, not the seat [V, `nana-handoff.ts` writes `compactionEntry.summary` as given]. Shaping it would need a compaction hook. That is machinery for a surface with zero entries.
 
-**What would change my mind.** A compaction summary appears in the store, and Jake reads it to decide. Then the store joins the trial. The checker already reads any file, so the first step costs nothing.
+**What would change my mind.** A compaction summary appears in the store, and the owner reads it to decide. Then the store joins the trial. The checker already reads any file, so the first step costs nothing.
 
 ---
 
@@ -48,7 +48,7 @@ The pi handoff store has no corpus. `~/.pi/agent/handoffs/` does not exist on th
 
 - `<agent-dir>/APPEND_SYSTEM.md`. A trusted project's `.pi/APPEND_SYSTEM.md` replaces it. "Files with the same name are not combined" [V, `docs/configuration.md`]. A project could silently remove the rule.
 - A pack extension that injects the text, like the objective. The objective needs code because it resolves a file, labels trust and caps output. A fixed rule text needs none of that. Code, tests and rows for a text file fail the subtraction test.
-- `templates/_shared/working-under-nana-pi.md`. That text is project scope and describes the pack. The writing rule is about Jake, so it is user scope.
+- `templates/_shared/working-under-nana-pi.md`. That text is project scope and describes the pack. The writing rule is about the owner, so it is user scope.
 - The `requirements` skill. A skill loads on demand. The rule must apply to every message.
 
 **One consequence to accept.** No pack CLI passes `-nc` (`--no-context-files`) to pi [V, grep over `packages/nana-pack/bin/*.mjs`]. So reviewer and worker pi sessions read the rule too. The rule's first paragraph excludes technical records for that reason. **[I]** Risk: a reviewer shortens its findings or drops a path. The next review corpus will show it. If it does, move pi delivery into the pack extension and gate it on `hasUI`. Not before.
@@ -56,9 +56,9 @@ The pi handoff store has no corpus. `~/.pi/agent/handoffs/` does not exist on th
 **The standard text.** Land this file verbatim as `packages/nana-setup/claude/rules/nana-writing.md`.
 
 ```markdown
-# Nana — Writing for Jake
+# Nana — Writing for Owner
 
-This rule applies to a message addressed to Jake: a report, a decision point, a status
+This rule applies to a message addressed to Owner: a report, a decision point, a status
 update, and a `HANDOFF.md` line. A review, a brief, a worker report, a commit message
 and code are technical records. They are out of scope.
 
@@ -85,7 +85,7 @@ and code are technical records. They are out of scope.
 ## A decision point
 
 A decision point carries five parts, in this order: what was tested, the result in
-plain numbers, the trade, the recommendation, and why it is Jake's call. If it is not
+plain numbers, the trade, the recommendation, and why it is Owner's call. If it is not
 his call, decide it and say so.
 
 ## Check
@@ -112,7 +112,7 @@ The rule names an absolute path on this Mac, as the knowledge hook in `~/.claude
 - The last line is one summary: `summary sentences=N words=N over=N passive=N banned=N verdict=yes|no|n/a identifiers=N`.
 - It exits 0 whatever it finds. A row seals this (R-750). Switching to blocking is a requirement diff, not a flag.
 
-**Why `--report` for two checks.** `HANDOFF.md` carries commit hashes and paths by design. Its lines open with a bold status word already. Flagging 197 backtick spans there is noise [V, count below]. A report to Jake is different: Jake asked four times for no identifiers [V, `feedback_plain_language.md`].
+**Why `--report` for two checks.** `HANDOFF.md` carries commit hashes and paths by design. Its lines open with a bold status word already. Flagging 197 backtick spans there is noise [V, count below]. A report to the owner is different: the owner asked four times for no identifiers [V, `feedback_plain_language.md`].
 
 **Tunables.** All of them live in `writing-config.mjs`. Each carries provenance. No literal at a point of use.
 
@@ -121,9 +121,9 @@ The rule names an absolute path on this Mac, as the knowledge hook in `~/.claude
 | `SENTENCE_CAP` | 25 | ASD-STE100 Issue 9, descriptive-text cap, via `research/karpathy-x-2026-10-04.md` §5.2, 2026-10-04 [S] |
 | `PASSIVE` | `\b(is\|are\|was\|were\|be\|been\|being)\s+\w{3,}(ed\|en)\b` | chosen: the regex from `research` §5.4, widened to `-en`; report-only, so false positives cost one line |
 | `PASSIVE_EXCEPTIONS` | a short word list (e.g. `need`, `speed`, `indeed`) | chosen: words that end in `ed` and are not participles; grow it from the baseline run, never inline |
-| `VERDICT_WORDS` | LANDED, DONE, BLOCKED, OPEN, FAILED, CARRIED, YOUR CALL | chosen: the words `HANDOFF.md` and the review ledger already use, plus Jake's decision-point shape |
-| `BANNED_WORDS` | `dogfood` | Jake, 2026-07-03, `feedback_plain_language.md`; case-insensitive, matches `dogfooding` |
-| `IDENTIFIER` | a backtick span, or `\S*/\S+\.\w{1,5}` | chosen: the two shapes Jake named (paths, code names); row numbers like `R-451` are **[I]** too noisy to add before the baseline shows a count |
+| `VERDICT_WORDS` | LANDED, DONE, BLOCKED, OPEN, FAILED, CARRIED, YOUR CALL | chosen: the words `HANDOFF.md` and the review ledger already use, plus the owner's decision-point shape |
+| `BANNED_WORDS` | `dogfood` | the owner, 2026-07-03, `feedback_plain_language.md`; case-insensitive, matches `dogfooding` |
+| `IDENTIFIER` | a backtick span, or `\S*/\S+\.\w{1,5}` | chosen: the two shapes the owner named (paths, code names); row numbers like `R-451` are **[I]** too noisy to add before the baseline shows a count |
 | `MIN_SENTENCE_WORDS` | 3 | chosen: a shorter fragment is a heading or a bullet label, not a sentence |
 
 Sentence splitting is simple: strip code spans and URLs, split on `.`, `!`, `?` followed by space, and on a line break. Known limit: `e.g.` and `vs.` split early. Record it in the pack README; do not build an abbreviation engine.
@@ -137,7 +137,7 @@ Sentence splitting is simple: strip code spans and URLs, split on `.`, `!`, `?` 
 - A Claude Code `Stop` hook over the last message. It fires on every turn and parses a transcript format we do not own.
 - A `~/.local/bin` link. One more installer step, doctor line and row. The verdict decides whether the tool stays.
 
-**Measurement.** The trial ends in numbers, then Jake's call.
+**Measurement.** The trial ends in numbers, then the owner's call.
 
 Baseline today, from a rough throwaway pass over `HANDOFF.md` [V]: 125 sentences, 50 over 25 words (40%), longest 102 words. Also 16 passive matches, 197 backtick spans, 1 "dogfood". The real checker recomputes this on landing day.
 
@@ -150,11 +150,11 @@ Baseline today, from a rough throwaway pass over `HANDOFF.md` [V]: 125 sentences
 
 Session files: 72 under jev-research, 33 under nana-agent-loop, 1 under nana-pi [V, `~/.claude/projects/*/`]. **[I]** Retention is Claude Code's 30-day default, and a session's last long message is a report. The throwaway command is not shipped code.
 
-**Targets, all chosen.** Over-cap sentences at or under 10% in both corpora (a quarter of the 40% baseline). A verdict word in sentence one in 90% of reports. Zero banned words. Then Jake's call: faster to read, nothing missing.
+**Targets, all chosen.** Over-cap sentences at or under 10% in both corpora (a quarter of the 40% baseline). A verdict word in sentence one in 90% of reports. Zero banned words. Then the owner's call: faster to read, nothing missing.
 
-**Stop condition.** Day 14 after landing, or 20 checked reports, whichever comes first. Early stop: Jake says twice that a report lost detail he needed.
+**Stop condition.** Day 14 after landing, or 20 checked reports, whichever comes first. Early stop: the owner says twice that a report lost detail he needed.
 
-**Verdicts.** Adopt: add the PATH link, make the pre-send check mandatory in the rule, and decide blocking per surface. Extend once: the numbers moved, Jake's call is open, 14 more days. Drop: remove the rule, both links and the checker. No zombie code.
+**Verdicts.** Adopt: add the PATH link, make the pre-send check mandatory in the rule, and decide blocking per surface. Extend once: the numbers moved, the owner's call is open, 14 more days. Drop: remove the rule, both links and the checker. No zombie code.
 
 ---
 
@@ -162,7 +162,7 @@ Session files: 72 under jev-research, 33 under nana-agent-loop, 1 under nana-pi 
 
 **Decision.** Add it, report-only, in its own lane. Run that lane in parallel with this one.
 
-**Reason.** The files are disjoint. The rail has one source, `templates/typescript/template/tests/requirements-trace.ts`; nana-pi reads it through the shim `scripts/requirements-trace.mjs` [V]. The Python rail lives in `templates/python/template/tests/conftest.py` [V]. This lane touches neither. The check's number also feeds a decision Jake has not made: the cleanup of rows with more than one `shall`. My count today: 200 of 507 rows [V]; the seat's rough count was 194 of 495. One lane, one verdict.
+**Reason.** The files are disjoint. The rail has one source, `templates/typescript/template/tests/requirements-trace.ts`; nana-pi reads it through the shim `scripts/requirements-trace.mjs` [V]. The Python rail lives in `templates/python/template/tests/conftest.py` [V]. This lane touches neither. The check's number also feeds a decision the owner has not made: the cleanup of rows with more than one `shall`. My count today: 200 of 507 rows [V]; the seat's rough count was 194 of 495. One lane, one verdict.
 
 **Shape for that lane.** One line in the rail summary, never a problem: `ears: 200 of 507 rows carry more than one shall`. Row G-013 in `templates/_shared/requirements-general.md`, mirrored in nana-pi's Part G. The five-template opening check is fuzzy (the Ubiquitous form has no keyword), so count `shall` only.
 
@@ -274,7 +274,7 @@ Note on IDs: the pi 1.0 lane used R-360 to R-372 first, so the worker's R-373 to
 
 | ID | Requirement | Pinning test (`packages/nana-pack/tests/writing-injection.test.mjs::…`) |
 |---|---|---|
-| R-751 | The pack shall append the writing rule's text to every session's system prompt under the heading ## Writing for Jake (nana). | `inject: the rule text follows the base prompt under its heading` |
+| R-751 | The pack shall append the writing rule's text to every session's system prompt under the heading ## Writing for the owner (nana). | `inject: the rule text follows the base prompt under its heading` |
 | R-752 | IF the rule file is missing, unreadable or not valid UTF-8 THEN the extension shall inject nothing and journal writing_rule_unavailable with the cause. | `unavailable: ${cause} injects nothing and journals the cause` |
 | R-753 | The injected block shall not exceed WRITING_INJECT_CAP chars, with the truncation announced. | `cap: an oversized rule is cut at the cap and the cut is announced`, plus one seal test for the value |
 | R-754 | The extension shall read the rule at every session_start reason, so a reload picks up an edit. | `reload: an edited rule is injected after session_start reason reload` |
@@ -312,7 +312,7 @@ A decision point carries five parts, in this order:
 2. the result in plain numbers
 3. the trade
 4. the recommendation
-5. why it is Jake's call
+5. why it is Owner's call
 
 If it is not his call, decide it and say so.
 ```
@@ -321,7 +321,7 @@ I ratify "what you tested": it is active, where my draft was passive.
 
 ### A3. The banned word in the rule (astra's NOTE on R-376)
 
-**Decision.** Overruled: the rule does not point at a config file for its banned list. The rule's line reads "Do not coin a word. Jake banned" followed by the word dogfood in a code span. R-746 gains three words, "outside a code span". A quoted word is a mention, not a use. In report mode the span is still an identifier finding, so a report to Jake still gets one line for it.
+**Decision.** Overruled: the rule does not point at a config file for its banned list. The rule's line reads "Do not coin a word. The owner banned" followed by the word dogfood in a code span. R-746 gains three words, "outside a code span". A quoted word is a mention, not a use. In report mode the span is still an identifier finding, so a report to the owner still gets one line for it.
 
 **Reason.** A pi session has no memory of the ban and will not open the file the worker's wording names. The rule must carry the word. One masking call and one test cover the change.
 

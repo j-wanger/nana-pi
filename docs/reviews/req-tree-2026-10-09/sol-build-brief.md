@@ -17,7 +17,7 @@ residual from the builder: HTML blocks/comments, link reference definitions and 
 not modeled; the ledger uses none.
 
 You reviewed this lane's PLAN three times (item `req-tree-plan`; your reviews are
-`docs/reviews/req-tree-2026-10-09/sol-plan-r{1,2,3}.md`). Jake agreed it at checkpoint 1 (CHANGE §7a;
+`docs/reviews/req-tree-2026-10-09/sol-plan-r{1,2,3}.md`). The owner agreed it at checkpoint 1 (CHANGE §7a;
 approved commit `6b9202a501a7fe03dfc834ab34cdfc212f6d92ce`). A pi luna builder has now built it in two
 runs (briefs `build-brief.md`, `build-brief-2.md`). Review the build: `git diff 6b9202a..HEAD`, in full.
 The ledger diff is large because every row moved; judge it through the proof and by sampling, not by
@@ -44,7 +44,7 @@ reading 2,000 lines.
    break or silently weaken?
 5. **Scope.** `git diff --stat 6b9202a..HEAD`: anything outside the allowlist, any frozen input edited,
    any pre-existing row's cells changed, any ID other than R-287–R-291?
-6. **The reader's view.** Read `docs/requirements-tree.md` and the top of `REQUIREMENTS.md` as Jake
+6. **The reader's view.** Read `docs/requirements-tree.md` and the top of `REQUIREMENTS.md` as the owner
    will. Is the outline plain, correct and short? Is anything misleading?
 
 ## Output

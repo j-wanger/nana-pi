@@ -11,7 +11,7 @@ tree movement: none
 ```
 
 What changed, and what each claim rests on:
-- HANDOFF, Open for Jake: three new asks (ten planned lanes; landing after power mode; 126 landed lane branches and 15 seat scratch branches on GitHub) and the larger-lane builder ask reworded for the end of power mode. Branch counts: `git ls-remote --heads origin 'feat/*'` and `'seatmut/*'` at 14:00 EDT, 126 of 127 lane branches contained in origin/main.
+- HANDOFF, Open for the owner: three new asks (ten planned lanes; landing after power mode; 126 landed lane branches and 15 seat scratch branches on GitHub) and the larger-lane builder ask reworded for the end of power mode. Branch counts: `git ls-remote --heads origin 'feat/*'` and `'seatmut/*'` at 14:00 EDT, 126 of 127 lane branches contained in origin/main.
 - HANDOFF, rm-outside-asks' Landed line: build 2 counted `/tmp` on macOS and Linux and build 3 widened it to every system but Windows (its land reviewer's round-2 note); its CI sentence now gives build 3's run 39464607963 (macOS and Linux 0 failing; Windows attempt 1 failed two files outside the lane on time limits; attempt 2, `ci-windows-c9507890-attempt2.log` in this folder, reads 0 failing of 194 files).
 - HANDOFF, Carried residuals: two lines from rm-outside-asks' round-2 final review (a home-spelling check reads default settings with the journal on; a comment and the pack README still say macOS and Linux for `/tmp`).
 - HANDOFF, Where things stand: the "stale-copy line on this Mac" status line goes, because the seat ran `nana-setup install` at 14:00 and doctor no longer reports the missing rulings copies.

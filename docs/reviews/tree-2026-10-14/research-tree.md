@@ -35,7 +35,7 @@ block, but an ordinary `#` between a CAP and its FEATs fails R-290 (packages/nan
 
 nana-pi content, not for templates:
 - The 8 CAPs, 39 FEATs and 21 SUBs (REQUIREMENTS.md:77-1681); the test seals 68 headings (requirements-tree.test.mjs:26).
-- The ID-block allocation (REQUIREMENTS.md:11-15); "Who decides. Jake decides…" (REQUIREMENTS.md:34-38). The
+- The ID-block allocation (REQUIREMENTS.md:11-15); "Who decides. The owner decides…" (REQUIREMENTS.md:34-38). The
   lifecycle and share rules at REQUIREMENTS.md:40-56 are generic and portable.
 - "Purpose and outcomes" with the owner's words (REQUIREMENTS.md:62-75); `Note (moved from old §…)` blocks,
   `See also:` lines and the old-section map (req-tree CHANGE.md:164-185).
@@ -89,7 +89,7 @@ Probe matrix (scratch repos, `node scripts/product-report.mjs --root <dir>`):
 3. Default out sits inside root (:22, :300) while the clean flag reads `git status` (:218). The page marks itself
    dirty unless the folder is ignored; nana-pi ignores it (.gitignore:2). Lift: exclude the out path from the
    status call, or default out outside the tree.
-4. HANDOFF.md is required (:208); asks come only from an "Open for Jake" heading (packages/nana-pack/lib/handoff-asks.mjs:11, :13).
+4. HANDOFF.md is required (:208); asks come only from an "Open for the owner" heading (packages/nana-pack/lib/handoff-asks.mjs:11, :13).
    The template seed's heading is `## Open` (templates/_shared/HANDOFF.md:11), so a project's Decisions view is
    silently empty. Lift: absent HANDOFF gives zero asks with a visible note, or a named refusal; align the seed.
 5. `git show <sha>:REQUIREMENTS.md` resolves from the git top level (:177, :263, :271). Lift: `<sha>:./REQUIREMENTS.md`
@@ -117,7 +117,7 @@ the roster lane documents `node "$HOME/nana-pi/packages/nana-pack/bin/<x>.mjs"` 
 - Outline: do not seed in increment 1 (the report already shows the tree); keep it opt-in.
 - Adopt-sort prior art: `move.mjs`/`prove.mjs` (placement JSON in, rows proven byte-identical) hard-code SHAs and
   nana-pi's Part A boundary (docs/reviews/req-tree-2026-10-09/move.mjs:17-18, :67). Today's flat default: the skill's
-  tree paragraph is nana-pi-phrased ("In this ledger…", "Jake decides", packages/nana-pack/skills/requirements/SKILL.md:126)
+  tree paragraph is nana-pi-phrased ("In this ledger…", "the owner decides", packages/nana-pack/skills/requirements/SKILL.md:126)
   and audit mode extracts rows with no tree step (:128 on).
 
 ## 6. Windows

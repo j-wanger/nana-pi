@@ -57,11 +57,11 @@ This is separate from the already accepted tree CRLF limitation.
 
 ### MUST 3 — Reconcile the HTML-page ruling before landing
 
-- `docs/sessions/2026-10.md:15` records that Jake lifted the HTML-page hold.
+- `docs/sessions/2026-10.md:15` records that the owner lifted the HTML-page hold.
 - `HANDOFF.md:44` still makes HTML land pages conditional on the writing-trial verdict.
 - `HANDOFF.md:47` still parks the review-timeline diagram with those pages.
 
-These instructions cannot all describe the same frontier. Apply the recorded ruling consistently, or explicitly distinguish the surfaces if Jake lifted only one hold.
+These instructions cannot all describe the same frontier. Apply the recorded ruling consistently, or explicitly distinguish the surfaces if the owner lifted only one hold.
 
 Because nothing is written after landing, this correction needs acceptance before the merge.
 
@@ -69,7 +69,7 @@ Because nothing is written after landing, this correction needs acceptance befor
 
 `docs/sessions/2026-10.md:15` says “Windows is tested now.” The builder explicitly reports no Windows execution.
 
-Use the clearer wording already present at `HANDOFF.md:12`: Jake **requires Windows testing now**. The planned CI runner and VM remain pending.
+Use the clearer wording already present at `HANDOFF.md:12`: the owner **requires Windows testing now**. The planned CI runner and VM remain pending.
 
 ### NOTE — Round-2 documentation finding closed
 
@@ -95,11 +95,11 @@ The ordinary row and marker paths use matching explicit whitespace lists. Closur
 
 The prepared decisions are technically justified:
 
-1. **Seven frozen desk features:** their status reasons now cite Jake’s 2026-10-10 ruling.
+1. **Seven frozen desk features:** their status reasons now cite the owner's 2026-10-10 ruling.
 2. **R-224 display share:** retain it; changing the shared renderer can affect knowledge-pointer escaping.
 3. **R-1000/R-1001 project-setup shares:** retain both; generated projects receive both rail behaviors.
 
-These recommendations do not replace Jake’s checkpoint-2 acceptance.
+These recommendations do not replace the owner's checkpoint-2 acceptance.
 
 ### NOTE — Merged-state records and open work
 

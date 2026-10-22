@@ -25,7 +25,7 @@ Yes, one. It is an orientation sentence, not a verdict or materiality instructio
     `~/yokai-world/docs/reviews/*/`.
   - Shared memory `~/.claude/nana-memory/shared/reference_pi_review_procedure.md` ("The review must start with
     a VERDICT line") still says: "Every review brief must say: first line exactly `VERDICT: LAND | LAND-WITH-FIXES | SEND-BACK`."
-    This is stale against Jake's 10-13 ruling. Seats in every repo read it.
+    This is stale against the owner's 10-13 ruling. Seats in every repo read it.
 - `pi-worker` already loads a prompt file the same way. `pi-worker.mjs:92-98` reads `prompts/builder-preamble.md`,
   renders it to a temp file, and passes `--append-system-prompt <preambleFile> --append-system-prompt <briefPath>`.
 
@@ -151,11 +151,11 @@ Source: `~/.pi/agent/review-ledger.jsonl`, which runs 2026-09-28 to 2026-10-13 a
 |---|---|---|---|
 | trading-zone | 17 (11 items) | 1: the **exact standard** | 10-11..10-12 |
 | yokai-world | 16 (11 items) | 1: `confirmation round on the final tip after fixes to named findings`, the **old short form without "or a merge of current main"** | 10-11..**10-13** |
-| aml-desk | 0 | none (16 v1 rounds, no verdicts, no overrides) | — |
+| work-project | 0 | none (16 v1 rounds, no verdicts, no overrides) | — |
 | nana-agent-loop | 0 | none | — |
 | nana-pi | 79 | 64 free-text reasons, each used once (09-29..10-10, e.g. "land review after sol r3 BLOCK; r4 closes its two items…"); then the old short form ×10 (10-10..10-11); then the exact standard ×5 (10-11..10-13) | — |
 
-No script in yokai-world, trading-zone, aml-desk, nana-agent-loop, jev-research or the-hive passes `--over-cap`. I
+No script in yokai-world, trading-zone, work-project, nana-agent-loop, jev-research or the-hive passes `--over-cap`. I
 grepped `*.sh`, `*.mjs`, `*.js`, `*.ts`, `*.py` and `*.json`. Every caller is a seat typing the command.
 
 ### What enforcing the standard reason would change
@@ -166,7 +166,7 @@ grepped `*.sh`, `*.mjs`, `*.js`, `*.ts`, `*.py` and `*.json`. Every caller is a 
     section was never refreshed with `nana-setup project`. That is inferred from the text; the file was last committed 10-13.
   - Cost per refusal: one re-run. No round is consumed, but pi-review rebuilds the detached checkout first.
   - The refusal must print the exact standard text so it can be copied.
-- **aml-desk and nana-agent-loop:** no runtime change. `~/nana-agent-loop/OBJECTIVE.md:13` documents
+- **work-project and nana-agent-loop:** no runtime change. `~/nana-agent-loop/OBJECTIVE.md:13` documents
   `--over-cap "<what changed since r3>"` as free text, and that line goes stale.
 - **Cross-repo code contract, the important one:** `~/nana-agent-loop/app/scripts/review-round.mjs` re-exports
   `roundCapVerdict`. `~/nana-agent-loop/app/tests/review-round.test.ts:42-44` asserts
@@ -189,7 +189,7 @@ grepped `*.sh`, `*.mjs`, `*.js`, `*.ts`, `*.py` and `*.json`. Every caller is a 
   - The REFUSE text at `review-round.mjs:556-557`.
 - **No inline tunables:**
   - Define the standard reason once, for example in `packages/nana-pack/lib/verdict-config.mjs` or a new review
-    config module, with its provenance: contract value, Jake's 2026-10-10 land-rule text, and the row.
+    config module, with its provenance: contract value, the owner's 2026-10-10 land-rule text, and the row.
   - Add one test that seals the value and names the row.
   - Add one test that checks `templates/_shared/working-under-nana-pi.md` contains the constant, so the docs cannot
     drift from the code.
@@ -252,9 +252,9 @@ Nothing in the code. Behaviour and documents change.
     `docs/reviews/req-tree-2026-10-09/sol-plan-brief.md:56` and ci-pi-pin plan r1.
   - A plan commit is never named in `--reviewed`, so it never blocked a land.
   - Under the new words, a plan review with SHOULDs says LAND. If the seat then applies those fixes, that collides with
-    Jake's 10-11 rule "once every reviewer says LAND, no further edits".
+    The owner's 10-11 rule "once every reviewer says LAND, no further edits".
   - The working-pattern text should say whether plan SHOULDs may be applied after LAND without a round. This is a
-    candidate YOUR CALL item for Jake. My reading: yes for plans, because nothing lands on a plan item. Mark that as
+    candidate YOUR CALL item for the owner. My reading: yes for plans, because nothing lands on a plan item. Mark that as
     inferred.
 - **Documents still listing LAND-WITH-FIXES as allowed:**
   - About 26+ yokai-world briefs.

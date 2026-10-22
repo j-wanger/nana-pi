@@ -1,7 +1,7 @@
 # Lane cc-hooks-windows — build brief 2 (2026-10-12 · feat/cc-hooks-windows · worktree ~/nana-pi-wt/cc-hooks-windows)
 
 **Builder: Claude Sonnet 5.5**, fresh session. THREE items; finish all three, nothing else. Work ONLY inside
-`/Users/jwang/nana-pi-wt/cc-hooks-windows` (absolute paths; `cd` there in every shell command). The contract
+`/Users/example/nana-pi-wt/cc-hooks-windows` (absolute paths; `cd` there in every shell command). The contract
 is `CHANGE.md` in this folder.
 
 ## Where build 1 left it (seat verification of `cfa1556`)

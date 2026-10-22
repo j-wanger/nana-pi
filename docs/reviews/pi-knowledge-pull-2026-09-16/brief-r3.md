@@ -1,6 +1,6 @@
 # Review brief — pi-side knowledge pull (round 3 of max 3 — final)
 
-You are an independent code reviewer. Read-only. This round verifies the fold of your round-2 findings (`sol-r2.md` in this directory — read it, and `sol-r1.md` for lineage). Same change, still uncommitted in `/Users/jwang/nana-pi`. This is the LAST round under the cap: after it the change lands with whatever residuals you name.
+You are an independent code reviewer. Read-only. This round verifies the fold of your round-2 findings (`sol-r2.md` in this directory — read it, and `sol-r1.md` for lineage). Same change, still uncommitted in `/Users/example/nana-pi`. This is the LAST round under the cap: after it the change lands with whatever residuals you name.
 
 ## What was folded, and a fact your r2 fix assumed that turned out false
 
@@ -22,9 +22,9 @@ So the fold is:
 
 ## Files to read
 
-- `/Users/jwang/nana-pi/packages/nana-knowledge/extensions/nana-knowledge.ts`
-- `/Users/jwang/nana-pi/packages/nana-knowledge/tests/extension.test.mjs` (test 5b and the makePull-using tests around it)
-- `/Users/jwang/nana-pi/packages/nana-knowledge/README.md` — "## The pi extension"
+- `/Users/example/nana-pi/packages/nana-knowledge/extensions/nana-knowledge.ts`
+- `/Users/example/nana-pi/packages/nana-knowledge/tests/extension.test.mjs` (test 5b and the makePull-using tests around it)
+- `/Users/example/nana-pi/packages/nana-knowledge/README.md` — "## The pi extension"
 
 ## Output
 

@@ -1,10 +1,10 @@
 ## MUST
 
-1. **The expanded share line still lacks Jake’s approval.**  
+1. **The expanded share line still lacks the owner's approval.**  
    `docs/reviews/product-report-2026-10-11/CHANGE.md:74-83,182-188`  
    `REQUIREMENTS.md:31-37`  
-   Round two required approval for the expanded dependency list. The declaration records approval only for the earlier line, then says Jake must re-decide the expanded line. The opening sequence nevertheless says the tree decisions are decided. Tree governance requires Jake to approve every added share.  
-   **Smallest fix:** obtain and record Jake’s approval of the exact nine-row share line before builder admission. Remove the contradictory “decided” wording until then.
+   Round two required approval for the expanded dependency list. The declaration records approval only for the earlier line, then says the owner must re-decide the expanded line. The opening sequence nevertheless says the tree decisions are decided. Tree governance requires the owner to approve every added share.  
+   **Smallest fix:** obtain and record the owner's approval of the exact nine-row share line before builder admission. Remove the contradictory “decided” wording until then.
 
 ## SHOULD
 

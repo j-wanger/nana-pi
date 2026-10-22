@@ -1,5 +1,5 @@
 pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
-pi-review: item "ears-form-a2" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (adversarial @ 6565cfe949f5)
+pi-review: item "ears-form-a2" (git:/Users/example/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (adversarial @ 6565cfe949f5)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=0.94s flat=0/15
   [pi-review a1] cpu=1.03s flat=0/15
@@ -28,4 +28,4 @@ pi-review: item "ears-form-a2" (git:/Users/jwang/nana-pi/.git): 0 round(s) used 
   [pi-review a1] cpu=2.73s flat=0/15
   [pi-review a1] cpu=2.84s flat=0/15
   [pi-review a1] cpu=2.97s flat=0/15
-[pi-review] SUCCESS on attempt 1 (12465 chars → /Users/jwang/nana-pi/docs/reviews/ears-form-2026-10-04/batch-a2-astra-r1.md; round 1)
+[pi-review] SUCCESS on attempt 1 (12465 chars → /Users/example/nana-pi/docs/reviews/ears-form-2026-10-04/batch-a2-astra-r1.md; round 1)

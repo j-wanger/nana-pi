@@ -3,7 +3,7 @@
   "features": [
     {
       "id": "FEAT-001",
-      "what_it_does": "Every pi and Claude Code session gets the project's objective and current priority in its instructions. Only Jake's own user settings can switch this off.",
+      "what_it_does": "Every pi and Claude Code session gets the project's objective and current priority in its instructions. Only the owner's own user settings can switch this off.",
       "maturity": "solid",
       "maturity_reason": "All rows have full tests and no recorded violation; tests confirm pi and Claude Code inject identical text.",
       "gaps": [
@@ -650,11 +650,11 @@
     },
     {
       "id": "FEAT-003",
-      "what_it_does": "It builds a local search index over Jake's markdown knowledge files and finds repos to include automatically. It also links each Claude Code project to Jake's shared memory.",
+      "what_it_does": "It builds a local search index over the owner's markdown knowledge files and finds repos to include automatically. It also links each Claude Code project to the owner's shared memory.",
       "maturity": "partial",
       "maturity_reason": "many rows are untested and none violated; all shared-memory rows have tests, so every gap sits in the search index.",
       "gaps": [
-        "No recorded test confirms the index never writes to Jake's source notes. None confirms it keeps all its own files in one folder.",
+        "No recorded test confirms the index never writes to the owner's source notes. None confirms it keeps all its own files in one folder.",
         "No recorded test fully covers the build lock or the takeover of a dead build's lock. Nothing recorded proves only one build runs at a time.",
         "No recorded test covers when rows leave the index. If that rule broke, a missing or unscanned folder could drop notes from search."
       ],
@@ -893,16 +893,16 @@
     },
     {
       "id": "FEAT-004",
-      "what_it_does": "Before each prompt, it searches Jake's knowledge index and shows the agent up to three short pointers, marked as untrusted data. pi runs the same search when it starts an agent. Reviewer and builder sessions skip it.",
+      "what_it_does": "Before each prompt, it searches the owner's knowledge index and shows the agent up to three short pointers, marked as untrusted data. pi runs the same search when it starts an agent. Reviewer and builder sessions skip it.",
       "maturity": "partial",
       "maturity_reason": "many rows lack full tests and none shows a violation; tests cover the untrusted label, character stripping, size caps and silent failure.",
       "gaps": [
-        "No recorded test covers a missing or stale index. Nothing recorded proves the pull never builds the index while Jake waits.",
+        "No recorded test covers a missing or stale index. Nothing recorded proves the pull never builds the index while the owner waits.",
         "In pi, no recorded test covers a pull that times out, crashes or prints nothing. The rows say it must inject nothing and throw nothing.",
         "No recorded test proves every pointer passes through one shared renderer. A second copy of the escaping could drift unnoticed."
       ],
       "risks": [
-        "Builder and reviewer sessions skip pulls only because two launchers set a role value. Renaming either value silently turns pulls back on. For builders, that breaks Jake's the October ruling.",
+        "Builder and reviewer sessions skip pulls only because two launchers set a role value. Renaming either value silently turns pulls back on. For builders, that breaks the owner's the October ruling.",
         "No recorded test checks that pi pulls log pi as their source. None checks they skip pointers already shown in that pi session. Any reading of the pull log by source rests on an unchecked field."
       ],
       "decisions": [],
@@ -1130,7 +1130,7 @@
     },
     {
       "id": "FEAT-005",
-      "what_it_does": "It adds Jake's writing rules to every session's instructions. It also provides a checker that flags long sentences, passive voice, banned words and missing verdicts. The checker reports but never blocks.",
+      "what_it_does": "It adds the owner's writing rules to every session's instructions. It also provides a checker that flags long sentences, passive voice, banned words and missing verdicts. The checker reports but never blocks.",
       "maturity": "solid",
       "maturity_reason": "All rows have tests, none is untested or violated, and the rule text passes its own checker.",
       "gaps": [],
@@ -1909,7 +1909,7 @@
       "decisions": [
         "Should the merge step keep allowing unreviewed follow-up commits and any-reason review exemptions? Keep both, but show the uncovered commits and any exemption reason in every land report. The audit calls this a process gap, not a security hole. Refusing them would block the integration commits the helper is built to list."
       ],
-      "next_step": "Leave the code alone until Jake settles the policy on unreviewed commits and exemptions.",
+      "next_step": "Leave the code alone until the owner settles the policy on unreviewed commits and exemptions.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
@@ -2567,7 +2567,7 @@
     },
     {
       "id": "FEAT-011",
-      "what_it_does": "It loads the gate's policy from Jake's own config and the project's config. Tighter rules apply at once. Looser rules wait for the next session start or reload. A broken gate block keeps the last good policy. With no good policy yet, every gated tool stops until Jake repairs the file.",
+      "what_it_does": "It loads the gate's policy from the owner's own config and the project's config. Tighter rules apply at once. Looser rules wait for the next session start or reload. A broken gate block keeps the last good policy. With no good policy yet, every gated tool stops until the owner repairs the file.",
       "maturity": "mostly solid",
       "maturity_reason": "many rows are pinned and none is violated. Each of the two untested rows has a pinned sibling that covers part of its risk.",
       "gaps": [
@@ -2576,7 +2576,7 @@
       ],
       "risks": [
         "The untested keep-working row is shared with four other features. A break there would reach all five.",
-        "Trust rules decide whether a project's config loads at all. The agent-folder resolver decides which of Jake's own config files loads. Both live in other features. Changing either changes which gate policy applies."
+        "Trust rules decide whether a project's config loads at all. The agent-folder resolver decides which of the owner's own config files loads. Both live in other features. Changing either changes which gate policy applies."
       ],
       "decisions": [
         "Should the legacy receipts config keys stay accepted with no end date? Add an end date or end condition to the row's wording now. The audit rates the open window cosmetic. It relaxes no trust setting, so no code change is needed."
@@ -2847,7 +2847,7 @@
     },
     {
       "id": "FEAT-012",
-      "what_it_does": "It cleans every repo-controlled path, label and message the pack shows to Jake or the model. Each comes out bounded, with no raw control characters. A hostile value cannot forge a heading, a file field or a dialog line.",
+      "what_it_does": "It cleans every repo-controlled path, label and message the pack shows to the owner or the model. Each comes out bounded, with no raw control characters. A hostile value cannot forge a heading, a file field or a dialog line.",
       "maturity": "solid",
       "maturity_reason": "All rows are pinned by tests and none is violated. No audit issue touches this feature.",
       "gaps": [],
@@ -3002,7 +3002,7 @@
     },
     {
       "id": "FEAT-013",
-      "what_it_does": "The install command puts hooks, rules, skills, command-line tools and starter configs in place for Claude Code and pi. It merges into existing settings without duplicates and without overwriting Jake's own files.",
+      "what_it_does": "The install command puts hooks, rules, skills, command-line tools and starter configs in place for Claude Code and pi. It merges into existing settings without duplicates and without overwriting the owner's own files.",
       "maturity": "partial",
       "maturity_reason": "many rows are pinned and none is violated. some untested rows include many file-safety rows. They also include many hook and package matching rows.",
       "gaps": [
@@ -3016,9 +3016,9 @@
       ],
       "decisions": [
         "Two rows promise the same requirements-skill link but carry different statuses. Retire the untested duplicate? Retire the untested row and point it at the pinned one. The audit rates this low. The duplicate only double-counts and blurs this feature's maturity.",
-        "Jake requires Windows testing now. Run Windows tests in the current priority."
+        "The owner requires Windows testing now. Run Windows tests in the current priority."
       ],
-      "next_step": "Pin the settings-file parse stop and the held-lock stop with two tests, since both guard Jake's own Claude Code settings.",
+      "next_step": "Pin the settings-file parse stop and the held-lock stop with two tests, since both guard the owner's own Claude Code settings.",
       "written_by": "build round eleven, through the refresh guide, 2026-10-12",
       "checked_by": "seat read, 2026-10-12; stamp taken from the refresh packet",
       "date": "2026-10-12",
@@ -4286,7 +4286,7 @@
         "Four rows on the optional macOS background service are untested. They cover staying opt-in, escaping values, failing on missing values and passing a custom agent folder."
       ],
       "risks": [
-        "Jake's desk ruling freezes this feature until October usage ruling. some untested rows stay open until then.",
+        "The owner's desk ruling freezes this feature until October usage ruling. some untested rows stay open until then.",
         "Three of its rows are shared with other features. The pi-binding row also decides which parser reads session history, so changing it changes history reading."
       ],
       "decisions": [
@@ -4778,7 +4778,7 @@
         "The loop-safe branch walk and the bounded session-list scan have no recorded tests of their own. The branch row's tests do exercise loops."
       ],
       "risks": [
-        "Jake's desk ruling freezes this feature until October usage ruling. some untested rows stay open until then.",
+        "The owner's desk ruling freezes this feature until October usage ruling. some untested rows stay open until then.",
         "The Host check is the only guard against rebinding on session history reads. Rename and title jobs also pass the Origin check. Another feature owns both checks. The desk start-up feature's pi-binding row decides which parser reads history."
       ],
       "decisions": [
@@ -4900,13 +4900,13 @@
     },
     {
       "id": "FEAT-021",
-      "what_it_does": "Lets Jake pick a folder, resources, tools and a trust setting on the desk, then launches a pi session with those choices.",
+      "what_it_does": "Lets the owner pick a folder, resources, tools and a trust setting on the desk, then launches a pi session with those choices.",
       "maturity": "partial",
       "maturity_reason": "Six of eleven rows are implemented and none violated, but five are untested, including refusing a launch when project trust is declined.",
       "gaps": [
         "No test proves a launch is refused when project trust is declined and a resource lives inside the project folder. This is the guard for untrusted folders.",
         "No test proves a package entry resolves only in its own scope. No test proves the desk refuses an unknown or malformed tool exclusion.",
-        "No test proves the tool list refreshes when Jake changes folder or flips the trust box. No test proves an untouched tool list sends no tool flag."
+        "No test proves the tool list refreshes when the owner changes folder or flips the trust box. No test proves an untouched tool list sends no tool flag."
       ],
       "risks": [
         "Every launch relies on one rule: each child gets the same absolute agent folder. That rule is untested in the feature that owns it. Only its relative-path case is tested here.",
@@ -4915,7 +4915,7 @@
       "decisions": [
         "Should the trust-refusal test be exempt from the desk freeze? No. Hold the freeze until October usage ruling. No row in this feature is recorded as violated."
       ],
-      "next_step": "Leave it alone: Jake's desk freeze holds until October usage ruling.",
+      "next_step": "Leave it alone: the owner's desk freeze holds until October usage ruling.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
@@ -5013,11 +5013,11 @@
     },
     {
       "id": "FEAT-022",
-      "what_it_does": "Sends Jake's prompts and commands from the desk to the right live pi session. It also handles slow answers, reloads, dropped connections and session shutdown.",
+      "what_it_does": "Sends the owner's prompts and commands from the desk to the right live pi session. It also handles slow answers, reloads, dropped connections and session shutdown.",
       "maturity": "weak",
       "maturity_reason": "Ten of twenty-six rows are implemented, thirteen are untested and three are violated, including a race that can act on the wrong session.",
       "gaps": [
-        "A picker command already in flight can act on the newly selected session after Jake switches. This is a recorded deviation. Closing the picker menu only narrows the window.",
+        "A picker command already in flight can act on the newly selected session after the owner switches. This is a recorded deviation. Closing the picker menu only narrows the window.",
         "Status, widget and open dialog records per child grow without limit for the whole session. Every new viewer receives all of them on connect.",
         "Three guards are untested. They keep a dying child's record until it really exits, survive a malformed child event, and keep Esc aborting a turn."
       ],
@@ -5028,7 +5028,7 @@
       "decisions": [
         "What happens to the three recorded deviations while the desk is frozen? Keep all three as declared known limits until October usage ruling. Accept the duplicate-text bubble, since a resync repairs it."
       ],
-      "next_step": "Leave it alone: Jake's desk freeze holds until October usage ruling.",
+      "next_step": "Leave it alone: the owner's desk freeze holds until October usage ruling.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
@@ -5216,7 +5216,7 @@
     },
     {
       "id": "FEAT-023",
-      "what_it_does": "Shows Jake what a session changed, what it is doing now, and capped tool output. It notifies him when pi needs approval or waits, and keeps a session journal.",
+      "what_it_does": "Shows the owner what a session changed, what it is doing now, and capped tool output. It notifies him when pi needs approval or waits, and keeps a session journal.",
       "maturity": "partial",
       "maturity_reason": "Twenty of thirty-one rows are implemented and none violated, but eleven are untested, including the main notification when pi waits for input.",
       "gaps": [
@@ -5455,7 +5455,7 @@
     },
     {
       "id": "FEAT-024",
-      "what_it_does": "Lets Jake edit pi settings, pack config and context files from the desk. A broken or risky write is refused, and the existing file is meant to stay intact.",
+      "what_it_does": "Lets the owner edit pi settings, pack config and context files from the desk. A broken or risky write is refused, and the existing file is meant to stay intact.",
       "maturity": "partial",
       "maturity_reason": "Five of seven rows are implemented and none violated, but the two untested rows are the guarantees that a refused write damages nothing.",
       "gaps": [
@@ -5469,7 +5469,7 @@
       "decisions": [
         "Should the two data-safety tests be exempt from the desk freeze? No. Hold the freeze until October usage ruling. The refusals themselves are already tested."
       ],
-      "next_step": "Leave it alone: Jake's desk freeze holds until October usage ruling.",
+      "next_step": "Leave it alone: the owner's desk freeze holds until October usage ruling.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
@@ -5740,9 +5740,9 @@
       ],
       "decisions": [
         "At the October usage ruling, keep the two violated rows as declared limits, or fix the lost-additions and stalled-desk problems? Keep both as declared limits. Fix them only if the ruling expects two desks on one session, or an unreliable disk.",
-        "Jake's desk ruling freezes this feature until October usage. Do the untested signing, checking and key-removal rules justify an exception now? Keep the freeze. These rows are recorded as untested, not broken. Take them up at the October usage ruling if the desk stays in use."
+        "The owner's desk ruling freezes this feature until October usage. Do the untested signing, checking and key-removal rules justify an exception now? Keep the freeze. These rows are recorded as untested, not broken. Take them up at the October usage ruling if the desk stays in use."
       ],
-      "next_step": "Leave it alone: Jake's desk ruling freezes it until October usage ruling. Revisit the untested signing and checking rules then.",
+      "next_step": "Leave it alone: the owner's desk ruling freezes it until October usage ruling. Revisit the untested signing and checking rules then.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
@@ -5925,10 +5925,10 @@
         "A partly confirmed audit says one test-suite label can hide browser and machine-specific evidence. The ports row is one of the rows it names. The audit rates this low severity."
       ],
       "decisions": [
-        "Jake's desk ruling freezes this feature until October usage. Does the untested local-only listening rule justify an exception now? Keep the freeze. Nothing records the rule as broken, only as untested. Take it up first at the October usage ruling if the desk stays.",
+        "The owner's desk ruling freezes this feature until October usage. Does the untested local-only listening rule justify an exception now? Keep the freeze. Nothing records the rule as broken, only as untested. Take it up first at the October usage ruling if the desk stays.",
         "Should the requirements file mark evidence that lives outside the main suite, such as browser tests? Yes, as the wording fix the audit calls for, taken at the October usage ruling. No code change."
       ],
-      "next_step": "Leave it alone: Jake's desk ruling freezes it until October usage ruling. Revisit local-only listening and same-origin data commands then.",
+      "next_step": "Leave it alone: the owner's desk ruling freezes it until October usage ruling. Revisit local-only listening and same-origin data commands then.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
@@ -6989,7 +6989,7 @@
         "An audit partly upheld that the one-command blast-radius view can miss callers. An agent could then under-scope a change. The full suite still catches misses that a collected test covers."
       ],
       "decisions": [
-        "Should the named-exports-only rule exempt entry points that a runtime loads by default export, such as pi extensions? Yes. Add an explicit exemption; it is a wording fix that removes a silent gate-unload path. It is Jake's call because these rows must copy the shared standards file word for word, so that file must change too.",
+        "Should the named-exports-only rule exempt entry points that a runtime loads by default export, such as pi extensions? Yes. Add an explicit exemption; it is a wording fix that removes a silent gate-unload path. It is the owner's call because these rows must copy the shared standards file word for word, so that file must change too.",
         "Should one 'shall' per row stay the stand-in for one testable clause per row? Keep the count as a cheap gate, and state beside it that reviewers judge whether a row is truly one clause. The audit rated this low, and review has already caught one clause gap."
       ],
       "next_step": "Reword the named-exports rule to exempt extension entry points, since a literal reading can silently unload the gate.",

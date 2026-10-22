@@ -1,6 +1,6 @@
 # g005-carveout: must-meet (amended by the adversary, on main 0f2e0ca)
 
-**Feature.** Jake ruled on 2026-10-10 that a pi extension's default export counts as its named entry point. The 10-09 audit (C08) classed the fix as "wording + template tag": the standard is wrong, not the code.
+**Feature.** the owner ruled on 2026-10-10 that a pi extension's default export counts as its named entry point. The 10-09 audit (C08) classed the fix as "wording + template tag": the standard is wrong, not the code.
 Falsifiable form: the coding standards rule, the requirements skill and the shared G-005 row each carry the words "a pi extension's default export counts as its named entry point". The suite fails, naming the file, when any one of them drops those words.
 
 **Class: ordinary.** The lane changes rule, skill and ledger text plus one check in an existing test. It changes no install, uninstall or doctor code, no hook, no extension, no gate policy and no land or review tool. It touches `packages/nana-setup/`, so the seat runs `node packages/nana-setup/bin/install-check.mjs` on macOS before `nana-land` (AGENTS, 10-12). The template change ships through the CI tag after main goes green.

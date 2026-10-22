@@ -56,6 +56,6 @@ ok   R-1062 not live (no ask): "@'\nnpm test | x\n'@\ngit commit -m x"
 ok   R-1062 not live (no ask): "@\"\nnpm test | x\n\"@\ngit commit -m x"
 ok   R-1062 not live (no ask): "'it''s | x'; git commit -m x"
 ok   bash dialect unchanged: npm test | tail -5; git commit → ask
-ok   darwin: settings.json equals main's (/Users/jwang/nana-pi), paths normalised
+ok   darwin: settings.json equals main's (/Users/example/nana-pi), paths normalised
 cases: 59/59
 seat-verify-hooks: 0 mismatch(es)

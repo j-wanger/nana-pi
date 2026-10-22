@@ -38,7 +38,7 @@ import * as path from "node:path";
 import * as readline from "node:readline";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/roster-notice";
+const LANE_REPO = "/Users/example/nana-pi-wt/roster-notice";
 const LANE_BRANCH = "feat/roster-notice";
 const TIP = process.env.SEAT_MUTATE_TIP || "59db91d44305d31fd00d3df9482346248d2c582c";
 const SCRIPT = fileURLToPath(import.meta.url);

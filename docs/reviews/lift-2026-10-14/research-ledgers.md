@@ -13,7 +13,7 @@ before the first `##` with no Part above it. Parsing is fence-aware via `parseLe
 
 | Project | Marker | Ledger | Verdict |
 |---|---|---|---|
-| aml-desk | AGENTS.md + CLAUDE.md shared region; not copier-tracked | root | flat, 6 Parts |
+| work-project | AGENTS.md + CLAUDE.md shared region; not copier-tracked | root | flat, 6 Parts |
 | basketball-geek | `.copier-answers.yml` v0.4.0, python, `adopt: true` | root | flat, no Parts, dirty |
 | trading-zone | `.copier-answers.yml` v0.6.8, python, `adopt: false` | root | flat + template Part G mid-file (new since `research-adopt.md` §3) |
 | yokai-world | `.copier-answers.yml` v0.6.7, typescript | root | hand-built partial tree |
@@ -21,9 +21,9 @@ before the first `##` with no Part above it. Parsing is fence-aware via `parseLe
 | edge-screener | — | none | nothing to lift |
 
 `~/nana-pi-wt/land` and the 39 `~/yokai-world-wt/*` folders are worktrees of nana-pi and yokai-world, not separate projects. No ledger has a BOM, a CR, a NUL, a tab, a fenced row,
-a duplicate ID, a trailing-space row, a setext heading, a `####` heading, a row before the first heading, or a row directly under a `#` (scan). Every table header is byte-exact; aml-desk mixes two delimiter forms (`| --- |` ×19, `|---|` ×26), both accepted (`requirements-tree.mjs:21`).
+a duplicate ID, a trailing-space row, a setext heading, a `####` heading, a row before the first heading, or a row directly under a `#` (scan). Every table header is byte-exact; work-project mixes two delimiter forms (`| --- |` ×19, `|---|` ×26), both accepted (`requirements-tree.mjs:21`).
 
-## 2. aml-desk (`~/aml-desk` main `7dee19b`; ledger last commit `c044031`, 2026-10-07)
+## 2. work-project (`~/work-desk` main `7dee19b`; ledger last commit `c044031`, 2026-10-07)
 
 | Field | Found |
 |---|---|
@@ -54,7 +54,7 @@ FEAT-037 (§36) holds 41 rows in 6 tables. FEAT numbers stop matching section nu
 | Checker on the copy | exit 1, R-1159's line, 171 rows |
 
 **Lift:** synthetic CAP-01 before `## 1.` (line 5), FEAT-001–009 (= section numbers by coincidence), no SUB; 33 inserted, 9 rewritten; checker 0. The HEAD copy (165 rows) gives the identical mapping
-and 0 problems. Section 9's label carries provenance prose ("direction from Jake 2026-10-01, after …") that becomes a feature label.
+and 0 problems. Section 9's label carries provenance prose ("direction from the owner 2026-10-01, after …") that becomes a feature label.
 
 ## 4. trading-zone (`~/trading-zone` main `ad27336`; ledger last commit `f868050`, 2026-10-12)
 
@@ -103,20 +103,20 @@ FEAT-900 is empty; the 8 product features nest under CAP-90 (210 rows); `## The 
 1. **What is a Part?** Every ledger opens with a `#` title. The sim keys on `^Part [A-Z]`; keying on "any `#`" makes the title a capability that swallows the preamble.
 2. **No Part above a section** (basketball-geek all 9, trading-zone 1–4, yokai `## The product`): a synthetic capability is needed; its label, purpose and position are unspecified.
 3. **Product sections after Part G** (trading-zone 5–11; yokai's 8 features): the rule files them under CAP-90 with 0 checker problems. Options: insert a new product CAP before them (no row moves; CAP-90 no longer last, against S2, `CHANGE.md:216`), move the G block to the end (moves 58 lines and 22 rows), or refuse.
-4. **Part G is detected by letter only.** aml-desk's general block is Part F with R-600–R-610. Mapping it to CAP-90 would put R rows in FEAT-900, against R-1151 (`REQUIREMENTS.md:877`); the sim makes it CAP-06.
+4. **Part G is detected by letter only.** work-project's general block is Part F with R-600–R-610. Mapping it to CAP-90 would put R rows in FEAT-900, against R-1151 (`REQUIREMENTS.md:877`); the sim makes it CAP-06.
 5. **A hand-built tree** (yokai): keeping its headings and lifting the rest mis-files the G rows under the nearest product feature and leaves 4 problems. Refuse any ledger with a CAP/FEAT/SUB heading, or take an explicit mapping.
 6. **Where FEAT-900 goes.** The template puts it straight after CAP-90, above the preamble prose (`requirements-general.md:13-29`). That works only when G1 follows the preamble directly, which fails in yokai.
 7. **Part G purposes:** the placeholder, or the template's own CAP-90/FEAT-900/SUB-900–904 text (`requirements-general.md:15-16,20,33,45,60,70,80`)? The labels match the template in both G ledgers.
 8. **An R row in the G block** (yokai R-399 in G2) lands in SUB-901 under FEAT-900.
-9. **Labels: strip or keep `Part A.` / `36b.`?** Stripping drops anchors that other files cite: aml-desk `README.md:63` (Part F); trading-zone `config.py:337,406` and ledger line 295 (sections 8, 9). The sim keeps the full old label only in the placeholder purpose, which the owner later replaces. A mapping file must keep the old labels.
-10. **Section number ≠ FEAT number** once a non-integer or repeated section appears (aml-desk from 36b on). Readers who navigate by the old number lose it.
-11. **Repeated labels** (aml-desk 36b ×2): two features with one label. Merging them would move Lane B's rows past §36, a reorder the lift must not do.
-12. **Prose-labelled lanes** (aml-desk, 6): not headings, so the rule cannot see them. Lane C's 10 rows are filed under the subgroup "Lane A — normalize".
-13. **Headless fragments** (aml-desk, 27 rows): insert a header pair (adds 2 lines each; keeps every line), or delete the separating blank line (a deletion the proof must declare).
+9. **Labels: strip or keep `Part A.` / `36b.`?** Stripping drops anchors that other files cite: work-project `README.md:63` (Part F); trading-zone `config.py:337,406` and ledger line 295 (sections 8, 9). The sim keeps the full old label only in the placeholder purpose, which the owner later replaces. A mapping file must keep the old labels.
+10. **Section number ≠ FEAT number** once a non-integer or repeated section appears (work-project from 36b on). Readers who navigate by the old number lose it.
+11. **Repeated labels** (work-project 36b ×2): two features with one label. Merging them would move Lane B's rows past §36, a reorder the lift must not do.
+12. **Prose-labelled lanes** (work-project, 6): not headings, so the rule cannot see them. Lane C's 10 rows are filed under the subgroup "Lane A — normalize".
+13. **Headless fragments** (work-project, 27 rows): insert a header pair (adds 2 lines each; keeps every line), or delete the separating blank line (a deletion the proof must declare).
 14. **Padded or variant header** (synthetic): needs a declared rewrite of the header line, not an insertion.
 15. **Mixed line endings** (synthetic): the writer must keep each line's own terminator, and the proof must compare raw bytes per line, not split lines.
 16. **Empty sections become empty features** (yokai `## The product`): `active` or `proposed`, or keep it as a non-tree heading (but a non-tree `##` resets row ownership, `requirements-tree.mjs:127`).
-17. **Open questions / Deliberate omissions** nest today under the last Part (aml-desk F, trading-zone G, yokai G). They must be named exclusions, or they become features.
+17. **Open questions / Deliberate omissions** nest today under the last Part (work-project F, trading-zone G, yokai G). They must be named exclusions, or they become features.
 18. **Fence awareness:** a grep-style heading scan would turn trading-zone's fenced `# req:` line (29) into a capability. The lift must reuse `parseLedger`'s fence logic.
 19. **Mapping key stability:** line numbers shift with concurrent edits (basketball-geek's +6 rows move every heading below line 27), and labels are not unique (36b). Key on (level, label, occurrence), and bind it to a HEAD blob.
 20. **A dirty ledger:** basketball-geek differs from HEAD by 6 rows. `--write` only at HEAD (`CHANGE.md:210`) refuses it; the HEAD lift gives the same mapping, so the owner commits or stashes first.
@@ -125,6 +125,6 @@ FEAT-900 is empty; the 8 product features nest under CAP-90 (210 rows); `## The 
 
 ## 8. What this means for the lane (R-1162–R-1169, at most eight)
 
-- Both flat ledgers without a G block lift cleanly: aml-desk to 6/41/2 with 3 header pairs, basketball-geek to 1/9/0 at HEAD. trading-zone passes the checker but is wrong, because of item 3. yokai needs the hand fix.
+- Both flat ledgers without a G block lift cleanly: work-project to 6/41/2 with 3 header pairs, basketball-geek to 1/9/0 at HEAD. trading-zone passes the checker but is wrong, because of item 3. yokai needs the hand fix.
 - The proof needs four checks the sim's line proof lacks: byte-level per line with its terminator; a declared-rewrite list that covers header lines; a check that no product feature sits under CAP-90; and a refusal on any existing tree heading.
 - The rails read rows line by line and ignore headings (trading-zone `tests/conftest.py:81-86,178-182`; the other three per `research-adopt.md:95`), so a heading-only lift leaves every rail unchanged. Running each project's suite on the lifted copy is still unrun (INFERRED).

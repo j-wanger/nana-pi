@@ -32,4 +32,4 @@ Conflicts: no file conflict with win-review-paths, win-objective-golden or clean
 
 Claim most likely wrong: that /var/tmp exists, is writable and is outside /tmp on the ubuntu-latest runner. Ubuntu ships it with mode 1777, but no Linux run backs this yet. If it is wrong, the amended test prints 2 SKIP and exit 0, not a crash.
 
-Relayed user request: Jake asked to turn off land verification and the hooks that need his confirmation ("power mode"). This lane does not touch that. I am read-only and changed no settings, hooks or land rules. The seat should take that request to Jake directly; nothing in this workflow carries it out.
+Relayed user request: the owner asked to turn off land verification and the hooks that need his confirmation ("power mode"). This lane does not touch that. I am read-only and changed no settings, hooks or land rules. The seat should take that request to the owner directly; nothing in this workflow carries it out.

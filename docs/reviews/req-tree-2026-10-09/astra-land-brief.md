@@ -10,8 +10,8 @@ after the fix: `seat-verify-r4-output.txt` (every line as wanted). Verify r4's f
 judge Amendment A1, then give the land ruling. The proof command is now
 `node docs/reviews/req-tree-2026-10-09/prove.mjs --approved 6b9202a501a7fe03dfc834ab34cdfc212f6d92ce --amendment 48c92146f5c57be7d666cc9d90034b7196b39377 REQUIREMENTS.md docs/requirements-sections-2026-10-09.md`.
 
-You drafted this tree in a separate session with Jake (8 capabilities, 38 features, 21 subgroups;
-`docs/reviews/req-tree-2026-10-09/mapping-astra.json` is your draft, unedited). Jake decided to
+You drafted this tree in a separate session with the owner (8 capabilities, 38 features, 21 subgroups;
+`docs/reviews/req-tree-2026-10-09/mapping-astra.json` is your draft, unedited). The owner decided to
 implement it and agreed the plan at checkpoint 1 (`CHANGE.md` §7a; approved commit
 `6b9202a501a7fe03dfc834ab34cdfc212f6d92ce`). A pi luna builder built it in five runs; sol reviewed the
 plan three times (item `req-tree-plan`) and the build three times (item `req-tree`, all SEND-BACK, every
@@ -29,7 +29,7 @@ through `prove.mjs` and sampling, not line by line).
    SUB-001..SUB-021 numbering; R-287–R-291 in FEAT-028). Are the deviations sound? Any undeclared one?
 2. **The two r3 fixes.** The R-291 equality check is back in the suite; `prove.mjs` now requires the
    five new rows to be exactly four canonical cells. Try to defeat each (scratch copies only).
-3. **The reader's result.** Read the top of `REQUIREMENTS.md` and `docs/requirements-tree.md` as Jake
+3. **The reader's result.** Read the top of `REQUIREMENTS.md` and `docs/requirements-tree.md` as the owner
    will at checkpoint 2. Does it let him understand what the requirements enable and why? Anything
    misleading in the purposes, the counts or the section map?
 4. **Integration.** Consumers of the ledger (trace rail, `req:rows`, R-756, README check, code map,
@@ -37,7 +37,7 @@ through `prove.mjs` and sampling, not line by line).
    `npm run readme:check`, the rail test; avoid the full suite — the seat runs it before the land).
 5. **Residuals.** Price each declared residual by cost of error: HTML blocks/comments, link reference
    definitions and indented code are not modeled by the tree checker; regroups are visible, not
-   pinned (Jake's ruling, decision 4); a row in the wrong feature is Jake's judgement, not a test.
+   pinned (Owner's ruling, decision 4); a row in the wrong feature is the owner's judgement, not a test.
 
 ## Output
 Answer with the full review as your final message; do not write it to a file. Findings MUST / SHOULD

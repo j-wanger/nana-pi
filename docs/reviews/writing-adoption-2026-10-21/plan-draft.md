@@ -20,7 +20,7 @@ Every seat runs the checker by one name, `nana-writing`, on macOS and Windows, a
 - No shim test pipes stdin through a `.cmd` (win-shims.test.mjs:89-161).
 - rule:41-43 names `node ~/nana-pi/...` and says "It does not block." Inferred: cmd.exe does not expand `~`.
 - steps.mjs:65,72 link the Claude rule. Probed: dry-run with the key false still reads "would link".
-- HANDOFF.md: 31 of 2,701 sentences over cap, 0 banned. Four sit in Open for Jake (lines 40, 43, 45, 49). frontier-config.mjs:17 holds LIVE_SECTION_NAMES.
+- HANDOFF.md: 31 of 2,701 sentences over cap, 0 banned. Four sit in Open for the owner (lines 40, 43, 45, 49). frontier-config.mjs:17 holds LIVE_SECTION_NAMES.
 - nana-land.mjs:103-105 refuses on a failed suite. frontier.test.mjs:281 (R-2473) is a suite check over this repo's HANDOFF.
 - install-check-config.mjs:65 needs `<nana-writing>` in the prompt, so the default must stay on.
 
@@ -70,6 +70,6 @@ IDs start at the next free ID (R-2487 today). R-1610 and R-1615 gain nana-writin
 - Inferred: Windows PowerShell 5.1 pipes non-ASCII as `?`, which ends a sentence, so dashed sentences may be under-counted.
 - Reviewer and worker sessions still carry the block; the `hasUI` question stays open.
 - `--help` is still read as a path.
-- The queued owner-name scrub renames "Writing for Jake" and "Open for Jake", which LIVE_SECTION_NAMES reads. Land this lane first.
+- The queued owner-name scrub renames "Writing for the owner" and "Open for the owner", which LIVE_SECTION_NAMES reads. Land this lane first.
 
 **Files.** Pack: bin/nana-writing.mjs (mode), package.json, extensions/nana-writing.ts, lib/config.ts, rules/nana-writing.md, README.md (:365-377, :593-594), two tests. Setup: lib/steps.mjs, lib/doctor.mjs, lib/state-manifest.mjs, README.md, six tests. Also AGENTS.md:20, REQUIREMENTS.md, docs/requirements-tree.md, the code map, and HANDOFF.md.

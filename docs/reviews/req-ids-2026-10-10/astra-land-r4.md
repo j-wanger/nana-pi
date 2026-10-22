@@ -27,7 +27,7 @@ The tree derives its row prefix from the rail’s exported whitespace list and r
 
 - `HANDOFF.md:44` explicitly removes the writing-trial dependency.
 - `HANDOFF.md:47` unblocks both diagrams.
-- `docs/sessions/2026-10.md:15` records Jake lifting the HTML-page hold.
+- `docs/sessions/2026-10.md:15` records the owner lifting the HTML-page hold.
 
 These statements now agree.
 
@@ -35,7 +35,7 @@ These statements now agree.
 
 **Round-3 Windows wording: closed** at `docs/sessions/2026-10.md:15`.
 
-“Jake requires Windows testing now” describes the ruling without claiming execution. The pending runner and VM remain explicit at `HANDOFF.md:48`.
+“The owner requires Windows testing now” describes the ruling without claiming execution. The pending runner and VM remain explicit at `HANDOFF.md:48`.
 
 ### NOTE — Frontier and checkpoint
 

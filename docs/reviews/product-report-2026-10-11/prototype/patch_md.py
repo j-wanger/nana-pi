@@ -1,5 +1,5 @@
 import json
-P = '/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/report/'
+P = '/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/report/'
 t = open(P + 'template.html').read()
 
 def rep(a, b):

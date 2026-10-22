@@ -1,6 +1,6 @@
 # Lane process — build brief 1 (2026-10-13 · feat/process · worktree ~/nana-pi-wt/process)
 
-**Builder: Claude Sonnet 5.5** (Jake's 2026-10-13 split: this lane changes what every reviewer is told). The
+**Builder: Claude Sonnet 5.5** (Owner's 2026-10-13 split: this lane changes what every reviewer is told). The
 contract is `CHANGE.md` in this folder — sol plan r1 LAND 98/100 (`sol-plan-r1.md`). Build ALL of it. Threat model:
 honest variation in our tools' output in scope; deliberate forgery out. New IDs: R-1100–R-1111 only.
 

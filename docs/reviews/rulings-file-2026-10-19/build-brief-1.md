@@ -60,7 +60,7 @@ Add rows R-1410 to R-1418 to REQUIREMENTS.md FEAT-001 as `proposed`. Each row fl
 - Copy on POSIX, or link on win32.
 - Drop the Claude rule entry.
 - Make doctor use existsSync.
-- Add "Jake", an undated bullet or "luna" to the file.
+- Add "the owner", an undated bullet or "luna" to the file.
 - Delete the scope sentence.
 
 **Done.**

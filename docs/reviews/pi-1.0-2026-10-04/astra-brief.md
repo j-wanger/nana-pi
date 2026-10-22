@@ -3,10 +3,10 @@
 Roles: `docs/reviews/pi-1.0-2026-10-04/ROLES.md` (Sonnet built it; you review; Fable rules on landing).
 Worktree `~/nana-pi-wt/pi-1.0`, branch `feat/pi-1.0`, base `main` (`c0a7849`). Review `git diff main..HEAD` in full.
 
-Read first, in this order (main checkout, `/Users/jwang/nana-pi/docs/reviews/pi-1.0-2026-10-04/`):
+Read first, in this order (main checkout, `/Users/example/nana-pi/docs/reviews/pi-1.0-2026-10-04/`):
 `architecture-ruling.md` (the contract), `subagent-diagnosis.md` (read the **Seat addendum** at the end: the
 real cause was a shell-less builtin `reviewer` pulling the parent in for git/test output), `compat-audit.md`.
-Ground truth for third-party behaviour (read-only, unpacked): `/private/tmp/claude-501/-Users-jwang-nana-pi/d9b1da6b-127d-44aa-bb69-ac17bcf2615f/scratchpad/pkgs/pi-subagents-0.75.0/package`
+Ground truth for third-party behaviour (read-only, unpacked): `/private/tmp/claude-501/-Users-example-nana-pi/d9b1da6b-127d-44aa-bb69-ac17bcf2615f/scratchpad/pkgs/pi-subagents-0.75.0/package`
 (src/, docs/, agents/, CHANGELOG.md) and `…/pkgs/earendil-works-pi-coding-agent-1.0.2/package`.
 
 ## What the change claims

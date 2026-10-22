@@ -166,7 +166,7 @@ Everything Claude Code bundles (permission prompts, sub-agents, plan mode, ambie
 config) is bring-your-own via extensions — which cuts both ways: more build, full control,
 deterministic gates at boundaries fit naturally.
 
-## 9. Recommendations (ratified by Jake 2026-09-01, execution in this repo)
+## 9. Recommendations (ratified by the owner 2026-09-01, execution in this repo)
 
 1. **Upgrade** to 0.84.4 (`npm i -g --ignore-scripts @earendil-works/pi-coding-agent`);
    Node ≥22.19 + Git for Windows on the Windows box. (Mac had 0.80.9, Node 22.22.2 ✓.)
@@ -316,9 +316,9 @@ the 0.84.4 bundle [V grep `PiServer|listen(`] — you host it yourself.
 
 **`pi-session-backend-sqlite-node`.** Sessions in SQLite instead of a JSONL tree. Turns the
 desk's directory scan + byte-window heuristic into a query, and is the natural store for
-nana-agent-loop's journal and an AML case ledger.
+nana-agent-loop's journal and an the work project case ledger.
 
-**`pi-ai` standalone.** For AML-agent grading and bench graders that need an LLM but not an agent
+**`pi-ai` standalone.** For Work-agent grading and bench graders that need an LLM but not an agent
 loop: one provider-neutral client with cost accounting, no pi process. Cheapest new adoption.
 
 **Low value:** `pi-tui` (the desk covers status surfaces); `chord` (take transitively via

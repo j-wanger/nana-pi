@@ -4,7 +4,7 @@
 block (`scripts/product-report/template.html` puts `JSON.stringify(data)` in a `<pre>`, and the
 module's `renderInto` does the same). CHANGE §3 asks for a real page: "every fact computed; text
 inserted through DOM text nodes, with `**…**` and backtick spans built as `b` and `code` elements
-from text; the hash route guarded with an own-property check". Jake reads this page to decide; a
+from text; the hash route guarded with an own-property check". The owner reads this page to decide; a
 JSON dump fails outcomes 1–5. R-1014–R-1018 were marked implemented on tests that search the
 embedded data, not the rendered page — the seat's script missed it too (its round-2 cases read the
 raw HTML). This round fixes the page and the evidence. Do every item before you report.
@@ -12,7 +12,7 @@ raw HTML). This round fixes the page and the evidence. Do every item before you 
 - [ ] **A. One renderer, the real views.** `renderInto(document, model, { hash } = {})`, exported
   from `scripts/product-report.mjs` (or a module it re-exports), renders into
   `document.getElementById("report")` the view the hash names: `""`, `#decisions` → **Decisions**
-  (every HANDOFF "Open for Jake" ask: kind, since-date, title, full body); `#product` →
+  (every HANDOFF "Open for the owner" ask: kind, since-date, title, full body); `#product` →
   **Product** (every capability: purpose, outcome, its features with status counts); `#features`
   → **Features** (every feature: ID, label, status, counts, assessment state); `#FEAT-xxx` → that
   feature's **detail** (purpose, status, counts, its own rows and the rows shared into it — each

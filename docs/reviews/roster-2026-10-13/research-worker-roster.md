@@ -55,7 +55,7 @@ Against main 9974218, pi 1.0.2. Read only. "INFERRED" marks claims not verified 
 ```
 
 1. `bin/worker-config.mjs`:
-   - `LANE_DEFAULTS` keeps its values and its provenance (Jake, 2026-10-06). It is now the default when no override exists.
+   - `LANE_DEFAULTS` keeps its values and its provenance (Owner, 2026-10-06). It is now the default when no override exists.
    - Rewrite the comment: "the default roster; a machine overrides provider, model and thinking through `roster.builder` in the user-scope nana-pack.json; changing the default still needs a requirements diff".
    - Add `THINKING_LEVELS = Object.freeze(['off','minimal','low','medium','high','xhigh','max'])`. Its provenance is a contract value: pi 1.0.2 `dist/cli/args.js:6`, `docs/cli.md:69-70`.
    - Fix the header `@purpose` to one sentence covering all sealed lane values.
@@ -87,14 +87,14 @@ Against main 9974218, pi 1.0.2. Read only. "INFERRED" marks claims not verified 
    - Add a desk Known-limits line for `roster`.
    - The AGENTS.md:66 pointer, which today names shared memory `reference_roster.md`, should point at `roster` in `<agent dir>/nana-pack.json`. That line is outside the marker region (markers at 68 and 97).
 
-Why not a separate seeded `nana-roster.json` (the seat's memory phrase "roster file seeded by nana-setup, read by pi-worker and pi-review"; that is the seat's wording, not Jake's verbatim)? A new owned file adds:
+Why not a separate seeded `nana-roster.json` (the seat's memory phrase "roster file seeded by nana-setup, read by pi-worker and pi-review"; that is the seat's wording, not the owner's verbatim)? A new owned file adds:
 
 - a seed file and a step in `steps.mjs`;
 - a doctor row;
 - a state-manifest and uninstall entry (R-954–R-959, R-900–R-907);
 - a gate protected-path entry in `gate-paths.ts:117`, which is a gate lane with a two-round cap;
 - a readme-check `externalPaths` entry;
-- the mandatory local install check (Jake, 2026-10-11).
+- the mandatory local install check (Owner, 2026-10-11).
 
 It also either duplicates the Mac values or makes lane mode refuse on a machine with no install. A seed cannot carry `example-gateway` either, because that value is machine-specific. Its only gain is that the roster shows up as a file on disk. The stderr line at every lane launch and the README give most of that for about 40 lines of code.
 
@@ -105,7 +105,7 @@ Interaction with the land ruling (for the lane plan; pi-worker does not read it)
 | ID | Row (one shall) |
 |---|---|
 | R-961 (amend text) | WHEN pi-worker runs in lane mode, it shall refuse every caller argument after -- and --retries greater than zero, and construct pi arguments using the resolved builder roster, the sealed tool list read,grep,find,bash,edit,write, the rendered preamble path, validated brief path, and fixed lane instruction. Evidence cell: "amended 2026-10-1x (roster lane)". This follows the precedent at `REQUIREMENTS.md:1002`. The process lane keeps R-961's text, so this lane needs no text merge. |
-| R-1120 | WHILE the user-scope nana-pack.json in pi's active agent dir holds no roster.builder, pi-worker lane mode shall pass the default builder roster provider openai-codex, model gpt-6-luna, thinking high (Jake's roster ruling, 2026-10-06). |
+| R-1120 | WHILE the user-scope nana-pack.json in pi's active agent dir holds no roster.builder, pi-worker lane mode shall pass the default builder roster provider openai-codex, model gpt-6-luna, thinking high (Owner's roster ruling, 2026-10-06). |
 | R-1121 | WHEN the user-scope nana-pack.json in pi's active agent dir holds a valid roster.builder, pi-worker lane mode shall pass its provider, model and thinking to pi in place of the default, each flag exactly once. |
 | R-1122 | IF the user-scope nana-pack.json is present but unreadable, not a regular file, or not a JSON object after one leading byte-order mark is removed, THEN pi-worker lane mode shall refuse before taking the worktree lock or starting pi, naming the file. |
 | R-1123 | IF roster or roster.builder is present but not an object, or roster.builder lacks provider, model or thinking, holds any other leaf, or holds a provider or model that is empty or contains whitespace or a control character, or a thinking level outside pi's seven, THEN pi-worker lane mode shall refuse before taking the worktree lock or starting pi, naming the file and the leaf. |
@@ -165,14 +165,14 @@ Mutation pairs for the seat's runner (each named test must go red):
   - Its AGENTS.md edits sit at lines 68-97 and after "### Shared-machine test runs" (`:136`). A change to the pointer at `:66` should rebase cleanly (INFERRED).
 - **Windows: the launcher cannot start npm's pi.**
   - `pi-watchdog.mjs:107` calls `spawn('pi', args)` with no shell. The triage confirms that this cannot start `pi.cmd` (`windows-triage.md:466-469`).
-  - Documenting `node <path>/pi-worker.mjs` for Jake's Windows machine in this lane would name a command that fails at spawn, unless his pi is a `.exe` (unknown). That would violate the README contract (G-012).
+  - Documenting `node <path>/pi-worker.mjs` for the owner's Windows machine in this lane would name a command that fails at spawn, unless his pi is a `.exe` (unknown). That would violate the README contract (G-012).
   - Recommendation: this lane documents only the roster override. The `node <path>` line ships with, or after, the queued launcher lane that fixes the spawn, or carries an explicit "unavailable on Windows until …".
 - **Residuals:**
   - A model id unknown to a known provider runs as a "custom model id" (`model-resolver.js:441-455`), so pi-worker cannot catch that typo.
   - The desk cannot save a file that holds `roster` (frozen).
   - `adoption.mjs:94` and doctor's `readPiPackConfig` do not strip a BOM. Both are adjacent and out of scope.
   - Under the threat model, honest variation (a typo, a Notepad BOM, a file copied from another machine, a stray `PI_CODING_AGENT_DIR`) is covered. A forged roster is out of scope, and the gate's advisory protection of the file is not a boundary.
-- **Install check:** the recommended design touches no `packages/nana-setup/` file and no hook, so Jake's 2026-10-11 local install-check rule does not apply. Design B (a seeded file) would trigger it.
+- **Install check:** the recommended design touches no `packages/nana-setup/` file and no hook, so the owner's 2026-10-11 local install-check rule does not apply. Design B (a seeded file) would trigger it.
 
 ## 9. Open for the plan
 

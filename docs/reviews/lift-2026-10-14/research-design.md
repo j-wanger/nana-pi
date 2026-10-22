@@ -7,7 +7,7 @@ Stakes: high-blast. The tool rewrites another project's contract file. A lost or
 
 - One command, dry run by default: `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root .`. It prints the plan and the proof and writes nothing. `--write` comes only after the owner's yes, and only while the ledger (and any mapping file) is tracked and matches HEAD.
 - Both seats run it, but only the requirements skill reaches both. That skill must carry the whole flow; the five pi-only skills point to it.
-- The regroup should add only the agent's proposal and Jake's checkpoint. So this lane ships one mapping format (default and proposal alike), a validator, the plan output as a checkpoint packet, the write gate on the mapping, and a re-runnable verify.
+- The regroup should add only the agent's proposal and the owner's checkpoint. So this lane ships one mapping format (default and proposal alike), a validator, the plan output as a checkpoint packet, the write gate on the mapping, and a re-runnable verify.
 - `prove.mjs` sets the proof standard (every physical line accounted, baseline from git), but its code cannot be reused. It sees 3-digit IDs only, finds the first of two same-named headings, splits LF only, and is wired to nana-pi (§6, ran).
 
 ## 2. Q1 — the command shape
@@ -48,16 +48,16 @@ Stakes: high-blast. The tool rewrites another project's contract file. A lost or
   5. **Check.** `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .` gives 0 problems (`SKILL.md:130`), and the project's own suite stays green. The rails are heading-blind (`research-adopt.md:95`).
   6. **Commit and land.** Commit REQUIREMENTS.md by explicit path, with the proof line in the message. Review and land under the project's working pattern (`AGENTS.md:94-97`); the reviewer re-runs `--verify` on the tip.
   7. **Next.** The regroup. Name no command until that lane lands.
-- The Windows Claude Code seat holds a byte copy of the skill (`steps.mjs:217-226`). It stays stale until `nana-setup install` re-runs, so this lane needs Jake's HANDOFF line again (tree `CHANGE.md:237`).
+- The Windows Claude Code seat holds a byte copy of the skill (`steps.mjs:217-226`). It stays stale until `nana-setup install` re-runs, so this lane needs the owner's HANDOFF line again (tree `CHANGE.md:237`).
 - First users (`research-adopt.md:104-113`):
-  - aml-desk and basketball-geek take the default lift.
+  - work-project and basketball-geek take the default lift.
   - yokai-world is a hand-built tree with 29 problems. The default mapping refuses it; it needs its hand fix or a supplied mapping.
 
 ## 4. Q3 — what the regroup needs from this lane
 
 nana-pi's own regroup (req-tree, 2026-10-09/10) is the model:
 - astra drafted the tree as JSON with IDs, labels, purposes and row lists, never row text (req-tree `CHANGE.md:124-127`).
-- Jake ruled on the outline at checkpoint 1, before any build. The approving commit froze the inputs (`:240-243`, `:274-280`).
+- The owner ruled on the outline at checkpoint 1, before any build. The approving commit froze the inputs (`:240-243`, `:274-280`).
 - `move.mjs` built the ledger. `prove.mjs` rebuilt the expected text independently from that commit and accounted every physical line (`:199-217`). Its output: "1004 BASE rows preserved once; 8 new rows; 125 ledger blocks and 1652 physical lines accounted; 64 old headings mapped" (`prove-output.txt`).
 - A placement review of all 1,009 rows moved 17 (`placement-review.md`). Checkpoint 2 read one proof line (`:245`). The old-section map recorded each old heading's new homes (`docs/requirements-sections-2026-10-09.md`; `move.mjs:125-142`).
 
@@ -66,7 +66,7 @@ What this lane should therefore ship, so the regroup adds only the proposal and 
    - `ledger`: the blob from `git rev-parse HEAD:./REQUIREMENTS.md`; `by`: `mechanical` or `proposal`.
    - `capabilities → features → subgroups`, each with `id`, `label`, `purpose`, `outcome` (CAP), `status` and `also_applies` (FEAT), `rows` (IDs, in order) and `prose_from` (old headings).
    - The ordinary headings that stay, and the closing tail.
-   - Old headings are keyed by line number at that blob, because labels repeat (aml-desk has two `## 36b.`, `research-adopt.md:41`). No row text anywhere.
+   - Old headings are keyed by line number at that blob, because labels repeat (work-project has two `## 36b.`, `research-adopt.md:41`). No row text anywhere.
 2. **Any parsable ledger as input**, flat or tree, when a mapping is supplied: the regroup's input is the lifted ledger. Without `--mapping`, the default refuses a ledger that already has tree headings and names their count.
 3. **A validator that names every problem:**
    - a row missing, duplicated or unknown, or a new ID;
@@ -74,11 +74,11 @@ What this lane should therefore ship, so the regroup adds only the proposal and 
    - an empty purpose, a bad status (`requirements-tree.mjs:19`), or rows under a proposed or retired feature (`:189-191`);
    - a blob mismatch: "the ledger changed since this mapping was drawn; re-propose".
 4. **The dry run as the checkpoint packet.** It shows each heading with its purpose and row count, old home → new home counts, the proof line and the tree check. `--plan <file>` writes the full list (need INFERRED).
-5. **The write gate on the mapping**, so what Jake approved is what lands.
+5. **The write gate on the mapping**, so what the owner approved is what lands.
 6. **`--verify <base-sha>`.** It rebuilds from `<sha>:./REQUIREMENTS.md` plus the committed mapping and compares byte for byte with the working ledger. This is `prove.mjs --approved`'s role (req-tree `CHANGE.md:199-200`).
 7. **"Not yet sorted:"** as a named constant (tree `CHANGE.md:210`), so the regroup and the report can count unsorted features (`research-adopt.md:71`).
 
-Left for the regroup: reading the repo, drafting the proposal, the placement review and Jake's checkpoint. Row reordering happens only as an approved mapping says; the default lift reorders nothing (`research-adopt.md:98`).
+Left for the regroup: reading the repo, drafting the proposal, the placement review and the owner's checkpoint. Row reordering happens only as an approved mapping says; the default lift reorders nothing (`research-adopt.md:98`).
 
 ## 5. Q4 — what must never happen, and the mechanical check for each
 
@@ -107,7 +107,7 @@ Left for the regroup: reading the repo, drafting the proposal, the placement rev
 - **It is wired to nana-pi:** its intro, the Part A boundary and the R-287–R-294 evidence titles (`prove.mjs:29-38,92`).
 - **Keep its standard.** The proof is independent of the writer, takes its baseline from git, and accounts every physical line, blank lines included (req-tree `CHANGE.md:199-217`). Writer and proof must not share placement code, or one bug passes both (INFERRED rule; mutation pairs decide).
 
-## 7. For the plan (seat calls, none is Jake's)
+## 7. For the plan (seat calls, none is the owner's)
 
 - **Rows (draft, eight at most):**
   - R-1162: the dry run prints the plan and the proof and writes nothing.

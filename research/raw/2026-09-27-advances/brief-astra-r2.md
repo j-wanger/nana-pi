@@ -6,8 +6,8 @@ Read: v2 first; then your own `astra-r1.md`; consult the five raw lane reports a
 
 Judge:
 1. For each r1 MUST-FIX (1–6): FIXED / PARTIAL / NOT FIXED, with the v2 line that shows it.
-2. Any NEW HIGH finding introduced by v2 (misstatement, unsafe contract, contradiction with a Jake rule or DOCTRINE). Do not re-litigate r1 SHOULD items unless v2 made one worse.
-3. Are the seven rulings answerable by Jake in one line each, and is anything on the list that the seat should decide itself?
+2. Any NEW HIGH finding introduced by v2 (misstatement, unsafe contract, contradiction with an owner rule or DOCTRINE). Do not re-litigate r1 SHOULD items unless v2 made one worse.
+3. Are the seven rulings answerable by the owner in one line each, and is anything on the list that the seat should decide itself?
 4. Is the tranche order and the blast-radius contract adequate as the landing contract for the code items?
 
 End with `SCORE: n/10`, a MUST-FIX list (empty if none), a SHOULD list, and `VERDICT: LAND` or `VERDICT: BLOCK`. Be brief: findings, not prose.

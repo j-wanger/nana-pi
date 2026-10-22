@@ -14,7 +14,7 @@ probe the skill-claim and readme checks. Ledger inputs are the copies in `plan-l
 5. VERIFIED: the no-tree line is at requirements-tree.mjs:416-418. The report reaches it through checkTree (product-report.mjs:16,205-207).
 6. VERIFIED: SKILL.md:128 names "a lift into the tree, with every row kept byte-identical" and gives no command.
 7. VERIFIED: tree CHANGE.md:26 says copier never rewrites a ledger (copier.yml:16 skips REQUIREMENTS.md). Tree residual 1 is at :224.
-8. VERIFIED: aml-desk has 365 rows and Parts A–F (# at 13/221/318/400/482/601). Its three headless fragments are 149–165, 520–525 and 529–532.
+8. VERIFIED: work-project has 365 rows and Parts A–F (# at 13/221/318/400/482/601). Its three headless fragments are 149–165, 520–525 and 529–532.
 9. VERIFIED: basketball-geek has 171 rows against 165 at HEAD, so 6 rows are uncommitted.
 10. VERIFIED: trading-zone has 197 rows. Part G runs 151–208, and seven product sections (## 5–11, 209–325) follow it.
 11. VERIFIED: yokai-world has 35 problems: 23 orphaned rows, 8 nesting, 4 Status (ledgers/yokai-world.tree.out).
@@ -36,18 +36,18 @@ probe the skill-claim and readme checks. Ledger inputs are the copies in `plan-l
 **§3.2 Mapping**
 22. VERIFIED: req-tree's mapping carries no row text (req-tree CHANGE.md:124-127). The split is `/\r?\n/` after the BOM strip (requirements-tree.mjs:61).
 23. VERIFIED: the example values match the trading-zone copy: 197 rows, head through 54, Part G at 151, G1 at 161 with G-001/016/002/003/017, Open questions at 363.
-24. VERIFIED: aml-desk has two `## 36b.` headings, at 484 and 570.
+24. VERIFIED: work-project has two `## 36b.` headings, at 484 and 570.
 25. VERIFIED: the reserved nodes are at requirements-general.md:13 (CAP-90), :18 (FEAT-900) and :31-86 (SUB-900–904). Heading and purpose lines carry no Jinja. R-1151 is at :877.
 
 **§3.3 Default mapping**
 26. VERIFIED: the flat test matches :442-444. A lone SUB still yields the no-tree line, so "no SUB heading" is needed. A near-miss heading replaces the line. See gap G1 on `n`.
-27. VERIFIED (ran hand-lift): basketball-geek-HEAD gives 1/9/0. trading-zone gives CAP-01 (FEAT-001–004), CAP-90 (FEAT-900, SUB-900–904), CAP-02 (FEAT-005–011). aml-desk gives 6/41/2 with 3 header pairs. All three pass the checker with 0 problems.
-28. VERIFIED: tree residual 11 is at CHANGE.md:234. aml-desk's Part F has R-600–R-610 and no G row (no G IDs in the copy).
+27. VERIFIED (ran hand-lift): basketball-geek-HEAD gives 1/9/0. trading-zone gives CAP-01 (FEAT-001–004), CAP-90 (FEAT-900, SUB-900–904), CAP-02 (FEAT-005–011). work-project gives 6/41/2 with 3 header pairs. All three pass the checker with 0 problems.
+28. VERIFIED: tree residual 11 is at CHANGE.md:234. work-project's Part F has R-600–R-610 and no G row (no G IDs in the copy).
 29. WRONG (minor): "SKILL.md:126 points at them" (both kept sections). It names `## Open questions` only. No skill names `## Deliberate omissions` (grep).
 
 **§3.4 Apply and layout**
 30. VERIFIED with a caveat: the segments and parsed.lines align by index for LF, CRLF+BOM, mixed endings and lone CR (ran). With a final newline, parsed.lines has one extra "".
-31. VERIFIED: parseLedger needs the byte-exact header (:68). aml-desk §36 has six prose paragraphs between its fragments (503/518/527/534/544/560).
+31. VERIFIED: parseLedger needs the byte-exact header (:68). work-project §36 has six prose paragraphs between its fragments (503/518/527/534/544/560).
 32. VERIFIED as cited: 49 headings rewritten, 147 lines inserted and 0 problems (research-ledgers.md:41). The hand run also gives 49 headings and 0 problems.
 
 **§3.5 Proof**
@@ -106,10 +106,10 @@ probe the skill-claim and readme checks. Ledger inputs are the copies in `plan-l
 - Fix: in a run with no `--mapping`, the proof also checks each leaf's rows in input file order (R-1165 "moves no line out of its section's order").
 
 ## Gaps (precision, not false claims)
-- G1. The flat test's `n` must be the raw row-line count. That count comes from a private function (requirements-tree.mjs:407-413), and the plan exports nothing else. The exported readRequirementRows gives aml-desk 338, not 365, so the deep-equal fails and the default refuses aml-desk (ran). Name `n`'s source.
+- G1. The flat test's `n` must be the raw row-line count. That count comes from a private function (requirements-tree.mjs:407-413), and the plan exports nothing else. The exported readRequirementRows gives work-project 338, not 365, so the deep-equal fails and the default refuses work-project (ran). Name `n`'s source.
 - G2. T6 omits a duplicated row, a renumbered ID, a row moved into a fence and a heading-ID collision. The proof catches each (item 34), so add them to T6.
 - G3. R-1167 names no refusal for invalid mapping JSON, a UTF-8 BOM on the mapping, or a wrong `lift` version. A BOM breaks JSON.parse, and Windows PowerShell 5.1's `-Encoding UTF8` writes one. It also names none for a ledger with a repeated row ID, where check 3's "the input's for that ID" is undefined.
-- G4. aml-desk has 19 padded delimiters (`| --- | --- | --- | --- |`) under exact headers. §3.4 does not say whether they are rewritten. If they are, "the default diff is heading rewrites plus inserted lines" is false for aml-desk.
+- G4. work-project has 19 padded delimiters (`| --- | --- | --- | --- |`) under exact headers. §3.4 does not say whether they are rewritten. If they are, "the default diff is heading rewrites plus inserted lines" is false for work-project.
 - G5. The tree corpus guard (acceptance.mjs:475, "R-1162 to R-1169 are unused") reds if rerun. It is outside the suite, so it is harmless. The mutation table skips #9.
 - G6. INFERRED: the FEAT-028 and FEAT-032 assessments carry a `stamp`, so the new rows probably mark them out of date in the product report. The stamp's meaning was not read.
 - G7. Ran: a staged edit reverted in the worktree passes `diff --quiet HEAD`. A commit by path overwrites it, so it is harmless.

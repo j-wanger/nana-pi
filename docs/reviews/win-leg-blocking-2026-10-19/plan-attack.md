@@ -1,6 +1,6 @@
 # win-leg-blocking — the adversary's verdict (AMEND), 2026-10-19
 
-AMEND. The design holds and the lane is worth building: Jake ruled on W8 on 10-17 and none of it exists on main yet. The four row texts stay the same. I amended five things, and probes back each one.
+AMEND. The design holds and the lane is worth building: the owner ruled on W8 on 10-17 and none of it exists on main yet. The four row texts stay the same. I amended five things, and probes back each one.
 
 Probes, all in a temp folder; no repository was touched:
 - Main's runner, forced to win32 with an `--import` preload, ran trap files at the desk app-listener and bench usage paths and printed FAIL for both. So R-1380 is red today.
@@ -14,7 +14,7 @@ Amendments:
 4. The hidden check count is about 285, not 280. The plan's sum left out pi-resolution (4) and pi-rpc-contract (1).
 5. Brief details: wire through the existing `skipReason` so the SKIP tally and coverage record stay one branch. Name markers by the full path, not the basename. Pass the preload in argv, never NODE_OPTIONS.
 
-Kept: the gate class (Jake's 10-17 ruling), the per-file list over a whole-app skip (it keeps live-feel and nine bench files running on Windows), the config module's location (same as runtime-map-config.mjs), and the CI flip as a follow-up lane.
+Kept: the gate class (Owner's 10-17 ruling), the per-file list over a whole-app skip (it keeps live-feel and nine bench files running on Windows), the config module's location (same as runtime-map-config.mjs), and the CI flip as a follow-up lane.
 
 Files the build touches: packages/nana-pack/lib/windows-skips-config.mjs (new), scripts/test.mjs, packages/nana-pack/tests/test-runner.test.mjs, packages/nana-pack/tests/runtime-map.test.mjs (MM2 and MM9 fixture copies), packages/nana-pack/tests/requirements-tree.test.mjs, REQUIREMENTS.md, docs/requirements-tree.md (missing from the plan), docs/code-map.md, README.md, apps/desk/README.md, apps/bench/README.md, docs/reviews/win-leg-blocking-2026-10-19/ (must-meet.md, build-brief-1.md, macos-baseline.txt). The seat also edits HANDOFF.md and a session entry before the final round.
 
@@ -26,7 +26,7 @@ Conflicts, checked against each branch's diff from main:
 
 Claim most likely wrong: that the forced-linux R-1381 run passes on a real Windows host. With posix forced true, the runner spawns children with `detached: true` there. I reasoned that through but could not run it, and only the Windows leg will show it. If it fails for a reason outside the list logic, the fallback is the plan's original skip, with that reason named.
 
-Relayed user request (turn off land verification and confirmation hooks in power mode): it is outside this read-only planning task, and I changed no hook, setting or land check. Project memory says the seat answered it on 10-19: no hook asks Jake anything, and the seat kept nana-land's reviewer-ledger check. The seat owns any follow-up if Jake insists.
+Relayed user request (turn off land verification and confirmation hooks in power mode): it is outside this read-only planning task, and I changed no hook, setting or land check. Project memory says the seat answered it on 10-19: no hook asks the owner anything, and the seat kept nana-land's reviewer-ledger check. The seat owns any follow-up if the owner insists.
 
 Drafts are saved in <seat-scratch>/win-leg-blocking-adversary/ (mm.md, brief.md). Before the final copy, the brief's step-3 expression was edited in the output above to use `rel(file)`.
 

@@ -1,6 +1,6 @@
 # Review brief — nana code desk, 2026-09-16 UX batch (branch feat/desk-2026-09-16, base main d6c53e0)
 
-You are the independent code reviewer for a land onto `main` of `/Users/jwang/nana-pi`. Three Opus-authored lanes were merged plus one test fix. Read the diffs and the files named below; do not edit anything.
+You are the independent code reviewer for a land onto `main` of `/Users/example/nana-pi`. Three Opus-authored lanes were merged plus one test fix. Read the diffs and the files named below; do not edit anything.
 
 ## What changed and why (user-felt gaps named by the owner after dogfooding)
 1. **Activity line** above the composer while a turn runs (spinner + verb derived from RPC events + elapsed). `apps/desk/public/app.js`, `desk-client.mjs` (`activityVerb`/`toolActivity`), `index.html`, `styles.css`.
@@ -13,9 +13,9 @@ You are the independent code reviewer for a land onto `main` of `/Users/jwang/na
 ## Read (in this order)
 - `unit.diff` — everything except tests
 - `tests.diff` — the tests
-- `/Users/jwang/nana-pi/apps/desk/changes.mjs`, `/Users/jwang/nana-pi/apps/desk/public/changes.js` (whole files, new)
-- `/Users/jwang/nana-pi/apps/desk/README.md` sections "What it does", "Contract notes (page races)", "Known limits" — the contract the page must keep
-- `/Users/jwang/nana-pi/apps/desk/public/app.js` around `handleEvent`, `resync`, `send`, `clearStage`, `runReload`, `checkResources` (grep for them)
+- `/Users/example/nana-pi/apps/desk/changes.mjs`, `/Users/example/nana-pi/apps/desk/public/changes.js` (whole files, new)
+- `/Users/example/nana-pi/apps/desk/README.md` sections "What it does", "Contract notes (page races)", "Known limits" — the contract the page must keep
+- `/Users/example/nana-pi/apps/desk/public/app.js` around `handleEvent`, `resync`, `send`, `clearStage`, `runReload`, `checkResources` (grep for them)
 
 ## Dimensions (answer each with PASS or FINDING(severity: BLOCK|HIGH|MED|LOW) + file:line + one-paragraph reason)
 A. **Stage-generation rule** — every new async continuation (activity timer, thinking card, changes fetches, reload/resources checks, focus handlers) drops its effect when the stage changed. Name any that can paint or toast into the wrong session.

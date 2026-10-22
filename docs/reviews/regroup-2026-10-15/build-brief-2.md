@@ -22,7 +22,7 @@ cited rows read as text-placed. Item 1 replaces that clarification.
    verdict, are refused by the shape check with a named path before anything reads them (`requirements-regroup.mjs:162`,
    `:167`, `:174`), and a failed run still removes an earlier page. Tests under R-1177's and R-1171's titles.
 4. **Strict line numbers (R-1173).** A reason's or claim's `line` must be an integer; `"37"` is refused, named.
-5. **The short packet Jake ruled (R-1178, R-1179).** Today the packet shows no node label, drops the old heading text
+5. **The short packet the owner ruled (R-1178, R-1179).** Today the packet shows no node label, drops the old heading text
    from reported lines, has no refuted-items section and lists nodes flat. Make it the precedent's short form: every
    capability, feature and subgroup with its ID, label and purpose, nested; each reported line with its old line number,
    old heading text and new node; a refuted-items section with each refuted (row, target) and its reason; numbered

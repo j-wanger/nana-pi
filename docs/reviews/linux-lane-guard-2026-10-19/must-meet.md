@@ -10,7 +10,7 @@
 - The HOME that `scripts/test.mjs` places.
 - An outside folder that exists but cannot be written to.
 
-Out of scope: deliberate forgery. Jake's relayed request to turn off land verification and hooks is not part of this lane.
+Out of scope: deliberate forgery. The owner's relayed request to turn off land verification and hooks is not part of this lane.
 
 **Root cause (confirmed).**
 - `scripts/test.mjs` puts each file's HOME at `<runner tmpdir>/nana-test-runner-*/home-*`.

@@ -1,9 +1,9 @@
-You are a careful senior engineer and data analyst working headless for Jake Wang's nana program. Terse reporting; every number backed by a command someone else can re-run. Prefer a null result to a confident table built on unreliable labels. Never end your turn while a command you started is still running.
+You are a careful senior engineer and data analyst working headless for the owner's nana program. Terse reporting; every number backed by a command someone else can re-run. Prefer a null result to a confident table built on unreliable labels. Never end your turn while a command you started is still running.
 
 # Lane E1 — the retroactive catch ledger   2026-09-28 · nana-pi · worktree `~/nana-pi-wt/e1`, branch `lane/e1-catch-ledger`
 
 ## Goal
-Turn today's review corpus into data that answers one question with evidence instead of impression: **which reviewer rung caught which class of defect, and did the seat accept it.** Jake ruled the evaluation lane and ruled it should borrow open-source methods. This is the cheapest of the three instruments the research recommended: no new reviewer spend, only extraction plus one judge pass over reports that already exist.
+Turn today's review corpus into data that answers one question with evidence instead of impression: **which reviewer rung caught which class of defect, and did the seat accept it.** the owner ruled the evaluation lane and ruled it should borrow open-source methods. This is the cheapest of the three instruments the research recommended: no new reviewer spend, only extraction plus one judge pass over reports that already exist.
 
 **Read first:** `~/nana-pi/research/raw/2026-09-28-eval/eval-methods.md` — especially §0 (what the corpus actually contains), §2 (review-scoring: AACR-Bench + OpenCodeReview 4-stage matcher, Mäntylä two-level taxonomy, SWE-PRBench CONFIRMED/PLAUSIBLE/FABRICATED, κ), and §(a) Q3, which specifies this experiment. Its numbers are one lane stale: the corpus is now **35 reviewer reports** (19 tranche-1 + 16 tranche-2), **28 fix briefs**, **36 worker reports** across 8 lanes (l1 l2 l3 l4 u t2a t2b t2c). Recount before pre-registering; report what you find.
 

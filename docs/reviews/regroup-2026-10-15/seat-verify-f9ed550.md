@@ -1,10 +1,10 @@
 # Seat's checks of build 1 (2026-10-16, at f9ed550)
 
-MUST 1. R-1176 is wrong on basketball-geek. The checker reads evidence paths only inside backticks (brief item 2), but the trace rail splits plain cells on commas, and all 145 of basketball-geek's cited rows use that plain form. A correct proposal with 20 placed reasons is refused ("R-001 is text-placed … but has no placed reason … and 105 more"). The packet then lists all 165 rows as placed by text alone. Repro: `node /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/regroup-mutate-verify/bg-placed.mjs`. It only checks which paths exist in `~/basketball-geek`; the ledger comes from the cache copy.
+MUST 1. R-1176 is wrong on basketball-geek. The checker reads evidence paths only inside backticks (brief item 2), but the trace rail splits plain cells on commas, and all 145 of basketball-geek's cited rows use that plain form. A correct proposal with 20 placed reasons is refused ("R-001 is text-placed … but has no placed reason … and 105 more"). The packet then lists all 165 rows as placed by text alone. Repro: `node /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/regroup-mutate-verify/bg-placed.mjs`. It only checks which paths exist in `~/basketball-geek`; the ledger comes from the cache copy.
 MUST 2. Writing `--out` over an input passes on macOS when the path differs only in case, or is a hard link. `--out <root>/requirements.md` exits 0 and overwrites the ledger with the page. `--out …/PROPOSAL.json` or a hard link to the proposal overwrites the proposal, which is not yet committed. The cause is that `nearestRealPath` and `realpathSync` keep the case as typed. Comparing `statSync` device and inode for an existing path would fix it. Repro: `t2.mjs` (c), (d), (e) in the scratch folder.
 MUST 3. An honest shape slip crashes the run and leaves the earlier page in place, against R-1171 and the module's "never a crash" contract. Triggers: `targets` written as one object, `about` as one object, `reasons` as an object keyed by line, or a `null` verdict. Each throws an uncaught TypeError at `requirements-regroup.mjs:162/167/174`. After a passing run, the `targets` crash left the earlier page at `--out`. Repro: `t2.mjs` (b) and `t1.mjs`.
 MUST 4. A reason whose `"line"` is the string `"37"` passes. The R-1173 check compares keys as text, but the page and the claim lookup compare numbers strictly. The result: the page prints "Line 37 -> FEAT-004 / Reason: " (blank), and the claim's quoted text is never compared, so a changed reason passes under an old accept. Repro: `t2.mjs` (a).
-MUST 5. The packet is not the "Short package" Jake ruled.
+MUST 5. The packet is not the "Short package" the owner ruled.
 - No node label appears anywhere: not in the table, the node list or the appendix. On basketball-geek the mechanical proposal passes and would write "CAP-01 · Not yet sorted", which the owner never sees.
 - Reported lines drop the old heading text.
 - No refuted-items section exists (§3.4 item 3), so the reason a target was refuted is never shown.
@@ -19,8 +19,8 @@ Notes:
 
 | Ledger | Words | Minutes | Budget | Note |
 |---|---|---|---|---|
-| aml-desk, project paths present | 6,739 | 28 | 45–60 | 196 rows text-placed; appendix adds 18,638 words |
-| aml-desk, bare copy | 10,625 | 45 | 45–60 | every row text-placed |
+| work-project, project paths present | 6,739 | 28 | 45–60 | 196 rows text-placed; appendix adds 18,638 words |
+| work-project, bare copy | 10,625 | 45 | 45–60 | every row text-placed |
 | basketball-geek | 4,292 | 18 | 20–30 | 3,797 words are the misclassified list from MUST 1 |
 | basketball-geek, rail's evidence form | about 960 | 4 | 20–30 | estimated, not run |
 
@@ -32,9 +32,9 @@ Notes:
   - lineage names differing only in case, also read as another lineage
   - a "carried" outcome counted for a move, though R-1175 says share only (unreachable until `regroup-shares` lands)
 - `--out` naming a directory crashes. The same-family header omits the lineage name.
-- The skill paragraph names no proposal field. It also opens "Regroup the lifted tree", although S7 and the aml-desk run start from a flat ledger.
+- The skill paragraph names no proposal field. It also opens "Regroup the lifted tree", although S7 and the work-project run start from a flat ledger.
 
-Scripts are in `/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/regroup-mutate-verify/`: `fuzz.mjs`, `mut.mjs`, `mut2.mjs`, `packet.mjs`, `t1.mjs`, `t2.mjs`, `bg-placed.mjs`. The packets are under `packet/`.
+Scripts are in `/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/regroup-mutate-verify/`: `fuzz.mjs`, `mut.mjs`, `mut2.mjs`, `packet.mjs`, `t1.mjs`, `t2.mjs`, `bg-placed.mjs`. The packets are under `packet/`.
 
 ---
 
@@ -95,7 +95,7 @@ Code that contradicts a row or the brief (all in `scripts/requirements-regroup.m
 - **:255-258** accept `same_family: true` when the two lineages differ (exit 0, and the page says "another lineage"). This contradicts clarification 1.
 - **:380-381** print only "same-family review" and omit the lineage names. That is my reading of R-1178, which asks for the lineages; it is not confirmed.
 
-Files are in `/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/regroup-mutate/`:
+Files are in `/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/regroup-mutate/`:
 - `seat-mutate.mjs`
 - `seat-mutate-output.txt`
 - `seat-mutate-dry.txt`

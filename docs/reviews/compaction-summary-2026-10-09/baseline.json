@@ -12,7 +12,7 @@
   "eligibleStartsOver10Min": [
     {
       "ts": "2026-10-04T07:08:23.645Z",
-      "cwd": "/Users/jwang/nana-pi",
+      "cwd": "/Users/example/nana-pi",
       "min": 20
     }
   ],

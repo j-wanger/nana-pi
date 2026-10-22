@@ -20,8 +20,8 @@
    - Exec form would remove R-1052's refusal and the profile-output residual.
    - It would remove the shell-flags and PowerShell-stdin residuals.
    - It would remove `CLAUDE_CODE_SHELL_PREFIX` wrapping. Per https://code.claude.com/docs/en/env-vars: "PowerShell hooks and exec-form hooks run without the prefix."
-   - Only reason 1, the entry-shape change, survives. That trade is Jake's call; the plan should not decide it on false grounds.
-3. **The `"never fires there"` quote is about a different machine.** At hooks#powershell it follows the bullet "On Windows without Git Bash … Claude Code doesn't register the Bash tool at all." Jake has Git Bash, where "The Bash tool remains available". So "rarely fires on Jake's machine" is INFERRED and should say so. The `Bash|PowerShell` matcher is still right.
+   - Only reason 1, the entry-shape change, survives. That trade is the owner's call; the plan should not decide it on false grounds.
+3. **The `"never fires there"` quote is about a different machine.** At hooks#powershell it follows the bullet "On Windows without Git Bash … Claude Code doesn't register the Bash tool at all." The owner has Git Bash, where "The Bash tool remains available". So "rarely fires on the owner's machine" is INFERRED and should say so. The `Bash|PowerShell` matcher is still right.
 4. **Bash deny rules are missing from the plan.** From tools-reference#bash-deny-rules-also-turn-off-the-powershell-tool: "On Windows with Git Bash installed, denying Bash also turns the PowerShell tool off for the session. This applies to scoped rules such as `Bash(git push *)`." `CLAUDE_CODE_USE_POWERSHELL_TOOL=0` does the same. So the machine check's "raises an ask through the PowerShell tool" may legitimately arrive as `Bash`. The check should record `tool_name`, not expect PowerShell.
 5. **cmd.exe and `%` have no documented basis.** The hook shell is bash or powershell, and the v2.1.47 changelog says "Fixed hooks … silently failing to execute on Windows by using Git Bash instead of cmd.exe". The `%` refusal and R-1058's cmd.exe cases rest only on cmd.exe. The one cmd.exe path in the docs is `CLAUDE_CODE_DISABLE_WINDOWS_SHELL_LAUNCHER`, which is documented for "PowerShell tool commands" only, not hooks. Either drop `%` and the cmd.exe cases, or keep them as a declared, undocumented guess.
 6. **Wrong citation for double quotes.** hooks#reference-scripts-by-path says "wrap each placeholder in double quotes", which is about placeholders. The plan's literal absolute path is covered by hooks#security-best-practices: "Use absolute paths … In shell form, wrap it in double quotes."
@@ -35,13 +35,13 @@
 14. **The installer ignores `CLAUDE_CONFIG_DIR`.** This was already true and is not specific to Windows. `lib/paths.mjs:39-40` uses `os.homedir()/.claude`, while `claude/hooks/nana-shared-memory.mjs:32` honours `CLAUDE_CONFIG_DIR`. https://code.claude.com/docs/en/settings says that with `CLAUDE_CONFIG_DIR` set, "Claude Code then stores your settings … there instead." If it is set on Windows, install writes a `settings.json` that Claude Code never reads.
 
 ## Design steps that rely on undocumented behaviour, with no real-Claude-Code test on Windows
-- **The PowerShell hook-shell path.** When Git Bash is absent, the plan only ever runs it under a CI emulation with guessed flags. Jake's machine has Git Bash, so real Claude Code never exercises it anywhere in the plan.
+- **The PowerShell hook-shell path.** When Git Bash is absent, the plan only ever runs it under a CI emulation with guessed flags. The owner's machine has Git Bash, so real Claude Code never exercises it anywhere in the plan.
 - **How Claude Code launches Git Bash.** Which `bash.exe` (`Git\bin` or `Git\usr\bin`), login or not, and its flags are undocumented. The harness's `bash.exe -c` may differ in PATH, profile sourcing and cwd.
 - **Stdin through PowerShell to a native `node`.** Only the emulated harness tests this.
 - **The cmd.exe cases.** They test a shell the docs say is not used, so a green result proves nothing about Claude Code.
 - **R-1057's doctor check.** `spawnSync("node")` resolves from the terminal's PATH, not the hook shell's. A ✓ does not prove the hook finds the same `node`.
 
-## Facts only Jake's machine can establish
+## Facts only the owner's machine can establish
 1. The `claude --version` output, checked against the floors 2.1.47, 2.1.126, 2.1.139 (exec form) and 2.1.296 (debug duration lines).
 2. The account type, plus `CLAUDE_CODE_USE_POWERSHELL_TOOL` and any Bash deny rule. Together these decide whether the PowerShell tool is on and which `tool_name` the verifier sees. Changelog 2.1.143 says it is on by default for Bedrock, Vertex and Foundry; current docs say those need `=1`. The two conflict.
 3. The exact Git Bash invocation and environment for hooks: the `bash.exe` path and flags, whether it is a login shell, and `CLAUDE_CODE_GIT_BASH_PATH`. A throwaway hook printing `cat /proc/$$/cmdline`, `$-`, `$PWD` and `$PATH` would settle it.
@@ -52,4 +52,4 @@
 8. Hook latency against the 5 s timeout, including antivirus first-run scanning.
 9. That the test project has passed the workspace trust dialog. From hooks#workspace-trust: "Claude Code holds back hooks from every settings file, including your own `~/.claude/settings.json`, until you accept the workspace trust dialog." Without it, the machine check fails for an unrelated reason.
 
-I broke the read-only instruction once. I saved eight downloaded doc pages under `/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/` (hooks.md, hooks-guide.md, tools-reference.md, statusline.md, settings.md, env-vars.md, setup.md, terminal-config.md). I left them there, since deleting them would also break the instruction. Nothing in the repo was touched.
+I broke the read-only instruction once. I saved eight downloaded doc pages under `/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/` (hooks.md, hooks-guide.md, tools-reference.md, statusline.md, settings.md, env-vars.md, setup.md, terminal-config.md). I left them there, since deleting them would also break the instruction. Nothing in the repo was touched.

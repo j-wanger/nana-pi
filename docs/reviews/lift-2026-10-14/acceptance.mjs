@@ -7,7 +7,7 @@
 // repo; never a project), each pinned by its SHA-256 below, and copied again into this run's scratch folder before any run.
 // A missing or changed copy reds its harness case by name and skips (d), (v) and (w).
 // (a) seat-titles 1 prints `seat-titles 1: 0 missing`.
-// (d) dry runs on copies of the real ledgers (R-1162, §5): aml-desk → 6 capabilities, 41 features, 2 subgroups, 3
+// (d) dry runs on copies of the real ledgers (R-1162, §5): work-desk → 6 capabilities, 41 features, 2 subgroups, 3
 //     header pairs, proof clean; basketball-geek's HEAD copy → 1/9/0; trading-zone → CAP-01, CAP-90, CAP-02 with
 //     FEAT-005–FEAT-011 under CAP-02 and 0 checker problems; yokai-world refused naming its tree-heading count; a
 //     prose-only ledger refused for no rows. Every plan line carries its heading's row count, read from the written
@@ -64,7 +64,7 @@ if (!fs.existsSync(path.join(LANE_DIR, "CHANGE.md")) || !fs.existsSync(path.join
 const LEDGERS = process.env.LIFT_LEDGERS ?? path.join(os.homedir(), ".cache", "nana-lift-ledgers");
 // Measured 2026-10-14 (shasum -a 256 on plan-lift/ledgers/<name>/REQUIREMENTS.md, equal on the ~/.cache copies).
 const LEDGER_SHA256 = {
-	"aml-desk": "63af2a19f0499aac58e770e2e1fdb68cc71856c1d8e5446926013804b26a5e86",
+	"work-desk": "63af2a19f0499aac58e770e2e1fdb68cc71856c1d8e5446926013804b26a5e86",
 	"basketball-geek": "133d715bfea77ff7f9f19cc1e572261b8c739cb9d75570d44ed3810d476b6564",
 	"basketball-geek-HEAD": "775f126a3848f62b382029534a99e80da46e0455092ab4046361721286f83683",
 	"trading-zone": "a7db29abcc1ec32356a8a664f0ed38c37683a5358b413b5245829d414c2581da",
@@ -285,14 +285,14 @@ try {
 	out("(harness) git merge-base main HEAD resolves", /^[0-9a-f]{40}$/.test(base), true, base);
 	out("(harness) the scratch folder is outside the checkout", path.relative(fs.realpathSync(root), scratch).startsWith(".."), true, scratch);
 	// The seat's copies, copied again into this run's scratch before any run (never a project's file).
-	const SRC = { aml: "aml-desk", bg: "basketball-geek", bgHead: "basketball-geek-HEAD", tz: "trading-zone", yokai: "yokai-world", prose: "nanaclaw" };
+	const SRC = { work: "work-desk", bg: "basketball-geek", bgHead: "basketball-geek-HEAD", tz: "trading-zone", yokai: "yokai-world", prose: "nanaclaw" };
 	const L = {};
 	for (const [k, d] of Object.entries(SRC)) L[k] = readBuf(path.join(LEDGERS, d, "REQUIREMENTS.md"));
 	const pinMisses = Object.entries(SRC).map(([k, d]) => (L[k] === null ? `${d}: missing` : sha(L[k]) !== LEDGER_SHA256[d] ? `${d}: changed (sha256 ${sha(L[k]).slice(0, 12)})` : null)).filter(Boolean);
 	const ledgersOk = out(`(harness) the seat's six ledger copies under ${LEDGERS} exist and match their pinned SHA-256`, pinMisses, []);
 	const rowCount = (b) => segs(b).filter((s) => ROW.test(bare(s))).length;
-	out("(harness) the seat's ledger copies: aml-desk 365 rows, basketball-geek 171 (165 at HEAD), trading-zone 197, yokai-world a tree, the prose-only ledger no row (research-ledgers.md §1–§5)",
-		[rowCount(L.aml), rowCount(L.bg), rowCount(L.bgHead), rowCount(L.tz), readTree(L.yokai).headings.length > 0, L.prose ? rowCount(L.prose) : null], [365, 171, 165, 197, true, 0], LEDGERS);
+	out("(harness) the seat's ledger copies: work-desk 365 rows, basketball-geek 171 (165 at HEAD), trading-zone 197, yokai-world a tree, the prose-only ledger no row (research-ledgers.md §1–§5)",
+		[rowCount(L.work), rowCount(L.bg), rowCount(L.bgHead), rowCount(L.tz), readTree(L.yokai).headings.length > 0, L.prose ? rowCount(L.prose) : null], [365, 171, 165, 197, true, 0], LEDGERS);
 	const seedText = text("templates/_shared/requirements-general.md") ?? "";
 	const seed = readTree(seedText);
 	const seedSub = new Map(seed.rows.map((r) => [r.id, r.sub]));
@@ -354,18 +354,18 @@ try {
 		out(`(d) ${tag}: the tree checker passes the lifted ledger (R-1163)`, [ck.status, lines(ck.stdout)], [0, [`requirements tree: 0 problems; rows ${rowCount(bytes)}; features ${r.t.headings.filter((h) => h.level === 2).length}`]], own(ck.stderr).slice(0, 3).join(" | "));
 	};
 
-	// aml-desk → 6/41/2, 3 header pairs, proof clean (§5). Every section sits under a Part: no generated capability.
+	// work-desk → 6/41/2, 3 header pairs, proof clean (§5). Every section sits under a Part: no generated capability.
 	{
-		const old = oldHeadings(L.aml);
+		const old = oldHeadings(L.work);
 		const seq = expectSeq(old.sections.map((h) => ({ level: h.level, label: h.label })));
 		const nodes = seq.map(([id]) => id);
-		const r = runLedger("aml-desk", L.aml);
-		commonCases("aml-desk", L.aml, r, nodes);
+		const r = runLedger("work-desk", L.work);
+		commonCases("work-desk", L.work, r, nodes);
 		const kinds = (ids) => [ids.filter((x) => x.startsWith("CAP-")).length, ids.filter((x) => x.startsWith("FEAT-")).length, ids.filter((x) => x.startsWith("SUB-")).length];
-		out("(d) aml-desk: 6 capabilities, 41 features, 2 subgroups, in the dry run and in the written ledger (§5)", [kinds(idSet(r.dry.stdout)), kinds(r.t.headings.map((h) => h.id))], [[6, 41, 2], [6, 41, 2]]);
-		out("(d) aml-desk: each Part, ## and ### becomes a capability, feature and subgroup in file order with its old heading text as label and parent by level (R-1165 rule 2)", seqOf(r.t), seq);
+		out("(d) work-desk: 6 capabilities, 41 features, 2 subgroups, in the dry run and in the written ledger (§5)", [kinds(idSet(r.dry.stdout)), kinds(r.t.headings.map((h) => h.id))], [[6, 41, 2], [6, 41, 2]]);
+		out("(d) work-desk: each Part, ## and ### becomes a capability, feature and subgroup in file order with its old heading text as label and parent by level (R-1165 rule 2)", seqOf(r.t), seq);
 		const headers = (b) => segs(b ?? "").filter((s) => bare(s) === TABLE_HEADER).length;
-		out("(d) aml-desk: the three headless fragments each gain the exact table header: 3 header pairs inserted (§5, R-1165 §3.4)", headers(r.outBuf) - headers(L.aml), 3);
+		out("(d) work-desk: the three headless fragments each gain the exact table header: 3 header pairs inserted (§5, R-1165 §3.4)", headers(r.outBuf) - headers(L.work), 3);
 	}
 	// basketball-geek's HEAD copy → 1/9/0: one generated Not yet sorted capability over the nine sections (§5).
 	const bgOld = oldHeadings(L.bgHead);

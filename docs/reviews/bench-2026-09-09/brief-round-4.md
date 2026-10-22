@@ -1,6 +1,6 @@
 # Review brief — nana-pi apps/bench, astra GO/NO-GO (fourth look) at HEAD 79c8d1c
 
-Your third review (NO-GO) is at /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/review-astra-bench3.md. Every BLOCK and SHOULD was folded and committed as 79c8d1c (`git -C ~/nana-pi show --stat HEAD` and its message). Decide whether replicate 0 (44 runs + C registration probe) may start. Read-only; no model spend; never run run.mjs with --go/--smoke. Do not re-open accepted trade-offs.
+Your third review (NO-GO) is at /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/review-astra-bench3.md. Every BLOCK and SHOULD was folded and committed as 79c8d1c (`git -C ~/nana-pi show --stat HEAD` and its message). Decide whether replicate 0 (44 runs + C registration probe) may start. Read-only; no model spend; never run run.mjs with --go/--smoke. Do not re-open accepted trade-offs.
 
 ## Folds to verify (each was a BLOCK or SHOULD of yours)
 1. E: registrationProbe(pricer) explicit; evidence + ledger written BEFORE judgement; test/integration.test.mjs (33) drives probe + executeRun with a stub child (success / missing tool / nonzero / timeout / unspawnable / torn ledger tail / post-processing throw keeps measured tokens). readJsonl tail repair shared by results/ledger/keys; treeAlive kill confirmation incl. probes; streak restored on resume; budget rechecked after probes; child timeout capped by remaining wall.

@@ -3,7 +3,7 @@
 Review `git diff 0110601..HEAD` on `feat/pi-cmd-launch` (current `main`, `c505601`, is merged in; the
 main side of that merge is already reviewed — judge this lane's own changes). Threat model: honest
 variation in what a Windows machine has on PATH, in PATHEXT and in folder names is in scope; a hostile
-local user who plants files to subvert install is out (Jake, 2026-10-11). Lane class: small (no gate,
+local user who plants files to subvert install is out (Owner, 2026-10-11). Lane class: small (no gate,
 ledger or cross-repo format). Records: the plan (`CHANGE.md`; sol plan r1–r5, LAND 10/10 at r5, with
 two seat amendments from the first Windows run), three builds (`build-brief-1..3.md`, builder reports),
 the Windows CI runs on draft PR #2 (the last builder run: `win-command`, `pi-registration` and

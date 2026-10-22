@@ -18,8 +18,8 @@ Defect being fixed: the key lived only in the desk process for that child, so a 
 
 ## Read
 
-- Diff: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-stagekey.patch
-- Post-change tree (merged with two sibling lanes, buffers + client races): /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/stage-keys.mjs`, `apps/desk/server.mjs` (search `stageKeys`, `stageKeyForSpawn`, `noteStageSession`, `ledgerKeys`, `listSessions`), `apps/desk/apps.mjs` (`verifiedEntries`, `spawnForApp`, `/api/entries`), `packages/nana-stage/lib/sign.mjs`, `packages/nana-stage/extensions/nana-stage.ts`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/README.md` (Contract notes 2026-09-09 stage signing keys; Known limits), `docs/agent-frontend-design-2026-09-04.md` (2026-09-09 addendum near "Provenance is signed").
+- Diff: /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-stagekey.patch
+- Post-change tree (merged with two sibling lanes, buffers + client races): /private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int — `apps/desk/stage-keys.mjs`, `apps/desk/server.mjs` (search `stageKeys`, `stageKeyForSpawn`, `noteStageSession`, `ledgerKeys`, `listSessions`), `apps/desk/apps.mjs` (`verifiedEntries`, `spawnForApp`, `/api/entries`), `packages/nana-stage/lib/sign.mjs`, `packages/nana-stage/extensions/nana-stage.ts`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/README.md` (Contract notes 2026-09-09 stage signing keys; Known limits), `docs/agent-frontend-design-2026-09-04.md` (2026-09-09 addendum near "Provenance is signed").
 
 ## Dimensions
 

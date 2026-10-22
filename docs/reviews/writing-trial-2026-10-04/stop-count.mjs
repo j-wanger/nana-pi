@@ -12,7 +12,7 @@ import os from "node:os";
 const ext = await import(new URL("../../../packages/nana-pack/lib/writing-trial-extractor.mjs", import.meta.url).href);
 const root = process.argv[2] ?? path.join(os.homedir(), ".claude", "projects");
 const since = process.argv[3] ?? "2026-10-04T00:00:00Z";
-const RULE_TITLE = "# Nana — Writing for Jake";
+const RULE_TITLE = "# Nana — Writing for Owner";
 const RULE_ANCHOR = "Put the verdict in the first sentence. Use one of:";
 const textFrom = (v) => typeof v === "string" ? v : Array.isArray(v) ? v.map(textFrom).join("\n") : v && typeof v === "object" ? (typeof v.text === "string" ? v.text : Object.values(v).map(textFrom).join("\n")) : "";
 const words = (t) => t.trim().split(/\s+/u).filter(Boolean).length;

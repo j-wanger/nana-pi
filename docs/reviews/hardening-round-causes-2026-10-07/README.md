@@ -1,6 +1,6 @@
 # Why the hardening lanes bounced — every review finding by cause (2026-10-07)
 
-*Seat analysis for Jake's question "are we slow because luna as worker is not capable enough?". Six Claude classifiers read every sol/astra review, builder report, lane brief and the seat ledger for the 17 lanes of tranches 1-3; one adversarial checker re-read a 12-finding sample of builder-attributed findings (12/12 held). Raw entries: `findings.json` beside this file.*
+*Seat analysis for the owner's question "are we slow because luna as worker is not capable enough?". Six Claude classifiers read every sol/astra review, builder report, lane brief and the seat ledger for the 17 lanes of tranches 1-3; one adversarial checker re-read a 12-finding sample of builder-attributed findings (12/12 held). Raw entries: `findings.json` beside this file.*
 
 ## Totals
 
@@ -43,7 +43,7 @@ t1-flake round 3 was stopped by the seat after 54 min with no report. Its pi-wor
 
 The seat also shaped other t1-flake rounds. Brief-r3b prescribed reserve-then-close ports, which sol r3 flagged and the seat later replaced with port-0 listeners. Brief-r4 steered the narrowing of R-948/R-949. Sol r1's own suggested fix (marker-absence check) became astra r4's scheduling-race SHOULD.
 
-The standing brief rule 'invert the condition' plausibly invited the inverted-assertion mutations behind several WEAK_EVIDENCE findings. The seat added 'inverting the assertion does not count' only from brief r4/r5 onward. All files read are under /private/tmp/claude-501/-Users-jwang-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/.
+The standing brief rule 'invert the condition' plausibly invited the inverted-assertion mutations behind several WEAK_EVIDENCE findings. The seat added 'inverting the assertion does not count' only from brief r4/r5 onward. All files read are under /private/tmp/claude-501/-Users-example-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/.
 
 ---
 
@@ -74,7 +74,7 @@ Judgment calls:
 
 ---
 
-44 findings across 3 lanes (t1-session 13, t1-setup 13, t2-frontier 18). Skipped t1-session astra-r5 (no findings). Category totals: BUILDER_BUG 8, WEAK_EVIDENCE 8, SPEC_SEAT 7, BUILDER_PROCESS 6, EDGE_DEPTH 5, FIX_REGRESSION 4, DOC 4, BUILDER_JUDGMENT 2. Builder-attributable (BUG+JUDGMENT+PROCESS+WEAK_EVIDENCE+FIX_REGRESSION) = 28/44. Seat = 7, concentrated in t2-frontier (5 of 18): its brief asked for 'any past explicit date', two reviewer-only seat notes (frozen fixture, cue list) never reached the builder, the '20 findings' baseline was wrong, and the r3 entry definition caused the blank-line cases. t1-session's 2 seat items stem from the round-2 NANA_TEST_TEMP_ROOTS env-seam decision; t1-setup has none. WEAK_EVIDENCE dominates t1-session (5/13): luna marks rows implemented with tests that pass under the obvious wrong implementation, and its early mutation pairs only inverted assertions (seat flagged this in the t1-session land note). PARTIAL rounds: t1-session r1 (code committed with no tests, suite red, 15 files failing; a genuine builder stop), and t2-frontier r4 (caused by the seat's wrong 20-finding baseline, not builder capability). Numbering caveat: in t1-session, sol-r1 reviewed builder r2 because r1 was PARTIAL, so sol-rN is builder r(N+1) there. Judgment calls: astra-r4 t1-session (journaling after the startup filter) is BUILDER_BUG, though the seat resolved it by narrowing R-647. sol-r3 t2-frontier #3 is mixed (seat entry rule plus fence/nesting edges) and filed SPEC_SEAT. sol-r3 t2-frontier #2 was confirmed FIX_REGRESSION from git: r1 and r2 scanned every line, r3 scanned list items only. Files: /private/tmp/claude-501/-Users-jwang-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/{t1-session,t1-setup,t2-frontier}/ and PROGRAM.md.
+44 findings across 3 lanes (t1-session 13, t1-setup 13, t2-frontier 18). Skipped t1-session astra-r5 (no findings). Category totals: BUILDER_BUG 8, WEAK_EVIDENCE 8, SPEC_SEAT 7, BUILDER_PROCESS 6, EDGE_DEPTH 5, FIX_REGRESSION 4, DOC 4, BUILDER_JUDGMENT 2. Builder-attributable (BUG+JUDGMENT+PROCESS+WEAK_EVIDENCE+FIX_REGRESSION) = 28/44. Seat = 7, concentrated in t2-frontier (5 of 18): its brief asked for 'any past explicit date', two reviewer-only seat notes (frozen fixture, cue list) never reached the builder, the '20 findings' baseline was wrong, and the r3 entry definition caused the blank-line cases. t1-session's 2 seat items stem from the round-2 NANA_TEST_TEMP_ROOTS env-seam decision; t1-setup has none. WEAK_EVIDENCE dominates t1-session (5/13): luna marks rows implemented with tests that pass under the obvious wrong implementation, and its early mutation pairs only inverted assertions (seat flagged this in the t1-session land note). PARTIAL rounds: t1-session r1 (code committed with no tests, suite red, 15 files failing; a genuine builder stop), and t2-frontier r4 (caused by the seat's wrong 20-finding baseline, not builder capability). Numbering caveat: in t1-session, sol-r1 reviewed builder r2 because r1 was PARTIAL, so sol-rN is builder r(N+1) there. Judgment calls: astra-r4 t1-session (journaling after the startup filter) is BUILDER_BUG, though the seat resolved it by narrowing R-647. sol-r3 t2-frontier #3 is mixed (seat entry rule plus fence/nesting edges) and filed SPEC_SEAT. sol-r3 t2-frontier #2 was confirmed FIX_REGRESSION from git: r1 and r2 scanned every line, r3 scanned list items only. Files: /private/tmp/claude-501/-Users-example-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/{t1-session,t1-setup,t2-frontier}/ and PROGRAM.md.
 
 ---
 
@@ -100,7 +100,7 @@ Judgment calls:
 - astra-r4 #2 (t2-tests, Windows signal test) is classed EDGE_DEPTH, not FIX_REGRESSION, even though the test came from an earlier fix round.
 - sol-r3 #2 (t2-trial, no snapshot cutoff) is classed SPEC_SEAT, because the seat asked for counts '10-04 to today' with no cutoff. It could be argued as a builder miss of the recomputability goal.
 
-Sources: /private/tmp/claude-501/-Users-jwang-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/{t2-tests,t2-trial,t2-trust}/ and PROGRAM.md.
+Sources: /private/tmp/claude-501/-Users-example-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/{t2-tests,t2-trial,t2-trust}/ and PROGRAM.md.
 
 ---
 
@@ -116,7 +116,7 @@ Git verification (read-only): the git-alias bypass in sol r2 #2 is pre-existing 
 
 EDGE_DEPTH findings: astra r5 and r6 (basename and spaced-path literal forms) are uncommon and inherited from main's extraction. The seat's r7 ruling stopped chasing that class.
 
-Files: /private/tmp/claude-501/-Users-jwang-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/t1-gate/ and /private/tmp/claude-501/-Users-jwang-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/PROGRAM.md
+Files: /private/tmp/claude-501/-Users-example-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/t1-gate/ and /private/tmp/claude-501/-Users-example-nana-pi/22c1a4e3-0e2c-4238-8e73-91597ba9630f/scratchpad/prog/PROGRAM.md
 
 ---
 

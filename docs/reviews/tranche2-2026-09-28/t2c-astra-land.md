@@ -5,7 +5,7 @@ Read the corpus in order, then the patch, implementation, tests, declarations an
 ### A — Contract substantially implemented, not satisfied
 - Affirmative-only, nearest-record semantics, decline precedence, umbrella exemption and unusable-store labelling are implemented. Resources and live auto-trust cannot clear the label.
 - One producer preserves extraction, sanitization, unconditional walk-up and precedence. Golden tests compare both adapters without concealing newline differences.
-- README honestly records Jake’s label-only decision and residual semantic injection. I do **not** substitute trust-gating.
+- README honestly records the owner's label-only decision and residual semantic injection. I do **not** substitute trust-gating.
 - Universal parity is unproved: the relative-override test exercises only the predicate; foreign ownership is mocked in-process. Actual-host rendering, Windows, ACLs and read-only volumes remain unverified.
 
 ### B — The remediation is still not universally true
@@ -23,7 +23,7 @@ The `statSync`/ENOENT walk in `writeProblem()` reaches a writable ancestor and e
 - **Staleness:** README acknowledges it, but emitted removal advice does not tell the owner to recheck or back up. Removing a subsequently repaired store loses decisions, including declines.
 
 ### C — Harm and default
-Labelling `~/aml-desk`, `~/the-hive` and other unconfirmed repos is the correct default under Jake’s ruling. “Could not confirm” appropriately avoids claiming maliciousness or absence of an owner decision.
+Labelling `~/work-desk`, `~/the-hive` and other unconfirmed repos is the correct default under the owner's ruling. “Could not confirm” appropriately avoids claiming maliciousness or absence of an owner decision.
 The DATA wording is understandable independently; its tension with “governing” is the accepted residual, not a new blocker. However, `/trust` also enables project resources—it is not merely dismissing a provenance warning.
 
 ### D — Seat conduct

@@ -42,7 +42,7 @@ The same gap permits deleting a feature after moving its rows, renaming every he
 
 The corpus wildcard also permits the builder to modify the approved outline, declaration, and tree during the build.
 
-This contradicts checkpoint 1, where Jake agrees names and grouping before the build.
+This contradicts checkpoint 1, where the owner agrees names and grouping before the build.
 
 **Smallest fix:** Pin the approved heading IDs, labels, non-empty purposes, parent relationships, and row memberships against an immutable manifest. Freeze the checkpoint inputs after approval. Any intentional regrouping should require a manifest and requirement diff.
 

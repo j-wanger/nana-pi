@@ -16,7 +16,7 @@ Suite summary: `133 files: 132 PASS, 0 FAIL, 1 SKIP · checks: 6657 pass, 0 fail
 
 Scope: `git diff --stat 43fb35f..HEAD` reports 20 files, 268 insertions and 53 deletions. Worktree clean.
 
-Not done: no share was applied; the share ruling remains Jake’s. No follow-up rails in aml-desk or basketball-geek were changed, and no external review or template release tag was completed.
+Not done: no share was applied; the share ruling remains the owner's. No follow-up rails in work-project or basketball-geek were changed, and no external review or template release tag was completed.
 
 Most likely wrong: the checked local ledgers’ candidate lines may not represent every downstream project ledger.
 

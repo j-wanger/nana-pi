@@ -1,6 +1,6 @@
 # Adversarial review, ROUND 2 — UI-centric frontend slice 2 (the edge desk)
 
-You reviewed this build in round 1 (your findings: `/Users/jwang/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-r1.md`; the original brief with all dimensions and file list: `/Users/jwang/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-brief.md`). Verdict was REWORK. The author claims every MAJOR is fixed. Verify each against the CODE, not the claim. Then re-run your own adversarial pass on the changed surfaces.
+You reviewed this build in round 1 (your findings: `/Users/example/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-r1.md`; the original brief with all dimensions and file list: `/Users/example/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-brief.md`). Verdict was REWORK. The author claims every MAJOR is fixed. Verify each against the CODE, not the claim. Then re-run your own adversarial pass on the changed surfaces.
 
 ## What the author changed (commits nana-pi 0dd1590, edge-screener 1ad8a11)
 
@@ -17,4 +17,4 @@ You reviewed this build in round 1 (your findings: `/Users/jwang/nana-pi/docs/re
 - Then attack the new code: the readiness protocol (can `toolsState` default to `ready` in production before nana-stage's `waiting` lands? what does `pi.getActiveTools()` return for adapter direct tools before/after hot-load? can a 409 on prompt strand the page?), the Sec-Fetch-Site rule (browsers that omit it; `no-cors` fetches; navigations), the `isIsoDate` round-trip (timezones, `2024-02-29`), the total-point cap arithmetic against `MAX_BLOCK_BYTES`, the new e2e's assumptions.
 - Output: `## Round-1 findings` table (finding → status → evidence), `## New findings` with `[BLOCKER|MAJOR|MINOR] file:line — what — why — fix`, then `VERDICT: LAND | REWORK` and one paragraph.
 
-Files: everything in the original brief's list plus `/Users/jwang/nana-pi/apps/desk/test/stage-page-edge.e2e.mjs`, `/Users/jwang/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-r1.md`, and §11.7 of the design doc.
+Files: everything in the original brief's list plus `/Users/example/nana-pi/apps/desk/test/stage-page-edge.e2e.mjs`, `/Users/example/nana-pi/docs/reviews/agent-frontend-2026-09-04/edge-r1.md`, and §11.7 of the design doc.

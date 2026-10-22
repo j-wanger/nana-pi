@@ -3,13 +3,13 @@
 You are ruling whether this merges and what it changes upstream. Worktree `~/nana-pi-wt/l5`, branch
 `lane/l5-directory-adoption`, HEAD `0f9db33`, base `main` `eca3de4`. `git diff eca3de4..HEAD`.
 
-Read in order: `docs/directory-adoption-design-2026-09-28.md` (the design and Jake's rulings) ·
+Read in order: `docs/directory-adoption-design-2026-09-28.md` (the design and the owner's rulings) ·
 `docs/reviews/l5-2026-09-29/l5-brief.md` (the contract) · `l5-worker-r1.md` · `l5-sol-r1.md` ·
 `l5-fix-brief.md` · `l5-worker-r2.md` · `l5-sol-r2.md`. Commits `2f0b6e4` and `0f9db33` are the
 SEAT's, not a worker's.
 
 ## What it is
-Jake ruled: *"A directory with no handoff should be reported to seat, and have seat assign an
+The owner ruled: *"A directory with no handoff should be reported to seat, and have seat assign an
 objective and start accumulating directory-level knowledge."* Then: repository roots only ·
 dismissal is a marker file in the repo · an `OBJECTIVE.md` ends the reporting.
 
@@ -48,7 +48,7 @@ records a decision that travels with the repo. **Nothing reaches any session's p
 5. **The seat implemented the last three MUSTs directly** rather than buying a fourth worker round.
 
 ## Also rule
-- **Does this actually do what Jake asked?** He asked that an unadopted directory be reported so the
+- **Does this actually do what the owner asked?** He asked that an unadopted directory be reported so the
   seat can assign an objective and start accumulating directory-level knowledge. The lane delivers
   the report and the dismissal. Say plainly whether the loop is closed or whether it stops one step
   short, and if so what the missing step is.

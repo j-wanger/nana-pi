@@ -1,14 +1,14 @@
 # Change declaration — four-digit requirement IDs
 
 *Lane `req-ids` · branch `feat/req-ids` · worktree `~/nana-pi-wt/req-ids` · based on `feat/req-tree`
-at `c4332ec` (the requirements tree: reviewed, waiting for Jake's acceptance; this lane lands after
+at `c4332ec` (the requirements tree: reviewed, waiting for the owner's acceptance; this lane lands after
 it) · 2026-10-10. Feature: **FEAT-028 · Maintain requirement identity and trace links** (CAP-07).
 Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`; r1–r3 adjudicated in `sol-plan-r1-response.md`, `sol-plan-r2-response.md` and `sol-plan-r3-response.md`) → build (pi luna) → seat
-verification → sol build review (item `req-ids`) → astra land review → Jake accepts.*
+verification → sol build review (item `req-ids`) → astra land review → the owner accepts.*
 
 ## 1. Why
 
-Jake, 2026-10-10: "ok lets first update the requirements id range to be 4 digits."
+The owner, 2026-10-10: "ok lets first update the requirements id range to be 4 digits."
 
 The trace rail reads exactly three digits (`[RG]-\d{3}`), in rows and in `req:` markers, in both
 project templates. nana-pi has five usable three-digit R IDs left (R-295–R-299; R-241 is reserved and R-373–R-375 are tombstones). The
@@ -46,7 +46,7 @@ closing pipe, so CRLF ledgers read. A marker's ID list splits on runs of that wh
 commas. The rule is context-free, like the rail's row reading today: a candidate
 inside a fenced example or in an unrelated table counts too (the rail already reads a valid row
 there as a real row). Checked locally on 2026-10-10: every candidate line in nana-pi's ledger
-(1,012), the shared Part G file (22), both template ledgers, aml-desk's (365) and basketball-geek's
+(1,012), the shared Part G file (22), both template ledgers, work-project's (365) and basketball-geek's
 (165) is a valid row, so no existing ledger trips it.
 
 **Compatibility break, declared in full:** the candidate prefix (`|`, optional whitespace, `R-` or
@@ -67,7 +67,7 @@ Existing obligations that still apply: the rail's marker, cite and status checks
 (form); R-287–R-294 (the tree checker must see every row the rail sees); R-756 (Part G mirror);
 R-649 (`req:rows`); the template acceptance gate for template changes.
 
-Proposed shares (Jake decides): R-1000 and R-1001 also apply to FEAT-014 "Create or adopt a project
+Proposed shares (Owner decides): R-1000 and R-1001 also apply to FEAT-014 "Create or adopt a project
 workspace": both ship in every rendered project's rail and govern how it reads its own ledger
 (sol r1: excluding R-1001 was inconsistent).
 
@@ -109,8 +109,8 @@ problem list. Declared residual; the tree outline already orders numerically.
 - Regenerated: `docs/requirements-tree.md`, `docs/code-map.md` if a header changes.
 
 **NOT.** Renumbering any ID; any other row's cells; the tree structure (no new feature, no move);
-the shares (Jake's call at checkpoint 2, applied in a follow-up); the rails' text sorting;
-`aml-desk`'s and `basketball-geek`'s rails (other repos); indented row lines (a declared limitation);
+the shares (Owner's call at checkpoint 2, applied in a follow-up); the rails' text sorting;
+`work-desk`'s and `basketball-geek`'s rails (other repos); indented row lines (a declared limitation);
 five-digit IDs. **Frozen exceptions** (historical lane tools, never rerun on new ledgers, records
 not rewritten): `docs/reviews/ears-form-2026-10-04/apply-batch.mjs`, and `move.mjs`, `prove.mjs`,
 `seat-attacks.mjs`, `seat-verify-b.sh` under `docs/reviews/req-tree-2026-10-09/`.
@@ -138,9 +138,9 @@ number." Open question 9 is prefixed "(closed 2026-10-10: four-digit IDs, R-1000
 **Template release.** The rail is template-owned: after the merge, CI's release job cuts the next
 patch tag. Rendered projects pick it up with `uvx copier update`.
 
-**Stacked base and landing (sol r1–r2, and Jake's 2026-10-10 land rule).** The lane's parent is the
+**Stacked base and landing (sol r1–r2, and the owner's 2026-10-10 land rule).** The lane's parent is the
 tree branch's tip `c4332ec`, whose only commit after the tree's last review (`eeeca20`, astra LAND)
-is that review's own record. Jake ruled that nothing reaches main unless an independent reviewer
+is that review's own record. The owner ruled that nothing reaches main unless an independent reviewer
 accepted it, and a review cannot accept its own record. So the tree lands at `eeeca20`, and that
 record commit lands WITH this lane: this lane's final review covers `git diff eeeca20..<tip>`, the
 record included. (sol r2 proposed landing the tree at `c4332ec`; that would land an unreviewed
@@ -175,17 +175,17 @@ reviewed.
    wanted and exits 1 on any mismatch; a Python run skipped for want of `uvx` counts as a mismatch,
    because both rows claim both rails.
 
-## 6. Checkpoint 2 (Jake, about 10 minutes)
+## 6. Checkpoint 2 (Owner, about 10 minutes)
 
 What changed in one paragraph; the two new rows; the one proposed share to rule on; the follow-ups
 for the other two repos; the review verdicts. Lands after the requirements tree.
 
 ## 7. Follow-ups (not in this lane)
 
-- `aml-desk`: its hand copy of the rail reads `^R-\d{3}$` (highest ID R-610): a hand edit in its own
+- `work-desk`: its hand copy of the rail reads `^R-\d{3}$` (highest ID R-610): a hand edit in its own
   session, no urgency.
 - `basketball-geek`: it sits at template `v0.4.0` with the older pytest-marker rail (`@pytest.mark.req`,
   R-only). Taking the new tag is a marker migration plus Part G's arrival, not a plain
   `copier update`: its own change, in its own session.
-- The share, if Jake agrees.
+- The share, if the owner agrees.
 - The rails' text sorting (cosmetic).

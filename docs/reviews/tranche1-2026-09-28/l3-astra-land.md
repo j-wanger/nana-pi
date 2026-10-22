@@ -36,7 +36,7 @@ Nor may it infer adoption from absent pickup/journals, empty/malformed files, cw
 ### E. Seat conduct
 AGENTS expansion, config matrix addition, default-symlink subtraction and fresh `Source:` escaping were declared. The approved assertion removals have valid reasons.
 Earlier “DONE” claims exceeded verification: r2 admitted unresolvable ellipsis paths; r3 omitted known character cases. R4 materially improves verification, but resolver-helper tests are not complete read-tool integration.
-The r1 custom-legacy exception was disclosed as a residual but never reconciled with Jake’s binding “never injected” rule. It cannot silently amend that rule.
+The r1 custom-legacy exception was disclosed as a residual but never reconciled with the owner's binding “never injected” rule. It cannot silently amend that rule.
 
 ### F. L2 coupling
 L2’s `tests/gate-self-protection.test.mjs:56–76` explicitly allows handoff-store edits/writes and shell redirection. L3’s config change is one additive leaf with schema/default/matrix coverage.

@@ -9,7 +9,7 @@ Python pytest 59/59; all 12 lost-import inputs from astra r2/r3 resolve on HEAD;
 whitespace positions astra r3 found unpinned each fail their own fixture under mutation; no
 non-test consumer parses `--impact` output.
 
-Answers: (1) the branch does what Jake asked and nothing more — the G-007 test filter and a
+Answers: (1) the branch does what the owner asked and nothing more — the G-007 test filter and a
 `biome-ignore` are forced consequences; (2) every astra r3 finding is closed; the pre-existing
 spurious-edge class is the one recorded residual and does not block; (3) status is honest except
 the ID-block sentence; (4) subtracting both filters was right — the class is pre-existing on main,

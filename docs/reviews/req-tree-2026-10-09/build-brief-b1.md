@@ -52,7 +52,7 @@ wanted.
 7. **Skill paragraph** in `packages/nana-pack/skills/requirements/SKILL.md`: extend the existing
    tree paragraph with the governance essentials (statuses; `Also applies:`; before changing a row,
    find it in the outline's shared index; a new row names its shares in its requirement diff; tree
-   changes are Jake's and are declared). Keep it short; do not copy the whole governance text.
+   changes are the owner's and are declared). Keep it short; do not copy the whole governance text.
 8. Regenerate: `node docs/reviews/req-tree-2026-10-09/move.mjs …` (as you designed it),
    `npm run req:tree`, the section map, `npm run map`.
 9. Run: the proof (`--approved` BASE `--inputs` INPUTS) → save to `prove-output.txt`;

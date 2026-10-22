@@ -2,7 +2,7 @@
 
 The upgrade needed three compat fixes, each in a file on the allowlist, and **none in the extensions**. `npm test` exits 0, 10 of 11 desk e2e files passed on the final run (the 11th failed one check, then passed 3 reruns), `pi --version` prints 0.87.1, and doctor says all good. Committed as `6c4d01d` on `lane/pi-upgrade-0.87` (not pushed).
 
-**Global upgrade (rollback: `@0.84.4`):** `npm i -g @earendil-works/pi-coding-agent@0.87.1`. Before that, `npm ls -g` showed 0.84.4 under `/Users/jwang/.local/lib`. `lane/l4-test-path` was already on main, so nothing needed merging.
+**Global upgrade (rollback: `@0.84.4`):** `npm i -g @earendil-works/pi-coding-agent@0.87.1`. Before that, `npm ls -g` showed 0.84.4 under `/Users/example/.local/lib`. `lane/l4-test-path` was already on main, so nothing needed merging.
 
 ## Before and after
 | suite | baseline on 0.84.4 | final on 0.87.1 |

@@ -5,7 +5,7 @@
 MUST 1. A is not closed: the proof takes its line regions from the mapping instead of building them from the input. It never checks that every input heading after head.through is named. It also drops any line that starts with a field label, wherever that line sits in a region. Repros on scratch copies of the lifted basketball-geek at 0dc5d1d:
 - (a) A passing tree with an owner's `## Notes` or `### Notes` section and prose. The no-mapping dry run shows a clean proof. `--write` deletes 4 lines and exits 0. `--verify HEAD~1` then refuses with "not named", so write and verify disagree.
 - (b) A feature body line `Outcome: measured 2026-09-02, cache hit 94%.` (a `Purpose:` line behaves the same). It is deleted by the no-mapping `--write` and by a hand regroup (`--emit-mapping` → edit → `--mapping --write`). The proof is clean and `--verify` passes. R-1167 promises a refusal for carried prose starting with a field label, but `baseRefusals` only scans ledgers with no tree heading. yokai-world line 50 is such a line under `## The product`. I infer that a hand mapping naming that heading in a node would lose it; I did not run one.
-- (c) Default mode: a builder or mapping that leaves a kept section out of tail.keep. The proof is CLEAN on aml-desk, basketball-geek and trading-zone with `## Deliberate omissions` gone. `--write` never runs `validateMapping` on a built mapping, so the proof is the only guard.
+- (c) Default mode: a builder or mapping that leaves a kept section out of tail.keep. The proof is CLEAN on work-project, basketball-geek and trading-zone with `## Deliberate omissions` gone. `--write` never runs `validateMapping` on a built mapping, so the proof is the only guard.
 
 MUST 2. D is not closed: the fixes for MUSTs 1–3 are mostly unpinned. Each mutation below, on a scratch copy at 0dc5d1d, reds 0 tests in requirements-lift.test.mjs:
 - Proof: all tail accounting (tail prose, kept verbatim, kept missing, closing missing), together and one at a time. These are the exact MUST 1 repros: dropped Open questions body, appended stray line, duplicated kept section.
@@ -35,12 +35,12 @@ Notes
 - E2 holds and is pinned: the merge prints `## FEAT-002 · 2. Cache and persistence -> FEAT-001`. E3 holds and is pinned. E4 holds: the skill now says a partial tree needs a hand fix or a hand-written mapping.
 - `--verify` skips the mapping-file NUL, encoding, version, U+FFFD and line-break checks and the ledger's base refusals.
 - Real ledgers hold:
-  - Plans: aml-desk 6/41/2; basketball-geek (both copies) 1/9/0; trading-zone CAP-01, CAP-90, CAP-02 with FEAT-005–011 under CAP-02.
+  - Plans: work-project 6/41/2; basketball-geek (both copies) 1/9/0; trading-zone CAP-01, CAP-90, CAP-02 with FEAT-005–011 under CAP-02.
   - An independent check finds 365/171/165/197 rows byte-identical, 0 checker problems and no prose missing.
   - `--write`, commit, then `--verify HEAD~1` exit 0 on all four.
   - A hand regroup of lifted basketball-geek (a merge, 3 moved rows, a capability move, a proposed feature) writes, passes `--verify` and leaves 0 tree problems.
 
-Scratch files are in /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3-verify/:
+Scratch files are in /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3-verify/:
 - `tamper3.mjs`, `ident.mjs`, `idrun.sh`, `builderbug.mjs`, `shapes.mjs`
 - `muts.mjs`/`mut-all.txt` and `muts2.mjs`/`mut2-out-*.txt` (mutation lists and results)
 - `repos/` (id-*, regroup-outcome, gate-reach, verify-droprow, headcut)
@@ -86,6 +86,6 @@ I also checked whether the 2/3 change was too broad. Each half on its own still 
 **One side finding, outside this task.** I gave a ledger ending in an unterminated row a mapping with an empty capability after the last leaf. The validator accepted it, because its rule checks only the last feature or subgroup and the tail. The writer then joined the new heading onto that row's line, with no line break between them. The proof refused it, but only with the generic `row R-002 appears 0 time(s)` and not the named fix.
 
 Files:
-- Runner copy: /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3/seat-mutate.mjs (original kept as seat-mutate-orig.mjs)
-- Run output: /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3/seat-mutate-output.txt (console in seat-mutate-console.txt)
-- Survivor probes: /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3/probe211b.mjs, probe24.mjs, probe42b.mjs, probe42-test.txt
+- Runner copy: /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3/seat-mutate.mjs (original kept as seat-mutate-orig.mjs)
+- Run output: /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3/seat-mutate-output.txt (console in seat-mutate-console.txt)
+- Survivor probes: /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3/probe211b.mjs, probe24.mjs, probe42b.mjs, probe42-test.txt

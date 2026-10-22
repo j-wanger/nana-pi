@@ -1,7 +1,7 @@
 # Lane seat-guide — build brief 1 (2026-10-14 · feat/seat-guide · worktree ~/nana-pi-wt/seat-guide · base main 484329c)
 
 **Builder: Claude Sonnet 5.5.** The contract is `CHANGE.md` in this folder, INCLUDING its final "Base update" and "Plan
-review r1" sections — sol plan r1 said LAND. Jake's request it implements (2026-10-13): "We also need to add instructions
+review r1" sections — sol plan r1 said LAND. The owner's request it implements (2026-10-13): "We also need to add instructions
 on how to be a good seat, the opus seat on windows is checking the work done by the worker every turn". Threat model:
 honest variation in scope (an edit that drops, duplicates or adds a guide bullet or drops the rule from a list; CRLF; a
 stale Windows copy); forgery and a seat that ignores the rule out. New IDs: R-1140–R-1142 only; R-301 reworded as §2 says.

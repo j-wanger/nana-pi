@@ -1,7 +1,7 @@
 # Lane U — pi upgrade 0.84.4 → 0.87.1 (compatibility first)   2026-09-28 · nana-pi · worktree `~/nana-pi-wt/u`, branch `lane/pi-upgrade-0.87`
 
 ## Goal
-The nana-pi pack, desk and bench work unchanged in behavior on the globally installed pi 0.87.1, and every place that documents or pins a pi version says 0.87.1. Ruling 5 (Jake 2026-09-28): the settle-gate trial follows this lane; this lane does NOT build the settle gate.
+The nana-pi pack, desk and bench work unchanged in behavior on the globally installed pi 0.87.1, and every place that documents or pins a pi version says 0.87.1. Ruling 5 (Owner 2026-09-28): the settle-gate trial follows this lane; this lane does NOT build the settle gate.
 
 ## Appetite
 `--max-budget-usd 20` · advisory ceiling ≤12 files / ≤300 LOC. If the upgrade needs more than that (an API removal with no drop-in), STOP with the list of breaks and what each would take. Never expand into new features.

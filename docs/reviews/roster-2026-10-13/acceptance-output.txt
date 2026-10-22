@@ -120,7 +120,7 @@ ok   (g) R-1128 is one row with exactly one "shall"
 ok   (g) R-1128's text is CHANGE §2's
 ok   (g) R-961 reworded: CHANGE §2's text, one "shall", the dated evidence note
 ok   (g) R-684 reworded: the launcher clause runs through node with an npm-installed pi, one "shall"
-ok   (g) evidence notes: R-1120 names Jake's roles, R-1125 names review-ledger run as not covered
+ok   (g) evidence notes: R-1120 names the owner's roles, R-1125 names review-ledger run as not covered
 ok   (g) each new row sits under the heading §2 names
 ok   (g) each placed row follows the row §2 names, on the next line
 ok   (g) FEAT-007's Also applies line gains R-1125

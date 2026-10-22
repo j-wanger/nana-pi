@@ -71,9 +71,9 @@ ruling's own residual list is only partly recorded:
 | Generic allowances are ceilings; R-757 is nana-pi only | yes, 8(b) and R-757's cell | — |
 | The render test does not run the rendered suites; acceptance step 4 is by hand | yes, 8(c) | — |
 | The worktree's README-check failure is environmental | yes, 8(d) | — |
-| Three-digit IDs: about 150 remain after the lane; widening is a rail change in both languages and in aml-desk's copy | **no** | new Open question 9 (§4) |
+| Three-digit IDs: about 150 remain after the lane; widening is a rail change in both languages and in work-project's copy | **no** | new Open question 9 (§4) |
 | The rail's older behaviours have no rows; only the form check does | **no** | the same question 9 |
-| aml-desk (193 off form, own rail copy) and basketball-geek (2 off form, older markers) are out of scope and reach the check only at the next pushed tag | **no** | the HANDOFF line (§4) |
+| work-project (193 off form, own rail copy) and basketball-geek (2 off form, older markers) are out of scope and reach the check only at the next pushed tag | **no** | the HANDOFF line (§4) |
 
 Nothing else to add. The exported `SHALL` regex carries the `g` flag, so a caller using `exec`
 keeps state between calls; every caller today uses `match` `[V]`. Not worth a line.
@@ -94,7 +94,7 @@ commit with these edits, then `npm test`, `map:check` and `readme:check` on main
    > Part G's six origins split into G-016 to G-022, each directly after its origin. Off form:
    > 200 → 194, 233 rows to come. Batches A1, A2 (A2+A3 if A1 is clean), B and C run sequentially,
    > one worktree at a time. Each lands on a mechanical verifier plus one astra round
-   > (`batch0-land-ruling.md` §5). aml-desk's rail copy and basketball-geek are out of scope; the
+   > (`batch0-land-ruling.md` §5). work-project's rail copy and basketball-geek are out of scope; the
    > check reaches them only at the next pushed tag.
 2. **Open question 7**: replace "Fable's landing sign-off is the formal close." with "Closed at
    landing (Fable, batch0-land-ruling.md §2): kept. Any commit that moves the off-form count moves
@@ -103,7 +103,7 @@ commit with these edits, then `npm test`, `map:check` and `readme:check` on main
    ears-form-2026-10-04) is that pass for the 194 rows off form, batches A1 to C, allowance 194 to
    0. Its closing 25-row sample rate lands here."
 4. **New Open question 9**: "(ears-form batch 0, Fable) About 150 three-digit IDs remain after the
-   lane. Widening to four digits is a rail change in both templates and in aml-desk's copy; the
+   lane. Widening to four digits is a rail change in both templates and in work-project's copy; the
    seat's call. The rail's older behaviours (markers, cites, statuses) have no rows of their own;
    only the form check does."
 5. **R-757 requirement cell**, trim to the sentence: "WHERE this repo's measured count of rows off

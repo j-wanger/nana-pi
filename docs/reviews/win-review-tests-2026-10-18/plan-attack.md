@@ -14,7 +14,7 @@ MUST: 3
 - Fix:
   - Add GP3: build the other spelling explicitly instead of relying on TEMP. Use a case flip on both platforms, plus a ShortPath probe on Windows with a SKIP when no 8.3 name exists. Run it against a tracked `--out`, `--main`/`--tree`, the repo key and reclaim.
   - Use one canonical-path function on all platforms, so GP3 also runs on the blocking macOS leg.
-  - If Jake keeps POSIX untouched, record the macOS R-724/R-705 residual by name.
+  - If the owner keeps POSIX untouched, record the macOS R-724/R-705 residual by name.
 
 **MUST 2. The autocrlf fix in land.test hides a bug that blocks every Windows land of nana-pi, and the R-708 status is not updated.**
 - `review-round.mjs:181-186` and `:223` hash the working tree's raw bytes. They take the file mode from the owner-execute bit.
@@ -25,7 +25,7 @@ MUST: 3
 - Fix:
   - In the lane that adds autocrlf=false, mark R-708 violated on Windows with the residual.
   - Make KB1+KB2 its own gate lane before the Windows leg turns blocking. The alternative is that the R-684 Support line says nana-land is unsupported from a Windows seat.
-  - Reword the HANDOFF line. The bug affects any Windows user of pi-review on nana-pi, not just Jake landing from Windows.
+  - Reword the HANDOFF line. The bug affects any Windows user of pi-review on nana-pi, not just the owner landing from Windows.
 
 **MUST 3. The tag clause in TR2 can never fail on CI.**
 - The v0.6.0 tag exists in CI's full-history checkout. No named check exercises the "missing tag → FAIL" branch, so TR2 passes with that feature removed.
@@ -73,4 +73,4 @@ MUST: 3
   - The autocrlf decision is made here, alongside the R-708 status from MUST 2.
 - **Lane 4, win-impact-paths (ordinary).** As cut, with IP2 stated as pinned on Windows only.
 - **Lane 5, win-objective-golden (ordinary).** As cut. I checked `displayPath`: the hand-built form matches it, since it uses uppercase hex, backslash doubling and quotes only when a path is unsafe.
-- **New lane, a clean Windows checkout reads clean (gate, KB1+KB2).** It lands before the Windows leg turns blocking. Until then, R-708 stays violated on Windows. Jake's call: queue this lane, or narrow the Support line to exclude nana-land on Windows.
+- **New lane, a clean Windows checkout reads clean (gate, KB1+KB2).** It lands before the Windows leg turns blocking. Until then, R-708 stays violated on Windows. The owner's call: queue this lane, or narrow the Support line to exclude nana-land on Windows.

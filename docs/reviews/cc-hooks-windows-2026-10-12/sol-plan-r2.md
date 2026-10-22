@@ -66,7 +66,7 @@ git commit -m x
 - **R-1058:** Closed. R-1058 now covers direct execution, while R-1063 and R-1064 define observable output.
 - **Runtime matrix:** Closed. The plan changes the shared source and both mirrored regions, with both checks and template acceptance.
 - **Windows uninstall:** Properly declared as an existing gap. The plan no longer implies that pure removal proves uninstall support.
-- **CI evidence naming:** Closed. The requirement and verification section call it direct exec-form conformance and reserve real Claude Code evidence for Jake’s check.
+- **CI evidence naming:** Closed. The requirement and verification section call it direct exec-form conformance and reserve real Claude Code evidence for the owner's check.
 - **Five-label coverage:** Closed. Doctor and migration cases explicitly iterate all five labels.
 
 VERDICT: SEND-BACK

@@ -55,7 +55,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/lift";
+const LANE_REPO = "/Users/example/nana-pi-wt/lift";
 const LANE_BRANCH = "feat/lift";
 const TIP = process.env.SEAT_MUTATE_TIP || "6285a24";
 const HERE = path.dirname(fileURLToPath(import.meta.url));

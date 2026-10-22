@@ -29,7 +29,7 @@
 //     and moved rows; each move and share target with its own reason and outcome; each rejected claim with its reason;
 //     each text-placed row with its ID, opening GIST_WORDS words, home and reason; then the appendix, the only place a
 //     row's full text appears, each row under its new node. A same-family record reads "same-family review".
-// (x) aml-desk's copy straight from flat, with a mechanical proposal (every heading kept, §36's "Scale lane" rows moved
+// (x) work-desk's copy straight from flat, with a mechanical proposal (every heading kept, §36's "Scale lane" rows moved
 //     to the "### Lane A — normalize" subgroup under the second "## 36b.", purposes rewritten, every reason, verdict, claim and placed reason present): the
 //     dry run prints lines 484 and 570 apart, the check exits 0 and the page gives each its reason; (guard) after
 //     --write in a scratch git copy, §36's lane notes sit once each, in order, above one table under the node naming
@@ -49,7 +49,7 @@
 //     new module's header, purpose sentence, tunables and imports (§3.4); README names the script on its own line;
 //     HANDOFF carries residual 8's Windows line; map/readme/tree/trace checks; the build is committed.
 // (g) the four test files exit 0 and print PASS once for every §5 title.
-// Not checks, so left out: the blind rehearsal on 5b68a91 (a pi worker drafting and reviewing; scored against Jake's
+// Not checks, so left out: the blind rehearsal on 5b68a91 (a pi worker drafting and reviewing; scored against Owner's
 // tree), every agent role's drafting and review on the real projects, each run's wall clock, billed tokens, packet
 // words and owner minutes against §7 J2's budget, and §6's per-project cost: all are seat activities the seat records.
 // A share CARRIED in a feature's `also_applies` cannot pass the lift until lane regroup-shares lands (residual 2), so
@@ -58,7 +58,7 @@
 // the build's PROPOSAL_KEYS (a review-level key other than drafter, reviewer, verdicts and claims) with the value
 // "same-family" or true, and reds naming that gap when none is found.
 // "Names a path" (R-1176) is read as the rail's evidence form: each backtick span's text before `::`, or a whole span
-// without spaces; aml-desk's R-183 names `test/requirements-trace.test.mjs` and only mentions REQUIREMENTS.md in its
+// without spaces; work-desk's R-183 names `test/requirements-trace.test.mjs` and only mentions REQUIREMENTS.md in its
 // title, so it is text-placed here.
 // <base> is `git merge-base main HEAD` (e451c90 when written), so a merge of a newer main moves it with the lane.
 // Cases marked (guard) hold at the base too and catch a regression; (harness) cases check this script's inputs; every
@@ -84,7 +84,7 @@ if (!fs.existsSync(path.join(LANE_DIR, "CHANGE.md")) || !fs.existsSync(path.join
 const LEDGERS = process.env.LIFT_LEDGERS ?? path.join(os.homedir(), ".cache", "nana-lift-ledgers");
 // Measured 2026-10-14 by the lift's seat (docs/reviews/lift-2026-10-14/acceptance.mjs LEDGER_SHA256), equal on the copies.
 const LEDGER_SHA256 = {
-	"aml-desk": "63af2a19f0499aac58e770e2e1fdb68cc71856c1d8e5446926013804b26a5e86",
+	"work-desk": "63af2a19f0499aac58e770e2e1fdb68cc71856c1d8e5446926013804b26a5e86",
 	"basketball-geek-HEAD": "775f126a3848f62b382029534a99e80da46e0455092ab4046361721286f83683",
 };
 let bad = 0, n = 0, badBuild = 0, nBuild = 0;
@@ -822,13 +822,13 @@ console.log(JSON.stringify(Array.isArray(recs) ? recs.map((r) => ({ line: r?.lin
 		out("(m) no node heading on the page is indented four or more spaces (a Markdown code block) (R-1178, T14)", page.split("\n").filter((l) => /^ {4,}\S/.test(l) && /(CAP|FEAT|SUB)-\d/.test(l)).length, 0);
 	}
 
-	// ---------------------------------------------------------------- (x) aml-desk and (y) basketball-geek: the copies
+	// ---------------------------------------------------------------- (x) work-desk and (y) basketball-geek: the copies
 	ledgerCases: {
-		const SRC = { aml: "aml-desk", bg: "basketball-geek-HEAD" };
+		const SRC = { work: "work-desk", bg: "basketball-geek-HEAD" };
 		const LB = {};
 		for (const [k, d] of Object.entries(SRC)) LB[k] = readBuf(path.join(LEDGERS, d, "REQUIREMENTS.md"));
 		const pinMisses = Object.entries(SRC).map(([k, d]) => (LB[k] === null ? `${d}: missing` : sha(LB[k]) !== LEDGER_SHA256[d] ? `${d}: changed (sha256 ${sha(LB[k]).slice(0, 12)})` : null)).filter(Boolean);
-		if (!out(`(harness) the seat's aml-desk and basketball-geek HEAD copies under ${LEDGERS} exist and match their pinned SHA-256`, pinMisses, [])) { console.log("skip (x) and (y): the seat's ledger copies failed their pins (harness case above)"); break ledgerCases; }
+		if (!out(`(harness) the seat's work-desk and basketball-geek HEAD copies under ${LEDGERS} exist and match their pinned SHA-256`, pinMisses, [])) { console.log("skip (x) and (y): the seat's ledger copies failed their pins (harness case above)"); break ledgerCases; }
 		/** A mechanical proposal: every heading kept unless edited, purposes and outcomes rewritten, every reason, verdict, claim and placed reason present. */
 		const mechanical = (buf, mapping, dir) => {
 			const p = structuredClone(mapping);
@@ -849,11 +849,11 @@ console.log(JSON.stringify(Array.isArray(recs) ? recs.map((r) => ({ line: r?.lin
 		const realRoot = (label, buf) => { const d = path.join(scratch, label); fs.mkdirSync(path.join(d, "docs", "regroup"), { recursive: true }); fs.writeFileSync(path.join(d, "REQUIREMENTS.md"), buf); return d; };
 		const emit = (dir) => { const f = path.join(scratch, `${path.basename(dir)}-default.json`); const r = lift(["--root", dir, "--emit-mapping", f], scratch); return { r, map: readText(f) ? JSON.parse(readText(f)) : null }; };
 
-		// (x) aml-desk, straight from flat.
+		// (x) work-desk, straight from flat.
 		{
-			const dir = realRoot("aml-desk", LB.aml);
+			const dir = realRoot("work-desk", LB.work);
 			const em = emit(dir);
-			const ok = out("(harness) aml-desk's copy: the lift emits its default mapping (exit 0)", em.r.status, 0, own(em.r.stderr).slice(0, 2).join(" | "));
+			const ok = out("(harness) work-desk's copy: the lift emits its default mapping (exit 0)", em.r.status, 0, own(em.r.stderr).slice(0, 2).join(" | "));
 			if (ok) {
 				const p = structuredClone(em.map);
 				const n36 = mappingNodes(p).find((x) => (x.node.from ?? []).some((f) => f.line === 501));
@@ -861,35 +861,35 @@ console.log(JSON.stringify(Array.isArray(recs) ? recs.map((r) => ({ line: r?.lin
 				const n484 = mappingNodes(p).find((x) => (x.node.from ?? []).some((f) => f.line === 484));
 				const n572 = mappingNodes(p).find((x) => (x.node.from ?? []).some((f) => f.line === 572)); // ### Lane A — normalize, under the second 36b
 				// §36's "Scale lane" rows: from the note opening "Scale lane" to the next prose line.
-				const ls = segs(LB.aml).map(bare);
+				const ls = segs(LB.work).map(bare);
 				const scaleAt = ls.findIndex((l, i) => i > 500 && i < 569 && l.startsWith("Scale lane"));
 				const scaleRows = [];
 				for (let i = scaleAt + 1; scaleAt > 0 && i < 569; i++) { const r = ROW.exec(ls[i]); if (r) scaleRows.push(r[1]); else if (ls[i] !== "" && ls[i] !== TABLE_HEADER && !DELIM.test(ls[i])) break; }
 				const leaf = (x) => x.node;
 				if (n36 && n572 && scaleRows.length) { leaf(n36).rows = expandIds(leaf(n36).rows).filter((id) => !scaleRows.includes(id)); leaf(n572).rows = [...expandIds(leaf(n572).rows), ...scaleRows]; }
-				out("(harness) aml-desk: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows",
+				out("(harness) work-desk: lines 484 and 570 hold the same `## 36b. Build at production size` text under different default nodes, and §36 (line 501) holds a Scale lane block of rows",
 					[ls[483], ls[569], Boolean(n484 && n570 && n484.id !== n570.id), n572?.level ?? null, scaleRows.length > 0], ["## 36b. Build at production size", "## 36b. Build at production size", true, 3, true], `scale rows ${scaleRows.join(",")}`);
-				const prop = mechanical(LB.aml, p, dir);
+				const prop = mechanical(LB.work, p, dir);
 				fs.writeFileSync(path.join(dir, PROP_REL), `${JSON.stringify(prop, null, 2)}\n`);
 				const dry = lift(["--root", dir, "--mapping", path.join(dir, PROP_REL)], scratch);
 				const rep = reportOf(dry.stdout);
-				const want = keys(reportedLines(LB.aml, prop));
-				out(`(x) aml-desk: the proposal's dry run exits 0 and prints exactly its ${want.length} reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5)`,
+				const want = keys(reportedLines(LB.work, prop));
+				out(`(x) work-desk: the proposal's dry run exits 0 and prints exactly its ${want.length} reported lines, lines 484 and 570 apart and §36's Scale lane rows as one move line (R-1170, §5)`,
 					[dry.status, rep.odd.length, keys(rep.recs).length === want.length && JSON.stringify(keys(rep.recs)) === JSON.stringify(want), rep.recs.filter((x) => x.heading === "## 36b. Build at production size" && x.rows.length === 0).map((x) => x.line).sort()], [0, 0, true, [484, 570]],
 					rep.odd.slice(0, 2).join(" | ") + own(dry.stderr).slice(0, 2).join(" | "));
-				const page = path.join(PAGES, "aml-desk.md");
+				const page = path.join(PAGES, "work-desk.md");
 				const before = fileList(dir);
 				const r = regroup(["--root", dir, "--proposal", path.join(dir, PROP_REL), "--out", page], scratch);
 				const pg = readText(page) ?? "";
 				const lineOfPage = (s) => { const i = pg.indexOf(s); if (i < 0) return ""; const st = pg.lastIndexOf("\n", i) + 1; const e = pg.indexOf("\n", i); return pg.slice(Math.max(0, pg.lastIndexOf("\n", st - 2) + 1), e < 0 ? pg.length : e); };
 				const both = [484, 570].map((ln) => { const rs = prop.regroup.reasons.find((x) => x.line === ln && x.to === (ln === 484 ? n484.id : n570.id)); return rs ? word(ln).test(lineOfPage(rs.why)) : false; });
-				out("(x) aml-desk: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance)",
+				out("(x) work-desk: the check exits 0, writes the page and changes nothing under the root, and the page gives line 484 and line 570 each its own reason (§5 seat acceptance)",
 					[r.status, crashed(r), pg !== "", JSON.stringify(fileList(dir)) === JSON.stringify(before), both], [0, false, true, true, [true, true]], own(r.stderr).slice(0, 3).join(" | "));
-				if (pg) console.log(`info (x) aml-desk: the mechanical packet is ${pg.split(/\s+/).filter(Boolean).length} words, appendix included (the seat records the real one's words and minutes, §7 J2)`);
+				if (pg) console.log(`info (x) work-desk: the mechanical packet is ${pg.split(/\s+/).filter(Boolean).length} words, appendix included (the seat records the real one's words and minutes, §7 J2)`);
 				// Residual 3: §36 split, its lane notes stay above one table under the node naming line 501.
-				const repo = path.join(scratch, "aml-git");
+				const repo = path.join(scratch, "work-git");
 				fs.mkdirSync(path.join(repo, "docs", "regroup"), { recursive: true });
-				fs.writeFileSync(path.join(repo, "REQUIREMENTS.md"), LB.aml);
+				fs.writeFileSync(path.join(repo, "REQUIREMENTS.md"), LB.work);
 				fs.writeFileSync(path.join(repo, PROP_REL), `${JSON.stringify(prop, null, 2)}\n`);
 				for (const a of [["init", "-q", "-b", "main"], ["config", "core.autocrlf", "false"], ["add", "-A"], ["commit", "-qm", "flat and proposal"]]) gitIn(repo, ...a);
 				const w = lift(["--root", repo, "--mapping", path.join(repo, PROP_REL), "--write"], scratch);
@@ -899,7 +899,7 @@ console.log(JSON.stringify(Array.isArray(recs) ? recs.map((r) => ({ line: r?.lin
 				const nextH = outLs.findIndex((l, i) => i > hAt && TREE_HEADING.test(l));
 				const firstTable = outLs.findIndex((l, i) => i > hAt && l === TABLE_HEADER);
 				const at = notes.map((nt) => outLs.map((l, i) => (l === nt ? i : -1)).filter((i) => i >= 0));
-				out("(guard) aml-desk, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)",
+				out("(guard) work-desk, §36 split by --write in a scratch git copy: each of its lane notes lands once, in order, under the node naming line 501 and above its one table (residual 3)",
 					[w.status, notes.length > 3, at.every((a) => a.length === 1), at.every((a, k) => k === 0 || (a[0] ?? -1) > (at[k - 1][0] ?? -1)), at.every((a) => a[0] > hAt && a[0] < firstTable), outLs.slice(hAt + 1, nextH < 0 ? outLs.length : nextH).filter((l) => l === TABLE_HEADER).length],
 					[0, true, true, true, true, 1], own(w.stderr).slice(0, 2).join(" | "));
 			}
@@ -1128,7 +1128,7 @@ out("(f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the la
 	// The base already holds one such line (the lift's, "[optional, since 2026-10-14] The seat guide on Windows"); the lane
 	// writes a new one or rewrites that one, so the case asks for a matching line the base does not hold byte for byte.
 	const baseSet = new Set(baseHandoff.split("\n"));
-	out("(f) HANDOFF.md gains residual 8's line for Jake, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8)", handoff.split("\n").filter((l) => isLine(l) && !baseSet.has(l)).length > 0, true);
+	out("(f) HANDOFF.md gains residual 8's line for Owner, new or rewritten: re-run nana-setup install on the Windows Claude Code seat so its requirements skill copy updates (§7 residual 8)", handoff.split("\n").filter((l) => isLine(l) && !baseSet.has(l)).length > 0, true);
 }
 // The build must be committed: an untracked or modified path outside this review folder would pass every case above
 // that reads the working tree.

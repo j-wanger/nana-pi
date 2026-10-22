@@ -30,12 +30,12 @@ The extractor trims leading whitespace from a sentence but computes its line fro
 **Executed input:**
 ```text
 DONE.
-The file was edited by Jake.
+The file was edited by Owner.
 ```
 
 **Actual finding:**
 ```text
--:1: passive: passive candidate: "edited" in "The file was edited by Jake."
+-:1: passive: passive candidate: "edited" in "The file was edited by Owner."
 ```
 
 The sentence starts on **line 2**. This contradicts Amendment A2’s explicit sentence-start rule and R-743. The repaired R-743 fixture checks banned-word line numbers, which use a different scanner.

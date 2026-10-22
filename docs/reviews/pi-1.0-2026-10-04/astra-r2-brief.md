@@ -1,7 +1,7 @@
 # Review brief — pi 1.0 adoption lane, ROUND 2 (reviewer: gpt-6-astra)
 
 Same lane, same worktree `~/nana-pi-wt/pi-1.0`, branch `feat/pi-1.0`, base `main` (`c0a7849`). Round 1 (BLOCK 7/10) is
-`/Users/jwang/nana-pi/docs/reviews/pi-1.0-2026-10-04/astra-r1.md`; the original brief is `astra-brief.md` beside it.
+`/Users/example/nana-pi/docs/reviews/pi-1.0-2026-10-04/astra-r1.md`; the original brief is `astra-brief.md` beside it.
 The fix commit is `1c4a369` (on top of `53bcbf1`, `0ba4a2e`). Third-party ground truth is unchanged (pi-subagents 0.75.0 and pi 1.0.2, unpacked under the scratchpad path named in astra-brief.md).
 
 ## Do this

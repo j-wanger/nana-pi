@@ -6,7 +6,7 @@ used `build-brief-b3.md` (report `builder-report-b3.md`): at each expected posit
 carry the expected ID and Requirement. The seat added your swap attack to `seat-verify-b.sh` and
 re-ran it (`seat-verify-b-output.txt`): every line as wanted. astra is reviewing the same revision in
 parallel for the land ruling. Verify r2's finding is closed, then review the whole build; rank
-honestly — after this round the seat lands with declared residuals, subtracts, or takes it to Jake.
+honestly — after this round the seat lands with declared residuals, subtracts, or takes it to the owner.
 INPUTS is `8c2ec5274662850a6e8173b5ef048aaf5b191548`.
 
 You reviewed this increment's plan (`sol-plan-b-r1.md`, LAND-WITH-FIXES; fixes in
@@ -27,7 +27,7 @@ ledger), INPUTS `8c2ec5274662850a6e8173b5ef048aaf5b191548` (`tree-b.json`, `fixe
    (missing, `done`, `frozen ()`, `retired ()`, whitespace reason) and all four legal forms accepted;
    R-294 for proposed and retired. Break each check in the code: does a test go red? Does the R-291
    field check verify status, also-applies and the shared index independently of the renderer?
-3. **The outline.** Read `docs/requirements-tree.md` as Jake will: statuses, also-applies lists and
+3. **The outline.** Read `docs/requirements-tree.md` as the owner will: statuses, also-applies lists and
    the shared index (sorted by count, then ID) — correct against the ledger? Expand it with your own
    parser.
 4. **The seat's acceptance script.** Run `bash docs/reviews/req-tree-2026-10-09/seat-verify-b.sh`;

@@ -20,7 +20,7 @@
   - nana-handoff uses its own separate `displayPath()`, which I did not audit.
   - The hook's fallback prints `$cli`, a path the owner controls.
   - The CLI `catch` can't be reached in a test, because both producers never throw; I only changed it.
-  - Trust gating and label wording are still Jake's decision.
+  - Trust gating and label wording are still the owner's decision.
 - **Claim most likely wrong:** "every surface covered". I listed what `surface()` and `gateStopReason` output can reach inside nana-pack. I did not check how pi itself renders or sends the tool block reason, or whether `displayText` removes every character that breaks lines in pi's display.
 
 VERDICT: DONE

@@ -1,26 +1,26 @@
 # Change declaration — the requirements tree (increment 1: move every row under its feature)
 
 *Lane `req-tree` · branch `feat/req-tree` · worktree `~/nana-pi-wt/req-tree` · base `5b68a91` · 2026-10-09.
-The first change written in the feature-change format astra proposed and Jake asked the seat to apply.
-Order: why → plan → Fable consult (`fable-consult.md`) → sol review (r1–r3 adjudicated in `sol-plan-r1-response.md`, `sol-plan-r2-response.md` and `sol-plan-r3-response.md`; Fable's second opinion in `fable-consult-2.md`) → **checkpoint 1: Jake agrees the
-outline and this plan** → build → sol + astra → **checkpoint 2: Jake accepts the result**.*
+The first change written in the feature-change format astra proposed and the owner asked the seat to apply.
+Order: why → plan → Fable consult (`fable-consult.md`) → sol review (r1–r3 adjudicated in `sol-plan-r1-response.md`, `sol-plan-r2-response.md` and `sol-plan-r3-response.md`; Fable's second opinion in `fable-consult-2.md`) → **checkpoint 1: the owner agrees the
+outline and this plan** → build → sol + astra → **checkpoint 2: the owner accepts the result**.*
 
 ## 1. Why
 
 **The problem.** `REQUIREMENTS.md` holds 1,004 rows in 60 numbered sections. The sections follow
 packages and the order work happened in (gate, installer, desk, bench), not what the rows enable.
-35 of the 60 sections mix rows that belong to different features. Jake, 2026-10-09: "otherwise I'll
+35 of the 60 sections mix rows that belong to different features. The owner, 2026-10-09: "otherwise I'll
 never get to go through or understand the requirements we have and what they represent." He asked
 astra for requirements categories; astra drafted a tree (8 capabilities, 38 features, 21 subgroups,
-every row placed once); Jake decided to implement it.
+every row placed once); the owner decided to implement it.
 
-**What it is for.** The tree is the first step toward feature-based development (Jake to astra:
+**What it is for.** The tree is the first step toward feature-based development (Owner to astra:
 "development should also be feature based … each development session is making way too many
 changes"). Once every row has a feature home, a change can name the feature it serves and the rows
 it adds or changes, and a review can be read per feature. Increment 2 (section 8) makes the lane
 brief carry exactly that; without it the tree changes no session.
 
-**Scenario.** Jake wants to know what makes resuming work reliable. He reads the capability
+**Scenario.** the owner wants to know what makes resuming work reliable. He reads the capability
 headings and their purpose lines, opens "CAP-01 · Maintain direction and useful context" →
 "FEAT-002 · Resume decisions and next actions", and reads its 62 rows in five subgroups, each with
 its own purpose line.
@@ -54,7 +54,7 @@ five rows end FEAT-028's table.
 | R-290 | Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup. | implemented |
 | R-291 | The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs. | implemented |
 
-Deliberately not pinned: a row in the wrong feature (Jake's judgement, not a test); a feature with
+Deliberately not pinned: a row in the wrong feature (Owner's judgement, not a test); a feature with
 subgroups that also holds its own table (harmless); a feature with no rows yet (allowed, e.g. a
 planned feature); unique labels (IDs carry identity).
 
@@ -67,7 +67,7 @@ row count and row IDs as ranges; no statuses, which churn every lane and `req:ro
 reports) and the suite fails when it is stale (R-291). Any move, rename or purpose change is a
 compact diff there. Residual: an agent can regenerate the outline without declaring the change;
 the control is increment 2's declared feature and the structure diff read at review. Whether that
-is the governance Jake wants is decision 4 in section 7.
+is the governance the owner wants is decision 4 in section 7.
 
 Changed: none. Retired: none. No existing row's Requirement, Status or Evidence cell changes.
 
@@ -237,7 +237,7 @@ Purpose: …
 
 ## 6. The two checkpoints
 
-**Checkpoint 1 (now, before the build).** Jake reads `outline.md`: the purpose, the outcomes, a
+**Checkpoint 1 (now, before the build).** the owner reads `outline.md`: the purpose, the outcomes, a
 38-row table (feature, row count, status mix, frozen or idle share) and every heading with its
 purpose line. He rules on names and grouping while a change is still a JSON edit, plus the four
 decisions in section 7.
@@ -253,11 +253,11 @@ writes a checkpoint paragraph and continues only if the remainder is mechanical.
 Review ladder (the working pattern, with two specifics): the build gets a sol slice review (item
 `req-tree`) and an astra land review on the same revision (no extra round), asking whether the
 result matches the tree it drafted. Placement disputes about single rows do not block; they go to
-Jake at checkpoint 2.
+The owner at checkpoint 2.
 
-## 7. Decisions for Jake at checkpoint 1
+## 7. Decisions for the owner at checkpoint 1
 
-1. **Purpose.** Recommend Jake's own words (`outline.md` top). Alternative: astra's synthesis
+1. **Purpose.** Recommend the owner's own words (`outline.md` top). Alternative: astra's synthesis
    ("Help a developer turn project goals into useful software through agent work that remains
    understandable, bounded, verifiable, and reusable across projects").
 2. **Business and technical.** In this increment the business layer is the purposes and outcomes
@@ -273,8 +273,8 @@ Jake at checkpoint 2.
 
 ## 7a. Checkpoint 1 — agreed
 
-Jake, 2026-10-09, after reading the outline and the four decisions: "Ok I like this, lets proceed."
-Recorded as: names and grouping as in `outline.md` (no renames); decision 1 = Jake's own words
+The owner, 2026-10-09, after reading the outline and the four decisions: "Ok I like this, lets proceed."
+Recorded as: names and grouping as in `outline.md` (no renames); decision 1 = the owner's own words
 (`fixed-text.md` as committed); decisions 2, 3 and 4 accepted as recommended. The commit that adds
 this section is the approved commit: `prove.mjs --approved` names it, and the frozen inputs are read
 from it.

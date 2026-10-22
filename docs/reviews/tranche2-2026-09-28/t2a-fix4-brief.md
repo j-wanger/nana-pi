@@ -20,7 +20,7 @@ Sol confirms every earlier finding fixed and the narrowing complete **in the obj
 Sol confirmed removing either alone leaves both suites green, and ruled they both earn their place (`displayPath()` fulfils its exported contract; `finish()` is a cheap whole-output backstop). Do not subtract either; instead add a test that fails when `finish()`'s layer alone is removed, so the redundancy is pinned rather than incidental.
 
 ## NOT
-No trust gating and no label wording changes — still Jake's open decision, and sol's CARRY records it as a policy question that structural safety does not answer. `--max-budget-usd 12`.
+No trust gating and no label wording changes — still the owner's open decision, and sol's CARRY records it as a policy question that structural safety does not answer. `--max-budget-usd 12`.
 
 ## doneWhen
 `npm test` exits 0; sol's config-notification probe puts no attacker-controlled line start into any surface; the cap-boundary malformed file is refused; the two overclaims agree with the code.

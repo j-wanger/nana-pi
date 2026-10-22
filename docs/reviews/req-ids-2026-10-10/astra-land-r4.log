@@ -1,7 +1,7 @@
-pi-review: item "req-ids" (git:/Users/jwang/nana-pi/.git): 4 round(s) used (3 completed, 1 review(s) in flight); admitted as round 4/3 (revision already counted — no new round) (astra @ 6a74cfd88ee6)
+pi-review: item "req-ids" (git:/Users/example/nana-pi/.git): 4 round(s) used (3 completed, 1 review(s) in flight); admitted as round 4/3 (revision already counted — no new round) (astra @ 6a74cfd88ee6)
 [pi-review] attempt 1/3
   [pi-review a1] cpu=0.93s flat=0/5
   [pi-review a1] cpu=1.03s flat=0/5
   [pi-review a1] cpu=1.14s flat=0/5
   [pi-review a1] cpu=1.29s flat=0/5
-[pi-review] SUCCESS on attempt 1 (3457 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/ids-astra-r4.md; round 4)
+[pi-review] SUCCESS on attempt 1 (3457 chars → /private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/ids-astra-r4.md; round 4)

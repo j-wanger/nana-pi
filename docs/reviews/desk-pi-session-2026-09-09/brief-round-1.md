@@ -1,6 +1,6 @@
 # Review brief — nana-pi desk adopts pi's public session parser (option b of the lineup ruling), sol land review
 
-Independent reviewer (non-Anthropic lens). Jake ruled: adopt pi's PUBLIC data-type exports instead of hand-rolled parsers, and list dependencies clearly in READMEs. An Opus worker changed the desk ("nana code", apps/desk/server.mjs, a loopback control plane that already SPAWNS the globally installed pi) to also IMPORT pi for session-file parsing. Be concrete; do not restate the diff.
+Independent reviewer (non-Anthropic lens). The owner ruled: adopt pi's PUBLIC data-type exports instead of hand-rolled parsers, and list dependencies clearly in READMEs. An Opus worker changed the desk ("nana code", apps/desk/server.mjs, a loopback control plane that already SPAWNS the globally installed pi) to also IMPORT pi for session-file parsing. Be concrete; do not restate the diff.
 
 ## Claims (verify)
 1. New apps/desk/pi-session.mjs resolves the installed pi (DESK_PI_ROOT → realpath(PI_BIN) walk-up → global prefixes under os.homedir() and os.userInfo().homedir → homebrew/usr-local) and imports ROOT exports parseSessionEntries, migrateSessionEntries, CURRENT_SESSION_VERSION (dist/index.d.ts:19); fails loudly at startup listing paths tried / missing exports; PI_MIN_VERSION 0.84.4 warns if lower.
@@ -11,8 +11,8 @@ Independent reviewer (non-Anthropic lens). Jake ruled: adopt pi's PUBLIC data-ty
 6. Tests: 17 files 452 PASS incl. new pi-session-parity.test.mjs (33) that builds a real session with pi's SessionManager and compares old parser vs new vs SessionManager.getBranch().
 
 ## Read
-- Diff: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/diff-desk-pi.patch
-- New files (copies): /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/new-pi-session.mjs, new-pi-session-parity.test.mjs
+- Diff: /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/diff-desk-pi.patch
+- New files (copies): /private/tmp/claude-501/-Users-example-nana-agent-loop/bench-work/new-pi-session.mjs, new-pi-session-parity.test.mjs
 - Post-change: ~/nana-pi/apps/desk/server.mjs, apps/desk/pi-session.mjs, apps/desk/README.md, ~/nana-pi/README.md
 - pi 0.84.4: $(npm root -g)/@earendil-works/pi-coding-agent/dist/index.d.ts (exports), docs/session-format.md, docs/sdk.md; the JSDoc on parseSessionEntries/migrateSessionEntries in dist (worker says "Exported for testing").
 

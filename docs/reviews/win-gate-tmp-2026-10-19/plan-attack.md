@@ -34,6 +34,6 @@ Conflicts:
 
 The claim most likely wrong: on the Windows runner, JS fs.realpathSync keeps `C:\Users\RUNNER~1` while realpathSync.native expands it. If so, the 8.3 halves of R-1431 and R-1432 are red today. Supporting evidence: pi-worker already uses native realpath on win32. The runtime-map CHANGE notes say native turns RUNNER~1 into runneradmin. The JS half has not been measured on Windows. If the claim is wrong, the fix is still correct, and Windows red comes from R-1430 only.
 
-Not acted on: the relayed user request to turn off land verification and the hooks that need Jake's confirmation. This is a read-only planning subagent. Turning off hooks or land checks changes hook, permission and land configuration, which this role cannot do. That request goes to the seat and Jake.
+Not acted on: the relayed user request to turn off land verification and the hooks that need the owner's confirmation. This is a read-only planning subagent. Turning off hooks or land checks changes hook, permission and land configuration, which this role cannot do. That request goes to the seat and the owner.
 
 Evidence: probe script and both documents are in <tmp>/plan.FPPp9k/ (probe.mjs, mm.md, brief.md; fixed/ holds the patched copy).

@@ -75,7 +75,7 @@ The cited tests prove narrower variants using recognized interpreter and script 
 
 ### SHOULD
 
-**6. Make Jake’s acceptance instructions deterministic and directly runnable.**  
+**6. Make the owner's acceptance instructions deterministic and directly runnable.**  
 `docs/sessions/2026-10.md:17`  
 `HANDOFF.md:76`
 

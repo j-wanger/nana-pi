@@ -2,7 +2,7 @@
 
 You reviewed this lane's plan three times (`sol-plan-r1..r3.md`; LAND-WITH-FIXES at r3, fixes in
 `sol-plan-r3-response.md`). A pi luna builder built it (`build-brief.md`, `builder-report-1.md`).
-Review `git diff eeeca20..HEAD` — per Jake's 2026-10-10 rule nothing reaches main unreviewed, so this
+Review `git diff eeeca20..HEAD` — per the owner's 2026-10-10 rule nothing reaches main unreviewed, so this
 review also covers the requirements tree's last review record (`c4332ec`, docs only) and the seat's
 `HANDOFF.md` update (today's rulings, the new priority, the queue).
 

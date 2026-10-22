@@ -1,6 +1,6 @@
 # Fact-check (repo claims) — fresh-install CHANGE.md, 2026-10-13
 
-Repo `/Users/jwang/nana-pi` main `9974218`, read only. Probes ran in `plan-fresh-install/fc-probe/` (a scratch
+Repo `/Users/example/nana-pi` main `9974218`, read only. Probes ran in `plan-fresh-install/fc-probe/` (a scratch
 `git archive` copy, scratch npm prefixes with the plan's isolated cache, and a probe script importing the repo's lib).
 Legend: VERIFIED = read or run here; INFERRED = reasoning only.
 
@@ -11,7 +11,7 @@ Legend: VERIFIED = read or run here; INFERRED = reasoning only.
    `2026-10-04T06:57:57Z`, because `\S+` stops before `\r` and the quote pattern ignores the trailing `\r` (VERIFIED in node).
    Only `$`-anchored forms (`^  PI_VERSION: (\S+)$`, `^  PI_BEFORE: "([^"]*)"$`) fail without `/\r?\n/`. Fix: anchor both
    in §3.2. Otherwise the CRLF case pins nothing.
-2. **Jake's step 2b fails as written.** With npm 10.9.7, `npm i -g … --dry-run --prefix <dir>` exits 254 with
+2. **The owner's step 2b fails as written.** With npm 10.9.7, `npm i -g … --dry-run --prefix <dir>` exits 254 with
    `ENOENT lstat` when the prefix is missing (VERIFIED). It also fails when the prefix exists but `<prefix>/lib` does not
    (VERIFIED, macOS). It works once the global dir's parent exists, and it prints `add @earendil-works/pi-codemode 1.0.2`
    (VERIFIED; `added 146 packages`). On Windows the global dir's parent is the prefix itself (INFERRED). So step 2b needs

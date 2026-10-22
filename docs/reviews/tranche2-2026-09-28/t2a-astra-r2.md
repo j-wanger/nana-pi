@@ -13,7 +13,7 @@ Read-only review; tests not rerun. Acceptance evidence: seat-verified **70 files
 SCORE: 9/10
 MUST: []
 CARRY:
-- **HIGH:** Jake-owned provenance-label versus trust-gating decision; semantic steering remains possible.
+- **HIGH:** Owner-owned provenance-label versus trust-gating decision; semantic steering remains possible.
 - **HIGH:** Separate post-edit/handoff sanitization audit with end-to-end sink tests.
 - **MEDIUM:** Unbounded config I/O, filesystem races/stalls, actual-host rendering and Windows parity; no universal guarantees.
 - **LOW:** Verify Claude’s actual Node/PATH and smoke-test real 22.17/22.18; retain CLI-catch coverage and raw installation-path fallback residuals.

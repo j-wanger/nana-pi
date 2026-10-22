@@ -1,6 +1,6 @@
 # Review brief — map-test-links, 2026-10-05 (reviewer: gpt-6-astra)
 
-Jake's call: "Fix the map." nana-pi's code map could not see most of its tests: the TypeScript
+The owner's call: "Fix the map." nana-pi's code map could not see most of its tests: the TypeScript
 generator's dynamic-import pattern missed `import(new URL("../x", import.meta.url).href)`, the
 form 54 of 95 test modules use. A Sonnet worker fixed it on this branch. The seat's brief is
 `docs/reviews/map-test-links-2026-10-05/build-brief.md`; the worker's report is

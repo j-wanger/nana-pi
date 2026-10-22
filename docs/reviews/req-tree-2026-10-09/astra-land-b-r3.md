@@ -18,7 +18,7 @@
 
    Changing knowledge’s renderer-binding requirement need not change the display feature’s behavior. The current justification establishes coupling, not clearly the stated directional dependency.
 
-   **Smallest fix:** Supply a concrete display-feature obligation that R-224 constrains, or propose removing that share for Jake’s approval. This is one conservative overflag, not a systemic defect.
+   **Smallest fix:** Supply a concrete display-feature obligation that R-224 constrains, or propose removing that share for the owner's approval. This is one conservative overflag, not a systemic defect.
 
 3. **Expose partial freezes where readers select work.**  
    **Locations:** `REQUIREMENTS.md:122–125`; `docs/requirements-tree.md:195–199`; `docs/hardening-plan-2026-10-06.md:59`.
@@ -62,7 +62,7 @@ The sharing count measures **additional listing features**, not total affected f
 
 **Locations:** `REQUIREMENTS.md:32–61`; `packages/nana-pack/skills/requirements/SKILL.md:132`.
 
-The governance gives Jake substantive decision authority:
+The governance gives the owner substantive decision authority:
 
 - It covers structural changes, row moves, and adding or removing shares.
 - Shared-row changes must name and review every listed feature.
@@ -84,7 +84,7 @@ My unauthorized-unfreeze attack confirmed that distinction: a grammatical unfree
 
 The seven frozen features faithfully encode the core discretionary desk-hardening freeze. The usage measurement and flaky-test exceptions remain available through the named ruling.
 
-FEAT-025 active and FEAT-026 frozen are **reasonable seat inferences, not explicit feature-level decisions already present in D4**. Jake should confirm them together at checkpoint 2, as declared.
+FEAT-025 active and FEAT-026 frozen are **reasonable seat inferences, not explicit feature-level decisions already present in D4**. The owner should confirm them together at checkpoint 2, as declared.
 
 An active feature containing desk rows does not override D4. Likewise, moving a desk-related row into an active feature does not authorize discretionary desk hardening.
 
@@ -133,6 +133,6 @@ I did not rerun the full suite. The seat still owns the locked pre-land run on t
 | Earlier Markdown-parser limitations remain | Avoid unsupported HTML/comment, reference-definition, and indented-code constructions until targeted fixtures exist. |
 | Placement and sharing remain semantic judgments | This review improves confidence, not completeness. Future purpose and lifecycle changes require renewed judgment. |
 
-The nonblocking SHOULD items do not justify another implementation round. This ruling covers both increments together and does not replace Jake’s checkpoint-2 acceptance.
+The nonblocking SHOULD items do not justify another implementation round. This ruling covers both increments together and does not replace the owner's checkpoint-2 acceptance.
 
 VERDICT: LAND

@@ -1,6 +1,6 @@
 # Lane: bounded buffers in the desk server (branch `fix/buffers`)
 
-Worktree: `/private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-buffers`. Read `brief-common.md` next to this file first.
+Worktree: `/private/tmp/claude-501/-Users-example-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-buffers`. Read `brief-common.md` next to this file first.
 
 ## The open item (astra, medium; high availability impact with a hostile local producer)
 

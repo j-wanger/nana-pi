@@ -27,7 +27,7 @@ not solid" check. v5 folds everything.
   horizontal plane (rotations about the vertical axis by 90° and reflections across vertical
   planes, 8 elements). It permutes the four side facings, fixes top and 3D, fixes gravity along Y,
   and permutes gravity along X/Z consistently with the facings.
-- **A. "Jake may veto" reads as softening — NOTED, not a rule weakness.** The rules are stated
+- **A. "The owner may veto" reads as softening — NOTED, not a rule weakness.** The rules are stated
   firmly; the marker records whose call it is, per this repo's practice.
 - **D. Fixtures — folded:** fixture 1 gains room bounds and an alternate route; fixture 2 is the
   "false stair" room, whose `+Z` must now resolve to BLOCKED (true destination liquid is

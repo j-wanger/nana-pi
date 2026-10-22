@@ -6,7 +6,7 @@ Five MUSTs and two SHOULDs from round two are closed in the declaration:
 - The lock promise now includes the existing 15-second timeout.
 - Explicit empty verdicts refuse, while absent legacy fields do not.
 - Parenthesized scores and hyphenated verdicts have planned tests.
-- Jake’s tree checkpoint precedes the build, with subgroup homes named.
+- The owner's tree checkpoint precedes the build, with subgroup homes named.
 - Repository identity is checked before reviewed-revision resolution.
 - The replaced print-and-land clause moves from R-976 to R-1002.
 

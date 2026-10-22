@@ -15,7 +15,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LANE_REPO = "/Users/jwang/nana-pi-wt/cc-hooks-windows";
+const LANE_REPO = "/Users/example/nana-pi-wt/cc-hooks-windows";
 // The tip under test: SEAT_MUTATE_TIP, else the lane branch head (built at cfa1556 for the first run).
 const TIP = process.env.SEAT_MUTATE_TIP || "feat/cc-hooks-windows";
 const MAIN_REF = "7e6ce39"; // main = the lane's merge base; golden reference for pair 14's seat script

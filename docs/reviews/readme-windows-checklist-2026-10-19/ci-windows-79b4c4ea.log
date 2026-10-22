@@ -774,7 +774,7 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6977808Z   
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6979851Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-2036-0jREYg\adoption-reader-iRHaFX\r4` — has: nothing · last session 2026-10-17
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6981155Z   | …and 2 more
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6981501Z   | 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6983079Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6983079Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6984168Z   | 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6984549Z PASS c: tagged [nana:adoption], exit 0 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:31.6985123Z PASS c: newest first, capped at 5 
@@ -809,7 +809,7 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9030297Z   
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9032039Z   | 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9033871Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-2036-0jREYg\adoption-reader-iRHaFX\under_score-and-[seat](x)-~tildes~` — has: nothing · last session 2026-10-20
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9035388Z   | 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9036864Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9036864Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9038364Z   | 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9039725Z   | 10 entries were not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and were skipped.
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:44:32.9041038Z   | 
@@ -1463,7 +1463,7 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8461234Z PA
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8461951Z PASS table lone surrogate: locator decodes to the exact input 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8462889Z PASS table lone surrogate: promptPath one line, ≤ PATH_CAP 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8463662Z PASS table lone surrogate: promptText one line, no control 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8464552Z PASS table Windows path, mixed case: promptPath "C:\\Users\\Jake\\Repo\\A.TS" 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8464552Z PASS table Windows path, mixed case: promptPath "C:\\Users\\Owner\\Repo\\A.TS" 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8465458Z PASS table Windows path, mixed case: uiPath is the same rule 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8466162Z PASS table Windows path, mixed case: promptText 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:13.8466959Z PASS table Windows path, mixed case: uiText / fileField are the same rule 
@@ -1586,7 +1586,7 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4129574Z   
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4131248Z   | 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4133154Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-2036-EXHzZC\display-surfaces-KcQUhx\adopt\clean-repo` — has: nothing · last session 2026-10-20
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4134746Z   | 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4135856Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4135856Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4137314Z   | 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4138391Z   | 1 entry was not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and was skipped.
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:14.4139497Z   | 
@@ -1610,13 +1610,13 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0059179Z PA
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0059933Z PASS LANDED marker under Next is reported 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0060599Z PASS unresolvable item-of-Next reference is reported 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0061410Z PASS past explicit date is reported against injected clock 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0062315Z PASS each bullet or numbered Open for Jake entry without a tag is reported 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0062315Z PASS each bullet or numbered Open for the owner entry without a tag is reported 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.0684309Z PASS frozen 2026-10-06 rewrite passes on 2026-10-07 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1294021Z PASS LANDED is detected under the real parenthetical Open for Jake heading 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1295212Z PASS overdue dates are detected under the real parenthetical Open for Jake heading 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1296883Z PASS missing tags are detected under the real parenthetical Open for Jake heading 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1294021Z PASS LANDED is detected under the real parenthetical Open for the owner heading 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1295212Z PASS overdue dates are detected under the real parenthetical Open for the owner heading 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1296883Z PASS missing tags are detected under the real parenthetical Open for the owner heading 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.1981540Z PASS frozen pre-rewrite HANDOFF reports 12 findings and key drift categories 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.2580964Z PASS due cues in non-list Next and Open for Jake prose are scanned 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.2580964Z PASS due cues in non-list Next and Open for the owner prose are scanned 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.3264389Z PASS fenced examples do not create headings or findings 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.3894543Z PASS nested numbered sub-items cannot resolve item-of-Next references 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T01:45:15.4535283Z PASS nested Next heading remains in the enclosing section 
@@ -5588,7 +5588,7 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3262844Z Se
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3264176Z 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3265362Z - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-2036-ocFPK3\nana-ss1-unadopted-7080` — has: nothing · last session 2026-10-20
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3266210Z 
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3267158Z For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3267158Z For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:17.3268054Z 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:18.2187365Z PASS doctor: exit 0 nana-setup doctor — C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-2036-ocFPK3\nana-win32-exec-7080-space $x `y %z% o'q & ( ) ; ^
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:18.2189318Z 
@@ -6006,7 +6006,7 @@ suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.0313014Z PA
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.1303693Z PASS --not-a-project on a missing folder refuses with the reason 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.1349063Z all passed
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.1422024Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  1.0s
-suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.2092308Z PASS key(<home>/aml-desk) = <home-key>-aml-desk 
+suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.2092308Z PASS key(<home>/work-project) = <home-key>-work-project 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.2093687Z PASS key(<home>/.nana-worktrees/x) = <home-key>--nana-worktrees-x 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.2096119Z PASS key(<home>/nana-agent-loop) = <home-key>-nana-agent-loop 
 suite (windows-latest)	Run npm test -- --verbose	2026-10-20T02:08:40.2097610Z PASS key(<repo>) = <home-key>-nana-pi 

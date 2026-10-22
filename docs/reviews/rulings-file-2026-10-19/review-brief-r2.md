@@ -6,7 +6,7 @@ Review `git diff 5dc9fca..HEAD` on `feat/rulings-file`. `git merge-base HEAD fea
 
 Round 1 said LAND on `5dc9fca` from both reviewers. Since then:
 
-- `6df24de` (build 3, the builder) merges main `ca27d86`. Two code conflicts were import-list collisions with win-skill-occupied: `packages/nana-setup/lib/steps.mjs` keeps both import lines, and `packages/nana-setup/lib/doctor.mjs` keeps main's named imports plus this lane's `RULINGS_FILE` import. The builder grepped every call site of both lanes' names: the rulings doctor row sits beside the occupied-skill-folder refusal, nothing dropped. HANDOFF's Next queue now names trading-zone, not aml-desk (the owner's 2026-10-19 call).
+- `6df24de` (build 3, the builder) merges main `ca27d86`. Two code conflicts were import-list collisions with win-skill-occupied: `packages/nana-setup/lib/steps.mjs` keeps both import lines, and `packages/nana-setup/lib/doctor.mjs` keeps main's named imports plus this lane's `RULINGS_FILE` import. The builder grepped every call site of both lanes' names: the rulings doctor row sits beside the occupied-skill-folder refusal, nothing dropped. HANDOFF's Next queue now names trading-zone, not work-project (the owner's 2026-10-19 call).
 - `28b4701` (the seat) merges `ab5c3e8`, the bench-win lane's reviewed tip, which becomes main by fast-forward when its land finishes. HANDOFF and the session file kept both sides; the R-291 leaf total (now 1,266), the tree and code map were regenerated.
 
 The lane's own code and tests are unchanged since round 1 apart from the merged import lines.

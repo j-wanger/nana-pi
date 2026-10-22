@@ -4,7 +4,7 @@ Review the change declaration `docs/reviews/regroup-shares-2026-10-15/CHANGE.md`
 `e451c90`, the lift landed). Nothing is built yet. Read its "Seat revision (2026-10-15)" section: it folds in two
 fact-checks (`factcheck-repo.md`, `factcheck-proof.md`).
 
-Jake's ruling, 2026-10-10, approving nana-pi's tree: "we should allow multiple features pointing to the same
+The owner's ruling, 2026-10-10, approving nana-pi's tree: "we should allow multiple features pointing to the same
 requirements". The lift today refuses every `Also applies:` line; this lane lets it carry, add and drop shares under
 proof. The regroup lane (`feat/regroup`, plan frozen at `1066464`) consumes it; whichever lane lands second adds the two
 new grouping keys to the regroup checker's key list.

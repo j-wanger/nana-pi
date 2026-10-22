@@ -10,14 +10,14 @@ I read the synthesis first, all five reports and `common.md`, then the governing
 
 ### A1 — HIGH: The priority diagnosis overlooks a later human ruling
 
-The synthesis says product work “contradicts OBJECTIVE.md” regardless of whether Jake intended it. That is too categorical.
+The synthesis says product work “contradicts OBJECTIVE.md” regardless of whether the owner intended it. That is too categorical.
 
 Evidence:
 
 - `~/nana-agent-loop/OBJECTIVE.md` retains the umbrella-priority lane-opening rule.
-- But `~/.claude/nana-memory/shared/feedback_two_tier_memory_decentralized.md` records Jake’s **09-18** ruling: product-local objectives, frontiers and sessions; nearest `OBJECTIVE.md` wins.
+- But `~/.claude/nana-memory/shared/feedback_two_tier_memory_decentralized.md` records the owner's **09-18** ruling: product-local objectives, frontiers and sessions; nearest `OBJECTIVE.md` wins.
 - `packages/nana-pack/extensions/nana-objective.ts:22–26` explicitly says product sessions are charged against the product’s two lines.
-- `~/the-hive/docs/sessions/2026-09.md` records repeated explicit product steering from Jake.
+- `~/the-hive/docs/sessions/2026-09.md` records repeated explicit product steering from the owner.
 - `~/jev-research/docs/sessions/2026-09.md` describes work specifically intended to investigate a **local tool-result judge for nana-pi**.
 
 Therefore:
@@ -106,9 +106,9 @@ The table bundles unrelated changes under single ranks and substantially underpr
 | **#5 + #11 objective producer** | Move the hierarchy decision and producer unification ahead of implementing new priority fields. Otherwise two implementations receive another policy change before their contract is settled. |
 | **#4 cap/budget** | Keep high, after defining “item,” “round,” retries and dual-review behavior. Split launcher correctness, review accounting and worker budgeting. |
 | **#6 retrieval** | Instrument baseline and index health before filtering and reranking. It currently changes the treatment before measuring the original system. |
-| **#1 WIP** | Move the hard limit down to a bounded, Jake-approved experiment. Keep queue deduplication, ordering and cheap feel preparation high. |
+| **#1 WIP** | Move the hard limit down to a bounded, Owner-approved experiment. Keep queue deduplication, ordering and cheap feel preparation high. |
 | **#8 `/goal`** | Move below a real-launch smoke test and trial. “Every worker” is premature. |
-| **#9 runner hooks** | Make conditional on Jake’s ruling and a narrower hook contract; inactivity is not sufficient authorization to disable all ceremony. |
+| **#9 runner hooks** | Make conditional on the owner's ruling and a narrower hook contract; inactivity is not sufficient authorization to disable all ceremony. |
 | **#10 consistency probe** | Retain as exploratory sampling, not a diagnosis that can clear worker consistency after three successes. |
 | **#12–14** | Keep below correctness/activation work. Do not bundle low-risk documentation cleanup with context mutation or model integration. |
 
@@ -132,19 +132,19 @@ The inferred dormant-runner extension escape, Opus C10, need not become active w
 
 ## C. Harm if adopted — items 1–6
 
-### #1 — HIGH: A per-repo WIP ceiling can freeze useful work without limiting Jake’s queue
+### #1 — HIGH: A per-repo WIP ceiling can freeze useful work without limiting the owner's queue
 
 What breaks:
 
-- Jake is a **shared** resource. Three items in each of ten repositories still permits thirty asks.
+- The owner is a **shared** resource. Three items in each of ten repositories still permits thirty asks.
 - The current lists mix active blockers, optional feel requests, dormant work and duplicated product pointers. Counting all of them can freeze a repo indefinitely.
 - It rewards hiding questions, combining unrelated decisions into one item, or opening another repository.
-- “Only queue-consuming work” can send agents back to instruments and machinery—the default Jake has repeatedly rejected.
+- “Only queue-consuming work” can send agents back to instruments and machinery—the default the owner has repeatedly rejected.
 - A proxy walk can become a checkbox that authorizes hardening despite unresolved product direction.
 
 **Safer contract:** deduplicate first; distinguish blocking decisions from optional asks and parked work; limit **new work that creates additional human dependencies**, not all work in a repo. Preserve already-approved autonomous execution and urgent safety repairs. Pilot a program-wide active decision limit with explicit exceptions.
 
-The feel sequence must preserve the raw PM report’s **safety-code exemption** and “seat checks integration before involving Jake” qualification.
+The feel sequence must preserve the raw PM report’s **safety-code exemption** and “seat checks integration before involving the owner” qualification.
 
 ### #2 — HIGH: Age-based suppression can erase the only surviving live constraint
 
@@ -206,7 +206,7 @@ What breaks:
 - Checking the newest archive entry may credit an earlier session—or miss the current one, since the-hive’s archive is not consistently newest-first.
 - A score-token target rewards ritual `CLEAR` labels rather than honest priority assessment.
 
-**Safer contract:** Jake first rules on hierarchy and expiry. Then record the actual session’s priority relation, decision and score using session identity—not a grep of the first archive entry. Advisory failure should not block shutdown. A CANNOT marker must have a visible reader.
+**Safer contract:** the owner first rules on hierarchy and expiry. Then record the actual session’s priority relation, decision and score using session identity—not a grep of the first archive entry. Advisory failure should not block shutdown. A CANNOT marker must have a visible reader.
 
 ### #6 — MED: The proposed retrieval test can manufacture its own negative result
 
@@ -277,13 +277,13 @@ Use labels to require **adjudication**, not to prohibit consequential reasoning.
 - **Raw discard count** can fall merely because fewer items are attempted. Measure avoidable rework per accepted/delivered item, elapsed time and blocked time.
 - **Citation spread after pruning** changes with the denominator.
 - **Cost-only output-cap evaluation** cannot detect deleted evidence or poorer task outcomes. Preserve full outputs, restore access and quality/safety checks.
-- **Recurrence=2→mechanize** is a useful trigger for investigation, not an unconditional construction order. Jake’s subtraction rule requires outcome value.
+- **Recurrence=2→mechanize** is a useful trigger for investigation, not an unconditional construction order. The owner's subtraction rule requires outcome value.
 
-## E. Open for Jake — FINDINGS
+## E. Open for the owner — FINDINGS
 
 ### E1 — HIGH: The first ask forces a conclusion before resolving the policy conflict
 
-“Either way … contradicts OBJECTIVE.md” makes Jake choose between admitting mis-steering and editing the document. The legitimate third answer is that the **09-18 decentralization ruling changed the intended hierarchy** and the umbrella contract was not reconciled.
+“Either way … contradicts OBJECTIVE.md” makes the owner choose between admitting mis-steering and editing the document. The legitimate third answer is that the **09-18 decentralization ruling changed the intended hierarchy** and the umbrella contract was not reconciled.
 
 ### E2 — MED: The list asks too much presentation work and omits consequential decisions
 
@@ -294,7 +294,7 @@ The seat should:
 - propose a bounded WIP trial;
 - choose test details and ordinary corrective implementation sequencing.
 
-Jake should decide priority authority, permissible stopping behavior, platform commitment and whether deferred acceptance gating may reopen.
+The owner should decide priority authority, permissible stopping behavior, platform commitment and whether deferred acceptance gating may reopen.
 
 A replacement list, each answerable in one line:
 
@@ -337,7 +337,7 @@ For #6 and #14, pure offline analysis needs ordinary tests. Wiring them into pro
 3. Specify safe contracts for items 1–6, especially handoff retention/writers, gate exceptions and review-round identity.
 4. Keep `/goal` distinct from deterministic acceptance and hard budgeting; preserve the human-deferred receipt-gate decision.
 5. Reorder work around concrete defects and dependencies: config safety, gate/handoff boundaries, canonical tests, objective authority, then instruments and trials.
-6. Replace the Open-for-Jake list with explicit policy choices; do not auto-expire work or disable closure checks before those rulings.
+6. Replace the Open-for-Owner list with explicit policy choices; do not auto-expire work or disable closure checks before those rulings.
 
 ## SHOULD
 

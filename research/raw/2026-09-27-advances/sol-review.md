@@ -20,9 +20,9 @@
 
 **Finding.** **[PRIMARY]** The governing file says a new lane opens only by editing the umbrella priority and every session must answer against both umbrella lines (`nana-agent-loop/OBJECTIVE.md:5-13`). The implementations instead make the nearest product `OBJECTIVE.md` govern and append only the umbrella **Objective** line. The TypeScript extractor searches only `**Objective` (`nana-objective.ts:169-171`); the shell hook does the same (`nana-objective.sh:18`). The test blesses this behavior by asserting the umbrella priority text is absent (`packages/nana-pack/tests/objective-injection.test.mjs:209-230`).
 
-**Why it matters.** **[PRIMARY+SECONDARY, inferred]** The 09-16 mechanism gap was lane ranking, not merely forgotten wording: 20/39 September entries began with Jake naming a direction, while the agent did not rank/cost/close it (`session-spend-vs-objective.md:101-103`); September objective answerability was 4/39 (`:120-127`). A local product priority may rightly govern execution, but hiding the umbrella current priority means the implementation cannot enforce the umbrella rule it claims to enforce.
+**Why it matters.** **[PRIMARY+SECONDARY, inferred]** The 09-16 mechanism gap was lane ranking, not merely forgotten wording: 20/39 September entries began with the owner naming a direction, while the agent did not rank/cost/close it (`session-spend-vs-objective.md:101-103`); September objective answerability was 4/39 (`:120-127`). A local product priority may rightly govern execution, but hiding the umbrella current priority means the implementation cannot enforce the umbrella rule it claims to enforce.
 
-**Cheapest fix/test.** **[recommendation; low cost]** Append both umbrella lines when a project objective wins, label them “program objective” and “program current priority,” and require one explicit sentence saying whether the session serves the program priority or is an approved product exception. Add one cross-runtime golden test in a nested product cwd asserting all four lines are identical in Claude and pi. Falsifier: if Jake explicitly rules that product priorities supersede the umbrella priority, amend `OBJECTIVE.md` and remove the conflicting “new lane” claim instead.
+**Cheapest fix/test.** **[recommendation; low cost]** Append both umbrella lines when a project objective wins, label them “program objective” and “program current priority,” and require one explicit sentence saying whether the session serves the program priority or is an approved product exception. Add one cross-runtime golden test in a nested product cwd asserting all four lines are identical in Claude and pi. Falsifier: if the owner explicitly rules that product priorities supersede the umbrella priority, amend `OBJECTIVE.md` and remove the conflicting “new lane” claim instead.
 
 ## A2 — HIGH: post-edit evidence is built but inactive where nana itself is developed
 
@@ -44,7 +44,7 @@
 
 **Finding.** **[PRIMARY+PRIMARY-RUNTIME]** `apps/desk` remains described as “the product surface” (`nana-pi/HANDOFF.md:17`), but its feel check remains open (`HANDOFF.md:38`). The launchd process has run since 09-16 on ports 7317/7320/7321 and `/api/live` returned `[]`. Its source has not changed since 09-16. The desk has strong tests, but no current usage instrument was found.
 
-**Subtraction candidate / turn-it-off test.** **[recommendation; low cost]** Stop the launchd service for seven days while leaving source and sessions untouched; record any explicit need to restart it. If none occurs, keep desk install opt-in and remove it from “whole experience” health claims. Falsifier: Jake reaches for it or a product depends on its listeners during the week.
+**Subtraction candidate / turn-it-off test.** **[recommendation; low cost]** Stop the launchd service for seven days while leaving source and sessions untouched; record any explicit need to restart it. If none occurs, keep desk install opt-in and remove it from “whole experience” health claims. Falsifier: the owner reaches for it or a product depends on its listeners during the week.
 
 ## A5 — What demonstrably fits
 
@@ -257,7 +257,7 @@
 **Do not respond by building another controller.** **[SECONDARY+inferred]** The historical evidence says ceremony and repeated review became their own spend. The cheapest path is subtraction plus four small instruments: program-priority parity, effective-check health, item-based review count, and retrieval-use correlation. If those do not move consistency, that falsifies the current theory faster than more autonomy machinery.
 
 VERDICT: DONE
-MOST-LIKELY-WRONG 1/5 — The product-priority behavior may be Jake’s intended exception, in which case the implementation is right and `OBJECTIVE.md` is the stale contract.
+MOST-LIKELY-WRONG 1/5 — The product-priority behavior may be the owner's intended exception, in which case the implementation is right and `OBJECTIVE.md` is the stale contract.
 MOST-LIKELY-WRONG 2/5 — Zero receipts may reflect deliberate non-dogfood while checks run through other commands, making the practical blast smaller than I rank it.
 MOST-LIKELY-WRONG 3/5 — The desk may be used through a browser without live children at my observation instant, so a one-week turn-off could inconvenience real use.
 MOST-LIKELY-WRONG 4/5 — Pi’s provider timeout may not catch the exact Codex subscription/WebSocket stall that motivated CPU polling, so replacing it may regress recovery.

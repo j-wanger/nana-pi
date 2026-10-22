@@ -9,12 +9,12 @@ and R-992; R-969 and R-992 are shared with FEAT-008).
 Order: why → plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan
 review (item `land-rule-plan`; r1–r3 SEND-BACK, answered in `sol-plan-r1-response.md`,
 `sol-plan-r2-response.md` and `sol-plan-r3-response.md`; r4 over the cap, SEND-BACK, answered in
-`sol-plan-r4-response.md`; r5 LAND-WITH-FIXES 9/10, its one SHOULD taken in §5) → Jake's tree decisions (checkpoint 1, before the build) → build → seat
-verification → sol build review → astra land review → Jake accepts (checkpoint 2).*
+`sol-plan-r4-response.md`; r5 LAND-WITH-FIXES 9/10, its one SHOULD taken in §5) → the owner's tree decisions (checkpoint 1, before the build) → build → seat
+verification → sol build review → astra land review → the owner accepts (checkpoint 2).*
 
 ## 1. Why
 
-Jake, 2026-10-10, on "should unreviewed follow-up commits and any-reason exemptions keep landing on
+The owner, 2026-10-10, on "should unreviewed follow-up commits and any-reason exemptions keep landing on
 main?": "No, anything landed on main should be accepted by an independent reviewer."
 
 Today `nana-land merge` accepts reviewed ancestors and only PRINTS the commits no review covers,
@@ -67,7 +67,7 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 |---|---|---|
 | R-976 | reworded (drops "WHEN reviews are required"; its print-and-land clause is superseded by R-1002, whose tests take over the exact-commit cases; R-976 keeps the ancestor, item, revision, plain-commit, verified-LAND and unverified cases) | The land merge command shall accept only plain ancestor-or-equal reviewed commits with a verified LAND round for the exact item and revision. |
 | R-977 | reworded ("success records" → "a success report"; the stubs go) | The land merge command shall run the supplied suite in the source tree, recheck immediately before merging that the checkout is on main with clean tracked state and HEAD equal to captured main HEAD, run one ff-only merge of the tip, and require main to remain current with its ref at the tip and clean tracked state before it reports success; detected branch switches during merge prevent a success report, while a switch between the final check and merge is not defended. |
-| R-978 | retired (text kept; Evidence: "retired 2026-10-10: Jake ruled that nothing reaches main unless an independent reviewer accepted it; the exemption is removed (R-1003)") | unchanged |
+| R-978 | retired (text kept; Evidence: "retired 2026-10-10: the owner ruled that nothing reaches main unless an independent reviewer accepted it; the exemption is removed (R-1003)") | unchanged |
 | R-588 | reworded ("success records" → "success output") | WHEN a land merge succeeds, the land merge command shall print the main checkout's post-merge release status, a release-status failure leaving its exit code and success output unchanged. |
 | R-1002 | added | IF any commit the land merge command would add to main is not an ancestor of, or equal to, a named reviewed revision, THEN the command shall refuse without merging, naming each such commit. |
 | R-1003 | added | The land merge command shall accept only `--tree`, `--main`, `--suite` and `--reviewed`, refusing any other option by name before running git. |
@@ -89,8 +89,8 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 | R-970 | reworded (one line per round → per recorded verdict) | The review-ledger report command shall print one read-only line per recorded verdict with item, short revision, role, model, duration, attempts, verdict and over-cap reason, using - for unavailable legacy fields. |
 | R-992 | reworded (rounds → round records, one per completed verdict) | The exported readRounds(home, {repo, item}) reader shall return the recorded round records, one per completed verdict, without writing the ledger. |
 
-**Tree changes for Jake — checkpoint 1 (governance: Jake decides shares and purposes; the seat
-proposes). Jake, 2026-10-10: "Yes to both." The seat applied both after build 1, regenerated the
+**Tree changes for the owner — checkpoint 1 (governance: the owner decides shares and purposes; the seat
+proposes). The owner, 2026-10-10: "Yes to both." The seat applied both after build 1, regenerated the
 outline, and re-read FEAT-008's other five shares against the new purpose: R-705 (one review scope per
 repository — the repository-wide check and R-1009 rely on it), R-708 (snapshot revisions record their
 head — R-1004 and R-1006 match on it), R-717 (a changed-tree verdict is not valid — unverified records
@@ -173,7 +173,7 @@ land rule and the every-verdict records govern every repo's lands and reviews th
 merges (other repos are reviewing today). Lane worktrees use those linked commands, not their own
 copies; only old code run directly from an older worktree's files meets the new tally, and it
 fails closed on the first version-2 record (§4). Both halves land in one merge. `nana-setup project` and `adopt-structure` read the shared section from the main checkout
-at merge; copier consumers get it at the next template tag, which needs main pushed (Jake's call).
+at merge; copier consumers get it at the next template tag, which needs main pushed (Owner's call).
 
 ## 4. Design
 
@@ -254,7 +254,7 @@ acceptance script runs every case in §3's test list against scratch git reposit
 pointed at a scratch folder (the CLI otherwise writes into the real round records), and the builder
 pastes its last two lines verbatim.
 
-## 7. Checkpoints (Jake)
+## 7. Checkpoints (Owner)
 
 1. **Before the build:** the two tree changes in §2 (the R-1008 share with FEAT-008; FEAT-008's
    purpose).

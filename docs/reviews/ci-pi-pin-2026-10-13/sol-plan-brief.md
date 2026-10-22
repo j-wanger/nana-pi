@@ -3,7 +3,7 @@
 Review the change declaration `CHANGE.md` in this folder: CI pins pi's dependency resolution with npm's
 `--before` after `@earendil-works/pi-codemode` 1.2.0 (2026-10-12 23:00Z) broke fresh installs of pi 1.0.2 for
 code that imports pi's modules (18 macOS suite files red since then; main's run 38393632339 included). Lane
-class: small and URGENT (Jake 2026-10-11: urgent fixes ship alone, harden later; a small lane gets ONE plan
+class: small and URGENT (Owner 2026-10-11: urgent fixes ship alone, harden later; a small lane gets ONE plan
 review — so say everything now). Threat model: honest variation in our tools and registries in scope; deliberate
 forgery out.
 
@@ -18,6 +18,6 @@ cutoff's provenance and window are right (you may run `npm view` and scratch ins
 `--prefix`; never install globally); (2) the three rows each have one `shall`, and the §5 checks pin every
 clause (would each named mutation really turn its check red?); (3) nothing in §3's "What NOT to do" is the
 better fix; (4) the sequencing with feat/install-check; (5) the residuals and the decisions the seat took in §6
-(README follow-up lane; stay on pi 1.0.2) — say if either should be Jake's call instead; (6) anything that
+(README follow-up lane; stay on pi 1.0.2) — say if either should be the owner's call instead; (6) anything that
 should block the build. Answer with MUST / SHOULD / NOTE, file:line, evidence and the smallest fix; a score out
 of 100; the last line exactly one of `VERDICT: LAND`, `VERDICT: LAND-WITH-FIXES`, `VERDICT: SEND-BACK`.

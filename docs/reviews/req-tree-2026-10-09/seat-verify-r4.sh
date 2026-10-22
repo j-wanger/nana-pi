@@ -1,6 +1,6 @@
 #!/bin/bash
 # Seat check of the astra r4 fixes and amendment A1, on scratch copies only.
-W=/Users/jwang/nana-pi-wt/req-tree
+W=/Users/example/nana-pi-wt/req-tree
 SHA=6b9202a501a7fe03dfc834ab34cdfc212f6d92ce
 AM=$(git -C "$W" log --format=%H -1 -- docs/reviews/req-tree-2026-10-09/amendment-A1.json)
 T=$(mktemp -d)
@@ -12,7 +12,7 @@ for id in R-287 R-288 R-289 R-290 R-291; do
   python3 - "$id" "$T/$id.md" <<'EOF'
 import sys
 i,out=sys.argv[1],sys.argv[2]
-L=open('/Users/jwang/nana-pi-wt/req-tree/REQUIREMENTS.md').read().split('\n')
+L=open('/Users/example/nana-pi-wt/req-tree/REQUIREMENTS.md').read().split('\n')
 k=next(n for n,l in enumerate(L) if l.startswith(f'| {i} |'))
 c=L[k].split('|'); c[3]=' untested '; c[4]=' — '; L[k]='|'.join(c)
 open(out,'w').write('\n'.join(L))
@@ -21,7 +21,7 @@ EOF
 done
 python3 - "$T/line11.md" <<'EOF'
 import sys
-L=open('/Users/jwang/nana-pi-wt/req-tree/REQUIREMENTS.md').read().split('\n')
+L=open('/Users/example/nana-pi-wt/req-tree/REQUIREMENTS.md').read().split('\n')
 L[10]=L[10].replace('R-292–R-299 stay the reserve','R-293–R-299 stay the reserve',1)
 open(sys.argv[1],'w').write('\n'.join(L))
 EOF

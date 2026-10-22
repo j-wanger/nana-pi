@@ -38,7 +38,7 @@ source; counted the live review ledger; ran land.test.mjs on a scratch copy of p
    module-private (review-round.mjs:413, no export). It is reachable only through `complete()`. It reads the final non-blank
    line when that line carries `verdict:`, else the first line (R-969).
 4. §5 fixture "this Mac's real `{"objective":{"projectFile":"OBJECTIVE.md"}}`": the real file also holds
-   `"path": "/Users/jwang/nana-agent-loop/OBJECTIVE.md"`. Keep the trimmed fixture, but drop the word "real".
+   `"path": "/Users/example/nana-agent-loop/OBJECTIVE.md"`. Keep the trimmed fixture, but drop the word "real".
 5. §6 item 5 "a Known-limits line, as for `objective`": the desk README has no objective Known-limits line. The editor note at
    apps/desk/README.md:272-273 already says unknown top-level keys are refused by name, which covers `roster`.
 6. Acceptance "an empty diff from `9974218` on `pi-review.mjs`": process edits pi-review.mjs (review-standard append). After
@@ -82,10 +82,10 @@ source; counted the live review ledger; ran land.test.mjs on a scratch copy of p
     - R-1126/R-1127's clause "on the revision the reviewer accepted" has no mutation pair.
 15. No inline tunables: the plan never says where the `seat-land` role and `review-ledger seat-land` launcher strings are
     defined. The R-1125 guard compares on the launcher string, and the tests need it too. Define it once with R-1124 as
-    provenance; tests import it. ROSTER_DEFAULTS provenance should also name R-1120, beside Jake's ruling.
+    provenance; tests import it. ROSTER_DEFAULTS provenance should also name R-1120, beside the owner's ruling.
 16. Placement notes:
     - R-1126 goes to SUB-012 (installer delivery), while the existing nana-soul content row R-682 is homed in SUB-005.
-      Moving a row's home is Jake's call; name it.
+      Moving a row's home is the owner's call; name it.
     - R-291's 1,088 literal sits at requirements-tree.test.mjs:38 (title), :52 (assertion) and :53 (message). The plan lists
       only the title, and under the templates-render bullet.
     - review-ledger.mjs's @purpose (round cap hook) gains a second job; update its header @inputs and @errors.

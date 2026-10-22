@@ -4,7 +4,7 @@ Review `git diff 9974218..HEAD` on `feat/process` (based on `main` `9974218`). T
 tools' output in scope (a reviewer that writes its verdict first; another repo's brief; a missing or blank standard
 file); deliberate forgery out. Lane class: FORMAT — it changes what every reviewer and builder is told.
 
-**Materiality bar (Jake, 2026-10-13) — apply it to every finding.** A MUST is a defect a real user or one of our own
+**Materiality bar (Owner, 2026-10-13) — apply it to every finding.** A MUST is a defect a real user or one of our own
 tools would plausibly hit, with a consequence that matters: data lost or corrupted, a security or review boundary
 bypassed in practice, wrong output someone acts on, a broken install or hook, or a regression of behaviour main has
 today. Name the realistic input and the consequence; if you cannot, it is a SHOULD or NOTE. Contrived inputs, rare
@@ -21,7 +21,7 @@ macOS suite and both install-check jobs green. Also `HANDOFF.md` and the session
 
 Check: (1) `pi-review` still starts, records and lands reviews for every existing caller — this repo and the other
 repos that run it from main — and refuses only when the standard file is missing, a directory or blank; (2) the
-shared working-pattern text says what Jake ruled and nothing a downstream project would trip on (it fans out through
+shared working-pattern text says what the owner ruled and nothing a downstream project would trip on (it fans out through
 `nana-setup project`); (3) the builder preamble and the README step 8; (4) each row has one `shall` and a cited test
 that pins it; (5) the HANDOFF lines and session entry are true; (6) any MUST under the bar. MUST / SHOULD / NOTE with
 file:line, evidence and the smallest fix; a score; the last line exactly `VERDICT: LAND` or `VERDICT: SEND-BACK`.

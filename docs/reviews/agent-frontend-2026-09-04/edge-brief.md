@@ -4,7 +4,7 @@ You are an independent, adversarial reviewer. The author is an AI seat; assume i
 
 ## What was built (author's claim)
 
-Slice 2 of the UI-centric agent frontend (design: `/Users/jwang/nana-pi/docs/agent-frontend-design-2026-09-04.md`, §11 is this slice). A research desk over `~/edge-screener`: a Python MCP server returns code-authored presentation blocks (`structuredContent.blocks`); `pi-mcp-adapter` (direct tools from `edge-screener/.pi/mcp.json`, `directToolResultDetails: "bounded"`) exposes them under `details.mcpResult`; the `nana-stage` pi extension validates, stamps, signs, ledgers them and replaces the tool text with a canonical rendering; the desk server's per-app listener serves the app's own page plus three "data" routes that run manifest-declared commands for app-owned durable state.
+Slice 2 of the UI-centric agent frontend (design: `/Users/example/nana-pi/docs/agent-frontend-design-2026-09-04.md`, §11 is this slice). A research desk over `~/edge-screener`: a Python MCP server returns code-authored presentation blocks (`structuredContent.blocks`); `pi-mcp-adapter` (direct tools from `edge-screener/.pi/mcp.json`, `directToolResultDetails: "bounded"`) exposes them under `details.mcpResult`; the `nana-stage` pi extension validates, stamps, signs, ledgers them and replaces the tool text with a canonical rendering; the desk server's per-app listener serves the app's own page plus three "data" routes that run manifest-declared commands for app-owned durable state.
 
 Kit changes (nana-pi):
 - `packages/nana-stage/lib/blocks.mjs` — new `chart` block type (line series, ≤4 series, ≤1000 points, monotonic x, finite/null y) + `summarizeSeries`/`fmtY` text rendering.
@@ -17,7 +17,7 @@ Kit changes (nana-pi):
 App side (edge-screener):
 - `src/edge_screener/desk/reports.py` (markdown-table reading with line refs), `blocks.py` (builders), `data.py` (tape/shelf/roster JSON), `mcp_server.py` (mcp 2.x `MCPServer`, tools return `CallToolResult` with one-line text + structured blocks).
 - `scripts/desk_oos_series.py` (offline precompute → `reports/desk/oos-<screen>.json`), `desk/index.html|app.js|app.css` (the page), `.pi/mcp.json` (adapter config: direct tools, no prefix, eager, detailsMaxBytes 65536), `tests/unit/test_desk_blocks.py`.
-- Manifest (outside repos): `/Users/jwang/.pi/agent/apps/edge.json`.
+- Manifest (outside repos): `/Users/example/.pi/agent/apps/edge.json`.
 
 ## Dimensions — report PASS or FINDING (severity: BLOCKER / MAJOR / MINOR) for each
 
@@ -32,10 +32,10 @@ App side (edge-screener):
 
 ## Files to read (all of them)
 
-nana-pi: `/Users/jwang/nana-pi/packages/nana-stage/lib/blocks.mjs`, `/Users/jwang/nana-pi/packages/nana-stage/extensions/nana-stage.ts`, `/Users/jwang/nana-pi/apps/desk/apps.mjs`, `/Users/jwang/nana-pi/apps/desk/public/stage/stage.js`, `/Users/jwang/nana-pi/apps/desk/public/stage/stage.css`, `/Users/jwang/nana-pi/apps/desk/test/app-listener.test.mjs`, `/Users/jwang/nana-pi/apps/desk/test/stage-chain-edge.e2e.mjs`, `/Users/jwang/nana-pi/packages/nana-stage/tests/blocks.test.mjs`, `/Users/jwang/nana-pi/docs/agent-frontend-design-2026-09-04.md` (§3, §5, §8, §11).
-edge-screener: `/Users/jwang/edge-screener/src/edge_screener/desk/reports.py`, `blocks.py`, `data.py`, `mcp_server.py` (same dir), `/Users/jwang/edge-screener/scripts/desk_oos_series.py`, `/Users/jwang/edge-screener/desk/index.html`, `app.js`, `app.css` (same dir), `/Users/jwang/edge-screener/.pi/mcp.json`, `/Users/jwang/edge-screener/tests/unit/test_desk_blocks.py`, `/Users/jwang/edge-screener/reports/edge-verdict-corrected-live.md` (to check refs).
-manifest: `/Users/jwang/.pi/agent/apps/edge.json`.
-adapter (for dimension 2): `/Users/jwang/.pi/agent/npm/node_modules/pi-mcp-adapter/config.ts` (getMergedSettings, getConfigSources), `direct-tools.ts`, `mcp-output-guard.ts`.
+nana-pi: `/Users/example/nana-pi/packages/nana-stage/lib/blocks.mjs`, `/Users/example/nana-pi/packages/nana-stage/extensions/nana-stage.ts`, `/Users/example/nana-pi/apps/desk/apps.mjs`, `/Users/example/nana-pi/apps/desk/public/stage/stage.js`, `/Users/example/nana-pi/apps/desk/public/stage/stage.css`, `/Users/example/nana-pi/apps/desk/test/app-listener.test.mjs`, `/Users/example/nana-pi/apps/desk/test/stage-chain-edge.e2e.mjs`, `/Users/example/nana-pi/packages/nana-stage/tests/blocks.test.mjs`, `/Users/example/nana-pi/docs/agent-frontend-design-2026-09-04.md` (§3, §5, §8, §11).
+edge-screener: `/Users/example/edge-screener/src/edge_screener/desk/reports.py`, `blocks.py`, `data.py`, `mcp_server.py` (same dir), `/Users/example/edge-screener/scripts/desk_oos_series.py`, `/Users/example/edge-screener/desk/index.html`, `app.js`, `app.css` (same dir), `/Users/example/edge-screener/.pi/mcp.json`, `/Users/example/edge-screener/tests/unit/test_desk_blocks.py`, `/Users/example/edge-screener/reports/edge-verdict-corrected-live.md` (to check refs).
+manifest: `/Users/example/.pi/agent/apps/edge.json`.
+adapter (for dimension 2): `/Users/example/.pi/agent/npm/node_modules/pi-mcp-adapter/config.ts` (getMergedSettings, getConfigSources), `direct-tools.ts`, `mcp-output-guard.ts`.
 
 ## Output format
 

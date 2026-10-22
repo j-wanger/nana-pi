@@ -56,15 +56,15 @@ R-1004 only says a completed “verdict” that is not LAND refuses. R-1010 says
 
 ---
 
-### MUST — Jake’s tree decision is scheduled after the builder changes the tree
+### MUST — the owner's tree decision is scheduled after the builder changes the tree
 
 **Location:** `docs/reviews/land-rule-2026-10-10/CHANGE.md:4-9,70-86,196-199`; `REQUIREMENTS.md:23-25,34-38,47-51`
 
-**Evidence:** The declaration proposes a new share and a feature-purpose change, both reserved for Jake. Yet its stated order places Jake’s acceptance after build and land review. Requirements-first requires the requirement delta before tests and code, while governance says Jake decides shares and purposes.
+**Evidence:** The declaration proposes a new share and a feature-purpose change, both reserved for the owner. Yet its stated order places the owner's acceptance after build and land review. Requirements-first requires the requirement delta before tests and code, while governance says the owner decides shares and purposes.
 
 The declaration also calls FEAT-007 the home for all affected rows, although a subdivided feature requires subgroup homes. R-1010 belongs with result acceptance, while R-1008 and the storage/report rows belong with record protection and inspection.
 
-**Smallest fix:** Move Jake’s checkpoint before build. Name the exact subgroup home for each new row. Keep the proposed R-1008 share and purpose change out of the builder brief until Jake accepts them.
+**Smallest fix:** Move the owner's checkpoint before build. Name the exact subgroup home for each new row. Keep the proposed R-1008 share and purpose change out of the builder brief until the owner accepts them.
 
 ---
 

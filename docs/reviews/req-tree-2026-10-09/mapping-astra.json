@@ -1,9 +1,9 @@
 {
  "source": {
-  "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
+  "author": "astra (gpt-6-astra), separate session with the owner, 2026-10-09",
   "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
   "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
-  "note": "Extracted verbatim from the explorer page Jake uploaded; only capability/feature/subgroup structure, purposes, outcomes and row membership are kept. Row text is NOT copied: REQUIREMENTS.md is the only copy."
+  "note": "Extracted verbatim from the explorer page the owner uploaded; only capability/feature/subgroup structure, purposes, outcomes and row membership are kept. Row text is NOT copied: REQUIREMENTS.md is the only copy."
  },
  "purpose": "Help a developer turn project goals into useful software through agent work that remains understandable, bounded, verifiable, and reusable across projects.",
  "outcomes": [

@@ -1,4 +1,4 @@
-You are a careful senior engineer and data analyst working headless for Jake Wang's nana program. Terse reporting; every number reproducible by a command you name. A null or unresolved result is a real result. Never end your turn while a command you started is still running.
+You are a careful senior engineer and data analyst working headless for the owner's nana program. Terse reporting; every number reproducible by a command you name. A null or unresolved result is a real result. Never end your turn while a command you started is still running.
 
 # Worker brief — lane U2, land-ruling implementation (astra BLOCK 6/10)
 
@@ -70,7 +70,7 @@ do the same there or say in the report that none exists.
   lane is not doing.
 - Do not add the relocated `settings.json` / `auth.json` to the policy floor (separate urgent item).
 - Do not change the deleted-cwd STOP, the desk pin, or the installer refusal — all three are ruled.
-- Do not touch the already-generated `AGENTS.md` in other repositories (`~/aml-desk`,
+- Do not touch the already-generated `AGENTS.md` in other repositories (`~/work-desk`,
   `~/jev-research`); the seat carries that as a downstream refresh.
 
 ## Allowlist

@@ -20,7 +20,7 @@ All four findings REAL; all folded into v4. One fold simplifies v1 rather than a
 - **B. Switch to 3D has no collapsed axis — REAL, and it exposes that re-embedding is vacuous in
   v1.** Because every move requires the mover's TRUE destination to be free of solid and entities,
   the true world is always consistent; no view change can put an entity inside solid or on top of
-  another. v4 states this as an invariant and RESERVES §3.6 (push-out, else loss — Jake's ruling)
+  another. v4 states this as an invariant and RESERVES §3.6 (push-out, else loss — the owner's ruling)
   for the moment a cell can change under an entity (agent edits, elements such as ice). The
   chasm mechanic survives unchanged: in top view you walk onto a true cell above the gap, switch
   to side view, and fall on the next tick.
@@ -29,7 +29,7 @@ All four findings REAL; all folded into v4. One fold simplifies v1 rather than a
   Side view with visible gravity → 2; side view with gravity collapsed or off → 4; top → 4;
   3D with gravity on → 4, off → 6.
 - **B. No jump makes dry upward exits unreachable — REAL as a design fact.** v4 adds **step-up**
-  as the v1 default (Jake may veto): a `move` into a solid cell succeeds as a move to the cell
+  as the v1 default (Owner may veto): a `move` into a solid cell succeeds as a move to the cell
   above it if that cell and the cell above the mover are both free; one cell only. It is the
   minimal platformer verb, keeps the state finite, and applies in every view where gravity is
   visible. Boxes are never stepped onto by pushing.

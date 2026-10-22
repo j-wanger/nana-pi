@@ -215,12 +215,12 @@ This lane carries the reviewer's SHOULD from the session-start lane.
 ## Known bugs (recorded, no lane now)
 
 - **KB1:** review-round hashes working-tree bytes. On Windows with `core.autocrlf=true` and no eol attribute, every review records `+snap`, so nana-land refuses every land. nana-pi itself is safe because it uses eol=lf.
-- **KB2:** a committed 100755 file never reads clean on Windows, because NTFS has no exec bit. nana-pi has 10 such files, so a land from a Windows seat on nana-pi refuses (the same R-708 harm). Inferred, never seen in a log. KB1 and KB2 make one later gate lane, "a clean Windows checkout reads clean". It is needed only if Jake lands from Windows.
+- **KB2:** a committed 100755 file never reads clean on Windows, because NTFS has no exec bit. nana-pi has 10 such files, so a land from a Windows seat on nana-pi refuses (the same R-708 harm). Inferred, never seen in a log. KB1 and KB2 make one later gate lane, "a clean Windows checkout reads clean". It is needed only if the owner lands from Windows.
 - **KB3:** pi-watchdog's `cpuSeconds` (:128-133) leaks PowerShell's "Cannot find a process" text into stderr when pi exits between polls. Cosmetic.
 - **KB4:** pi-review's SIGTERM cleanup is not tested on Windows. Only a real console Ctrl+C reaches it.
 - **KB5:** two paths are not tested on Windows because their shim checks skip: removeWorktree's rmSync fallback, and pi-worker's re-check of a changed branch.
 
 ## HANDOFF
 
-- **Open for Jake:** lane 3 is a gate lane, at the cost of the full review ladder. It closes the tracked `--out` overwrite (R-724) and the round-cap reset (R-705) for any Windows user whose TEMP path has a short name. The alternative records them as known bugs and hides them in tests. I recommend the lane.
-- **Open for Jake:** decide whether to queue the KB1 and KB2 gate lane, which is needed only if he lands from a Windows seat.
+- **Open for the owner:** lane 3 is a gate lane, at the cost of the full review ladder. It closes the tracked `--out` overwrite (R-724) and the round-cap reset (R-705) for any Windows user whose TEMP path has a short name. The alternative records them as known bugs and hides them in tests. I recommend the lane.
+- **Open for the owner:** decide whether to queue the KB1 and KB2 gate lane, which is needed only if he lands from a Windows seat.

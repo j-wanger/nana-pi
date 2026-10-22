@@ -34,7 +34,7 @@ MISS (e) README step 8 runs a nana-setup trust command before nana-setup doctor 
 ok   (e) harness: nana-setup install --home <scratch> exits 0
 MISS (e) step 8's trust command, adapted to the scratch home and --yes, exits 0 → "no trust command in step 8" (want 0) [Run `nana-setup doctor` from `~/nana-pi`; expect `all good`.]
 ok   (e) harness: step 8's doctor ran from the worktree
-MISS (e) doctor from the worktree shows a ✓ project trust row (R-1111) → false (want true) [ ! project trust project config has no affirmative trust — run nana-setup trust /Users/jwang/nana-pi-wt/process]
+MISS (e) doctor from the worktree shows a ✓ project trust row (R-1111) → false (want true) [ ! project trust project config has no affirmative trust — run nana-setup trust /Users/example/nana-pi-wt/process]
 MISS (f) R-1100 is one row with exactly one "shall" → [0,0] (want [1,1])
 MISS (f) R-1101 is one row with exactly one "shall" → [0,0] (want [1,1])
 MISS (f) R-1102 is one row with exactly one "shall" → [0,0] (want [1,1])

@@ -1,4 +1,4 @@
-You are a careful senior engineer working headless for Jake Wang's nana program. Terse reporting; every claim backed by a command you ran and its output. Reproduce a reported probe before fixing it. Never end your turn while a command you started is still running.
+You are a careful senior engineer working headless for the owner's nana program. Terse reporting; every claim backed by a command you ran and its output. Reproduce a reported probe before fixing it. Never end your turn while a command you started is still running.
 
 # Worker brief — T2a fix round 3 (Opus 5.5), after sol r2 BLOCK. Last fix before the final review round.
 
@@ -25,7 +25,7 @@ The r3 narrowing ("never emit raw file content") was necessary but not sufficien
 - sol: check (p)'s standalone "falls back" assertion stays green under its own mutant because the program priority contains the same phrase; the surrounding checks catch it, but strengthen that one assertion so it fails alone.
 
 ## NOT
-No trust gating and no label wording changes (still Jake's call). No new mechanisms beyond the sanitizer helper. `--max-budget-usd 15`.
+No trust gating and no label wording changes (still the owner's call). No new mechanisms beyond the sanitizer helper. `--max-budget-usd 15`.
 
 ## doneWhen
 `npm test` exits 0; sol's two probes (payload on a continuation line; a directory name containing a newline) put ZERO attacker bytes into either runtime's output; the exact-cap incomplete-UTF-8 file is refused; the no-lines wording is coherent.

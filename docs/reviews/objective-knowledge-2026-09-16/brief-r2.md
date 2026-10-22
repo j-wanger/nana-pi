@@ -1,6 +1,6 @@
 # Review brief — objective injection + knowledge pull, ROUND 2 of max 3 (verification of the round-1 folds)
 
-You reviewed round 1: read `/Users/jwang/nana-pi/docs/reviews/objective-knowledge-2026-09-16/sol-r1.md` first (your findings A–H, VERDICT: BLOCK), then the round-1 brief `brief-r1.md` for the context. Read-only. Adversarial.
+You reviewed round 1: read `/Users/example/nana-pi/docs/reviews/objective-knowledge-2026-09-16/sol-r1.md` first (your findings A–H, VERDICT: BLOCK), then the round-1 brief `brief-r1.md` for the context. Read-only. Adversarial.
 
 ## What was folded (commits on nana-pi main: `fb52d71` nana-pack, `cc8642e` nana-knowledge; nana-agent-loop working tree for F)
 
@@ -9,7 +9,7 @@ You reviewed round 1: read `/Users/jwang/nana-pi/docs/reviews/objective-knowledg
 - C: `packages/nana-knowledge/lib/build.ts` — atomic `openSync(..., "wx")` lock in every build path, pid-owner-only release, stale > 10 min reclaimed once; the hook just spawns and the builder fails fast on EEXIST. Temp-db swap deliberately skipped (WAL snapshots; comment at `build()`).
 - D: `lib/hook.ts` — header now frames the block as untrusted DATA, never instructions; 2000-char cap after formatting.
 - E: `nana-objective.ts` — `OBJECTIVE UNAVAILABLE: <cause> (<path>). Tell the user before spending.` injected for missing/empty/unreadable/in-workspace-symlink; truncation injects the capped text plus a `(truncated at 4000 chars)` line and journals `objective_pickup {truncated:true}` (the worker argued truncated ≠ unavailable — judge that); cached block cleared before the enabled check.
-- F: `/Users/jwang/nana-agent-loop/app/scripts/review-round.mjs` (new, pure) + `pi-review.mjs` — round parsed from the basename for both `rN` and `round-N` conventions; ALL wrapper options (`--out`, knobs, `--over-cap`) parsed only from argv before `--`; tests `/Users/jwang/nana-agent-loop/app/tests/review-round.test.ts` on real corpus names.
+- F: `/Users/example/nana-agent-loop/app/scripts/review-round.mjs` (new, pure) + `pi-review.mjs` — round parsed from the basename for both `rN` and `round-N` conventions; ALL wrapper options (`--out`, knobs, `--over-cap`) parsed only from argv before `--`; tests `/Users/example/nana-agent-loop/app/tests/review-round.test.ts` on real corpus names.
 - G: REJECTED by the owner — `pull.log` stays (it is the instrument that answers "is pulled knowledge ever used"; local-only under ~/.pi/agent). Do not re-raise unless you see a NEW harm.
 - H: new tests — hung-stdin end-to-end (exit 0, empty output, measured 1570 ms, bound 1800 ms), malformed stdin, concurrent `wx` lock (exactly one winner), stale-lock reclaim, corpus-name round tests.
 - Owner's folds: SKIP_DIRS += `raw`, `reviews`; STALE_MS 1 h; hook skips harness-notification prompts (`<system-reminder>`, `[SYSTEM NOTIFICATION`, `<task-notification>`).

@@ -6,14 +6,14 @@ Roster fast-forwarded onto main at 2026-10-14 12:18:25 (reflog), two minutes aft
 
 ## §1 Why
 - VERIFIED HANDOFF.md:72 holds the queue line at base. WRONG now: the line is :74, it reads "Now:", and "Now: the seat guide" sits at :73.
-- UNVERIFIABLE Jake's quoted question: it is in neither HANDOFF.md nor docs/sessions/2026-10.md. HANDOFF records only the summary.
+- UNVERIFIABLE the owner's quoted question: it is in neither HANDOFF.md nor docs/sessions/2026-10.md. HANDOFF records only the summary.
 - UNVERIFIABLE the Windows work-project trigger: it is outside the repo.
 - VERIFIED docs/reviews/req-tree-2026-10-09/CHANGE.md:292 holds item 6. Nothing queued it before HANDOFF:72.
 - VERIFIED product-report.mjs:205-206 throws on any tree problem (R-1025, REQUIREMENTS.md:1570).
 - VERIFIED seeds: py REQUIREMENTS.md.jinja:75,:83 `## 1. The product`, include :89; ts :73,:81, include :87; requirements-general.md:13,23,33,46,54,62.
 - VERIFIED (ran) the checker on the four renders: 23, 22, 23 and 22 problems, all "not in a feature or subgroup table" (requirements-tree.mjs:130).
 - VERIFIED (ran) tree-py and tree-ts: 0 problems, 9 headings. TS rail `check()` on tree-ts: 0 problems. UNVERIFIABLE: I did not re-run the Python rail.
-- VERIFIED requirements/SKILL.md:135 "numbered sections"; :126 "In this ledger…" and "Jake decides".
+- VERIFIED requirements/SKILL.md:135 "numbered sections"; :126 "In this ledger…" and "the owner decides".
 - VERIFIED :163-166 "at the end as its own Part", but the text wraps: "as its own" ends :165 and "Part," starts :166.
 - VERIFIED scaffold-py and scaffold-ts SKILL.md:45-49 (phrase at :47); adopt-py:143-144; adopt-ts:165-166; adopt-structure:167-170 (phrase at :169).
 - VERIFIED copier.yml:16 skip-lists REQUIREMENTS.md. Installed copier 9.18.2 also keeps skip-if-exists files out of the update patch (copier/_main.py:1552-1586). Older 9.x, which copier.yml:7 allows: INFERRED.
@@ -84,8 +84,8 @@ Roster fast-forwarded onto main at 2026-10-14 12:18:25 (reflog), two minutes aft
 
 ## §6 Residuals and decisions
 - VERIFIED handoff-asks.mjs:11 and templates/_shared/HANDOFF.md:11.
-- WRONG J4 "the Decisions view stays empty". An "Open for Jake" item without the `[kind, since date]` tag makes the report refuse (product-report.mjs:210-213; R-1030 at REQUIREMENTS.md:1575).
-- Ran `splitOpenForJake` on two untagged items: both tag and title come back null.
+- WRONG J4 "the Decisions view stays empty". An "Open for the owner" item without the `[kind, since date]` tag makes the report refuse (product-report.mjs:210-213; R-1030 at REQUIREMENTS.md:1575).
+- Ran `splitOpenSection` on two untagged items: both tag and title come back null.
 - VERIFIED residual 2's calls at :263 and :271.
 - WRONG residual 2 "touches R-1020's recorded call (:293)". That call is validateStore's `show <sha>:REQUIREMENTS.md` at :177. validateStore has the same subfolder bug, and the plan does not name it.
 - VERIFIED residuals 3 (:22), 5 (:16) and 6 (:397-398; test :34).
@@ -103,8 +103,8 @@ Roster fast-forwarded onto main at 2026-10-14 12:18:25 (reflog), two minutes aft
    Fix the literal by land order (1,124, or 1,127 after seat-guide) and the tag (v0.6.13 or v0.6.14).
 2. **T1 cannot catch an adopt seed that keeps `## 1. The product`.** The G feature alone satisfies "≥ 1 capability and 1 feature".
    Either require a capability and feature apart from the G feature (or no plain numbered section), or fix mutation 1's red set. Otherwise the seat mutation runner misses N/N.
-3. **"The report runs in any project" is false for an untagged "Open for Jake".** R-1030 makes the report refuse.
+3. **"The report runs in any project" is false for an untagged "Open for the owner".** R-1030 makes the report refuse.
    Name R-1030 and decide: scope it out, carry it, or fold it into J4. J4 is about the heading literal alone.
 4. **T5's "as its own Part" guard is vacuous** because of the wrapped line, and its presence phrase is already present.
-   T5 reds only through "numbered sections" and "Jake decides". Match on whitespace-collapsed text, or name the G-block sentence directly.
+   T5 reds only through "numbered sections" and "the owner decides". Match on whitespace-collapsed text, or name the G-block sentence directly.
 5. Fix the smaller ones: K4 names R-598/R-629, not R-599. Residual 2 should name validateStore (:177) and drop the :293 claim. Residual 4 does not apply to the checker. The suite step should be `--check`, not `npm run req:tree`. R-1156's string appears in T4 and T7.

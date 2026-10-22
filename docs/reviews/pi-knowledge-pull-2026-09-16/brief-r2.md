@@ -1,6 +1,6 @@
 # Review brief — pi-side knowledge pull (round 2 of max 3)
 
-You are an independent code reviewer. Read-only. This round verifies the fold of your round-1 findings (`sol-r1.md` in this directory — read it first) and looks for anything the fold broke. Same change, still uncommitted in `/Users/jwang/nana-pi` (`git diff` + untracked `packages/nana-knowledge/extensions/`, `tests/extension.test.mjs`).
+You are an independent code reviewer. Read-only. This round verifies the fold of your round-1 findings (`sol-r1.md` in this directory — read it first) and looks for anything the fold broke. Same change, still uncommitted in `/Users/example/nana-pi` (`git diff` + untracked `packages/nana-knowledge/extensions/`, `tests/extension.test.mjs`).
 
 ## What was folded
 
@@ -19,10 +19,10 @@ You are an independent code reviewer. Read-only. This round verifies the fold of
 
 ## Files to read
 
-- `/Users/jwang/nana-pi/packages/nana-knowledge/extensions/nana-knowledge.ts`
-- `/Users/jwang/nana-pi/packages/nana-knowledge/tests/extension.test.mjs`
-- `/Users/jwang/nana-pi/packages/nana-knowledge/README.md` (the pi section)
-- `/Users/jwang/nana-pi/packages/nana-knowledge/lib/hook.ts`, `lib/tokenize.ts` (unchanged since r1 — confirm)
+- `/Users/example/nana-pi/packages/nana-knowledge/extensions/nana-knowledge.ts`
+- `/Users/example/nana-pi/packages/nana-knowledge/tests/extension.test.mjs`
+- `/Users/example/nana-pi/packages/nana-knowledge/README.md` (the pi section)
+- `/Users/example/nana-pi/packages/nana-knowledge/lib/hook.ts`, `lib/tokenize.ts` (unchanged since r1 — confirm)
 
 ## Output
 

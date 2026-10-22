@@ -748,7 +748,7 @@
 2026-10-17T19:28:10.8632035Z   | - `C:\Users\runneradmin\AppData\Local\Temp\nana-test-5544-rpVp0X\adoption-reader-HwTH0Z\r4` — has: nothing · last session 2026-10-15
 2026-10-17T19:28:10.8632590Z   | …and 2 more
 2026-10-17T19:28:10.8632766Z   | 
-2026-10-17T19:28:10.8633412Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.
+2026-10-17T19:28:10.8633412Z   | For each: adopt it with `nana-setup project <dir>` and set its objective with the owner, or dismiss it once with `nana-setup project <dir> --not-a-project`.
 2026-10-17T19:28:10.8633981Z   | 
 2026-10-17T19:28:10.8634198Z PASS c: tagged [nana:adoption], exit 0 
 2026-10-17T19:28:10.8634488Z PASS c: newest first, capped at 5 
@@ -2103,7 +2103,7 @@
 2026-10-17T19:29:04.5965841Z PASS table lone surrogate: locator decodes to the exact input 
 2026-10-17T19:29:04.5966321Z PASS table lone surrogate: promptPath one line, ≤ PATH_CAP 
 2026-10-17T19:29:04.5966745Z PASS table lone surrogate: promptText one line, no control 
-2026-10-17T19:29:04.5967223Z PASS table Windows path, mixed case: promptPath "C:\\Users\\Jake\\Repo\\A.TS" 
+2026-10-17T19:29:04.5967223Z PASS table Windows path, mixed case: promptPath "C:\\Users\\Owner\\Repo\\A.TS" 
 2026-10-17T19:29:04.5967730Z PASS table Windows path, mixed case: uiPath is the same rule 
 2026-10-17T19:29:04.5968120Z PASS table Windows path, mixed case: promptText 
 2026-10-17T19:29:04.5968550Z PASS table Windows path, mixed case: uiText / fileField are the same rule 
@@ -2188,10 +2188,10 @@
 2026-10-17T19:29:04.7923588Z 
 2026-10-17T19:29:04.7923789Z PASS frontier golden: noTitle output is byte-identical 
 2026-10-17T19:29:04.8399457Z PASS frontier golden: continuation output is byte-identical 
-2026-10-17T19:29:04.8862697Z FAIL frontier golden: missing output is byte-identical <fixture>\missing.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
+2026-10-17T19:29:04.8862697Z FAIL frontier golden: missing output is byte-identical <fixture>\missing.md:2: open-tag: Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
 2026-10-17T19:29:04.8863860Z summary words=9 budget=1200 findings=1
 2026-10-17T19:29:04.8863999Z 
-2026-10-17T19:29:05.1616631Z FAIL frontier golden: future output is byte-identical <fixture>\future.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
+2026-10-17T19:29:05.1616631Z FAIL frontier golden: future output is byte-identical <fixture>\future.md:2: open-tag: Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date
 2026-10-17T19:29:05.1617198Z summary words=9 budget=1200 findings=1
 2026-10-17T19:29:05.1617338Z 
 2026-10-17T19:29:05.2068168Z PASS frontier golden: fenced output is byte-identical 
@@ -2202,13 +2202,13 @@
 2026-10-17T19:29:05.2999276Z PASS LANDED marker under Next is reported 
 2026-10-17T19:29:05.2999677Z PASS unresolvable item-of-Next reference is reported 
 2026-10-17T19:29:05.3000111Z PASS past explicit date is reported against injected clock 
-2026-10-17T19:29:05.3000629Z PASS each bullet or numbered Open for Jake entry without a tag is reported 
+2026-10-17T19:29:05.3000629Z PASS each bullet or numbered Open for the owner entry without a tag is reported 
 2026-10-17T19:29:05.3498206Z PASS frozen 2026-10-06 rewrite passes on 2026-10-07 
-2026-10-17T19:29:05.3965630Z PASS LANDED is detected under the real parenthetical Open for Jake heading 
-2026-10-17T19:29:05.3966091Z PASS overdue dates are detected under the real parenthetical Open for Jake heading 
-2026-10-17T19:29:05.3966543Z PASS missing tags are detected under the real parenthetical Open for Jake heading 
+2026-10-17T19:29:05.3965630Z PASS LANDED is detected under the real parenthetical Open for the owner heading 
+2026-10-17T19:29:05.3966091Z PASS overdue dates are detected under the real parenthetical Open for the owner heading 
+2026-10-17T19:29:05.3966543Z PASS missing tags are detected under the real parenthetical Open for the owner heading 
 2026-10-17T19:29:05.4477943Z PASS frozen pre-rewrite HANDOFF reports 12 findings and key drift categories 
-2026-10-17T19:29:05.4941675Z PASS due cues in non-list Next and Open for Jake prose are scanned 
+2026-10-17T19:29:05.4941675Z PASS due cues in non-list Next and Open for the owner prose are scanned 
 2026-10-17T19:29:05.5418269Z PASS fenced examples do not create headings or findings 
 2026-10-17T19:29:05.5899874Z PASS nested numbered sub-items cannot resolve item-of-Next references 
 2026-10-17T19:29:05.6373080Z PASS nested Next heading remains in the enclosing section 
@@ -5537,11 +5537,11 @@
 2026-10-17T19:34:44.7646943Z PASS --not-a-project on a missing folder refuses with the reason 
 2026-10-17T19:34:44.7675431Z all passed
 2026-10-17T19:34:44.7746033Z PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.7s
-2026-10-17T19:34:44.8237163Z PASS key(/Users/jwang/aml-desk) = -Users-jwang-aml-desk 
-2026-10-17T19:34:44.8237735Z PASS key(/Users/jwang/.nana-worktrees/x) = -Users-jwang--nana-worktrees-x 
-2026-10-17T19:34:44.8238104Z PASS key(/Users/jwang/nana-agent-loop) = -Users-jwang-nana-agent-loop 
-2026-10-17T19:34:44.8238487Z PASS key(/Users/jwang/nana-pi) = -Users-jwang-nana-pi 
-2026-10-17T19:34:44.8238841Z PASS key(/Users/jwang/the-hive) = -Users-jwang-the-hive 
+2026-10-17T19:34:44.8237163Z PASS key(/Users/example/work-project) = -Users-example-work-project 
+2026-10-17T19:34:44.8237735Z PASS key(/Users/example/.nana-worktrees/x) = -Users-example--nana-worktrees-x 
+2026-10-17T19:34:44.8238104Z PASS key(/Users/example/nana-agent-loop) = -Users-example-nana-agent-loop 
+2026-10-17T19:34:44.8238487Z PASS key(/Users/example/nana-pi) = -Users-example-nana-pi 
+2026-10-17T19:34:44.8238841Z PASS key(/Users/example/the-hive) = -Users-example-the-hive 
 2026-10-17T19:34:44.8239059Z PASS key(/Users/x/my_repo) = -Users-x-my-repo 
 2026-10-17T19:34:44.8239256Z PASS key(/Users/x/a b.c) = -Users-x-a-b-c 
 2026-10-17T19:34:44.8239442Z PASS key(C:\dev\repo) = C--dev-repo 
@@ -5856,7 +5856,7 @@
 2026-10-17T19:34:49.2359838Z PASS June hook copies remain in place 
 2026-10-17T19:34:49.2360210Z PASS unrelated dated backup mentioning nana remains in place 
 2026-10-17T19:34:49.2360641Z PASS repository-managed context hook symlink is removed 
-2026-10-17T19:34:49.2363742Z FAIL install removes released quoted context hook and preserves the expected variants [{"type":"command","command":"bash 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-5544-8oARKx\\nana-retired-kTc6of\\.claude\\hooks\\context-size-check.sh'"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh --owner-variant"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh","owner":"Jake","enabled":true},{"type":"prompt","command":"bash ~/.claude/hooks/context-size-check.sh","prompt":"owner text"},{"type":"command","command":"node","args":["D:\\a\\nana-pi\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]
+2026-10-17T19:34:49.2363742Z FAIL install removes released quoted context hook and preserves the expected variants [{"type":"command","command":"bash 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\nana-test-5544-8oARKx\\nana-retired-kTc6of\\.claude\\hooks\\context-size-check.sh'"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh --owner-variant"},{"type":"command","command":"bash ~/.claude/hooks/context-size-check.sh","owner":"Owner","enabled":true},{"type":"prompt","command":"bash ~/.claude/hooks/context-size-check.sh","prompt":"owner text"},{"type":"command","command":"node","args":["D:\\a\\nana-pi\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]
 2026-10-17T19:34:49.2366325Z PASS exact nana settings entry is removed while customized and non-command entries remain byte-identical 
 2026-10-17T19:34:49.2366870Z PASS install prints a manual marker cleanup reminder 
 2026-10-17T19:34:49.2367211Z PASS synced Agent Skills content stays in place 

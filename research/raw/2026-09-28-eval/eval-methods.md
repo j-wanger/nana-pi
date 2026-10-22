@@ -39,7 +39,7 @@
 - **Licence:** tau-bench MIT, tau2-bench MIT. The formula is math, so no licence question arises.
 - **Grade:** PRIMARY. arXiv 2406.12045 (2024-06); github.com/sierra-research/tau-bench. The same formula appears in 2608.11386 (PRIMARY, CC BY 4.0).
 - **Runs locally at our scale:** yes, as about 10 lines in `apps/bench/aggregate.mjs`. The bench already has seeded randomized blocks and extendable `repeats` (bench README L208–218, PRIMARY).
-- **What it tells us that we don't know:** the all-green rate, which is the thing Jake complains about. The bench today reports a mean.
+- **What it tells us that we don't know:** the all-green rate, which is the thing the owner complains about. The bench today reports a mean.
 - **Cost:** S. **Cheapest try:** recompute the 2026-09-08 study (132 runs, n=3) with pass^3. It will read 1.0 everywhere, the ceiling again. That is exactly why the doctrine line binds (below).
 - **Ceiling doctrine:** neutral by itself. pass^k on tasks the baseline always passes is still dead on arrival.
 

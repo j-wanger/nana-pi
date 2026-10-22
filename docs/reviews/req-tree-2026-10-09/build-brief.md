@@ -1,7 +1,7 @@
 # Lane req-tree — move every REQUIREMENTS.md row under its capability and feature   (2026-10-09 · nana-pi · feat/req-tree in ~/nana-pi-wt/req-tree)
 
 ## Contract
-The contract is `docs/reviews/req-tree-2026-10-09/CHANGE.md`, agreed by Jake at checkpoint 1. Read
+The contract is `docs/reviews/req-tree-2026-10-09/CHANGE.md`, agreed by the owner at checkpoint 1. Read
 it in full first, then `tree.json`, `fixed-text.md` and `outline.md` beside it. Where this brief
 and CHANGE.md differ, CHANGE.md wins; report the difference.
 

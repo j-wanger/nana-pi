@@ -25,7 +25,7 @@ RED P1 the cap cuts UTF-16 units again (no pair-safe head) — 1/1 named: /^cap:
 RED P2 the extension ignores writing.enabled — 1/1 named: /^enabled: writing\.enabled false in the active agent dir/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P3 a trusted project's writing block is merged in — 1/1 named: /^enabled: a trusted project's writing\.enabled false/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P4 a loose leaf reads "false", 0 and null as off — 1/1 named: /^enabled: writing\.enabled false in the active agent dir/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
-RED P5 a 27-word sentence lands in Open for Jake — 1/1 named: /^this repository's HANDOFF\.md live sections/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P5 a 27-word sentence lands in Open for the owner — 1/1 named: /^this repository's HANDOFF\.md live sections/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P6 a live section is renamed without the name list — 1/1 named: /^this repository's HANDOFF\.md live sections/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P7 nana-writing left out of the PATH list — 1/1 named: /^nana-writing is linked on PATH, runs by bare name/; 1 FAIL total (1 file changed, 1 deletion(-))
 RED P8 doctor checks only that the PATH link exists — 1/1 named: /^nana-writing is linked on PATH, runs by bare name/; UNNAMED red: [install.test.mjs] doctor rejects wrong nana-setup target | [install.test.mjs] doctor reports an incorrect pi-worker link; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))

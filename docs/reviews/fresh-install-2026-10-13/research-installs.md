@@ -1,6 +1,6 @@
 # fresh-install lane — research: every pi install command and hint (2026-10-13)
 
-Repo: `/Users/jwang/nana-pi` main `9974218` (read only). Local npm 10.9.7, node v22.22.2.
+Repo: `/Users/example/nana-pi` main `9974218` (read only). Local npm 10.9.7, node v22.22.2.
 Status legend: VERIFIED = run here today; DOC = quoted from docs or source; INFERRED = reasoning, not run.
 Probes went to scratch prefixes under `plan-fresh-install/probe/` with an isolated cache (`probe/cache`); nothing global was touched.
 
@@ -155,10 +155,10 @@ Threat model for the plan: honest variation in scope means new sibling releases 
 
 ## 4. The desk freeze — what the lane may touch
 
-Ruling text: "Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)" (`REQUIREMENTS.md:950` and six more feature headers). HANDOFF `:12`, `:55`. No commit has touched `apps/desk` since 2026-10-09 (VERIFIED `git log`).
+Ruling text: "Status: frozen (Owner 2026-10-10: the desk stays frozen until he reopens it)" (`REQUIREMENTS.md:950` and six more feature headers). HANDOFF `:12`, `:55`. No commit has touched `apps/desk` since 2026-10-09 (VERIFIED `git log`).
 
 - **`apps/desk/README.md:25` (doc only) — recommend ALLOWED, seat's call.** The README contract (G-012) says every command must run as written. Today the command installs a tree whose root import fails (VERIFIED in scratch), and that import is what the desk does at start (`pi-session.mjs:358`). CI's 13 failing desk test files on 2026-10-13 show the same break. Correcting a false README line changes no desk behaviour, row or test, so it is not a desk feature change. Name it in the land report. One process cost: the land runbook (`packages/nana-setup/README.md:66`) requires quiescing the desk service before `nana-land` whenever the lane's diff touches `apps/desk`. A README-only change still trips that rule.
-- **`apps/desk/pi-session.mjs:347,353` (code hints) — recommend LEAVE, record a residual.** They fire only for a non-semver pi or a pi below 0.84.4. Today the unversioned command they print gives pi 1.2.0, which imports cleanly with the desk's exports (VERIFIED), so it is not broken, just untested. The break path (`:358-360`) prints no fix line at all. Changing either string would be the first desk code change since the freeze, so it waits for Jake to reopen the desk. Cost of waiting: low (a rare path, not broken today).
+- **`apps/desk/pi-session.mjs:347,353` (code hints) — recommend LEAVE, record a residual.** They fire only for a non-semver pi or a pi below 0.84.4. Today the unversioned command they print gives pi 1.2.0, which imports cleanly with the desk's exports (VERIFIED), so it is not broken, just untested. The break path (`:358-360`) prints no fix line at all. Changing either string would be the first desk code change since the freeze, so it waits for the owner to reopen the desk. Cost of waiting: low (a rare path, not broken today).
 
 ---
 
@@ -171,7 +171,7 @@ Short answer: yes for the cutoff token, with or without quotes. Recommend the **
 - **PowerShell (DOC + VERIFIED shim text, INFERRED behaviour).** about_Parsing (PowerShell 7.6, ms.date 2026-06-29) says that in argument mode "all input is treated as an expandable string" unless it uses `$`, quotes, braces, commas, parentheses, `$()`, or an initial `@ < > #`. `--before=2026-10-04T06:57:57Z` uses none of these. It is also not a PowerShell parameter token, because a parameter needs a letter after the dash. In the quoted form, PowerShell joins `--before=` and `"…"` into one argument and drops the quotes. npm 10.9.7's `npm.ps1` -Command branch re-parses the original statement text with `[Parser]::ParseInput` and runs it via `Invoke-Expression "& node npm-cli.js <args>"`, so the token is parsed twice. With no metacharacters, both parses give the same result. The known npm.ps1 breakage (nodejs/node#54390) concerns a bare `--` token, which this command does not use. `$PSNativeCommandArgumentPassing` (7.3+) changes only arguments with embedded quotes or empty strings.
 - **The one claim I'd most expect to be wrong:** that an unquoted `@earendil-works/pi-coding-agent@1.0.2` is never read as splatting in PowerShell. about_Parsing lists an initial `@` as special ("begins … splatting (`@args`)"). Scoped installs such as `npm i -g @angular/cli` are standard in PowerShell docs and tutorials, and README step 2 already uses this token today, so the lane adds no new risk (INFERRED, not run).
 - **npm 11 (Node 24 users).** `before` remains, and `min-release-age` is added. If both are set in the same source, "`before` wins" (DOC, v11 config docs, quoted in `docs/reviews/ci-pi-pin-2026-10-13/research-npm.md`).
-- **Cheapest verification, if wanted:** add one step to Jake's Windows check page (this lane already edits it). In PowerShell, run the README's literal command with `--dry-run`, then confirm the output lists `add @earendil-works/pi-codemode 1.0.2`. A CI `shell: pwsh` step would also work, but it touches R-1078 and its test, which is too much for this lane.
+- **Cheapest verification, if wanted:** add one step to the owner's Windows check page (this lane already edits it). In PowerShell, run the README's literal command with `--dry-run`, then confirm the output lists `add @earendil-works/pi-codemode 1.0.2`. A CI `shell: pwsh` step would also work, but it touches R-1078 and its test, which is too much for this lane.
 
 ---
 
@@ -185,7 +185,7 @@ Short answer: yes for the cutoff token, with or without quotes. Recommend the **
 
 ## 7. Residual candidates (one HANDOFF line each, if not fixed)
 
-- The desk's fix hints install an unversioned pi, and its import-failure message names no fix. Both wait for Jake to reopen the desk.
+- The desk's fix hints install an unversioned pi, and its import-failure message names no fix. Both wait for the owner to reopen the desk.
 - PowerShell and cmd handling of the pinned command is inferred from docs and npm's shims, not run on Windows.
 - Neither doctor nor README step 2 detects a pi tree with mismatched siblings. A doctor import check is the candidate.
 - The bench study fixture README keeps an unversioned install line on purpose: it is a recorded study fixture.

@@ -48,7 +48,7 @@ and ran both rails, the tree checker and the product report on them.
 | Rail self-tests (`test_requirements_trace.py.jinja:447`, `requirements-trace.test.ts.jinja:574`) | Run `check()` on the project's own file for the EARS count. | None (same parser). |
 | code-map, readme-check (both langs) | Do not read it. A grep finds only comments (`typescript/template/scripts/code-map.mjs:392,402`). | None. |
 | Tree checker `scripts/requirements-tree.mjs` (nana-pi only, not shipped) | Structural: `HEADING` `:16`; rows must sit under FEAT or SUB (`:121-136`); `Purpose:` (`:138-148`); nesting (`:155-170`); `Status:`/`Also applies:` (`:172-207`). | Today's seed **fails**: 23 problems on scaffold, 22 on adopt (every row: "is not in a feature or subgroup table"). The tree variant: **0 problems**. `main()` reads `REPO_ROOT` only (`:390`) and has no `--root`. |
-| Product report `scripts/product-report.mjs` (nana-pi only) | `--root` exists (`:308`). It throws when checkTree reports problems (`:204-206`). It needs git HEAD (`:216`) and HANDOFF.md (`:208`). | The flat render is refused ("requirements tree checker problems: line 59: R-001 …"). The tree variant **writes the report** (`report-tree-py.html`). The seed HANDOFF has `## Open`, not "Open for Jake" (`_shared/HANDOFF.md:11`; `handoff-asks.mjs:11`), so a seeded project yields zero asks without an error. |
+| Product report `scripts/product-report.mjs` (nana-pi only) | `--root` exists (`:308`). It throws when checkTree reports problems (`:204-206`). It needs git HEAD (`:216`) and HANDOFF.md (`:208`). | The flat render is refused ("requirements tree checker problems: line 59: R-001 …"). The tree variant **writes the report** (`report-tree-py.html`). The seed HANDOFF has `## Open`, not "Open for the owner" (`_shared/HANDOFF.md:11`; `handoff-asks.mjs:11`), so a seeded project yields zero asks without an error. |
 
 Tree variant (`mktree.mjs` here): `## 1. The product` → `# CAP-01` + `## FEAT-001` (`Status: active`);
 `# Part G.` → `# CAP-02` + `## FEAT-002`; `## G1-5` → `### SUB-001…005` with `Purpose:`; tail → `# Open questions
@@ -85,8 +85,8 @@ no flag here, an older Node 22 on a Windows seat would need `--experimental-stri
 - Requirements skill, `packages/nana-pack/skills/requirements/SKILL.md`. One copy serves both
   seats: it is symlinked at `~/.claude/skills/requirements` and listed in pi's `package.json:23`.
   - `:126` already states tree rules ("add each new row to the table of the feature it serves",
-    `Status:`, `Also applies:`, "Jake decides tree changes", "the outline's shared-requirements
-    index"). It reads as nana-pi-specific: a project has no outline and its owner is not Jake.
+    `Status:`, `Also applies:`, "the owner decides tree changes", "the outline's shared-requirements
+    index"). It reads as nana-pi-specific: a project has no outline and its owner is not the owner.
   - Audit mode `:128-166` is flat: workers cover "numbered sections" (`:135`) and ID blocks are
     allocated per repo or area (`:148-151`). `:163-166` says to "Put a general-engineering block
     (G1 … G4) at the end as its own Part". This is the most likely origin of the Windows

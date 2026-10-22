@@ -2,10 +2,10 @@
 
 *Lane `ci-pi-pin` · branch `feat/ci-pi-pin` · worktree `~/nana-pi-wt/ci-pi-pin`, based on `main` at `3f5151f`
 (the cc-hooks-windows land tip, pushed 2026-10-13) · 2026-10-13. Feature: FEAT-019 "Release usable templates and report support" (new
-R-1090, R-1091, R-1092; no reworded rows). URGENT and SMALL: Jake's ruling is that urgent fixes ship alone and
+R-1090, R-1091, R-1092; no reworded rows). URGENT and SMALL: the owner's ruling is that urgent fixes ship alone and
 are hardened later, and a small lane gets one plan-review round. Order: why → plan → one plan review →
 tests and rows first (red) → `ci.yml` → seat checks → draft-PR CI runs (red-first push, then the fix) → build
-review by a different lineage → Jake accepts → `nana-land`. Jake ruled on 2026-10-11 that pushing a non-main
+review by a different lineage → the owner accepts → `nana-land`. The owner ruled on 2026-10-11 that pushing a non-main
 branch and opening a draft PR need no approval. Evidence: `research-{npm,ci,repo}.md` and the two fact-checks `factcheck-{external,repo}.md` in this folder.*
 
 ## 1. Why
@@ -129,7 +129,7 @@ unchanged); `REQUIREMENTS.md` (three FEAT-019 rows); `packages/nana-pack/tests/r
 `docs/reviews/ci-pi-pin-2026-10-13/` (this file and the reviews).
 
 **NOT.** README step 2 (`README.md:121`), `apps/desk/README.md:25`, `apps/bench/README.md:11`,
-`PI_INSTALL_HINT` (`steps.mjs:810`) and `fresh-machine.test.mjs` (Jake's call, §6 item 1); `PI_VERSION`
+`PI_INSTALL_HINT` (`steps.mjs:810`) and `fresh-machine.test.mjs` (Owner's call, §6 item 1); `PI_VERSION`
 (stays 1.0.2); feat/install-check's job line (that lane, at merge); lockfile, overrides, a CI-only project,
 a codemode reinstall, a job-wide npm variable; a post-install import probe (§6 item 3); node 22, pnpm 11,
 setup-uv and action-major pins; an upstream issue; pre-existing Ubuntu and Windows failures.
@@ -184,9 +184,9 @@ since 2026-10-05 (INFERRED); the seat's locked suite on that same tree is the co
    that install the desk will not start and the bench's in-process load fails (INFERRED from CI and the
    import chain; not run locally). This conflicts with the rule that every README claim is true; this Mac
    is unaffected. Trade: fixing it here changes the command users type and grows an urgent lane; leaving
-   it breaks a fresh macOS seat until the follow-up. Decision: a follow-up lane after the install-check lane (Jake's queue names install-check next; sol plan r1 MUST 2)
+   it breaks a fresh macOS seat until the follow-up. Decision: a follow-up lane after the install-check lane (Owner's queue names install-check next; sol plan r1 MUST 2)
    that appends the same cutoff to those three commands and extends R-951's check to read `PI_BEFORE` from
-   `ci.yml`, so README and CI cannot drift and install-check's line mirrors README step 2 exactly. It is not Jake's call: it
+   `ci.yml`, so README and CI cannot drift and install-check's line mirrors README step 2 exactly. It is not the owner's call: it
    restores a README promise without changing what a user installs. `apps/bench/README.md:26` and the desk's fix
    hint (`pi-session.mjs:351`) install pi with no version, so they get pi 1.2.0 with matching siblings —
    probably not this break (INFERRED); the follow-up lane checks them.
@@ -196,11 +196,11 @@ since 2026-10-05 (INFERRED); the seat's locked suite on that same tree is the co
    nana-writing and nana-handoff need review, INFERRED); busy-session semantics change; `sendUserMessage`
    needs `deliverAs`; the `pi mcp list --json` shape changes; Azure is renamed (1.0.3); the seat must be
    upgraded and re-verified. Decision: stay on 1.0.2 with the cutoff; upgrade in its own lane when a 1.2.x
-   feature is wanted (Jake may overrule).
+   feature is wanted (Owner may overrule).
 3. **Harden later — the gate checks text, not the tree.** No CI step asserts the resolved tree, and
    `pi --version` passes on a broken one; the macOS suite's 18 drift-sensitive files are the import check
    in practice. Candidate: a post-install probe that imports pi's main entry in every job that installs pi.
-4. **Open for Jake — upstream.** codemode 1.2.0 removed an export in a minor release, breaking pi 1.0.2's
+4. **Open for the owner — upstream.** codemode 1.2.0 removed an export in a minor release, breaking pi 1.0.2's
    declared range for every user. An upstream issue, or a published `npm-shrinkwrap.json`, fixes it at the
    source. Filing is a public action.
 5. **Known limits of `--before`.** It does not freeze `deprecated` flags, a moving `latest` tag, or the
@@ -208,9 +208,9 @@ since 2026-10-05 (INFERRED); the seat's locked suite on that same tree is the co
    repo has neither. Node, pnpm, setup-uv and action majors still float in CI.
 6. **Research side effect.** Two probes appended 8 lines (handoff_missing, session_start, objective_pickup,
    session_shutdown, twice each) to `~/.pi/agent/nana-journal.jsonl` at 2026-10-13T11:43:23–24Z; left in
-   place for Jake to keep or delete.
+   place for the owner to keep or delete.
 
 ## Plan review
 
-- 2026-10-13, sol plan r1 LAND-WITH-FIXES 92/100 (`sol-plan-r1.md`), the one round a small lane gets. Applied: R-1091 states the sealed value; the README follow-up runs after install-check, per Jake's queue; R-1092 names the repository-root `.npmrc`; the seat's scratch check asserts all eight package versions.
+- 2026-10-13, sol plan r1 LAND-WITH-FIXES 92/100 (`sol-plan-r1.md`), the one round a small lane gets. Applied: R-1091 states the sealed value; the README follow-up runs after install-check, per the owner's queue; R-1092 names the repository-root `.npmrc`; the seat's scratch check asserts all eight package versions.
 - 2026-10-13, seat amendment before the build: ONE push instead of two. The red-first evidence is local — the seat's acceptance script fails 23 of 33 at launch (`acceptance-launch.txt`) and passes 33 of 33 on a prototype of §3's fix, including all 18 drift files against a scratch install of the pinned line — so a tests-only CI push would add a 25-minute cycle and no information.

@@ -58,7 +58,7 @@ pi-cmd-launch record's claim that "npm, pnpm, nvm-windows, Volta and Scoop all p
 
 | Installer | On PATH | Path to the entry | Evidence | Rule outcome |
 |---|---|---|---|---|
-| npm, Windows (Node MSI `%APPDATA%\npm`; `npm i -g --prefix P`; GitHub runner) | `P\pi`, `P\pi.cmd`, `P\pi.ps1` (Jake's photo shows these three) | `P\node_modules\@earendil-works\pi-coding-agent\` + `package.json` `bin.pi` = `dist/bundle/cli.js` | VERIFIED: bin-links `bin-target.js` (`isWindows ? getPrefix(path)`, shim in the prefix, package in `prefix/node_modules`); cmd-shim 7.0.0 template; shims generated here | **supported** |
+| npm, Windows (Node MSI `%APPDATA%\npm`; `npm i -g --prefix P`; GitHub runner) | `P\pi`, `P\pi.cmd`, `P\pi.ps1` (Owner's photo shows these three) | `P\node_modules\@earendil-works\pi-coding-agent\` + `package.json` `bin.pi` = `dist/bundle/cli.js` | VERIFIED: bin-links `bin-target.js` (`isWindows ? getPrefix(path)`, shim in the prefix, package in `prefix/node_modules`); cmd-shim 7.0.0 template; shims generated here | **supported** |
 | nvm-windows | `pi.cmd` in the nvm symlink folder (next to `node.exe`) | same sibling `node_modules` | INFERRED (npm's default prefix = node's folder when no npmrc sets one) | supported |
 | Scoop `nodejs` / `nodejs-lts` + `npm i -g` | `~\scoop\apps\nodejs-lts\current\bin\pi.cmd` | same sibling `node_modules` under `bin` | VERIFIED manifest: `post_install` writes `prefix=$persist_dir\bin`; `env_add_path: ["bin", "."]`. No Scoop manifest for pi exists to my knowledge (INFERRED) | supported |
 | pnpm 11, Windows | `PNPM_HOME\bin\pi.cmd` (+ `pi`, `pi.ps1`) | `PNPM_HOME\global\v11\<hash>\node_modules\@earendil-works\pi-coding-agent`, a link into the store | POSIX layout VERIFIED by a scratch `pnpm add -g` (bin dir `PNPM_HOME/bin`; sh shim, not a symlink; target `$basedir/../global/v11/<hash>/…/cli.js`); `.cmd` template VERIFIED from the bundled generator: `"%~dp0\<relative target>" %*`; Windows paths INFERRED from the same generator | refused, named |
@@ -97,7 +97,7 @@ entry as the first argument. The rule reproduces that with `process.execPath`.
 
 ## 4. Approaches considered and dropped
 
-- **`shell: true`.** cmd.exe joins arguments without escaping, so the multi-line brief breaks (Jake's seat diagnosis). Node
+- **`shell: true`.** cmd.exe joins arguments without escaping, so the multi-line brief breaks (Owner's seat diagnosis). Node
   v22 docs also deprecate passing `args` with `shell: true` (VERIFIED, `child_process.md:354`).
 - **cross-spawn's approach** (VERIFIED `lib/parse.js`, `util/escape.js`): resolve with `which` and PATHEXT, honour a shebang,
   otherwise run `comspec /d /s /c "<escaped line>"` with `windowsVerbatimArguments`, doubling `^` escapes for
@@ -205,7 +205,7 @@ title 1. Fall back to `pi` on a refusal → title 3. Start `.exe` through node �
    that migration the launchers refuse, named. Adding it is a second locator: `<shim folder>\..\install\managed-install.json`
    valid → `install\releases\<current-version>\node_modules\@earendil-works\pi-coding-agent`, plus
    `PI_MANAGED_INSTALL_ROOT=<agent dir>\install` in the child env, as `pi-launcher.js` sets. The bin rule is unchanged. It is
-   kept out of this lane because Jake's machine runs npm and the Windows leg cannot install it without the network.
+   kept out of this lane because the owner's machine runs npm and the Windows leg cannot install it without the network.
 2. **Residual: pnpm, Volta and old Volta.** pnpm and Volta are refused, named, on Windows. Volta before 1.1 wrote `pi.exe`
    copies of `volta-shim.exe`; started directly, the watched process would be the shim, whose CPU stays flat while pi works.
    That version is INFERRED to be from 2022 and not handled.
@@ -221,7 +221,7 @@ title 1. Fall back to `pi` on a refusal → title 3. Start `.exe` through node �
    INFERRED); the reviser decides whether that is in scope.
 6. **The claim most likely to be wrong:** that Node's spawn on Windows carries LF, CR, `"` and a trailing backslash to
    `node.exe`'s argv byte for byte. libuv quotes only for space, tab or `"`, and the MSVC runtime splits only on space and tab
-   (from memory; INFERRED). Jake's seat reported "argv preserved" as a diagnosis, not a test. Windows-leg titles 1–2 decide it.
+   (from memory; INFERRED). The owner's seat reported "argv preserved" as a diagnosis, not a test. Windows-leg titles 1–2 decide it.
 
 ## Scratch evidence (this folder)
 

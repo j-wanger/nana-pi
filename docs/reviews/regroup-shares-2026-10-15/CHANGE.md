@@ -11,14 +11,14 @@ ledger copy (scratch `plan-shares/base-dry.*`); the fact-checks `plan-shares/fac
 
 ## 1. Why
 
-Jake, 2026-10-10 (`docs/reviews/req-tree-2026-10-09/CHANGE-B.md:10-13`): "we should allow multiple features pointing to the same requirements, those requirements are potentially
-high impact high blast radius". Jake, 2026-10-14: the lift is the tool, an agent's regroup with his approval gives the real tree (`HANDOFF.md:29`).
+The owner, 2026-10-10 (`docs/reviews/req-tree-2026-10-09/CHANGE-B.md:10-13`): "we should allow multiple features pointing to the same requirements, those requirements are potentially
+high impact high blast radius". The owner, 2026-10-14: the lift is the tool, an agent's regroup with his approval gives the real tree (`HANDOFF.md:29`).
 - **The gap.** `baseRefusals` refuses every unfenced `Also applies:` line outside a field block, the head and the tail (`:221-226`), and neither `fieldBlockAt` copy holds one
   (`:160-173`, proof:98-111). T22b pins the refusal in six modes (test:1303-1388). Ran today: the dry run on a copy of nana-pi's ledger exits 1 with 31 problem lines, every one
   a share line (`line 84` first). Ran (fact-check): a share line in the head or under `## Open questions` exits 0 today, carried as prose.
 - **Why a proof, not just a carry.** A share names the rows a feature depends on (`REQUIREMENTS.md:24-25`); the tree check sees a bad share, never a missing one (tree:194-205).
   A §5c Ran: with the refusal lifted and no recount, a mapping that omitted FEAT-001's eight shares exited 0, proved clean and printed nothing.
-- **Users.** nana-pi only. aml-desk, basketball-geek, trading-zone and yokai-world hold no `Also applies:` text at all (grep on their working copies today; regroup `:22-23`).
+- **Users.** nana-pi only. work-project, basketball-geek, trading-zone and yokai-world hold no `Also applies:` text at all (grep on their working copies today; regroup `:22-23`).
   nana-pi's own lift has a second blocker this lane leaves alone: its 22 G rows sit in FEAT-033, and the validator demands each in its seed subgroup (`:532-536`; A §3, Ran).
   This lane moves them only on a copy, as A1's precondition; nana-pi's ledger is not changed. Where they go is a later lane's question (regroup residual 7, `:237-238`).
 
@@ -167,7 +167,7 @@ it. Next to try: a lone `\r` inside a row above a share line.
 
 ## 6. Decisions and residuals (each becomes one HANDOFF line)
 
-**Jake.** No question is open in this plan. On a real regroup every share add and drop stays the owner's call (`REQUIREMENTS.md:34-37`): the plan prints each declared one, a
+**The owner.** No question is open in this plan. On a real regroup every share add and drop stays the owner's call (`REQUIREMENTS.md:34-37`): the plan prints each declared one, a
 merge or demotion shows through its move line (`:619`), and the owner's yes comes before `--write`.
 **Seat decisions (declared, not asked).** S1 Per-feature `shares_added` and `shares_dropped`; `also_applies` stays the result. S2 No implicit drop, even for a self-homed share
 (A §5c's exception not taken: one rule, every drop printed). S3 Shares follow their old heading to the feature that names it or holds its subgroup. S4 A sharing heading named
@@ -192,7 +192,7 @@ unterminated share line are refused. S11 The lane that lands second adds the two
 2. Recount independence pinned: T4's seventh tamper (a share lost beside a declared drop) and pair "recount derives expected from `also_applies`"; R-1182 says "never from `also_applies`".
 3. Unterminated share line (proof SHOULD 2): refused naming "end the file with a line break first", in R-1167 and T7.
 4. Repo WRONGs: literal 1,151 with both lanes; second lander adds the keys to `PROPOSAL_KEYS` and T10; regroup cites at `1066464`; A1 allows blank-line changes; §1 says what `:221-226` skip.
-5. G rows: A1 moves them on a copy only, as a test precondition; the line for Jake is removed; where they go is a later lane's question (residual 7).
+5. G rows: A1 moves them on a copy only, as a test precondition; the line for the owner is removed; where they go is a later lane's question (residual 7).
 6. Not taken this round: the proof check's lower findings (empty-key meaning, R-1183 under `--write`, the summary's inserted count, repeats and ranges in the new keys).
 
 ## Seat amendment (2026-10-15): R-1181 one shall

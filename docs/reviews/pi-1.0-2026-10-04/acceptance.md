@@ -1,6 +1,6 @@
 # pi 1.0 adoption — post-merge acceptance (land-ruling §8), 2026-10-04
 
-Verdict: VERIFIED on pi 1.0.2, except two screen-only items that need Jake in the TUI.
+Verdict: VERIFIED on pi 1.0.2, except two screen-only items that need the owner in the TUI.
 
 | Check | Result | Evidence |
 |---|---|---|
@@ -9,7 +9,7 @@ Verdict: VERIFIED on pi 1.0.2, except two screen-only items that need Jake in th
 | A3 reviewer gathers its own evidence | PASS | The child ran `git status`, `git show`, `git diff` itself (run d8c68e12 events). `subagent_supervisor_request` in the parent session: 0. `acceptance-a3.txt`. |
 | A4 depth | PARTIAL | Depth-0 launch works live (A2, A3, A5), which was the ruling's most-likely-wrong claim. A nested launch cannot be shown live, because no builtin agent carries the `subagent` tool. astra r1 proved the refusal by executing upstream code. `acceptance-a4.txt`. |
 | A5 parallel, main agent free | PASS (scripted, RPC) | Three reviewers launched at 16.8 s as one workflow. The main turn ended at 18.2 s. "What is 2+2?" was answered at 19.4 s while all three ran. The children reported back at 46.7 s, 63.8 s and 64.8 s, and the main agent woke at 64.9 s. The driver's two TIMEOUT lines are a driver counting error (one workflow notice, not three task notices). `acceptance-a5.txt`. |
-| A5 screen parts | NOT RUN | FleetView and `/subagents-stop` exist only in the TUI. That is Jake's five-minute check. |
+| A5 screen parts | NOT RUN | FleetView and `/subagents-stop` exist only in the TUI. That is the owner's five-minute check. |
 | A6 handoff store | PASS | `~/.pi/agent/handoffs` absent before and after A2–A5. |
 
 Found during acceptance:

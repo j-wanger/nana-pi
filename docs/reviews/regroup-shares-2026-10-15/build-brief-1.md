@@ -2,7 +2,7 @@
 
 **Builder: Claude Sonnet 5** (gate lane: it changes what the lift may write into another project's contract file). The
 contract is `CHANGE.md` in this folder, frozen at `e5837c1` after sol plan r1 LAND, plus its final "Seat amendment
-(2026-10-15): R-1181 one shall" (meaning unchanged). Read ALL of it including "Seat revision". Jake's ruling it serves:
+(2026-10-15): R-1181 one shall" (meaning unchanged). Read ALL of it including "Seat revision". The owner's ruling it serves:
 2026-10-10, "we should allow multiple features pointing to the same requirements". New IDs: R-1181–R-1183 only; R-1167
 reworded exactly as §2 says.
 

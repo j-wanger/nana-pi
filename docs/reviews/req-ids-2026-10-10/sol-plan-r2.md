@@ -69,6 +69,6 @@ The shared `ID` design reduces the immediate risk, but the tests should pin the 
 
 `template:accept` resolves an immutable commit, renders both languages, and runs both native suites at `scripts/template-acceptance.mjs:74-100`. Strengthened rendered self-tests therefore provide the required release proof.
 
-The `aml-desk` hand update and the more involved `basketball-geek` migration are honestly deferred at `docs/reviews/req-ids-2026-10-10/CHANGE.md:158-162`. They remain unable to consume four-digit IDs until those follow-ups land.
+The `work-desk` hand update and the more involved `basketball-geek` migration are honestly deferred at `docs/reviews/req-ids-2026-10-10/CHANGE.md:158-162`. They remain unable to consume four-digit IDs until those follow-ups land.
 
 VERDICT: SEND-BACK

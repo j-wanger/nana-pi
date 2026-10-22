@@ -133,7 +133,7 @@ Therefore, after the fixtures are strengthened, the proposed post-commit accepta
 
 ### NOTE — Sibling-project consequences are described honestly
 
-The deferred hand edit for `aml-desk` and the migration complexity for `basketball-geek` are recorded at `docs/reviews/req-ids-2026-10-10/CHANGE.md:128-133`. Those projects remain unable to consume four-digit IDs until their follow-ups land.
+The deferred hand edit for `work-desk` and the migration complexity for `basketball-geek` are recorded at `docs/reviews/req-ids-2026-10-10/CHANGE.md:128-133`. Those projects remain unable to consume four-digit IDs until their follow-ups land.
 
 The claim that their ledgers contain no near-miss cannot be verified from this checkout. Keep it attributed to the consult rather than presenting it as locally reproduced evidence.
 

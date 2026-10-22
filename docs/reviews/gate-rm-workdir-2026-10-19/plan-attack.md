@@ -32,7 +32,7 @@ Known limits added from probes:
 
 The one-row subtraction test passes: every remaining step has a wrong-code pair that turns a check red.
 
-Scope: plain `rm` and `rm -f` outside the working directory still pass. Jake's confirmed words are "we really shouldn't be deleting anything outside without user permission/confirming". That tightening is a separate lane with a large blast radius: headless builders' temp cleanup would be blocked. It stays out of this lane. The seat must record it as one Open-for-Jake HANDOFF line inside this lane's reviewed change.
+Scope: plain `rm` and `rm -f` outside the working directory still pass. The owner's confirmed words are "we really shouldn't be deleting anything outside without user permission/confirming". That tightening is a separate lane with a large blast radius: headless builders' temp cleanup would be blocked. It stays out of this lane. The seat must record it as one Open-for-Owner HANDOFF line inside this lane's reviewed change.
 
 Conflicts: main moved to 355520d after the snapshot (readme-check-cp1252 landed). The gate code is unchanged.
 - win-gate-tmp's current tip 5f4dcef merges into the amended prototype with no conflict in nana-gate.ts or the pack README. Its hunks are real(), realOut, laneWriteHit and the gate-paths import line.

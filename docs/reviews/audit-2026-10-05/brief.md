@@ -5,7 +5,7 @@ Worktree: `~/nana-pi-wt/audit-fixes`, branch `feat/audit-fixes`, off main `5bae6
 Do not push or merge. Stage explicit paths only.
 
 The audit findings are evidence. Each was re-checked by the seat where marked.
-- `/private/tmp/claude-501/-Users-jwang-nana-pi/eddb9d32-a04d-4940-bf4f-7aa79f40ad8f/scratchpad/audit/a-pack/findings.md` (pack runtime)
+- `/private/tmp/claude-501/-Users-example-nana-pi/eddb9d32-a04d-4940-bf4f-7aa79f40ad8f/scratchpad/audit/a-pack/findings.md` (pack runtime)
 - `…/audit/b-setup/findings.md` (setup, hooks, templates)
 - `…/audit/c-desk/findings.md` (desk, stage, bench)
 - The docs auditor's findings are summarised in section C below; it could not write a file.
@@ -117,12 +117,12 @@ Skipped on purpose; do not do these:
 - the design-doc "112 checks" count (a dated historical figure);
 - the nana-objective Node `MODULE_TYPELESS_PACKAGE_JSON` warning (the hook runs `node
   --no-warnings` and discards stderr);
-- the `~/.agents/skills` shadowing of four pack skills (machine state; Jake's call).
+- the `~/.agents/skills` shadowing of four pack skills (machine state; the owner's call).
 
 ## Gates (real exit codes; never pipe a test into tail before deciding)
 
 Run the full `npm test` in your worktree. Symlink in the gitignored `apps/bench/.ext` and the root
-`node_modules` from `/Users/jwang/nana-pi` first, and remove the symlinks afterwards. Also run
+`node_modules` from `/Users/example/nana-pi` first, and remove the symlinks afterwards. Also run
 `npm run map:check`, `npm run readme:check` and `node scripts/requirements-trace.mjs`, plus the
 fresh renders in A. The new modules and tests carry six-tag headers, and every new row is one
 `shall`.

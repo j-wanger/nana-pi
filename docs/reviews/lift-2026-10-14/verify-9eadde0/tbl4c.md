@@ -10,7 +10,7 @@ Glossary for the desk:
 
 | Term | Meaning | Source | Since |
 |---|---|---|---|
-| SAR | Suspicious activity report | FinCEN | 2001 |
+| Widget | Example item | Handbook | 2001 |
 
 ## FEAT-001 · Alerts
 Purpose: Not yet sorted: the rows of old section "Alerts".
@@ -26,7 +26,7 @@ Status: active
 
 | Signal | Threshold | Source | Date |
 |---|---|---|---|
-| cash | 10000 | BSA | 2026-01-01 |
+| sample | 100 | Handbook | 2026-01-01 |
 
 # Open questions and deliberate omissions
 ## Open questions

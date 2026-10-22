@@ -9,7 +9,7 @@ Your r1 (`t2a-astra-land.md`, 7/10 BLOCK) issued three MUSTs. Worktree `~/nana-p
 
 **MUST 2 — doctor's `projectFile` cases.** `projectFileState()` now reports: absent/`null`/`false`/`""`/`OBJECTIVE.md` → ✓ default; a different bare filename → ✓ rename; a separator, `.`, `..` or a non-string → ✗ with the reason and the effective fallback. Tests cover every case through `diagnose()` plus a check that doctor's rule matches the producer's `isBareFileName`.
 
-**MUST 3 — HANDOFF reconciliation, done by the SEAT, not the worker.** You found the lane's patch would delete main's two notices. The seat merged main into the lane and, separately, corrected the entry ON MAIN (`a0d66d6`): the provenance entry had falsely claimed the label Jake ruled was "Implemented in lane T2a" when the lane deliberately left the wording untouched. It now records the ruling as PENDING, states what T2a did structurally, carries sol's and your position that structural safety does not answer the semantic question, and names the open choice. The flaky-test notice is preserved.
+**MUST 3 — HANDOFF reconciliation, done by the SEAT, not the worker.** You found the lane's patch would delete main's two notices. The seat merged main into the lane and, separately, corrected the entry ON MAIN (`a0d66d6`): the provenance entry had falsely claimed the label the owner ruled was "Implemented in lane T2a" when the lane deliberately left the wording untouched. It now records the ruling as PENDING, states what T2a did structurally, carries sol's and your position that structural safety does not answer the semantic question, and names the open choice. The flaky-test notice is preserved.
 
 Seat-verified: `npm test` → 70 files, 3514 checks, exit 0.
 

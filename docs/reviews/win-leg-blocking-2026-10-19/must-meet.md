@@ -2,11 +2,11 @@
 
 **Feature.** On win32, `npm test` SKIPs each desk and bench test file on a declared Windows skip list, prints that file's reason and never starts it. Every other file runs as before. macOS and Linux run them all.
 
-**Class: gate.** The lane edits `scripts/test.mjs`, the runner every land rests on. Jake's 10-17 yes named W8 a gate lane; runtime-map set the precedent. Power-mode ladder: Opus final review, Fable land review, the seat's wrong-code pairs, one independent check.
+**Class: gate.** The lane edits `scripts/test.mjs`, the runner every land rests on. The owner's 10-17 yes named W8 a gate lane; runtime-map set the precedent. Power-mode ladder: Opus final review, Fable land review, the seat's wrong-code pairs, one independent check.
 **Threat model.** In scope: honest variation in platforms, temp-path spellings and npm layouts, and a list entry added to hide a failure outside desk or bench (R-1383). Out of scope: deliberate forgery.
 
 **Design.**
-- New `packages/nana-pack/lib/windows-skips-config.mjs` (six-tag header, `@effects none`) exports `WINDOWS_SKIPS`, a frozen map from repo-relative test path to reason. Provenance: measured on CI Windows run 2 at 3bd044e (`docs/reviews/win-impact-paths-2026-10-18/ci-windows-run-2.log`); declared by Jake 2026-10-17. Same home as `runtime-map-config.mjs`, which the runner already imports.
+- New `packages/nana-pack/lib/windows-skips-config.mjs` (six-tag header, `@effects none`) exports `WINDOWS_SKIPS`, a frozen map from repo-relative test path to reason. Provenance: measured on CI Windows run 2 at 3bd044e (`docs/reviews/win-impact-paths-2026-10-18/ci-windows-run-2.log`); declared by the owner 2026-10-17. Same home as `runtime-map-config.mjs`, which the runner already imports.
 - `scripts/test.mjs`: the existing `skipReason` gains one fallback. After `SKIPS[rel(file)]?.()`, on win32 only, `Object.hasOwn(WINDOWS_SKIPS, rel(file)) ? WINDOWS_SKIPS[rel(file)] : null`. The SKIP branch (tally, coverage record) stays shared. Nothing else changes.
 - Whole-file skips cover only the 20 files red on that run. live-feel and nine bench files were green there and keep running.
 - Docs: one sentence in README "Tests"; one Windows bullet in the desk README "Known limits"; one Windows line in the bench README "Install, run and test". No desk product or test file changes (desk frozen).

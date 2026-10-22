@@ -94,6 +94,6 @@ The added lines do not weaken existing consumers.
 
 ### NOTE — D4 facts
 
-The seven frozen features match the plan’s interpretation of the current desk freeze. The source ruling freezes discretionary desk hardening and permits the flaky-test fix and usage measurement at `docs/hardening-plan-2026-10-06.md:94`. The plan properly sends the disputed feature boundary to Jake for confirmation.
+The seven frozen features match the plan’s interpretation of the current desk freeze. The source ruling freezes discretionary desk hardening and permits the flaky-test fix and usage measurement at `docs/hardening-plan-2026-10-06.md:94`. The plan properly sends the disputed feature boundary to the owner for confirmation.
 
 VERDICT: LAND-WITH-FIXES

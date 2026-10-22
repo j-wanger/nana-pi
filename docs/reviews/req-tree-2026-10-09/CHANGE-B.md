@@ -3,11 +3,11 @@
 *Lane `req-tree` (same branch and worktree; increment 1 is built and reviewed, not yet landed) ·
 2026-10-10. Same process as increment 1: why → plan → Fable consult (`fable-consult-b.md`) → sol plan review (item
 `req-tree-b-plan`) → build (pi luna) → seat verification → sol build review (item `req-tree-b`) →
-astra land review → Jake accepts both increments together.*
+astra land review → the owner accepts both increments together.*
 
 ## 1. Why
 
-At checkpoint 2 Jake asked, before accepting: "Do one review on all 1009 placements, also we
+At checkpoint 2 the owner asked, before accepting: "Do one review on all 1009 placements, also we
 should allow multiple features pointing to the same requirements, those requirements are
 potentially high impact high blast radius, we also need to make sure we have proper governance on
 the features and requirements life cycle, make these changes then I'll accept."
@@ -21,7 +21,7 @@ the features and requirements life cycle, make these changes then I'll accept."
   or retire a feature, or how a shared requirement changes or retires. Without them the tree
   drifts, or a session reshapes it unseen.
 
-**Jake's instruction is the agreement for this increment** (checkpoint 1); its content is decided
+**The owner's instruction is the agreement for this increment** (checkpoint 1); its content is decided
 by the review and declared here. Every move and share is listed in `placement-review.md` for his
 acceptance at checkpoint 2.
 
@@ -102,11 +102,11 @@ table: row · home · every feature that lists it · count, sorted by count (mos
 by ID. Five rows are listed by three or more features; they lead.
 
 **Status.** Every feature carries `Status:` right after `Purpose:` (a mandatory line, so a deleted
-`frozen` is visible). Initial values: `active`, except seven features inside Jake's D4 ruling —
+`frozen` is visible). Initial values: `active`, except seven features inside the owner's D4 ruling —
 FEAT-016, -020, -021, -022, -024, -026, -027 — which read
 `frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)`, D4's own
 wording; the ruling keeps its named exceptions (the flaky-test fix, the usage events). Seat
-inferences Jake confirms at checkpoint 2: FEAT-026 (desk signing keys plus nana-stage stamping) is
+inferences the owner confirms at checkpoint 2: FEAT-026 (desk signing keys plus nana-stage stamping) is
 counted as desk; FEAT-025 (nana-stage output only) stays `active` because D4 does not name the stage
 layer; FEAT-023 holds some D4-parked desk rows but is mostly notifications and stays `active`. The
 compaction store's freeze (hardening plan 6.6) covers part of FEAT-002 only and is not represented;
@@ -158,7 +158,7 @@ only the outline diff.
 
 ## 6. Checkpoint 2 (both increments), about 20 minutes
 
-Jake also confirms, in one line, the seven frozen features (§4).
+The owner also confirms, in one line, the seven frozen features (§4).
 
 The outline (now with statuses and the shared index), `placement-review.md` (17 moves, 95 shared
 requirements, refuted items, six critic questions with the seat's rulings), the governance text,

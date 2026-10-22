@@ -264,7 +264,7 @@ the block relocation, zero byte changes inside either section.
 
 ## Gate results (real exit codes, captured without piping into `tail`)
 
-Symlinked `apps/bench/.ext` and the root `node_modules` from `/Users/jwang/nana-pi` before the
+Symlinked `apps/bench/.ext` and the root `node_modules` from `/Users/example/nana-pi` before the
 run, removed both afterward (confirmed gone: `ls` on each now errors "No such file or
 directory").
 

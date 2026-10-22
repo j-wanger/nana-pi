@@ -1,8 +1,8 @@
 # Change declaration: the Claude Code seat's hooks run on Windows
 
-*Lane `cc-hooks-windows` · branch `feat/cc-hooks-windows` · worktree `~/nana-pi-wt/cc-hooks-windows`, based on `main` at `c22bab5` · 2026-10-12. Builder: Claude Sonnet 5.5 (Jake's measurement lane).*
+*Lane `cc-hooks-windows` · branch `feat/cc-hooks-windows` · worktree `~/nana-pi-wt/cc-hooks-windows`, based on `main` at `c22bab5` · 2026-10-12. Builder: Claude Sonnet 5.5 (Owner's measurement lane).*
 
-*Revised 2026-10-12 after Jake's answer. On win32 every hook entry is now written in exec form. See "Decision (2026-10-12)" in section 3, and "Revision after Jake's answer" at the end.*
+*Revised 2026-10-12 after the owner's answer. On win32 every hook entry is now written in exec form. See "Decision (2026-10-12)" in section 3, and "Revision after the owner's answer" at the end.*
 
 *Re-checked 2026-10-12 against the code and the docs. The last line of "Seat fact-check" records the changes.*
 
@@ -15,7 +15,7 @@
 - *FEAT-018 "Update or remove managed components safely": R-394, R-653; new R-1056 and R-1059.*
 - *FEAT-019 "Release usable templates and report support": R-684.*
 
-*Order: why → plan → sol plan review (two rounds at most) → seat acceptance script, red → build → CI run with the Windows leg (a draft pull request; Jake, 2026-10-11: pushing a non-main branch and opening a draft PR for CI need no approval) → seat verification → sol build review → astra land review → Jake's machine check → Jake accepts.*
+*Order: why → plan → sol plan review (two rounds at most) → seat acceptance script, red → build → CI run with the Windows leg (a draft pull request; the owner, 2026-10-11: pushing a non-main branch and opening a draft PR for CI need no approval) → seat verification → sol build review → astra land review → the owner's machine check → the owner accepts.*
 
 *Dependencies:*
 - *`feat/pi-cmd-launch` has landed at `c22bab5`, 21 commits past `c505601`. This lane's worktree starts there. Its tip is `47df119`, this plan.*
@@ -29,7 +29,7 @@
 
 ## 1. Why
 
-Jake uses both seats every day on his x64 Windows machine, which has Git Bash (`~/.claude/nana-memory/shared/user_jake_windows_both_seats.md:8,10`). On that machine the Claude Code seat gets only the knowledge pull:
+The owner uses both seats every day on his x64 Windows machine, which has Git Bash (`~/.claude/nana-memory/shared/user_owner_windows_both_seats.md:8,10`). On that machine the Claude Code seat gets only the knowledge pull:
 - install skips the four hook files (`packages/nana-setup/lib/steps.mjs:102`);
 - install filters their settings entries out (`:505-509`);
 - doctor marks them skipped (`lib/doctor.mjs:335`, `:379-383`).
@@ -48,40 +48,40 @@ HANDOFF ranks this first in the Windows queue now that product-report has landed
    - Exec form runs "when `args` is present. Claude Code resolves `command` as an executable on `PATH` and spawns it directly with `args` as the argument vector" (same section).
    - Exec form arrived in 2.1.139. The changelog entry says: "Added hook `args: string[]` field (exec form) that spawns the command directly without a shell, so path placeholders never need quoting."
    - The docs back this lane's exact case on Windows: "The `node` plus script-path pattern works on every platform because `node.exe` is a real binary." They add: "Special characters such as apostrophes, `$`, and backticks pass through verbatim because there is no shell to interpret them." And: "No shell tokenization happens on any platform."
-   - Jake's Windows machine runs Claude Code 2.1.296, the same version as this Mac (Jake, 2026-10-12). On this Mac, `claude --version` prints `2.1.296 (Claude Code)`. 2.1.296 is the newest changelog entry.
+   - The owner's Windows machine runs Claude Code 2.1.296, the same version as this Mac (Owner, 2026-10-12). On this Mac, `claude --version` prints `2.1.296 (Claude Code)`. 2.1.296 is the newest changelog entry.
    - 2.1.296 is past 2.1.139. It is also past 2.1.47, whose changelog entry reads: "Fixed hooks (PreToolUse, PostToolUse) silently failing to execute on Windows by using Git Bash instead of cmd.exe (anthropics/claude-code#25981)".
      - The entry names only PreToolUse and PostToolUse. That it covered every hook event is INFERRED. It does not matter for exec form.
-     - So no version Jake runs needs cmd.exe or shell quoting.
+     - So no version the owner runs needs cmd.exe or shell quoting.
    - An exec-form hook starts the same way whether Git Bash is installed or not.
      - The docs never say this in one sentence. It follows from three that they do say: "There is no shell", "No shell tokenization happens on any platform", and `shell` is "Ignored when `args` is set".
      - Whether Git Bash changes the PATH that Claude Code passes to hooks is not documented. That it does not is INFERRED.
      - Git Bash now decides only which shell *tool* exists (finding 3).
    - The title at `tests/win32-degrade.test.mjs:85` ("cmd.exe cannot run it") is about a shell that exec form never uses. Its check is rewritten under R-1050.
    - The shared memory note now records the documented hook shell (`reference_claude_code_hooks_windows.md:9`, corrected 2026-10-12). Its description (`:3`) and its "How to apply" line (`:16`) still recommend a double-quoted shell form.
-3. **A `Bash`-only matcher may miss most shell commands on Jake's machine (INFERRED).**
+3. **A `Bash`-only matcher may miss most shell commands on the owner's machine (INFERRED).**
    - With Git Bash installed, the PowerShell tool "is on by default for claude.ai and Console accounts" (https://code.claude.com/docs/en/tools-reference#powershell-tool).
    - That default is a fetched feature flag (https://code.claude.com/docs/en/env-vars#features-that-need-feature-flag-fetching). With fetching off, "Claude Code routes shell commands through Git Bash unless you set `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`".
      - Fetching is off when `DISABLE_GROWTHBOOK`, `DISABLE_TELEMETRY`, `DO_NOT_TRACK` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set.
      - It is also off on a third-party provider.
      - The first session after an install or upgrade may lack the flag (env-vars#first-session-after-an-install-or-upgrade).
    - "When the tool is enabled, Claude treats PowerShell as the primary shell. The Bash tool remains available for POSIX scripts when Git Bash is installed" (tools-reference).
-   - The sentence in hooks#powershell that applies to Jake's machine is: "On Windows, wherever the PowerShell tool is enabled, Claude treats PowerShell as the primary shell and routes shell commands through it."
+   - The sentence in hooks#powershell that applies to the owner's machine is: "On Windows, wherever the PowerShell tool is enabled, Claude treats PowerShell as the primary shell and routes shell commands through it."
    - The same section also says "A hook that matches only `Bash` never fires there".
      - It is the bullet after "On Windows without Git Bash, the tool is enabled automatically and Claude Code doesn't register the Bash tool at all."
-     - Reading "there" as Windows without Git Bash is the natural reading, but the docs do not state it outright (INFERRED). On that reading it does not describe Jake's machine.
-   - Nobody has recorded whether the tool is on for Jake. That depends on his account type, his settings, his environment and flag fetching:
+     - Reading "there" as Windows without Git Bash is the natural reading, but the docs do not state it outright (INFERRED). On that reading it does not describe the owner's machine.
+   - Nobody has recorded whether the tool is on for the owner. That depends on his account type, his settings, his environment and flag fetching:
      - The docs say Bedrock, Agent Platform and Foundry users must set `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`.
      - The 2.1.143 changelog entry says the opposite: "now enabled by default on Windows for Bedrock, Vertex, and Foundry users".
-     - Version 2.1.126 made PowerShell the primary shell whenever the tool is enabled. Jake's 2.1.296 is past it.
+     - Version 2.1.126 made PowerShell the primary shell whenever the tool is enabled. The owner's 2.1.296 is past it.
      - On Windows with Git Bash installed, any Bash deny rule, scoped or bare, turns the tool off. It stays on if `CLAUDE_CODE_USE_POWERSHELL_TOOL=1` is set, or if a settings file has a scoped `PowerShell(...)` permission rule (tools-reference#bash-deny-rules-also-turn-off-the-powershell-tool).
      - `CLAUDE_CODE_USE_POWERSHELL_TOOL=0` turns the tool off.
      - The flag-fetching cases above can leave it off.
    - The verifier's matcher is `Bash` (`lib/settings.mjs:159`), and `decideHook` abstains for any other tool (`lib/verifier-hook.mjs:14`). `Bash|PowerShell` is the right matcher whether the tool is on or off.
-   - Two places said that a `Bash` matcher fires on his machine. The memory note was corrected on 2026-10-12 (`user_jake_windows_both_seats.md:10`). `HANDOFF.md:58` still says it, and the seat corrects it.
+   - Two places said that a `Bash` matcher fires on his machine. The memory note was corrected on 2026-10-12 (`user_owner_windows_both_seats.md:10`). `HANDOFF.md:58` still says it, and the seat corrects it.
 4. **Bug 4: the knowledge hook's stale-path repair is dead on win32.** This is R-394 failing on win32.
    - `installerKnowledgeTarget` requires four words beginning `NODE_NO_WARNINGS=1`, plus the exact prefixed string (`lib/settings.mjs:93`, `:96`).
    - win32 strips that prefix (`steps.mjs:509`).
-   - After a re-clone, install says "already wired" while doctor shows ✗. The code path is traced. The effect on Jake's machine is INFERRED (`windows-triage.md:70`).
+   - After a re-clone, install says "already wired" while doctor shows ✗. The code path is traced. The effect on the owner's machine is INFERRED (`windows-triage.md:70`).
 
 **Observable outcomes.**
 1. On win32, install writes all five hook entries into `settings.json`:
@@ -121,13 +121,13 @@ HANDOFF ranks this first in the Windows queue now that product-report has landed
      - an entry carrying `args` with a shell-form `command` would read as not installed, so install adds a twin and doctor flips from ✓ to ✗.
 7. The Support lines say that the Claude Code hooks run on Windows, and they give the floor.
 
-**Threat model.** This follows Jake's 2026-10-11 rule (`HANDOFF.md:18`). Honest variation in a Windows machine is in scope:
+**Threat model.** This follows the owner's 2026-10-11 rule (`HANDOFF.md:18`). Honest variation in a Windows machine is in scope:
 - paths with spaces, apostrophes and shell-special characters (`$`, the backtick, `%`, `&`, `;`);
 - Git Bash present or absent, which decides whether the Bash tool exists;
 - where `node` comes from (a real `node.exe` or a shim), and the PATH that Claude Code sees;
 - Claude Code's version, account type, environment and flag fetching. The version decides whether exec form works. All of them decide whether the PowerShell tool is on.
 
-A hostile local user is out of scope. Anyone who can edit `settings.json` or the checkout can already run code as Jake.
+A hostile local user is out of scope. Anyone who can edit `settings.json` or the checkout can already run code as the owner.
 
 **Lane class.** Gate-adjacent. The verifier pipe is a PreToolUse guard, and every Claude Code session on the machine shares `settings.json`. Two plan-review rounds at most.
 
@@ -144,7 +144,7 @@ A hostile local user is out of scope. Anyone who can edit `settings.json` or the
 | R-1055 | added (FEAT-015, beside R-393) | WHERE the platform is win32, doctor shall report each of the five hook settings rows as ✓ only when an entry invoking its script, in exec form or shell form, sits under the expected event and matcher, and every entry under that event invoking the script has an absolute script path that resolves inside the checkout. Pinned by forced-win32 suite cases (section 5), not only by the acceptance script. |
 | R-1056 | added (FEAT-018, beside R-394, which it extends); re-scoped 2026-10-12 | WHEN install finds an installer-shaped, repo-anchored hook entry whose script is missing or resolves outside the checkout, it shall replace that entry in place with the platform's current form. Repo-anchored means the knowledge pull on every platform, and all five entries on win32. Installer-shaped means timeout 5, the installer's status message for that entry, and a form that matches one of these apart from the checkout path: the POSIX knowledge form on every platform; on win32 only, the earlier win32 knowledge form `node '<path>' hook` and the R-1050 exec form. On win32 a shell form also carries no `args`. |
 | R-1057 | added (FEAT-015, beside R-344) | WHERE the platform is win32, doctor shall run the R-344 Node floor check on the `node` found on PATH instead of reporting it skipped. Pinned by a forced-win32 suite case (section 5). |
-| R-1058 | added (SUB-015); re-scoped 2026-10-12 to exec form; split after sol plan r1 (MUST 2) | WHERE the platform is win32, each hook entry the installer writes, spawned as exec form (its `command` with its `args` and no shell) from a checkout, a home and a project folder whose paths contain a space, `$`, a backtick, `%` and an apostrophe, shall exit 0 within its `timeout` with no module-resolution error on stderr. Evidence is DIRECT EXEC-FORM CONFORMANCE on the non-blocking Windows leg (its run ID), not proof that Claude Code itself dispatches the hook; Jake's machine check is the acceptance evidence for that. |
+| R-1058 | added (SUB-015); re-scoped 2026-10-12 to exec form; split after sol plan r1 (MUST 2) | WHERE the platform is win32, each hook entry the installer writes, spawned as exec form (its `command` with its `args` and no shell) from a checkout, a home and a project folder whose paths contain a space, `$`, a backtick, `%` and an apostrophe, shall exit 0 within its `timeout` with no module-resolution error on stderr. Evidence is DIRECT EXEC-FORM CONFORMANCE on the non-blocking Windows leg (its run ID), not proof that Claude Code itself dispatches the hook; the owner's machine check is the acceptance evidence for that. |
 | R-1063 | added (SUB-015; split from R-1058) | WHERE the platform is win32, when spawned as R-1058 describes with its event's sample stdin, the objective entry shall print a first line starting `[nana:objective]` and no `OBJECTIVE UNAVAILABLE`, the adoption entry no `ADOPTION UNAVAILABLE`, and the shared-memory entry its `[nana:shared-memory]` header and the seeded `- [` index line. |
 | R-1064 | added (SUB-012; split from R-1058) | WHERE the platform is win32, the verifier entry spawned as R-1058 describes shall print exactly one JSON line whose `permissionDecision` is `ask` for a `Bash` or `PowerShell` event whose command masks a test's exit code through a live pipe, and print nothing for any other command. |
 | R-1059 | added (FEAT-018, beside R-1056) | WHERE the platform is win32, WHEN install finds an installer-shaped knowledge entry in a shell form R-1056 recognizes, it shall replace it in place with the R-1050 exec form even when its script resolves inside the checkout. |
@@ -188,19 +188,19 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
     "hooks": {
       "SessionStart": [
         { "hooks": [
-          { "type": "command", "command": "node", "args": ["C:\\Users\\jake\\nana-pi/packages/nana-setup/claude/hooks/nana-objective.mjs"], "timeout": 5, "statusMessage": "nana: objective + current priority" },
-          { "type": "command", "command": "node", "args": ["C:\\Users\\jake\\nana-pi/packages/nana-setup/claude/hooks/nana-adoption.mjs"], "timeout": 5, "statusMessage": "nana: unadopted repositories" },
-          { "type": "command", "command": "node", "args": ["C:\\Users\\jake\\nana-pi/packages/nana-setup/claude/hooks/nana-shared-memory.mjs"], "timeout": 5, "statusMessage": "nana: shared memory index" }
+          { "type": "command", "command": "node", "args": ["C:\\Users\\owner\\nana-pi/packages/nana-setup/claude/hooks/nana-objective.mjs"], "timeout": 5, "statusMessage": "nana: objective + current priority" },
+          { "type": "command", "command": "node", "args": ["C:\\Users\\owner\\nana-pi/packages/nana-setup/claude/hooks/nana-adoption.mjs"], "timeout": 5, "statusMessage": "nana: unadopted repositories" },
+          { "type": "command", "command": "node", "args": ["C:\\Users\\owner\\nana-pi/packages/nana-setup/claude/hooks/nana-shared-memory.mjs"], "timeout": 5, "statusMessage": "nana: shared memory index" }
         ] }
       ],
       "PreToolUse": [
         { "matcher": "Bash|PowerShell", "hooks": [
-          { "type": "command", "command": "node", "args": ["C:\\Users\\jake\\nana-pi/packages/nana-setup/claude/hooks/verifier-pipe.mjs"], "timeout": 5, "statusMessage": "nana: verifier pipe" }
+          { "type": "command", "command": "node", "args": ["C:\\Users\\owner\\nana-pi/packages/nana-setup/claude/hooks/verifier-pipe.mjs"], "timeout": 5, "statusMessage": "nana: verifier pipe" }
         ] }
       ],
       "UserPromptSubmit": [
         { "hooks": [
-          { "type": "command", "command": "node", "args": ["C:\\Users\\jake\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts", "hook"], "timeout": 5, "statusMessage": "nana: knowledge pull" }
+          { "type": "command", "command": "node", "args": ["C:\\Users\\owner\\nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts", "hook"], "timeout": 5, "statusMessage": "nana: knowledge pull" }
         ] }
       ]
     }
@@ -210,7 +210,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   In `settings.json` the backslashes appear doubled, because that is JSON escaping. `node` receives single backslashes.
 - **Why exec form, and why only on win32.**
   - Exec form passes each `args` element "exactly as written". So the win32 writer needs no quoting rule and no refused characters. Shell flags, profile output and `CLAUDE_CODE_SHELL_PREFIX` wrapping play no part either ("PowerShell hooks and exec-form hooks run without the prefix", https://code.claude.com/docs/en/env-vars).
-  - Jake runs 2.1.296, and exec form needs 2.1.139.
+  - The owner runs 2.1.296, and exec form needs 2.1.139.
   - The path is not rewritten. The root keeps its native separators and the suffix uses `/`. That is the same mixed string today's win32 knowledge entry hands to `node`. The suffix test `endsWith('/<script>')` (`settings.mjs:118`) reads it unchanged.
   - The earlier forward-slash rewrite existed only for Git Bash's backslash handling, which exec form never meets.
   - macOS and Linux keep shell form with single quotes. It works on every Claude Code version. Switching would rewrite every POSIX user's entries and change R-653's preserve rule and the golden file. That would put the blast radius on machines this lane is not about. The same reason keeps POSIX reading by `command` alone (R-1061).
@@ -276,17 +276,17 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 - Shell form on win32, with double or single quotes. It needs quoting rules for two shells and a refused-character set. It also carries residuals for profile output, shell flags and PowerShell stdin. Exec form needs none of these.
 - cmd.exe support. Claude Code before 2.1.47 used cmd.exe for PreToolUse and PostToolUse hooks; the changelog names only those two events. The exec form this lane writes needs 2.1.139 anyway.
 - Exec form on POSIX, for the blast-radius reason above. Reading exec form on POSIX is rejected for the same reason (outcome 6).
-- A doctor probe of `claude --version`. On Windows `claude` may be a `.cmd` shim, which brings back the launch problem `pi-cmd-launch` solved for pi. That is not worth it for a floor Jake already exceeds. The floor is stated, not checked.
+- A doctor probe of `claude --version`. On Windows `claude` may be a `.cmd` shim, which brings back the launch problem `pi-cmd-launch` solved for pi. That is not worth it for a floor the owner already exceeds. The floor is stated, not checked.
 
 **Decision (2026-10-12).**
-- Jake answered the plan's open questions. His Windows machine runs Claude Code 2.1.296, the same version as this Mac. That is past 2.1.139 (exec form) and past 2.1.47 (cmd.exe no longer the shell for PreToolUse and PostToolUse hooks).
+- The owner answered the plan's open questions. His Windows machine runs Claude Code 2.1.296, the same version as this Mac. That is past 2.1.139 (exec form) and past 2.1.47 (cmd.exe no longer the shell for PreToolUse and PostToolUse hooks).
 - On that fact the seat decided the following:
   - On win32, the installer writes every hook it owns in exec form.
   - cmd.exe support is dropped, with its test cases and the `%` refusal.
   - macOS and Linux stay exactly as today, in shell form with single quotes, and read entries by `command` alone (R-1061), to keep the blast radius small.
   - The README and doctor state that the Windows hooks need Claude Code 2.1.139 or later.
-- A draft pull request for the Windows CI run needs no approval (Jake, 2026-10-11, in the header). The general question at `HANDOFF.md:79`, whether the land helper should open a draft for every lane, stays with Jake. It does not block this lane.
-- No item from this plan is open for Jake now. His machine check runs last.
+- A draft pull request for the Windows CI run needs no approval (Owner, 2026-10-11, in the header). The general question at `HANDOFF.md:79`, whether the land helper should open a draft for every lane, stays with the owner. It does not block this lane.
+- No item from this plan is open for the owner now. His machine check runs last.
 
 **Declared limits and residuals.**
 - **Stale paths after a move.** When the checkout moves, all five entries are stale until install runs again. `nana-setup` is not on PATH on win32 (`steps.mjs:687`), so the command is `node <checkout>\packages\nana-setup\bin\nana-setup.mjs install`.
@@ -294,12 +294,12 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   - The docs do not say what an older version does with `args`.
   - INFERRED: an older version ignores `args` and runs `node` alone through its hook shell. `node` then reads the hook's JSON from stdin as a program and fails with a syntax error. Every hook fails open, and the verifier abstains.
   - Another failure is equally undocumented: an older settings check might reject the unknown field, or ignore it (INFERRED).
-  - The Support lines and doctor's note row state the floor. Jake runs 2.1.296.
+  - The Support lines and doctor's note row state the floor. The owner runs 2.1.296.
 - **The real exec-form spawn on Windows.**
   - Windows hands a child process one command line, not an argument vector. Claude Code must find `node` on PATH and quote each `args` element so that `node.exe` splits the line back into the same elements.
   - The docs make that split a contract: "each `args` element is one argument exactly as written", and "No shell tokenization happens on any platform". They give `C:\Program Files\nodejs\node.exe` as "a single valid executable".
   - The Windows leg spawns with Node's `child_process` and no shell. That Claude Code meets the contract the same way in practice is INFERRED. A spawner that quotes differently would split a path that has a space in it.
-  - Jake's machine check runs the real spawn, but only with his own checkout path, which may contain no space or special character.
+  - The owner's machine check runs the real spawn, but only with his own checkout path, which may contain no space or special character.
 - **`node` must be a real executable.**
   - The docs say that "On Windows, exec form requires `command` to resolve to a real executable such as a `.exe`."
   - A `node.cmd` or `.bat` shim cannot start. Then every hook fails open. From 2.1.296 the debug log marks such a run `failed to start` (hooks#debug-hooks, read on the raw page 2026-10-12).
@@ -310,7 +310,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 - **Timeouts fail open.**
   - The docs say: "A timed-out `command` … hook doesn't block the tool call … don't count on a stalled hook to act as a gate" (hooks#timeouts).
   - Exec form removes Git Bash start-up from the 5 s budget. Node start-up remains, plus any first-run antivirus scan (INFERRED that it fits). If the verifier times out, the commit goes through.
-  - The Windows leg records each run's duration. From 2.1.296, Jake's debug log records each hook's duration.
+  - The Windows leg records each run's duration. From 2.1.296, the owner's debug log records each hook's duration.
   - `onFailure: "block"` needs 2.1.295. This lane does not use it.
 - **`CLAUDE_PROJECT_DIR` form.**
   - Both forms export the variable to the spawned process (hooks#exec-form-and-shell-form). The objective and adoption hooks pass it on as `--cwd` (`lib/hook-producer.mjs:32-33`).
@@ -318,8 +318,8 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   - Indirect evidence points to the native `C:\` form (INFERRED):
     - the docs' PowerShell hook example, `"& \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\check.ps1\""`, works only with a native path;
     - hooks#pretooluse-input says file paths "arrive with backslash separators, even when your hook runs under Git Bash where `$PWD` looks like `/c/project`". That sentence is about `tool_input.file_path` only.
-  - Jake's throwaway hook (section 5) confirms the form.
-- **The claim most likely to be wrong** is that Node's no-shell spawn on the Windows leg models how Claude Code spawns an exec-form hook on Windows. The argument split is a documented contract. The open part is which `node` Claude Code finds, whether its quoting meets the contract in practice, and its environment and working folder. This is the seat's judgment. A green Windows leg may not carry over. Jake's machine check is the only test of the real spawn.
+  - The owner's throwaway hook (section 5) confirms the form.
+- **The claim most likely to be wrong** is that Node's no-shell spawn on the Windows leg models how Claude Code spawns an exec-form hook on Windows. The argument split is a documented contract. The open part is which `node` Claude Code finds, whether its quoting meets the contract in practice, and its environment and working folder. This is the seat's judgment. A green Windows leg may not carry over. The owner's machine check is the only test of the real spawn.
 - **Hand-written exec-form variants on win32.**
   - An entry can name `node` by full path or as `node.exe`, or name the script with backslashes only. Such an entry reads as not installed under the conservative rule (`settings.mjs:106-107`), and install appends its own entry beside it.
   - R-923 on win32 covers only variants that name `node` and a `/`-suffixed script.
@@ -400,7 +400,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   - setup README `:44` (the win32 exec form beside the knowledge form, and the "On native Windows" sentence), `:59` (the verifier-pipe guard covers PowerShell on Windows), `:376` (Platforms, with the floor) and `:431` (the test table, which describes `win32-degrade` as "every posix-only step reporting `skipped (win32)`");
   - pack README `:40` ("The Claude Code Bash hook is not wired on native Windows by nana-setup.").
 - `HANDOFF.md`, including the correction at `:58`, and the session entry. The seat writes both before the final review.
-- Outside the repo, the seat updates the shared memory note `reference_claude_code_hooks_windows.md`: its description (`:3`) and its "How to apply" line (`:16`) move to exec form. Its `:9` and `user_jake_windows_both_seats.md:10` were already corrected on 2026-10-12.
+- Outside the repo, the seat updates the shared memory note `reference_claude_code_hooks_windows.md`: its description (`:3`) and its "How to apply" line (`:16`) move to exec form. Its `:9` and `user_owner_windows_both_seats.md:10` were already corrected on 2026-10-12.
 
 **NOT.**
 - The desk.
@@ -506,7 +506,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
     - Doctor, run on the same copy and home through `withPiStub` (`tests/stub-pi.mjs`) as `win32-degrade.test.mjs` does: ✓ on the five settings rows and on the Node row; the floor note row is present; exit 0.
   - **Reading the result.**
     - The Windows leg is non-blocking (`ci.yml:21`). This file is R-1058's only test, so no blocking leg pins that row.
-    - CI runs only on a push to main or on a pull request (`ci.yml:2-5`), so pushing the branch runs nothing. A Windows run needs a draft pull request, which needs no approval (Jake, 2026-10-11).
+    - CI runs only on a push to main or on a pull request (`ci.yml:2-5`), so pushing the branch runs nothing. A Windows run needs a draft pull request, which needs no approval (Owner, 2026-10-11).
     - The seat reads this file's lines in the Windows job log and records the run ID in R-1058's evidence. A green check is not evidence.
 - **macOS regression:** case (d) above, plus `npm run test:locked` green.
 - **PowerShell lexing cases (R-1062), on every leg in `pipe-guard.test.mjs` (sol plan r2 MUST 1: every case carries a live `git commit` outside the construct, so a lexer that exposes the pipe turns the case into an ask).**
@@ -525,7 +525,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   1. Restore the filter at `steps.mjs:505-509`: the five-entry case fails on every leg, and every Windows spawn case fails.
   2. Write shell form on win32 (`node ${shq(path)}`, no `args`): the exec-shape case fails on every leg. On Windows the harness fails each entry before spawning, because the entry has no `args`.
   3. Quote the path inside `args` (`"'<path>'"`, a shell habit): the exec-shape case fails, because the element is not an absolute path. The Windows spawn cases fail, because `node` receives the quotes.
-  4. Use matcher `Bash` on win32: the matcher case and R-1053's constant pin fail. Only Jake's machine checks Claude Code's own routing.
+  4. Use matcher `Bash` on win32: the matcher case and R-1053's constant pin fail. Only the owner's machine checks Claude Code's own routing.
   5. Make `decideHook` reject PowerShell: the PowerShell ask cases fail on every leg and on Windows.
   6. Use the bash dialect for PowerShell: the pipefail-prefixed PowerShell case fails.
   7. Make `hasHook` read `command` only on win32 (drop the exec branch of `entryInvokes`):
@@ -545,9 +545,9 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   16. Make `removeInstallerHooks` compare `command` only: the pure case that keeps an entry whose `args` differ fails.
   17. Read exec form on POSIX too (drop the platform gate in `entryInvokes`): the POSIX copied-fragment case fails (R-1061).
   18. Let `installerTarget` accept a win32 shell form that carries `args`: the pure win32 rejection case fails.
-- **Jake's machine, last; Jake runs it.**
+- **The owner's machine, last; the owner runs it.**
   - First, record:
-    - the `claude --version` output at the time of the check. Jake reported 2.1.296 on 2026-10-12. Compare it against the floors 2.1.139 (exec form), 2.1.126 (PowerShell as the primary shell) and 2.1.296 (debug duration lines);
+    - the `claude --version` output at the time of the check. The owner reported 2.1.296 on 2026-10-12. Compare it against the floors 2.1.139 (exec form), 2.1.126 (PowerShell as the primary shell) and 2.1.296 (debug duration lines);
     - the account type, `CLAUDE_CODE_USE_POWERSHELL_TOOL`, any Bash deny rule, and any scoped `PowerShell(...)` permission rule;
     - whether `DISABLE_GROWTHBOOK`, `DISABLE_TELEMETRY`, `DO_NOT_TRACK` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set, and whether this is the first session after an install or upgrade;
     - whether `CLAUDE_CONFIG_DIR` is set.
@@ -565,7 +565,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 
 ## Seat fact-check (2026-10-12)
 
-*This records the changes made to the first draft, before Jake's answer. The items about quoting, cmd.exe, the refused characters and the shell emulation are superseded by the revision below. The record stays as history.*
+*This records the changes made to the first draft, before the owner's answer. The items about quoting, cmd.exe, the refused characters and the shell emulation are superseded by the revision below. The record stays as history.*
 
 Two read-only checks reviewed the draft. One checked the code, the other checked the Claude Code docs and changelog. The docs were read on 2026-10-12, not against a pinned Claude Code version. Changes:
 - **Base and dependencies.** The base moved to `c22bab5`, because `pi-cmd-launch` landed, and all line references moved with it. The golden file now comes from `c22bab5`. The draft did not name `feat/product-report`, which is now listed, with the row ranges it uses.
@@ -573,13 +573,13 @@ Two read-only checks reviewed the draft. One checked the code, the other checked
   - Current Claude Code does not use cmd.exe for hooks; versions before 2.1.47 did. The cmd.exe cases and the `%` refusal are now justified only by those versions.
   - The `:85` title is incomplete, not wrong.
 - **Bash-only matcher.**
-  - The "never fires there" quote is about Windows without Git Bash. Whether the PowerShell tool is on for Jake is now marked INFERRED.
+  - The "never fires there" quote is about Windows without Git Bash. Whether the PowerShell tool is on for the owner is now marked INFERRED.
   - Two more stale places are named: `HANDOFF.md:57` and the memory note line `:10`.
   - Deny rules can turn the PowerShell tool off.
-- **Exec form.** Claude Code has accepted `args` since 2.1.139, and the docs endorse `node` plus the script path on Windows. Exec form moved from rejected to Jake's call. Its only surviving cost is the entry shape plus Jake's unknown version.
+- **Exec form.** Claude Code has accepted `args` since 2.1.139, and the docs endorse `node` plus the script path on Windows. Exec form moved from rejected to the owner's call. Its only surviving cost is the entry shape plus the owner's unknown version.
 - **Quoting.**
   - The double-quote citation now points to hooks#security-best-practices.
-  - The R-1052 regression is named as a trade, and the trade is open for Jake.
+  - The R-1052 regression is named as a trade, and the trade is open for the owner.
   - The rule that `"` cannot appear in a Windows path is documented (https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), so it is no longer INFERRED.
   - Mutation 3 rests on documented bash behaviour, with a UNC note.
   - Smart quotes and `!` are declared limits (INFERRED).
@@ -619,7 +619,7 @@ Two read-only checks reviewed the draft. One checked the code, the other checked
   - the PowerShell-tool gap on POSIX;
   - the unrecognized unquoted form from `54b5088`.
 - **Most likely wrong.** `CLAUDE_PROJECT_DIR` now has indirect evidence for the native form. The claim most likely to be wrong is now the Windows leg's shell emulation.
-- **Jake's machine check.** It now records the version, account type, environment variables, `tool_name`, debug-log lines, the `node` it resolves and latency, and it accepts workspace trust first.
+- **The owner's machine check.** It now records the version, account type, environment variables, `tool_name`, debug-log lines, the `node` it resolves and latency, and it accepts workspace trust first.
 - **2026-10-12, second re-check of the exec-form revision.** A code check and a docs check re-read the revised plan, and the seat verified the disputed items. Changes:
   - **Base.** Product-report has landed: main is `7e6ce39`. It touched none of this lane's code or test files, so code references hold. HANDOFF references moved to `:58` and `:79`, and the leaf total is now 1,056.
   - **Mutation 7.** It could not turn the second-install case red, because `mergeRepoHooks` matches the installer's entries before `hasHook` is asked. The section 3 sentence is corrected. A new R-923 win32 variant case and the doctor rows now catch it.
@@ -646,12 +646,12 @@ Two read-only checks reviewed the draft. One checked the code, the other checked
     - The `NODE_NO_WARNINGS` wording now names `--no-warnings`.
   - **Seat-verified disputes.** The raw hooks page ties `failed to start` and the duration lines to v2.1.296, not v2.1.200. The trace rail does not flag a live tag on a retired row, so the code check's INFERRED claim is wrong, and the seat retags by hand.
 
-## Revision after Jake's answer (2026-10-12)
+## Revision after the owner's answer (2026-10-12)
 
-Jake reported that his Windows machine runs Claude Code 2.1.296, the same version as this Mac. The seat then chose exec form on win32. Changes:
-- **Decision recorded.** "Open for Jake" is replaced by "Decision (2026-10-12)" in section 3.
+The owner reported that his Windows machine runs Claude Code 2.1.296, the same version as this Mac. The seat then chose exec form on win32. Changes:
+- **Decision recorded.** "Open for the owner" is replaced by "Decision (2026-10-12)" in section 3.
   - Item 1 (shell or exec form) and item 2 (cmd.exe) are resolved by the version.
-  - Item 3 (a pull request for CI) was already resolved by Jake's 2026-10-11 ruling in the header.
+  - Item 3 (a pull request for CI) was already resolved by the owner's 2026-10-11 ruling in the header.
 - **Outcomes.**
   - Outcome 1 is now exec form.
   - The refusal outcome is gone. In its place, the README and doctor state the 2.1.139 floor.
@@ -672,10 +672,10 @@ Jake reported that his Windows machine runs Claude Code 2.1.296, the same versio
   - The Windows leg spawns each entry with no shell, under paths with a space, `$`, a backtick, `%`, an apostrophe and five shell-only characters. Its Git Bash, PowerShell and cmd.exe runs are removed.
   - The acceptance script checks the exec shape, the floor note and a second install with no duplicates.
   - The mutation pairs are rewritten: 16 pairs.
-  - Jake's check drops the Git Bash probes. It adds a throwaway exec-form hook and the `failed to start` debug line.
+  - The owner's check drops the Git Bash probes. It adds a throwaway exec-form hook and the `failed to start` debug line.
 - **Residuals.**
   - Removed: profile output, shell flags, PowerShell stdin, cmd.exe, the refused set, UNC collapse and `CLAUDE_CODE_SHELL_PREFIX`.
   - Added: Claude Code before 2.1.139; the real exec-form spawn on Windows, now the claim most likely to be wrong; `node` as a real executable; hand-written exec-form variants on win32; no `NODE_NO_WARNINGS` on win32.
-- **Memory.** Two lines were already corrected on 2026-10-12: `user_jake_windows_both_seats.md:10` and `reference_claude_code_hooks_windows.md:9`. The reference note's `:3` and `:16` still describe the double-quoted shell form, and the seat updates them.
+- **Memory.** Two lines were already corrected on 2026-10-12: `user_owner_windows_both_seats.md:10` and `reference_claude_code_hooks_windows.md:9`. The reference note's `:3` and `:16` still describe the double-quoted shell form, and the seat updates them.
 - 2026-10-12, after sol plan r1 (SEND-BACK 70/100): PowerShell lexing added to the pipe guard (R-1062); R-1058 split into start (R-1058), SessionStart output (R-1063) and verifier output (R-1064), with its CI evidence named direct exec-form conformance; the runtime matrix cell updated in all three copies; Windows uninstall stated as a gap this lane does not close; doctor and migration cases iterate all five labels.
 - 2026-10-12, after sol plan r2 (SEND-BACK 86/100): every R-1062 negative case carries a live commit; recovery cases after backtick-escaped and doubled double quotes, with mirrors; expandable here-string text and subexpression cases; R-1062 states the expandable here-string exception; three more lexer mutation pairs; the stale POSIX read-side line marked withdrawn.

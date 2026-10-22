@@ -60,4 +60,4 @@ The plan's code claims mostly check out. Below are the corrections, the readers 
   - `node --no-warnings` in `args` would restore the warning suppression that exec form drops. The plan says exec form has "nowhere to put" `NODE_NO_WARNINGS`, which is true only for the environment variable.
   - The docs page's debug-hooks section ties the `failed to start` lines to v2.1.200, not 2.1.296. That reading came through a summarizing fetch and should be confirmed by reading the page directly.
 
-The main file I checked against is `/Users/jwang/nana-pi-wt/cc-hooks-windows/packages/nana-setup/lib/settings.mjs`.
+The main file I checked against is `/Users/example/nana-pi-wt/cc-hooks-windows/packages/nana-setup/lib/settings.mjs`.

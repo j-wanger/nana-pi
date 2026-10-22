@@ -17,7 +17,7 @@
 
 4. **The contradictory open decision remains near the plan’s front.**  
    **File:** `docs/reviews/install-check-2026-10-12/CHANGE.md:53-58,396-400,574-579`  
-   **Evidence:** The plan still says the definition of “done” is Jake’s open call. Later sections say the seat decided it and that Jake’s Windows run is required.  
+   **Evidence:** The plan still says the definition of “done” is the owner's open call. Later sections say the seat decided it and that the owner's Windows run is required.  
    **Smallest fix:** Replace lines 53–58 with the settled definition and remove the Open reference.
 
 ## SHOULD

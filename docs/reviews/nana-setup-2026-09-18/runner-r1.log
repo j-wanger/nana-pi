@@ -12,5 +12,5 @@
   [pi-review a1] cpu=1.02s flat=0/6
   [pi-review a1] cpu=1.02s flat=1/6
   [pi-review a1] cpu=1.17s flat=0/6
-[pi-review] SUCCESS on attempt 1 (3103 chars → /Users/jwang/nana-pi/docs/reviews/nana-setup-2026-09-18/review-r1.md)
+[pi-review] SUCCESS on attempt 1 (3103 chars → /Users/example/nana-pi/docs/reviews/nana-setup-2026-09-18/review-r1.md)
 pi-review exit=0

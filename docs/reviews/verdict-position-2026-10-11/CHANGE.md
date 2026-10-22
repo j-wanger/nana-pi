@@ -3,12 +3,12 @@
 *Lane `verdict-position` · branch `feat/verdict-position` · worktree `~/nana-pi-wt/verdict-position`,
 based on `main` at `0818b72` · 2026-10-11. Feature: FEAT-007 SUB-009 (R-969, R-1010; R-969 is shared
 with FEAT-008). URGENT: every land in yokai-world is refused. Order: why → plan → sol plan review (item
-`verdict-position-plan`; r1 SEND-BACK 4/10, r2 SEND-BACK 5/10 and r3 SEND-BACK 7/10, answered here; r4 is over the cap) → build → seat verification → sol build review → astra land review → Jake
+`verdict-position-plan`; r1 SEND-BACK 4/10, r2 SEND-BACK 5/10 and r3 SEND-BACK 7/10, answered here; r4 is over the cap) → build → seat verification → sol build review → astra land review → the owner
 accepts.*
 
 ## 1. Why
 
-Jake relayed another session's report (2026-10-11): "I merged by hand. The merge helper refused,
+The owner relayed another session's report (2026-10-11): "I merged by hand. The merge helper refused,
 because the review tool logged no verdict for any round. … That is a toolkit fault to fix."
 
 The land rule (merged `0818b72`) made `verdictWord` read ONLY the output's final non-blank line and
@@ -49,7 +49,7 @@ different file set and is withdrawn.) The seat's prototype of section 4
 (`seat-proto.mjs` in this folder; from the repo root run `node <this folder>/seat-proto.mjs probe` and `node <this folder>/seat-proto.mjs corpus <this folder>/corpus-2026-10-11.json ~/yokai-world/docs/reviews` with yokai-world at `c4f3f2e`) reproduces all of these counts with
 zero mismatches. Deliberately UNSUPPORTED shapes,
 which record an empty verdict and need a fresh review in a supported shape: the verdict only in the
-middle (the eight above; also `~/aml-desk/docs/reviews/slice3-2026-09-16-sol-r2.md:69` and
+middle (the eight above; also `~/work-desk/docs/reviews/slice3-2026-09-16-sol-r2.md:69` and
 `~/jev-research/docs/reviews/local-tool-judge-2026-09-19/contract3-astra-r1.md:4`), and prose after
 the verdict word (`~/game-world/docs/reviews/design-2026-09-06/round-9.md:17`).
 

@@ -1,8 +1,8 @@
 """Extract every fact the decision report shows, from the lane's committed files. Prints a summary."""
 import json, re, subprocess, collections, os
 
-W = '/Users/jwang/nana-pi-wt/req-tree'
-SP = '/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad'
+W = '/Users/example/nana-pi-wt/req-tree'
+SP = '/private/tmp/claude-501/-Users-example-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad'
 OUT = f'{SP}/report/data.json'
 os.chdir(W)
 L = open('REQUIREMENTS.md').read().split('\n')
@@ -109,7 +109,7 @@ def section(title):
     a = H.index(title); b = H.find('\n## ', a + 1)
     return H[a:b if b > 0 else None]
 asks = []
-for l in section('## Open for Jake').split('\n'):
+for l in section('## Open for Owner').split('\n'):
     m = re.match(r'^- \*\*\[(\w+), since ([\d-]+)\] (.+?)\*\* (.*)$', l)
     if m: asks.append({'kind': m.group(1), 'since': m.group(2), 'title': m.group(3).rstrip('.'), 'text': m.group(4)})
 residuals = [l[2:] for l in section('## Carried residuals').split('\n') if l.startswith('- ')]
@@ -117,7 +117,7 @@ nexts = [re.sub(r'^\d+\. ', '', l) for l in section('## Next').split('\n') if re
 
 # Review history from the ledger.
 def ledger(item):
-    out = subprocess.run(['node', '/Users/jwang/nana-pi/packages/nana-pack/bin/review-ledger.mjs', 'report', '--item', item],
+    out = subprocess.run(['node', '/Users/example/nana-pi/packages/nana-pack/bin/review-ledger.mjs', 'report', '--item', item],
                          capture_output=True, text=True).stdout
     res = []
     for l in out.split('\n'):
@@ -126,7 +126,7 @@ def ledger(item):
     return res
 reviews = sum([ledger(i) for i in ['req-tree-plan', 'req-tree', 'req-tree-b-plan', 'req-tree-b']], [])
 
-obj = open('/Users/jwang/nana-agent-loop/OBJECTIVE.md').read()
+obj = open('/Users/example/nana-agent-loop/OBJECTIVE.md').read()
 objective = re.search(r'\*\*Objective \(since [^)]*\):\*\* (.*)', obj).group(1)
 priority = re.search(r'\*\*Current priority \(since [^)]*\):\*\* (.*)', obj).group(1)
 
@@ -137,7 +137,7 @@ for f in feats.values():
 
 data = {
     'meta': {'commit': subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip(),
-             'branch': 'feat/req-tree', 'state': 'built and reviewed; not yet merged to main; waiting for Jake at checkpoint 2',
+             'branch': 'feat/req-tree', 'state': 'built and reviewed; not yet merged to main; waiting for Owner at checkpoint 2',
              'generated': '2026-10-10'},
     'product': {'purpose_block': purpose_block, 'objective': objective, 'priority': priority, 'organized': org, 'governance': gov,
                 'omissions': omissions},

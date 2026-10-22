@@ -2,7 +2,7 @@
  "features": [
   {
    "id": "FEAT-001",
-   "what_it_does": "Every pi and Claude Code session gets the project's objective and current priority in its instructions. Only Jake's own user settings can switch this off.",
+   "what_it_does": "Every pi and Claude Code session gets the project's objective and current priority in its instructions. Only the owner's own user settings can switch this off.",
    "maturity": "solid",
    "maturity_reason": "All 23 rows have full tests and no recorded violation; tests confirm pi and Claude Code inject identical text.",
    "gaps": [
@@ -88,12 +88,12 @@
   },
   {
    "id": "FEAT-003",
-   "what_it_does": "It builds a local search index over Jake's markdown knowledge files and finds repos to include automatically. It also links each Claude Code project to Jake's shared memory.",
+   "what_it_does": "It builds a local search index over the owner's markdown knowledge files and finds repos to include automatically. It also links each Claude Code project to the owner's shared memory.",
    "maturity": "partial",
    "maturity_reason": "16 of 35 rows are untested and none violated; all 8 shared-memory rows have tests, so every gap sits in the search index.",
    "gaps": [
     {
-     "text": "No recorded test confirms the index never writes to Jake's source notes. None confirms it keeps all its own files in one folder.",
+     "text": "No recorded test confirms the index never writes to the owner's source notes. None confirms it keeps all its own files in one folder.",
      "rows": [
       "R-881",
       "R-200"
@@ -136,12 +136,12 @@
   },
   {
    "id": "FEAT-004",
-   "what_it_does": "Before each prompt, it searches Jake's knowledge index and shows the agent up to three short pointers, marked as untrusted data. pi runs the same search when it starts an agent. Reviewer and builder sessions skip it.",
+   "what_it_does": "Before each prompt, it searches the owner's knowledge index and shows the agent up to three short pointers, marked as untrusted data. pi runs the same search when it starts an agent. Reviewer and builder sessions skip it.",
    "maturity": "partial",
    "maturity_reason": "16 of 31 rows lack full tests and none shows a violation; tests cover the untrusted label, character stripping, size caps and silent failure.",
    "gaps": [
     {
-     "text": "No recorded test covers a missing or stale index. Nothing recorded proves the pull never builds the index while Jake waits.",
+     "text": "No recorded test covers a missing or stale index. Nothing recorded proves the pull never builds the index while the owner waits.",
      "rows": [
       "R-230",
       "R-892",
@@ -167,7 +167,7 @@
    ],
    "risks": [
     {
-     "text": "Builder and reviewer sessions skip pulls only because two launchers set a role value. Renaming either value silently turns pulls back on. For builders, that breaks Jake's 9 October ruling.",
+     "text": "Builder and reviewer sessions skip pulls only because two launchers set a role value. Renaming either value silently turns pulls back on. For builders, that breaks the owner's 9 October ruling.",
      "rows": [
       "R-285",
       "R-286",
@@ -188,7 +188,7 @@
   },
   {
    "id": "FEAT-005",
-   "what_it_does": "It adds Jake's writing rules to every session's instructions. It also provides a checker that flags long sentences, passive voice, banned words and missing verdicts. The checker reports but never blocks.",
+   "what_it_does": "It adds the owner's writing rules to every session's instructions. It also provides a checker that flags long sentences, passive voice, banned words and missing verdicts. The checker reports but never blocks.",
    "maturity": "solid",
    "maturity_reason": "All 16 rows have tests, none is untested or violated, and the rule text passes its own checker.",
    "gaps": [],
@@ -377,7 +377,7 @@
      ]
     }
    ],
-   "next_step": "Leave the code alone until Jake settles the policy on unreviewed commits and exemptions."
+   "next_step": "Leave the code alone until the owner settles the policy on unreviewed commits and exemptions."
   },
   {
    "id": "FEAT-009",
@@ -495,7 +495,7 @@
   },
   {
    "id": "FEAT-011",
-   "what_it_does": "It loads the gate's policy from Jake's own config and the project's config. Tighter rules apply at once. Looser rules wait for the next session start or reload. A broken gate block keeps the last good policy. With no good policy yet, every gated tool stops until Jake repairs the file.",
+   "what_it_does": "It loads the gate's policy from the owner's own config and the project's config. Tighter rules apply at once. Looser rules wait for the next session start or reload. A broken gate block keeps the last good policy. With no good policy yet, every gated tool stops until the owner repairs the file.",
    "maturity": "solid",
    "maturity_reason": "34 of 36 rows are pinned and none is violated. Each of the two untested rows has a pinned sibling that covers part of its risk.",
    "gaps": [
@@ -522,7 +522,7 @@
      ]
     },
     {
-     "text": "Trust rules decide whether a project's config loads at all. The agent-folder resolver decides which of Jake's own config files loads. Both live in other features. Changing either changes which gate policy applies.",
+     "text": "Trust rules decide whether a project's config loads at all. The agent-folder resolver decides which of the owner's own config files loads. Both live in other features. Changing either changes which gate policy applies.",
      "rows": [
       "R-074",
       "R-078",
@@ -543,7 +543,7 @@
   },
   {
    "id": "FEAT-012",
-   "what_it_does": "It cleans every repo-controlled path, label and message the pack shows to Jake or the model. Each comes out bounded, with no raw control characters. A hostile value cannot forge a heading, a file field or a dialog line.",
+   "what_it_does": "It cleans every repo-controlled path, label and message the pack shows to the owner or the model. Each comes out bounded, with no raw control characters. A hostile value cannot forge a heading, a file field or a dialog line.",
    "maturity": "solid",
    "maturity_reason": "All 21 rows are pinned by tests and none is violated. No audit issue touches this feature.",
    "gaps": [],
@@ -571,7 +571,7 @@
   },
   {
    "id": "FEAT-013",
-   "what_it_does": "The install command puts hooks, rules, skills, command-line tools and starter configs in place for Claude Code and pi. It merges into existing settings without duplicates and without overwriting Jake's own files.",
+   "what_it_does": "The install command puts hooks, rules, skills, command-line tools and starter configs in place for Claude Code and pi. It merges into existing settings without duplicates and without overwriting the owner's own files.",
    "maturity": "partial",
    "maturity_reason": "49 of 80 rows are pinned and none is violated. The 31 untested rows include 11 of 23 file-safety rows. They also include 7 of 14 hook and package matching rows.",
    "gaps": [
@@ -631,7 +631,7 @@
     },
     {
      "question": "Should the 7 untested Windows install rows get tests now, or wait?",
-     "recommendation": "Defer the Windows tests until Windows use is planned. The settings-file and hook gaps protect Jake's files more today. Fix the audit's Windows wording now, since it changes no code.",
+     "recommendation": "Defer the Windows tests until Windows use is planned. The settings-file and hook gaps protect the owner's files more today. Fix the audit's Windows wording now, since it changes no code.",
      "rows": [
       "R-349",
       "R-936",
@@ -643,7 +643,7 @@
      ]
     }
    ],
-   "next_step": "Pin the settings-file parse stop and the held-lock stop with two tests, since both guard Jake's own Claude Code settings."
+   "next_step": "Pin the settings-file parse stop and the held-lock stop with two tests, since both guard the owner's own Claude Code settings."
   },
   {
    "id": "FEAT-014",
@@ -783,7 +783,7 @@
    ],
    "risks": [
     {
-     "text": "Jake's D4 ruling freezes this feature until the 23 October usage ruling. The 9 untested rows stay open until then.",
+     "text": "the owner's D4 ruling freezes this feature until the 23 October usage ruling. The 9 untested rows stay open until then.",
      "rows": []
     },
     {
@@ -961,7 +961,7 @@
    ],
    "risks": [
     {
-     "text": "Jake's D4 ruling freezes this feature until the 23 October usage ruling. The 6 untested rows stay open until then.",
+     "text": "the owner's D4 ruling freezes this feature until the 23 October usage ruling. The 6 untested rows stay open until then.",
      "rows": []
     },
     {
@@ -991,7 +991,7 @@
   },
   {
    "id": "FEAT-021",
-   "what_it_does": "Lets Jake pick a folder, resources, tools and a trust setting on the desk, then launches a pi session with those choices.",
+   "what_it_does": "Lets the owner pick a folder, resources, tools and a trust setting on the desk, then launches a pi session with those choices.",
    "maturity": "partial",
    "maturity_reason": "Six of eleven rows are implemented and none violated, but five are untested, including refusing a launch when project trust is declined.",
    "gaps": [
@@ -1009,7 +1009,7 @@
      ]
     },
     {
-     "text": "No test proves the tool list refreshes when Jake changes folder or flips the trust box. No test proves an untouched tool list sends no tool flag.",
+     "text": "No test proves the tool list refreshes when the owner changes folder or flips the trust box. No test proves an untouched tool list sends no tool flag.",
      "rows": [
       "R-418",
       "R-477"
@@ -1040,16 +1040,16 @@
      ]
     }
    ],
-   "next_step": "Leave it alone: Jake's desk freeze holds until the October 23 usage ruling."
+   "next_step": "Leave it alone: the owner's desk freeze holds until the October 23 usage ruling."
   },
   {
    "id": "FEAT-022",
-   "what_it_does": "Sends Jake's prompts and commands from the desk to the right live pi session. It also handles slow answers, reloads, dropped connections and session shutdown.",
+   "what_it_does": "Sends the owner's prompts and commands from the desk to the right live pi session. It also handles slow answers, reloads, dropped connections and session shutdown.",
    "maturity": "weak",
    "maturity_reason": "Ten of twenty-six rows are implemented, thirteen are untested and three are violated, including a race that can act on the wrong session.",
    "gaps": [
     {
-     "text": "A picker command already in flight can act on the newly selected session after Jake switches. This is a recorded deviation. Closing the picker menu only narrows the window.",
+     "text": "A picker command already in flight can act on the newly selected session after the owner switches. This is a recorded deviation. Closing the picker menu only narrows the window.",
      "rows": [
       "R-435"
      ]
@@ -1096,11 +1096,11 @@
      ]
     }
    ],
-   "next_step": "Leave it alone: Jake's desk freeze holds until the October 23 usage ruling."
+   "next_step": "Leave it alone: the owner's desk freeze holds until the October 23 usage ruling."
   },
   {
    "id": "FEAT-023",
-   "what_it_does": "Shows Jake what a session changed, what it is doing now, and capped tool output. It notifies him when pi needs approval or waits, and keeps a session journal.",
+   "what_it_does": "Shows the owner what a session changed, what it is doing now, and capped tool output. It notifies him when pi needs approval or waits, and keeps a session journal.",
    "maturity": "partial",
    "maturity_reason": "Twenty of thirty-one rows are implemented and none violated, but eleven are untested, including the main notification when pi waits for input.",
    "gaps": [
@@ -1156,7 +1156,7 @@
   },
   {
    "id": "FEAT-024",
-   "what_it_does": "Lets Jake edit pi settings, pack config and context files from the desk. A broken or risky write is refused, and the existing file is meant to stay intact.",
+   "what_it_does": "Lets the owner edit pi settings, pack config and context files from the desk. A broken or risky write is refused, and the existing file is meant to stay intact.",
    "maturity": "partial",
    "maturity_reason": "Five of seven rows are implemented and none violated, but the two untested rows are the guarantees that a refused write damages nothing.",
    "gaps": [
@@ -1201,7 +1201,7 @@
      ]
     }
    ],
-   "next_step": "Leave it alone: Jake's desk freeze holds until the October 23 usage ruling."
+   "next_step": "Leave it alone: the owner's desk freeze holds until the October 23 usage ruling."
   },
   {
    "id": "FEAT-025",
@@ -1312,7 +1312,7 @@
      ]
     },
     {
-     "question": "Jake's D4 ruling freezes this feature until 10-23. Do the untested signing, checking and key-removal rules justify an exception now?",
+     "question": "the owner's D4 ruling freezes this feature until 10-23. Do the untested signing, checking and key-removal rules justify an exception now?",
      "recommendation": "Keep the freeze. These rows are recorded as untested, not broken. Take them up at the 10-23 ruling if the desk stays in use.",
      "rows": [
       "R-257",
@@ -1322,7 +1322,7 @@
      ]
     }
    ],
-   "next_step": "Leave it alone: Jake's D4 ruling freezes it until the 10-23 usage ruling. Revisit the untested signing and checking rules then."
+   "next_step": "Leave it alone: the owner's D4 ruling freezes it until the 10-23 usage ruling. Revisit the untested signing and checking rules then."
   },
   {
    "id": "FEAT-027",
@@ -1371,7 +1371,7 @@
    ],
    "decisions": [
     {
-     "question": "Jake's D4 ruling freezes this feature until 10-23. Does the untested local-only listening rule justify an exception now?",
+     "question": "the owner's D4 ruling freezes this feature until 10-23. Does the untested local-only listening rule justify an exception now?",
      "recommendation": "Keep the freeze. Nothing records the rule as broken, only as untested. Take it up first at the 10-23 ruling if the desk stays.",
      "rows": [
       "R-465"
@@ -1385,7 +1385,7 @@
      ]
     }
    ],
-   "next_step": "Leave it alone: Jake's D4 ruling freezes it until the 10-23 usage ruling. Revisit local-only listening and same-origin data commands then."
+   "next_step": "Leave it alone: the owner's D4 ruling freezes it until the 10-23 usage ruling. Revisit local-only listening and same-origin data commands then."
   },
   {
    "id": "FEAT-028",
@@ -1665,7 +1665,7 @@
    "decisions": [
     {
      "question": "Should the named-exports-only rule exempt entry points that a runtime loads by default export, such as pi extensions?",
-     "recommendation": "Yes. Add an explicit exemption; it is a wording fix that removes a silent gate-unload path. It is Jake's call because these rows must copy the shared standards file word for word, so that file must change too.",
+     "recommendation": "Yes. Add an explicit exemption; it is a wording fix that removes a silent gate-unload path. It is the owner's call because these rows must copy the shared standards file word for word, so that file must change too.",
      "rows": [
       "G-005",
       "G-018",
@@ -2045,7 +2045,7 @@
   "FEAT-031 gap (R-611, R-899): 'two cleanup promises' mislabeled R-611, which is about the run settling, not cleanup. I also changed 'have no test' to 'no test pins' to match what untested means.",
   "FEAT-032 gap: I removed 'Only stale inline script commands are pinned today'. That fact comes from G-022's evidence in the standards feature's packet, not from this packet.",
   "FEAT-032 next_step: 'pinning stale README paths and flags' relied on the same out-of-packet evidence. I replaced it with 'pinning the two untested README rules'.",
-  "FEAT-033 what_it_does: 'Jake's coding rules' attributed ownership the packet never states, since it says only 'the shared file'. I changed it to 'the shared coding standards'. The second sentence was 26 words, so I split it.",
+  "FEAT-033 what_it_does: 'the owner's coding rules' attributed ownership the packet never states, since it says only 'the shared file'. I changed it to 'the shared coding standards'. The second sentence was 26 words, so I split it.",
   "FEAT-033 maturity_reason: 'have no test at all' overstated untested. Layer direction also has one pinned test, which bars a package from importing an app (G-007). I reworded it to 'No test pins ...'.",
   "FEAT-033 gap 1: 'has a test' and 'Nothing checks' overstated untested. I reworded both to 'No test pins' and described what the rules say.",
   "FEAT-033 gap 2: I changed 'Only one import direction is checked' to 'Only one import rule is pinned', which is what G-007's evidence supports.",
@@ -2078,7 +2078,7 @@
    {
     "id": "CAP-01",
     "summary": "127 of its 167 rows are fully tested, and none is violated. The knowledge index and knowledge pull hold 32 of the 40 untested rows; the objective and writing rules are fully tested.",
-    "decision": "None now. The next useful work is tests: a failed pull must inject nothing, and a stale index must never build while Jake waits."
+    "decision": "None now. The next useful work is tests: a failed pull must inject nothing, and a stale index must never build while the owner waits."
    },
    {
     "id": "CAP-02",
@@ -2092,12 +2092,12 @@
    },
    {
     "id": "CAP-04",
-    "summary": "183 of its 236 rows are fully tested, and none is violated; desk start-up is frozen by Jake's D4 ruling. The installer holds 31 of the 53 untested rows, including the stops that protect Jake's Claude Code settings.",
+    "summary": "183 of its 236 rows are fully tested, and none is violated; desk start-up is frozen by the owner's D4 ruling. The installer holds 31 of the 53 untested rows, including the stops that protect the owner's Claude Code settings.",
     "decision": "Should the 7 untested Windows install rows get tests now? No; defer them until Windows use is planned, but fix the conflicting Windows wording now, since it changes no code."
    },
    {
     "id": "CAP-05",
-    "summary": "Jake's D4 ruling freezes four of its five features until the 23 October usage ruling; only change views and notices stay active. Of 89 rows, 49 are fully tested, 37 untested and 3 violated; one violation lets an in-flight menu command act on the wrong session.",
+    "summary": "the owner's D4 ruling freezes four of its five features until the 23 October usage ruling; only change views and notices stay active. Of 89 rows, 49 are fully tested, 37 untested and 3 violated; one violation lets an in-flight menu command act on the wrong session.",
     "decision": "At the 23 October ruling, keep, freeze or retire the desk? Decide on real usage; if it stays, fix the wrong-session race before any other desk work."
    },
    {
@@ -2120,7 +2120,7 @@
    {
     "question": "At the 23 October usage ruling, should the desk be kept, stay frozen or be retired?",
     "recommendation": "Decide on the desk usage line, weighed against the limits its contract states. If the desk stays, fix the wrong-session race first. Then test local-only listening and the launch refusal when project trust is declined. If it goes, retire the frozen features rather than carry their open rows.",
-    "why": "Seven of the 38 features are frozen. They hold 52 untested rows and 5 of the 6 violated rows. One violation can send a menu command to the wrong live session. The ruling is Jake's, and the usage line exists only to inform it.",
+    "why": "Seven of the 38 features are frozen. They hold 52 untested rows and 5 of the 6 violated rows. One violation can send a menu command to the wrong live session. The ruling is the owner's, and the usage line exists only to inform it.",
     "features": [
      "FEAT-016",
      "FEAT-020",
@@ -2135,7 +2135,7 @@
    {
     "question": "Should the merge step keep letting unreviewed follow-up commits and any-reason review exemptions reach main?",
     "recommendation": "Keep both for now. Show every uncovered commit and every exemption reason in each land report. Refusing them would block the follow-up commits the merge step is built to list.",
-    "why": "An audit confirmed this as a medium process gap, not a security hole. The risk is that Jake reads 'reviewed' as 'everything that landed was reviewed'. An exemption accepts any non-blank reason. The merge step also relies on five review rules. This is a policy choice about Jake's own process, so it is his call.",
+    "why": "An audit confirmed this as a medium process gap, not a security hole. The risk is that the owner reads 'reviewed' as 'everything that landed was reviewed'. An exemption accepts any non-blank reason. The merge step also relies on five review rules. This is a policy choice about the owner's own process, so it is his call.",
     "features": [
      "FEAT-008",
      "FEAT-007"
@@ -2144,7 +2144,7 @@
    {
     "question": "Should the shared named-exports-only rule exempt entry points that a runtime loads by default export, such as pi extensions?",
     "recommendation": "Yes. Add an explicit exemption to the shared standards file and to the rows that copy it. This is a wording change with no code change.",
-    "why": "The gate extension loads through a default export. Read literally, the rule could lead an agent to convert it. pi would then silently skip the gate. An audit confirmed this conflict. It is Jake's call because the rows copy his shared standards file word for word.",
+    "why": "The gate extension loads through a default export. Read literally, the rule could lead an agent to convert it. pi would then silently skip the gate. An audit confirmed this conflict. It is the owner's call because the rows copy his shared standards file word for word.",
     "features": [
      "FEAT-033",
      "FEAT-010"
@@ -2153,7 +2153,7 @@
    {
     "question": "Before the bench runs another paid study, should an unwritable evidence file stop the study, as its rule says?",
     "recommendation": "Yes, make it stop. In the same pass, test the plan-only default and the refusal to mix two studies' results. Also test that a nonzero exit is never counted a success.",
-    "why": "It is the only violated row in an active feature. Today the study logs a grading fault and keeps paying. The bench is idle, so these gaps cost nothing until the next study. Choosing between stopping and rewriting the rule is Jake's call.",
+    "why": "It is the only violated row in an active feature. Today the study logs a grading fault and keeps paying. The bench is idle, so these gaps cost nothing until the next study. Choosing between stopping and rewriting the rule is the owner's call.",
     "features": [
      "FEAT-036",
      "FEAT-034",
@@ -2162,8 +2162,8 @@
    },
    {
     "question": "With the desk frozen, which untested guards in active features should get tests first?",
-    "recommendation": "Spend one round of test work on guards where a silent break would widen trust or touch Jake's own files. Start with the installer's settings-file and lock stops. Then test the subfolder trust rule and gating of pi's credential files. Then test the review cap override, the reservation rules and the handoff's refusal of the old in-repo summary file.",
-    "why": "Active features carry 212 untested rows, too many to clear at once. 'Untested' can overstate the gap, because some split rows have nearby tests. These few guard trust, Jake's settings and the records the merge step trusts. A break in any of them could pass the suite unnoticed.",
+    "recommendation": "Spend one round of test work on guards where a silent break would widen trust or touch the owner's own files. Start with the installer's settings-file and lock stops. Then test the subfolder trust rule and gating of pi's credential files. Then test the review cap override, the reservation rules and the handoff's refusal of the old in-repo summary file.",
+    "why": "Active features carry 212 untested rows, too many to clear at once. 'Untested' can overstate the gap, because some split rows have nearby tests. These few guard trust, the owner's settings and the records the merge step trusts. A break in any of them could pass the suite unnoticed.",
     "features": [
      "FEAT-013",
      "FEAT-009",

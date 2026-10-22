@@ -4,9 +4,9 @@ You are the independent reviewer from rounds 1–3. v4 folds your round-3 findin
 no-agent puzzle game (the agent is deferred by the owner's ruling).
 
 ## Read first (absolute paths)
-1. /Users/jwang/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v4, THE DESIGN under review
-2. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/round-3.md — your round-3 findings
-3. /Users/jwang/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r3.md — how the seat folded them
+1. /Users/example/nana-pi/docs/coop-perspective-game-design-2026-09-06.md — v4, THE DESIGN under review
+2. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/round-3.md — your round-3 findings
+3. /Users/example/nana-pi/docs/reviews/coop-game-2026-09-06/adjudication-r3.md — how the seat folded them
 
 ## Dimensions
 A. **Fold check** for each round-3 finding (reduced-depth pushing; liquid/gravity step ordering;

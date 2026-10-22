@@ -15,6 +15,6 @@ Every finding was checked and taken. `CHANGE.md` now reads:
 | SHOULD template path | `scripts/product-report/template.html`, read from disk by the module. |
 | SHOULD two halves of HTML safety | Pinned separately (§4): one parseable data script under hostile text; the renderer, against an injected document stub, uses text nodes only. |
 | SHOULD "status" vs ratings | Outcome 2 says "ledger status"; ratings are stored. |
-| SHOULD checkpoint 1b | Jake, 2026-10-11: "Yes" — recorded; the builder adds the share line. |
+| SHOULD checkpoint 1b | the owner, 2026-10-11: "Yes" — recorded; the builder adds the share line. |
 
 Rows now R-1012–R-1031 (20); the real-ledger literal becomes 1,044 rows.

@@ -1,16 +1,16 @@
 # Outside requirements-rework proposal — seat verification, 2026-10-09
 
-Subject: an outside assistant's proposal (pasted by Jake, 2026-10-09) to reorganise `REQUIREMENTS.md`
+Subject: an outside assistant's proposal (pasted by the owner, 2026-10-09) to reorganise `REQUIREMENTS.md`
 into 8 capabilities / 38 features / 21 subgroups, plus a 15-issue register (C02–C18) and a
 feature-increment delivery process. Its explorer was built at e9ecc90 (blob 3500b86).
 Checked read-only at HEAD 5b68a91 by the seat (mechanical checks) and a 10-agent workflow
 (six issue verifiers, consumers/IDs, placement/purpose, prior art, completeness critic).
 Raw verifier output with path:line evidence: `verifier-output.json`.
 
-> **Correction, 2026-10-09 (Jake).** The tree is Jake's request: he asked astra for requirements
+> **Correction, 2026-10-09 (Owner).** The tree is the owner's request: he asked astra for requirements
 > categories because he cannot read or understand the flat ledger. He has decided to implement it.
 > Below, "Added value is narrow" measures grouping overlap only, not understanding, and does not
-> bear on whether. "Purpose ... a new synthesis" is wrong: it paraphrases Jake's own prompt to astra
+> bear on whether. "Purpose ... a new synthesis" is wrong: it paraphrases the owner's own prompt to astra
 > ("a customized agentic coding experience, that can be used for any development projects").
 > The consumer, staleness and upkeep findings stand as constraints on HOW to land it.
 
@@ -36,17 +36,17 @@ Every relaxing literal reading found is already caught by a cited, marked test.
 | C07 benign mention vs rm text | CONFIRMED | new | wording | R-764 predates the 10-07 R-040 restore. A third carve-out: interpreter deletion text. Medium |
 | C17 adopt-structure config | CONFIRMED | new | wording | Skill also edits an existing config (RECONCILE). Pack README repeats the phrase. Low-medium |
 | C04 duplicates | CONFIRMED | new | wording | Retire R-739 (dup of R-302). R-972 cites miss the same-role repeat; an unmarked check pins it. Low |
-| C02 atomicity | PARTIAL | OQ 8a, 6b | policy (Jake) | "Split did not help" is WRONG: split exposed gaps in 27/46 and 66/83 rows (OQ 6b; plan L8-08) |
+| C02 atomicity | PARTIAL | OQ 8a, 6b | policy (Owner) | "Split did not help" is WRONG: split exposed gaps in 27/46 and 66/83 rows (OQ 6b; plan L8-08) |
 | C13 limits as obligations | CONFIRMED | new | wording | R-056 conflicts with implemented R-053 today. R-731 duplicates R-721/R-722 |
 | C03 status vocabulary | CONFIRMED | 6b, plan 6.7 | wording (legend) | No-coverage-number rule already standing (plan :58). 75 untested cells are partial pins |
-| C05 template text vs evidence | CONFIRMED | 6b / 6.7 | policy (Jake, in 6b) | Latent: no `REQUIREMENTS-general.md` consumer on this machine |
+| C05 template text vs evidence | CONFIRMED | 6b / 6.7 | policy (Owner, in 6b) | Latent: no `REQUIREMENTS-general.md` consumer on this machine |
 | C16 stale questions | CONFIRMED | new | wording | OQ 3 stale since written (test-runner test landed same commit c0a7849). HANDOFF still lists OQ 2 (closed) and 3. R-865 has no end condition |
 | C08 named exports | CONFIRMED | new | wording + template tag | All 9 of 9 extensions default-export; pi's loader REQUIRES it. The standard is wrong, not the code |
 | C09 Windows applicability | CONFIRMED | partly (support line) | wording | R-937 also contradicts the win32 dir-link ✗ test. R-938 has no actor |
-| C10 land coverage | CONFIRMED | new | policy (Jake) | Sharper than stated: land-review fix commits go to main with no re-review (e9ecc90, 5b68a91 single-parent, after LAND-WITH-FIXES). AGENTS says "suite on the reviewed tip". No Jake ruling found for report-not-block or free-text `--exempt` |
+| C10 land coverage | CONFIRMED | new | policy (Owner) | Sharper than stated: land-review fix commits go to main with no re-review (e9ecc90, 5b68a91 single-parent, after LAND-WITH-FIXES). AGENTS says "suite on the reviewed tip". No the owner ruling found for report-not-block or free-text `--exempt` |
 | C14 blast radius | PARTIAL | OQ 10–12 | wording (evidence cell) | "derivable from the map" already qualifies it; missing is the incompleteness note. Callees clause unpinned |
 | C15 suite of record | PARTIAL | OQ 6 | wording (evidence cells) | Sibling-repo half has 0 instances. Proposed metadata columns break the rail (exactly 4 cells) |
-| C18 id capacity | CONFIRMED | OQ 9 (stale: "about 150 remain") | policy | 13 usable ids at HEAD. Grammar `[RG]-\d{3}` in both rails; a 4-digit row is SILENTLY skipped; aml-desk and basketball-geek copies are R-only |
+| C18 id capacity | CONFIRMED | OQ 9 (stale: "about 150 remain") | policy | 13 usable ids at HEAD. Grammar `[RG]-\d{3}` in both rails; a 4-digit row is SILENTLY skipped; work-project and basketball-geek copies are R-only |
 
 Additional findings (no proposal counterpart): R-873–R-879 misfiled under 13c; R-642/R-643 under §5 not §7;
 R-389 has no subject; OQ 9 count and plan :61 reserve stale; R-734 lane mode prints SUCCESS on a
@@ -73,18 +73,18 @@ pi rejects `-m` ("Unknown option: -m"). A README contract violation (G-012 class
 | Proposal | Present today | Seat view |
 |---|---|---|
 | Bounded feature change record | Lane brief template (DRAFT): goal, appetite, NOT, allowlist, doneWhen; no requirement delta. Appetite advisory; 1 of 42 October briefs states one | Promote the template; do not add a new object |
-| Two human checkpoints per increment | Program-level rulings; per-lane acceptance by model reviewers | ~80 asks over 40 lanes vs the three-blocking-ask limit; Jake said "Keep going" mid-program. Reject per lane |
-| WIP limit: one change awaiting review | None; attention trial limits asks, not changes | Serialises the program. Jake's call at the 10-20 trial verdict |
+| Two human checkpoints per increment | Program-level rulings; per-lane acceptance by model reviewers | ~80 asks over 40 lanes vs the three-blocking-ask limit; the owner said "Keep going" mid-program. Reject per lane |
+| WIP limit: one change awaiting review | None; attention trial limits asks, not changes | Serialises the program. The owner's call at the 10-20 trial verdict |
 | Feature acceptance package | Pieces in nana-land output, review-ledger report, builder report, session archive | Already the held HTML land page (writing-trial verdict 10-18) |
 | Metadata columns (method, env, revision) | Rail requires exactly 4 cells | Reject as stated; a sidecar if ever |
 
 ## Seat recommendation
 
-1. Now, nana-pi-only wording lane (needs Jake's go; the priority's appetite is spent): C03 legend, C04, C06, C07,
+1. Now, nana-pi-only wording lane (needs the owner's go; the priority's appetite is spent): C03 legend, C04, C06, C07,
    C09, C13, C14/C15 evidence cells, C16, C17, the misfiled rows, R-389, stale OQ 2/3/9 and plan :61, AGENTS
    "reviewed tip" line. Cite by id. Independent reviewer (rows change meaning).
 2. Separate template change: C08 (G-005 + nana-standards + requirements skill), ships with a tag.
 3. Before the next build program: the id format (13 left).
-4. SUPERSEDED by Jake 2026-10-09: implement the tree. Land it inside `REQUIREMENTS.md` (one copy), not as a
+4. SUPERSEDED by the owner 2026-10-09: implement the tree. Land it inside `REQUIREMENTS.md` (one copy), not as a
    second full copy. C10 landing policy still goes to the 10-20 review.
 5. Hold CAP-05/06 mapping until the 10-23 desk usage ruling (D4).
