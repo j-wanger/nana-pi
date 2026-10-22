@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane report-deliverables (ordinary lane), written by the seat 2026-10-22 after build 2, on
-// the shared runner, at tip 2e8da63e. They are the must-meet's seat-step pairs, one per wrong build. Run from the
+// the shared runner, at tip 2e8da63e; all sixteen re-run at 4a78ad2f after build 3. They are the must-meet's seat-step pairs, one per wrong build. Run from the
 // worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/report-deliverables-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -71,4 +71,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R_2545] },
 ];
 
-process.exitCode = await runMutations({ lane: "report-deliverables", self: import.meta.url, tip: "2e8da63e", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "report-deliverables", self: import.meta.url, tip: "4a78ad2f", declared: DECLARED, pairs: PAIRS });
