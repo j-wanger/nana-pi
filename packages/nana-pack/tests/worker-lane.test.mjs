@@ -49,14 +49,14 @@ function writeStub(posixScript, nodeBody) {
 	if (process.platform === "win32") writeFakePi(stubDir, nodeBody);
 	else { fs.writeFileSync(pi, posixScript); fs.chmodSync(pi, 0o755); }
 }
-const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`;
+const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`;
 const mainNodeBody = (withMarker) => `const fs = require("node:fs");
-${withMarker ? `fs.appendFileSync(${JSON.stringify(piSpawnMarker)}, "spawned\\n");\n` : ""}process.stdout.write(process.env.NANA_ROLE + ":" + process.env.NANA_WORKTREE_ROOT + "\\n");
+${withMarker ? `fs.appendFileSync(${JSON.stringify(piSpawnMarker)}, "spawned\n");\n` : ""}process.stdout.write(process.env.NANA_ROLE + ":" + process.env.NANA_WORKTREE_ROOT + "\n");
 const args = process.argv.slice(2);
 let prev = false, n = 0;
 const promptPrefix = ${JSON.stringify(path.join(temp, "prompt-"))};
 for (const arg of args) {
-  process.stdout.write(arg + "\\n");
+  process.stdout.write(arg + "\n");
   if (prev) { n++; fs.copyFileSync(arg, promptPrefix + n); prev = false; }
   else if (arg === "--append-system-prompt") prev = true;
 }
@@ -185,7 +185,7 @@ check("R-2580: honest Precedent forms pass and the launch line names the checked
 	const subfolderBrief = path.join(lane, "brief-fixtures", "nested-brief.md");
 	const cases = [
 		["slash separators", "Precedent:\n- tracked/nested.mjs\n", 1, brief],
-		["backslash separators", "Precedent:\n- tracked\\nested.mjs\n", 1, brief],
+		["backslash separators", "Precedent:\n- tracked\nested.mjs\n", 1, brief],
 		["backticks", "Precedent:\n- `seed` note\n", 1, brief],
 		["single line suffix", "Precedent:\n- seed:12\n", 1, brief],
 		["range line suffix", "Precedent:\n- tracked/nested.mjs:12-40\n", 1, brief],
@@ -216,6 +216,77 @@ check("R-2580: honest Precedent forms pass and the launch line names the checked
 		}
 		return true;
 	});
+})());
+
+// req: R-2616
+check("R-2616: a numbered step list straight after a plain Precedent list is not read as entries", (() => {
+	const passes = [
+		"Precedent:\n- seed\nSteps:\n1. Run the next step\n2. Update another thing\n",
+		"Precedent:\n- seed\n1. Run the next step\n",
+		"Precedent:\n1. seed\n2. none: second entry\nThen:\n- Run the next step\n",
+	];
+	for (const text of passes) {
+		const result = runBriefText(text);
+		const line = result.stderr.split(/\r?\n/).find((entry) => entry.startsWith("pi-worker: precedent:"));
+		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !line?.startsWith("pi-worker: precedent:")) return false;
+	}
+	for (const text of [
+		"Precedent:\n- seed — reuse the\nreader below\n* missing.mjs\n",
+		"Precedent:\n1. seed — reuse:\n   - the parser\n2. missing.mjs\n",
+		"Precedent:\n- seed — reuse:\n  1. the parser\n- missing.mjs\n",
+	]) {
+		const result = runBriefText(text);
+		if (result.status !== 1 || fs.existsSync(piSpawnMarker) || !result.stderr.includes('"missing.mjs" is not tracked')) return false;
+	}
+	return true;
+})());
+
+// req: R-2617
+check("R-2617: a bold Precedent label line starts the Precedent section", (() => {
+	for (const label of ["**Precedent:**", "**Precedent**:"]) {
+		const result = runBriefText(`${label}\n- seed\n`);
+		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !result.stderr.includes("1 checked at HEAD")) return false;
+	}
+	const missing = runBriefText("**Precedent:**\n- missing.mjs\n");
+	return missing.status === 1 && !fs.existsSync(piSpawnMarker) && missing.stderr.includes('"missing.mjs" is not tracked');
+})());
+
+// req: R-2618
+check("R-2618: a brief with no Precedent section is told the label stands on a line of its own", (() => {
+	const phraseChecks = ["Precedent: seed — the inline form\n", "Feature: FEAT-006 · Missing\n"].map((text) => {
+		const result = runBriefText(text);
+		return result.status === 1 && result.stderr.includes("a Precedent heading") && result.stderr.includes("a line holding only Precedent:") && result.stderr.includes("- <path>") && result.stderr.includes("- none: <reason>") && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath);
+	});
+	const empty = runBriefText("## Precedent\n\n## Done\n");
+	const actualSection = runBriefText("Precedent: the rail is one source\n\n## Precedent\n- seed\n");
+	return phraseChecks.every(Boolean) && empty.status === 1 && !empty.stderr.includes("a Precedent heading") && actualSection.status === 0 && fs.existsSync(piSpawnMarker);
+})());
+
+// req: R-2619
+check("R-2619: bold and punctuated Precedent paths are checked as the bare path", (() => {
+	const passing = [
+		"- **seed** — note", "- **`tracked/nested.mjs`**:12,", "- seed:93-100).", "- seed: the reader",
+		"- `seed`: the reader", "- seed:12: note", "- **none:** no earlier code exists",
+	];
+	for (const entry of passing) {
+		const result = runBriefText(`Precedent:\n${entry}\n`);
+		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !result.stderr.includes("1 checked at HEAD")) return false;
+	}
+	for (const entry of ["- *.mjs", "- [seed](seed)", "- tracked/..", "- **missing.mjs**"]) {
+		const result = runBriefText(`Precedent:\n${entry}\n`);
+		if (result.status !== 1 || fs.existsSync(piSpawnMarker)) return false;
+	}
+	return true;
+})());
+
+// req: R-2620
+check("R-2620: a heading such as Precedent audit is not read as the Precedent section", (() => {
+	const bypass = runBriefText("## Precedent audit\n- missing.mjs\n\n## Precedent\n- seed\n");
+	const noSection = runBriefText("## Precedent audit\n- seed\n");
+	const parenthetical = runBriefText("## Precedent (this lane's own)\n- seed\n");
+	const dash = runBriefText("## Precedent — the reader\n- seed\n");
+	return bypass.status === 0 && fs.existsSync(piSpawnMarker) && noSection.status === 1 && noSection.stderr.includes("a Precedent heading") &&
+		parenthetical.status === 0 && dash.status === 0;
 })());
 
 // req: R-2581
@@ -250,7 +321,7 @@ check("R-2581: the named feature's known-bug file follows the brief as the third
 // req: R-2578 R-2581
 check("seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature:", (() => {
 	const module = path.join(root, "lib", "brief-config.mjs");
-	const probe = spawnSync(process.execPath, ["--input-type=module", "-e", `import { PRECEDENT_SECTION, PRECEDENT_NONE, FEATURE_LINE_PREFIX, PRECEDENT_TRAILING_PUNCTUATION, PRECEDENT_LIST_MAX_BYTES } from ${JSON.stringify(pathToFileURL(module).href)}; process.exit(PRECEDENT_SECTION === "Precedent" && PRECEDENT_NONE === "none:" && FEATURE_LINE_PREFIX === "Feature: " && PRECEDENT_TRAILING_PUNCTUATION === ",;.)" && PRECEDENT_LIST_MAX_BYTES === 65536 ? 0 : 1);`], { encoding: "utf8", timeout: 5000 });
+	const probe = spawnSync(process.execPath, ["--input-type=module", "-e", `import { PRECEDENT_SECTION, PRECEDENT_NONE, FEATURE_LINE_PREFIX, PRECEDENT_TRAILING_PUNCTUATION, PRECEDENT_LIST_MAX_BYTES } from ${JSON.stringify(pathToFileURL(module).href)}; process.exit(PRECEDENT_SECTION === "Precedent" && PRECEDENT_NONE === "none:" && FEATURE_LINE_PREFIX === "Feature: " && PRECEDENT_TRAILING_PUNCTUATION === ",;.):" && PRECEDENT_LIST_MAX_BYTES === 65536 ? 0 : 1);`], { encoding: "utf8", timeout: 5000 });
 	return probe.status === 0;
 })());
 
@@ -524,7 +595,7 @@ check("with a larger-lane builder set, a launch with no lane size, the --lane-si
 
 const laneSpawnCount = path.join(temp, "lane-spawns");
 writeStub(`#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`,
-	`const fs = require("node:fs");\nfs.appendFileSync(${JSON.stringify(laneSpawnCount)}, "spawned\\n");\nconsole.log("output");\nsetTimeout(() => {}, 3000);\n`);
+	`const fs = require("node:fs");\nfs.appendFileSync(${JSON.stringify(laneSpawnCount)}, "spawned\n");\nconsole.log("output");\nsetTimeout(() => {}, 3000);\n`);
 const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
 const lockChildren = [launchTogether(), launchTogether()];
 await Promise.all(lockChildren.map((child) => new Promise((resolve) => child.once("close", resolve))));
@@ -571,7 +642,7 @@ const config = await import("../bin/worker-config.mjs");
 check("sealed lane ceiling is 28,800 seconds", config.LANE_MAX_SECS === 28_800);
 const descendantPid = path.join(temp, "descendant.pid");
 writeStub(`#!/bin/sh\nsleep 30 &\necho $! > "${descendantPid}"\nwait\n`,
-	`const { spawn } = require("node:child_process");\nconst fs = require("node:fs");\nconst child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore" });\nfs.writeFileSync(${JSON.stringify(descendantPid)}, String(child.pid) + "\\n");\nchild.on("exit", () => process.exit(0));\n`);
+	`const { spawn } = require("node:child_process");\nconst fs = require("node:fs");\nconst child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore" });\nfs.writeFileSync(${JSON.stringify(descendantPid)}, String(child.pid) + "\n");\nchild.on("exit", () => process.exit(0));\n`);
 const capped = run(lane, ["--lane", "alpha", "--brief", brief, "--max-secs", "1", "--stall-secs", "10"]);
 // req: R-963
 check("max-secs override kills and names the lane wall-clock ceiling", capped.status === 1 && /wall-clock ceiling 1s reached/.test(capped.stderr));

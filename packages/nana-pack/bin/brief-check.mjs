@@ -7,7 +7,7 @@
  * @effects disk (reads paths), process (runs git and writes stderr)
  * @errors Exit 1 on invalid arguments, unreadable paths, or a refused brief; otherwise exit 0.
  */
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import * as path from "node:path";
 import { execFileSync } from "node:child_process";
 import { checkBriefForLaunch } from "../lib/brief-precedent.mjs";
@@ -34,6 +34,11 @@ catch {
 	process.exit(1);
 }
 const briefPath = path.resolve(worktreeRoot, values.get("--brief"));
+try { readFileSync(briefPath); }
+catch {
+	process.stderr.write(`brief-check: cannot read brief at ${briefPath}; a relative --brief resolves from --tree\n`);
+	process.exit(1);
+}
 const result = checkBriefForLaunch({
 	briefPath,
 	worktreeRoot,

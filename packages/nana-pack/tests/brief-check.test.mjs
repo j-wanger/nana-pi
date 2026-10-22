@@ -57,8 +57,8 @@ const writeBrief = (name, text) => {
 const runWorker = (brief) => spawnSync(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], {
 	cwd: lane, encoding: "utf8", timeout: 15_000, env,
 });
-const runCheck = (brief) => spawnSync(process.execPath, [briefCheck, "--brief", brief, "--tree", lane], {
-	cwd: lane, encoding: "utf8", timeout: 15_000, env,
+const runCheck = (brief, cwd = lane) => spawnSync(process.execPath, [briefCheck, "--brief", brief, "--tree", lane], {
+	cwd, encoding: "utf8", timeout: 15_000, env,
 });
 const selectedLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
 const cases = [
@@ -101,3 +101,16 @@ const check = (title, pass, detail = "") => {
 };
 // req: R-2585
 check("R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing", ok, JSON.stringify({ observations, sharedByBoth }));
+
+const unreadableName = "passing.md";
+const unreadableTreePath = path.join(lane, unreadableName);
+const unrelatedBrief = writeBrief(unreadableName, "Precedent:\n- seed\n");
+fs.rmSync(unreadableTreePath, { force: true });
+const unreadableResult = runCheck(unreadableName, temp);
+const unreadableLines = unreadableResult.stderr.trimEnd().split(/\r?\n/);
+const expectedTriedPath = path.resolve(lane, unreadableName);
+// req: R-2621
+check("R-2621: brief-check names the brief path it tried and the base a relative brief resolves from",
+	unreadableResult.status === 1 && unreadableLines.length === 1 && unreadableLines[0].startsWith("brief-check:") &&
+	unreadableLines[0].includes(expectedTriedPath) && unreadableLines[0].includes("--tree") &&
+	fs.existsSync(unrelatedBrief) && !fs.existsSync(unreadableTreePath), unreadableResult.stderr);
