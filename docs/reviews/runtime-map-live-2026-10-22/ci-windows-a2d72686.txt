@@ -1,0 +1,28 @@
+# CI run 39731735341 at a2d72686 (PR #161)
+
+release: skipping https://github.com/j-wanger/nana-pi/actions/runs/39731735341/job/119680398059
+suite (macos-latest): pass
+suite (windows-latest): pass
+install-check (macos-latest): pass
+install-check (windows-latest): pass
+suite (ubuntu-latest): pass
+
+suite (ubuntu-latest) 205 files: 202 PASS, 0 FAIL, 3 SKIP, 0 WARN · checks: 8224 pass, 0 fail, 60 skip · 896.1s
+suite (windows-latest) 205 files: 187 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7213 pass, 0 fail, 119 skip · 2052.8s
+suite (macos-latest) 205 files: 203 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8285 pass, 0 fail, 40 skip · 1078.5s
+
+Windows leg, the lane's files:
+PASS on Windows a Git Bash /tmp target is judged in the folder TMP names, or TEMP when TMP is unset 
+PASS on Windows a cd to Git Bash /tmp moves relative rm targets into the temp folder 
+PASS on Windows a Git Bash drive spelling such as /c/ reads as that drive's path 
+PASS on Windows a headless rm -f of a Git Bash /tmp file runs unblocked 
+PASS on Windows a headless rm of, or after a cd to, a Git Bash drive spelling is judged at that drive's path 
+PASS on Windows the gate reads Git Bash drive spellings as Git Bash's own cygpath does, over a usertemp /tmp mount 
+SKIP after a land the runtime data names main's tip and is not stale — R-2526: Windows lands do not measure
+PASS  packages/nana-pack/tests/land.test.mjs                          54 pass, 1 skip  99.4s
+PASS on Windows a differing TMP counts as a temp folder under the same rule as TEMP
+PASS on Windows a land suite runs once without coverage and says the runtime map was not measured
+SKIP off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero — R-2526: Windows lands do not measure
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  7 pass, 1 skip  7.4s
+PASS R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it 
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   9 pass, 1 skip  15.2s

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane runtime-map-live (install, hook or gate lane: it changes nana-land), written by the seat
-// 2026-10-22 after build 2, on the shared runner, at tip 8a3df4bd, and again at 56435b70 after build 3, which added x4 and x5. They are the must-meet's nine pairs ("Seat steps"),
+// 2026-10-22 after build 2, on the shared runner, at tip 8a3df4bd, and again at 56435b70 after build 3, which added x4 and x5, and at a2d72686 after build 4. They are the must-meet's nine pairs ("Seat steps"),
 // split where one names two wrong builds, plus the seat's two findings on build 1 (F1, F2) and three cheap extras.
 // Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/runtime-map-live-2026-10-22/seat-mutate.mjs
@@ -90,4 +90,4 @@ const PAIRS = [
 	], tests: [RLAND_T], expectRed: [R_2533] },
 ];
 
-process.exitCode = await runMutations({ lane: "runtime-map-live", self: import.meta.url, tip: "56435b70", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "runtime-map-live", self: import.meta.url, tip: "a2d72686", declared: DECLARED, pairs: PAIRS });

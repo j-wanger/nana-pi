@@ -1,0 +1,43 @@
+seat-mutate: lane runtime-map-live, tip a2d726863685d3374e17c1429be3c4b2b670bd4b, table 299d2c2cb03b6f52e943dcb2e80f861a7fa4cc13cbb38e6dde6d70665ee1fbea, merge-base 0430b534679bbdb3a842bcec3a4d479ba1c6a9e7, 17 pairs in 5 shards (4+4+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-22T06:05:03.270Z
+DECLARED (plan) p1 to p9 are the must-meet's nine pairs; p4 names two wrong builds (rerun every file, rerun under coverage), run as p4a and p4b
+DECLARED (seat) f1 and f2 are the seat's build-1 findings: a whole-run failure rerun away, and a write problem lost on the rerun path
+DECLARED (seat) x1 to x3 are cheap extras: Windows measured anyway (R-2526), no tip in the data (R-2523), and main's distance counted the wrong way (R-2529)
+DECLARED (seat) x4 and x5 (after build 3): the Windows branch ignores the hand-measure marker, and the measure command sets no marker; both leave a win32 hand measure writing nothing
+DECLARED (seat) p2 stamps main's old SHA in the land's variable; the locked suite then sees a tip that is not HEAD and measures nothing, so R-2522 goes red with R-2531
+[1/5] seat-mutate: lane runtime-map-live, shard 1/5, tip a2d726863685d3374e17c1429be3c4b2b670bd4b, merge-base 0430b534679bbdb3a842bcec3a4d479ba1c6a9e7, 4 pairs, darwin, node v22.22.2, 2026-10-22T06:05:04.143Z
+[1/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 55 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane runtime-map-live, shard 2/5, tip a2d726863685d3374e17c1429be3c4b2b670bd4b, merge-base 0430b534679bbdb3a842bcec3a4d479ba1c6a9e7, 4 pairs, darwin, node v22.22.2, 2026-10-22T06:05:08.179Z
+[2/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 55 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane runtime-map-live, shard 3/5, tip a2d726863685d3374e17c1429be3c4b2b670bd4b, merge-base 0430b534679bbdb3a842bcec3a4d479ba1c6a9e7, 3 pairs, darwin, node v22.22.2, 2026-10-22T06:05:12.212Z
+[3/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[3/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane runtime-map-live, shard 4/5, tip a2d726863685d3374e17c1429be3c4b2b670bd4b, merge-base 0430b534679bbdb3a842bcec3a4d479ba1c6a9e7, 3 pairs, darwin, node v22.22.2, 2026-10-22T06:05:16.244Z
+[4/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/runtime-map.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane runtime-map-live, shard 5/5, tip a2d726863685d3374e17c1429be3c4b2b670bd4b, merge-base 0430b534679bbdb3a842bcec3a4d479ba1c6a9e7, 3 pairs, darwin, node v22.22.2, 2026-10-22T06:05:20.327Z
+[5/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/runtime-map.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 the land's suite without NANA_LAND_TIP — 2/2 named: /^the land runs its suite with the source tip's full SHA in NANA_LAND_TIP/ | /^after a land the runtime data names main's tip and is not stale/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 the land stamps main's old SHA instead of the source tip — 2/2 named: /^the land runs its suite with the source tip's full SHA in NANA_LAND_TIP/ | /^after a land the runtime data names main's tip and is not stale/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 a filtered run with the land tip measures — 1/1 named: /^filtered, wrong-tip and unset-tip runs neither measure nor rerun/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4a the rerun runs every file — 1/1 named: /^a land failing under coverage keeps its data and reruns only the failed files/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4b the rerun runs under coverage — 1/1 named: /^a land failing under coverage keeps its data and reruns only the failed files/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p5 a write failure after a passing coverage run exits 1 — 1/1 named: /^a passing land suite whose runtime data cannot be written exits 0, keeps the earlier data and nam…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 the land drops its suite's notes — 1/1 named: /^a passing land shows its suite's land notes/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 a hand measure that passes no tip — 1/1 named: /^a hand measure writes its tip, time and dirty-file count inside the lock/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 a constant age — 1/1 named: /^impact names the measured tip, its UTC time, its age in hours and how many tracked files differ/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 every measured test marked stale when any ran a changed file — 1/1 named: /^impact marks stale only the measured tests that ran a changed file/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED f1 a coverage run with a whole-run failure rerun away — 1/1 named: /^a land failing under coverage keeps its data and reruns only the failed files/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED f2 a write problem lost on the rerun path — 1/1 named: /^a land failing under coverage keeps its data and reruns only the failed files/; 1 FAIL total (1 file changed, 1 deletion(-))
+RED x1 Windows measured like any other platform — 1/1 named: /^on Windows a land suite runs once without coverage and says the runtime map was not measured/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED x2 runtime data written without its tip — 1/1 named: /^a passing land suite writes runtime data naming the land tip and the time it measured/; UNNAMED red: [runtime-land.test.mjs] a hand measure writes its tip, time and dirty-file count inside the lock AssertionError [ERR_ASSERTION]: Expe…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED x3 main's distance from the tip counted the wrong way — 1/1 named: /^impact says how far main is past the measured tip, or that the tip is not on main/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED x4 the Windows branch ignores the hand-measure marker — 1/1 named: /^a hand measure writes its tip, time and dirty-file count inside the lock/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED x5 the measure command sets no marker — 1/1 named: /^a hand measure writes its tip, time and dirty-file count inside the lock/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 17/17 red (16 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived, across 5 shards
