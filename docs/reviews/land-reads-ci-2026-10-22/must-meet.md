@@ -142,3 +142,8 @@ Existing tests made false: none expected; every existing land fixture has no ori
 - Land with the worktree's own nana-land.mjs (D11); its own pull-request run must be green first. If it wrongly refuses, main's copy lands as today and the refusal becomes a finding.
 - `requirements-moved.mjs --root . --base main` output in the final review brief and the land.
 - Cross-lane: any lane editing the shared Land checklist bullet or nana-land.mjs merges main if it lands later.
+
+## Amendment 1 (seat, 2026-10-22, after the independent check at 3d2953dc)
+
+- **A1 · gh's colour is forced off.** A seat shell that sets `CLICOLOR_FORCE=1` or `GH_FORCE_TTY=1` makes gh print ANSI-coloured JSON, so every land was refused as "not a workflow-run list" (the independent check reproduced it with real gh; `NO_COLOR=1` does not cancel it). nana-land passes gh the process environment with `CLICOLOR_FORCE` set to `0` and every casing of `GH_FORCE_TTY` removed. R-2591's text gains "with gh's colour output forced off", and its test gains a case with both variables preset in the process environment and, in the POSIX command case, a fake gh that prints coloured JSON whenever either is set.
+- **A2 · Rerun remedies name the repository.** `gh run rerun <id>` relies on gh guessing the repository, so a seat with GH_REPO set elsewhere would re-run the wrong one. The refusal's rerun remedies read `gh run rerun <id> --repo <owner>/<repo>`; R-2586's cancelled and failed cases assert it.
