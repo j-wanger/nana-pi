@@ -17,3 +17,4 @@ constraint. Its optional fields are `Kind: product` or `Kind: constraint`; comma
 IDs on `Deliverables:`; comma-separated capability IDs on `Needs:` or `Binds:`; and live
 successor capability IDs on `Retired:`. The checker reads these lines only in the capability's
 own span, and treats `Deliverables:`, `Needs:` and `Binds:` as prose when `Kind:` is absent.
+For each listed product deliverable, repeat `Made by:` and `Read by:` lines in that capability's own span; the tree checker reports missing reasons, unreadable claims and paths not tracked at HEAD as notes.

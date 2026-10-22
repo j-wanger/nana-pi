@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { deliverableFieldLinesByRow } from "./deliverables.mjs";
 import { CAPABILITY_FIELD_LABELS, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 
 // Chosen: 64 MiB, the same size requirements-lift.mjs's blob reader (gitBuf) uses for a
@@ -54,8 +55,9 @@ function featureIdOf(heading) {
 
 function rowSnapshot(parsed) {
   const map = new Map();
+  const fieldLines = deliverableFieldLinesByRow(parsed);
   for (const row of readRequirementRows(parsed)) {
-    map.set(row.id, { status: row.status, requirement: row.requirement, featureId: featureIdOf(row.heading) });
+    map.set(row.id, { status: row.status, requirement: row.requirement, featureId: featureIdOf(row.heading), deliverableLines: fieldLines.get(row.id) ?? [] });
   }
   return map;
 }
@@ -153,6 +155,7 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     } else {
       if (b.status !== h.status) parts.push(`${b.status} -> ${h.status}`);
       if (b.requirement !== h.requirement) parts.push("text changed");
+      if (JSON.stringify(b.deliverableLines) !== JSON.stringify(h.deliverableLines)) parts.push("Made by/Read by lines changed");
       if (b.featureId !== h.featureId) parts.push(`moved from ${b.featureId ?? "(no feature)"}`);
       if (parts.length === 0) continue; // Evidence-only edit: not movement.
       groupFeature = h.featureId;

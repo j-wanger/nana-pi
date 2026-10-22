@@ -209,7 +209,7 @@ function mirrorScripts() {
   const mirror = join(scratchRoot, `mirror-${++caseN}`);
   const files = [
     "scripts/requirements-regroup.mjs", "scripts/requirements-lift.mjs", "scripts/requirements-lift-proof.mjs",
-    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs",
+    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/deliverables.mjs",
     "templates/typescript/template/tests/requirements-trace.ts",
   ];
   for (const rel of files) { const dest = join(mirror, rel); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, readFileSync(join(REPO_ROOT, rel))); }

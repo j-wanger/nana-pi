@@ -7,9 +7,11 @@
  * @effects disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
  * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkDeliverables } from "./deliverables.mjs";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -580,6 +582,29 @@ function usage() {
   console.error("Usage: requirements-tree.mjs [--write | --check] | requirements-tree.mjs --root <dir>");
   return 2;
 }
+function deliverableReport(parsed, ledgerFolder) {
+  const pending = checkDeliverables(parsed, null);
+  if (pending.pathsToCheck.length === 0) return pending;
+  let result;
+  try {
+    result = spawnSync("git", ["-C", ledgerFolder, "ls-tree", "-r", "-z", "--name-only", "HEAD"], { encoding: "buffer" });
+  } catch {
+    result = null;
+  }
+  if (!result || result.error || result.status !== 0) {
+    return { ...pending, notes: [...pending.notes, "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree"] };
+  }
+  const trackedPaths = result.stdout.toString("utf8").split("\0").filter(Boolean);
+  return checkDeliverables(parsed, trackedPaths);
+}
+function printDeliverableReport(parsed, ledgerFolder, { alwaysSummary = false } = {}) {
+  const report = deliverableReport(parsed, ledgerFolder);
+  if (alwaysSummary || report.checkedDeliverables > 0 || report.fieldLineCount > 0) {
+    const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).length;
+    console.log(`requirements tree: 0 problems; rows ${readRequirementRows(parsed).length}; features ${features}`);
+    for (const entry of report.notes) console.log(entry);
+  }
+}
 export function main(argv = process.argv.slice(2)) {
   if (argv[0] === "--root") {
     if (argv.length !== 2 || !argv[1]) return usage();
@@ -591,8 +616,7 @@ export function main(argv = process.argv.slice(2)) {
     if (readProblem) { console.error(readProblem); return 1; }
     const { problems } = checkTree(text);
     if (problems.length) { for (const p of problems) console.error(p); return 1; }
-    const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).length;
-    console.log(`requirements tree: 0 problems; rows ${readRequirementRows(parsed).length}; features ${features}`);
+    printDeliverableReport(parsed, dirname(ledgerPath), { alwaysSummary: true });
     return 0;
   }
   const mode = argv[0] ?? "--check";
@@ -614,6 +638,7 @@ export function main(argv = process.argv.slice(2)) {
       return 1;
     }
   }
+  printDeliverableReport(result.parsed, dirname(resolve(REPO_ROOT, "REQUIREMENTS.md")));
   return 0;
 }
 if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exit(main());
