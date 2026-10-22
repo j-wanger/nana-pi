@@ -6,6 +6,8 @@ Scope
 - Work only in that worktree. Commit on its lane branch with explicit paths and a message file written under `$TMPDIR`, never inside the worktree.
 - Never edit `HANDOFF.md`, `docs/known-bugs/` or session archives.
 - New requirement rows take IDs only from the range your brief names.
+- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.
+- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.
 - A findings list is closures only.
 - Never start model sessions or subagents.
 - Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root; render a template project into a temp directory and use that project's toolchain there.

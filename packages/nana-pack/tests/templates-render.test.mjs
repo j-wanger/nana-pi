@@ -577,7 +577,7 @@ function checkInstructionContracts() {
 		largerLanesBullets[0].includes("pi-worker --lane-size small") &&
 		// the routing itself, not just the three substrings in any order or attribution — an
 		// inverted bullet (swapped entry kinds, or swapped lane sizes) must fail this.
-		/a pi entry through `pi-worker --lane-size larger`,\s*a Claude Code entry as a Claude Code subagent in the lane worktree;\s*a small lane goes through `pi-worker --lane-size small`/.test(largerLanesBullets[0]),
+		/a pi entry through `pi-worker --lane-size larger`,\s*a Claude Code entry as a Claude Code subagent in the lane worktree after the seat runs `node "\$HOME\/nana-pi\/packages\/nana-pack\/bin\/brief-check\.mjs" --brief <file> --tree <worktree>` on the brief;\s*a small lane goes through `pi-worker --lane-size small`/.test(largerLanesBullets[0]),
 		JSON.stringify(largerLanesBullets));
 	// req: R-1213
 	check("shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user",
@@ -601,6 +601,12 @@ function checkInstructionContracts() {
 		shared.includes("honest variation in our tools' output is in scope") &&
 		shared.includes("deliberate forgery is out") &&
 		shared.includes("a finding outside the model is a residual"));
+	const plansBullets = shared.split(/\r?\n/).filter((line) => line.startsWith("- Plans:"));
+	// req: R-2584
+	check("R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent",
+		plansBullets.length === 1 &&
+		plansBullets[0].includes("Every plan names its precedent, the nearest existing code for each part by path, or none with a reason."),
+		JSON.stringify(plansBullets));
 	// req: R-1101
 	// req: R-1300
 	check("R-1300: the shared working pattern gives an ordinary lane one final reviewer, defines install, hook and gate lanes, and says plans get no review round",

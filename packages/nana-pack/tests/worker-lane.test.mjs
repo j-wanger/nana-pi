@@ -157,7 +157,7 @@ check("R-2579: Precedent entries not tracked at HEAD are refused, each one named
 	const sha = git(lane, "rev-parse", "--short", "HEAD").stdout.trim();
 	const namedAll = bad.every((entry) => result.stderr.includes(entry));
 	const goodNotNamed = !result.stderr.includes('"seed" is not tracked') && !result.stderr.includes('"tracked/nested.mjs" is not tracked');
-	const literalPathspec = fs.readFileSync(worker, "utf8").includes("'--literal-pathspecs'");
+	const literalPathspec = fs.readFileSync(path.join(root, "lib", "brief-precedent.mjs"), "utf8").includes('"--literal-pathspecs"');
 	git(lane, "reset", "-q", "HEAD", "--", "staged-only.mjs");
 	fs.rmSync(path.join(lane, "staged-only.mjs"), { force: true });
 	fs.rmSync(path.join(lane, "untracked-present.mjs"), { force: true });
@@ -198,6 +198,7 @@ check("R-2580: honest Precedent forms pass and the launch line names the checked
 		["wrapped entry", "Precedent:\n- seed — note\n  continued note\n- none: second entry\n", 2, brief],
 		["heading", "## Precedent\n- seed\n## Done\n- missing\n", 1, brief],
 		["plain label", "Precedent:\n- seed\n", 1, brief],
+		["plain label ends before numbered steps after a blank line", "Precedent:\n- seed\n- none: second entry\n\n1. Run the next step\n2. Update another thing\n", 2, brief],
 		["fenced example", "```md\nPrecedent:\n- missing\n```\n\nPrecedent:\n- seed\n", 1, brief],
 		["CRLF", "Precedent:\r\n- seed\t\r\n", 1, brief],
 		["trailing blanks", "Precedent: \t\n\n- seed \t\n", 1, brief],
@@ -273,6 +274,8 @@ check("lane preamble forbids the named package-manager operations at a worktree 
 const preambleText = prompt1Text;
 const RULE_LINE = {
 	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
+	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
+	knownBugsContext: "- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.",
 	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
 	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
 	awaitEveryAsyncCase: "A test harness awaits every async case under a per-case limit.",
@@ -289,6 +292,10 @@ const RULE_LINE = {
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
 check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
+// req: R-2582
+check("R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure", preambleOnce(RULE_LINE.precedentFirst), RULE_LINE.precedentFirst);
+// req: R-2583
+check("R-2583: the builder preamble frames the attached known bugs as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
 // req: R-1110
 check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
 // req: R-1110

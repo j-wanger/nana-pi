@@ -46,7 +46,10 @@ export function scanListSections(text, { headingMatches, label = null }) {
 		const entries = [];
 		for (let index = section.index + 1; index < section.end; index++) {
 			if (!outsideFence[index]) continue;
-			if (/^\s*$/.test(lines[index])) continue;
+			if (/^\s*$/.test(lines[index])) {
+				if (section.kind === "label" && entries.length > 0) break;
+				continue;
+			}
 			if (!isListItem(lines[index])) {
 				if (section.kind === "label") break;
 				continue;
