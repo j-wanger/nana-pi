@@ -84,3 +84,18 @@ R-1274 (the whole section marked stale) is retired, replaced by R-2534. R-1272 a
 - Between sessions the seat runs a scratch land with a fake suite that fails one file only under coverage, and runs each new test with the coverage knob set (lands run them so).
 - Wrong-code pairs: R-2522 drop the variable; R-2531 stamp main's old SHA; R-2532 measure a filtered run; R-2524 rerun every file, or rerun under coverage; R-2525 let a write failure exit 1; R-2530 drop the note echo; R-2533 a hand measure writing no tip; R-2528 a constant age; R-2534 mark the whole section.
 - A draft PR runs the Windows leg. The notes carry the owner's 2026-10-22 ruling into the rulings file, reorder HANDOFF's queue (artifact lanes first) and close its Open ask on deliverable consumers. Reserve R-2522 to R-2534.
+
+## Amendment after build 2 (the seat, 2026-10-22)
+
+The Windows CI leg at dd9cbc4d failed 9 checks in 3 files (`ci-windows-dd9cbc4d.txt`). Two causes:
+
+- **Test wrappers import a raw drive path.** The runtime-land test writes wrapper scripts that `import` the locked suite and the measure module by an absolute path; on Windows a `D:\…` path is not a valid import URL (ERR_UNSUPPORTED_ESM_URL_SCHEME), so every wrapper case fails. R-2527's check, titled "off Windows", runs on Windows and times out. R-2531's land test expects data that R-2526 says a Windows land never writes.
+- **The hand measure stopped measuring on Windows (a regression of R-1278).** The measure command now runs the locked suite with the land tip set, and R-2526's Windows branch then runs the plain suite and writes nothing. On main the hand measure works on Windows (R-1278 passes on that leg), and impact's own advice is to run it. The current priority is nana working on macOS and Windows, so the hand measure must keep measuring there.
+
+R-2526 changes text (the Windows rule applies to a land, not to the measure command):
+
+| ID | Requirement (EARS) | Test file::title |
+|---|---|---|
+| R-2526 | WHERE the platform is Windows, WHILE a land sets `NANA_LAND_TIP` and the measure command's marker is unset, the locked suite shall run the suite once without coverage and print one land note saying the runtime map was not measured. | `packages/nana-pack/tests/runtime-land.test.mjs::on Windows a land suite runs once without coverage and says the runtime map was not measured` (unchanged) |
+
+The measure command sets a declared marker (`land-config.mjs`, contract R-2526 and R-2533), and its run measures on every platform as on main. R-1278 stays as it is and must pass on the Windows leg. R-2533's test gains a case with the platform injected as `win32` that still writes the tip, the time and the dirty count. R-2527's and R-2531's checks skip on Windows with one skip line each naming R-2526, since a Windows land never measures.

@@ -1,0 +1,19 @@
+# Windows leg at dd9cbc4d (CI run 39721615846, PR #161): the lane's failing checks
+
+FAIL  packages/nana-pack/tests/land.test.mjs                          54 pass, 1 fail  98.2s  — exit 1
+FAIL  packages/nana-pack/tests/runtime-land.test.mjs                  1 pass, 7 fail  13.0s  — exit 1
+FAIL  packages/nana-pack/tests/runtime-map.test.mjs                   9 pass, 1 fail, 1 skip  10.9s  — exit 1
+
+FAIL after a land the runtime data names main's tip and is not stale ENOENT: no such file or directory, open 'C:\Users\RUNNER~1\AppData\Local\Temp\nana-test-5340-IC98lB\land-runtime-map-vb1o0X\runtime-map.json'
+FAIL a passing land suite writes runtime data naming the land tip and the time it measured AssertionError [ERR_ASSERTION]: node:internal/modules/esm/load:203
+FAIL on Windows a land suite runs once without coverage and says the runtime map was not measured AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+FAIL off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero Error: timed out waiting for C:\Users\runneradmin\AppData\Local\Temp\nana-test-5340-6zZGRy\runtime-land-test-XBvetJ\stopped-SIGINT-coverage.txt
+FAIL filtered, wrong-tip and unset-tip runs neither measure nor rerun AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+FAIL a hand measure writes its tip, time and dirty-file count inside the lock AssertionError [ERR_ASSERTION]: 
+FAIL R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it measure status: 0; measure output: [nana-land] runtime map on Windows was not measured
+
+Error behind the four ESM failures: ERR_UNSUPPORTED_ESM_URL_SCHEME, "On Windows, absolute paths must be valid file:// URLs. Received protocol 'd:'"
+
+suite (windows-latest) 204 files: 183 PASS, 3 FAIL, 18 SKIP, 0 WARN · checks: 7200 pass, 9 fail, 117 skip · 2041.4s
+suite (ubuntu-latest) 204 files: 201 PASS, 0 FAIL, 3 SKIP, 0 WARN · checks: 8217 pass, 0 fail, 60 skip · 875.2s
+suite (macos-latest) 204 files: 202 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8278 pass, 0 fail, 40 skip · 882.2s

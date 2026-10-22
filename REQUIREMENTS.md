@@ -1876,7 +1876,7 @@ Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand 
 Read by: R-1460 · rule: AGENTS.md tells the seat to carry its output in the review brief and the land report; pi-review and nana-land neither run nor check it
 Made by: R-1014 · manual: someone runs npm run report and republishes the page by hand
 Read by: R-1014 · person: the owner reads the published page; no hook, check or session-start line reads the report or shows its age
-Made by: R-1272 · manual: run npm run map:measure by hand
+Made by: R-1272 · land: packages/nana-pack/bin/nana-land.mjs, scripts/test-locked.mjs, scripts/runtime-measure.mjs · runtime-map
 Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section
 Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module
 Read by: R-1272 · code: scripts/product-report.mjs

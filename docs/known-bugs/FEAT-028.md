@@ -47,3 +47,9 @@
 - Deliverable lines (deliverable-fields, plan): the three rule lines that tell agents to run impact, the movement listing and the local install check stay until a lane automates each maker; until then each reads as a `rule:` reader.
 - Deliverable lines (deliverable-fields, plan): other projects' trees gain nothing until they add `Kind: product`.
 - Deliverable lines (deliverable-fields, seat): `--write` and `--check` now print the summary line whenever a product capability lists deliverables, even with no maker or reader line, where they printed nothing before.
+- Deliverable lines (deliverable-fields, final review): the HEAD-tree listing uses Node's default 1 MiB buffer. A repository whose listing passes 1 MiB, about 11,000 long names, gets "paths not checked" on every run, which hides the cause. nana-pi lists 211 KB; the movement report's 64 MiB value would close it.
+- Deliverable lines (deliverable-fields, final review): no test covers a retired product capability; dropping the retired condition stays green.
+- Deliverable lines (deliverable-fields, final review): no test pins a path that is a bare prefix of another, or a `Read by:` line with a third part; both behave right today.
+- Deliverable lines (deliverable-fields, final review): the README's `--root` clause still says "just its problems or a `0 problems` line"; it now also prints the count line and notes.
+- Deliverable lines (deliverable-fields, final review): the count trusts an automatic maker or a code reader whose path gets a "not tracked" note; the note shows.
+- Deliverable lines (deliverable-fields, final review): the movement report lists a whitespace-only change to a maker or reader line, while a whitespace-only row edit prints none.
