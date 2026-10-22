@@ -2,16 +2,15 @@
 /**
  * @module scripts/requirements-tree.mjs
  * @purpose Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline.
- * @inputs REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md.
- * @outputs Parsed headings and tables, structural problem lists, and rendered outline Markdown.
+ * @inputs REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md plus the ledger folder's HEAD tree through the shared deliverable reporter.
+ * @outputs Parsed headings and tables, structural problem lists, rendered outline Markdown, and shared deliverable report lines.
  * @effects disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
  * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkDeliverables } from "./deliverables.mjs";
+import { checkDeliverables, deliverableReportLines } from "./deliverables.mjs";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -582,28 +581,12 @@ function usage() {
   console.error("Usage: requirements-tree.mjs [--write | --check] | requirements-tree.mjs --root <dir>");
   return 2;
 }
-function deliverableReport(parsed, ledgerFolder) {
-  const pending = checkDeliverables(parsed, null);
-  if (pending.pathsToCheck.length === 0) return pending;
-  let result;
-  try {
-    result = spawnSync("git", ["-C", ledgerFolder, "ls-tree", "-r", "-z", "--name-only", "HEAD"], { encoding: "buffer" });
-  } catch {
-    result = null;
-  }
-  if (!result || result.error || result.status !== 0) {
-    return { ...pending, notes: [...pending.notes, "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree"] };
-  }
-  const trackedPaths = result.stdout.toString("utf8").split("\0").filter(Boolean);
-  return checkDeliverables(parsed, trackedPaths);
-}
 function printDeliverableReport(parsed, ledgerFolder, { alwaysSummary = false } = {}) {
-  const report = deliverableReport(parsed, ledgerFolder);
-  if (alwaysSummary || report.checkedDeliverables > 0 || report.fieldLineCount > 0) {
+  const shape = checkDeliverables(parsed, null);
+  if (alwaysSummary || shape.checkedDeliverables > 0 || shape.fieldLineCount > 0) {
     const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).length;
     console.log(`requirements tree: 0 problems; rows ${readRequirementRows(parsed).length}; features ${features}`);
-    if (report.fieldLineCount > 0) console.log(`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables} made and read by code`);
-    for (const entry of report.notes) console.log(entry);
+    for (const line of deliverableReportLines(parsed, ledgerFolder)) console.log(line);
   }
 }
 export function main(argv = process.argv.slice(2)) {

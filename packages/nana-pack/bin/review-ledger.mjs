@@ -3,14 +3,15 @@
  * @module packages/nana-pack/bin/review-ledger.mjs
  * @purpose The review round cap as a hook for any launcher — `run` reserves a round around a command and
  *  records its verdict, `check` asks whether one would be admitted.
- * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
- *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, the user-scope review ledger,
+ * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>`,
+ *  `check --item <slug> [--tree <path>] [--revision R]`, or `keep --item <slug> --into <dir> [--repo <path>]`),
+ *  the reviewed tree's git state, the user-scope review ledger,
  *  review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
- * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
- *  `check`, and the admission note, warnings, unread-verdict note, cannot-start line and refusals on stderr
+ * @outputs the child's stdout written to --out and the kept-text store, a recorded round, lane-folder copies
+ *  from `keep`, the projection note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
  * @effects process (resolves and spawns the review command with reviewer child env and stdout piped,
  *  runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock,
- *  reservation, tally and audit files, including a best-effort cannot-start line)
+ *  reservation, kept text, tally and audit files, including a best-effort cannot-start line)
  * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
  *  admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero /
  *  non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
@@ -27,9 +28,13 @@
 //       writes nothing (no reservation, no pruning).
 
 import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { admit, complete, project, readRounds, release, repoKeyOf, startHeartbeat } from './review-round.mjs';
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
+import {
+  admit, canonicalItem, complete, KEEP_NAME_HASH_CHARS, project, readRounds, release, repoKeyOf,
+  reviewTextEvidence, SLUG_MAX, startHeartbeat,
+} from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { reviewLaunch } from './review-launch.mjs';
 import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
@@ -44,6 +49,52 @@ const ownOption = (name) => {
   return i >= 0 ? own[i + 1] : undefined;
 };
 
+if (cmd === 'keep') {
+  const rawItem = ownOption('--item');
+  const intoArg = ownOption('--into');
+  const repoPath = ownOption('--repo') ?? process.cwd();
+  if (!rawItem || !intoArg) die('keep needs --item <slug> and --into <dir>');
+  let item, repo;
+  try { item = canonicalItem(rawItem); } catch (error) { die(error.message); }
+  try { repo = repoKeyOf(resolve(repoPath)); } catch { die(`--repo is not a git repository: ${repoPath}`); }
+  const home = homedir();
+  const rows = readRounds(home, { item, repo });
+  const revisions = [...new Set(rows.map((row) => row.revision))];
+  const planned = new Map();
+  for (const row of rows) {
+    if (!Object.hasOwn(row, 'text')) continue;
+    const kept = reviewTextEvidence(home, row.text);
+    if (kept.status !== 'intact') continue;
+    const role = String(row.role ?? 'reviewer').toLowerCase().replace(/[^a-z0-9._-]/g, '-').slice(0, SLUG_MAX) || 'reviewer';
+    const round = revisions.indexOf(row.revision) + 1;
+    const name = `r${round}-${role}-${row.text.sha256.slice(0, KEEP_NAME_HASH_CHARS)}.md`;
+    const prior = planned.get(name);
+    if (prior && !prior.equals(kept.bytes)) die(`two kept texts would use ${name} with different bytes; wrote nothing`);
+    planned.set(name, kept.bytes);
+  }
+  if (!planned.size) die(`item ${item} in this repository has no kept text`);
+  const into = resolve(intoArg);
+  let intoState = null;
+  try { intoState = lstatSync(into); } catch (error) { if (error.code !== 'ENOENT') die(`cannot inspect ${into}: ${error.message}`); }
+  if (intoState && (!intoState.isDirectory() || intoState.isSymbolicLink())) die(`--into ${into} is not a regular directory`);
+  const writes = [];
+  for (const [name, bytes] of planned) {
+    const target = join(into, name);
+    let state = null;
+    try { state = lstatSync(target); } catch (error) { if (error.code !== 'ENOENT') die(`cannot inspect ${target}: ${error.message}`); }
+    if (!state) { writes.push([target, bytes]); continue; }
+    if (!state.isFile() || state.isSymbolicLink()) die(`${target} is not a regular file; wrote nothing`);
+    let existing;
+    try { existing = readFileSync(target); } catch (error) { die(`cannot read ${target}: ${error.message}; wrote nothing`); }
+    if (!existing.equals(bytes)) die(`${target} holds different bytes; wrote nothing`);
+  }
+  try {
+    mkdirSync(into, { recursive: true });
+    for (const [target, bytes] of writes) writeFileSync(target, bytes, { flag: 'wx', mode: 0o600 });
+  } catch (error) { die(`cannot keep review text: ${error.message}`); }
+  process.stdout.write(`kept ${planned.size} review text(s) for ${item} in ${into}\n`);
+  process.exit(0);
+}
 if (cmd === 'report') {
   const item = ownOption('--item');
   const repoPath = ownOption('--repo');
@@ -60,7 +111,7 @@ if (cmd === 'report') {
   }
   process.exit(0);
 }
-if (cmd !== 'run' && cmd !== 'check') die('usage: review-ledger run|check|report [--item <slug>] [--repo <path>] (see packages/nana-pack/README.md)');
+if (cmd !== 'run' && cmd !== 'check') die('usage: review-ledger run|check|report|keep [--item <slug>] [--repo <path>] (see packages/nana-pack/README.md)');
 if (cmd === 'check') {
   if (own.includes('--over-cap')) die('check takes no --over-cap (an override is recorded only when a review runs)');
   const pr = project(own);
@@ -110,7 +161,7 @@ if (r.error) cannotStart(r.error.code ?? r.error.message);
 const text = r.stdout ?? '';
 try { writeFileSync(out, text); } catch (e) { release(adm.id); die(`cannot write ${out}: ${e.message} — reservation returned`); }
 if (r.status === 0 && text.trim() && reviewShaped(text)) {
-  const c = complete(adm.res, out, { attempts: 1 });
+  const c = complete(adm.res, out, { attempts: 1, text });
   if (!c.ok) die(`review written to ${out}, but ${c.message}`);
   if (c.unread) die(c.unread);
   process.stderr.write(`review-ledger: verdict recorded for item ${adm.res.item} (round ${c.round}; ${out})\n`);

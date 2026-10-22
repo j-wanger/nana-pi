@@ -1,0 +1,35 @@
+seat-mutate: lane report-deliverables, tip 4a78ad2faff680da36662ebd751966d680539571, table 032f65c8301a636be4c00c5b12f809882db406fc0b7087c46f2df19afc6664ac, merge-base 09e38e7de79a866615f941f753997771c9e667e0, 16 pairs in 5 shards (4+3+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-22T12:34:55.717Z
+DECLARED (plan) p1 to p16 are the must-meet's seat-step pairs: walk without -c; count by walk position; days from calendar dates (UTC) and rounded days; no clamp; the runtime map aged by git; consumers kept; claims from every capability's span; marks from claim kinds alone; count line keyed on listed deliverables; a retyped paths-not-checked string; the walk without the helper's buffer; the newline kept on the first file name; a walk failure that refuses the page; a plain-path shallow clone; a side-branch runtime tip counted with rev-list
+DECLARED (seat) p3 counts days between UTC calendar dates and p4 rounds; the +14:00 and -12:00 case should catch at least one; p7 renders a Consumers line, since the model no longer carries consumers
+[1/5] seat-mutate: lane report-deliverables, shard 1/5, tip 4a78ad2faff680da36662ebd751966d680539571, merge-base 09e38e7de79a866615f941f753997771c9e667e0, 4 pairs, darwin, node v22.22.2, 2026-10-22T12:34:56.831Z
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 81 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane report-deliverables, shard 2/5, tip 4a78ad2faff680da36662ebd751966d680539571, merge-base 09e38e7de79a866615f941f753997771c9e667e0, 3 pairs, darwin, node v22.22.2, 2026-10-22T12:35:00.679Z
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 81 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane report-deliverables, shard 3/5, tip 4a78ad2faff680da36662ebd751966d680539571, merge-base 09e38e7de79a866615f941f753997771c9e667e0, 3 pairs, darwin, node v22.22.2, 2026-10-22T12:35:04.656Z
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 81 PASS, 0 FAIL, )
+[3/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane report-deliverables, shard 4/5, tip 4a78ad2faff680da36662ebd751966d680539571, merge-base 09e38e7de79a866615f941f753997771c9e667e0, 3 pairs, darwin, node v22.22.2, 2026-10-22T12:35:08.628Z
+[4/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 81 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane report-deliverables, shard 5/5, tip 4a78ad2faff680da36662ebd751966d680539571, merge-base 09e38e7de79a866615f941f753997771c9e667e0, 3 pairs, darwin, node v22.22.2, 2026-10-22T12:35:12.706Z
+[5/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 81 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 the walk without -c — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 commits counted by walk position — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 days between UTC calendar dates — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 days rounded, not floored — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p5 no clamp at 0 days — 2/2 named: /^R-2544: / | /^R-2545: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 the runtime map aged by git — 1/1 named: /^R-2545: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p7 consumers kept on the card — 1/1 named: /^R-2542: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 claims from every capability's span — 1/1 named: /^R-2542: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 marks from claim kinds alone (a bare land read as code-made) — 1/1 named: /^R-2542: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p10 the count line keyed on listed deliverables — 1/1 named: /^R-2543: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 a retyped paths-not-checked string — 1/1 named: /^R-2543: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 the walk without the helper's buffer — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED p13 the newline kept on the first file name — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED p14 a walk failure that refuses the page — 1/1 named: /^R-2544: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p15 a shallow clone read as full history — 2/2 named: /^R-2544: / | /^R-2545: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p16 a side-branch runtime tip counted with rev-list — 1/1 named: /^R-2545: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 16/16 red (16 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards

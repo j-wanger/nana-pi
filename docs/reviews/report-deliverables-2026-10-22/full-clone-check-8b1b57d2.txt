@@ -1,0 +1,13 @@
+Seat check, 2026-10-22: the report built on a fresh full clone of feat/report-deliverables at 8b1b57d2 (the must-meet's land step).
+For each artifact age, the seat compared the shown commit count and hash with `git log -1 --format=%H -- <path>` and `git rev-list --count <that>..HEAD` in the clone.
+
+report: deliverables: 14 of 39 made and read by code
+req:tree: deliverables: 14 of 39 made and read by code
+OK  R-291 docs/requirements-tree.md | last changed 1 commit and 0 days before HEAD by 9bc2a014: Merge branch 'main' into feat/report-deliverables
+R-1272 runtime-map: age unknown: no runtime data   (a fresh clone holds no runtime data; expected)
+OK  R-509 apps/bench/studies/tool-profiles-2026-09-08/schedule.json | last changed 2456 commits and 43 days before HEAD by efa8c3f4
+OK  R-507 apps/bench/studies/tool-profiles-2026-09-08/results.jsonl | last changed 2453 commits and 43 days before HEAD by 034be76f
+OK  R-535 apps/bench/studies/tool-profiles-2026-09-08/summary.md | last changed 2453 commits and 43 days before HEAD by 034be76f
+OK  R-536 apps/bench/studies/catch-ledger-2026-09-28/rows.jsonl | last changed 56 commits and 0 days before HEAD by fe331dcd
+OK  R-694 docs/reviews/writing-trial-2026-10-04/after.md | last changed 120 commits and 0 days before HEAD by 5f6e3845
+ages 7 bad 0

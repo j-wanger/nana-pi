@@ -6,9 +6,9 @@
  * @inputs argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
  *  and the pi args), the user-scope review ledger, the reviewed tree's git revision, and
  *  prompts/review-standard.md
- * @outputs the review text written to --out, a round recorded in the ledger, and the admission note,
- *  warnings and a SUCCESS, FAILED or unread-verdict line on stderr
- * @effects disk (writes --out plus the ledger's reservation, tally and audit files), process (the
+ * @outputs the review text written to --out and the kept-text store, a round recorded in the ledger,
+ *  and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
+ * @effects disk (writes --out plus the ledger's reservation, kept text, tally and audit files), process (the
  *  watchdog's `pi` child, the reservation heartbeat, the exit code)
  * @errors exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args, a missing,
  *  non-regular or blank review standard), when every attempt stalled or failed, when the round could not
@@ -211,7 +211,7 @@ try {
     process.stderr.write(`[pi-review] aborted by ${r.signal}; reservation released\n`);
   } else if (r.ok) {
     writeFileSync(w.outPath, r.text);
-    const c = complete(adm.res, w.outPath, { attempts: r.attempt }); // complete derives in the immutable checkout
+    const c = complete(adm.res, w.outPath, { attempts: r.attempt, text: r.text }); // complete derives in the immutable checkout
     if (!c.ok) throw new Error(`review written to ${w.outPath}, but ${c.message}`);
     if (c.unread) throw new Error(c.unread);
     process.stderr.write(`[pi-review] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath}; round ${c.round})\n`);

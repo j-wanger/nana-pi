@@ -29,6 +29,8 @@ export const REVIEW_TIMELINE_STATEMENTS = Object.freeze({
 	noFileRecorded: "no review file recorded",
 	fileGone: "review file gone",
 	verdictDisagrees: "the file's verdict disagrees with the ledger",
+	keptVerdictDisagrees: "the kept text's verdict disagrees with the ledger: the two verdict parsers drifted",
+	keptTextGone: "kept review text gone",
 	noMustReadable: "no MUST readable",
 });
 

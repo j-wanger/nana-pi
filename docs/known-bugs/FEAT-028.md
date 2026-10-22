@@ -53,3 +53,4 @@
 - Deliverable lines (deliverable-fields, final review): the README's `--root` clause still says "just its problems or a `0 problems` line"; it now also prints the count line and notes.
 - Deliverable lines (deliverable-fields, final review): the count trusts an automatic maker or a code reader whose path gets a "not tracked" note; the note shows.
 - Deliverable lines (deliverable-fields, final review): the movement report lists a whitespace-only change to a maker or reader line, while a whitespace-only row edit prints none.
+- Deliverable lines (report-deliverables, plan): a G row in `Deliverables:` can never carry maker or reader lines.
