@@ -31,7 +31,8 @@
 //
 // NOT public, and therefore still ours (say so rather than pretend):
 //   · a usage-SUMMING helper. pi has no exported "add these two Usage objects"; `addUsage` in
-//     lib/usage.mjs is a six-line field-wise sum over the public field names.
+//     packages/nana-pack/lib/pi-usage.mjs is a field-wise sum over the public field names and
+//     apps/bench/lib/usage.mjs re-exports it.
 //   · `calculateContextTokens` exists (utils/estimate.d.ts:12) but `utils/estimate.ts` is NOT in
 //     pi-ai's root export list, so it is off limits.
 //   · provider-wire → `Usage` mapping (OpenAI `input_tokens`/`cached_tokens` → pi's fields) lives

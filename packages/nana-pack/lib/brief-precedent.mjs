@@ -67,7 +67,7 @@ export function checkPrecedent(entries, trackedPaths) {
 		.map((entry) => entry.value);
 }
 
-const refusal = (reason) => ({ ok: false, reason, line: `pi-worker: lane refused: ${reason}`, knownBugPath: null });
+const refusal = (reason) => ({ ok: false, reason, line: `pi-worker: lane refused: ${reason}`, knownBugPath: null, feature: null });
 
 /** Check one brief against one worktree HEAD through the caller's git runner. */
 export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
@@ -110,5 +110,6 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 		ok: true,
 		line: `pi-worker: precedent: ${precedent.length} checked at HEAD ${head}; known bugs: ${knownBugRelative}`,
 		knownBugPath,
+		feature: parsedBrief.feature,
 	};
 }

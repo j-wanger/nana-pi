@@ -13,6 +13,8 @@
  *  and incompleteReason(), and an unpriceable run through costUnknownReason()
  */
 // Parse a pi `--mode json` event stream into deterministic per-run metrics.
+import { addUsage, costTotal, emptyUsage, totalTokens } from "../../../packages/nana-pack/lib/pi-usage.mjs";
+export { addUsage, costTotal, emptyUsage, totalTokens } from "../../../packages/nana-pack/lib/pi-usage.mjs";
 //
 // TOKENS AND COST ARE PI'S ARITHMETIC, NOT OURS. Verified against pi 0.84.4 (2026-09-09):
 //   · Every usage object in the stream is a pi-ai `Usage` — {input, output, cacheRead, cacheWrite,
@@ -37,35 +39,8 @@
 //   · Retries: `auto_retry_start`/`auto_retry_end`; compaction: `compaction_start`/`_end`;
 //     extension faults: `extension_error` (all docs/rpc.md, docs/json.md).
 
-const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+const num = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
 const ZERO_COST = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 });
-/** An empty pi-ai `Usage`. Same field names as pi's public type, deliberately. */
-export const emptyUsage = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cacheWrite1h: 0, reasoning: 0, totalTokens: 0, cost: ZERO_COST() });
-
-/**
- * Field-wise sum of pi-ai `Usage` objects. OURS, because pi exports no summing helper — the one
- * piece of usage arithmetic that is not borrowed. `totalTokens` and `cost` are pi's own numbers;
- * we only add them up.
- */
-export function addUsage(acc, usage) {
-	if (!usage || typeof usage !== "object") return false;
-	acc.input += num(usage.input);
-	acc.output += num(usage.output);
-	acc.cacheRead += num(usage.cacheRead);
-	acc.cacheWrite += num(usage.cacheWrite);
-	// Optional public fields (docs: `Usage.cacheWrite1h` is the 1h-retention subset of cacheWrite;
-	// `reasoning` is a subset of output). Carried so nothing pi reports is dropped on the floor.
-	acc.cacheWrite1h = num(acc.cacheWrite1h) + num(usage.cacheWrite1h);
-	acc.reasoning = num(acc.reasoning) + num(usage.reasoning);
-	acc.totalTokens += num(usage.totalTokens);
-	for (const k of ["input", "output", "cacheRead", "cacheWrite", "total"]) acc.cost[k] += num(usage.cost?.[k]);
-	return true;
-}
-
-/** pi's own `totalTokens`, summed. Never recomputed from the buckets. */
-export const totalTokens = (u) => num(u?.totalTokens);
-/** pi's own cost total, summed. `null` when nothing priced it, never a guessed 0. */
-export const costTotal = (u) => num(u?.cost?.total);
 
 /**
  * THE one cost helper. Both the runner and the aggregator call this, so they cannot disagree about
