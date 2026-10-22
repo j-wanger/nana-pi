@@ -1,0 +1,71 @@
+tree movement 08c33d9..196c25b: 45 rows in 25 features
+FEAT-001 · Keep goals and priorities in view
+  R-001 Made by/Read by lines changed
+FEAT-002 · Resume decisions and next actions
+  R-108 Made by/Read by lines changed
+  R-873 Made by/Read by lines changed
+FEAT-003 · Index and connect existing knowledge sources
+  R-201 Made by/Read by lines changed
+FEAT-004 · Retrieve relevant context with provenance
+  R-217 Made by/Read by lines changed
+FEAT-005 · Communicate decisions clearly
+  R-749 Made by/Read by lines changed
+FEAT-006 · Launch builders with execution limits
+  R-1400 Made by/Read by lines changed
+FEAT-007 · Review a specific revision independently
+  R-1008 Made by/Read by lines changed; also applies: FEAT-008
+  R-1560 Made by/Read by lines changed
+FEAT-008 · Integrate and clean up reviewed changes
+  R-977 Made by/Read by lines changed
+FEAT-013 · Install and connect harness runtimes
+  R-301 Made by/Read by lines changed
+FEAT-014 · Create or adopt a project workspace
+  R-327 Made by/Read by lines changed
+  R-1150 Made by/Read by lines changed
+FEAT-015 · Diagnose the active environment
+  R-341 Made by/Read by lines changed
+  R-1070 Made by/Read by lines changed
+FEAT-019 · Release usable templates and report support
+  R-596 Made by/Read by lines changed
+FEAT-020 · Find and read previous sessions
+  R-406 Made by/Read by lines changed
+FEAT-023 · Inspect changes and receive useful notices
+  R-159 Made by/Read by lines changed
+  R-422 Made by/Read by lines changed
+  R-1194 Made by/Read by lines changed
+FEAT-024 · Edit session and project settings safely
+  R-457 Made by/Read by lines changed
+FEAT-025 · Use consistent structured tool output
+  R-260 Made by/Read by lines changed
+FEAT-026 · Verify output provenance across session history
+  R-256 Made by/Read by lines changed; also applies: FEAT-025
+  R-257 Made by/Read by lines changed
+  R-264 Made by/Read by lines changed
+  R-437 Made by/Read by lines changed
+FEAT-028 · Maintain requirement identity and trace links
+  R-291 Made by/Read by lines changed
+  R-1460 Made by/Read by lines changed
+  R-2535 new (implemented)
+  R-2536 new (implemented)
+  R-2537 new (implemented)
+  R-2538 new (implemented)
+  R-2539 new (implemented)
+  R-2540 new (implemented)
+  R-2541 new (implemented)
+FEAT-029 · Navigate code and investigate impact
+  R-1272 Made by/Read by lines changed
+FEAT-031 · Run checks reliably and without contaminating work
+  R-616 Made by/Read by lines changed
+  R-1239 Made by/Read by lines changed
+FEAT-039 · See the product and its decisions in one report
+  R-1014 Made by/Read by lines changed
+FEAT-034 · Define reproducible comparisons
+  R-509 Made by/Read by lines changed
+  R-532 Made by/Read by lines changed
+FEAT-035 · Account for cost and uncertainty
+  R-535 Made by/Read by lines changed
+FEAT-037 · Grade behavior with trustworthy checks
+  R-507 Made by/Read by lines changed
+FEAT-038 · Interpret workflow experiments and their limits
+  R-536 Made by/Read by lines changed
+  R-694 Made by/Read by lines changed

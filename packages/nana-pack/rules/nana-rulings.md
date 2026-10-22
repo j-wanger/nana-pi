@@ -25,3 +25,4 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-21: A capability is a product stage with deliverables, or a constraint that names the stages it binds. Every capability field stays optional, and existing trees gain the fields in place.
 - 2026-10-21: The owner adopted the writing rule. Every report runs the check before it is sent, and HANDOFF's live sections must pass it.
 - 2026-10-21: Known bugs live one line each in their feature's file, not in HANDOFF.
+- 2026-10-22: A produced artifact is a feature to maintain. Each deliverable names the run that makes it and the code that reads it. Closing a hand-made maker or a rule-only reader comes first.

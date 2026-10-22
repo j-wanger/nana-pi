@@ -126,6 +126,8 @@ Once the ledger has a tree (capability → feature → subgroup headings), add e
 
 A product capability is a product stage or step with tangible deliverables; a constraint capability is a cross-cutting property. Every capability field is optional. In a capability's own span, outside code fences and in any order, `Kind:` is exactly `product` or `constraint`; `Deliverables:` is a comma-separated list of R or G row IDs; `Needs:` and `Binds:` are comma-separated lists of capability IDs; and `Retired:` is a comma-separated list of live successor capability IDs. Lists contain single IDs, not ranges, wildcards or duplicates. Without `Kind:`, the checker treats `Deliverables:`, `Needs:` and `Binds:` as prose. The consumers of a deliverable are derived from the features whose `Also applies:` lines name its row.
 
+A live product capability may repeat `Made by:` and `Read by:` lines in its own span. Write automatic makers as `Made by: <row> · <run>: <tracked code path>[, <path>…][ · <artifact>]`, where the run is `session start`, `suite`, `land`, `review`, `build`, `CI`, `hook` or `extension`; write hand-made artifacts as `Made by: <row> · manual: <reason>`. Write machine readers as `Read by: <row> · code: <path>[, <path>…]` or `Read by: <row> · prompt: <path>`, and other readers as `Read by: <row> · person: <reason>` or `Read by: <row> · rule: <reason>`. Code paths and ledger-relative artifact paths must be tracked at HEAD, while `runtime-map` is also an artifact name; the tree checker prints report-only notes for missing, unreadable or untracked claims.
+
 The product report's stage view orders capability kinds, shows product deliverables and constraint coverage with gaps, and puts retired capabilities last.
 
 The capability rules carry five amendments:

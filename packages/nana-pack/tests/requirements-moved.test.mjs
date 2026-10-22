@@ -230,5 +230,32 @@ const capabilityClaims = [
 // req: R-2447
 check("R-2447: a capability move or capability field change prints a capability section, and none leaves the output unchanged", capabilityOutput.includes("0 rows in 0 features, 8 capability change(s)") && capabilityOutput.includes("\ncapabilities:\n") && capabilityClaims.every((claim) => capabilityOutput.includes(`  ${claim}`)) && !capabilityOutput.includes("tree movement: none") && reorderOutput === "tree movement: none" && whitespaceOutput === "tree movement: none" && rowOnlyOutput === expectedRowOnly, `capability:\n${capabilityOutput}\nreorder:\n${reorderOutput}\nwhitespace:\n${whitespaceOutput}\nrow-only:\n${rowOnlyOutput}`);
 
+const deliverableBase = `# CAP-01 · Product
+Purpose: product
+Kind: product
+Deliverables: R-001
+Made by: R-001 · manual: release owner
+Read by: R-001 · rule: required by the review checklist
+
+## FEAT-001 · Alpha
+Purpose: alpha
+Status: active
+
+${TABLE}| R-001 | Row one. | untested | — |
+`;
+const deliverableHead = deliverableBase
+  .replace("Made by: R-001 · manual: release owner", "Made by: R-001 · suite: scripts/make.mjs")
+  .replace("Read by: R-001 · rule: required by the review checklist", "Read by: R-001 · code: scripts/read.mjs");
+const deliverableOutput = treeMovement({ baseText: deliverableBase, headText: deliverableHead, baseRevLabel: "base", headRevLabel: "head" });
+const deliverableLines = deliverableOutput.split("\n").filter((line) => /^  R-001 /.test(line));
+const changedIn = (baseText, headText) => treeMovement({ baseText, headText, baseRevLabel: "base", headRevLabel: "head" }).includes("Made by/Read by lines changed");
+const crlfBase = deliverableBase.replaceAll("\n", "\r\n");
+const crlfHead = deliverableHead.replaceAll("\n", "\r\n");
+const noFinalBase = deliverableBase.replace(/\n$/, "");
+const noFinalHead = deliverableHead.replace(/\n$/, "");
+const trailingHead = deliverableBase.replace("Read by: R-001 · rule: required by the review checklist", "Read by: R-001 · rule: required by the review checklist \t");
+// req: R-2540
+check("the movement report lists a row whose Made by or Read by lines changed", deliverableOutput.startsWith("tree movement base..head: 1 rows in 1 features\nFEAT-001 · Alpha\n") && deliverableLines.length === 1 && deliverableLines[0].includes("Made by/Read by lines changed") && changedIn(crlfBase, crlfHead) && changedIn(noFinalBase, noFinalHead) && changedIn(deliverableBase, trailingHead) && treeMovement({ baseText: deliverableBase, headText: deliverableBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", deliverableOutput);
+
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all checks passed");

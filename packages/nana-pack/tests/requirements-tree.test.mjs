@@ -7,7 +7,7 @@
  * @errors A failed check prints its reason and exits non-zero.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -395,6 +395,57 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   check('R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger',
     r.status === 1 && named(1, "CAP") && named(4, "FEAT") && named(8, "SUB") && named(16, "CAP") && named(18, "SUB") && !nrLines.some((l) => l.includes("no requirements tree yet")) && !nrLines.some((l) => l.includes("not in a feature or subgroup table")),
     nrLines.join(" | "));
+}
+
+{
+  const modesRoot = tmpDir(join(tmpdir(), "req-tree-deliverable-modes-"));
+  const scriptsDir = join(modesRoot, "scripts");
+  const docsDir = join(modesRoot, "docs");
+  const traceTemplateDir = join(modesRoot, "templates", "typescript", "template", "tests");
+  mkdirSync(scriptsDir, { recursive: true });
+  mkdirSync(docsDir, { recursive: true });
+  mkdirSync(traceTemplateDir, { recursive: true });
+  for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "deliverables.mjs"])
+    copyFileSync(fileURLToPath(new URL(`../../../scripts/${name}`, import.meta.url)), join(scriptsDir, name));
+  copyFileSync(fileURLToPath(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url)), join(traceTemplateDir, "requirements-trace.ts"));
+  const copiedCli = join(scriptsDir, "requirements-tree.mjs");
+  const deliverableTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\nDeliverables: R-001\nMade by: R-001 · manual\nRead by: R-001 · person:\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
+  const withoutLines = deliverableTree.replace(/^Made by:.*\n|^Read by:.*\n/gm, "");
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree);
+  const rootMode = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const writeMode = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const writtenOutline = existsSync(join(docsDir, "requirements-tree.md")) ? readFileSync(join(docsDir, "requirements-tree.md"), "utf8") : "";
+  const checkMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const expectedOutline = renderOutline(parseLedger(withoutLines));
+  const goodOutput = (result) => {
+    const outputLines = lines(result.stdout);
+    return result.status === 0 && outputLines[0] === "requirements tree: 0 problems; rows 1; features 1" && outputLines[1] === "deliverables: 0 of 1 made and read by code" && outputLines.length === 4 && outputLines.slice(2).every((line) => line.startsWith("deliverable note:") && line.includes("R-001"));
+  };
+
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree.replace("Purpose: feature\n", ""));
+  const problemMode = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+
+  const noDeliverables = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), noDeliverables);
+  const noDeliverablesRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const noDeliverablesWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const noDeliverablesCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  // req: R-2538
+  check("the tree checker prints deliverable notes in every mode and keeps its exit status and outline",
+    goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && noDeliverablesRoot.status === 0 && noDeliverablesRoot.stdout === "requirements tree: 0 problems; rows 1; features 1\n" && noDeliverablesWrite.status === 0 && noDeliverablesWrite.stdout === "" && noDeliverablesCheck.status === 0 && noDeliverablesCheck.stdout === "",
+    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nno deliverables: ${noDeliverablesRoot.status}/${noDeliverablesWrite.status}/${noDeliverablesCheck.status}: ${noDeliverablesRoot.stdout} ${noDeliverablesWrite.stdout} ${noDeliverablesCheck.stdout} ${noDeliverablesCheck.stderr}`);
+
+  const countTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · code: scripts/read.mjs\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n";
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), countTree);
+  const countRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const countWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const countCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const countLine = "deliverables: 1 of 3 made and read by code";
+  const hasOneCount = (result) => result.status === 0 && lines(result.stdout).filter((line) => line === countLine).length === 1;
+  // req: R-2541
+  check("the tree checker counts the deliverables made and read by code in every mode",
+    hasOneCount(countRoot) && hasOneCount(countWrite) && hasOneCount(countCheck),
+    `root ${countRoot.status}: ${countRoot.stdout} ${countRoot.stderr}\nwrite ${countWrite.status}: ${countWrite.stdout} ${countWrite.stderr}\ncheck ${countCheck.status}: ${countCheck.stdout} ${countCheck.stderr}`);
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

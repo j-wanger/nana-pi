@@ -1,0 +1,18 @@
+Feature: FEAT-028 · Maintain requirement identity and trace links. Lane deliverable-fields, rows R-2535 to R-2541. Class: ordinary. Builder: pi-worker (larger lane). Build session 2 of 2: this repository's deliverables gain their lines, the presence test, and the count line every tree run prints.
+
+Work in ~/nana-pi-wt/deliverable-fields on feat/deliverable-fields (tip after this brief's commit). The plan of record is `docs/reviews/deliverable-fields-2026-10-22/must-meet.md`, including its amendment after build 1 (R-2541). Follow packages/nana-pack/prompts/builder-preamble.md. Never edit HANDOFF.md, docs/known-bugs/, docs/sessions/, packages/nana-pack/rules/ or docs/reviews/. No push. Another lane (runtime-map-live) builds in parallel and edits REQUIREMENTS.md in FEAT-029: keep your ledger edits to FEAT-028's rows and the capability spans' new lines.
+
+The seat checked build 1 at 10531a4c: the seat check prints `0 missing`; the four named test files pass. The seat then put its 102 drafted lines on a ledger copy and ran `node scripts/requirements-tree.mjs --root .`: exit 0, 0 problems, and no note, because every hand-made or rule-read line carries its reason. So 26 of the 38 deliverables made by hand or read only by a rule are silent on every run. R-2541 makes the gap show.
+
+1. Insert the lines from `docs/reviews/deliverable-fields-2026-10-22/deliverable-lines.tsv` (skip rows whose `verdict` is `removed`) into REQUIREMENTS.md, each in its capability's span directly after that capability's `Deliverables:` line, in the table's order. Keep each line's text exactly. Then `node scripts/requirements-tree.mjs --root .` must print 0 problems and 0 notes.
+2. R-2539 in `packages/nana-pack/tests/requirements-deliverables.test.mjs`, with its exact title and marker: presence only, as R-2460 does. Set R-2539 to `implemented` with its evidence.
+3. R-2541 in the tree checker (`scripts/requirements-tree.mjs` with `scripts/deliverables.mjs`): when the tree has deliverable lines and no problem, every mode (`--root`, `--write`, `--check`) prints one line counting the deliverables that have an automatic `Made by:` line and a `code` or `prompt` `Read by:` line, out of all listed deliverables, for example `deliverables: 12 of 38 made and read by code`. A tree with no deliverable lines keeps today's output byte for byte; a tree problem still gives exit 1 and no count. Its test in `requirements-tree.test.mjs` with the exact title and marker: a fixture with one deliverable of each kind (automatic and code-read; manual; rule-read) asserts `1 of 3` in all three modes. Add R-2541 to FEAT-028 with the amendment's text, status `implemented` and evidence.
+4. Run the changed test files, `npm run map`, `npm run map:check`, `npm run req:tree` (report its count line), `npm run readme:check`, `node scripts/requirements-trace.mjs`, then `npm run test:locked` before your last commit. Try these wrong versions, see each go red, then restore: count a manual maker as automatic; count a rule reader as code; print the count only under `--root`; drop one deliverable's lines (R-2539). Commit with explicit paths.
+
+Seat check: `node docs/reviews/deliverable-fields-2026-10-22/seat-titles.mjs all` must print `0 missing`.
+
+Done:
+- All 38 deliverables carry their lines and the tree checker prints 0 notes and the count line in every mode; R-2539 and R-2541 pass.
+- map:check, req:tree, readme:check, the trace and the full suite are green; the seat check prints `0 missing`; the work is committed.
+
+Report (at most 10 lines after the VERDICT line): the commit shas; the count line `req:tree` printed; the check results; the wrong versions tried; the full suite's summary line; map, readme, trace and seat-check status.
