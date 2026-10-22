@@ -24,7 +24,7 @@
 // Exit: 0 = a review was produced (written to --out) and its non-empty verdict recorded; 1 = refused,
 // all retries stalled, bad args, an empty recorded verdict, or the verdict could not be recorded.
 
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,9 +34,9 @@ import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
+import { readReviewStandard } from '../lib/review-standard.mjs';
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
-const REVIEW_STANDARD_URL = new URL('../prompts/review-standard.md', import.meta.url);
 const w = parseWatchdogArgv(process.argv);
 if (w.error) {
   process.stderr.write(w.error === 'usage' ? USAGE : `pi-review: ${w.error}\n`);
@@ -47,19 +47,12 @@ if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-review', w.retrie
 
 // R-1106 — read and validate the review standard before admission: no reservation, no checkout,
 // no pi child when it is missing, not a regular file, unreadable, or blank after trimming.
-const reviewStandardPath = fileURLToPath(REVIEW_STANDARD_URL);
-let reviewStandardText;
-try {
-  if (!statSync(REVIEW_STANDARD_URL).isFile()) throw new Error(`${reviewStandardPath} is not a regular file`);
-  reviewStandardText = readFileSync(REVIEW_STANDARD_URL, 'utf8');
-} catch (e) {
-  process.stderr.write(`pi-review: review standard refused: ${e.code === 'ENOENT' ? `${reviewStandardPath} is missing` : e.message}\n`);
+const reviewStandard = readReviewStandard();
+if (reviewStandard.problem) {
+  process.stderr.write(`pi-review: review standard refused: ${reviewStandard.problem}\n`);
   process.exit(1);
 }
-if (!reviewStandardText.trim()) {
-  process.stderr.write(`pi-review: review standard refused: ${reviewStandardPath} is blank\n`);
-  process.exit(1);
-}
+const reviewStandardText = reviewStandard.text;
 
 // Round cap — only the argv BEFORE `--` is consulted, so a pi arg can never satisfy or spoof
 // --item/--over-cap.
