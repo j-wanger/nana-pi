@@ -14,14 +14,13 @@
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 3. **Queue (the owner, 2026-10-22: the artifact gap comes first; two lanes building plus one in planning):**
    - Next to build, in order:
-     - CI runs four test files at a time.
      - The audit's next gaps: each closes a hand-made maker or a rule-only reader.
      - The builder launch in the install check.
      - The linked Claude folder's repair advice.
      - A settings file with a byte-order mark.
      - The audit's seat calls.
    - Seat work: regenerate and republish the product report in a reviewed change.
-4. **Windows first-try failures.** The win-leg-flakes lane fixed the four seen on 2026-10-20 and 2026-10-21. Count first-try Windows failures over the next 20 CI runs; before the fix, about 4 of 20 needed a re-run.
+4. **Windows first-try failures.** The count restarts now that CI runs four test files at a time. Count first-try Windows failures over the next 20 CI runs. Before the 2026-10-21 fix, about 4 of 20 needed a re-run.
 5. **Karpathy's other formats.** The review-timeline diagram is unblocked; nobody has started it.
 6. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
@@ -72,6 +71,7 @@
 - 2026-10-22: a fresh TypeScript project passes its own lint again. Biome 2.6 began formatting Markdown and YAML on 2026-10-21, and the template took any 2.x release. So a fresh scaffold failed its own lint, and main's suite went red on every platform. The template now pins Biome 2.5.15 exactly, and the adopt skill adds it at that version. The render test lints with the pinned version, not the newest one. All 4 of the seat's wrong versions of the code turn a check red.
 - 2026-10-22: every full locked suite run now keeps a record in its clone, and the same run compares against earlier ones. Lands, hand measures and plain locked runs store records; filtered and stopped runs store none. Two lines close each run. The first names the nearest clean record on main's line, a land first, and lists files that grew much slower. The second restates the final pass and fail counts and every failed file, then this lane's full runs and minutes. Each failing file gets one class: passed in another clean run at this tip, failed only under coverage, failed before too, or new. A record problem never changes the suite's exit code. Code now makes and reads 14 of the 39 deliverables. CI reads 0 failing on macOS, Linux and Windows. All 14 of the seat's wrong versions of the code turn a check red.
 - 2026-10-22: the product report now shows what makes and reads each deliverable. Each one lists its own maker and reader lines as the ledger writes them. A deliverable that no code makes, or no code reads, carries a mark saying so. The Product view opens with the tree checker's own count line and notes, from one shared function. Where a maker names an artifact, the item shows its age. The runtime map shows its own tip, time and uncommitted files. Any other file shows the commits and days since its last change, with that commit's hash and subject. Six maker lines now name their artifact, so seven of the 39 deliverables show an age. Feature lists left the Product view; the Features view keeps them. CI reads 0 failing on macOS, Linux and Windows. All 16 of the seat's wrong versions of the code turn a check red.
+- 2026-10-22: CI now runs four test files at a time on every leg. Each CI wait drops from about 33 minutes to 15 to 21, set by the Windows leg. The per-file time limit in CI rose from 5 to 15 minutes, because one Windows file already took 299 seconds alone. Both values sit once in the workflow, each with its reason. Each suite leg now downloads copier once before its tests, so four template files no longer race that first download. Two load-sensitive test files joined the run-alone list, so this Mac's locked full suite grew from about 350 to 456 seconds. The Windows leg still prints full output. The Windows suite leg passed 3 of 3 runs at the lane's code tip. All 14 of the seat's wrong versions of the CI file turn a check red.
 
 ## Known bugs
 
