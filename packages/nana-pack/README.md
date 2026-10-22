@@ -26,6 +26,8 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
+The Product view lists each deliverable's written maker and reader claims, marks whether code makes and reads it, and shows a named artifact's git age or why no age is available. The `runtime-map` artifact shows its recorded tip, UTC measurement time, uncommitted-file count, and commits and whole days to HEAD instead of the maker file's git age.
+
 Nine extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |

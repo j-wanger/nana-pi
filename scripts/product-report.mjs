@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * @module scripts/product-report.mjs
- * @purpose Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
- * @outputs A complete product ledger HTML file with ordered stage, deliverable and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
+ * @inputs REQUIREMENTS.md, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and runtime-map data.
+ * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, marks and artifact ages, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
- * @errors Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
+ * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -13,11 +13,14 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { deliverableClaims, deliverableCodeState, deliverableReport, RUNTIME_MAP_ARTIFACT } from "./deliverables.mjs";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
 import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
+import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEMPLATE = path.join(path.dirname(fileURLToPath(import.meta.url)), "product-report/template.html");
@@ -31,6 +34,23 @@ const validDate = (value) => {
 const STORE_STATUSES = new Set(["implemented", "untested", "violated", "planned", "retired"]);
 const FEATURE_STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const RAIL_ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
+// Contract (R-2542): exact Product-view deliverable marks and unnamed-artifact note.
+export const NOT_MADE_BY_CODE = "not made by code";
+export const NOT_READ_BY_CODE = "not read by code";
+export const NO_ARTIFACT_NAMED = "no artifact named";
+// Contract (R-2544, R-2545): exact Product-view age labels and reasons.
+export const LAST_CHANGED_PREFIX = "last changed";
+export const MEASURED_AT_TIP_PREFIX = "measured at tip";
+export const AGE_UNKNOWN_PREFIX = "age unknown: ";
+export const NOT_TRACKED_AT_HEAD = "not tracked at HEAD";
+export const SHALLOW_CLONE_REASON = "shallow clone";
+export const GIT_HISTORY_FAILURE_REASON = "git could not read the history";
+export const RUNTIME_NO_TIP_OR_TIME = "the runtime data records no tip or time";
+export const RUNTIME_TIME_INVALID = "the runtime data's time does not parse";
+export const TIP_NOT_IN_HISTORY_SUFFIX = " is not in HEAD's history";
+// Unit: elapsed epoch seconds in one whole day.
+export const SECONDS_PER_DAY = 24 * 60 * 60;
+export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
 // contract (R-1511): the three origin-remote spellings a GitHub link is read from, each with an
@@ -123,10 +143,125 @@ function githubHref(repo, commit, file) {
   return `${GITHUB_BLOB_PREFIX}${repo.owner}/${repo.repo}/blob/${commit}/${segments.map(encodeURIComponent).join("/")}`;
 }
 
+function gitResult(gitRunner, root, args, options = {}) {
+  return gitRunner(args, {
+    ...options,
+    cwd: root,
+    encoding: options.encoding ?? "utf8",
+    env: { ...process.env, ...(options.env ?? {}), GIT_OPTIONAL_LOCKS: "0" },
+    maxBuffer: MAX_GIT_BUFFER,
+  });
+}
+
 function git(gitRunner, root, args) {
-  const result = gitRunner(args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } });
+  const result = gitResult(gitRunner, root, args);
   if (result?.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result?.stderr?.trim() || "unknown git error"}`);
-  return result.stdout.trim();
+  return String(result.stdout ?? "").trim();
+}
+
+const plural = (amount, singular) => `${amount} ${singular}${amount === 1 ? "" : "s"}`;
+const unknownAge = (reason) => `${AGE_UNKNOWN_PREFIX}${reason}`;
+const wholeDays = (laterEpoch, earlierEpoch) => Math.max(0, Math.floor((laterEpoch - earlierEpoch) / SECONDS_PER_DAY));
+
+function parseHistory(text) {
+  const tokens = String(text ?? "").split("\0");
+  const records = [];
+  for (let index = 0; index < tokens.length;) {
+    if (tokens[index] !== "NANA_AGE_RECORD") { index++; continue; }
+    const hash = tokens[index + 1] ?? "";
+    const parents = (tokens[index + 2] ?? "").split(" ").filter(Boolean);
+    const epoch = Number(tokens[index + 3]);
+    const subject = tokens[index + 4] ?? "";
+    index += 5;
+    const files = [];
+    let first = true;
+    while (index < tokens.length && tokens[index] !== "NANA_AGE_RECORD") {
+      let file = tokens[index++];
+      if (!file) continue;
+      if (first) file = file.replace(/^\n/, "");
+      first = false;
+      if (file) files.push(file);
+    }
+    records.push({ hash, parents, epoch, subject, files });
+  }
+  return records;
+}
+
+function formatArtifactAge(record, commits, headEpoch) {
+  return `${LAST_CHANGED_PREFIX} ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, record.epoch), "day")} before HEAD by ${record.hash.slice(0, TIP_DIGITS)}: ${record.subject}`;
+}
+
+function formatRuntimeAge(data, commits, headEpoch, measured) {
+  const dirty = Number.isInteger(data.dirty) && data.dirty > 0 ? ` with ${plural(data.dirty, "uncommitted file")}` : "";
+  return `${MEASURED_AT_TIP_PREFIX} ${data.tip.slice(0, TIP_DIGITS)} on ${measured.toISOString()}${dirty}, ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, measured.getTime() / 1000), "day")} before HEAD`;
+}
+
+function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason }) {
+  const ages = new Map();
+  if (!artifacts.length) return ages;
+  const run = (args, options) => gitResult(gitRunner, root, args, options);
+  const historyUnknown = () => { for (const artifact of artifacts) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON)); };
+  let shallowResult;
+  try { shallowResult = run(["rev-parse", "--is-shallow-repository"]); } catch { shallowResult = null; }
+  if (!shallowResult || shallowResult.status !== 0) { historyUnknown(); return ages; }
+  const shallow = String(shallowResult.stdout ?? "").trim() === "true";
+  let headResult;
+  try { headResult = run(["show", "-s", "--no-show-signature", "--format=%ct", "HEAD"]); } catch { headResult = null; }
+  const headEpoch = Number(String(headResult?.stdout ?? "").trim());
+  if (!headResult || headResult.status !== 0 || !Number.isFinite(headEpoch)) { historyUnknown(); return ages; }
+
+  const regular = artifacts.filter((artifact) => artifact !== RUNTIME_MAP_ARTIFACT);
+  if (regular.length) {
+    if (trackedPaths === null) {
+      for (const artifact of regular) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
+    } else if (shallow) {
+      for (const artifact of regular) ages.set(artifact, unknownAge(SHALLOW_CLONE_REASON));
+    } else {
+      let walk;
+      try {
+        walk = run(["log", ...ARTIFACT_WALK_FLAGS, "--format=NANA_AGE_RECORD%x00%H%x00%P%x00%ct%x00%s%x00", "--"]);
+      } catch { walk = null; }
+      if (!walk || walk.status !== 0 || walk.error) {
+        for (const artifact of regular) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
+      } else {
+        const records = parseHistory(walk.stdout);
+        const tracked = new Set(trackedPaths);
+        for (const artifact of regular) {
+          const folder = artifact.endsWith("/") ? artifact.slice(0, -1) : artifact;
+          const isTracked = tracked.has(folder) || [...tracked].some((file) => file.startsWith(`${folder}/`));
+          if (!isTracked) { ages.set(artifact, unknownAge(NOT_TRACKED_AT_HEAD)); continue; }
+          const record = records.find((entry) => entry.files.some((file) => file === folder || file.startsWith(`${folder}/`)));
+          if (!record || !Number.isFinite(record.epoch)) { ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON)); continue; }
+          let count;
+          try { count = run(["rev-list", "--count", `${record.hash}..HEAD`]); } catch { count = null; }
+          const commits = Number(String(count?.stdout ?? "").trim());
+          ages.set(artifact, count?.status === 0 && Number.isInteger(commits) ? formatArtifactAge(record, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+        }
+      }
+    }
+  }
+
+  if (artifacts.includes(RUNTIME_MAP_ARTIFACT)) {
+    if (!runtimeData) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(runtimeReason));
+    else if (typeof runtimeData.tip !== "string" || !runtimeData.tip || typeof runtimeData.measuredAt !== "string" || !runtimeData.measuredAt) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(RUNTIME_NO_TIP_OR_TIME));
+    else {
+      const measured = new Date(runtimeData.measuredAt);
+      if (!Number.isFinite(measured.getTime())) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(RUNTIME_TIME_INVALID));
+      else if (shallow) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(SHALLOW_CLONE_REASON));
+      else {
+        let ancestor;
+        try { ancestor = run(["merge-base", "--is-ancestor", runtimeData.tip, "HEAD"]); } catch { ancestor = null; }
+        if (!ancestor || ancestor.status !== 0) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(`tip ${runtimeData.tip.slice(0, TIP_DIGITS)}${TIP_NOT_IN_HISTORY_SUFFIX}`));
+        else {
+          let count;
+          try { count = run(["rev-list", "--count", `${runtimeData.tip}..HEAD`]); } catch { count = null; }
+          const commits = Number(String(count?.stdout ?? "").trim());
+          ages.set(RUNTIME_MAP_ARTIFACT, count?.status === 0 && Number.isInteger(commits) ? formatRuntimeAge(runtimeData, commits, headEpoch, measured) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+        }
+      }
+    }
+  }
+  return ages;
 }
 
 function featureStamp(parsed, feature, commit) {
@@ -199,7 +334,9 @@ export function renderInto(document, model, { hash = "" } = {}) {
     if (questions.length) { const list = el("ul", undefined, root); cls(list, "open-questions"); for (const q of questions) { const li = el("li", undefined, list); text(li, q.number ? `${q.number}. ${q.text}` : q.text); } }
     else paragraph(root, "", NO_OPEN_QUESTIONS);
   }
-  if (view === "product") for (const cap of model.capabilities) {
+  if (view === "product") {
+    for (const line of model.deliverableLines ?? []) paragraph(root, "", line, "deliverable-report-line");
+    for (const cap of model.capabilities) {
     const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome);
     if (cap.kind) paragraph(card, "Kind", cap.kind);
     if (!cap.retired && cap.kind === "product") {
@@ -210,9 +347,12 @@ export function renderInto(document, model, { hash = "" } = {}) {
         const item = el("li", undefined, list); cls(item, `deliverable${deliverable.gap ? " gap" : ""}`);
         text(item, `${deliverable.id} · ${deliverable.status}${deliverable.gap ? " · gap" : ""} · Home: `);
         featureLink(item, deliverable.home.id, `${deliverable.home.id} · ${deliverable.home.label}`);
-        text(item, " · Consumers: ");
-        if (deliverable.consumers.length) deliverable.consumers.forEach((consumer, index) => { if (index) text(item, ", "); featureLink(item, consumer.id, `${consumer.id} · ${consumer.label}`); });
-        else text(item, "none");
+        if (deliverable.claims.length) {
+          const claims = el("ul", undefined, item); cls(claims, "deliverable-claims");
+          for (const claim of deliverable.claims) { const line = el("li", undefined, claims); text(line, `${claim.label}: ${claim.text}${claim.age ? ` · ${claim.age}` : ""}`); }
+        }
+        for (const mark of deliverable.marks) paragraph(item, "", mark, "deliverable-mark");
+        if (deliverable.artifactNote) paragraph(item, "", deliverable.artifactNote, "deliverable-artifact");
       }
     }
     if (!cap.retired && cap.kind === "constraint") {
@@ -222,6 +362,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
     }
     if (cap.retired) paragraph(card, "Retired", `replaced by ${cap.successors.map((item) => `${item.id} · ${item.label}`).join(", ")}`);
     for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } }
+    }
   }
   if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
@@ -361,6 +502,18 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   if (readProblem) throw new Error(readProblem);
   const { parsed, problems } = checkTree(ledgerText);
   if (problems.length) throw new Error(`requirements tree checker problems:\n${problems.join("\n")}`);
+  const reportGitRunner = (args, options = {}) => gitResult(gitRunner, root, args, options);
+  const deliverableResult = deliverableReport(parsed, root, reportGitRunner);
+  const deliverableLines = deliverableResult.lines;
+  let ledgerPrefix = "";
+  try {
+    const prefix = reportGitRunner(["rev-parse", "--show-prefix"]);
+    if (prefix?.status === 0) ledgerPrefix = String(prefix.stdout ?? "").trim();
+  } catch { /* an unreadable prefix leaves age paths unknown rather than refusing the page */ }
+  const pathsCarryPrefix = ledgerPrefix && deliverableResult.trackedPaths?.some((file) => file.startsWith(ledgerPrefix));
+  const trackedPaths = deliverableResult.trackedPaths === null ? null : deliverableResult.trackedPaths
+    .filter((file) => !pathsCarryPrefix || file.startsWith(ledgerPrefix))
+    .map((file) => pathsCarryPrefix ? file.slice(ledgerPrefix.length) : file);
   const rows = readRequirementRows(parsed);
   const handoff = await readFile(path.join(root, "HANDOFF.md"), "utf8");
   const asks = splitOpenSection(handoff);
@@ -378,7 +531,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // runner that itself throws are all simply "no link", never a refusal.
   let githubRepo = null;
   try {
-    const originResult = gitRunner(["remote", "get-url", "origin"], { cwd: root, encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } });
+    const originResult = reportGitRunner(["remote", "get-url", "origin"]);
     if (originResult?.status === 0) {
       const match = GITHUB_REMOTE.exec(String(originResult.stdout ?? "").trim());
       if (match) githubRepo = { owner: match[1], repo: match[2] };
@@ -388,7 +541,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // R-1512/R-1514: dataPath calls its git hook with {cwd} only (no encoding), so the hook is
   // wrapped here to add it; a dataPath throw (no git-common-dir, e.g. not a git checkout at all)
   // counts as no runtime data, same as a missing, unreadable or wrong-schema file.
-  const runtimeRunner = (args, options) => gitRunner(args, { encoding: "utf8", ...options });
+  const runtimeRunner = (args, options = {}) => gitResult(gitRunner, options.cwd ?? root, args, options);
   let runtimeData = null;
   let runtimeReason = "no runtime data";
   try {
@@ -427,6 +580,9 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const assessments = new Map(storedFeatures.map((assessment) => [assessment.id, assessment]));
   const capabilityHeadings = parsed.headings.filter((heading) => heading.id.startsWith("CAP-"));
   const capabilityById = new Map(capabilityHeadings.map((capability) => [capability.id, capability]));
+  const claimsByCapability = new Map(capabilityHeadings.map((capability) => [capability, deliverableClaims(parsed, capability)]));
+  const artifacts = [...new Set([...claimsByCapability.values()].flatMap((claims) => [...claims.values()].flatMap((rowClaims) => rowClaims.map((claim) => claim.artifact).filter(Boolean))))];
+  const ages = artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason });
   const fieldValues = (capability, field) => (capability.capabilityFields?.[field] ?? []).flatMap(({ value }) => field === "Kind" ? [value] : value.split(/,\s*/));
   const featureHeadings = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-"));
   const featureCapability = (feature) => { for (let heading = feature.parent; heading; heading = heading.parent) if (heading.id.startsWith("CAP-")) return heading; return null; };
@@ -463,13 +619,17 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const kind = fieldValues(capability, "Kind")[0] ?? null;
     const retired = fieldValues(capability, "Retired").length > 0;
     const capabilityFeatures = featureHeadings.filter((feature) => featureCapability(feature) === capability);
+    const claimsByRow = claimsByCapability.get(capability);
     const deliverables = fieldValues(capability, "Deliverables").map((id) => {
       const row = rows.find((candidate) => candidate.id === id);
       let homeHeading = row?.heading ?? null;
       while (homeHeading && !homeHeading.id.startsWith("FEAT-")) homeHeading = homeHeading.parent;
       const homeFeature = features.find((feature) => feature.id === homeHeading?.id);
-      const consumers = featureHeadings.filter((feature) => feature.alsoApplies.includes(id)).map((feature) => features.find((item) => item.id === feature.id)).filter(Boolean);
-      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), consumers: consumers.map(featureLabel) };
+      const rowClaims = claimsByRow.get(id) ?? [];
+      const codeState = deliverableCodeState(rowClaims);
+      const marks = [...(!codeState.madeByCode ? [NOT_MADE_BY_CODE] : []), ...(!codeState.readByCode ? [NOT_READ_BY_CODE] : [])];
+      const artifactNote = rowClaims.some((claim) => claim.artifact) ? null : NO_ARTIFACT_NAMED;
+      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), claims: rowClaims.map(({ label, text, artifact }) => ({ label, text, age: artifact ? ages.get(artifact) ?? unknownAge(GIT_HISTORY_FAILURE_REASON) : null })), marks, artifactNote };
     });
     const constraintRows = rows.filter((row) => descendants(parsed, capability).includes(row.heading));
     const binds = fieldValues(capability, "Binds").map((id) => {
@@ -490,7 +650,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
   // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
   const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
-  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, deliverableLines, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 

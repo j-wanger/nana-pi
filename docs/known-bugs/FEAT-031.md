@@ -62,3 +62,16 @@
 - Windows flakes (win-leg-flakes final review): R-2483's meta-run stays green under the open linked Claude folder flake only if that flake is the checker exiting non-zero. If a 5-second hook kill causes it, the meta-run records no hook status and R-2483 fails on the Windows leg, which blocks release. On macOS and Linux the two meta-runs also triple stale-copies' exposure to its 5-second hook limit. Watch it in the 20-run count.
 - Config tests by hand (writing-adoption, final review): the config-normalize test can write into the checkout. Run directly with the agent folder variable set, its journal fixture appends to a file named x. The suite runner clears the variable, and main behaves the same.
 - Locked suite (runtime-map-live, independent check): `node scripts/test-locked.mjs` run outside npm fails, because it launches a command named "undefined".
+- Suite records (suite-records, plan): records stay in the clone that ran them. CI and other machines keep none.
+- Suite records (suite-records, plan): a plain `npm test`, a filtered run, and a one-file rerun after a time-limit failure keep no record.
+- Suite records (suite-records, plan): seconds are parallel seconds under load. A covered land baseline makes CPU-heavy files read up to about 27% fast in a builder's plain run.
+- Suite records (suite-records, plan): records hold no file hashes, so flaky means two clean runs at one tip, not two runs of the same file.
+- Suite records (suite-records, plan): a land refused after its suite leaves a record at a tip main never reaches. Only runs built on that tip use it.
+- Suite records (suite-records, plan): a baseline older than 300 runs reads as none.
+- Suite records (suite-records, plan): a commit made during a run is not seen. The record names the HEAD the run started at.
+- Suite records (suite-records, plan): a runner crash leaves no record.
+- Suite records (suite-records, plan): runs made before a lane's first commit count to no lane.
+- Suite records (suite-records, final review r1): the land's rerun loop reuses one record file and does not clear it between files. If a rerun child dies before writing, the previous run's record is read, so only the stored record's labels are wrong; the exit code stays nonzero.
+- Suite records (suite-records, final review r1): a prune error after the record is stored, such as EBUSY on Windows, replaces the two closing lines with one problem line. The exit code is unaffected.
+- Suite records (suite-records, final review r1): every stored run re-reads main's whole history with `rev-list --parents`. It is cheap at this repo's size but grows with history.
+- Suite records (suite-records, final review r2): R-2548's row now holds three clauses (no record for filtered or stopped runs, no knob for filtered runs, the rerun stop) under one test title. The test asserts each clause.
