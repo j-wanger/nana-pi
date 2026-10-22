@@ -1,0 +1,105 @@
+cap	row	line	basis	verdict	why
+CAP-01	R-001	Made by: R-001 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-objective.mjs	settings.mjs:221 SessionStart wiring; audit cap01-02 LIVE (242 of 242 sessions)	ok	-
+CAP-01	R-001	Made by: R-001 · extension: packages/nana-pack/extensions/nana-objective.ts, packages/nana-pack/lib/objective.ts	nana-objective.ts:83-86 before_agent_start section; 329 objective_pickup lines in 7 days	ok	-
+CAP-01	R-001	Read by: R-001 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs	hook stdout is SessionStart context; audit cap01-02	ok	-
+CAP-01	R-001	Read by: R-001 · prompt: packages/nana-pack/extensions/nana-objective.ts	nana-objective.ts:86 sets the system-prompt section	ok	-
+CAP-01	R-108	Made by: R-108 · extension: packages/nana-pack/extensions/nana-handoff.ts, packages/nana-pack/lib/adoption.mjs	nana-handoff.ts:454 session_compact writes; adoption.mjs:66 store path; off in worker and reviewer children, 0 writes in 7 days (audit STALE)	ok	-
+CAP-01	R-108	Read by: R-108 · prompt: packages/nana-pack/extensions/nana-handoff.ts	nana-handoff.ts:304,442 pickup on a fresh session; last pickup 2026-09-28 (audit)	ok	-
+CAP-01	R-108	Read by: R-108 · code: packages/nana-pack/lib/adoption.mjs	adoption.mjs:127 store presence marks a root adopted	ok	-
+CAP-01	R-873	Made by: R-873 · suite: packages/nana-pack/tests/frontier.test.mjs, packages/nana-pack/bin/nana-frontier.mjs	frontier.test.mjs:301 runs the CLI on this repo's HANDOFF each full run, asserts only 3 other kinds; the word-budget line is made and dropped	removed	frontier.test.mjs runs the CLI on HANDOFF only to assert no section-order, read-window or file-size finding (R-2473, R-2504); the word-budget line lands in a local variable and is printed only if one of those checks fails, so no run delivers it to a reader; the table applies the same test to R-749, whose suite check uses checkText and is counted manual; judgement, not a path error
+CAP-01	R-873	Made by: R-873 · manual: someone runs nana-frontier on HANDOFF.md by hand to see the word-budget finding	audit cap01-02 MANUAL; a run on main today: words=2984 budget=1200	ok	-
+CAP-01	R-873	Read by: R-873 · rule: AGENTS.md tells each session to read HANDOFF.md at startup; no hook or extension loads it	AGENTS.md Startup line; audit RULE-ONLY; attack M1	removed	wrong artifact: the startup rule reads HANDOFF.md itself, not the frontier report; no rule, prompt or skill names nana-frontier (AGENTS.md lists it only in Layout); the person line already covers the report
+CAP-01	R-873	Read by: R-873 · person: the word-budget finding reaches someone only when they run nana-frontier by hand	no rule names the frontier check (AGENTS.md tool list only); finding stood over a week (audit STALE)	ok	-
+CAP-01	R-201	Made by: R-201 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib/build.ts	hook.ts:59 spawns a rebuild when the index is missing or over STALE_MS; settings.mjs:216,233 UserPromptSubmit; audit LIVE	ok	-
+CAP-01	R-201	Made by: R-201 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts	the extension runs the same hook CLI on before_agent_start (seat sessions only)	ok	-
+CAP-01	R-201	Read by: R-201 · code: packages/nana-knowledge/lib/query.ts, packages/nana-knowledge/lib/hook.ts	hook.ts header: BM25 search over the index on each pull	ok	-
+CAP-01	R-217	Made by: R-217 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts	Claude Code UserPromptSubmit; 32 pulls in 7 days, all claude-code (audit LIVE)	ok	-
+CAP-01	R-217	Made by: R-217 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts	pi before_agent_start; disabled for worker and reviewer roles, 0 pi pulls in 7 days	ok	-
+CAP-01	R-217	Read by: R-217 · prompt: packages/nana-knowledge/bin/nana-knowledge.ts	hook stdout enters the seat's prompt context	ok	-
+CAP-01	R-217	Read by: R-217 · prompt: packages/nana-knowledge/extensions/nana-knowledge.ts	extension header: custom message carrying the block	ok	-
+CAP-01	R-749	Made by: R-749 · manual: the writing rule tells each report's writer to run nana-writing --report on its text before sending	nana-writing.md Check section; the suite uses checkText, not the CLI (writing-check.test.mjs:98-112); audit RULE-ONLY	ok	-
+CAP-01	R-749	Read by: R-749 · rule: the writing rule tells the writer to fix each finding or say why it stays; no code reads or keeps the summary line	audit cap01-02 DISCARDED; extractor counts calls, not summary lines (writing-trial-extractor.mjs:89)	ok	-
+CAP-02	R-1400	Made by: R-1400 · manual: the owner runs nana-roster set by hand to change this machine's roster	audit cap01-02 MANUAL; one real set on 2026-10-19	ok	-
+CAP-02	R-1400	Read by: R-1400 · code: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/bin/nana-roster.mjs	pi-worker.mjs:102 resolveRoster for builder and larger-builder slots	ok	-
+CAP-02	R-1400	Read by: R-1400 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs	hook header: additionalContext at SessionStart	fixed	D1a gives prompt one path (only code takes a list); the hook is the code that puts the notice in context, lib/roster-notice.mjs only composes the line
+CAP-02	R-1400	Read by: R-1400 · rule: the working pattern tells the seat to take the reviewer and land models from the roster; pi-review does not read those slots	audit cap01-02: pi-review takes its model from arguments only	ok	-
+CAP-02	R-1008	Made by: R-1008 · review: packages/nana-pack/bin/pi-review.mjs, packages/nana-pack/bin/review-ledger.mjs, packages/nana-pack/bin/review-round.mjs	pi-review.mjs:32 admit/complete; review-ledger run wraps other launchers; 406 rounds in 7 days (audit LIVE)	ok	-
+CAP-02	R-1008	Read by: R-1008 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/review-round.mjs, packages/nana-pack/bin/review-timeline.mjs	nana-land.mjs:87-90 needs a verified v2 LAND round; review-round round cap	ok	-
+CAP-02	R-1560	Made by: R-1560 · manual: someone runs review-timeline by hand; no brief, land step or hook calls it	grep: no caller outside its README; audit MANUAL	ok	-
+CAP-02	R-1560	Read by: R-1560 · person: the seat reads it when it runs the command	audit cap01-02 ORPHAN; about 10 runs in 7 days	ok	-
+CAP-02	R-977	Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs	nana-land.mjs:67-124 suite, recheck, ff-only merge; about 81 runs in 7 days (audit LIVE)	ok	-
+CAP-02	R-977	Read by: R-977 · person: the seat reads the success report and pushes main by hand, as the 2026-10-11 ruling says	nana-land.mjs:124 prints only the push and release lines	ok	-
+CAP-02	R-977	Read by: R-977 · code: .github/workflows/ci.yml	ci.yml:2-4 runs on each push of main, after the seat's manual push	ok	-
+CAP-04	R-301	Made by: R-301 · manual: the owner runs nana-setup install by hand; the symlinks carry edits to an existing hook or rule, but nothing links a new or renamed one	audit cap03-04 MANUAL; last real-home install 2026-10-20	fixed	reason was misleading: the installed copies are symlinks into the checkout, so a pulled edit to an existing file reaches the home with no install; only a new or renamed hook or rule (and settings wiring) needs the hand run
+CAP-04	R-301	Read by: R-301 · code: packages/nana-setup/claude/hooks/nana-adoption.mjs, packages/nana-setup/bin/stale-copies.mjs, packages/nana-setup/lib/stale-copies.mjs, packages/nana-setup/lib/hook-health.mjs	nana-adoption.mjs:18 runs the stale-copy check at each SessionStart; Claude Code itself loading the links has no tracked path	ok	-
+CAP-04	R-327	Made by: R-327 · manual: someone runs nana-setup project by hand once per project	audit cap03-04 MANUAL; 2 real runs in 7 days	ok	-
+CAP-04	R-327	Read by: R-327 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs	the seeded OBJECTIVE.md is the objective block's source	fixed	D1a gives prompt one path; split into one line per reader (Claude Code hook)
+CAP-04	R-327	Read by: R-327 · prompt: packages/nana-pack/extensions/nana-objective.ts	the seeded OBJECTIVE.md is the objective block's source	fixed	D1a gives prompt one path; split into one line per reader (pi extension)
+CAP-04	R-327	Read by: R-327 · code: packages/nana-pack/lib/adoption.mjs	adoption.mjs:115-130 HANDOFF.md and docs/sessions presence mark a root adopted	ok	-
+CAP-04	R-327	Read by: R-327 · rule: the working section tells each session to read HANDOFF.md at startup; no hook or extension loads it	templates/_shared/working-under-nana-pi.md startup line; audit RULE-ONLY	ok	-
+CAP-04	R-1150	Made by: R-1150 · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand	audit cap03-04 MANUAL; 0 copier runs in 7 days	ok	-
+CAP-04	R-1150	Read by: R-1150 · code: templates/python/template/tests/conftest.py, templates/typescript/template/tests/requirements-trace.ts	rendered project's suite reads its rows and statuses, not the tree shape	ok	-
+CAP-04	R-1150	Read by: R-1150 · rule: the requirements skill tells agents to run nana-pi's tree checker on the project by hand; no rendered project wires it in	SKILL.md:140; audit ORPHAN (3 projects have no tree, 1 fails)	ok	-
+CAP-04	R-341	Made by: R-341 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs, packages/nana-setup/lib/install-check.mjs	install-check.mjs:493 runs doctor on a scratch home in the CI install-check job (ci.yml:20-42), not the real home	ok	-
+CAP-04	R-341	Made by: R-341 · manual: the owner runs nana-setup doctor by hand on the real home; no run checks the real home	audit cap03-04 MANUAL; real home exits 1 today	ok	-
+CAP-04	R-341	Read by: R-341 · code: packages/nana-setup/lib/install-check.mjs	install-check.mjs:494-507 fails on an unexpected doctor row	ok	-
+CAP-04	R-341	Read by: R-341 · person: the owner reads the real home's rows when running doctor; the output is not kept	audit cap03-04 DISCARDED	ok	-
+CAP-04	R-1070	Made by: R-1070 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs	ci.yml:20-42 install-check job on macOS and Windows, every push and PR; audit LIVE	ok	-
+CAP-04	R-1070	Made by: R-1070 · manual: the seat runs the install check locally on macOS before a setup or hook lane's land, as AGENTS.md says	AGENTS.md Install check before a land; D5 rule line	ok	-
+CAP-04	R-1070	Read by: R-1070 · code: .github/workflows/ci.yml	ci.yml:82 release needs suite and install-check	ok	-
+CAP-04	R-1070	Read by: R-1070 · rule: AGENTS.md tells the seat to check the local run before nana-land, which reads no install-check result	D5 rule line; audit RULE-ONLY; no install-check reference in nana-land.mjs	ok	-
+CAP-04	R-596	Made by: R-596 · CI: .github/workflows/ci.yml, scripts/template-release.mjs	ci.yml:81-106 release job on main after green suite and install-check; audit LIVE	ok	-
+CAP-04	R-596	Read by: R-596 · code: packages/nana-pack/lib/release-status.mjs, packages/nana-pack/bin/nana-land.mjs, packages/nana-setup/lib/doctor.mjs	nana-land.mjs:122 and doctor.mjs:707 read local tags (behind origin, audit STALE)	ok	-
+CAP-04	R-596	Read by: R-596 · rule: the scaffold and adopt skills tell an agent to run copier copy or copier update, which render from the newest tag	scaffold-py SKILL.md:33 copier from the repo URL; adopted projects pin old tags (audit)	fixed	no update skill exists (skills: scaffold-py, scaffold-ts, adopt-py, adopt-ts, adopt-structure); copier update is a step inside the adopt skills
+CAP-05	R-406	Made by: R-406 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-05	R-406	Read by: R-406 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-05	R-422	Made by: R-422 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-05	R-422	Read by: R-422 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-05	R-159	Made by: R-159 · extension: packages/nana-pack/extensions/nana-lifecycle.ts, packages/nana-pack/lib/config.ts	nana-lifecycle.ts:41-65 session events; config.ts:644 appendJournal; about 1,585 lines in 7 days	ok	-
+CAP-05	R-159	Read by: R-159 · prompt: packages/nana-setup/claude/hooks/nana-adoption.mjs	nana-adoption.mjs reads the journal tail for directory_unadopted only	fixed	D1a gives prompt one path; the SessionStart hook puts the producer output in context (bin/nana-adoption.mjs reads the journal tail under it), same choice as R-001
+CAP-05	R-159	Read by: R-159 · person: no code reads any other event; a person opens the journal to see them	audit LIVE, ORPHAN: 268 config_project_ignored lines unread	ok	-
+CAP-05	R-1194	Made by: R-1194 · session start: packages/nana-setup/claude/hooks/nana-roster-notice.mjs, packages/nana-pack/lib/roster-notice.mjs	settings.mjs:224 SessionStart; audit LIVE (31 sessions in 7 days)	ok	-
+CAP-05	R-1194	Made by: R-1194 · extension: packages/nana-pack/extensions/nana-roster-notice.ts, packages/nana-pack/lib/roster-notice.mjs	pi session_start widget; 0 UI sessions in 7 days (audit)	ok	-
+CAP-05	R-1194	Read by: R-1194 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs	hook header: additionalContext	ok	-
+CAP-05	R-1194	Read by: R-1194 · person: Claude Code shows it as a user message at session start, and the pi TUI shows it as a widget	hook systemMessage; extension header: widget only	ok	-
+CAP-05	R-457	Made by: R-457 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-05	R-457	Read by: R-457 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-260	Made by: R-260 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-260	Read by: R-260 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-256	Made by: R-256 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-256	Read by: R-256 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-257	Made by: R-257 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-257	Read by: R-257 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-437	Made by: R-437 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-437	Read by: R-437 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-264	Made by: R-264 · manual: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-06	R-264	Read by: R-264 · person: desk frozen since 2026-10-10	D7; frozen, not researched	ok	-
+CAP-07	R-291	Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does	requirements-tree.mjs:607 writes only under --write; audit MANUAL	ok	-
+CAP-07	R-291	Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs	requirements-tree.test.mjs:36 equality gate on every suite run	ok	-
+CAP-07	R-291	Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes	REQUIREMENTS.md:30-33; about 281 content reads in 7 days (audit)	ok	-
+CAP-07	R-1460	Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says	AGENTS.md tree section; D5 rule line; audit MANUAL	ok	-
+CAP-07	R-1460	Read by: R-1460 · rule: AGENTS.md tells the seat to carry its output in the review brief and the land report; pi-review and nana-land neither run nor check it	grep: no caller in packages/nana-pack/bin; audit RULE-ONLY	ok	-
+CAP-07	R-1014	Made by: R-1014 · manual: someone runs npm run report and republishes the page by hand	audit MANUAL; out folder gitignored; 298 commits since last publish	ok	-
+CAP-07	R-1014	Read by: R-1014 · person: the owner reads the published page; no hook, check or session-start line reads the report or shows its age	audit cap07-08 STALE	ok	-
+CAP-07	R-1272	Made by: R-1272 · manual: run npm run map:measure by hand	runtime-measure.mjs only maker; runtime-map-live not landed; audit MANUAL, STALE	ok	-
+CAP-07	R-1272	Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section	code-map.mjs:31 --impact reads the data; audit 182 runs, 136 stale	ok	-
+CAP-07	R-1272	Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module	nana-standards.md code-map section; D5 rule line; audit RULE-ONLY	ok	-
+CAP-07	R-1272	Read by: R-1272 · code: scripts/product-report.mjs	product-report.mjs:19 reads the same runtime data file, by a manual run	ok	-
+CAP-07	R-616	Made by: R-616 · suite: scripts/test.mjs	every npm test and test:locked run, including each land's suite; audit LIVE	ok	-
+CAP-07	R-616	Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs	ci.yml:44-78 suite legs on macOS, Linux and Windows	ok	-
+CAP-07	R-616	Read by: R-616 · code: packages/nana-pack/bin/nana-land.mjs, .github/workflows/ci.yml	nana-land.mjs:103-105 and the CI job read the exit status only	ok	-
+CAP-07	R-616	Read by: R-616 · person: the per-file lines and totals reach only whoever reads the terminal; nothing keeps the seconds	audit DISCARDED: about 270 local and 600 CI runs kept no seconds	ok	-
+CAP-07	R-1239	Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says	nana-seat.md mutation line; pack README:439-453 seat-mutate.mjs; audit MANUAL	ok	-
+CAP-07	R-1239	Read by: R-1239 · person: the seat reads the record's result line after each run; no code reads the record, and no rule names it for the reviewer	audit RULE-ONLY; no reader in pi-review, review-round or nana-land	fixed	no rule text sends reviewers to the record: the review ladder names only the seat's wrong-code pairs, and the seat guide says to re-run the runner before the review; the reader is the seat that ran it
+CAP-08	R-509	Made by: R-509 · manual: someone starts a paid study with node apps/bench/run.mjs by hand	plan.mjs:90 writes schedule.json; last written 2026-09-09 (audit STALE)	ok	-
+CAP-08	R-509	Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs	plan.mjs:90-100 reuses it on resume; aggregate.mjs:230	ok	-
+CAP-08	R-532	Made by: R-532 · manual: someone starts a paid study with node apps/bench/run.mjs by hand	run.mjs:9 writes raw evidence per run; gitignored (apps/bench/.gitignore)	ok	-
+CAP-08	R-532	Read by: R-532 · person: a person opens a run's raw folder to audit it; no code reads it	audit ORPHAN; aggregate reads results, not raw (inferred by the audit)	ok	-
+CAP-08	R-507	Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand	run.mjs:9 appends results.jsonl; last 2026-09-09 (audit STALE)	ok	-
+CAP-08	R-507	Read by: R-507 · code: apps/bench/aggregate.mjs, apps/bench/lib/plan.mjs	aggregate.mjs:231; plan.mjs reads results on resume	ok	-
+CAP-08	R-535	Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand	aggregate.mjs:14-15; last 2026-09-09 (audit)	ok	-
+CAP-08	R-535	Read by: R-535 · person: the owner reads the summary and verdict files to decide; no code reads them	audit cap07-08 RULE-ONLY; decision rows R-540 and R-577 untested	ok	-
+CAP-08	R-536	Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand	last study 2026-09-28 (audit STALE)	ok	-
+CAP-08	R-536	Read by: R-536 · person: the study write-up was read once for its decision; no code or rule reads it now	audit ORPHAN; R-538 bars it from changing practice	ok	-
+CAP-08	R-694	Made by: R-694 · manual: someone runs the writing-trial extractor by hand	writing-trial-extractor.mjs CLI; audit MANUAL	ok	-
+CAP-08	R-694	Read by: R-694 · person: the owner read its output to decide on the writing rule; nothing reads it since	audit ORPHAN; rule adopted 2026-10-21	ok	-

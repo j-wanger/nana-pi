@@ -23,6 +23,7 @@ const SESSIONS = {
 		["packages/nana-pack/tests/requirements-tree.test.mjs", "the tree checker prints deliverable notes in every mode and keeps its exit status and outline", ["R-2538"]],
 		["packages/nana-pack/tests/requirements-moved.test.mjs", "the movement report lists a row whose Made by or Read by lines changed", ["R-2540"]],
 		["packages/nana-pack/tests/requirements-deliverables.test.mjs", "every deliverable in this repository's ledger has a Made by and a Read by line", ["R-2539"]],
+		["packages/nana-pack/tests/requirements-tree.test.mjs", "the tree checker counts the deliverables made and read by code in every mode", ["R-2541"]],
 	],
 };
 

@@ -36,6 +36,14 @@ Each deliverable on a product capability says, in its capability's span, what ma
 | R-2539 | Every deliverable of a live `Kind: product` capability in this repository's REQUIREMENTS.md shall carry at least one `Made by:` line and one `Read by:` line. | `packages/nana-pack/tests/requirements-deliverables.test.mjs::every deliverable in this repository's ledger has a Made by and a Read by line` |
 | R-2540 | WHEN a row's `Made by:` or `Read by:` lines differ between the base and the tip, the tree movement report shall list one changed-lines entry for that row. | `packages/nana-pack/tests/requirements-moved.test.mjs::the movement report lists a row whose Made by or Read by lines changed` |
 
+**Amendment after build 1 (the seat, 2026-10-22).** With the seat's 102 drafted lines on a ledger copy, the checker printed no note: every hand-made or rule-read line carries its reason, so 26 of the 38 deliverables made by hand or read only by a rule stay silent on every run. The owner's ruling puts closing those first, so the gap must show where every lane looks. Build 2 adds:
+
+| ID | Requirement (EARS) | Test file::title |
+|---|---|---|
+| R-2541 | WHEN the tree has deliverable lines and no problem, the tree checker shall print, in every mode, one line counting the deliverables made by an automatic run and read by code or a prompt, out of all listed deliverables. | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker counts the deliverables made and read by code in every mode` |
+
+The test uses a fixture with one deliverable of each kind (automatic and code-read; manual; rule-read) and asserts `1 of 3` in `--root`, `--write` and `--check`; a tree with no deliverable lines keeps today's output byte for byte. Lane B's rows move to R-2542 to R-2545.
+
 ### What each test does, and why it is red on main
 
 - **R-2535.** Cases: bare `manual`, `manual:` with spaces, `rule`, `person:`, `manual · docs/x.md` (an artifact, no reason); each also with a reason (no note). Asserts this note kind only, so a bare `land` carries R-2537's note. Red: `scripts/deliverables.mjs` is absent.
@@ -66,4 +74,4 @@ Each deliverable on a product capability says, in its capability's span, what ma
 
 - Two build sessions with the larger builder. (1) R-2535 to R-2538 and R-2540, the module, the CLI, the tests, one sentence each in the ledger's organization section, the requirements skill and `templates/_shared/requirements-organization.md`, and the README's tree paragraph. (2) R-2539 and nana-pi's 38 deliverables' lines from the seat's table in this folder (`deliverable-lines.tsv`, written from the audit, home paths as `~`).
 - Wrong-code pairs: accept a bare run or `prompt`; list paths from the index instead of HEAD; print notes only under `--root`; drop the reason test; read lines in feature spans; render the lines in the outline.
-- A draft PR runs the Windows leg. Reserve R-2535 to R-2540 for lane A and R-2541 to R-2544 for lane B.
+- A draft PR runs the Windows leg. Reserve R-2535 to R-2541 for lane A and R-2542 to R-2545 for lane B.
