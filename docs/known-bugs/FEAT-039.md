@@ -27,3 +27,13 @@
 - Product report stage view (ledger-stages, final review): a product capability with no deliverables line shows an empty deliverables list, not none or a gap.
 - Product report stage view (ledger-stages, final review): a deliverable's consumers include retired and proposed features that share it. Coverage counts only active and frozen ones, so an owner may read a retired consumer as live.
 - Product report stage view (ledger-stages, final review): the stage-order check renders a past ledger through git, so like the stamp check it needs full history.
+- Product view (report-deliverables, plan): 32 of 39 deliverables show "no artifact named": printed output, machine-local stores, another project's files, a release tag, main. Suite records carry their own time but name no artifact here. A release tag carries a date too.
+- Product view (report-deliverables, plan): per-lane records name no artifact, because a review folder would read as fresh after every lane.
+- Product view (report-deliverables, plan): git ignores the report page, so the report's own age does not show.
+- Product view (report-deliverables, plan): the last change can be a sweep, a merge, a rename or a revert. The subject shows which; the report does not guess the last real make.
+- Product view (report-deliverables, plan): a maker line names one study's files. A newer study in a new folder does not refresh it until someone edits the line.
+- Product view (report-deliverables, plan): the runtime map's age is this clone's data. Another worktree's land moves it, and a Windows land does not measure.
+- Product view (report-deliverables, plan): R-1012's condition does not name history depth, so `git fetch --unshallow` between two runs changes the page.
+- Product view (report-deliverables, plan): the report's existing date call takes a signature line under `log.showSignature`.
+- Product view (report-deliverables, plan): the artifact walk grows with history, about 160 to 220 ms at 2,514 commits on macOS. Every report build in the test file adds about three spawns.
+- Product view (report-deliverables, plan): subjects and claims with backticks or `**` render as code or bold.

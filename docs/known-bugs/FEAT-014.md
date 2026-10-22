@@ -40,3 +40,7 @@
 - Template Biome (biome-pin, plan): the render check runs only where pnpm resolves Biome, and runs `pnpm dlx`, not the scaffold's installed `pnpm lint`.
 - Template Biome (biome-pin, plan): an adopted project that already has Biome keeps its own range. The skill sentence is prose; no test proves an agent follows it.
 - Template Biome (biome-pin, plan): an existing project updated with `copier update` must run `pnpm install` once to move its lockfile to 2.5.15.
+- Template Biome (biome-pin, final review): R-2559's title says "a fresh TypeScript scaffold", but its assertion also covers the adopt render. The failure detail prints both values.
+- Template Biome (biome-pin, final review): if the adopt render fails, R-2559 fails too, repeating the render failure without hiding it.
+- Template Biome (biome-pin, final review): the seat pair script cuts each FAIL line at 140 characters, so b4's line in the output file ends mid-sentence.
+- Template Biome (biome-pin, final review): the TypeScript template's `^5.9.0` and `^22.0.0` ranges carry the same open-range risk as ruff, though they are less likely to break a lint gate.
