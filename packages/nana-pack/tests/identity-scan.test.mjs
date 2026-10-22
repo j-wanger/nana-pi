@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/identity-scan.test.mjs
- * @purpose Pin identity scanning across written forms, allowlist count drift, and the committed digest census.
+ * @purpose Pin identity scanning across written forms, allowlist count drift, sealed allowlist provenance, and the committed digest census.
  * @inputs temporary git trees, injected scan configs, the committed identity scan config, and scripts/identity-scan.mjs
  * @outputs named PASS/FAIL checks and a nonzero test exit when an assertion fails
  * @effects disk (OS temporary git fixtures only); process (runs git in those fixtures)
@@ -68,7 +68,7 @@ function gitTree(label, entries) {
 	const config = {
 		wordDigests: words.map(digest),
 		wordLengths: words.map((word) => word.length),
-		allowlist: [{ path: "record.txt", counts: [2, 1], reason: "record" }],
+		allowlist: [{ path: "record.txt", counts: [2, 1], reason: "byte-pinned" }],
 	};
 	const mutations = [
 		{ name: "one more", content: "quux quux quux vext", indices: [0] },
@@ -119,6 +119,58 @@ function gitTree(label, entries) {
 	check("the scan reads a tracked list over 1 MiB", result?.scannedFiles === paths.length,
 		JSON.stringify({ scannedFiles: result?.scannedFiles, expectedFiles: paths.length, error }));
 	fs.rmSync(root, { recursive: true, force: true });
+}
+
+{
+	const config = JSON.parse(fs.readFileSync(path.join(REPO, "identity-scan.config.json"), "utf8"));
+	const toolStudy = "apps/bench/studies/tool-profiles-2026-09-08";
+	const toolFixture = `${toolStudy}/fixture/`;
+	const fixtureManifestBytes = fs.readFileSync(path.join(REPO, toolStudy, "FIXTURE.sha256"));
+	const fixtureManifest = new Map(fixtureManifestBytes.toString("utf8").trim().split("\n").map((line) => [line.slice(66), line.slice(0, 64)]));
+	const studyFixturePin = JSON.parse(fs.readFileSync(path.join(REPO, toolStudy, "study.json"), "utf8")).fixture.sha256;
+	const retiredPath = "packages/nana-setup/lib/retired-fingerprints.json";
+	const retiredValues = new Set(Object.values(JSON.parse(fs.readFileSync(path.join(REPO, retiredPath), "utf8"))));
+	const skillKeys = new Set(Object.keys(JSON.parse(fs.readFileSync(path.join(REPO, "packages/nana-setup/lib/skill-copy-history.json"), "utf8"))));
+	const sealedDesk = new Map([
+		["apps/desk/public/stage/stage.css", [1, 0, 0, 0]],
+		["apps/desk/public/stage/stage.js", [1, 0, 0, 0]],
+	]);
+	const bytesDigest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+	const fileDigest = (relative) => bytesDigest(fs.readFileSync(path.join(REPO, ...relative.split("/"))));
+	const validAllowlist = (candidate) => candidate.allowlist.every((entry) => {
+		if (entry.reason === "frozen-desk") {
+			return entry.pin === undefined && sealedDesk.has(entry.path) &&
+				JSON.stringify(entry.counts) === JSON.stringify(sealedDesk.get(entry.path));
+		}
+		if (entry.reason !== "byte-pinned" || typeof entry.pin !== "string") return false;
+		let match = entry.pin.match(/^study\.json fixture\.sha256 ([a-f0-9]{64})$/);
+		if (match) {
+			const relative = entry.path.startsWith(toolFixture) ? entry.path.slice(toolFixture.length) : "";
+			return relative.length > 0 && match[1] === studyFixturePin && match[1] === bytesDigest(fixtureManifestBytes) &&
+				fixtureManifest.get(relative) === fileDigest(entry.path);
+		}
+		match = entry.pin.match(/^retired-fingerprints sha256 ([a-f0-9]{64})$/);
+		if (match) {
+			const source = "packages/nana-setup/tests/fixtures/retired/hook-backup";
+			return retiredValues.has(match[1]) && fileDigest(source) === match[1] &&
+				(entry.path === source ? fileDigest(entry.path) === match[1] : entry.path === retiredPath);
+		}
+		match = entry.pin.match(/^skill-copy-history sha256 ([a-f0-9]{64})$/);
+		return Boolean(match) && skillKeys.has(match[1]) && fileDigest(entry.path) === match[1];
+	});
+	const copy = () => structuredClone(config);
+	const mutations = [
+		(candidate) => candidate.allowlist.push({ path: "extra.txt", counts: [0, 0, 0, 0], reason: "record" }),
+		(candidate) => { candidate.allowlist[0].pin = "free text"; },
+		(candidate) => { candidate.allowlist[0].pin = "study.json fixture.sha256 ".concat("0".repeat(64)); },
+		(candidate) => candidate.allowlist.push({ path: "identity-scan.config.json", counts: [0, 0, 0, 0], reason: "byte-pinned", pin: `retired-fingerprints sha256 ${fileDigest("identity-scan.config.json")}` }),
+		(candidate) => candidate.allowlist.push({ path: "apps/desk/public/stage/extra.js", counts: [1, 0, 0, 0], reason: "frozen-desk" }),
+		(candidate) => { candidate.allowlist.find((entry) => entry.reason === "frozen-desk").counts[0]++; },
+	];
+	const rejected = mutations.map((mutate) => { const candidate = copy(); mutate(candidate); return !validAllowlist(candidate); });
+	// req: R-2518
+	check("every allowlist entry is byte-pinned or frozen-desk", validAllowlist(config) && rejected.every(Boolean),
+		JSON.stringify({ entries: config.allowlist.length, rejected }));
 }
 
 {

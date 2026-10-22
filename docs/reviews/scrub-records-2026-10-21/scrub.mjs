@@ -19,6 +19,13 @@ const digest = (value) => createHash("sha256").update(value.toLowerCase()).diges
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const casing = (source, lower, title = lower[0].toUpperCase() + lower.slice(1)) =>
 	source === source.toUpperCase() || source[0] === source[0].toUpperCase() ? title : lower;
+const sentenceTitle = (whole, offset) => {
+	const before = whole.slice(0, offset);
+	if (/[.!?](?:["'”’)\]}]+)?\s*(?:\*\*|["'“‘])?$/.test(before)) return true;
+	return /^\s*(?:(?:#{1,6}|>|[-+*]|\d+[.)]|\|)\s*)*(?:\*\*|["'“‘])?$/.test(before);
+};
+const sentenceCasing = (whole, offset, lower, title = lower[0].toUpperCase() + lower.slice(1)) =>
+	sentenceTitle(whole, offset) ? title : lower;
 const insideCodeToken = (whole, offset, length) => {
 	const left = whole.slice(0, offset).match(/\S*$/)?.[0] ?? "";
 	const right = whole.slice(offset + length).match(/^\S*/)?.[0] ?? "";
@@ -49,45 +56,76 @@ export function recoverWords(root, files, config) {
 	});
 }
 
+function replaceScannedParts(text, word, replacement) {
+	return text.replace(/[A-Za-z0-9]+/g, (token, tokenOffset, whole) => {
+		if (!/^[A-Za-z]+$/.test(token)) return token;
+		const matches = [...token.matchAll(/[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+/g)];
+		let changed = false;
+		let next = "";
+		let from = 0;
+		for (const match of matches) {
+			next += token.slice(from, match.index);
+			if (match[0].toLowerCase() === word.toLowerCase()) {
+				next += replacement(match[0], tokenOffset + match.index, whole, token);
+				changed = true;
+			} else next += match[0];
+			from = match.index + match[0].length;
+		}
+		return changed ? next + token.slice(from) : token;
+	});
+}
+
 function identifierText(text, words) {
 	let next = text;
-	const pair = new RegExp(`${escapeRegExp(words[0])}([ _-]+)${escapeRegExp(words[2])}`, "gi");
-	next = next.replace(pair, (source) => casing(source, "owner"));
-	const splitter = new RegExp(`splitOpenFor${escapeRegExp(words[0])}`, "gi");
+	const pair = new RegExp(String.raw`(^|[^A-Za-z0-9])(${escapeRegExp(words[0])})([ _-]+)(${escapeRegExp(words[2])})(?![A-Za-z0-9])`, "gi");
+	next = next.replace(pair, (_source, prefix, first, join, last) => `${prefix}${casing(first + join + last, "owner")}`);
+	const splitter = new RegExp(String.raw`(?<![A-Za-z0-9])splitOpenFor${escapeRegExp(words[0])}(?![A-Za-z0-9])`, "gi");
 	next = next.replace(splitter, "splitOpenSection");
 	words.forEach((word, index) => {
 		const replacement = index === 3 ? "work" : "owner";
-		next = next.replace(new RegExp(escapeRegExp(word), "gi"), (source) => casing(source, replacement));
+		next = replaceScannedParts(next, word, (source) => casing(source, replacement));
 	});
 	return next;
 }
 
 function proseText(text, words) {
 	let next = text;
-	const pair = new RegExp(`${escapeRegExp(words[0])}\s+${escapeRegExp(words[2])}`, "gi");
-	next = next.replace(pair, (source, _join, offset, whole) => insideCodeToken(whole, offset, source.length) ? casing(source, "owner") : casing(source, "the owner", "The owner"));
+	const pair = new RegExp(String.raw`(^|[^A-Za-z0-9])(${escapeRegExp(words[0])})(\s+)(${escapeRegExp(words[2])})(?![A-Za-z0-9])`, "gi");
+	next = next.replace(pair, (source, prefix, first, join, last, offset, whole) => {
+		const value = first + join + last;
+		const start = offset + prefix.length;
+		const replacement = insideCodeToken(whole, start, value.length) ? casing(value, "owner") : sentenceCasing(whole, start, "the owner", "The owner");
+		return prefix + replacement;
+	});
 	for (const word of [words[0], words[1], words[2]]) {
 		const escaped = escapeRegExp(word);
-		next = next.replace(new RegExp(`${escaped}(?:['’]s)`, "gi"), (source, offset, whole) =>
-			insideCodeToken(whole, offset, source.length) ? casing(source, "owner's", "Owner's") : casing(source, "the owner's", "The owner's"));
-		next = next.replace(new RegExp(`\ba\s+${escaped}\b`, "gi"), (source) => casing(source, "an owner", "An owner"));
-		next = next.replace(new RegExp(escaped, "gi"), (source, offset, whole) => {
+		const possessive = new RegExp(String.raw`(^|[^A-Za-z0-9])(${escaped})(['’]s)(?![A-Za-z0-9])`, "gi");
+		next = next.replace(possessive, (source, prefix, stem, suffix, offset, whole) => {
+			const value = stem + suffix;
+			const start = offset + prefix.length;
+			const replacement = insideCodeToken(whole, start, value.length) ? casing(value, "owner's", "Owner's") : sentenceCasing(whole, start, "the owner's", "The owner's");
+			return prefix + replacement;
+		});
+		const article = new RegExp(String.raw`(^|[^A-Za-z0-9])a(\s+)${escaped}(?![A-Za-z0-9])`, "gi");
+		next = next.replace(article, (source, prefix, join, offset, whole) => prefix + sentenceCasing(whole, offset + prefix.length, `an${join}owner`, `An${join}owner`));
+		next = replaceScannedParts(next, word, (source, offset, whole, token) => {
 			const before = whole[offset - 1] ?? "";
 			const after = whole[offset + source.length] ?? "";
-			if (/[A-Za-z0-9_-]/.test(before) || /[A-Za-z0-9_-]/.test(after) || insideCodeToken(whole, offset, source.length)) return casing(source, "owner");
-			return casing(source, "the owner", "The owner");
+			if (token !== source || /[_-]/.test(before) || /[_-]/.test(after) || insideCodeToken(whole, offset, source.length)) return casing(source, "owner");
+			return sentenceCasing(whole, offset, "the owner", "The owner");
 		});
 	}
 	const work = escapeRegExp(words[3]);
-	next = next.replace(new RegExp(`${work}-desk`, "gi"), "work-project");
-	next = next.replace(new RegExp(work, "gi"), (source, offset, whole) => {
+	const project = new RegExp(String.raw`(^|[^A-Za-z0-9])${work}-desk(?![A-Za-z0-9])`, "gi");
+	next = next.replace(project, (_source, prefix) => `${prefix}work-project`);
+	next = replaceScannedParts(next, words[3], (source, offset, whole, token) => {
 		const before = whole[offset - 1] ?? "";
 		const after = whole[offset + source.length] ?? "";
-		if (/[A-Za-z0-9_-]/.test(before) || /[A-Za-z0-9_-]/.test(after) || insideCodeToken(whole, offset, source.length)) return casing(source, "work");
-		return casing(source, "the work project", "The work project");
+		if (token !== source || /[_-]/.test(before) || /[_-]/.test(after) || insideCodeToken(whole, offset, source.length)) return casing(source, "work");
+		return sentenceCasing(whole, offset, "the work project", "The work project");
 	});
-	next = next.replace(/\ba\s+the owner\b/gi, (source) => casing(source, "an owner", "An owner"));
-	next = next.replace(/\ba\s+the work project\b/gi, (source) => casing(source, "a work project", "A work project"));
+	next = next.replace(/\ba\s+the owner\b/gi, (source, offset, whole) => sentenceCasing(whole, offset, "an owner", "An owner"));
+	next = next.replace(/\ba\s+the work project\b/gi, (source, offset, whole) => sentenceCasing(whole, offset, "a work project", "A work project"));
 	return next;
 }
 
@@ -95,7 +133,7 @@ function homeSegments(text, words) {
 	let next = text;
 	for (const word of words) {
 		const escaped = escapeRegExp(word);
-		next = next.replace(new RegExp(`((?:[/\\\\]|-)Users(?:[/\\\\]|-))${escaped}(?=[^A-Za-z0-9_]|$)`, "gi"), "$1example");
+		next = next.replace(new RegExp(String.raw`((?:[/\\]|-)Users(?:[/\\]|-))${escaped}(?=[^A-Za-z0-9]|$)`, "gi"), "$1example");
 	}
 	return next;
 }

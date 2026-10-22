@@ -15,7 +15,7 @@ import { pathToFileURL } from "node:url";
 
 /** Census metadata, 2026-10-21: lengths paired by index with the committed digest list. */
 const COMMITTED_WORD_LENGTHS = [4, 5, 4, 3];
-const ALLOWLIST_REASONS = new Set(["record", "byte-pinned", "frozen-desk"]);
+const ALLOWLIST_REASONS = new Set(["byte-pinned", "frozen-desk"]);
 
 function hashToken(token) {
 	return createHash("sha256").update(token.toLowerCase()).digest("hex");

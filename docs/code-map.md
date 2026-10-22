@@ -1996,7 +1996,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/identity-scan.test.mjs`
 
-- **purpose** — Pin identity scanning across written forms, allowlist count drift, and the committed digest census.
+- **purpose** — Pin identity scanning across written forms, allowlist count drift, sealed allowlist provenance, and the committed digest census.
 - **inputs** — temporary git trees, injected scan configs, the committed identity scan config, and scripts/identity-scan.mjs
 - **outputs** — named PASS/FAIL checks and a nonzero test exit when an assertion fails
 - **effects** — disk (OS temporary git fixtures only); process (runs git in those fixtures)
