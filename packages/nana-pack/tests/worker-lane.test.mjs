@@ -49,14 +49,14 @@ function writeStub(posixScript, nodeBody) {
 	if (process.platform === "win32") writeFakePi(stubDir, nodeBody);
 	else { fs.writeFileSync(pi, posixScript); fs.chmodSync(pi, 0o755); }
 }
-const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`;
+const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`;
 const mainNodeBody = (withMarker) => `const fs = require("node:fs");
-${withMarker ? `fs.appendFileSync(${JSON.stringify(piSpawnMarker)}, "spawned\n");\n` : ""}process.stdout.write(process.env.NANA_ROLE + ":" + process.env.NANA_WORKTREE_ROOT + "\n");
+${withMarker ? `fs.appendFileSync(${JSON.stringify(piSpawnMarker)}, "spawned\\n");\n` : ""}process.stdout.write(process.env.NANA_ROLE + ":" + process.env.NANA_WORKTREE_ROOT + "\\n");
 const args = process.argv.slice(2);
 let prev = false, n = 0;
 const promptPrefix = ${JSON.stringify(path.join(temp, "prompt-"))};
 for (const arg of args) {
-  process.stdout.write(arg + "\n");
+  process.stdout.write(arg + "\\n");
   if (prev) { n++; fs.copyFileSync(arg, promptPrefix + n); prev = false; }
   else if (arg === "--append-system-prompt") prev = true;
 }
@@ -185,7 +185,7 @@ check("R-2580: honest Precedent forms pass and the launch line names the checked
 	const subfolderBrief = path.join(lane, "brief-fixtures", "nested-brief.md");
 	const cases = [
 		["slash separators", "Precedent:\n- tracked/nested.mjs\n", 1, brief],
-		["backslash separators", "Precedent:\n- tracked\nested.mjs\n", 1, brief],
+		["backslash separators", "Precedent:\n- tracked\\nested.mjs\n", 1, brief],
 		["backticks", "Precedent:\n- `seed` note\n", 1, brief],
 		["single line suffix", "Precedent:\n- seed:12\n", 1, brief],
 		["range line suffix", "Precedent:\n- tracked/nested.mjs:12-40\n", 1, brief],
@@ -595,7 +595,7 @@ check("with a larger-lane builder set, a launch with no lane size, the --lane-si
 
 const laneSpawnCount = path.join(temp, "lane-spawns");
 writeStub(`#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`,
-	`const fs = require("node:fs");\nfs.appendFileSync(${JSON.stringify(laneSpawnCount)}, "spawned\n");\nconsole.log("output");\nsetTimeout(() => {}, 3000);\n`);
+	`const fs = require("node:fs");\nfs.appendFileSync(${JSON.stringify(laneSpawnCount)}, "spawned\\n");\nconsole.log("output");\nsetTimeout(() => {}, 3000);\n`);
 const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
 const lockChildren = [launchTogether(), launchTogether()];
 await Promise.all(lockChildren.map((child) => new Promise((resolve) => child.once("close", resolve))));
@@ -642,7 +642,7 @@ const config = await import("../bin/worker-config.mjs");
 check("sealed lane ceiling is 28,800 seconds", config.LANE_MAX_SECS === 28_800);
 const descendantPid = path.join(temp, "descendant.pid");
 writeStub(`#!/bin/sh\nsleep 30 &\necho $! > "${descendantPid}"\nwait\n`,
-	`const { spawn } = require("node:child_process");\nconst fs = require("node:fs");\nconst child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore" });\nfs.writeFileSync(${JSON.stringify(descendantPid)}, String(child.pid) + "\n");\nchild.on("exit", () => process.exit(0));\n`);
+	`const { spawn } = require("node:child_process");\nconst fs = require("node:fs");\nconst child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore" });\nfs.writeFileSync(${JSON.stringify(descendantPid)}, String(child.pid) + "\\n");\nchild.on("exit", () => process.exit(0));\n`);
 const capped = run(lane, ["--lane", "alpha", "--brief", brief, "--max-secs", "1", "--stall-secs", "10"]);
 // req: R-963
 check("max-secs override kills and names the lane wall-clock ceiling", capped.status === 1 && /wall-clock ceiling 1s reached/.test(capped.stderr));
