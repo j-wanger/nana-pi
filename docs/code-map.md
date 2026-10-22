@@ -1028,11 +1028,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Print clone-shared build records as build, lane, and total lines.
 - **inputs** — argv (--repo <path>, --lane <name>), repository identity from repoKeyOf, and the bounded build ledger.
-- **outputs** — One stdout line per build, one per selected lane, and one total line.
+- **outputs** — One stdout line per build, one per selected lane, and one total line; runBuildReport for bounded tests.
 - **effects** — process (git repository lookup), disk (bounded ledger and matching session reads)
-- **errors** — Exit 1 on invalid arguments, a non-repository --repo, or an unreadable/over-cap ledger.
+- **errors** — Return/exit 1 on invalid arguments, a non-repository --repo, or an unreadable/over-cap ledger.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/build-records.mjs`
+- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`
 
 ### `packages/nana-pack/bin/claude-review.mjs`
 
@@ -1351,7 +1351,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Build ledger, session matching, usage selection, and report constants.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`
+- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/build-records.mjs`
@@ -1361,7 +1361,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
 - **effects** — disk (record append and bounded ledger/session reads)
 - **errors** — Append operations return named failures; bounded ledger reads throw ERR_TOO_LARGE or filesystem errors.
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`
+- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/build-records.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `packages/nana-pack/lib/claude-review-config.mjs`
@@ -1912,7 +1912,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS-temp git fixtures), process (git and report subprocesses).
 - **errors** — Failed checks print their title and make the process exit nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/ci-workflow.test.mjs`
 

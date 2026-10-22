@@ -13,7 +13,6 @@ import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { BUILD_RECORD_SCHEMA, BUILD_RECORDS_SUBPATH } from "../lib/build-records-config.mjs";
-import { readBuildLedger } from "../lib/build-records.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPiRoot } from "./pi-install.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
@@ -69,10 +68,11 @@ const betaExpected = [
 	"lane beta | 1 build | 1 ceiling | 1 min | 40 tokens | $0.04 | 0 unpriced",
 	"total | 1 build | 1 lane | 0 lanes with 2+ builds | 1 min | 40 tokens | $0.04 | 0 unpriced | 3 unreadable lines",
 ].join("\n") + "\n";
-let capped = null;
-try { readBuildLedger(LEDGER, { maxBytes: 8 }); } catch (error) { capped = error; }
+const capRunner = path.join(TD, "cap-runner.mjs");
+fs.writeFileSync(capRunner, `import { runBuildReport } from ${JSON.stringify(pathToFileURL(REPORT).href)}; process.exitCode = runBuildReport(["--repo", process.argv[2]], { ledgerReadMaxBytes: 8 });\n`);
+const capped = spawnSync(process.execPath, [capRunner, REPO], { encoding: "utf8", timeout: 10_000 });
 // req: R-2600
-check("R-2600: the build report prints each build, one line per lane and a total counting lanes with two or more builds", fromMain.status === 0 && fromMain.stdout === expected && fromLinked.status === 0 && fromLinked.stdout === expected && alphaOnly.status === 0 && alphaOnly.stdout === betaExpected && notRepo.status === 1 && notRepo.stderr === `build-report: --repo is not a git repository: ${NOGIT}\n` && capped?.code === "ERR_TOO_LARGE" && capped.message.includes("8"), JSON.stringify({ main: fromMain, linked: fromLinked, beta: alphaOnly, notRepo, capped: capped?.message }));
+check("R-2600: the build report prints each build, one line per lane and a total counting lanes with two or more builds", fromMain.status === 0 && fromMain.stdout === expected && fromLinked.status === 0 && fromLinked.stdout === expected && alphaOnly.status === 0 && alphaOnly.stdout === betaExpected && notRepo.status === 1 && notRepo.stderr === `build-report: --repo is not a git repository: ${NOGIT}\n` && capped.status === 1 && capped.stdout === "" && capped.stderr.includes("ledger over 8 bytes"), JSON.stringify({ main: fromMain, linked: fromLinked, beta: alphaOnly, notRepo, capped }));
 
 const noEndSession = path.join(TD, "no-end-sessions"); fs.mkdirSync(noEndSession);
 const sessionRows = [
