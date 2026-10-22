@@ -1,0 +1,5 @@
+seat pairs: lane biome-pin, tip 2d4ec87ee8b0c811c9c550633b6600dbda40431f, 2026-10-22T12:25:42Z, Darwin
+RED b1-caret-back — FAIL R-2559: a fresh TypeScript scaffold pins Biome to the sealed exact version 2.5.15 scaffold "^2.5.15", adopt "^2.5.15"
+RED b2-adopt-caret — FAIL R-2559: a fresh TypeScript scaffold pins Biome to the sealed exact version 2.5.15 scaffold "2.5.15", adopt "^2.0.0"
+RED b3-wrong-key — FAIL R-2559: a fresh TypeScript scaffold pins Biome to the sealed exact version 2.5.15 scaffold undefined, adopt "2.5.15"
+RED b4-unversioned-check — FAIL typescript: a fresh scaffold passes biome check with no edits nt as `disk`.
