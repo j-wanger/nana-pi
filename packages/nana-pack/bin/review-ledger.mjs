@@ -6,11 +6,11 @@
  * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
  *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, the user-scope review ledger,
  *  review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
- * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
- *  `check`, and the admission note, warnings, unread-verdict note, cannot-start line and refusals on stderr
+ * @outputs the child's stdout written to --out and the kept-text store, a recorded round, the projection
+ *  note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
  * @effects process (resolves and spawns the review command with reviewer child env and stdout piped,
  *  runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock,
- *  reservation, tally and audit files, including a best-effort cannot-start line)
+ *  reservation, kept text, tally and audit files, including a best-effort cannot-start line)
  * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
  *  admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero /
  *  non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
@@ -110,7 +110,7 @@ if (r.error) cannotStart(r.error.code ?? r.error.message);
 const text = r.stdout ?? '';
 try { writeFileSync(out, text); } catch (e) { release(adm.id); die(`cannot write ${out}: ${e.message} — reservation returned`); }
 if (r.status === 0 && text.trim() && reviewShaped(text)) {
-  const c = complete(adm.res, out, { attempts: 1 });
+  const c = complete(adm.res, out, { attempts: 1, text });
   if (!c.ok) die(`review written to ${out}, but ${c.message}`);
   if (c.unread) die(c.unread);
   process.stderr.write(`review-ledger: verdict recorded for item ${adm.res.item} (round ${c.round}; ${out})\n`);

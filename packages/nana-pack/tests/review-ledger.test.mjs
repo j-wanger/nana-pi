@@ -14,6 +14,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { awaitLaunchRecord } from "./launch-wait.mjs";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -75,6 +76,10 @@ const pathForms = (p) => {
 const jsonl = (f) => (fs.existsSync(f) ? fs.readFileSync(f, "utf8").trim().split("\n").filter(Boolean).map(JSON.parse) : []);
 const roundsOf = (item) => [...new Map(jsonl(tallyFile).filter((r) => r.item === item).map((r) => [r.revision, r])).values()];
 const verdictsOf = (item) => jsonl(auditFile).filter((r) => r.kind === "verdict" && r.item === item);
+const storedTextFile = (homeDir, hash) => {
+	const store = mod.ledgerPaths(homeDir).texts;
+	return store && hash ? path.join(store, `${hash}.md`) : null;
+};
 
 let fails = 0;
 const check = (n, ok, info = "") => {
@@ -444,6 +449,84 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const lines = report.stdout.trim().split(/\r?\n/);
 	// req: R-970
 	check("report prints one line per verdict on a revision", completed && report.status === 0 && lines.length === 2 && lines.every((line) => line.includes("report-two") && line.includes("model-report")) && lines[0].includes("LAND") && lines[1].includes("SEND-BACK"), report.stderr || report.stdout);
+}
+
+{
+	freshHome("kept-text"); A.at(0);
+	const raw = "\uFEFFReview café\r\n\r\nVERDICT: LAND\r\n \t\r\n";
+	const first = ledgerRun(["--item", "kept-text", "--role", "ledger"], {
+		cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(raw)})`],
+	});
+	const secondRaw = "Second captured review\nVERDICT: LAND\n";
+	const second = piReview(["--item", "kept-text", "--role", "pi", "--out", out()], { stub: "plain-review", extra: secondRaw });
+	const rows = jsonl(tallyFile).filter((r) => r.item === "kept-text");
+	const rawBytes = Buffer.from(raw, "utf8");
+	const secondBytes = Buffer.from(secondRaw, "utf8");
+	const rawHash = createHash("sha256").update(rawBytes).digest("hex");
+	const secondHash = createHash("sha256").update(secondBytes).digest("hex");
+	const rawFile = storedTextFile(home, rawHash);
+	const secondFile = storedTextFile(home, secondHash);
+
+	const tmpMissing = path.join(tmp, "missing-system-temp");
+	const missingOut = path.join(outs, "missing-temp-output.md");
+	const tempText = "temp-independent\nVERDICT: LAND";
+	const tempHash = createHash("sha256").update(Buffer.from(tempText, "utf8")).digest("hex");
+	const admitted = mod.admit(["--item", "kept-without-system-temp", "--out", missingOut], { home, cwd: A.d, launcher: "test" });
+	const oldTemps = { TMPDIR: process.env.TMPDIR, TEMP: process.env.TEMP, TMP: process.env.TMP };
+	process.env.TMPDIR = tmpMissing; process.env.TEMP = tmpMissing; process.env.TMP = tmpMissing;
+	const tempComplete = mod.complete(admitted.res, missingOut, { home, text: tempText });
+	for (const [name, value] of Object.entries(oldTemps)) value === undefined ? delete process.env[name] : process.env[name] = value;
+	const tempRow = jsonl(tallyFile).find((r) => r.item === "kept-without-system-temp");
+	const tempFile = storedTextFile(home, tempHash);
+
+	// req: R-2568
+	check("R-2568: a recorded round keeps its review text by hash beside the tally",
+		first.status === 0 && second.status === 0 && rows.length === 2 && roundsOf("kept-text").length === 1 &&
+		mod.REVIEW_TEXT_STORE_NAME === "review-ledger.texts" && path.basename(mod.ledgerPaths(home).texts) === mod.REVIEW_TEXT_STORE_NAME &&
+		mod.REVIEW_TEXT_EXTENSION === ".md" && mod.REVIEW_TEXT_HASH === "sha256" && mod.REVIEW_TEXT_HASH_HEX_CHARS === 64 &&
+		mod.REVIEW_TEXT_RENAME_ATTEMPTS === 3 && mod.REVIEW_TEXT_RENAME_DELAY_MS === 20 &&
+		rows[0]?.text?.sha256 === rawHash && rows[0]?.text?.bytes === rawBytes.length && /^[0-9a-f]{64}$/.test(rows[0]?.text?.sha256 ?? "") &&
+		rows[1]?.text?.sha256 === secondHash && rows[1]?.text?.bytes === secondBytes.length &&
+		rawFile && fs.existsSync(rawFile) && fs.readFileSync(rawFile).equals(rawBytes) &&
+		secondFile && fs.existsSync(secondFile) && fs.readFileSync(secondFile).equals(secondBytes) &&
+		!fs.existsSync(tmpMissing) && typeof tempComplete.ok === "boolean" && tempRow?.text?.sha256 === tempHash &&
+		tempFile && fs.existsSync(tempFile) && fs.readFileSync(tempFile, "utf8") === tempText,
+		JSON.stringify({ first: first.stderr, second: second.stderr, rows, tempComplete, tempRow, store: mod.ledgerPaths(home).texts }));
+}
+
+{
+	freshHome("captured-text-wins"); A.at(0);
+	const captured = "Captured bytes\r\nVERDICT: LAND";
+	const capturedBytes = Buffer.from(captured, "utf8");
+	const capturedHash = createHash("sha256").update(capturedBytes).digest("hex");
+	const missingOut = path.join(outs, "deleted-before-complete.md");
+	const missingAdmission = mod.admit(["--item", "captured-missing", "--out", missingOut], { home, cwd: A.d, launcher: "test" });
+	const missing = mod.complete(missingAdmission.res, missingOut, { home, text: captured });
+	const differentOut = path.join(outs, "different-before-complete.md");
+	fs.writeFileSync(differentOut, "Other review\nVERDICT: SEND-BACK\n");
+	const differentAdmission = mod.admit(["--item", "captured-different", "--out", differentOut], { home, cwd: A.d, launcher: "test" });
+	const different = mod.complete(differentAdmission.res, differentOut, { home, text: captured });
+	const rows = jsonl(tallyFile).filter((r) => r.item.startsWith("captured-"));
+	const kept = storedTextFile(home, capturedHash);
+	// req: R-2569
+	check("R-2569: a missing or different output file at record time still records and keeps the captured verdict",
+		missing.ok === true && different.ok === true && missing.verdict === "LAND" && different.verdict === "LAND" &&
+		rows.length === 2 && rows.every((r) => r.verdict === "LAND" && r.text?.sha256 === capturedHash && r.text?.bytes === capturedBytes.length) &&
+		kept && fs.existsSync(kept) && fs.readFileSync(kept).equals(capturedBytes),
+		JSON.stringify({ missing, different, rows, kept }));
+}
+
+{
+	freshHome("store-write-failure"); A.at(0);
+	const outputPath = path.join(outs, "store-write-failure-output.md");
+	const admitted = mod.admit(["--item", "store-write-failure", "--out", outputPath], { home, cwd: A.d, launcher: "test" });
+	const storePath = path.join(agent, "review-ledger.texts");
+	fs.writeFileSync(storePath, "not a folder");
+	const completed = mod.complete(admitted.res, outputPath, { home, text: "review\nVERDICT: LAND" });
+	// req: R-2575
+	check("R-2575: a failed store write records no round",
+		admitted.ok === true && completed.ok === false && completed.message.includes(outputPath) && jsonl(tallyFile).length === 0 && jsonl(auditFile).length === 0,
+		JSON.stringify({ completed, tally: jsonl(tallyFile), audit: jsonl(auditFile) }));
 }
 
 // 3. identity: canonical slug, repository scope, worktrees share

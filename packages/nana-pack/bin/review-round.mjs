@@ -4,11 +4,11 @@
  *  user-scope lock.
  * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git
  *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
- *  file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
+ *  file identities, captured review text, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
- *  tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and
- *  completion results carrying the recorded verdict plus an unread-verdict note when it is empty
- * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally
+ *  tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the
+ *  projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
+ * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally
  *  and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the
  *  working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing
  *  heartbeat interval)
@@ -29,6 +29,7 @@
 //   ~/.pi/agent/review-ledger.jsonl (+ .1)   the verbose AUDIT log (every verdict and override);
 //                                            rotated past 1 MiB before EVERY append; never consulted by the cap.
 //   ~/.pi/agent/review-ledger.reservations/  one <id>.json per in-flight review holding its round
+//   ~/.pi/agent/review-ledger.texts/         captured UTF-8 review text, named by its full sha256
 //   ~/.pi/agent/review-ledger.lock           O_EXCL lock around every read-decide-write
 //
 // Rules:
@@ -58,7 +59,7 @@
 // (see README "Trust model").
 
 import {
-  openSync, closeSync, writeSync, writeFileSync, readFileSync, fstatSync, lstatSync, mkdirSync, mkdtempSync,
+  openSync, closeSync, writeSync, writeFileSync, readFileSync, fstatSync, fchmodSync, lstatSync, mkdirSync, mkdtempSync,
   readdirSync, unlinkSync, renameSync, rmSync, realpathSync, readlinkSync, existsSync, futimesSync, constants as C,
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
@@ -73,6 +74,17 @@ export const REVIEW_ROUND_CAP = 3;
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
 export const SLUG_MAX = 128; // characters, after canonicalization
 const REVISION_MAX = 128;
+// chosen 2026-10-22: beside the tally, so the text and record share one lock and trust model (R-2568).
+export const REVIEW_TEXT_STORE_NAME = 'review-ledger.texts';
+// chosen 2026-10-22: reviews are Markdown and remain directly readable (R-2568).
+export const REVIEW_TEXT_EXTENSION = '.md';
+// contract (R-2568): the captured UTF-8 bytes use the snapshot hash family and its full digest.
+export const REVIEW_TEXT_HASH = 'sha256';
+export const REVIEW_TEXT_HASH_HEX_CHARS = 64;
+// copied locally from nana-setup/lib/project.mjs, 2026-10-22: Windows can briefly hold a renamed file.
+export const REVIEW_TEXT_RENAME_ATTEMPTS = 3;
+export const REVIEW_TEXT_RENAME_DELAY_MS = 20;
+// chosen, measured 2026-10-22: no size cap; observed p95 8.5 KB and maximum 17.8 KB.
 // chosen: names the throwaway scratch index+object folder workingState borrows the repo's objects into
 // (W7c amend, 2026-10-18), so a leftover from a crashed derivation is recognizable in the OS temp dir.
 export const SNAPSHOT_SCRATCH_PREFIX = 'nana-snapshot-';
@@ -97,6 +109,7 @@ export function ledgerPaths(home = homedir()) {
     rotated: join(dir, 'review-ledger.jsonl.1'),
     lock: join(dir, 'review-ledger.lock'),
     resDir: join(dir, 'review-ledger.reservations'),
+    texts: join(dir, REVIEW_TEXT_STORE_NAME),
   };
 }
 
@@ -369,6 +382,11 @@ function readChecked(f) {
   const fd = openChecked(f, C.O_RDONLY);
   try { return readFileSync(fd, 'utf8'); } finally { closeSync(fd); }
 }
+function readBufferChecked(f) {
+  if (!lstatOrNull(f)) return null;
+  const fd = openChecked(f, C.O_RDONLY);
+  try { return readFileSync(fd); } finally { closeSync(fd); }
+}
 function appendChecked(f, rec) {
   const fd = openChecked(f, C.O_WRONLY | C.O_APPEND | C.O_CREAT, 0o600);
   try { writeSync(fd, JSON.stringify({ v: 1, ts: new Date().toISOString(), ...rec }) + '\n'); } finally { closeSync(fd); }
@@ -377,6 +395,74 @@ function ensureDir(d) {
   mkdirSync(d, { recursive: true });
   const st = lstatSync(d);
   if (!st.isDirectory()) throw new Error(`${d} is not a directory — refused`);
+}
+
+function renameReviewText(src, dest) {
+  for (let attempt = 1; ; attempt++) {
+    try { renameSync(src, dest); return; } catch (e) {
+      const retryable = process.platform === 'win32' && ['EPERM', 'EBUSY', 'EACCES'].includes(e?.code);
+      if (!retryable || attempt >= REVIEW_TEXT_RENAME_ATTEMPTS) throw e;
+      sleepMs(REVIEW_TEXT_RENAME_DELAY_MS);
+    }
+  }
+}
+
+function reviewTextRef(text) {
+  const bytes = Buffer.from(String(text ?? ''), 'utf8');
+  const sha256 = createHash(REVIEW_TEXT_HASH).update(bytes).digest('hex');
+  return { bytes, record: { sha256, bytes: bytes.length } };
+}
+
+/** A valid kept-text path, or null for a malformed tally reference. */
+export function reviewTextPath(home = homedir(), ref) {
+  const hash = ref?.sha256;
+  return typeof hash === 'string' && new RegExp(`^[0-9a-f]{${REVIEW_TEXT_HASH_HEX_CHARS}}$`).test(hash)
+    ? join(ledgerPaths(home).texts, `${hash}${REVIEW_TEXT_EXTENSION}`) : null;
+}
+
+/** Read and hash-check one kept review text without following a symlink. Null means absent or corrupt. */
+export function readReviewText(home = homedir(), ref) {
+  const p = ledgerPaths(home);
+  const store = lstatOrNull(p.texts);
+  if (!store) return null;
+  if (!store.isDirectory()) throw new Error(`${p.texts} is not a directory — refused`);
+  const file = reviewTextPath(home, ref);
+  if (!file) return null;
+  const bytes = readBufferChecked(file);
+  if (!bytes || createHash(REVIEW_TEXT_HASH).update(bytes).digest('hex') !== ref.sha256) return null;
+  return { file, bytes, text: bytes.toString('utf8') };
+}
+
+/** Write captured review bytes content-addressed in the store. Call under the ledger lock. */
+function writeReviewText(p, text) {
+  const kept = reviewTextRef(text);
+  ensureDir(p.texts);
+  const target = join(p.texts, `${kept.record.sha256}${REVIEW_TEXT_EXTENSION}`);
+  const existing = readBufferChecked(target);
+  if (existing?.equals(kept.bytes)) {
+    const fd = openChecked(target, C.O_RDWR);
+    try { fchmodSync(fd, 0o600); } finally { closeSync(fd); }
+    return kept.record;
+  }
+  const temp = join(p.texts, `.${kept.record.sha256}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`);
+  let fd;
+  try {
+    fd = openChecked(temp, C.O_WRONLY | C.O_CREAT | C.O_EXCL, 0o600);
+    writeFileSync(fd, kept.bytes);
+    fchmodSync(fd, 0o600);
+    closeSync(fd); fd = undefined;
+    if (existing) {
+      refuseNonRegular(target);
+      unlinkSync(target);
+    }
+    renameReviewText(temp, target);
+    const targetFd = openChecked(target, C.O_RDWR);
+    try { fchmodSync(targetFd, 0o600); } finally { closeSync(targetFd); }
+    return kept.record;
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+    try { unlinkSync(temp); } catch {}
+  }
 }
 
 const sleepMs = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -478,9 +564,8 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
 }
 
 /** Read the selected final or plain first line; detection folds but acceptance stays raw. */
-function readVerdict(out) {
-  let text = String(out ?? '');
-  try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
+function readVerdict(text) {
+  text = String(text ?? '');
   if (text.startsWith('\uFEFF')) text = text.slice(1);
   const lines = text.split(/\r?\n/);
   const nonblank = lines.map((line, index) => ({ number: index + 1, text: line })).filter((line) => line.text.trim() !== '');
@@ -528,6 +613,8 @@ const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
  *  checked here, so a symlinked audit log is refused BEFORE a review is spent, not after. */
 function decide(p, key, revision, overCap, prune) {
   for (const f of [p.audit, p.rotated]) refuseNonRegular(f);
+  const textStore = lstatOrNull(p.texts);
+  if (textStore && !textStore.isDirectory()) throw new Error(`${p.texts} is not a directory — refused`);
   if (lstatOrNull(p.resDir) && !lstatSync(p.resDir).isDirectory()) throw new Error(`${p.resDir} is not a directory — refused`);
   const rounds = readTally(p).filter((r) => sameItem(r, key));
   const reserved = liveReservations(p, prune).filter((r) => sameItem(r, key));
@@ -711,8 +798,10 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
  *     edited mid-review was read in no single state, so no state can honestly own the verdict; and
  *     over counting nothing: then editing during a review would make every review free.
  *  The revision is re-derived UNDER the lock, just before recording (sol r3 TOCTOU).
+ *  `text` is the launcher's captured string; `out` stays for diagnostics and old callers. The UTF-8 bytes
+ *  of `text` are stored before either ledger line is appended.
  *  Never throws: {ok:true, round, verdict, unread} | {ok:false, message}. `r` = admit(...).res */
-export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1 } = {}) {
+export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1, text } = {}) {
   const p = ledgerPaths(home);
   try {
     return withLock(p, () => {
@@ -737,9 +826,18 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
       const endedAt = new Date().toISOString();
       const metadata = { provider: held.provider ?? null, model: held.model ?? null, startedAt: held.startedAt ?? null, endedAt, attempts, durationMs: held.startedAt ? Math.max(0, Date.parse(endedAt) - Date.parse(held.startedAt)) : null };
       const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
-      const parsed = readVerdict(out);
-      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift });
-      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift });
+      let captured = text === undefined ? String(out ?? '') : String(text ?? '');
+      if (text === undefined) {
+        try { if (existsSync(captured)) captured = readFileSync(captured, 'utf8'); } catch { /* old callers may pass text in `out` */ }
+      }
+      const parsed = readVerdict(captured);
+      let kept;
+      try { kept = writeReviewText(p, captured); } catch (e) {
+        throw new Error(`${e.message} (output kept at ${out ?? held.out})`);
+      }
+      const textRecord = { text: kept };
+      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift, ...textRecord });
+      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift, ...textRecord });
       unlinkSync(f);
       if (!stable) {
         return { ok: false, round, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
