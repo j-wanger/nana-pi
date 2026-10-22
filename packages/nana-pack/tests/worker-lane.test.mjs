@@ -218,6 +218,77 @@ check("R-2580: honest Precedent forms pass and the launch line names the checked
 	});
 })());
 
+// req: R-2616
+check("R-2616: a numbered step list straight after a plain Precedent list is not read as entries", (() => {
+	const passes = [
+		"Precedent:\n- seed\nSteps:\n1. Run the next step\n2. Update another thing\n",
+		"Precedent:\n- seed\n1. Run the next step\n",
+		"Precedent:\n1. seed\n2. none: second entry\nThen:\n- Run the next step\n",
+	];
+	for (const text of passes) {
+		const result = runBriefText(text);
+		const line = result.stderr.split(/\r?\n/).find((entry) => entry.startsWith("pi-worker: precedent:"));
+		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !line?.startsWith("pi-worker: precedent:")) return false;
+	}
+	for (const text of [
+		"Precedent:\n- seed — reuse the\nreader below\n* missing.mjs\n",
+		"Precedent:\n1. seed — reuse:\n   - the parser\n2. missing.mjs\n",
+		"Precedent:\n- seed — reuse:\n  1. the parser\n- missing.mjs\n",
+	]) {
+		const result = runBriefText(text);
+		if (result.status !== 1 || fs.existsSync(piSpawnMarker) || !result.stderr.includes('"missing.mjs" is not tracked')) return false;
+	}
+	return true;
+})());
+
+// req: R-2617
+check("R-2617: a bold Precedent label line starts the Precedent section", (() => {
+	for (const label of ["**Precedent:**", "**Precedent**:"]) {
+		const result = runBriefText(`${label}\n- seed\n`);
+		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !result.stderr.includes("1 checked at HEAD")) return false;
+	}
+	const missing = runBriefText("**Precedent:**\n- missing.mjs\n");
+	return missing.status === 1 && !fs.existsSync(piSpawnMarker) && missing.stderr.includes('"missing.mjs" is not tracked');
+})());
+
+// req: R-2618
+check("R-2618: a brief with no Precedent section is told the label stands on a line of its own", (() => {
+	const phraseChecks = ["Precedent: seed — the inline form\n", "Feature: FEAT-006 · Missing\n"].map((text) => {
+		const result = runBriefText(text);
+		return result.status === 1 && result.stderr.includes("a Precedent heading") && result.stderr.includes("a line holding only Precedent:") && result.stderr.includes("- <path>") && result.stderr.includes("- none: <reason>") && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath);
+	});
+	const empty = runBriefText("## Precedent\n\n## Done\n");
+	const actualSection = runBriefText("Precedent: the rail is one source\n\n## Precedent\n- seed\n");
+	return phraseChecks.every(Boolean) && empty.status === 1 && !empty.stderr.includes("a Precedent heading") && actualSection.status === 0 && fs.existsSync(piSpawnMarker);
+})());
+
+// req: R-2619
+check("R-2619: bold and punctuated Precedent paths are checked as the bare path", (() => {
+	const passing = [
+		"- **seed** — note", "- **`tracked/nested.mjs`**:12,", "- seed:93-100).", "- seed: the reader",
+		"- `seed`: the reader", "- seed:12: note", "- **none:** no earlier code exists",
+	];
+	for (const entry of passing) {
+		const result = runBriefText(`Precedent:\n${entry}\n`);
+		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !result.stderr.includes("1 checked at HEAD")) return false;
+	}
+	for (const entry of ["- *.mjs", "- [seed](seed)", "- tracked/..", "- **missing.mjs**"]) {
+		const result = runBriefText(`Precedent:\n${entry}\n`);
+		if (result.status !== 1 || fs.existsSync(piSpawnMarker)) return false;
+	}
+	return true;
+})());
+
+// req: R-2620
+check("R-2620: a heading such as Precedent audit is not read as the Precedent section", (() => {
+	const bypass = runBriefText("## Precedent audit\n- missing.mjs\n\n## Precedent\n- seed\n");
+	const noSection = runBriefText("## Precedent audit\n- seed\n");
+	const parenthetical = runBriefText("## Precedent (this lane's own)\n- seed\n");
+	const dash = runBriefText("## Precedent — the reader\n- seed\n");
+	return bypass.status === 0 && fs.existsSync(piSpawnMarker) && noSection.status === 1 && noSection.stderr.includes("a Precedent heading") &&
+		parenthetical.status === 0 && dash.status === 0;
+})());
+
 // req: R-2581
 check("R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none", (() => {
 	const bugRelative = "docs/known-bugs/FEAT-006.md";
@@ -250,7 +321,7 @@ check("R-2581: the named feature's known-bug file follows the brief as the third
 // req: R-2578 R-2581
 check("seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature:", (() => {
 	const module = path.join(root, "lib", "brief-config.mjs");
-	const probe = spawnSync(process.execPath, ["--input-type=module", "-e", `import { PRECEDENT_SECTION, PRECEDENT_NONE, FEATURE_LINE_PREFIX, PRECEDENT_TRAILING_PUNCTUATION, PRECEDENT_LIST_MAX_BYTES } from ${JSON.stringify(pathToFileURL(module).href)}; process.exit(PRECEDENT_SECTION === "Precedent" && PRECEDENT_NONE === "none:" && FEATURE_LINE_PREFIX === "Feature: " && PRECEDENT_TRAILING_PUNCTUATION === ",;.)" && PRECEDENT_LIST_MAX_BYTES === 65536 ? 0 : 1);`], { encoding: "utf8", timeout: 5000 });
+	const probe = spawnSync(process.execPath, ["--input-type=module", "-e", `import { PRECEDENT_SECTION, PRECEDENT_NONE, FEATURE_LINE_PREFIX, PRECEDENT_TRAILING_PUNCTUATION, PRECEDENT_LIST_MAX_BYTES } from ${JSON.stringify(pathToFileURL(module).href)}; process.exit(PRECEDENT_SECTION === "Precedent" && PRECEDENT_NONE === "none:" && FEATURE_LINE_PREFIX === "Feature: " && PRECEDENT_TRAILING_PUNCTUATION === ",;.):" && PRECEDENT_LIST_MAX_BYTES === 65536 ? 0 : 1);`], { encoding: "utf8", timeout: 5000 });
 	return probe.status === 0;
 })());
 
