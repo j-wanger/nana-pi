@@ -24,3 +24,13 @@
 - Lane write guard temp folders (lane-guard-temp-root, final review): a volume that reports inode zero for every folder would make the guard refuse temp output. That fails closed. Some FAT or network volumes may do this (inferred).
 - Seat rule: a rule line cannot prove a seat obeys it. Seats on macOS and Linux read the new guide at once through its link; a Windows seat gets it only when `nana-setup install` runs there again. The planning slot does not say a planned lane has no worktree. The plan's pair check copies the pointer check rather than running it.
 - Builder full-suite runs (seat, the lane-guard-temp-root slate): the builder guide asks for a green full suite under the machine lock before a builder's last commit. The seat's parallel-lane briefs ask for single test files only. The two rules disagree. Three of this slate's six builders ran or queued the full suite. The lock runs those suites one at a time, about 15 minutes each.
+- Precedent check (precedent-first, plan): it proves a file exists at the lane's HEAD, not that it is the right precedent; a real but wrong tracked file passes.
+- Precedent check (precedent-first, plan): HEAD is the lane's. A file moved or deleted on main after the branch point still passes, and a precedent that landed on main after it is refused until the lane merges main.
+- Precedent check (precedent-first, plan): a Claude Code subagent builder gets only what the seat runs. brief-check is advice the seat follows, and that builder gets no preamble and no known-bug attachment.
+- Precedent check (precedent-first, plan): the brief is read once at launch, so an edit after launch is not checked. The first Precedent section and the first Feature line win.
+- Precedent check (precedent-first, plan): entries are paths only. A commit or a review finding goes in an entry's note after a tracked path, or as `none:`. Line suffixes are not checked against the file, and path case must match git's.
+- Precedent check (precedent-first, plan): on POSIX a tracked file whose name holds a backslash cannot be named.
+- Precedent check (precedent-first, amendment 1): a loose list under a plain `Precedent:` label loses the entries after its first blank line, which go unchecked. The heading form keeps a loose list whole.
+- Known-bug attachment (precedent-first, plan): no size guard on the attached file; the largest today is 46,035 bytes, under one read window.
+- Precedent check (precedent-first, plan): no tool reads the builder's departure report; it reaches review when the seat puts it in the review brief.
+- brief-check (precedent-first, build 2): its lines start `pi-worker:`, because it prints exactly what pi-worker prints for the same brief.
