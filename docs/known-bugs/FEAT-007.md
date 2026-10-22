@@ -74,3 +74,13 @@
 - Session file (win-watchdog-cpu-read, final review): 34 entries in the October session file start right below the entry above, with no blank line between them. It is cosmetic.
 - Review ledger on Windows (writing-adoption CI): the race2 check failed once on the first Windows leg at 086eb4b2, with EPERM opening the ledger's temp file. Main's own run at the same commit passed. It is the first counted Windows flake since win-leg-flakes.
 - Review tools (scrub-records, plan adversary): pi-review's git helper keeps the 1 MiB default output buffer, the limit the identity scan had until this lane.
+- Kept review texts (review-outputs-kept, plan): no backfill. Records written before the store keep no text, and the audit log's paths rotate away.
+- Kept review texts (review-outputs-kept, plan): the final round's text lives on this machine, outside git, and is lost with the home folder, as the tally is. The store never shrinks.
+- Kept review texts (review-outputs-kept, plan): only recorded rounds are kept; a stalled, failed, cannot-start or non-review output is not.
+- Kept review texts (review-outputs-kept, plan): `keep` run after the final round leaves untracked files that make cleanup refuse a dirty worktree, and `keep` into a worktree during a live review of it makes that review unverified. The land checklist says to run it before the final round only.
+- Kept review texts (review-outputs-kept, plan): committed copies go public, like the 380 already in lane folders; `keep` reads only this repository's item.
+- Kept review texts (review-outputs-kept, plan): pruning the store blocks every revision whose matching LAND records all lose their texts, until those reviews re-run; the trust model says so.
+- Kept review texts (review-outputs-kept, plan): only the CI suite's Windows leg proves the store write on Windows; the install check does not yet compare the kept text.
+- Kept review texts (review-outputs-kept, independent check): `keep` skips a damaged kept text without saying so, and its "kept N" count includes files already present. The land still notes damaged texts.
+- Kept review texts (review-outputs-kept, independent check): the land's refusal names the item, the revision and the re-run, but not which kept file is damaged; the notes name the file only on a passing land.
+- Kept review texts (review-outputs-kept, independent check): a failed store write leaves its reservation file on disk until the next admission prunes it; its process has exited, so it holds no round.

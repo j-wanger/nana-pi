@@ -96,6 +96,14 @@ function appendTally(home, record) {
 	fs.appendFileSync(path.join(dir, "review-ledger.rounds.jsonl"), `${JSON.stringify(record)}\n`);
 }
 
+/** Turn real records into pre-store records so RT2, RT3 and RT5 continue to pin the audit-path fallback. */
+function stripKeptText(home) {
+	const tally = path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl");
+	const records = fs.readFileSync(tally, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	for (const record of records) delete record.text;
+	fs.writeFileSync(tally, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
+}
+
 function snapshotDir(dir) {
 	if (!fs.existsSync(dir)) return [];
 	const out = [];
@@ -195,6 +203,7 @@ function snapshotDir(dir) {
 		runs[role] = recordReview({ home, repoDir: repo, item: "layouts", role, model: `model-${role}`, outFile: path.join(outs, `${role}.md`), text });
 	}
 	check("RT2 setup: all five layouts recorded", Object.values(runs).every((r) => r.status === 0), Object.entries(runs).map(([k, r]) => `${k}:${r.stderr}`).join("\n"));
+	stripKeptText(home);
 
 	const t = runTimeline(home, ["--item", "layouts", "--repo", repo]);
 	const out = t.stdout;
@@ -216,6 +225,24 @@ function snapshotDir(dir) {
 		t.status === 0 && allTitlesPresent && noLeak && titleCount === expectTitles.length,
 		JSON.stringify({ status: t.status, stderr: t.stderr, out, expectTitles, allTitlesPresent, titleCount }),
 	);
+}
+
+// ======================================================================== R-2570
+{
+	const home = makeHome("kept-findings-home");
+	const repo = makeRepo("kept-findings-repo");
+	commit(repo, "base", "base");
+	const scratch = path.join(root, "kept-findings-scratch");
+	const output = path.join(scratch, "sent-back.md");
+	const text = `### ${WORD_MUST} — Preserve this finding after cleanup\r\nDetail.\r\n\r\nVERDICT: ${WORD_SEND_BACK}`;
+	const recorded = recordReview({ home, repoDir: repo, item: "kept-findings", role: "reviewer", model: "model-kept", outFile: output, text });
+	fs.rmSync(scratch, { recursive: true, force: true });
+	const timeline = runTimeline(home, ["--item", "kept-findings", "--repo", repo]);
+	// req: R-2570
+	check("R-2570: the timeline reads MUST findings from the kept text after the scratch folder is deleted",
+		recorded.status === 0 && timeline.status === 0 && timeline.stdout.includes(`${WORD_MUST} — Preserve this finding after cleanup`) &&
+		!timeline.stdout.includes("review file gone") && !timeline.stdout.includes("no review file recorded"),
+		JSON.stringify({ recorded: { status: recorded.status, stderr: recorded.stderr }, timeline: { status: timeline.status, stderr: timeline.stderr, stdout: timeline.stdout } }));
 }
 
 // ======================================================================== RT3 (R-1562)
@@ -250,6 +277,7 @@ function snapshotDir(dir) {
 	appendTally(home, { v: 2, kind: "round", repo: repoKey, item: "rt3", revision: "d".repeat(40), role: "role-d", model: "model-d", verdict: WORD_SEND_BACK, durationMs: 1000 });
 
 	check("RT3 setup: (a)-(c) recorded", [ra, rb, rc].every((r) => r.status === 0), [ra, rb, rc].map((r) => r.stderr).join("\n"));
+	stripKeptText(home);
 
 	const t = runTimeline(home, ["--item", "rt3", "--repo", repo]);
 	const out = t.stdout;
@@ -303,6 +331,7 @@ function snapshotDir(dir) {
 	const outs = path.join(root, "rt5-outs");
 	const r = recordReview({ home, repoDir: repo, item: "rt5", role: "opus", model: "model-rt5", outFile: path.join(outs, "opus-r1.md"), text: `VERDICT: ${WORD_SEND_BACK}\n` });
 	check("RT5 setup: review recorded", r.status === 0, r.stderr);
+	stripKeptText(home);
 
 	const t = runTimeline(home, ["--item", "rt5", "--repo", repo]);
 	const out = t.stdout;

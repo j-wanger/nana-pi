@@ -2,17 +2,17 @@
 /**
  * @module packages/nana-pack/bin/nana-land.mjs
  * @purpose Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
- * @inputs merge or cleanup arguments, a home directory for the review ledger, and an injectable process runner.
- * @outputs Named pure argument helpers and command results or printed CLI records.
+ * @inputs merge or cleanup arguments, a home directory for the review tally and kept-text store, and an injectable process runner.
+ * @outputs Named pure argument helpers and command results or printed CLI records naming relied-on, damaged, and uncommitted review texts.
  * @effects process (runs git and a suite command), disk (git merge and worktree cleanup).
- * @errors Invalid arguments, failed preconditions, suite failures, and git failures return a named refusal without continuing.
+ * @errors Invalid arguments, missing intact review evidence, failed preconditions, suite failures, and git failures return a named refusal without continuing.
  */
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { canonicalItem, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
+import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
 import { LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
@@ -89,14 +89,34 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		});
 		const reviewRefs = refs.map((r) => r.sha);
 		const firstRead = lockReviews(home, ({ rounds, reservations }) => ({ rounds: rounds.filter((r) => r.repo === repo), reservations: reservations.filter((r) => r.repo === repo) }));
+		const textName = (evidence, row) => evidence.file ? path.basename(evidence.file) : `${row.text?.sha256 ?? "malformed-text-reference"}.md`;
 		const checkRecords = (rounds, reservations) => {
+			const notes = [], relied = [];
 			for (const { sha, item } of refs) {
-				if (!rounds.some((r) => r.v === 2 && r.revision === sha && r.item === item && r.verdict === "LAND" && r.unverified !== true)) throw new Error(`no verified version-2 LAND review for item ${item} at revision ${sha}`);
+				const matching = rounds.filter((r) => r.v === 2 && r.revision === sha && r.item === item && r.verdict === "LAND" && r.unverified !== true);
+				if (!matching.length) throw new Error(`no verified version-2 LAND review for item ${item} at revision ${sha}`);
+				let holds = 0;
+				for (const row of matching) {
+					if (!Object.hasOwn(row, "text")) {
+						holds++;
+						notes.push(`${LAND_NOTE_PREFIX} note: pre-store LAND record has no kept text for item ${item} at revision ${sha}`);
+						continue;
+					}
+					const evidence = reviewTextEvidence(home, row.text);
+					if (evidence.status === "intact") {
+						holds++;
+						relied.push(textName(evidence, row));
+					} else {
+						notes.push(`${LAND_NOTE_PREFIX} note: ${evidence.status} kept review text ${textName(evidence, row)} for item ${item} at revision ${sha}`);
+					}
+				}
+				if (!holds) throw new Error(`item ${item} at revision ${sha} has no matching verified LAND record with an intact kept text or a pre-store record; re-run that review on the same revision to recover it`);
 				const bad = rounds.filter((r) => r.unverified !== true && (r.revision === sha || r.head === sha) && Object.hasOwn(r, "verdict") && r.verdict !== "LAND");
 				if (bad.length) throw new Error(`non-LAND verdict record(s) for ${sha}: ${bad.map((r) => `${r.item}/${r.revision}/${r.verdict ?? "empty"}`).join(", ")}`);
 				const inflight = reservations.filter((r) => r.revision === sha || String(r.revision).split("+snap:")[0] === sha);
 				if (inflight.length) throw new Error(`review in flight for ${sha}`);
 			}
+			return { notes, relied };
 		};
 		checkRecords(firstRead.rounds, firstRead.reservations);
 		const unreviewed = git(runGit, tree, "rev-list", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean);
@@ -107,8 +127,21 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		const suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
+		let reviewEvidence;
 		lockReviews(home, ({ rounds, reservations }) => {
-			checkRecords(rounds.filter((r) => r.repo === repo), reservations.filter((r) => r.repo === repo));
+			const repoRounds = rounds.filter((r) => r.repo === repo);
+			reviewEvidence = checkRecords(repoRounds, reservations.filter((r) => r.repo === repo));
+			const tipBlobs = new Set(git(runGit, tree, "ls-tree", "-r", tip).split(/\r?\n/).filter(Boolean).map((line) => line.match(/^\d+\s+blob\s+(\S+)/)?.[1]).filter(Boolean));
+			const reviewedItems = new Set(refs.map((r) => r.item));
+			const seenEarlier = new Set();
+			for (const row of repoRounds) {
+				if (!reviewedItems.has(row.item) || row.revision === tip || !Object.hasOwn(row, "text")) continue;
+				const evidence = reviewTextEvidence(home, row.text);
+				if (evidence.status !== "intact" || seenEarlier.has(row.text.sha256)) continue;
+				seenEarlier.add(row.text.sha256);
+				const blob = git(runGit, tree, "hash-object", evidence.file);
+				if (!tipBlobs.has(blob)) reviewEvidence.notes.push(`${LAND_NOTE_PREFIX} note: earlier kept review text ${textName(evidence, row)} for item ${row.item} is not in the tip's tree`);
+			}
 			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
 			assertCleanTracked(runGit, main, "main checkout");
 			if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
@@ -125,8 +158,9 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
-		const notes = landNotes(suiteResult);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
+		const notes = [...landNotes(suiteResult), ...(reviewEvidence?.notes ?? [])];
+		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

@@ -2,9 +2,9 @@
 /**
  * @module packages/nana-pack/bin/review-timeline.mjs
  * @purpose Print one lane's recorded review rounds, in ledger order, with the MUST findings a
- *  sent-back review's own recorded file states.
- * @inputs argv (--item <slug> [--repo <path>]), the user-scope review ledger (tally and audit log,
- *  through readRounds/ledgerPaths), and the review files the audit log recorded
+ *  sent-back review's kept text or legacy recorded file states.
+ * @inputs argv (--item <slug> [--repo <path>]), the user-scope review ledger (tally, kept-text store
+ *  and audit log through readRounds/ledgerPaths), and legacy review files the audit log recorded
  * @outputs markdown on stdout; one stderr message and exit 1 on bad input or nothing to print
  * @effects disk (reads the ledger and recorded review files only)
  * @errors exit 1 with one message, no stack, on a missing or blank --item, a non-git --repo, a
@@ -12,7 +12,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, resolve } from "node:path";
-import { canonicalItem, ledgerPaths, readRounds, repoKeyOf } from "./review-round.mjs";
+import { canonicalItem, ledgerPaths, readReviewText, readRounds, repoKeyOf, reviewTextPath } from "./review-round.mjs";
 import { readBounded } from "../lib/bounded-read.mjs";
 import { mustTitlesOf, verdictWordOf } from "../lib/review-findings.mjs";
 import {
@@ -72,19 +72,38 @@ function recordedFileOf(row, auditByKey) {
 }
 
 /** The lines describing a sent-back review's own findings, or the single R-1562 line stating why
- *  none could be read. */
-function findingsLines(row, auditByKey) {
-	const file = recordedFileOf(row, auditByKey);
-	if (!file) return [`  - ${REVIEW_TIMELINE_STATEMENTS.noFileRecorded}`];
-	const name = basename(file);
-	if (!existsSync(file)) return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.fileGone})`];
+ *  none could be read. A modern tally line never falls back to its audit path. */
+function findingsLines(row, auditByKey, home) {
+	let file;
+	let name;
 	let text;
-	try {
-		text = readBounded(file).toString("utf8");
-	} catch {
-		return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.fileGone})`];
+	let kept = false;
+	if (Object.hasOwn(row, "text")) {
+		kept = true;
+		file = reviewTextPath(home, row.text);
+		name = file ? basename(file) : "kept review text";
+		try {
+			const stored = readReviewText(home, row.text);
+			if (!stored) return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.keptTextGone})`];
+			text = stored.text;
+		} catch {
+			return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.keptTextGone})`];
+		}
+	} else {
+		file = recordedFileOf(row, auditByKey);
+		if (!file) return [`  - ${REVIEW_TIMELINE_STATEMENTS.noFileRecorded}`];
+		name = basename(file);
+		if (!existsSync(file)) return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.fileGone})`];
+		try {
+			text = readBounded(file).toString("utf8");
+		} catch {
+			return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.fileGone})`];
+		}
 	}
-	if (verdictWordOf(text) !== WORD_SEND_BACK) return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.verdictDisagrees})`];
+	if (verdictWordOf(text) !== WORD_SEND_BACK) {
+		const statement = kept ? REVIEW_TIMELINE_STATEMENTS.keptVerdictDisagrees : REVIEW_TIMELINE_STATEMENTS.verdictDisagrees;
+		return [`  - review file: ${name} (${statement})`];
+	}
 	const titles = mustTitlesOf(text);
 	if (titles.length === 0) return [`  - review file: ${name} (${REVIEW_TIMELINE_STATEMENTS.noMustReadable})`];
 	return [`  - review file: ${name}`, ...titles.map((t) => `    - ${WORD_MUST} — ${t}`)];
@@ -103,7 +122,7 @@ function reviewLine(row) {
 
 /** Group rows into rounds numbered by each revision's first appearance, tally order preserved
  *  inside a round, then render the markdown timeline. Pure given its inputs. */
-function render(item, rows, auditByKey) {
+function render(item, rows, auditByKey, home) {
 	const roundOf = new Map();
 	const buckets = new Map();
 	for (const row of rows) {
@@ -118,7 +137,7 @@ function render(item, rows, auditByKey) {
 		lines.push(`## Round ${n} — ${String(bucket[0].revision).slice(0, SHORT_REVISION_CHARS)}`, "");
 		for (const row of bucket) {
 			lines.push(reviewLine(row));
-			if (row.verdict === WORD_SEND_BACK) lines.push(...findingsLines(row, auditByKey));
+			if (row.verdict === WORD_SEND_BACK) lines.push(...findingsLines(row, auditByKey, home));
 		}
 		lines.push("");
 	}
@@ -142,7 +161,7 @@ function main() {
 	if (rows.length === 0) throw new Error(`no review recorded for item ${JSON.stringify(rawItem)} in this repository`);
 	const auditByKey = new Map();
 	for (const rec of readAuditRecords(home)) auditByKey.set(auditKey(rec), rec);
-	process.stdout.write(render(item, rows, auditByKey));
+	process.stdout.write(render(item, rows, auditByKey, home));
 }
 
 try {
