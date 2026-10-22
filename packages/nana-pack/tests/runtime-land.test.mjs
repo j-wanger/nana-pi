@@ -8,6 +8,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,6 +18,7 @@ import {
 	COMPLETION_FILE,
 	COVERAGE_ENV,
 	RECORD_FILE,
+	STOP_WAIT_MS,
 } from "../lib/runtime-map-config.mjs";
 import {
 	COVERAGE_FAILURE_POLICY,
@@ -29,6 +31,7 @@ import {
 	TIP_DIGITS,
 	UNMEASURED_PLATFORMS,
 } from "../lib/land-config.mjs";
+import { handMeasure } from "../../../scripts/runtime-measure.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -93,6 +96,46 @@ fs.writeFileSync(FAKE_SUITE, [
 	'    process.exit(failing ? 1 : 0);',
 	'  }',
 	'} else { process.exit(mode === "always-fail" || mode === "no-tip-fail" ? 7 : 0); }',
+	'',
+].join("\n"));
+
+const ORPHAN_WORKER = path.join(TD, "orphan-worker.mjs");
+fs.writeFileSync(ORPHAN_WORKER, [
+	'import * as fs from "node:fs";',
+	'import * as path from "node:path";',
+	'const [, , kind, outDir] = process.argv;',
+	'for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => {});',
+	'fs.writeFileSync(path.join(outDir, `${kind}.pid`), String(process.pid));',
+	'setTimeout(() => {}, 120000);',
+	'',
+].join("\n"));
+const ORPHAN_BRIDGE = path.join(TD, "orphan-bridge.mjs");
+fs.writeFileSync(ORPHAN_BRIDGE, [
+	'import { spawn } from "node:child_process";',
+	'const [, , worker, outDir] = process.argv;',
+	'spawn(process.execPath, [worker, "same-group", outDir], { stdio: "ignore" }).unref();',
+	'',
+].join("\n"));
+const ORPHAN_SUITE = path.join(TD, "orphan-suite.mjs");
+fs.writeFileSync(ORPHAN_SUITE, [
+	'import * as fs from "node:fs";',
+	'import * as path from "node:path";',
+	'import { spawn } from "node:child_process";',
+	'const [, , worker, bridge, outDir] = process.argv;',
+	`const coverage = process.env.${COVERAGE_ENV};`,
+	'fs.mkdirSync(coverage, { recursive: true });',
+	'fs.writeFileSync(process.env.NANA_FAKE_COVERAGE_PATH, coverage);',
+	'for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => process.exit(23));',
+	'const bridgeChild = spawn(process.execPath, [bridge, worker, outDir], { stdio: "ignore" });',
+	'bridgeChild.unref();',
+	'spawn(process.execPath, [worker, "detached", outDir], { detached: true, stdio: "ignore" }).unref();',
+	'const ready = setInterval(() => {',
+	'  let bridgeGone = false; try { process.kill(bridgeChild.pid, 0); } catch { bridgeGone = true; }',
+	'  if (bridgeGone && fs.existsSync(path.join(outDir, "same-group.pid")) && fs.existsSync(path.join(outDir, "detached.pid"))) {',
+	'    clearInterval(ready); fs.writeFileSync(path.join(outDir, "ready"), "1");',
+	'  }',
+	'}, 10);',
+	'setTimeout(() => {}, 120000);',
 	'',
 ].join("\n"));
 
@@ -210,20 +253,39 @@ async function waitForFile(file, limit = 10000) {
 	if (!fs.existsSync(file)) throw new Error(`timed out waiting for ${file}`);
 }
 
+const processIsGone = (pid) => { try { process.kill(pid, 0); return false; } catch { return true; } };
+async function waitForPidsToEnd(pids, limit) {
+	const deadline = Date.now() + limit;
+	while (Date.now() < deadline) {
+		if (pids.every(processIsGone)) return true;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+	return pids.every(processIsGone);
+}
+
 if (process.platform === "win32") console.log("SKIP off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero — R-2526: Windows lands do not measure");
 else {
 // req: R-2527
 await check("off Windows, a land suite stopped during its coverage run removes the coverage folder, keeps the earlier data and exits non-zero", async () => {
 	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
 		const name = `stopped-${signal}`; const root = fixture(name); const dataFile = path.join(TD, `${name}-data.json`); const initial = oldData(name);
-		const logFile = path.join(TD, `${name}-starts.jsonl`); const lockDir = path.join(TD, `${name}-lock`); const tempRoot = path.join(TD, `${name}-tmp`); const coveragePath = path.join(TD, `${name}-coverage.txt`);
-		fs.mkdirSync(tempRoot, { recursive: true }); fs.writeFileSync(dataFile, initial);
+		const logFile = path.join(TD, `${name}-starts.jsonl`); const lockDir = path.join(TD, `${name}-lock`); const tempRoot = path.join(TD, `${name}-tmp`); const coveragePath = path.join(TD, `${name}-coverage.txt`); const outDir = path.join(TD, `${name}-processes`);
+		fs.mkdirSync(tempRoot, { recursive: true }); fs.mkdirSync(outDir, { recursive: true }); fs.writeFileSync(dataFile, initial);
 		const stale = path.join(tempRoot, "nana-runtime-stale"); fs.mkdirSync(stale); fs.writeFileSync(path.join(stale, COVERAGE_OWNER_FILE), "99999999\n");
-		const env = { ...process.env, [LAND_TIP_ENV]: git(root, "rev-parse", "HEAD"), NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, FAKE_SUITE]), NANA_SUITE_LOCK_DIR: lockDir, NANA_RUNTIME_MAP_FILE: dataFile, NANA_FAKE_LOG: logFile, NANA_FAKE_MODE: "sleep", NANA_FAKE_COVERAGE_PATH: coveragePath, NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot, platform: "darwin" }) };
+		const env = { ...process.env, [LAND_TIP_ENV]: git(root, "rev-parse", "HEAD"), NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, ORPHAN_SUITE, ORPHAN_WORKER, ORPHAN_BRIDGE, outDir]), NANA_SUITE_LOCK_DIR: lockDir, NANA_RUNTIME_MAP_FILE: dataFile, NANA_FAKE_LOG: logFile, NANA_FAKE_MODE: "sleep", NANA_FAKE_COVERAGE_PATH: coveragePath, NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot, platform: "darwin" }) };
 		const child = spawn(process.execPath, [LOCKED_WRAPPER], { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] });
-		await waitForFile(coveragePath); const coverageDir = fs.readFileSync(coveragePath, "utf8"); child.kill(signal);
-		const exit = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error(`${signal} child did not exit`)), 8000); child.once("exit", (code, childSignal) => { clearTimeout(timer); resolve({ code, signal: childSignal }); }); });
-		assert.notEqual(exit.code ?? 1, 0); assert.equal(fs.existsSync(coverageDir), false); assert.equal(fs.existsSync(stale), false); assert.equal(fs.readFileSync(dataFile, "utf8"), initial);
+		const pidFiles = [path.join(outDir, "same-group.pid"), path.join(outDir, "detached.pid")];
+		try {
+			await waitForFile(path.join(outDir, "ready")); await waitForFile(coveragePath);
+			const coverageDir = fs.readFileSync(coveragePath, "utf8"); child.kill(signal);
+			const exit = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error(`${signal} child did not exit`)), STOP_WAIT_MS + 3000); child.once("exit", (code, childSignal) => { clearTimeout(timer); resolve({ code, signal: childSignal }); }); });
+			const descendantPids = pidFiles.map((file) => Number(fs.readFileSync(file, "utf8")));
+			assert.equal(await waitForPidsToEnd(descendantPids, STOP_WAIT_MS + 3000), true);
+			assert.equal(processIsGone(process.pid), false); assert.notEqual(exit.code ?? 1, 0); assert.equal(fs.existsSync(coverageDir), false); assert.equal(fs.existsSync(stale), false); assert.equal(fs.readFileSync(dataFile, "utf8"), initial);
+		} finally {
+			for (const file of pidFiles) { try { process.kill(Number(fs.readFileSync(file, "utf8")), "SIGKILL"); } catch {} }
+			try { process.kill(child.pid, "SIGKILL"); } catch {}
+		}
 	}
 });
 }
@@ -242,7 +304,7 @@ await check("filtered, wrong-tip and unset-tip runs neither measure nor rerun", 
 });
 
 // req: R-2533
-await check("a hand measure writes its tip, time and dirty-file count inside the lock", () => {
+await check("a hand measure writes its tip, time and dirty-file count inside the lock", async () => {
 	for (const [name, options] of [["hand-measure", {}], ["hand-measure-win32", { platform: "win32" }]]) {
 		const root = fixture(name); fs.writeFileSync(path.join(root, "README.md"), "dirty fixture\n");
 		const dataFile = path.join(TD, `${name}-data.json`); const logFile = path.join(TD, `${name}-starts.jsonl`); const lockDir = path.join(TD, `${name}-lock`);
@@ -255,6 +317,26 @@ await check("a hand measure writes its tip, time and dirty-file count inside the
 		const measured = Date.parse(data.measuredAt); assert.ok(measured >= before && measured <= after);
 		const recordedStarts = starts(logFile); assert.equal(recordedStarts.length, 1); assert.ok(recordedStarts[0].coverage);
 	}
+
+	const root = fixture("hand-stop-win32-unit");
+	const fakeChild = new EventEmitter(); fakeChild.pid = 424242;
+	const forwarded = []; fakeChild.kill = (signal) => { forwarded.push(signal); };
+	const handlers = new Map(); const removed = [];
+	let settled = false;
+	const stopped = handMeasure({
+		root,
+		platform: "win32",
+		start: () => fakeChild,
+		onSignal: (signal, handler) => handlers.set(signal, handler),
+		offSignal: (signal, handler) => { if (handlers.get(signal) === handler) removed.push(signal); },
+	}).then((code) => { settled = true; return code; });
+	const stopHandler = handlers.get("SIGINT");
+	if (stopHandler) stopHandler();
+	await new Promise((resolve) => setTimeout(resolve, 20));
+	const waitedForLockedSuite = !settled;
+	fakeChild.emit("exit", 0, null);
+	const stopCode = await stopped;
+	assert.equal(typeof stopHandler, "function"); assert.equal(waitedForLockedSuite, true); assert.deepEqual(forwarded, []); assert.notEqual(stopCode, 0); assert.deepEqual(removed.sort(), ["SIGHUP", "SIGINT", "SIGTERM"]);
 });
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");

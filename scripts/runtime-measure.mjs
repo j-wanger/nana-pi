@@ -4,8 +4,8 @@
  * @purpose Build and atomically write runtime-map data, and route a hand measure through the locked suite's land path.
  * @inputs a repo root, coverage folder, metadata, environment, and injectable process and signal operations
  * @outputs runtime data (schema 1 hashes, tests, tip, measurement time, and optional dirty count) and command exit codes
- * @effects process (spawns git and the locked suite, forwards SIGINT/SIGTERM/SIGHUP, lists and kills the suite's
- *  process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
+ * @effects process (spawns git and the locked suite, forwards SIGINT/SIGTERM/SIGHUP off Windows, lists and kills
+ *  the suite's process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
  * @errors leaves earlier runtime data unchanged and exits non-zero when the suite's completion record is
  *  missing or disagrees with the records read, or when a stop signal arrives before the suite finishes;
  *  otherwise exits with the suite's own exit code
@@ -126,31 +126,45 @@ function descendantsOf(rootPid, procs) {
 	return seen;
 }
 
+/** Signal remembered process-group and single-pid targets; a gone or inaccessible target is harmless. */
+export function signalTreeTargets(targets, { kill = process.kill, signal = "SIGKILL" } = {}) {
+	for (const pgid of targets?.groups ?? []) {
+		try { kill(-pgid, signal); }
+		catch (error) { if (!["ESRCH", "EPERM"].includes(error?.code)) throw error; }
+	}
+	for (const pid of targets?.pids ?? []) {
+		try { kill(pid, signal); }
+		catch (error) { if (!["ESRCH", "EPERM"].includes(error?.code)) throw error; }
+	}
+}
+
 /**
  * Signal the suite's whole process tree rooted at `rootPid` (R-1277, seat amendment 1), using
  * SIGKILL by default: signal by process group every group whose members all lie in the tree, and
- * by pid any tree process
- * whose group also holds a process outside the tree — so a group shared with this command's own
- * caller, which always holds a process outside the tree, is never signalled as a group.
+ * by pid any tree process whose group also holds a process outside the tree. A group shared with
+ * this command's caller is therefore never signalled as a group. Return every target signalled so
+ * an escalation can reach a descendant orphaned after this snapshot.
  */
 export function killTree(rootPid, { run = (args) => spawnSync(args[0], args.slice(1), { encoding: "utf8" }), kill = process.kill, signal = "SIGKILL" } = {}) {
 	const listing = run(TREE_LIST);
-	if (listing.status !== 0 || !listing.stdout) return;
+	if (listing.status !== 0 || !listing.stdout) return { groups: [], pids: [] };
 	const procs = parseTree(listing.stdout);
 	const tree = descendantsOf(rootPid, procs);
 	const groupHasOutsider = new Set();
 	for (const [pid, info] of procs) if (!tree.has(pid)) groupHasOutsider.add(info.pgid);
-	const killedGroups = new Set();
+	const targets = { groups: [], pids: [] };
+	const targetGroups = new Set();
 	for (const pid of tree) {
 		const info = procs.get(pid);
 		if (!info) continue;
-		if (groupHasOutsider.has(info.pgid)) {
-			try { kill(pid, signal); } catch {}
-		} else if (!killedGroups.has(info.pgid)) {
-			killedGroups.add(info.pgid);
-			try { kill(-info.pgid, signal); } catch {}
+		if (groupHasOutsider.has(info.pgid)) targets.pids.push(pid);
+		else if (!targetGroups.has(info.pgid)) {
+			targetGroups.add(info.pgid);
+			targets.groups.push(info.pgid);
 		}
 	}
+	signalTreeTargets(targets, { kill, signal });
+	return targets;
 }
 
 /** Build runtime data from one completed coverage folder without writing it. */
@@ -260,7 +274,15 @@ export async function measure({
 }
 
 /** Run a hand measure through the same locked land path, stamping HEAD and tracked dirt. */
-export async function handMeasure({ root = ROOT, env = process.env, testLocked = path.join(ROOT, "scripts", "test-locked.mjs"), start = spawn } = {}) {
+export async function handMeasure({
+	root = ROOT,
+	env = process.env,
+	testLocked = path.join(ROOT, "scripts", "test-locked.mjs"),
+	start = spawn,
+	platform = process.platform,
+	onSignal = (signal, handler) => process.on(signal, handler),
+	offSignal = (signal, handler) => process.off(signal, handler),
+} = {}) {
 	const head = spawnSync("git", ["rev-parse", "HEAD^{commit}"], { cwd: root, encoding: "utf8" });
 	if (head.status !== 0) return head.status ?? 1;
 	const status = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=no"], { cwd: root, encoding: "utf8" });
@@ -273,14 +295,14 @@ export async function handMeasure({ root = ROOT, env = process.env, testLocked =
 	});
 	let stopped = false;
 	const handlers = new Map();
-	for (const signal of [...STOP_SIGNALS, "SIGHUP"]) {
+	for (const signal of STOP_SIGNALS) {
 		const handler = () => {
 			if (stopped) return;
 			stopped = true;
-			try { child.kill(signal); } catch {}
+			if (platform !== "win32") { try { child.kill(signal); } catch {} }
 		};
 		handlers.set(signal, handler);
-		process.on(signal, handler);
+		onSignal(signal, handler);
 	}
 	try {
 		const code = await new Promise((resolve) => {
@@ -289,7 +311,7 @@ export async function handMeasure({ root = ROOT, env = process.env, testLocked =
 		});
 		return stopped ? (code === 0 ? 1 : code) : code;
 	} finally {
-		for (const [signal, handler] of handlers) process.off(signal, handler);
+		for (const [signal, handler] of handlers) offSignal(signal, handler);
 	}
 }
 

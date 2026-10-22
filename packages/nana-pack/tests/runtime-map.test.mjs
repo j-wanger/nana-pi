@@ -346,8 +346,8 @@ check("R-1275: a run with no completion record, or with a count that differs fro
 );
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
-// MM8 (R-1277): off Windows, SIGINT/SIGTERM end the suite's whole tree without touching the
-// caller, which shares the measure command's own process group.
+// MM8 (R-1277): off Windows, SIGINT/SIGTERM/SIGHUP end the suite's whole tree, including
+// descendants orphaned between the first signal and escalation, without touching the caller.
 // ════════════════════════════════════════════════════════════════════════════════════════════
 const LEVEL_SCRIPT = path.join(TD, "tree-level.mjs");
 fs.writeFileSync(LEVEL_SCRIPT, [
@@ -362,6 +362,43 @@ fs.writeFileSync(LEVEL_SCRIPT, [
 	'else fs.writeFileSync(path.join(outDir, "ready"), "1");',
 	"setTimeout(() => {}, 120000);",
 	"",
+].join("\n"));
+const ORPHAN_WORKER_SCRIPT = path.join(TD, "orphan-worker.mjs");
+fs.writeFileSync(ORPHAN_WORKER_SCRIPT, [
+	'import * as fs from "node:fs";',
+	'import * as path from "node:path";',
+	'const [, , kind, outDir] = process.argv;',
+	'for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => {});',
+	'fs.writeFileSync(path.join(outDir, `${kind}.pid`), String(process.pid));',
+	'setTimeout(() => {}, 120000);',
+	'',
+].join("\n"));
+const ORPHAN_BRIDGE_SCRIPT = path.join(TD, "orphan-bridge.mjs");
+fs.writeFileSync(ORPHAN_BRIDGE_SCRIPT, [
+	'import { spawn } from "node:child_process";',
+	'const [, , worker, outDir] = process.argv;',
+	'spawn(process.execPath, [worker, "same-group", outDir], { stdio: "ignore" }).unref();',
+	'',
+].join("\n"));
+const ORPHAN_ROOT_SCRIPT = path.join(TD, "orphan-root.mjs");
+fs.writeFileSync(ORPHAN_ROOT_SCRIPT, [
+	'import * as fs from "node:fs";',
+	'import * as path from "node:path";',
+	'import { spawn } from "node:child_process";',
+	'const [, , worker, bridge, outDir] = process.argv;',
+	`fs.writeFileSync(path.join(outDir, "coverage-dir.txt"), process.env.${COVERAGE_ENV} ?? "");`,
+	'for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => process.exit(23));',
+	'const bridgeChild = spawn(process.execPath, [bridge, worker, outDir], { stdio: "ignore" });',
+	'bridgeChild.unref();',
+	'spawn(process.execPath, [worker, "detached", outDir], { detached: true, stdio: "ignore" }).unref();',
+	'const ready = setInterval(() => {',
+	'  let bridgeGone = false; try { process.kill(bridgeChild.pid, 0); } catch { bridgeGone = true; }',
+	'  if (bridgeGone && fs.existsSync(path.join(outDir, "same-group.pid")) && fs.existsSync(path.join(outDir, "detached.pid"))) {',
+	'    clearInterval(ready); fs.writeFileSync(path.join(outDir, "ready"), "1");',
+	'  }',
+	'}, 10);',
+	'setTimeout(() => {}, 120000);',
+	'',
 ].join("\n"));
 const HAND_STOP_WRAPPER = path.join(TD, "hand-stop-wrapper.mjs");
 fs.writeFileSync(HAND_STOP_WRAPPER, [
@@ -381,21 +418,25 @@ fs.writeFileSync(CALLER_SCRIPT, [
 	"setTimeout(() => {}, 120000);",
 	"",
 ].join("\n"));
-async function runStopCase(signal) {
-	const outDir = path.join(TD, `mm8-${signal}`);
+async function runStopCase(signal, orphan = false) {
+	const suffix = `${signal}-${orphan ? "orphan" : "tree"}`;
+	const outDir = path.join(TD, `mm8-${suffix}`);
 	fs.mkdirSync(outDir, { recursive: true });
-	const root = mkGitFixture(`mm8-root-${signal}`, { "README.md": "fixture\n" });
-	const dataFile = path.join(TD, `mm8-data-${signal}.json`);
+	const root = mkGitFixture(`mm8-root-${suffix}`, { "README.md": "fixture\n" });
+	const dataFile = path.join(TD, `mm8-data-${suffix}.json`);
 	const earlierData = JSON.stringify({ schema: 1, hashes: {}, tests: {}, marker: "earlier" });
 	fs.writeFileSync(dataFile, earlierData);
+	const suiteCommand = orphan
+		? [process.execPath, ORPHAN_ROOT_SCRIPT, ORPHAN_WORKER_SCRIPT, ORPHAN_BRIDGE_SCRIPT, outDir]
+		: [process.execPath, LEVEL_SCRIPT, "3", outDir];
 	const env = {
 		...process.env,
 		NANA_RUNTIME_MAP_FILE: dataFile,
-		NANA_SUITE_LOCK_DIR: path.join(TD, `mm8-lock-${signal}`),
-		NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, LEVEL_SCRIPT, "3", outDir]),
+		NANA_SUITE_LOCK_DIR: path.join(TD, `mm8-lock-${suffix}`),
+		NANA_SUITE_TEST_COMMAND: JSON.stringify(suiteCommand),
 	};
 	const caller = spawn(process.execPath, [CALLER_SCRIPT, HAND_STOP_WRAPPER, outDir, root], { env, stdio: "ignore" });
-	const pidFiles = ["level-1.pid", "level-2.pid", "level-3.pid"].map((f) => path.join(outDir, f));
+	const pidFiles = (orphan ? ["same-group.pid", "detached.pid"] : ["level-1.pid", "level-2.pid", "level-3.pid"]).map((f) => path.join(outDir, f));
 	try {
 		const readyPath = path.join(outDir, "ready");
 		const readyDeadline = Date.now() + 10000;
@@ -437,10 +478,13 @@ async function runStopCase(signal) {
 }
 
 if (posix) {
-	const sigintOk = await runStopCase("SIGINT");
-	const sigtermOk = await runStopCase("SIGTERM");
+	const results = [];
+	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+		results.push(await runStopCase(signal));
+		results.push(await runStopCase(signal, true));
+	}
 	// req: R-1277
-	check("R-1277: off Windows, SIGINT or SIGTERM sent twice to the measure command while a fake three-level suite runs ends the whole tree within the stop wait, removes the coverage folder, leaves the caller alive and exits non-zero", sigintOk && sigtermOk);
+	check("R-1277: off Windows, SIGINT or SIGTERM sent twice to the measure command while a fake three-level suite runs ends the whole tree within the stop wait, removes the coverage folder, leaves the caller alive and exits non-zero", results.every(Boolean));
 } else {
 	skip("R-1277: off Windows, SIGINT or SIGTERM sent twice to the measure command while a fake three-level suite runs ends the whole tree within the stop wait, removes the coverage folder, leaves the caller alive and exits non-zero", "runs only off Windows (R-1277 excludes it)");
 }

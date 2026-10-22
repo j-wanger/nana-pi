@@ -41,8 +41,8 @@ export const DATA_FILE_ENV = "NANA_RUNTIME_MAP_FILE";
 // shared git common directory, so every worktree of the clone reads and writes one file.
 export const DATA_SUBPATH = "nana/runtime-map.json";
 
-// contract (R-1277): the two stops the must-meet row names (SIGHUP is out of scope for this cut).
-export const STOP_SIGNALS = ["SIGINT", "SIGTERM"];
+// contract (R-1277): every stop signal the measure command handles.
+export const STOP_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
 
 // contract (R-1274).
 export const STALE_MARK = "[stale]";

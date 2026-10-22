@@ -24,7 +24,7 @@ import {
 	LAND_TIP_ENV,
 	UNMEASURED_PLATFORMS,
 } from "../packages/nana-pack/lib/land-config.mjs";
-import { buildRuntimeData, killTree, writeRuntimeData } from "./runtime-measure.mjs";
+import { buildRuntimeData, killTree, signalTreeTargets, writeRuntimeData } from "./runtime-measure.mjs";
 
 // chosen: keep the machine-wide lock in the user's private home, independent of each worktree.
 const DEFAULT_LOCK_DIR = path.join(os.homedir(), ".nana", "suite.lock");
@@ -123,10 +123,20 @@ function runCommand(filters, env, cwd) {
 	});
 }
 
-function signalChild(signal, target = child) {
-	if (!target) return;
-	try { if (process.platform !== "win32") killTree(target.pid, { signal }); else target.kill(signal); }
-	catch (error) { if (error?.code !== "ESRCH") throw error; }
+function signalChild(signal, target = child, remembered = null) {
+	if (!target) return { groups: [], pids: [] };
+	try {
+		if (process.platform === "win32") { target.kill(signal); return { groups: [], pids: [] }; }
+		if (signal !== "SIGKILL") return killTree(target.pid, { signal });
+		signalTreeTargets(remembered, { signal });
+		// runCommand starts a new process group, so this restores the original group-wide kill and
+		// reaches a same-group process that was already orphaned before the first tree snapshot.
+		try { process.kill(-target.pid, signal); } catch (error) { if (!["ESRCH", "EPERM"].includes(error?.code)) throw error; }
+		return killTree(target.pid, { signal });
+	} catch (error) {
+		if (!["ESRCH", "EPERM"].includes(error?.code)) throw error;
+		return { groups: [], pids: [] };
+	}
 }
 
 function terminateChild(signal) {
@@ -136,8 +146,8 @@ function terminateChild(signal) {
 		let childExited = false; let escalationFinished = false;
 		const finish = () => { if (childExited && escalationFinished) resolve(); };
 		active.once("exit", () => { childExited = true; finish(); });
-		signalChild(signal, active);
-		setTimeout(() => { signalChild("SIGKILL", active); escalationFinished = true; finish(); }, KILL_WAIT_MS);
+		const remembered = signalChild(signal, active);
+		setTimeout(() => { signalChild("SIGKILL", active, remembered); escalationFinished = true; finish(); }, KILL_WAIT_MS);
 	});
 }
 
