@@ -40,3 +40,10 @@
 - Capability fields (cap-fields-own, report): no row names the builder's lane commits, so the lane loop lists no build-stage deliverable.
 - Capability fields (cap-fields-own, final review): four deliverable rows read more like rules than artifacts, R-977, R-264, R-507 and R-873. Each points at an output: main, the stage, the run record and the frontier report. Swapping them is a reversible seat call.
 - Capability fields (cap-fields-own, final review): R-2460's check reads the field lines with its own pattern, not the parsed capability fields. The tree checker refuses a malformed line first, so the two cannot drift today.
+- Deliverable lines (deliverable-fields, plan): the check proves a named path exists at HEAD, not that the code makes or reads the artifact. A command named in a reason is not checked.
+- Deliverable lines (deliverable-fields, plan): the suite never prints the notes. A renamed code path with no ledger edit shows its note only at the next `npm run req:tree` or a `--check` run.
+- Deliverable lines (deliverable-fields, plan): only product capabilities carry `Deliverables:`, so 38 of the audit's 78 deliverables carry lines. Trust and tool actions, the one constraint, carries none, and nothing flags an artifact on no `Deliverables:` line.
+- Deliverable lines (deliverable-fields, plan): a regroup that moves a deliverable to another capability leaves its lines naming an unlisted row, one note each, until someone moves them.
+- Deliverable lines (deliverable-fields, plan): the three rule lines that tell agents to run impact, the movement listing and the local install check stay until a lane automates each maker; until then each reads as a `rule:` reader.
+- Deliverable lines (deliverable-fields, plan): other projects' trees gain nothing until they add `Kind: product`.
+- Deliverable lines (deliverable-fields, seat): `--write` and `--check` now print the summary line whenever a product capability lists deliverables, even with no maker or reader line, where they printed nothing before.
