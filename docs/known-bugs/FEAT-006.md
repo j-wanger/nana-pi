@@ -45,3 +45,4 @@
 - Precedent check (brief-reader-fixes, plan): a heading such as `Precedent (audit)` still counts because only a following word excludes a heading.
 - Precedent check (audit re-check, 2026-10-22): only briefs are checked; nothing checks a plan's must-meet for its Precedent section.
 - Known-bug attachment (audit re-check, 2026-10-22): it needs a `Feature:` line, which only nana-pi's own working section asks a brief to carry.
+- brief-check (brief-reader-fixes, final review round 1): a folder given as `--brief` gets brief-check's own `brief-check:` line, while pi-worker refuses the same input with `pi-worker: lane refused:`; R-2585's equality loop has no folder case.
