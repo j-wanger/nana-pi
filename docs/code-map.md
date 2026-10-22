@@ -622,13 +622,13 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/deliverables.mjs`
 
-- **purpose** — Check product-capability maker and reader lines for readable claims, reasons, and paths tracked at HEAD.
-- **inputs** — A parsed requirements tree and an injected list of ledger-relative paths tracked in the ledger folder's HEAD tree.
-- **outputs** — Deliverable notes, path claims to check, and counts describing whether deliverables were checked.
-- **effects** — none
-- **errors** — Returns report-only notes for malformed claims, missing reasons or paths, and paths not tracked at HEAD; never throws for a claim.
-- **callers** — `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
-- **callees** — —
+- **purpose** — Parse product-capability deliverable claims and produce the shared checker lines for their code coverage and HEAD-tracked paths.
+- **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, or an injected git runner.
+- **outputs** — Per-row claims, code predicates, deliverable notes and counts, and the exact lines printed by the tree checker.
+- **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
+- **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `scripts/requirements-moved.mjs`
 
 ### `scripts/identity-scan.mjs`
 
@@ -652,13 +652,13 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/product-report.mjs`
 
-- **purpose** — Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
-- **inputs** — REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
-- **outputs** — A complete product ledger HTML file with ordered stage, deliverable and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+- **purpose** — Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
+- **inputs** — REQUIREMENTS.md, its ledger folder's HEAD tree through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and runtime-map data.
+- **outputs** — A complete product ledger HTML file with shared deliverable lines, per-deliverable claims and marks, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`
-- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/readme-check.mjs`
 
@@ -707,7 +707,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — One summary line, affected feature blocks, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
 - **effects** — process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
 - **errors** — exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
-- **callers** — `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/deliverables.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/requirements-regroup.mjs`
@@ -733,8 +733,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/requirements-tree.mjs`
 
 - **purpose** — Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline.
-- **inputs** — REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md.
-- **outputs** — Parsed headings and tables, structural problem lists, and rendered outline Markdown.
+- **inputs** — REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md plus the ledger folder's HEAD tree through the shared deliverable reporter.
+- **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown, and shared deliverable report lines.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
@@ -2322,7 +2322,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixture repositories); process (git commands).
 - **errors** — failed assertions set a nonzero test exit.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/pwsh-oracle.mjs`
 

@@ -15,6 +15,9 @@ import * as vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { buildReport, generateReport, generatePackets, renderInto, validateStore } from "../../../scripts/product-report.mjs";
+import * as productReportModule from "../../../scripts/product-report.mjs";
+import * as deliverablesModule from "../../../scripts/deliverables.mjs";
+import { MAX_GIT_BUFFER } from "../../../scripts/requirements-moved.mjs";
 import { OPEN_SECTION_NAME, OPEN_SECTION_PREFIX } from "../lib/frontier-config.mjs";
 import { splitOpenSection } from "../lib/handoff-asks.mjs";
 import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
@@ -25,6 +28,19 @@ let fails = 0;
 function check(name, ok, detail = "") {
   console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
   if (!ok) fails++;
+}
+// Match the canonical runner's established per-file ceiling while giving each new async case its own watchdog.
+const CASE_LIMIT_MS = Number(process.env.NANA_TEST_TIMEOUT_MS) || 5 * 60 * 1000;
+async function withinCaseLimit(label, action) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(action),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} exceeded ${CASE_LIMIT_MS} ms`)), CASE_LIMIT_MS); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 function fixture(name = "repo") {
   const root = path.join(temp, name);
@@ -1116,8 +1132,102 @@ try {
     const statuses = { "R-5003": "violated", "R-5000": "implemented", "R-5002": "planned", "R-5001": "untested" };
     const itemFacts = expectedOrder.every((id) => byId[id]?.textContent.includes(statuses[id]) && byId[id]?.attrs.class.includes("gap") === (id !== "R-5000"));
     // req: R-2452
-    check("R-2452: a product card lists its deliverables in line order with status, home and consumers, and marks every one not implemented as a gap", JSON.stringify(items.map((item) => item.textContent.slice(0, 6))) === JSON.stringify(expectedOrder) && itemFacts && JSON.stringify(links("R-5000")) === JSON.stringify([["FEAT-050 · Direct homes", "#FEAT-050"], ["FEAT-052 · First consumer", "#FEAT-052"], ["FEAT-053 · Second consumer", "#FEAT-053"]]) && JSON.stringify(links("R-5001")) === JSON.stringify([["FEAT-051 · Grouped homes", "#FEAT-051"], ["FEAT-052 · First consumer", "#FEAT-052"]]) && byId["R-5002"]?.textContent.includes("none") && pinsKindedHeadings(product, [["CAP-50", "Product stage"], ["CAP-51", "Consumer stage"]]), JSON.stringify(items.map((item) => [item.textContent, item.attrs.class, (item.children ?? []).filter((node) => node.tag === "a").map((node) => [node.textContent, node.attrs.href])])));
+    check("R-2452: a product card lists its deliverables in line order with status and home, and marks every one not implemented as a gap", JSON.stringify(items.map((item) => item.textContent.slice(0, 6))) === JSON.stringify(expectedOrder) && itemFacts && JSON.stringify(links("R-5000")) === JSON.stringify([["FEAT-050 · Direct homes", "#FEAT-050"]]) && JSON.stringify(links("R-5001")) === JSON.stringify([["FEAT-051 · Grouped homes", "#FEAT-051"]]) && pinsKindedHeadings(product, [["CAP-50", "Product stage"], ["CAP-51", "Consumer stage"]]), JSON.stringify(items.map((item) => [item.textContent, item.attrs.class, (item.children ?? []).filter((node) => node.tag === "a").map((node) => [node.textContent, node.attrs.href])])));
   }
+  await withinCaseLimit("R-2542", async () => {
+    const notMadeByCode = "not made by code";
+    const notReadByCode = "not read by code";
+    const noArtifactNamed = "no artifact named";
+    const ledger = [
+      "# CAP-50 · Product stage", "Purpose: produce deliverables.", "Outcome: deliverables are visible.", "Kind: product", "Deliverables: R-5000, R-5001, R-5002, R-5003, R-5004, R-5005, R-5006, R-5007, R-5008",
+      "Made by: R-5000 · session start: REQUIREMENTS.md · REQUIREMENTS.md\t", "Read by: R-5000 · code: REQUIREMENTS.md  ",
+      "Made by: R-5001 · manual: a person writes it", "Read by: R-5001 · rule: a rule reads it",
+      "Made by: R-5002 · land: REQUIREMENTS.md", "Read by: R-5002 · person: a person reads it",
+      "Made by: R-5003 · manual: a person writes it", "Read by: R-5003 · prompt: REQUIREMENTS.md",
+      "Made by: R-5004 · manual: first maker", "Read by: R-5004 · code: REQUIREMENTS.md", "Made by: R-5004 · suite: REQUIREMENTS.md",
+      "Made by: R-5006 · land", "Read by: R-5006 · code: REQUIREMENTS.md",
+      "Made by: R-5007 · suite: REQUIREMENTS.md", "Read by: R-5007 · code",
+      "Made by: R-5008 · land: REQUIREMENTS.md · REQUIREMENTS.md · extra", "Read by: R-5008 · code: REQUIREMENTS.md", "",
+      "## FEAT-050 · Direct homes", "Purpose: own direct deliverables.", "Status: active", "", table([["R-5000", "implemented"], ["R-5001", "implemented"], ["R-5002", "implemented"], ["R-5003", "implemented"], ["R-5004", "implemented"], ["R-5005", "implemented"], ["R-5006", "implemented"], ["R-5007", "implemented"], ["R-5008", "implemented"]]).trimEnd(),
+      "# CAP-51 · Consumer stage", "Purpose: consume deliverables.", "Outcome: consumers work.", "Kind: product", "Deliverables: R-5100", "Made by: R-5000 · build: REQUIREMENTS.md", "Made by: R-5100 · build: REQUIREMENTS.md", "Read by: R-5100 · code: REQUIREMENTS.md", "",
+      "## FEAT-052 · First consumer", "Purpose: consume two rows.", "Status: active", "Also applies: R-5000, R-5001", "", table([["R-5100", "implemented"]]).trimEnd(),
+    ].join("\r\n");
+    const repo = treeFixture("deliverable-claims", ledger);
+    const out = path.join(temp, "deliverable-claims.html");
+    await generateReport({ root: repo.root, out });
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+    const card = capabilityCard(product, "CAP-50");
+    const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
+    const allItems = capabilityCards(product).flatMap((capability) => capability.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")));
+    const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
+    const claims = (id) => (byId[id]?.children.find((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent);
+    const mark = (id, value) => byId[id]?.textContent.includes(value) ?? false;
+    const expectedClaims = {
+      "R-5000": ["Made by: session start: REQUIREMENTS.md · REQUIREMENTS.md", "Read by: code: REQUIREMENTS.md"],
+      "R-5001": ["Made by: manual: a person writes it", "Read by: rule: a rule reads it"],
+      "R-5004": ["Made by: manual: first maker", "Read by: code: REQUIREMENTS.md", "Made by: suite: REQUIREMENTS.md"],
+      "R-5006": ["Made by: land", "Read by: code: REQUIREMENTS.md"],
+      "R-5007": ["Made by: suite: REQUIREMENTS.md", "Read by: code"],
+      "R-5008": ["Made by: land: REQUIREMENTS.md · REQUIREMENTS.md · extra", "Read by: code: REQUIREMENTS.md"],
+    };
+    const countLine = product.root.children.find((node) => node.attrs?.class === "deliverable-report-line" && /^deliverables:/.test(node.textContent))?.textContent ?? "";
+    const count = /^deliverables: (\d+) of (\d+) made and read by code$/.exec(countLine);
+    const withNeitherMark = allItems.filter((item) => !item.textContent.includes(notMadeByCode) && !item.textContent.includes(notReadByCode)).length;
+    const expectedMarks = {
+      "R-5000": [false, false], "R-5001": [true, true], "R-5002": [false, true], "R-5003": [true, false], "R-5004": [false, false],
+      "R-5005": [true, true], "R-5006": [true, false], "R-5007": [false, true], "R-5008": [true, false],
+    };
+    const exactMarks = Object.entries(expectedMarks).every(([id, [made, read]]) => mark(id, notMadeByCode) === made && mark(id, notReadByCode) === read);
+    const homeLinksOnly = Object.values(byId).every((item) => (item.children ?? []).filter((node) => node.tag === "a").length === 1);
+    const claimsStayOwned = !claims("R-5000").some((value) => value.includes("build: REQUIREMENTS.md"));
+    const artifactMarks = !mark("R-5000", noArtifactNamed) && ["R-5001", "R-5002", "R-5003", "R-5004", "R-5005", "R-5006", "R-5007", "R-5008"].every((id) => mark(id, noArtifactNamed));
+    const exactClaims = Object.entries(expectedClaims).every(([id, expected]) => JSON.stringify(claims(id)) === JSON.stringify(expected)) && claims("R-5005").length === 0;
+    // req: R-2542
+    check("R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's code marks, and no consumers",
+      items.length === 9 && exactClaims && exactMarks && artifactMarks && claimsStayOwned && homeLinksOnly && !card?.textContent.includes("Consumers") &&
+      productReportModule.NOT_MADE_BY_CODE === notMadeByCode && productReportModule.NOT_READ_BY_CODE === notReadByCode && productReportModule.NO_ARTIFACT_NAMED === noArtifactNamed &&
+      count && Number(count[1]) === withNeitherMark && Number(count[2]) === allItems.length,
+      JSON.stringify({ items: items.map((item) => item.textContent), claims: Object.fromEntries(Object.keys(byId).map((id) => [id, claims(id)])), countLine, exports: [productReportModule.NOT_MADE_BY_CODE, productReportModule.NOT_READ_BY_CODE, productReportModule.NO_ARTIFACT_NAMED] }));
+  });
+  await withinCaseLimit("R-2543", async () => {
+    const ledgers = [
+      ["product-lines", ["# CAP-80 · Product", "Purpose: make one.", "Outcome: one exists.", "Kind: product", "Deliverables: R-8000", "Made by: R-8000 · manual: a person makes it", "Read by: R-8000 · rule: a rule reads it", "", "## FEAT-080 · Home", "Purpose: own one.", "Status: active", "", table([["R-8000", "implemented"]]).trimEnd()].join("\r\n"), ["deliverables: 0 of 1 made and read by code"]],
+      ["product-no-lines", ["# CAP-81 · Product", "Purpose: make one.", "Outcome: one exists.", "Kind: product", "Deliverables: R-8100", "", "## FEAT-081 · Home", "Purpose: own one.", "Status: active", "", table([["R-8100", "implemented"]]).trimEnd()].join("\n"), ["deliverable note: R-8100 has no readable Made by: line", "deliverable note: R-8100 has no readable Read by: line"]],
+      ["kindless-one-line", ["# CAP-82 · Legacy", "Purpose: keep one.", "Outcome: one exists.", "Made by: R-8200 · manual: a person makes it", "", "## FEAT-082 · Home", "Purpose: own one.", "Status: active", "", table([["R-8200", "implemented"]]).trimEnd()].join("\n"), ["deliverables: 0 of 0 made and read by code", "deliverable note: line 4: Made by: R-8200 · manual: a person makes it is outside a live Kind: product capability"]],
+      ["kindless-no-lines", ["# CAP-83 · Legacy", "Purpose: keep one.\t", "Outcome: one exists.  ", "", "## FEAT-083 · Home", "Purpose: own one.", "Status: active", "", table([["R-8300", "implemented"]]).trimEnd()].join("\n"), []],
+    ];
+    const comparisons = [];
+    for (const [name, ledger, expected] of ledgers) {
+      await withinCaseLimit(`R-2543 ${name}`, async () => {
+        const repo = treeFixture(`checker-${name}`, ledger);
+        const out = path.join(temp, `checker-${name}.html`);
+        await generateReport({ root: repo.root, out });
+        const view = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+        const cli = spawnSync(process.execPath, [path.join(ROOT, "scripts/requirements-tree.mjs"), "--root", repo.root], { cwd: ROOT, encoding: "utf8", timeout: CASE_LIMIT_MS });
+        const checkerLines = cli.stdout.trimEnd().split(/\r?\n/).slice(1);
+        const pageLines = view.root.children.filter((node) => node.attrs?.class === "deliverable-report-line").map((node) => node.textContent);
+        const firstCard = view.root.children.findIndex((node) => node.tag === "article");
+        const lineIndexes = view.root.children.map((node, index) => node.attrs?.class === "deliverable-report-line" ? index : -1).filter((index) => index >= 0);
+        comparisons.push({ name, ok: cli.status === 0 && JSON.stringify(pageLines) === JSON.stringify(checkerLines) && JSON.stringify(checkerLines) === JSON.stringify(expected) && lineIndexes.every((index) => index < firstCard), checkerLines, pageLines, expected, stderr: cli.stderr });
+      });
+    }
+    const failingLedger = ["# CAP-84 · Product", "Purpose: make one.", "Outcome: one exists.", "Kind: product", "Deliverables: R-8400", "Made by: R-8400 · build: REQUIREMENTS.md", "Read by: R-8400 · code: REQUIREMENTS.md", "", "## FEAT-084 · Home", "Purpose: own one.", "Status: active", "", table([["R-8400", "implemented"]]).trimEnd()].join("\n");
+    const failingRepo = treeFixture("checker-head-failure", failingLedger);
+    const calls = [];
+    const runner = (args, options) => {
+      if (args.join(" ") === "ls-tree -r -z --name-only HEAD") { calls.push({ args, options }); return { status: 1, stdout: Buffer.alloc(0), stderr: Buffer.from("fixture failure") }; }
+      return spawnSync("git", args, options);
+    };
+    const failureOut = path.join(temp, "checker-head-failure.html");
+    await generateReport({ root: failingRepo.root, out: failureOut, gitRunner: runner });
+    const failureView = renderHtmlAt(fs.readFileSync(failureOut, "utf8"), "#product");
+    const failureLines = failureView.root.children.filter((node) => node.attrs?.class === "deliverable-report-line").map((node) => node.textContent);
+    const exactFailure = "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree";
+    // req: R-2543
+    check("R-2543: the Product view shows the tree checker's deliverable count line and notes for the same ledger and HEAD",
+      comparisons.length === 4 && comparisons.every((entry) => entry.ok) && calls.length === 1 && calls[0].options.maxBuffer === MAX_GIT_BUFFER && failureLines.at(-1) === exactFailure && deliverablesModule.DELIVERABLE_PATHS_NOT_CHECKED === exactFailure,
+      JSON.stringify({ comparisons, calls: calls.map((call) => ({ args: call.args, maxBuffer: call.options.maxBuffer })), failureLines, exactFailure }));
+  });
   {
     const ledger = [
       "# CAP-60 · Product holder", "Purpose: hold a product feature.", "Outcome: product work exists.", "Kind: product", "",

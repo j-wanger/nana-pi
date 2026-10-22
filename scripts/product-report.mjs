@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/product-report.mjs
- * @purpose Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, injected git runner, and the runtime-map data file at its resolved path.
- * @outputs A complete product ledger HTML file with ordered stage, deliverable and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
+ * @inputs REQUIREMENTS.md, its ledger folder's HEAD tree through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and runtime-map data.
+ * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims and marks, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
  */
@@ -13,6 +13,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { deliverableClaims, deliverableCodeState, deliverableReportLines } from "./deliverables.mjs";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
@@ -31,6 +32,10 @@ const validDate = (value) => {
 const STORE_STATUSES = new Set(["implemented", "untested", "violated", "planned", "retired"]);
 const FEATURE_STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const RAIL_ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
+// Contract (R-2542): exact Product-view deliverable marks and unnamed-artifact note.
+export const NOT_MADE_BY_CODE = "not made by code";
+export const NOT_READ_BY_CODE = "not read by code";
+export const NO_ARTIFACT_NAMED = "no artifact named";
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
 // contract (R-1511): the three origin-remote spellings a GitHub link is read from, each with an
@@ -199,7 +204,9 @@ export function renderInto(document, model, { hash = "" } = {}) {
     if (questions.length) { const list = el("ul", undefined, root); cls(list, "open-questions"); for (const q of questions) { const li = el("li", undefined, list); text(li, q.number ? `${q.number}. ${q.text}` : q.text); } }
     else paragraph(root, "", NO_OPEN_QUESTIONS);
   }
-  if (view === "product") for (const cap of model.capabilities) {
+  if (view === "product") {
+    for (const line of model.deliverableLines ?? []) paragraph(root, "", line, "deliverable-report-line");
+    for (const cap of model.capabilities) {
     const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome);
     if (cap.kind) paragraph(card, "Kind", cap.kind);
     if (!cap.retired && cap.kind === "product") {
@@ -210,9 +217,12 @@ export function renderInto(document, model, { hash = "" } = {}) {
         const item = el("li", undefined, list); cls(item, `deliverable${deliverable.gap ? " gap" : ""}`);
         text(item, `${deliverable.id} · ${deliverable.status}${deliverable.gap ? " · gap" : ""} · Home: `);
         featureLink(item, deliverable.home.id, `${deliverable.home.id} · ${deliverable.home.label}`);
-        text(item, " · Consumers: ");
-        if (deliverable.consumers.length) deliverable.consumers.forEach((consumer, index) => { if (index) text(item, ", "); featureLink(item, consumer.id, `${consumer.id} · ${consumer.label}`); });
-        else text(item, "none");
+        if (deliverable.claims.length) {
+          const claims = el("ul", undefined, item); cls(claims, "deliverable-claims");
+          for (const claim of deliverable.claims) { const line = el("li", undefined, claims); text(line, `${claim.label}: ${claim.text}`); }
+        }
+        for (const mark of deliverable.marks) paragraph(item, "", mark, "deliverable-mark");
+        if (deliverable.artifactNote) paragraph(item, "", deliverable.artifactNote, "deliverable-artifact");
       }
     }
     if (!cap.retired && cap.kind === "constraint") {
@@ -222,6 +232,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
     }
     if (cap.retired) paragraph(card, "Retired", `replaced by ${cap.successors.map((item) => `${item.id} · ${item.label}`).join(", ")}`);
     for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } }
+    }
   }
   if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
@@ -361,6 +372,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   if (readProblem) throw new Error(readProblem);
   const { parsed, problems } = checkTree(ledgerText);
   if (problems.length) throw new Error(`requirements tree checker problems:\n${problems.join("\n")}`);
+  const deliverableLines = deliverableReportLines(parsed, root, gitRunner);
   const rows = readRequirementRows(parsed);
   const handoff = await readFile(path.join(root, "HANDOFF.md"), "utf8");
   const asks = splitOpenSection(handoff);
@@ -463,13 +475,17 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const kind = fieldValues(capability, "Kind")[0] ?? null;
     const retired = fieldValues(capability, "Retired").length > 0;
     const capabilityFeatures = featureHeadings.filter((feature) => featureCapability(feature) === capability);
+    const claimsByRow = deliverableClaims(parsed, capability);
     const deliverables = fieldValues(capability, "Deliverables").map((id) => {
       const row = rows.find((candidate) => candidate.id === id);
       let homeHeading = row?.heading ?? null;
       while (homeHeading && !homeHeading.id.startsWith("FEAT-")) homeHeading = homeHeading.parent;
       const homeFeature = features.find((feature) => feature.id === homeHeading?.id);
-      const consumers = featureHeadings.filter((feature) => feature.alsoApplies.includes(id)).map((feature) => features.find((item) => item.id === feature.id)).filter(Boolean);
-      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), consumers: consumers.map(featureLabel) };
+      const rowClaims = claimsByRow.get(id) ?? [];
+      const codeState = deliverableCodeState(rowClaims);
+      const marks = [...(!codeState.madeByCode ? [NOT_MADE_BY_CODE] : []), ...(!codeState.readByCode ? [NOT_READ_BY_CODE] : [])];
+      const artifactNote = rowClaims.some((claim) => claim.artifact) ? null : NO_ARTIFACT_NAMED;
+      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), claims: rowClaims.map(({ label, text }) => ({ label, text })), marks, artifactNote };
     });
     const constraintRows = rows.filter((row) => descendants(parsed, capability).includes(row.heading));
     const binds = fieldValues(capability, "Binds").map((id) => {
@@ -490,7 +506,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
   // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
   const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
-  const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, deliverableLines, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
