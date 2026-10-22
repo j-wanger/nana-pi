@@ -119,6 +119,7 @@ const VERDICT_CMD = [process.execPath, "-e", "console.log('VERDICT: LAND')"];
 const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD, extraEnv = {}, outFile = out() } = {}) =>
 	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", outFile, "--", ...cmd], { cwd, env: env(extraEnv), encoding: "utf8", timeout: 30000 });
 const ledgerCheck = (args, cwd = A.d) => spawnSync(process.execPath, [LEDGER_CLI, "check", ...args], { cwd, env: env(), encoding: "utf8" });
+const ledgerKeep = (args, cwd = A.d) => spawnSync(process.execPath, [LEDGER_CLI, "keep", ...args], { cwd, env: env(), encoding: "utf8" });
 const noStack = (r) => !/\n\s+at .+:\d+:\d+/.test(r.stderr);
 const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["--item", item, ...extra], { cwd: r.d }); };
 
@@ -527,6 +528,63 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("R-2575: a failed store write records no round",
 		admitted.ok === true && completed.ok === false && completed.message.includes(outputPath) && jsonl(tallyFile).length === 0 && jsonl(auditFile).length === 0,
 		JSON.stringify({ completed, tally: jsonl(tallyFile), audit: jsonl(auditFile) }));
+}
+
+{
+	freshHome("keep-item-scope");
+	const keepTextOne = "first kept text\r\nVERDICT: LAND\r\n";
+	const keepTextTwo = "second kept text \t\nVERDICT: LAND";
+	const otherItemText = "other item\nVERDICT: LAND\n";
+	const otherRepoText = "other repo\nVERDICT: LAND\n";
+	A.at(0);
+	const first = ledgerRun(["--item", "keep-target", "--role", "SoL"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(keepTextOne)})`] });
+	A.at(1);
+	const second = ledgerRun(["--item", "keep-target", "--role", "ASTRA"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(keepTextTwo)})`] });
+	const otherItem = ledgerRun(["--item", "other-item", "--role", "sol"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(otherItemText)})`] });
+	B.at(0);
+	const otherRepo = ledgerRun(["--item", "keep-target", "--role", "sol"], { cwd: B.d, cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(otherRepoText)})`] });
+	const into = path.join(tmp, "kept-lane-folder");
+	const kept = ledgerKeep(["--item", "keep-target", "--into", into, "--repo", A.d], B.d);
+	const hashOne = createHash("sha256").update(Buffer.from(keepTextOne)).digest("hex");
+	const hashTwo = createHash("sha256").update(Buffer.from(keepTextTwo)).digest("hex");
+	const names = [`r1-sol-${hashOne.slice(0, 8)}.md`, `r2-astra-${hashTwo.slice(0, 8)}.md`].sort();
+	const wroteExpected = names.every((name) => fs.existsSync(path.join(into, name)));
+	const beforeTimes = wroteExpected ? Object.fromEntries(names.map((name) => {
+		const file = path.join(into, name); fs.utimesSync(file, new Date(1_000), new Date(1_000)); return [name, fs.statSync(file).mtimeMs];
+	})) : {};
+	const again = ledgerKeep(["--item", "keep-target", "--into", into, "--repo", A.d], B.d);
+	const afterTimes = wroteExpected ? Object.fromEntries(names.map((name) => [name, fs.statSync(path.join(into, name)).mtimeMs])) : {};
+	const legacy = { v: 2, kind: "round", repo: mod.repoKeyOf(A.d), item: "legacy-no-text", revision: A.shas[0], role: "old", verdict: "LAND" };
+	fs.appendFileSync(tallyFile, `${JSON.stringify(legacy)}\n`);
+	const empty = ledgerKeep(["--item", "legacy-no-text", "--into", path.join(tmp, "legacy-kept"), "--repo", A.d], A.d);
+	// req: R-2573
+	check("R-2573: keep writes each kept review text of the item into the lane folder",
+		first.status === 0 && second.status === 0 && otherItem.status === 0 && otherRepo.status === 0 && kept.status === 0 && again.status === 0 &&
+		mod.KEEP_NAME_HASH_CHARS === 8 && wroteExpected && JSON.stringify(fs.readdirSync(into).sort()) === JSON.stringify(names) &&
+		fs.readFileSync(path.join(into, names[0]), "utf8") === keepTextOne && fs.readFileSync(path.join(into, names[1]), "utf8") === keepTextTwo &&
+		JSON.stringify(afterTimes) === JSON.stringify(beforeTimes) && empty.status === 1 && /no kept text/i.test(empty.stderr),
+		JSON.stringify({ kept: kept.stderr, again: again.stderr, empty: empty.stderr, names: fs.existsSync(into) ? fs.readdirSync(into) : [] }));
+}
+
+{
+	freshHome("keep-conflict");
+	const texts = ["first conflict fixture\nVERDICT: LAND\n", "last conflict fixture\nVERDICT: LAND\n"];
+	for (const [i, text] of texts.entries()) {
+		A.at(i);
+		const result = ledgerRun(["--item", "keep-conflict", "--role", `role${i + 1}`], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
+		if (result.status !== 0) throw new Error(result.stderr);
+	}
+	const rows = jsonl(tallyFile).filter((row) => row.item === "keep-conflict");
+	const names = rows.map((row, index) => `r${index + 1}-role${index + 1}-${row.text.sha256.slice(0, 8)}.md`);
+	const into = path.join(tmp, "kept-conflict-folder"); fs.mkdirSync(into);
+	const differing = Buffer.from("different bytes\r\nwith trailing tab\t");
+	fs.writeFileSync(path.join(into, names.at(-1)), differing);
+	const kept = ledgerKeep(["--item", "keep-conflict", "--into", into, "--repo", A.d], A.d);
+	// req: R-2574
+	check("R-2574: keep refuses a differing file and writes nothing",
+		kept.status === 1 && /different bytes|differs|refus/i.test(kept.stderr) && !fs.existsSync(path.join(into, names[0])) &&
+		fs.readFileSync(path.join(into, names.at(-1))).equals(differing) && fs.readdirSync(into).length === 1,
+		JSON.stringify({ stderr: kept.stderr, files: fs.readdirSync(into) }));
 }
 
 // 3. identity: canonical slug, repository scope, worktrees share

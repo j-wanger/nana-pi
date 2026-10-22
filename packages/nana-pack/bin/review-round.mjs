@@ -81,6 +81,8 @@ export const REVIEW_TEXT_EXTENSION = '.md';
 // contract (R-2568): the captured UTF-8 bytes use the snapshot hash family and its full digest.
 export const REVIEW_TEXT_HASH = 'sha256';
 export const REVIEW_TEXT_HASH_HEX_CHARS = 64;
+// chosen 2026-10-22: eight digest characters keep committed review names readable and distinct per item (R-2573).
+export const KEEP_NAME_HASH_CHARS = 8;
 // copied locally from nana-setup/lib/project.mjs, 2026-10-22: Windows can briefly hold a renamed file.
 export const REVIEW_TEXT_RENAME_ATTEMPTS = 3;
 export const REVIEW_TEXT_RENAME_DELAY_MS = 20;
@@ -418,6 +420,22 @@ export function reviewTextPath(home = homedir(), ref) {
   const hash = ref?.sha256;
   return typeof hash === 'string' && new RegExp(`^[0-9a-f]{${REVIEW_TEXT_HASH_HEX_CHARS}}$`).test(hash)
     ? join(ledgerPaths(home).texts, `${hash}${REVIEW_TEXT_EXTENSION}`) : null;
+}
+
+/** Classify one kept-text reference and its bytes for review consumers. */
+export function reviewTextEvidence(home = homedir(), ref) {
+  const file = reviewTextPath(home, ref);
+  if (!ref || typeof ref !== 'object' || !file || !Number.isSafeInteger(ref.bytes) || ref.bytes < 0) {
+    return { status: 'malformed', file };
+  }
+  try {
+    const kept = readReviewText(home, ref);
+    if (!kept) return { status: existsSync(file) ? 'altered' : 'missing', file };
+    if (kept.bytes.length !== ref.bytes) return { status: 'altered', file };
+    return { status: 'intact', ...kept };
+  } catch {
+    return { status: 'missing', file };
+  }
 }
 
 /** Read and hash-check one kept review text without following a symlink. Null means absent or corrupt. */

@@ -1037,10 +1037,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/nana-land.mjs`
 
 - **purpose** — Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
-- **inputs** — merge or cleanup arguments, a home directory for the review ledger, and an injectable process runner.
-- **outputs** — Named pure argument helpers and command results or printed CLI records.
+- **inputs** — merge or cleanup arguments, a home directory for the review tally and kept-text store, and an injectable process runner.
+- **outputs** — Named pure argument helpers and command results or printed CLI records naming relied-on, damaged, and uncommitted review texts.
 - **effects** — process (runs git and a suite command), disk (git merge and worktree cleanup).
-- **errors** — Invalid arguments, failed preconditions, suite failures, and git failures return a named refusal without continuing.
+- **errors** — Invalid arguments, missing intact review evidence, failed preconditions, suite failures, and git failures return a named refusal without continuing.
 - **callers** — `packages/nana-pack/tests/land.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/release-status.mjs`
 
@@ -1117,8 +1117,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-ledger.mjs`
 
 - **purpose** — The review round cap as a hook for any launcher — `run` reserves a round around a command and records its verdict, `check` asks whether one would be admitted.
-- **inputs** — argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, the user-scope review ledger, review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
-- **outputs** — the child's stdout written to --out and the kept-text store, a recorded round, the projection note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
+- **inputs** — argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>`, `check --item <slug> [--tree <path>] [--revision R]`, or `keep --item <slug> --into <dir> [--repo <path>]`), the reviewed tree's git state, the user-scope review ledger, review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
+- **outputs** — the child's stdout written to --out and the kept-text store, a recorded round, lane-folder copies from `keep`, the projection note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
 - **effects** — process (resolves and spawns the review command with reviewer child env and stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock, reservation, kept text, tally and audit files, including a best-effort cannot-start line)
 - **errors** — exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
 - **callers** — —

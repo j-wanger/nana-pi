@@ -8,14 +8,14 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { parseLandArgs, runLand as executeLand, runCleanup } from "../bin/nana-land.mjs";
-import { admit, complete, withReviewLedgerLock } from "../bin/review-round.mjs";
+import { admit, complete, ledgerPaths, reviewTextPath, withReviewLedgerLock } from "../bin/review-round.mjs";
 import { realPath } from "../lib/real-path.mjs";
 import { LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
@@ -38,10 +38,18 @@ const repo = (root, name) => {
 };
 const commit = (dir, file, data, message) => { writeFileSync(path.join(dir, file), data); git(dir, "add", file); git(dir, "commit", "-m", message); return git(dir, "rev-parse", "HEAD"); };
 const tree = (dir, branch) => { git(dir, "worktree", "add", "-b", branch, path.join(path.dirname(dir), branch)); return path.join(path.dirname(dir), branch); };
-const recordReview = (feature, home, item, verdict = "LAND") => {
+const recordReview = (feature, home, item, verdict = "LAND", captured = `VERDICT: ${verdict}`) => {
 	const admission = admit(["--item", item, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
 	assert.equal(admission.ok, true, admission.message);
-	return complete(admission.res, `VERDICT: ${verdict}`, { home });
+	return complete(admission.res, captured, { home, text: captured });
+};
+const tallyRows = (home) => readFileSync(ledgerPaths(home).tally, "utf8").trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);
+const writeTallyRows = (home, rows) => writeFileSync(ledgerPaths(home).tally, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+const recordTextReview = (feature, home, item, text) => {
+	const verdict = text.includes("SEND-BACK") ? "SEND-BACK" : "LAND";
+	const completed = recordReview(feature, home, item, verdict, text);
+	assert.equal(completed.ok, true, completed.message);
+	return tallyRows(home).at(-1);
 };
 const reviewTip = (feature, home, item = "item") => {
 	const revision = git(feature, "rev-parse", "HEAD");
@@ -378,6 +386,80 @@ check("a version-1-only second tally reading refuses after the suite", () => {
 		runCommand: () => { suiteRan = true; writeFileSync(tally, `${JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision, verdict: "LAND" })}\n`); return { status: 0 }; } });
 	assert.equal(suiteRan, true); assert.notEqual(out.code, 0); assert.match(out.text, /version-2 LAND/i); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
+// req: R-2571
+check("R-2571: the land refuses a revision whose matching LAND records all have missing or altered kept texts", () => {
+	const make = (name) => {
+		const root = tmpDir(path.join(os.tmpdir(), `land-kept-${name}-`)); const main = repo(root, "main");
+		const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+		return { root, main, feature, tip, home };
+	};
+	{
+		const f = make("one-holds");
+		const intact = recordTextReview(f.feature, f.home, "item", "intact review\nVERDICT: LAND\n");
+		const missing = recordTextReview(f.feature, f.home, "item", "missing review\nVERDICT: LAND\n");
+		const missingFile = reviewTextPath(f.home, missing.text); unlinkSync(missingFile);
+		const out = executeLand({ tree: f.feature, main: f.main, home: f.home, suite: 'node -e "process.exit(0)"', reviewed: [`${f.tip}=item`] });
+		assert.equal(out.code, 0, out.text); assert.match(out.text, /note.*missing/i); assert.match(out.text, new RegExp(path.basename(missingFile)));
+		assert.match(out.text, new RegExp(path.basename(reviewTextPath(f.home, intact.text))));
+	}
+	{
+		const f = make("none-hold");
+		for (const text of ["gone one\nVERDICT: LAND\n", "gone two\nVERDICT: LAND\n"]) {
+			const row = recordTextReview(f.feature, f.home, "item", text); unlinkSync(reviewTextPath(f.home, row.text));
+		}
+		const out = executeLand({ tree: f.feature, main: f.main, home: f.home, suite: 'node -e "process.exit(0)"', reviewed: [`${f.tip}=item`] });
+		assert.notEqual(out.code, 0); assert.match(out.text, new RegExp(`item.*${f.tip}`, "i")); assert.match(out.text, /re-run.*same revision/i);
+	}
+	{
+		const f = make("altered"); const row = recordTextReview(f.feature, f.home, "item", "unaltered\nVERDICT: LAND\n");
+		writeFileSync(reviewTextPath(f.home, row.text), "altered by one byte\nVERDICT: LAND\n");
+		const out = executeLand({ tree: f.feature, main: f.main, home: f.home, suite: 'node -e "process.exit(0)"', reviewed: [`${f.tip}=item`] });
+		assert.notEqual(out.code, 0); assert.match(out.text, /re-run.*same revision/i);
+	}
+	{
+		const f = make("legacy"); recordTextReview(f.feature, f.home, "item", "legacy review\nVERDICT: LAND\n");
+		writeTallyRows(f.home, tallyRows(f.home).map(({ text: _text, ...row }) => row));
+		const out = executeLand({ tree: f.feature, main: f.main, home: f.home, suite: 'node -e "process.exit(0)"', reviewed: [`${f.tip}=item`] });
+		assert.equal(out.code, 0, out.text); assert.match(out.text, /note.*pre-store|note.*no text/i);
+	}
+	{
+		const f = make("malformed"); recordTextReview(f.feature, f.home, "item", "malformed reference\nVERDICT: LAND\n");
+		writeTallyRows(f.home, tallyRows(f.home).map((row) => ({ ...row, text: { sha256: "bad", bytes: 1 } })));
+		const out = executeLand({ tree: f.feature, main: f.main, home: f.home, suite: 'node -e "process.exit(0)"', reviewed: [`${f.tip}=item`] });
+		assert.notEqual(out.code, 0); assert.match(out.text, /re-run.*same revision/i);
+	}
+});
+
+// req: R-2572
+check("R-2572: a land's success report names the kept review texts", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-kept-report-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	const row = recordTextReview(feature, home, "item", "report fixture\r\nVERDICT: LAND\r\n");
+	const out = executeLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [`${tip}=item`], home });
+	assert.equal(out.code, 0, out.text); assert.match(out.text, new RegExp(path.basename(reviewTextPath(home, row.text))));
+});
+
+// req: R-2576
+check("R-2576: a land notes each earlier kept review text missing from the tip", () => {
+	const make = (name, commitCopy) => {
+		const root = tmpDir(path.join(os.tmpdir(), `land-earlier-${name}-`)); const main = repo(root, "main");
+		const feature = tree(main, "integration"); const home = path.join(root, "home");
+		commit(feature, "first.txt", "first\n", "first");
+		const earlier = recordTextReview(feature, home, "item", "earlier finding\r\nVERDICT: SEND-BACK\r\n");
+		if (commitCopy) writeFileSync(path.join(feature, "r1-reviewer-kept.md"), readFileSync(reviewTextPath(home, earlier.text)));
+		const tip = commit(feature, commitCopy ? "r1-reviewer-kept.md" : "second.txt", commitCopy ? readFileSync(path.join(feature, "r1-reviewer-kept.md")) : "second\n", "tip");
+		recordTextReview(feature, home, "item", "tip accepted\nVERDICT: LAND\n");
+		return { main, feature, home, tip, earlier };
+	};
+	const absent = make("absent", false);
+	const missing = executeLand({ tree: absent.feature, main: absent.main, suite: 'node -e "process.exit(0)"', reviewed: [`${absent.tip}=item`], home: absent.home });
+	assert.equal(missing.code, 0, missing.text); assert.match(missing.text, /note.*earlier kept review text.*tip/i);
+	assert.match(missing.text, new RegExp(path.basename(reviewTextPath(absent.home, absent.earlier.text))));
+	const present = make("present", true);
+	const kept = executeLand({ tree: present.feature, main: present.main, suite: 'node -e "process.exit(0)"', reviewed: [`${present.tip}=item`], home: present.home });
+	assert.equal(kept.code, 0, kept.text); assert.doesNotMatch(kept.text, /earlier kept review text.*tip/i);
+});
+
 // req: R-977
 // req: R-1007
 check("successful land updates main checkout files and leaves tracked state clean", () => {
