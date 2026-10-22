@@ -73,9 +73,9 @@ jobs:
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test
+      - run: npm test -- --jobs=4
         if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
+      - run: npm test -- --verbose --jobs=4
         if: matrix.os == 'windows-latest'
 
   release:
