@@ -14,7 +14,6 @@
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 3. **Queue (the owner, 2026-10-21; two lanes building plus one in planning):**
    - Next to build, in order:
-     - The records scrub: review records, session notes and research, built alone.
      - The builder launch in the install check.
      - The linked Claude folder's repair advice.
      - A settings file with a byte-order mark.
@@ -66,6 +65,7 @@
 - 2026-10-21: the owner's writing rule now runs as adopted. `nana-writing` is on PATH on macOS, Linux and Windows, and the rule requires the check before every report. A user-scope `writing.enabled` key turns pi's writing section off. The suite fails on a long or banned sentence in this file's live sections. The character cap no longer splits an emoji in two.
 - 2026-10-21: known bugs moved out of this file. Each one now sits as one line in its feature's file in the known-bugs folder, word for word. This file dropped from 235 KB to 16 KB, so one default read takes it whole in pi and in Claude Code. A new check reports a misnamed or oversized known-bug file.
 - 2026-10-21: current files no longer name the owner, outside the records. Prose says "the owner" and code names say owner. The asks heading here is now "Open for the owner", and the writing rule's title is "Writing for the owner". Every reader accepts any "Open for" heading followed by a space, so other projects' old headings keep working. A new suite scan fails any tracked file whose path or content holds one of four hashed identity words. It pins 882 record files at their word counts until the records lane scrubs them. Six files keep their bytes for a pin, and the frozen desk keeps two comments. CI reads 0 failing on macOS, Linux and Windows. The install check passes on macOS and Windows. All 9 of the seat's wrong versions of the code turn a check red.
+- 2026-10-21: the records no longer name the owner or describe the owner's work. A script found the words by their hashes and replaced them by context in 882 record files. The builder reworded 14 lines that described the work in other words. The catch-ledger study's caches moved to their new keys, so its results rebuild byte for byte with no model call. The scan's allowlist now holds only the eight pinned files, and its writer is gone. CI reads 0 failing on macOS, Linux and Windows.
 
 ## Known bugs
 

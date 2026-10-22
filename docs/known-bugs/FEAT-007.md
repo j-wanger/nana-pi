@@ -73,3 +73,4 @@
 - Windows CPU read (win-watchdog-cpu-read, final review): the decimal-comma check's PowerShell wrapper passes on only one argument of the watchdog's call. A change in the shape of that call makes the check fail loudly. That failure is safe, but easy to trip.
 - Session file (win-watchdog-cpu-read, final review): 34 entries in the October session file start right below the entry above, with no blank line between them. It is cosmetic.
 - Review ledger on Windows (writing-adoption CI): the race2 check failed once on the first Windows leg at 086eb4b2, with EPERM opening the ledger's temp file. Main's own run at the same commit passed. It is the first counted Windows flake since win-leg-flakes.
+- Review tools (scrub-records, plan adversary): pi-review's git helper keeps the 1 MiB default output buffer, the limit the identity scan had until this lane.
