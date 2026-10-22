@@ -77,6 +77,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   const pathsToCheck = [];
   let checkedDeliverables = 0;
   let fieldLineCount = 0;
+  let madeAndReadByCode = 0;
 
   const addPath = (row, path, line, kind) => {
     const value = path.trim();
@@ -97,6 +98,8 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     checkedDeliverables += listed.length;
     const listedSet = new Set(listed);
     const seen = new Map(listed.map((row) => [row, new Set()]));
+    const automaticMakers = new Set();
+    const codeReaders = new Set();
 
     for (const field of fields) {
       const rowHint = ROW_AT_START.exec(field.body)?.[1] ?? null;
@@ -135,6 +138,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
         } else if (!detail) {
           notes.push(note(`${row} Made by: line ${field.line} needs a code path`));
         } else {
+          automaticMakers.add(row);
           for (const path of detail.split(",")) addPath(row, path, field.line, "code path");
         }
         if (parts.length === 3) addPath(row, parts[2], field.line, "artifact");
@@ -158,10 +162,12 @@ export function checkDeliverables(parsed, trackedPaths = null) {
       } else if (!detail) {
         notes.push(note(`${row} Read by: line ${field.line} needs a code path`));
       } else {
+        codeReaders.add(row);
         for (const path of detail.split(",")) addPath(row, path, field.line, "reader path");
       }
     }
 
+    madeAndReadByCode += listed.filter((row) => automaticMakers.has(row) && codeReaders.has(row)).length;
     for (const row of listed) {
       for (const label of DELIVERABLE_FIELD_LABELS) {
         if (!seen.get(row)?.has(label)) notes.push(note(`${row} has no readable ${label}: line`));
@@ -176,5 +182,5 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     }
   }
 
-  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount };
+  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, madeAndReadByCode };
 }

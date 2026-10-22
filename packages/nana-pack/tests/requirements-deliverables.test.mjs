@@ -7,7 +7,7 @@
  * @errors A failed check prints its reason and exits non-zero.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,7 @@ import {
   REASON_REQUIRED,
   RUNTIME_MAP_ARTIFACT,
   checkDeliverables,
+  deliverableFieldLinesByRow,
 } from "../../../scripts/deliverables.mjs";
 
 let fails = 0;
@@ -156,6 +157,23 @@ const tunablesPinned = JSON.stringify(DELIVERABLE_FIELD_LABELS) === JSON.stringi
 if (!tunablesPinned) grammarFailures.push("sealed deliverable tunables differ");
 // req: R-2537
 check("a missing or unreadable line, or an automatic claim with no code path, gets one note naming it", grammarFailures.length === 0, grammarFailures.join("\n"));
+
+const repositoryLedger = readFileSync(fileURLToPath(new URL("../../../REQUIREMENTS.md", import.meta.url)), "utf8");
+const repositoryParsed = parseLedger(repositoryLedger);
+const repositoryFields = deliverableFieldLinesByRow(repositoryParsed);
+const repositoryGaps = [];
+for (const capability of repositoryParsed.headings.filter((heading) => heading.id.startsWith("CAP-"))) {
+  const fields = capability.capabilityFields ?? {};
+  if (fields.Kind?.[0]?.value !== "product" || (fields.Retired?.length ?? 0) > 0) continue;
+  for (const row of (fields.Deliverables ?? []).flatMap((entry) => entry.value.split(/,\s*/).filter(Boolean))) {
+    const lines = repositoryFields.get(row) ?? [];
+    for (const label of DELIVERABLE_FIELD_LABELS) {
+      if (!lines.some((line) => line.startsWith(`${label}: ${row} · `))) repositoryGaps.push(`${capability.id} ${row}: missing ${label}: line`);
+    }
+  }
+}
+// req: R-2539
+check("every deliverable in this repository's ledger has a Made by and a Read by line", repositoryGaps.length === 0, repositoryGaps.join("\n"));
 
 console.log(fails ? `${fails} check(s) failed` : "all checks passed");
 process.exit(fails ? 1 : 0);

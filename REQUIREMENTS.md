@@ -85,6 +85,24 @@ Purpose: Keep the agent aligned with the project and carry useful knowledge betw
 Outcome: A developer can start or resume work with the relevant goal, decisions, history and knowledge available.
 Kind: product
 Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
+Made by: R-001 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-objective.mjs
+Made by: R-001 · extension: packages/nana-pack/extensions/nana-objective.ts, packages/nana-pack/lib/objective.ts
+Read by: R-001 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
+Read by: R-001 · prompt: packages/nana-pack/extensions/nana-objective.ts
+Made by: R-108 · extension: packages/nana-pack/extensions/nana-handoff.ts, packages/nana-pack/lib/adoption.mjs
+Read by: R-108 · prompt: packages/nana-pack/extensions/nana-handoff.ts
+Read by: R-108 · code: packages/nana-pack/lib/adoption.mjs
+Made by: R-873 · manual: someone runs nana-frontier on HANDOFF.md by hand to see the word-budget finding
+Read by: R-873 · person: the word-budget finding reaches someone only when they run nana-frontier by hand
+Made by: R-201 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib/build.ts
+Made by: R-201 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts
+Read by: R-201 · code: packages/nana-knowledge/lib/query.ts, packages/nana-knowledge/lib/hook.ts
+Made by: R-217 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts
+Made by: R-217 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts
+Read by: R-217 · prompt: packages/nana-knowledge/bin/nana-knowledge.ts
+Read by: R-217 · prompt: packages/nana-knowledge/extensions/nana-knowledge.ts
+Made by: R-749 · manual: the writing rule tells each report's writer to run nana-writing --report on its text before sending
+Read by: R-749 · rule: the writing rule tells the writer to fix each finding or say why it stays; no code reads or keeps the summary line
 
 ## FEAT-001 · Keep goals and priorities in view
 Purpose: Provide the governing project objective and preserve its precedence over background context.
@@ -402,6 +420,17 @@ Purpose: Give builders, reviewers and the integration step separate responsibili
 Outcome: A developer can accept a bounded change with understandable review evidence and a controlled integration step.
 Kind: product
 Deliverables: R-1400, R-1008, R-1560, R-977
+Made by: R-1400 · manual: the owner runs nana-roster set by hand to change this machine's roster
+Read by: R-1400 · code: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/bin/nana-roster.mjs
+Read by: R-1400 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs
+Read by: R-1400 · rule: the working pattern tells the seat to take the reviewer and land models from the roster; pi-review does not read those slots
+Made by: R-1008 · review: packages/nana-pack/bin/pi-review.mjs, packages/nana-pack/bin/review-ledger.mjs, packages/nana-pack/bin/review-round.mjs
+Read by: R-1008 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/review-round.mjs, packages/nana-pack/bin/review-timeline.mjs
+Made by: R-1560 · manual: someone runs review-timeline by hand; no brief, land step or hook calls it
+Read by: R-1560 · person: the seat reads it when it runs the command
+Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs
+Read by: R-977 · person: the seat reads the success report and pushes main by hand, as the 2026-10-11 ruling says
+Read by: R-977 · code: .github/workflows/ci.yml
 
 ## FEAT-006 · Launch builders with execution limits
 Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
@@ -881,6 +910,27 @@ Purpose: Install the toolkit, adopt projects, diagnose its environment and manag
 Outcome: A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.
 Kind: product
 Deliverables: R-301, R-327, R-1150, R-341, R-1070, R-596
+Made by: R-301 · manual: the owner runs nana-setup install by hand; the symlinks carry edits to an existing hook or rule, but nothing links a new or renamed one
+Read by: R-301 · code: packages/nana-setup/claude/hooks/nana-adoption.mjs, packages/nana-setup/bin/stale-copies.mjs, packages/nana-setup/lib/stale-copies.mjs, packages/nana-setup/lib/hook-health.mjs
+Made by: R-327 · manual: someone runs nana-setup project by hand once per project
+Read by: R-327 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
+Read by: R-327 · prompt: packages/nana-pack/extensions/nana-objective.ts
+Read by: R-327 · code: packages/nana-pack/lib/adoption.mjs
+Read by: R-327 · rule: the working section tells each session to read HANDOFF.md at startup; no hook or extension loads it
+Made by: R-1150 · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand
+Read by: R-1150 · code: templates/python/template/tests/conftest.py, templates/typescript/template/tests/requirements-trace.ts
+Read by: R-1150 · rule: the requirements skill tells agents to run nana-pi's tree checker on the project by hand; no rendered project wires it in
+Made by: R-341 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs, packages/nana-setup/lib/install-check.mjs
+Made by: R-341 · manual: the owner runs nana-setup doctor by hand on the real home; no run checks the real home
+Read by: R-341 · code: packages/nana-setup/lib/install-check.mjs
+Read by: R-341 · person: the owner reads the real home's rows when running doctor; the output is not kept
+Made by: R-1070 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs
+Made by: R-1070 · manual: the seat runs the install check locally on macOS before a setup or hook lane's land, as AGENTS.md says
+Read by: R-1070 · code: .github/workflows/ci.yml
+Read by: R-1070 · rule: AGENTS.md tells the seat to check the local run before nana-land, which reads no install-check result
+Made by: R-596 · CI: .github/workflows/ci.yml, scripts/template-release.mjs
+Read by: R-596 · code: packages/nana-pack/lib/release-status.mjs, packages/nana-pack/bin/nana-land.mjs, packages/nana-setup/lib/doctor.mjs
+Read by: R-596 · rule: the scaffold and adopt skills tell an agent to run copier copy or copier update, which render from the newest tag
 
 ## FEAT-013 · Install and connect harness runtimes
 Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
@@ -1540,6 +1590,19 @@ Purpose: Let the developer understand ongoing and historical work and interact w
 Outcome: A developer can see what agents are doing, inspect their changes and direct the intended session without losing context.
 Kind: product
 Deliverables: R-406, R-422, R-159, R-1194, R-457
+Made by: R-406 · manual: desk frozen since 2026-10-10
+Read by: R-406 · person: desk frozen since 2026-10-10
+Made by: R-422 · manual: desk frozen since 2026-10-10
+Read by: R-422 · person: desk frozen since 2026-10-10
+Made by: R-159 · extension: packages/nana-pack/extensions/nana-lifecycle.ts, packages/nana-pack/lib/config.ts
+Read by: R-159 · prompt: packages/nana-setup/claude/hooks/nana-adoption.mjs
+Read by: R-159 · person: no code reads any other event; a person opens the journal to see them
+Made by: R-1194 · session start: packages/nana-setup/claude/hooks/nana-roster-notice.mjs, packages/nana-pack/lib/roster-notice.mjs
+Made by: R-1194 · extension: packages/nana-pack/extensions/nana-roster-notice.ts, packages/nana-pack/lib/roster-notice.mjs
+Read by: R-1194 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs
+Read by: R-1194 · person: Claude Code shows it as a user message at session start, and the pi TUI shows it as a widget
+Made by: R-457 · manual: desk frozen since 2026-10-10
+Read by: R-457 · person: desk frozen since 2026-10-10
 
 ## FEAT-020 · Find and read previous sessions
 Purpose: Read, title, navigate and display session history while retaining correct branch identity.
@@ -1694,6 +1757,16 @@ Purpose: Give tools a consistent presentation contract and connect apps without 
 Outcome: A developer can use focused app surfaces and inspect tool output whose producer and session history remain attributable.
 Kind: product
 Deliverables: R-260, R-256, R-257, R-437, R-264
+Made by: R-260 · manual: desk frozen since 2026-10-10
+Read by: R-260 · person: desk frozen since 2026-10-10
+Made by: R-256 · manual: desk frozen since 2026-10-10
+Read by: R-256 · person: desk frozen since 2026-10-10
+Made by: R-257 · manual: desk frozen since 2026-10-10
+Read by: R-257 · person: desk frozen since 2026-10-10
+Made by: R-437 · manual: desk frozen since 2026-10-10
+Read by: R-437 · person: desk frozen since 2026-10-10
+Made by: R-264 · manual: desk frozen since 2026-10-10
+Read by: R-264 · person: desk frozen since 2026-10-10
 
 ## FEAT-025 · Use consistent structured tool output
 Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
@@ -1796,6 +1869,23 @@ Purpose: Make requirements, code structure, checks and engineering rules inspect
 Outcome: A developer can see which promises a change affects and what evidence supports its behavior and engineering quality.
 Kind: product
 Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239
+Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does
+Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs
+Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes
+Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says
+Read by: R-1460 · rule: AGENTS.md tells the seat to carry its output in the review brief and the land report; pi-review and nana-land neither run nor check it
+Made by: R-1014 · manual: someone runs npm run report and republishes the page by hand
+Read by: R-1014 · person: the owner reads the published page; no hook, check or session-start line reads the report or shows its age
+Made by: R-1272 · manual: run npm run map:measure by hand
+Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section
+Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module
+Read by: R-1272 · code: scripts/product-report.mjs
+Made by: R-616 · suite: scripts/test.mjs
+Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs
+Read by: R-616 · code: packages/nana-pack/bin/nana-land.mjs, .github/workflows/ci.yml
+Read by: R-616 · person: the per-file lines and totals reach only whoever reads the terminal; nothing keeps the seconds
+Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says
+Read by: R-1239 · person: the seat reads the record's result line after each run; no code reads the record, and no rule names it for the reviewer
 
 ## FEAT-028 · Maintain requirement identity and trace links
 Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
@@ -1832,8 +1922,9 @@ Also applies: G-013, G-014, G-015
 | R-2536 | WHEN a code path, a reader path or an artifact on a `Made by:` or `Read by:` line is not tracked in the ledger folder's HEAD tree, the deliverable check shall report one note naming the row and the path. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::a maker or reader path not tracked at HEAD gets one note naming the row and the path` |
 | R-2537 | IF a listed deliverable has no readable `Made by:` or `Read by:` line, or a line names an unlisted row, an unknown run or reader, lacks the separator, claims an automatic run or a code or prompt reader with no code path, or sits on a constraint or kindless capability, THEN the deliverable check shall report one note naming the row or the line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::a missing or unreadable line, or an automatic claim with no code path, gets one note naming it` |
 | R-2538 | WHEN the tree has no problem, the tree checker shall print each deliverable note on its own stdout line after its summary in every mode, with the exit status and outline it gives without the lines. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker prints deliverable notes in every mode and keeps its exit status and outline` |
-| R-2539 | Every deliverable of a live `Kind: product` capability in this repository's REQUIREMENTS.md shall carry at least one `Made by:` line and one `Read by:` line. | planned | — |
+| R-2539 | Every deliverable of a live `Kind: product` capability in this repository's REQUIREMENTS.md shall carry at least one `Made by:` line and one `Read by:` line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::every deliverable in this repository's ledger has a Made by and a Read by line` |
 | R-2540 | WHEN a row's `Made by:` or `Read by:` lines differ between the base and the tip, the tree movement report shall list one changed-lines entry for that row. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::the movement report lists a row whose Made by or Read by lines changed` |
+| R-2541 | WHEN the tree has deliverable lines and no problem, the tree checker shall print, in every mode, one line counting the deliverables made by an automatic run and read by code or a prompt, out of all listed deliverables. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker counts the deliverables made and read by code in every mode` |
 | R-1157 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157: --root checks another project's ledger, names its problems and writes no outline`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: a row outside its feature exits 1 naming it`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: --root <dir> --write exits 2 with usage` |
 | R-1158 | The tree checker shall report the same problems, at the same line numbers, for a ledger with CRLF line endings as for the same ledger with LF line endings. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` |
 | R-1159 | WHEN the tree checker reads a REQUIREMENTS.md that holds requirement rows but no capability or feature heading, it shall report one problem, which names the row count, says the ledger has no requirements tree yet and points to the requirements skill for the next step, in place of one problem per row. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with rows and no tree gets one line naming the row count and the next step`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it`, `packages/nana-pack/tests/product-report.test.mjs::a ledger with rows and no tree is refused with one problem line, not one per row` |
@@ -2279,6 +2370,18 @@ Purpose: Run controlled studies and interpret results without confusing missing 
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
 Kind: product
 Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
+Made by: R-509 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
+Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs
+Made by: R-532 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
+Read by: R-532 · person: a person opens a run's raw folder to audit it; no code reads it
+Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
+Read by: R-507 · code: apps/bench/aggregate.mjs, apps/bench/lib/plan.mjs
+Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand
+Read by: R-535 · person: the owner reads the summary and verdict files to decide; no code reads them
+Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand
+Read by: R-536 · person: the study write-up was read once for its decision; no code or rule reads it now
+Made by: R-694 · manual: someone runs the writing-trial extractor by hand
+Read by: R-694 · person: the owner read its output to decide on the writing rule; nothing reads it since
 
 ## FEAT-034 · Define reproducible comparisons
 Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.

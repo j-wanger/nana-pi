@@ -419,7 +419,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const expectedOutline = renderOutline(parseLedger(withoutLines));
   const goodOutput = (result) => {
     const outputLines = lines(result.stdout);
-    return result.status === 0 && outputLines[0] === "requirements tree: 0 problems; rows 1; features 1" && outputLines.length === 3 && outputLines.slice(1).every((line) => line.startsWith("deliverable note:") && line.includes("R-001"));
+    return result.status === 0 && outputLines[0] === "requirements tree: 0 problems; rows 1; features 1" && outputLines[1] === "deliverables: 0 of 1 made and read by code" && outputLines.length === 4 && outputLines.slice(2).every((line) => line.startsWith("deliverable note:") && line.includes("R-001"));
   };
 
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree.replace("Purpose: feature\n", ""));
@@ -434,6 +434,18 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   check("the tree checker prints deliverable notes in every mode and keeps its exit status and outline",
     goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && noDeliverablesRoot.status === 0 && noDeliverablesRoot.stdout === "requirements tree: 0 problems; rows 1; features 1\n" && noDeliverablesWrite.status === 0 && noDeliverablesWrite.stdout === "" && noDeliverablesCheck.status === 0 && noDeliverablesCheck.stdout === "",
     `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nno deliverables: ${noDeliverablesRoot.status}/${noDeliverablesWrite.status}/${noDeliverablesCheck.status}: ${noDeliverablesRoot.stdout} ${noDeliverablesWrite.stdout} ${noDeliverablesCheck.stdout} ${noDeliverablesCheck.stderr}`);
+
+  const countTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · code: scripts/read.mjs\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n";
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), countTree);
+  const countRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const countWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const countCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const countLine = "deliverables: 1 of 3 made and read by code";
+  const hasOneCount = (result) => result.status === 0 && lines(result.stdout).filter((line) => line === countLine).length === 1;
+  // req: R-2541
+  check("the tree checker counts the deliverables made and read by code in every mode",
+    hasOneCount(countRoot) && hasOneCount(countWrite) && hasOneCount(countCheck),
+    `root ${countRoot.status}: ${countRoot.stdout} ${countRoot.stderr}\nwrite ${countWrite.status}: ${countWrite.stdout} ${countWrite.stderr}\ncheck ${countCheck.status}: ${countCheck.stdout} ${countCheck.stderr}`);
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

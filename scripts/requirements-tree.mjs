@@ -602,6 +602,7 @@ function printDeliverableReport(parsed, ledgerFolder, { alwaysSummary = false } 
   if (alwaysSummary || report.checkedDeliverables > 0 || report.fieldLineCount > 0) {
     const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).length;
     console.log(`requirements tree: 0 problems; rows ${readRequirementRows(parsed).length}; features ${features}`);
+    if (report.fieldLineCount > 0) console.log(`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables} made and read by code`);
     for (const entry of report.notes) console.log(entry);
   }
 }
