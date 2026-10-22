@@ -53,3 +53,4 @@
 - Study stop, found on main too: a judge call whose ledger write fails stops the study but loses that call's record.
 - rm inside the working folder (review): a target that is a mount point inside the working folder counts as inside it. In a container whose working folder holds a mounted host folder, removing that folder now runs unasked, where main asked.
 - rm inside the working folder (review): three gate corpus checks for allow patterns on rm of a build folder now pass through the new exemption, so they no longer prove the pattern works.
+- Requirements file (ci-jobs, final review): the blank line between the CAP-04 table and `# CAP-05` holds one space since c46d85f3, which `git diff --check` flags. The tree check and the parse are unaffected.

@@ -52,6 +52,7 @@ jobs:
     # finished Windows leg 34.5 min (run 39298256239), macOS 18.7, Linux 14.5. Windows grew about
     # 5 minutes a day on 2026-10-19 and 2026-10-20 as tests landed. About 2.6 times the slowest leg,
     # so suite growth and runner variance do not cancel an honest leg; a false time-out blocks release.
+    # Suite legs run four files at a time since this lane.
     timeout-minutes: 90
     continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
@@ -59,6 +60,10 @@ jobs:
         shell: bash
     env:
       NANA_TEST_REQUIRE_COPIER: "1"
+      # chosen; measured clean at 4 against 1 in probe run 39761155058
+      NANA_CI_JOBS: "4"
+      # chosen; about twice review-ledger's projected 412 s at four on Windows (runs 39731735341 and 39761155058)
+      NANA_TEST_TIMEOUT_MS: "900000"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,15 +72,16 @@ jobs:
         with:
           node-version: 22
       - uses: astral-sh/setup-uv@v5
+      - run: uvx copier --version
       - uses: pnpm/action-setup@v4
         with:
           version: 11
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test
+      - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }}
         if: matrix.os != 'windows-latest'
-      - run: npm test -- --verbose
+      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }}
         if: matrix.os == 'windows-latest'
 
   release:

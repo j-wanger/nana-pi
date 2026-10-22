@@ -158,8 +158,61 @@ check("R-1531: a failing Linux suite leg alone does not stop the release job", (
 // req: R-1313
 check("R-1313: the Windows suite leg runs the suite verbose", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  assert.match(suite, /^      - run: npm test\n        if: matrix\.os != 'windows-latest'$/m);
-  assert.match(suite, /^      - run: npm test -- --verbose\n        if: matrix\.os == 'windows-latest'$/m);
+  assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\}\n        if: matrix\.os == 'windows-latest'$/m);
+  assert.match(suite, /^      - run: npm test -- --verbose --jobs=/m);
+});
+// req: R-2556
+check("R-2556: every CI suite step passes the job count to the runner after npm's separator", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const runs = suite.split("\n").filter((line) => /^\s+- run: npm test(?:\s|$)/.test(line));
+  assert(runs.length >= 2, "the suite job must have at least two npm test steps");
+  for (const line of runs) {
+    const command = line.slice(line.indexOf("run:") + 4).trim();
+    const separator = command.match(/(?:^|\s)--(?=\s|$)/);
+    assert(separator, `npm test must pass runner arguments after a standalone --: ${line}`);
+    const splitAt = separator.index + separator[0].length;
+    const before = command.slice(0, separator.index);
+    const after = command.slice(splitAt).trim();
+    assert.doesNotMatch(before, /(?:^|\s)--jobs=/, "--jobs must not be consumed by npm");
+    assert.equal((after.match(/--jobs=/g) ?? []).length, 1, "runner args must carry one job-count argument");
+    assert.match(after, /(?:^|\s)--jobs=\$\{\{ env\.NANA_CI_JOBS \}\}(?=\s|$)/, "runner args must use the env-based job count");
+  }
+});
+// req: R-2557
+check("R-2557: the suite job's count of test files at once is sealed at 4 with a chosen comment directly above it", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const lines = suite.split("\n");
+  const keys = lines.map((line, index) => ({ line, index })).filter(({ line }) => /^      NANA_CI_JOBS:/.test(line));
+  assert.equal(keys.length, 1, "suite job env must define NANA_CI_JOBS exactly once");
+  assert.equal(keys[0].line, '      NANA_CI_JOBS: "4"');
+  const comments = [];
+  for (let i = keys[0].index - 1; i >= 0 && /^      #/.test(lines[i]); i--) comments.unshift(lines[i]);
+  assert(comments.some((line) => /\bchosen\b/.test(line)), "a chosen provenance comment must directly precede the key");
+  assert.equal((workflow.match(/^\s*NANA_CI_JOBS:/gm) ?? []).length, 1, "the job count must have one home in the workflow");
+});
+// req: R-2558
+check("R-2558: the per-file time limit is set once, in the suite job's env, sealed at 900000 with a chosen comment directly above it", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const lines = workflow.split("\n");
+  const occurrences = lines.map((line, index) => ({ line, index })).filter(({ line }) => line.includes("NANA_TEST_TIMEOUT_MS"));
+  assert.equal(occurrences.length, 1, "the timeout key may occur only once in the workflow");
+  const entry = occurrences[0];
+  assert.equal(entry.line, '      NANA_TEST_TIMEOUT_MS: "900000"');
+  assert(suite.includes(entry.line), "the timeout must live in the suite job");
+  const comments = [];
+  for (let i = entry.index - 1; i >= 0 && /^      #/.test(lines[i]); i--) comments.unshift(lines[i]);
+  assert(comments.some((line) => /\bchosen\b/.test(line)), "a chosen provenance comment must directly precede the key");
+  assert.doesNotMatch(lines.filter((line) => /NANA_TEST_TIMEOUT_MS=/.test(line)).join("\n"), /NANA_TEST_TIMEOUT_MS=/, "the timeout must not be assigned inline in a run line");
+});
+// req: R-2577
+check("R-2577: the suite job warms the copier cache before its first suite step", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const steps = suite.split("\n").filter((line) => /^      - run:/.test(line));
+  const warmups = steps.filter((line) => line === "      - run: uvx copier --version");
+  assert.equal(warmups.length, 1, "the suite job must run the exact copier version probe once");
+  const firstSuiteStep = steps.findIndex((line) => /npm test/.test(line));
+  assert(firstSuiteStep >= 0, "the suite job must include an npm test step");
+  assert(steps.indexOf(warmups[0]) < firstSuiteStep, "the copier probe must precede the first npm test step");
 });
 // req: R-1078
 check("install check is a blocking macOS and Windows job", () => {
