@@ -1,11 +1,37 @@
 /**
  * @module packages/nana-pack/lib/land-config.mjs
- * @purpose Declare the land-time runtime-map contract values with their provenance.
+ * @purpose Declare land-time process, CI, and runtime-map contract values with their provenance.
  * @inputs none
- * @outputs Environment names, hand-measure marker, note prefix, platform policy, main ref, failure policy, display digits, and coverage owner filename.
+ * @outputs Process bounds, CI scope and verdict values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
  * @effects none
  * @errors none
  */
+
+// contract (R-585, R-2590): origin is the land's remote of record.
+export const CI_REMOTE = "origin";
+
+// chosen 2026-10-22 (R-2591): the hosted CI every nana repository on this machine uses.
+export const CI_HOST = "github.com";
+
+// contract (R-2590): GitHub Actions reads top-level YAML workflow files from this directory.
+export const CI_WORKFLOW_DIR = ".github/workflows";
+export const CI_WORKFLOW_EXTENSIONS = Object.freeze([".yml", ".yaml"]);
+
+// contract (R-2591): GitHub REST list-workflow-runs endpoint, with head_sha supplied by nana-land.
+export const CI_RUNS_PATH = "repos/<owner>/<repo>/actions/runs";
+
+// measured 2026-10-22 (R-2591): per_page=101 and 150 each returned 100; landed tips had one or two runs over 40 lands.
+export const CI_RUNS_PAGE_SIZE = 100;
+
+// chosen 2026-10-22 (R-2589): about 60 times the measured 0.47-second runs call.
+export const CI_READ_TIMEOUT_MS = 30_000;
+
+// contract (R-2586, R-2587): GitHub's passing workflow-run vocabulary.
+export const CI_DONE_STATUS = "completed";
+export const CI_PASS_CONCLUSION = "success";
+
+// chosen 2026-10-22 (R-2589): nana-land's existing git and suite bound; a two-run answer measured 23,880 bytes.
+export const CHILD_OUTPUT_MAX_BYTES = 16 * 1024 * 1024;
 
 // contract (R-2522, R-2523): the land-to-locked-suite tip channel.
 export const LAND_TIP_ENV = "NANA_LAND_TIP";
