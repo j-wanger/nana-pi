@@ -21,18 +21,23 @@ function entryText(entry) {
 	return entry.lines.map((line, index) => index === 0 ? line.replace(LIST_PREFIX, "") : line.trim()).join(" ").trim();
 }
 
+function unsafePath(value) {
+	const segments = value.split("/");
+	return !value || value.startsWith("/") || value.startsWith("~") || WINDOWS_ABSOLUTE.test(value) || segments.includes("..");
+}
+
 function normalizeEntry(entry) {
-	const text = entryText(entry);
+	const text = entryText(entry).replaceAll("**", "");
 	if (text.startsWith(PRECEDENT_NONE)) {
 		const reason = text.slice(PRECEDENT_NONE.length).trim();
 		return { kind: reason ? "none" : "invalid-none", reason, value: PRECEDENT_NONE, line: entry.line };
 	}
 	let value = text.split(/\s+/, 1)[0]?.replaceAll("`", "") ?? "";
-	if (value && PRECEDENT_TRAILING_PUNCTUATION.includes(value.at(-1))) value = value.slice(0, -1);
+	const unsafeBeforeMarks = unsafePath(value.replaceAll("\\", "/"));
+	while (value && PRECEDENT_TRAILING_PUNCTUATION.includes(value.at(-1))) value = value.slice(0, -1);
 	value = value.replace(LINE_SUFFIX, "").replaceAll("\\", "/");
 	if (value.startsWith("./")) value = value.slice(2);
-	const segments = value.split("/");
-	const unsafe = !value || value.startsWith("/") || value.startsWith("~") || WINDOWS_ABSOLUTE.test(value) || segments.includes("..");
+	const unsafe = unsafeBeforeMarks || unsafePath(value);
 	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line };
 }
 
@@ -40,8 +45,12 @@ function normalizeEntry(entry) {
 export function readBrief(text) {
 	const source = text.startsWith("\uFEFF") ? text.slice(1) : text;
 	const section = scanListSections(source, {
-		headingMatches: (title) => isNamed(title, PRECEDENT_SECTION),
-		label: `${PRECEDENT_SECTION}:`,
+		headingMatches: (title) => {
+			if (!isNamed(title, PRECEDENT_SECTION)) return false;
+			const rest = title.trim().slice(PRECEDENT_SECTION.length).trimStart();
+			return !/^[\p{L}\p{N}]/u.test(rest);
+		},
+		label: [`${PRECEDENT_SECTION}:`, `**${PRECEDENT_SECTION}:**`, `**${PRECEDENT_SECTION}**:`],
 	})[0] ?? null;
 	const featurePattern = new RegExp(`^${FEATURE_LINE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(FEAT-\\d{3})\\b`);
 	let feature = null;
@@ -75,7 +84,10 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 	try { parsedBrief = readBrief(readFileSync(briefPath, "utf8")); }
 	catch { return refusal(`cannot read ${PRECEDENT_SECTION} section from brief`); }
 	const precedent = parsedBrief.precedent;
-	if (precedent === null || precedent.length === 0 || precedent.some((entry) => entry.kind === "invalid-none")) {
+	if (precedent === null) {
+		return refusal(`${PRECEDENT_SECTION} section needs a ${PRECEDENT_SECTION} heading, or a line holding only ${PRECEDENT_SECTION}:, then one entry in either form: - <path> or - ${PRECEDENT_NONE} <reason>`);
+	}
+	if (precedent.length === 0 || precedent.some((entry) => entry.kind === "invalid-none")) {
 		return refusal(`${PRECEDENT_SECTION} section needs one entry in either form: - <path> or - ${PRECEDENT_NONE} <reason>`);
 	}
 	let head;

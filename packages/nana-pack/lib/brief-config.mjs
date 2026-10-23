@@ -12,7 +12,7 @@ export const PRECEDENT_SECTION = "Precedent";
 export const PRECEDENT_NONE = "none:";
 /** Contract: AGENTS.md's lane-brief convention and the requirements skill; R-2581. */
 export const FEATURE_LINE_PREFIX = "Feature: ";
-/** Chosen: 77 of 378 recorded build briefs put one of these marks after a path (2026-10-22 adversary M1). */
-export const PRECEDENT_TRAILING_PUNCTUATION = ",;.)";
+/** Measured: 263 list entries in 110 of 388 tracked build briefs end a path-like first token with `:`; 106 in 72 with `,` (2026-10-22 adversary M2). */
+export const PRECEDENT_TRAILING_PUNCTUATION = ",;.):";
 /** Chosen: 65,536 bytes is about four times the largest real-brief path listing measured on 2026-10-22 and stays below Node's 1 MiB default. */
 export const PRECEDENT_LIST_MAX_BYTES = 65_536;

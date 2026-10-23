@@ -101,3 +101,4 @@
 - Kept review texts (review-outputs-kept, land review): only CI's Windows leg runs the store write on Windows; the land reviewer's tests ran on macOS.
 - Claude review launcher (claude-review-launcher, final review): R-2564 checks the standard input that reaches a `.cmd` shim, not the argv, so a change to Windows argument quoting would pass it.
 - Claude review launcher (claude-review-launcher, final review): the launcher neither accepts nor forwards `--revision`, so a round always records the tree's current HEAD; a seat cannot record a round for another commit through it.
+- Review cost (audit re-check, 2026-10-22): no review round records its cost, and round durations are read only by the hand-run timeline report.

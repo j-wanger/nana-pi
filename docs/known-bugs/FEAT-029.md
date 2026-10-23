@@ -29,3 +29,4 @@
 - Runtime map (runtime-map-live, final review r3): R-1277's check title still says "SIGINT or SIGTERM … a fake three-level suite", though the check now also sends SIGHUP and runs the orphan case.
 - Runtime map (runtime-map-live, final review r3): the kill step signals single PIDs and walks the tree from the child 500 ms after the first signal, even if the child has exited. A PID reused in that window would get SIGKILL; main's group kill has the same kind of window.
 - Runtime map (runtime-map-live, final review r3): a descendant that starts a new process group after the first walk, then loses its parent before the kill step, is never reached. The row promises only what the first signal reached and the root's group.
+- Precedent (audit re-check, 2026-10-22): no tool finds a sibling implementation for a planner; the seat and the adversary search by hand.
