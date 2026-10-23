@@ -13,9 +13,9 @@
 
 1. **Priority review, 2026-10-24.** Met: the requirements tree, four-digit IDs, the land rule, and the Windows CI runner with its fixes. Partly met: install and hooks. CI's install check passes on macOS and Windows, but the owner's own Windows run at current main is pending. No checklist step has run on a clean account or a fresh machine. The seat brings the review pack and proposes whether the artifact work becomes the next priority.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode until 2026-10-24).** Building: land reads CI, build records and the session-start frontier. Planned: the project drift notice, then CI timing records once land reads CI lands. After them come Claude Code builder parity and shared helpers. A small lane parks the desk and orphan study deliverables when a build slot frees.
+3. **Lanes in flight (power mode until 2026-10-24).** Building: build records, the session-start frontier and the project drift notice. Planned: parking the desk deliverables, then CI timing records. After them come Claude Code builder parity and shared helpers.
 4. **Queue after that.** It holds the builder launch in the install check and the linked Claude folder's repair advice. It also holds a settings file with a byte-order mark and the audit's seat calls. Seat work: regenerate and republish the product report in a reviewed change.
-5. **Windows first-try failures.** Count them over 20 CI runs since CI moved to four test files at a time. Two so far, both on 2026-10-22: a parallel-runner output check, then the objective hook row of main's install check. Each re-run passed. Before the 2026-10-21 fix, about 4 of 20 needed a re-run.
+5. **Windows first-try failures.** Count them over 20 CI runs since CI moved to four test files at a time. Four so far, all on 2026-10-22. The parallel-runner output check failed twice, then the objective hook row of main's install check, then a brief-check time limit on main. Each re-run passed. Before the 2026-10-21 fix, about 4 of 20 needed a re-run.
 6. **Karpathy's other formats.** Nothing blocks the review-timeline diagram any more, and nobody has started it.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
@@ -52,6 +52,7 @@
 
 - 2026-09-18 to 2026-10-22: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`), up to 2026-10-20 on 2026-10-21 and the rest on 2026-10-22.
 - 2026-10-22: the brief check now reads the Precedent forms seats write. A numbered step list right after a plain Precedent list no longer counts as entries. A bold label line starts the section, and a bold or punctuated path now reaches the check bare. A heading such as "Precedent audit" no longer counts. A brief with no section is told both ways to start one, and brief-check names the brief path it tried. All 17 of the seat's wrong versions of the code turn a check red.
+- 2026-10-22: nana-land now waits for CI. Before its suite, it reads the GitHub workflow runs for the tip it lands. It refuses the land unless each workflow's newest run succeeded. A refusal names each run, its state and the next step: wait, re-run it with its repository named, or push the tip. A repository with no GitHub origin or no workflows lands with a note. The read turns gh's colour off, so a seat's colour settings cannot break it. All 19 of the seat's wrong versions of the code turn a check red. An independent check ran real lands against GitHub.
 
 ## Known bugs
 
