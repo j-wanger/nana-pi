@@ -6,7 +6,7 @@
  *  (CLAUDE_CONFIG_DIR, else ~/.claude); nana-pack's agent-dir resolver (PI_CODING_AGENT_DIR, else
  *  ~/.pi/agent) and its cwd-relative probe; nana-pack's RULINGS_FILE;
  *  process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
- * @outputs pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
+ * @outputs pkgRoot, repoRoot, SHARED_DIR, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
  *  base, claudeHome + claudeHomeSource + claudeHomeCwdRelative, hooksDir, rulesDir, skillsDir,
  *  projectsDir, sharedMemoryDir, claudeSettings, copyRecord, piHome + piHomeSource + piHomeCwdRelative,
  *  piSettings, piPackConfig, piObjective, piRulings,
@@ -31,6 +31,8 @@ import { realPath } from "../../nana-pack/lib/real-path.mjs";
 export const pkgRoot = realPath(path.resolve(fileURLToPath(new URL(".", import.meta.url)), ".."));
 /** <repo> — the install root: what gets registered with pi and referenced from settings.json. */
 export const repoRoot = path.resolve(pkgRoot, "..", "..");
+/** The single source of project seeds and the marker-owned working section. */
+export const SHARED_DIR = path.join(repoRoot, "templates", "_shared");
 
 export const DESK_LABEL = "com.nana.pi-desk";
 export { CLAUDE_CONFIG_ENV };

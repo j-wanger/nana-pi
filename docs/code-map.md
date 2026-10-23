@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 395 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 397 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1181,7 +1181,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — LANE_MAX_SECS, WIN_CPU_TICKS_PER_SECOND, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, REVIEWER_CHILD_ENV, NPM_DIRS, PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/extensions/nana-gate.ts`
@@ -1256,12 +1256,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/extensions/nana-rulings.ts`
 
-- **purpose** — Append nana's standing rulings and stale-install guidance to every session's system prompt, rereading them at every session_start reason.
-- **inputs** — pi `session_start` and `before_agent_start` events; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
-- **outputs** — rulings text or its unavailable marker in RULINGS_SECTION, plus a separate stale-copy section when the injected file is not this checkout's current file.
-- **effects** — disk (bounded-reads the installed rulings and compares it with the shipped source)
+- **purpose** — Append nana's standing rulings plus stale-install and stale-project guidance to every session's system prompt.
+- **inputs** — pi `session_start` and `before_agent_start` events; session cwd; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
+- **outputs** — rulings text or its unavailable marker in RULINGS_SECTION, plus independent stale-install and project-stale sections when applicable.
+- **effects** — disk (bounded-reads the installed rulings and project AGENTS.md, and compares shipped sources)
 - **errors** — none — the handler swallows everything; an unusable file injects the marker rather than throwing, hanging, or exhausting memory
-- **callers** — `packages/nana-setup/tests/stale-copies.test.mjs`
+- **callers** — `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
 
 ### `packages/nana-pack/extensions/nana-writing.ts`
@@ -1281,7 +1281,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total
-- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/json-text.mjs`
 
 ### `packages/nana-pack/lib/agent-dir.mjs`
@@ -1311,7 +1311,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a Buffer containing at most the requested limit plus one bytes
 - **effects** — disk (opens and reads one file descriptor)
 - **errors** — throws filesystem errors, ERR_NOT_REGULAR, or ERR_TOO_LARGE
-- **callers** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/brief-config.mjs`
@@ -1361,7 +1361,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — one bounded rendering per surface — promptPath/uiPath (one line, JSON-escaped when unsafe, ≤ PATH_CAP, middle-elided), promptText/uiText/fileField (controls, breaks and bidi marks replaced by a space), codeSpan (or null when it would close the span), locator ({text, escaped}, exact and never elided)
 - **effects** — none
 - **errors** — none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe code span is refused with null rather than escaped
-- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
+- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/frontier-config.mjs`
@@ -1651,7 +1651,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — RULINGS_FILE, RULINGS_READ_CAP, RULINGS_HEADING, RULINGS_SECTION, RULINGS_UNAVAILABLE
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/runtime-map-config.mjs`
@@ -2916,9 +2916,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/bin/stale-copies.mjs`
 
-- **purpose** — Report unhealthy Claude Code hook links, rules, skills and hook settings for a home with a nana-setup adoption-hook install record.
-- **inputs** — the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
-- **outputs** — one stale-copy notice on stdout, including blocked skill paths to move, or no output when no install is recorded or every applicable item is current.
+- **purpose** — Report an outdated session project's working section and unhealthy installed Claude Code hooks, rules, skills or settings.
+- **inputs** — argv (`--cwd <dir>`), the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
+- **outputs** — an optional project-stale line before one optional installed-copy notice, including blocked skill paths to move.
 - **effects** — disk (reads installed and source files; runs install's skill step in dry-run mode), process (writes stdout).
 - **errors** — unexpected failures reach the launcher, which emits the unavailable marker.
 - **callers** — —
@@ -3108,10 +3108,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The single resolver for every path the installer touches, so `install`, `doctor` and `project` can never disagree about where a piece lives.
 - **inputs** — opts.home / opts.claudeHome / opts.piHome; os.homedir(); Claude-home resolver (CLAUDE_CONFIG_DIR, else ~/.claude); nana-pack's agent-dir resolver (PI_CODING_AGENT_DIR, else ~/.pi/agent) and its cwd-relative probe; nana-pack's RULINGS_FILE; process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
-- **outputs** — pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths — base, claudeHome + claudeHomeSource + claudeHomeCwdRelative, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, copyRecord, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
+- **outputs** — pkgRoot, repoRoot, SHARED_DIR, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths — base, claudeHome + claudeHomeSource + claudeHomeCwdRelative, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, copyRecord, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
 - **effects** — disk (one realPath read at import to canonicalize pkgRoot; all other work is path arithmetic and env/homedir reads)
 - **errors** — none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
-- **callers** — `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
+- **callers** — `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/lib/working-region.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/objective-path.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-setup/lib/claude-config-home.mjs`
 
 ### `packages/nana-setup/lib/pi-invocation.mjs`
@@ -3148,11 +3148,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Seed and check per-project nana files while refreshing only the explicitly marked shared instructions region.
 - **inputs** — the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader; NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS
-- **outputs** — setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`, every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT, BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS, RENAME_RETRY_ATTEMPTS, RENAME_RETRY_DELAY_MS
+- **outputs** — setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`, every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also re-exports SHARED_DIR, WORKING_BEGIN and WORKING_END; exports today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT, BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS, RENAME_RETRY_ATTEMPTS, RENAME_RETRY_DELAY_MS
 - **effects** — disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a parent-side deadline — SIGTERM then SIGKILL after the grace)
 - **errors** — SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a path that is not a git repository root; everything else is a row — SKIPPED for an odd seed entry or folder path, a nested-repo `git init`, a failed `git init`, a missing index, a held build lock, a build failure or the refresh deadline
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
-- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
+- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/working-region.mjs`
 
 ### `packages/nana-setup/lib/readme-rehearsal.mjs`
 
@@ -3216,23 +3216,23 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/stale-copies-config.mjs`
 
-- **purpose** — Declare the stable stale-copy notice prefixes and pi prompt-section key.
+- **purpose** — Declare the stable install-copy and project-working-section notice text and section keys.
 - **inputs** — none.
-- **outputs** — STALE_PREFIX, STALE_UNAVAILABLE_PREFIX and STALE_SECTION.
+- **outputs** — install and project stale prefixes, labels, section keys and fallback phrase.
 - **effects** — none
 - **errors** — none.
-- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/stale-copies-slow.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/stale-copies-slow.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/stale-copies.mjs`
 
-- **purpose** — Compare installed files with this checkout and render one shared stale-copy notice.
-- **inputs** — installed and source paths, stale doctor labels, optional blocked skill paths, the active platform and package root, and the active Claude settings entry that records nana-setup's adoption-hook install.
-- **outputs** — linkOk(), hasAdoptionInstallRecord() and staleNotice(labels, movePaths).
-- **effects** — disk (lstat, realpath and byte reads).
-- **errors** — comparison or settings-read failures return false; notice rendering is total.
-- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`
-- **callees** — `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`
+- **purpose** — Compare installed files and project working sections with this checkout and render their stale-copy notices.
+- **inputs** — installed and source paths, stale doctor labels, optional blocked skill paths, a session folder and environment, the active platform and package root, and the active Claude settings entry that records nana-setup's adoption-hook install.
+- **outputs** — LAUNCHER_ROLES, linkOk(), hasAdoptionInstallRecord(), staleNotice(labels, movePaths) and projectStaleLine(sessionDir, options).
+- **effects** — disk (lstat, realpath and bounded byte reads).
+- **errors** — comparison or settings-read failures return false or an empty project line; notice rendering is total.
+- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/lib/working-region.mjs`
 
 ### `packages/nana-setup/lib/state-manifest.mjs`
 
@@ -3293,6 +3293,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Non-string or non-absolute inputs throw TypeError; path operations may throw their native errors.
 - **callers** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
 - **callees** — —
+
+### `packages/nana-setup/lib/working-region.mjs`
+
+- **purpose** — Read and compare the canonical marker-owned AGENTS.md working section without loading the project command.
+- **inputs** — AGENTS.md text, the shared working-section file, SHARED_DIR and Node filesystem APIs.
+- **outputs** — WORKING_BEGIN, WORKING_END, WORKING_FILE, markerLines(), readSharedWorking() and regionVerdict().
+- **effects** — disk (reads the shared working-section file).
+- **errors** — readSharedWorking propagates filesystem errors; markerLines and regionVerdict are pure and total for strings.
+- **callers** — `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
+- **callees** — `packages/nana-setup/lib/paths.mjs`
 
 ### `packages/nana-setup/tests/agent-dir-consumers.test.mjs`
 
@@ -3634,6 +3644,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
 
+### `packages/nana-setup/tests/project-stale.test.mjs`
+
+- **purpose** — Pin the shared project-working-region drift notice in the Claude Code and pi session-start seats.
+- **inputs** — the real adoption hook and stale-copy producer, nana-rulings, project helpers, shared working text, and temporary repositories.
+- **outputs** — PASS/FAIL/SKIP lines and a summary; a nonzero exit when a contract case fails.
+- **effects** — disk (OS temporary fixtures only), process (spawns hook CLIs and temporarily patches child_process and NANA_ROLE).
+- **errors** — fixture errors fail their case; every asynchronous handler is bounded by the per-case limit.
+- **callers** — —
+- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+
 ### `packages/nana-setup/tests/project-working-region.test.mjs`
 
 - **purpose** — Pins marker-owned AGENTS refresh and region-only checking without touching bytes outside the region.
@@ -3851,7 +3871,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/claude-config-dir.test.mjs`, `packages/nana-setup/tests/copy-record.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-fix-line.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-quiet.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-odd-seeds.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/realpath-fallback.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/settings-lock.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/stale-copies-slow.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
+- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/claude-config-dir.test.mjs`, `packages/nana-setup/tests/copy-record.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-fix-line.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-quiet.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-odd-seeds.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/realpath-fallback.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/settings-lock.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/stale-copies-slow.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/tests/trust.test.mjs`

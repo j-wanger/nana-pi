@@ -44,3 +44,17 @@
 - Template Biome (biome-pin, final review): if the adopt render fails, R-2559 fails too, repeating the render failure without hiding it.
 - Template Biome (biome-pin, final review): the seat pair script cuts each FAIL line at 140 characters, so b4's line in the output file ends mid-sentence.
 - Template Biome (biome-pin, final review): the TypeScript template's `^5.9.0` and `^22.0.0` ranges carry the same open-range risk as ruff, though they are less likely to break a lint gate.
+- Project drift line (project-drift-notice): only the AGENTS.md marker region is compared; the frontier seeds are not.
+- Project drift line (project-drift-notice): the compare uses the checkout the hook or extension runs from, and the node form names that checkout's command, so the fix writes the section that was compared.
+- Project drift line (project-drift-notice): linked worktrees and submodules get no line; the fix belongs in the main checkout, then a merge.
+- Project drift line (project-drift-notice): a nana-pi checkout gets no line; R-859 governs it.
+- Project drift line (project-drift-notice): there is no line where `nana-setup project` would not refresh the region. That covers no markers, a malformed or fence-only pair, a symlink, an unreadable or invalid UTF-8 file, a file over 1 MiB, and a dismissed root. `project --check` still reports these. Of 13 home-level checkouts here, 4 are adopted with a bare unmarked copy.
+- Project drift line (project-drift-notice): the named fix also seeds any absent frontier file and month log, replaces a CLAUDE.md placeholder, writes `.pi/nana-pack.json` and starts a knowledge build.
+- Project drift line (project-drift-notice): a copier project compares against main's section, not its template tag. Its documented copier update does not clear the line, and the named fix writes unreleased text that a later update may conflict with.
+- Project drift line (project-drift-notice): a root holding `"`, `$`, a backtick or `%` gets the no-path form, which names a bare `nana-setup` resolved through PATH; that may be another checkout than the one that compared (independent check).
+- Project drift line (project-drift-notice): both seats decide at session start, so a fix mid-session clears the line at the next start or a pi reload.
+- Project drift line (project-drift-notice): OS temp roots are not skipped, unlike the adoption block.
+- Project drift line (project-drift-notice): inferred, not probed: SessionStart does not fire for a Claude Code subagent, so a Claude Code builder gets nothing.
+- Project drift line (project-drift-notice): the shared runtime table does not list the line; it lists hooks and extensions, which are unchanged.
+- Project drift line (project-drift-notice, independent check): a read-only AGENTS.md gets the line and `--check` agrees, but the named fix skips the file, so the line stays. A read-only root makes `nana-setup project` exit 1 with a stack trace, and `--check` crashes on an unreadable AGENTS.md.
+- Project drift line (project-drift-notice, independent check): the role guard is an exact, case-sensitive match, so `Worker`, `REVIEWER` and ` worker` get the line, as the knowledge hook's compare does. Every launcher sets lowercase values.
