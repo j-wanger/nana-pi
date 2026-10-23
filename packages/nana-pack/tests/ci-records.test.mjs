@@ -36,7 +36,6 @@ const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "ci-records-test
 const CASE_LIMIT_MS = 30_000;
 const SHA = spawnSync("git", ["rev-parse", "HEAD"], { cwd: REPO, encoding: "utf8" }).stdout.trim();
 const SHORT_SHA = SHA.slice(0, 9);
-const BRANCH = spawnSync("git", ["branch", "--show-current"], { cwd: REPO, encoding: "utf8" }).stdout.trim();
 let failures = 0;
 const check = (title, fn) => {
 	try { fn(); console.log("PASS", title); }
@@ -224,7 +223,7 @@ check("R-2634: ci-records prints one totals line per record artifact of each CI 
 		},
 		downloads: Object.fromEntries(Object.entries(records).map(([id, source]) => [id, { files: [{ name: "nana-suite-record.json", source }] }])),
 	};
-	for (const revision of [SHORT_SHA, BRANCH]) {
+	for (const revision of [SHORT_SHA, "HEAD"]) {
 		const result = runCli(state, revision);
 		assert.equal(result.status, 0, result.out);
 		const lines = totalsLines(result.out);
