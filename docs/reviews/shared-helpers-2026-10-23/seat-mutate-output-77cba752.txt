@@ -1,0 +1,55 @@
+seat-mutate: lane shared-helpers, tip 77cba752be0a2ecd669cea0754cf16cc76e05ced, table 4ec0e1ec2dcc8622dcadbad423881b6dfed6b310393bb89b4e3fbc28d0ac6cca, merge-base dbb98cbbc3df23e1abe806e2cae6444758d33b40, 26 pairs in 5 shards (6+5+5+5+5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T13:11:54.340Z
+DECLARED (plan) p1 to p22 follow the draft's wrong-code list in order, with the must-meet's changes to pairs 2, 5 and 21; p24 to p27 are the must-meet's new pairs
+DECLARED (seat) p23 (post-edit passes no fallback, expecting R-1701) runs only on the Windows leg, so it is not in this macOS table
+DECLARED (seat) p1, p13 and p16 name only the lane's own titles; their side effects on R-1233, R-912 and R-986 are not run here
+DECLARED (seat) p17 to p19 restore main's own kill bodies in scripts/test.mjs, pi-watchdog and post-edit
+[1/5] seat-mutate: lane shared-helpers, shard 1/5, tip 77cba752be0a2ecd669cea0754cf16cc76e05ced, merge-base dbb98cbbc3df23e1abe806e2cae6444758d33b40, 6 pairs, darwin, node v22.22.2, 2026-10-23T13:11:55.326Z
+[1/5] BASELINE ok   packages/nana-pack/tests/process-tree.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/review-ledger.test.mjs (exit 0, 171 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/rename-retry.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[1/5] RESULT: 6/6 red (6 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane shared-helpers, shard 2/5, tip 77cba752be0a2ecd669cea0754cf16cc76e05ced, merge-base dbb98cbbc3df23e1abe806e2cae6444758d33b40, 5 pairs, darwin, node v22.22.2, 2026-10-23T13:11:59.276Z
+[2/5] BASELINE ok   packages/nana-pack/tests/process-tree.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/rename-retry.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/rulings.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[2/5] RESULT: 5/5 red (3 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane shared-helpers, shard 3/5, tip 77cba752be0a2ecd669cea0754cf16cc76e05ced, merge-base dbb98cbbc3df23e1abe806e2cae6444758d33b40, 5 pairs, darwin, node v22.22.2, 2026-10-23T13:12:03.360Z
+[3/5] BASELINE ok   packages/nana-pack/tests/process-tree.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/rename-retry.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[3/5] RESULT: 5/5 red (4 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane shared-helpers, shard 4/5, tip 77cba752be0a2ecd669cea0754cf16cc76e05ced, merge-base dbb98cbbc3df23e1abe806e2cae6444758d33b40, 5 pairs, darwin, node v22.22.2, 2026-10-23T13:12:07.261Z
+[4/5] BASELINE ok   packages/nana-pack/tests/process-tree.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/rename-retry.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[4/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane shared-helpers, shard 5/5, tip 77cba752be0a2ecd669cea0754cf16cc76e05ced, merge-base dbb98cbbc3df23e1abe806e2cae6444758d33b40, 5 pairs, darwin, node v22.22.2, 2026-10-23T13:12:11.347Z
+[5/5] BASELINE ok   packages/nana-pack/tests/process-tree.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/rename-retry.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[5/5] RESULT: 5/5 red (3 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+RED p1 the POSIX branch signals pid, not -pid — 1/1 named: /^R-2656: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p2 the default signal is SIGTERM — 2/2 named: /^R-2656: / | /^seal: taskkill, SIGKILL by default, and the four declared tree-kill exceptions/; UNNAMED red: [process-tree.test.mjs] R-2657: on Windows both forms start taskkill /T /F /PID once without a shell, signal no group, call the fallb…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the helper kills the pid itself when no fallback is given — 1/1 named: /^R-2656: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 the fallback runs after a successful group signal — 1/1 named: /^R-2656: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED p5 /T dropped — 1/1 named: /^R-2657: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 the win32 branch runs the POSIX path — 1/1 named: /^R-2657: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 taskkill runs with shell: true — 1/1 named: /^R-2657: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 the no-wait form attaches no error listener — (no named case); named but NOT REACHED: /^R-2657: /; 0 FAIL total (1 file changed, 1 deletion(-)); CRASH process-tree.test.mjs THREW (later checks never ran)
+RED p9 the fallback runs on close 0 — 1/1 named: /^R-2657: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p10 the pid guard removed — 1/1 named: /^R-2658: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 the guard checks only == null — 1/1 named: /^R-2658: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 the rename retry keeps a win32-only gate — (no named case); named but NOT REACHED: /^R-2659: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH rename-retry.test.mjs THREW (later checks never ran)
+RED p13 the recheck runs before the delay — 1/1 named: /^R-2659: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p14 the retry makes four attempts — 2/2 named: /^R-2659: / | /^seal: three attempts 20 ms apart on EPERM, EBUSY and EACCES/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p15 ENOENT is retried — 1/1 named: /^R-2659: /; UNNAMED red: [rename-retry.test.mjs] seal: three attempts 20 ms apart on EPERM, EBUSY and EACCES; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p16 review-round ignores the injected rename — 1/1 named: /^R-2660: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p17 scripts/test.mjs keeps its taskkill line — 1/1 named: /^R-2661: /; 1 FAIL total (1 file changed, 5 insertions(+), 1 deletion(-))
+RED p18 pi-watchdog keeps its execSync template literal — 1/1 named: /^R-2661: /; 1 FAIL total (1 file changed, 6 insertions(+), 2 deletions(-))
+RED p19 post-edit keeps its own killTree — 1/1 named: /^R-2661: /; 1 FAIL total (1 file changed, 5 insertions(+), 1 deletion(-))
+RED p20 the exceptions gain post-edit — 1/1 named: /^seal: taskkill, SIGKILL by default, and the four declared tree-kill exceptions/; UNNAMED red: [process-tree.test.mjs] R-2661: the tree-kill scan names each planted taskkill or negative-pid line outside the exceptions, and finds…; 2 FAIL total (1 file changed, 1 insertion(+))
+RED p21 the reuse sentence merged into R-2582's line — 1/1 named: /^R-2662: /; 1 FAIL total (1 file changed, 1 insertion(+), 2 deletions(-))
+RED p22 the ruling missing — 1/1 named: /^R-2663: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED p24 the scan's patterns match nothing — 1/1 named: /^R-2661: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p25 the pid guard accepts 1 — 1/1 named: /^R-2658: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p26 a fallback throw escapes the no-wait form — 1/1 named: /^R-2657: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p27 an explicit delay: undefined used as the delay — 1/1 named: /^R-2659: /; 1 FAIL total (1 file changed, 3 insertions(+), 5 deletions(-))
+RESULT: 26/26 red (21 exactly their named titles, 4 with a named title green, 3 with an unnamed red), 0 survived, across 5 shards
