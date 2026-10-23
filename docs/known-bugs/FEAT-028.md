@@ -66,3 +66,4 @@
 - Movement report (park-deliverables, seat): `rowSnapshot` splits maker, reader and park lines with inline label patterns instead of the deliverable label constants, so retuning a label needs a second code edit.
 - Deliverable lines (park-deliverables, final review): R-2641 says the stale note names the row's first `Parked:` line; the code names the first readable one, so a broken park line above a good one gets its own note and the stale note names the second.
 - Deliverable lines (park-deliverables, final review): the park branch checks its row with an inline pattern that repeats the existing row-shape pattern.
+- Deliverable lines (park-deliverables, round 2 review): its Landed line, now in the October session archive, quotes `14 of 31 made and read by code, 8 parked`; at its land the checker printed `16 of 32`, because other lanes added deliverables. The line is a dated record.

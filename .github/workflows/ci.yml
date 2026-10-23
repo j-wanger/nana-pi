@@ -64,6 +64,8 @@ jobs:
       NANA_CI_JOBS: "4"
       # chosen; about twice review-ledger's projected 412 s at four on Windows (runs 39731735341 and 39761155058)
       NANA_TEST_TIMEOUT_MS: "900000"
+      # chosen: one stable name in each leg's temporary folder, outside the checkout
+      NANA_CI_RECORD_NAME: "nana-suite-record.json"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,8 +83,18 @@ jobs:
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }}
         if: matrix.os != 'windows-latest'
+        env:
+          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
       - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }}
         if: matrix.os == 'windows-latest'
+        env:
+          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        with:
+          name: suite-record-${{ matrix.os }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
 
   release:
     needs: [suite, install-check]
