@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/extensions/nana-rulings.ts
- * @purpose Append nana's standing rulings and stale-install guidance to every session's system prompt, rereading them at every session_start reason.
- * @inputs pi `session_start` and `before_agent_start` events; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
- * @outputs rulings text or its unavailable marker in RULINGS_SECTION, plus a separate stale-copy section when the injected file is not this checkout's current file.
- * @effects disk (bounded-reads the installed rulings and compares it with the shipped source)
+ * @purpose Append nana's standing rulings plus stale-install and stale-project guidance to every session's system prompt.
+ * @inputs pi `session_start` and `before_agent_start` events; session cwd; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
+ * @outputs rulings text or its unavailable marker in RULINGS_SECTION, plus independent stale-install and project-stale sections when applicable.
+ * @effects disk (bounded-reads the installed rulings and project AGENTS.md, and compares shipped sources)
  * @errors none — the handler swallows everything; an unusable file injects the marker rather
  *  than throwing, hanging, or exhausting memory
  */
@@ -31,8 +31,8 @@ import { fileURLToPath } from "node:url";
 import { readBounded, readFailureCause } from "../lib/bounded-read.mjs";
 import { piAgentDir } from "../lib/agent-dir.mjs";
 import { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULINGS_UNAVAILABLE } from "../lib/rulings-config.mjs";
-import { STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
-import { linkOk, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
+import { PROJECT_STALE_SECTION, STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
+import { linkOk, projectStaleLine, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
 
 /** One line, addressed to the USER — an agent that reads this tells the user, and never runs
  *  `nana-setup install` on its own (R-1411). Never contains a newline. */
@@ -62,8 +62,9 @@ export function buildBlock(agentDir: string = piAgentDir()): string {
 export default function (pi: ExtensionAPI, opts: { agentDir?: string } = {}) {
 	let block: string | null = null;
 	let stale = false;
+	let projectStale = "";
 
-	pi.on("session_start", async (_event, _ctx) => {
+	pi.on("session_start", async (_event, ctx) => {
 		// every reason, deliberately: a reload must re-read the file from disk (R-1410)
 		try {
 			const agentDir = opts.agentDir ?? piAgentDir();
@@ -73,13 +74,18 @@ export default function (pi: ExtensionAPI, opts: { agentDir?: string } = {}) {
 			block = null;
 			stale = false; // never throw out of a handler
 		}
+		try {
+			projectStale = projectStaleLine(ctx?.cwd);
+		} catch {
+			projectStale = "";
+		}
 	});
 
 	pi.on("before_agent_start", async (event, _ctx) => {
-		if (!block) return undefined;
 		try {
-			(event as any).systemPromptOptions.sections[RULINGS_SECTION] = block;
+			if (block) (event as any).systemPromptOptions.sections[RULINGS_SECTION] = block;
 			if (stale) (event as any).systemPromptOptions.sections[STALE_SECTION] = staleNotice([`pi ${RULINGS_FILE}`]);
+			if (projectStale) (event as any).systemPromptOptions.sections[PROJECT_STALE_SECTION] = projectStale;
 		} catch {
 			// A malformed event must not throw out of an extension handler.
 		}
