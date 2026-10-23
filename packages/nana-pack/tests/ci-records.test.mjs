@@ -63,7 +63,10 @@ fs.writeFileSync(FAKE_GH, [
 	'  if (answer.failure) fail(answer.failure);',
 	'  process.stdout.write(JSON.stringify(answer));',
 	'} else if (args[0] === "run" && args[1] === "download") {',
-	'  const id = args[2]; const dir = args[args.indexOf("--dir") + 1]; const answer = state.downloads?.[id];',
+	'  const id = args[2]; const repo = args[args.indexOf("--repo") + 1]; const name = args[args.indexOf("--name") + 1]; const dir = args[args.indexOf("--dir") + 1];',
+	'  const run = (state.runs ?? []).find((item) => String(item.id) === id);',
+	'  const artifact = state.artifacts?.[id]?.artifacts?.find((item) => item.name === name);',
+	'  const answer = repo === "j-wanger/nana-pi" && run && artifact ? state.downloads?.[id]?.[name] : null;',
 	'  if (!answer) fail({ status: 1, stdout: JSON.stringify({ message: "Not Found" }), stderr: "gh: Not Found (HTTP 404)\\n" });',
 	'  if (answer.failure) fail(answer.failure);',
 	'  fs.mkdirSync(dir, { recursive: true });',
@@ -151,7 +154,7 @@ function oneRecordState({ runId = 1, leg = "macos-latest", attempt = 1, value = 
 		runs: [run(runId, event, attempt)],
 		artifacts: { [runId]: { total_count: 1, artifacts: [artifact(Number(id), leg, attempt)] } },
 		jobs: { [runId]: { total_count: 1, jobs: [job(runId, leg, attempt)] } },
-		downloads: { [id]: { files: [{ name: "nana-suite-record.json", source: recordFile(`record-${id}-${stateNumber}`, value) }] } },
+		downloads: { [runId]: { [`${CI_ARTIFACT_PREFIX}${leg}-${attempt}`]: { files: [{ name: "nana-suite-record.json", source: recordFile(`record-${id}-${stateNumber}`, value) }] } } },
 	};
 }
 const totalsLines = (out) => out.split(/\r?\n/).filter((line) => line.startsWith(`${CI_RECORD_LINE_PREFIX} `) && line.includes(" files,"));
@@ -221,7 +224,11 @@ check("R-2634: ci-records prints one totals line per record artifact of each CI 
 			20: { total_count: 3, jobs: [job(4, "macos-latest", 2), job(5, "ubuntu-latest", 2), job(6, "windows-latest", 2)] },
 			30: { total_count: 1, jobs: [job(7, "ubuntu-latest")] },
 		},
-		downloads: Object.fromEntries(Object.entries(records).map(([id, source]) => [id, { files: [{ name: "nana-suite-record.json", source }] }])),
+		downloads: {
+			[String(10)]: Object.fromEntries([101, 102, 103].map((id, index) => [`${CI_ARTIFACT_PREFIX}${["macos-latest", "ubuntu-latest", "windows-latest"][index]}-1`, { files: [{ name: "nana-suite-record.json", source: records[id] }] }])),
+			[String(20)]: Object.fromEntries([201, 202].map((id, index) => [`${CI_ARTIFACT_PREFIX}windows-latest-${index + 1}`, { files: [{ name: "nana-suite-record.json", source: records[id] }] }])),
+			[String(30)]: { [`${CI_ARTIFACT_PREFIX}ubuntu-latest-1`]: { files: [{ name: "nana-suite-record.json", source: records[301] }] } },
+		},
 	};
 	for (const revision of [SHORT_SHA, "HEAD"]) {
 		const result = runCli(state, revision);
@@ -285,15 +292,17 @@ check("R-2637: ci-records names each suite leg with no readable record and why",
 			42: { failure: { status: 4, stdout: '{"message":"auth"}', stderr: "please authenticate \t" } },
 		},
 		downloads: {
-			401: { files: [{ name: "nana-suite-record.json", source: good }] },
-			402: { files: [{ name: "nana-suite-record.json", source: good }] },
-			403: { files: [{ name: "nana-suite-record.json", source: good }] },
-			404: { files: [{ name: "nana-suite-record.json", source: old }] },
-			405: { failure: { status: 1, stdout: '{"message":"Not Found"}', stderr: "gh: Not Found (HTTP 404) \t\r\nsecond\n" } },
-			406: { files: [{ name: "nana-suite-record.json", content: "not json" }] },
-			407: { files: [{ name: "nana-suite-record.json", source: schemaTwo }] },
-			408: { files: [{ name: "one.json", source: good }, { name: "two.json", source: good }] },
-			421: { files: [{ name: "nana-suite-record.json", source: good }] },
+			40: {
+				[`${CI_ARTIFACT_PREFIX}macos-latest-1`]: { files: [{ name: "nana-suite-record.json", source: good }] },
+				[`${CI_ARTIFACT_PREFIX}windows-latest-1`]: { files: [{ name: "nana-suite-record.json", source: good }] },
+				[`${CI_ARTIFACT_PREFIX}windows-latest-2`]: { files: [{ name: "nana-suite-record.json", source: good }] },
+				[`${CI_ARTIFACT_PREFIX}stale-latest-1`]: { files: [{ name: "nana-suite-record.json", source: old }] },
+				[`${CI_ARTIFACT_PREFIX}bad-download-1`]: { failure: { status: 1, stdout: '{"message":"Not Found"}', stderr: "gh: Not Found (HTTP 404) \t\r\nsecond\n" } },
+				[`${CI_ARTIFACT_PREFIX}garbage-1`]: { files: [{ name: "nana-suite-record.json", content: "not json" }] },
+				[`${CI_ARTIFACT_PREFIX}schema-two-1`]: { files: [{ name: "nana-suite-record.json", source: schemaTwo }] },
+				[`${CI_ARTIFACT_PREFIX}two-files-1`]: { files: [{ name: "one.json", source: good }, { name: "two.json", source: good }] },
+			},
+			42: { [`${CI_ARTIFACT_PREFIX}ubuntu-latest-1`]: { files: [{ name: "nana-suite-record.json", source: good }] } },
 		},
 	};
 	const result = runCli(state);

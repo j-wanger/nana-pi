@@ -133,7 +133,7 @@ export function readCiRecords(argv = [], {
 				.filter(({ value, identity }) => identity && value?.expired !== true);
 			for (const { value: artifact, identity } of artifacts) {
 				const folder = path.join(downloadRoot, `${run.id}-${artifact.id}`);
-				const downloaded = ghResult(runGh, cwd, ["run", "download", String(artifact.id), "--name", artifact.name, "--dir", folder]);
+				const downloaded = ghResult(runGh, cwd, ["run", "download", String(run.id), "--repo", `${repository.owner}/${repository.repo}`, "--name", artifact.name, "--dir", folder]);
 				if (!downloaded.ok) {
 					problems.push(`artifact ${artifact.name} from run ${run.id}: download failed: ${downloaded.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`);
 					continue;
