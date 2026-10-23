@@ -31,7 +31,7 @@ still reports “not on PATH” because the OS gives the same error. On POSIX th
 Install also calls `node` (to build the knowledge index) and `launchctl` (only with `--desk`, only on
 macOS, only against the real home).
 
-A session-start producer still running at the launcher's 1500 ms limit is stopped, and its unavailable line prints instead; a producer in a wait no signal ends, such as a hung network mount, is not stopped, and Claude Code's 5 s hook limit then drops the hook's output.
+A session-start producer still running at the launcher's 2,500 ms cap is stopped, and its unavailable line prints instead. A hook's producers end by 4,000 ms on the hook's own process clock, leaving 1,000 ms for process start and exit within Claude Code's 5 s limit. A producer in a wait no signal ends, such as a hung network mount, is not stopped, and Claude Code's limit then drops the hook's output.
 
 ## What it installs
 

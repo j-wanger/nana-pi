@@ -3147,7 +3147,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/claude/hooks/nana-adoption.mjs`
 
 - **purpose** — Launch the canonical nana adoption and stale-copy producers for the active Claude project.
-- **inputs** — Claude Code project environment and this entry's repository location.
+- **inputs** — Claude Code project environment, this entry's repository location and the process-clock hook deadline.
 - **outputs** — adoption and stale-copy output, or each producer's fail-open marker.
 - **effects** — process (runs the adoption and stale-copy CLIs).
 - **errors** — producer failures become unavailable markers; a stdout error, such as a reader that closed it, is ignored and the hook exits 0.
@@ -3157,7 +3157,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/claude/hooks/nana-objective.mjs`
 
 - **purpose** — Launch the canonical objective and frontier producers for the active Claude project under one output budget.
-- **inputs** — Claude Code project environment and this entry's repository location.
+- **inputs** — Claude Code project environment, this entry's repository location and the process-clock hook deadline.
 - **outputs** — objective output followed by frontier output, or each producer's fail-open marker.
 - **effects** — process (runs the objective and frontier CLIs).
 - **errors** — producer failures become unavailable markers; a stdout error, such as a reader that closed it, is ignored and the hook exits 0.
@@ -3267,10 +3267,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/hook-producer.mjs`
 
 - **purpose** — Run a nana hook producer and emit its output or the stable fail-open marker.
-- **inputs** — CLI path, marker text, optional producer arguments, cwd, environment and injectable process runner.
+- **inputs** — CLI path, marker text, optional producer arguments, cwd, environment, process-clock deadline and injectable clock and runner.
 - **outputs** — producer stdout or the supplied marker on stdout, and the number of characters written.
 - **effects** — process (spawns a child process and writes stdout).
-- **errors** — spawn failures, signals, nonzero exits and a run past the time limit are represented by the marker; never thrown.
+- **errors** — spawn failures, signals, nonzero exits, no time left and a run past the time limit are represented by the marker; never thrown.
 - **callers** — `packages/nana-setup/claude/hooks/nana-adoption.mjs`, `packages/nana-setup/claude/hooks/nana-objective.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hook-producers.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`
 
@@ -3411,7 +3411,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean; desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook(); removeInstallerHooks(); installerTarget(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
 - **effects** — disk (reads only)
 - **errors** — none thrown — validateShape returns the reason the shape cannot be extended, and any command that is unparseable or carries a shell operator reads as NOT installed
-- **callers** — `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/settings-lock.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
+- **callers** — `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/settings-lock.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hook-producers.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — `packages/nana-pack/lib/real-path.mjs`
 
 ### `packages/nana-setup/lib/shared-memory-config.mjs`
@@ -3716,23 +3716,23 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/hook-deadlines.test.mjs`
 
-- **purpose** — Prove session-start hooks replace hung producer output with markers before their installed limit.
-- **inputs** — Copied canonical hooks and launcher library, checkout hook metadata, and live or hung producer stubs.
-- **outputs** — PASS/FAIL checks for adoption and objective/frontier hook deadline and shared-budget behavior.
-- **effects** — disk (creates a throwaway checkout), process (spawns copied hooks and producer stubs).
+- **purpose** — Prove session-start hooks preserve live producer output and replace hung output before one process-clock deadline.
+- **inputs** — Copied canonical hooks and launcher library, checkout hook metadata, a late-start preload, and live, slow or hung producer stubs.
+- **outputs** — PASS/FAIL checks for adoption and objective/frontier deadline and shared-budget behavior.
+- **effects** — disk (creates a throwaway checkout and writes preload timing), process (spawns copied hooks and producer stubs).
 - **errors** — A watchdog kills an over-limit hook; failed checks set a nonzero process exit code.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/hook-producers.test.mjs`
 
-- **purpose** — Pins fail-open producer launcher output and import safety of verifier hook logic.
-- **inputs** — the launcher module and an open-stdin child process.
-- **outputs** — PASS/FAIL checks for exact markers and prompt import completion.
+- **purpose** — Pin producer deadlines, fail-open launcher output and import safety of verifier hook logic.
+- **inputs** — the launcher module, installed hook metadata and an open-stdin child process.
+- **outputs** — PASS/FAIL checks for deadline limits, exact markers and prompt import completion.
 - **effects** — process (spawns an isolated Node child).
 - **errors** — failed checks set a nonzero process exit code.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/hook-producer.mjs`
+- **callees** — `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `packages/nana-setup/tests/hooks-closed-output.test.mjs`
 
