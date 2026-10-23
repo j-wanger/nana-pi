@@ -1,0 +1,64 @@
+seat-mutate: lane pi-version-support, tip c39686941c7661822da9a4037e7756507559a900, table dff7c0702980d0506d9efd3c4efa6ad6a12d026085b09d39b13ba7bf7ecb9f65, merge-base b2e594c3b909a097249d752dae98d6c4492cabe9, 32 pairs in 5 shards (7+7+6+6+6, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T20:35:08.643Z
+DECLARED (plan) pairs 1 to 23 follow the draft's pair table; 24 to 32 are the must-meet's (attack M-1, S-1, S-3, S-6, N-7; build 1 finding)
+DECLARED (seat) pair 1 restores main's env and install-check steps but keeps the suite and release jobs, which main and the lane share
+DECLARED (seat) pair 8 takes the unquoted form, pair 9 the floor declared above PI_BEFORE, pair 10 PI_VERSION 1.3.0
+DECLARED (seat) pair 17 finds the package through `npm root -g`, reading its package.json in the decoy prefix, so the row reads the lockstep decoy (attack S-2)
+DECLARED (seat) pair 21 makes the win32 branch search PATH as off win32 does, instead of using the shim's package entry
+DECLARED (seat) pair 28 drops the gate on pi's own version and reads newer as !versionAtLeast(pi, dep), the attack's reading A, so a version-less pi gives ✗
+[1/5] seat-mutate: lane pi-version-support, shard 1/5, tip c39686941c7661822da9a4037e7756507559a900, merge-base b2e594c3b909a097249d752dae98d6c4492cabe9, 7 pairs, darwin, node v22.22.2, 2026-10-23T20:35:09.866Z
+[1/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 24 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/doctor-pi-dependencies.test.mjs (exit 0, 3 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/pi-install-pin.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[1/5] RESULT: 7/7 red (6 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane pi-version-support, shard 2/5, tip c39686941c7661822da9a4037e7756507559a900, merge-base b2e594c3b909a097249d752dae98d6c4492cabe9, 7 pairs, darwin, node v22.22.2, 2026-10-23T20:35:13.665Z
+[2/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 24 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/doctor-pi-dependencies.test.mjs (exit 0, 3 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/pi-install-pin.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[2/5] RESULT: 7/7 red (5 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane pi-version-support, shard 3/5, tip c39686941c7661822da9a4037e7756507559a900, merge-base b2e594c3b909a097249d752dae98d6c4492cabe9, 6 pairs, darwin, node v22.22.2, 2026-10-23T20:35:17.602Z
+[3/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 24 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/doctor-pi-dependencies.test.mjs (exit 0, 3 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/pi-install-pin.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[3/5] RESULT: 6/6 red (4 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane pi-version-support, shard 4/5, tip c39686941c7661822da9a4037e7756507559a900, merge-base b2e594c3b909a097249d752dae98d6c4492cabe9, 6 pairs, darwin, node v22.22.2, 2026-10-23T20:35:21.704Z
+[4/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 24 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-setup/tests/doctor-pi-dependencies.test.mjs (exit 0, 3 PASS, 0 FAIL, )
+[4/5] RESULT: 6/6 red (5 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane pi-version-support, shard 5/5, tip c39686941c7661822da9a4037e7756507559a900, merge-base b2e594c3b909a097249d752dae98d6c4492cabe9, 6 pairs, darwin, node v22.22.2, 2026-10-23T20:35:25.750Z
+[5/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 24 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-setup/tests/doctor-pi-dependencies.test.mjs (exit 0, 3 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-setup/tests/pi-install-pin.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[5/5] RESULT: 6/6 red (4 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+RED 1 main's ci.yml env and install-check steps — 3/3 named: /^R-2711: / | /^R-2712: / | /^pin R-2711 and R-2712: /; UNNAMED red: [ci-workflow.test.mjs] the pi resolution cutoff is sealed at the seat's install moment The input did not match the regular expressio…; 4 FAIL total (1 file changed, 4 insertions(+), 19 deletions(-))
+RED 2 the pi matrix dimension dropped — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 3 the floor leg installs PI_VERSION — 1/1 named: /^R-2711: /; UNNAMED red: [ci-workflow.test.mjs] every pi install in CI resolves at the declared cutoff every pi install line must use the cutoff declared wit…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 the floor install uses the ceiling cutoff — 2/2 named: /^R-2711: / | /^every pi install in CI resolves at the declared cutoff\b/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 the floor version check compares with PI_VERSION — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 the floor version check after the install-check step — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 3 insertions(+), 3 deletions(-))
+RED 7 the floor install step has no if: — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 8 PI_FLOOR_BEFORE unquoted — 1/1 named: /^R-2712: /; UNNAMED red: [ci-workflow.test.mjs] pin R-2711 and R-2712: CI tests the sealed ceiling and floor pi at the sealed floor cutoff Expected values to…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 the floor pair declared above PI_BEFORE — 1/1 named: /^R-2712: /; UNNAMED red: [ci-workflow.test.mjs] the pi resolution cutoff is declared once, quoted, in UTC ISO form beside PI_VERSION only comments may separa…; 2 FAIL total (1 file changed, 1 insertion(+), 4 deletions(-))
+RED 10 PI_VERSION 1.3.0 — 1/1 named: /^pin R-2711 and R-2712: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 main's doctor: no new row — 3/3 named: /^R-2713: / | /^R-2714: / | /^R-2715: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 any version difference counts as newer — 1/1 named: /^R-2714: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 string compare instead of numeric — 1/1 named: /^R-2713: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 the scope filter dropped — 1/1 named: /^R-2714: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 nested lookup dropped (hoisted only) — 2/2 named: /^R-2713: / | /^R-2714: /; UNNAMED red: [doctor-pi-dependencies.test.mjs] R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable ver…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 hoisted lookup dropped (nested only) — 1/1 named: /^R-2714: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 the package found through npm root -g instead of the pi on PATH — 1/1 named: /^R-2713: /; UNNAMED red: [doctor-pi-dependencies.test.mjs] R-2714: a pi package whose own packages are at or below its version, nested or hoisted, prints a ✓ pi depende… | [doctor-pi-dependencies.test.mjs] R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable ver…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 a missing dependency reported as newer — 1/1 named: /^R-2715: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 no package found reported ✗ — 1/1 named: /^R-2715: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 20 the ✗ detail without the install hint — 1/1 named: /^R-2713: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 the win32 branch searches PATH instead of using the shim's package — 2/2 named: /^R-2713: / | /^R-2714: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 the README names 1.0.2 through 1.4.0 — 1/1 named: /^R-2716: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 the README support sentence removed — 1/1 named: /^R-2716: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 24 the install-check step gated to the ceiling — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 25 a matrix exclude of the Windows floor leg — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 3 insertions(+))
+RED 26 the ✗ detail names only the first newer dependency — 1/1 named: /^R-2713: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 27 the row also reads devDependencies — 1/1 named: /^R-2714: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 28 pi's own version not judged, newer read as !versionAtLeast(pi, dep) — 1/1 named: /^R-2715: /; 1 FAIL total (1 file changed, 1 insertion(+), 4 deletions(-))
+RED 29 the floor install drops --ignore-scripts — 1/1 named: /^R-2711: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 30 the setup README's floor command carries the ceiling cutoff — 1/1 named: /^every README pi install command carries CI's ceiling or floor version with that version's unquote…; UNNAMED red: [pi-install-pin.test.mjs] R-2717: the setup README carries one floor pi install command at CI's floor version and cutoff AssertionError…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 31 the setup README's floor command removed — 1/1 named: /^R-2717: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 32 the new row labelled pi packages — 1/1 named: /^R-2714: /; UNNAMED red: [doctor-pi-dependencies.test.mjs] R-2713: a pi package with its own packages installed newer than itself prints a ✗ pi dependencies row naming … | [doctor-pi-dependencies.test.mjs] R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable ver…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 32/32 red (24 exactly their named titles, 0 with a named title green, 8 with an unnamed red), 0 survived, across 5 shards

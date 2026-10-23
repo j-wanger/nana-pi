@@ -1,0 +1,9 @@
+Seat real-run checks R1 and R2 at c3968694, macOS, 2026-10-23. The planner's scratch npm prefixes (`<scratch>/pi-ver/<name>`, made with `npm i -g --ignore-scripts --prefix`), read through the lane's `piPackagesState` with doctor's own `versionAtLeast` and `firstOnPath`, PATH = `<prefix>/bin:/usr/bin:/bin`. No repo edit; no real home touched.
+
+fresh103 fail @earendil-works/chord 1.4.0, @earendil-works/pi-agent-core 1.4.0, @earendil-works/pi-ai 1.4.0, @earendil-works/pi-codemode 1.4.0, @earendil-works/pi-mcp 1.4.0, @earendil-works/pi-tui 1.4.0 newer than pi 1.0.3 — install: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.4.0 --before=2026-10-23T18:35:54Z
+pinned103 ok pi 1.0.3; 6 scoped packages read
+pinned140 ok pi 1.4.0; 5 scoped packages read
+fresh140 ok pi 1.4.0; 5 scoped packages read
+this Mac's pi (1.0.2, read only, its own PATH): ok pi 1.0.2; 6 scoped packages read
+
+R3 (the install check with each pinned prefix first on PATH) was not re-run locally: CI's four install-check legs at 291f8a14 ran it on macOS and Windows with the ceiling and the floor installed globally, all four green, and the local install check below ran it on this Mac's pi.
