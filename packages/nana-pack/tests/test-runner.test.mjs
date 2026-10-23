@@ -1,12 +1,13 @@
 /**
  * @module packages/nana-pack/tests/test-runner.test.mjs
- * @purpose Pin the repo test runner's own contract (R-600..R-618) from OUTSIDE it — the runner is
+ * @purpose Pin the repo test runner's own collection, isolation, reporting and cleanup contract from OUTSIDE it — the runner is
  *  what every other test's verdict depends on, and until now nothing tested it.
  * @inputs scripts/test.mjs (copied verbatim into each throwaway root, so the real bytes run), the
  *  fixture test files this file writes, and env OUTER_HOME / PROBE_OUT / TMPDIR it hands the child
  * @outputs one PASS / FAIL line per check and a non-zero exit when any check failed
- * @effects process (runs the copied runner as a child per case; one case leaves a detached
- *  grandchild, reaped here), disk (one mkdtemp tree holding every fixture root, removed at exit)
+ * @effects process (runs the copied runner as a child per case, including one with a runtime preload;
+ *  one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture
+ *  root and the preload, removed at exit)
  * @errors a FAIL line naming the broken runner behaviour; a non-zero exit code
  */
 // The runner is exercised as a CHILD against tiny fixture packages in a temp tree, never against
@@ -24,7 +25,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
-import { checkoutSpellingSkipReason } from "../lib/test-runner-config.mjs";
+import { checkoutSpellingSkipReason, TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS } from "../lib/test-runner-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -668,15 +669,74 @@ fs.writeFileSync(forceWin32, 'Object.defineProperty(process, "platform", { value
 const forceLinux = path.join(TD, "force-linux.mjs");
 fs.writeFileSync(forceLinux, 'Object.defineProperty(process, "platform", { value: "linux" });\n');
 /** Like run(), but preloads a module (via --import, never NODE_OPTIONS) that forces process.platform. */
-function runForced(root, preload) {
+function runForced(root, preload, args = [], extraEnv = {}) {
 	const tmp = tmpDir(path.join(TD, "tmpdir-"));
 	const out_dir = tmpDir(path.join(TD, "probeout-"));
-	const env = { ...process.env, TMPDIR: tmp, TEMP: tmp, TMP: tmp, PROBE_OUT: out_dir, OUTER_HOME };
-	const r = spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, path.join(root, "scripts", "test.mjs")], {
+	const recordFile = path.join(out_dir, "suite-record.json");
+	const env = { ...process.env, TMPDIR: tmp, TEMP: tmp, TMP: tmp, PROBE_OUT: out_dir, OUTER_HOME, [RECORD_FILE_ENV]: recordFile, ...extraEnv };
+	const r = spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, path.join(root, "scripts", "test.mjs"), ...args], {
 		cwd: root, env, encoding: "utf8", timeout: 120000,
 	});
-	return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? ""), out_dir, tmp };
+	return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? ""), out_dir, tmp, record: readJson(out_dir, "suite-record.json") };
 }
+
+const busyPreload = path.join(TD, "busy-temp-preload.mjs");
+fs.writeFileSync(busyPreload, [
+	'import fs from "node:fs";',
+	'import * as path from "node:path";',
+	'import { syncBuiltinESMExports } from "node:module";',
+	'const original = fs.rmSync;',
+	'fs.rmSync = function (target, options) {',
+	'  let busy = null;',
+	'  try { busy = fs.readFileSync(path.join(process.env.PROBE_OUT, "busy-folder.txt"), "utf8"); } catch {}',
+	'  if (busy && path.resolve(String(target)) === path.resolve(busy)) {',
+	'    const error = new Error("busy fixture folder"); error.code = "EBUSY"; error.path = target; throw error;',
+	'  }',
+	'  return original.call(this, target, options);',
+	'};',
+	'syncBuiltinESMExports();',
+	'',
+].join("\n"));
+const busyFixture = (pass, record = false) => [
+	'import * as fs from "node:fs";',
+	record ? 'fs.writeFileSync(process.env.PROBE_OUT + "/busy-folder.txt", process.env.TMPDIR);' : '',
+	`console.log(${JSON.stringify(pass ? "PASS fixture passed" : "FAIL fixture failed")});`,
+	pass ? '' : 'process.exitCode = 1;',
+	'',
+].join("\n");
+const busyRoot = mkRoot("busy-temp", {
+	"packages/probe/tests/a-first.test.mjs": busyFixture(true, true),
+	"packages/probe/tests/b-red.test.mjs": busyFixture(false),
+	"packages/probe/tests/c-pass.test.mjs": busyFixture(true),
+	"packages/probe/tests/d-pass.test.mjs": busyFixture(true),
+});
+const busySerial = runForced(busyRoot, busyPreload);
+const busyParallel = runForced(busyRoot, busyPreload, ["--jobs=2"]);
+const allPassRoot = mkRoot("busy-temp-all-pass", {
+	"packages/probe/tests/a-first.test.mjs": busyFixture(true, true),
+	"packages/probe/tests/b-pass.test.mjs": busyFixture(true),
+});
+const busyAllPass = runForced(allPassRoot, busyPreload);
+const busyRunOk = (result, expectedFiles, ownFailures) => {
+	const folder = fs.readFileSync(path.join(result.out_dir, "busy-folder.txt"), "utf8");
+	const cleanupLines = result.out.split(/\r?\n/).filter((line) => line.startsWith("FAIL packages/probe/tests/a-first.test.mjs: temp folder not removed:"));
+	const summary = totals(result.out);
+	return result.code === 1 && summary?.files === expectedFiles && summary.fail === ownFailures + 1
+		&& cleanupLines.length === 1 && cleanupLines[0].includes(folder) && cleanupLines[0].includes("EBUSY")
+		&& result.record?.unnamedFailures?.length === 1 && result.record.unnamedFailures[0].includes(folder) && result.record.unnamedFailures[0].includes("EBUSY")
+		&& labelFor(result.out, "a-first.test.mjs") === "PASS"
+		&& (expectedFiles === 2 || labelFor(result.out, "b-red.test.mjs") === "FAIL")
+		&& ["c-pass.test.mjs", "d-pass.test.mjs"].every((name) => expectedFiles === 2 || labelFor(result.out, name) === "PASS")
+		&& !/^\s+at /m.test(result.out);
+};
+// req: R-2666
+check("R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel",
+	busyRunOk(busySerial, 4, 1) && busyRunOk(busyParallel, 4, 1) && busyRunOk(busyAllPass, 2, 0),
+	JSON.stringify({ serial: { code: busySerial.code, totals: totals(busySerial.out), out: busySerial.out }, parallel: { code: busyParallel.code, totals: totals(busyParallel.out), out: busyParallel.out }, allPass: { code: busyAllPass.code, totals: totals(busyAllPass.out), out: busyAllPass.out } }),
+);
+// req: R-2666
+check("seal: a finished file's temp folder removal retries 5 times on a 100 ms step", TEMP_REMOVE_RETRIES === 5 && TEMP_REMOVE_RETRY_DELAY_MS === 100, JSON.stringify({ TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS }));
+
 const win32Run = runForced(rootWindows, forceWin32);
 const linuxRun = runForced(rootWindows, forceLinux);
 const ranMarker = (outDir, p) => fs.existsSync(path.join(outDir, marker(p)));

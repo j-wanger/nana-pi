@@ -784,9 +784,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a fresh temp HOME and report one line each.
 - **inputs** — argv (--verbose, --self-test, --jobs=N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS, NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/ dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
-- **outputs** — one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; with --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds record, plus one completion record naming the collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record
-- **effects** — process (spawns each file as `node --experimental-strip-types` in its own group with a child env scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test fixtures, all removed on every exit path; while NANA_COVERAGE_DIR is set, a record and a completion file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
-- **errors** — exit 1 when any file failed, timed out, died on a signal, matched nothing, or a self-test fixture missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
+- **outputs** — one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red file in non-verbose mode, one counted FAIL line when a finished file's temporary folder remains busy, a totals line with warnings and the self-test verdict, and the exit code; with --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds record, plus one completion record naming the collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record
+- **effects** — process (spawns each file as `node --experimental-strip-types` in its own group with a child env scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test fixtures, with each finished file's removals retried and all removed on every exit path when possible; while NANA_COVERAGE_DIR is set, a record and a completion file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
+- **errors** — exit 1 when any file failed, timed out, died on a signal, matched nothing, left a temporary folder that survived its retries, or a self-test fixture missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`
 
@@ -1788,7 +1788,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Declare the test runner's parallel tunables and volume-dependent file preconditions.
 - **inputs** — os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
-- **outputs** — JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, checkoutSpellingSkipReason
+- **outputs** — JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder removal retry count and delay, and checkoutSpellingSkipReason
 - **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
 - **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
 - **callers** — `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
@@ -1948,8 +1948,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove brief-check and pi-worker share lane-brief precedent validation without brief-check starting pi.
 - **inputs** — The two commands, their shared checker source, and a temporary linked-worktree fixture.
-- **outputs** — One named PASS/FAIL check.
-- **effects** — disk (OS temp fixtures), process (git and command subprocesses)
+- **outputs** — Requirement-tagged PASS/FAIL checks.
+- **effects** — disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses and the bounded shim)
 - **errors** — A failed comparison prints its cases and exits nonzero.
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
@@ -1968,7 +1968,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin build-report's build, lane, total, unreadable-line, and unpaired-start output.
 - **inputs** — build-report, build-record readers/renderers, and temporary clone-shared ledgers and session files.
-- **outputs** — Two requirement-tagged PASS/FAIL checks.
+- **outputs** — Three requirement-tagged PASS/FAIL checks.
 - **effects** — disk (OS-temp git fixtures), process (git and report subprocesses).
 - **errors** — Failed checks print their title and make the process exit nonzero.
 - **callers** — —
@@ -2896,7 +2896,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/test-runner-parallel.test.mjs`
 
-- **purpose** — Pin the test runner's --jobs=N parallel-pool contract (R-1470..R-1475, R-1477) from OUTSIDE it.
+- **purpose** — Pin the test runner's --jobs=N parallel-pool contract and its delayed-start meeting fixtures from OUTSIDE it.
 - **inputs** — scripts/test.mjs, every packages/nana-pack/lib/*.mjs module its import lines name, and the suite config's land dependency (copied verbatim into each throwaway root, so the real bytes run, read from source), the fixture test files this file writes, and env PROBE_OUT it hands each child
 - **outputs** — one PASS / FAIL line per check and a non-zero exit when any check failed
 - **effects** — process (runs the copied runner as a child per case; two cases leave a running process tree the runner must kill on signal, reaped here if it does not), disk (one mkdtemp tree holding every fixture root, removed at exit)
@@ -2906,10 +2906,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/test-runner.test.mjs`
 
-- **purpose** — Pin the repo test runner's own contract (R-600..R-618) from OUTSIDE it — the runner is what every other test's verdict depends on, and until now nothing tested it.
+- **purpose** — Pin the repo test runner's own collection, isolation, reporting and cleanup contract from OUTSIDE it — the runner is what every other test's verdict depends on, and until now nothing tested it.
 - **inputs** — scripts/test.mjs (copied verbatim into each throwaway root, so the real bytes run), the fixture test files this file writes, and env OUTER_HOME / PROBE_OUT / TMPDIR it hands the child
 - **outputs** — one PASS / FAIL line per check and a non-zero exit when any check failed
-- **effects** — process (runs the copied runner as a child per case; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root, removed at exit)
+- **effects** — process (runs the copied runner as a child per case, including one with a runtime preload; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root and the preload, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`

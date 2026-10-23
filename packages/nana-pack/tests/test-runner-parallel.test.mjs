@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/test-runner-parallel.test.mjs
- * @purpose Pin the test runner's --jobs=N parallel-pool contract (R-1470..R-1475, R-1477) from OUTSIDE it.
+ * @purpose Pin the test runner's --jobs=N parallel-pool contract and its delayed-start meeting fixtures from OUTSIDE it.
  * @inputs scripts/test.mjs, every packages/nana-pack/lib/*.mjs module its import lines name, and the suite config's land dependency (copied
  *  verbatim into each throwaway root, so the real bytes run, read from source), the fixture test files
  *  this file writes, and env PROBE_OUT it hands each child
@@ -49,6 +49,8 @@ function gone(pid, budgetMs = 4000) {
 	}
 }
 const emptyDir = (d) => { try { return fs.readdirSync(d).length === 0; } catch { return false; } };
+const START_SKEW_MS = 2_500; // chosen 2026-10-23 (R-2668, R-2669): above the old fixtures' overlap windows.
+const RENDEZVOUS_LIMIT_MS = 30_000; // chosen 2026-10-23: about seven times the measured 4,316 ms Windows start skew.
 
 // ── fixture roots ────────────────────────────────────────────────────────────────────────────
 /** A throwaway repo root: the real runner plus every lib module it imports, plus the given files. */
@@ -116,15 +118,39 @@ const sleepRecordFixture = (name, ms) => [
 // R-1470: --jobs=N keeps up to N files running at once; a freed slot starts the next file at
 // once, never in batches.
 // ════════════════════════════════════════════════════════════════════════════════════════════
-const root1470 = mkRoot("r1470", {
-	"packages/probe/tests/a.test.mjs": sleepRecordFixture("a", 3000),
-	"packages/probe/tests/b.test.mjs": sleepRecordFixture("b", 1000),
-	"packages/probe/tests/c.test.mjs": sleepRecordFixture("c", 1000),
-	"packages/probe/tests/d.test.mjs": sleepRecordFixture("d", 1000),
+const meetingFixture = (name, partners, delayMs = 0, afterMs = 100, skewFrom = null) => [
+	'import * as fs from "node:fs";',
+	'import * as path from "node:path";',
+	'const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));',
+	'const launched = Date.now();',
+	delayMs ? `while (Date.now() - launched < ${delayMs}) await sleep(Math.min(25, ${delayMs} - (Date.now() - launched)));` : '',
+	skewFrom ? `const skewFile = path.join(process.env.PROBE_OUT, ${JSON.stringify(`${skewFrom}.ready`)}); while (!fs.existsSync(skewFile)) await sleep(20); const skewStart = Number(fs.readFileSync(skewFile, "utf8")); while (Date.now() - skewStart < ${delayMs}) await sleep(Math.min(25, ${delayMs} - (Date.now() - skewStart)));` : '',
+	'const start = Date.now();',
+	`fs.writeFileSync(path.join(process.env.PROBE_OUT, ${JSON.stringify(`${name}.ready`)}), String(start));`,
+	`const partnerFiles = ${JSON.stringify(partners.map((partner) => `${partner}.ready`))};`,
+	`const deadline = Date.now() + ${RENDEZVOUS_LIMIT_MS};`,
+	'while (!partnerFiles.every((file) => fs.existsSync(path.join(process.env.PROBE_OUT, file))) && Date.now() < deadline) await sleep(20);',
+	'const sawPartners = partnerFiles.every((file) => fs.existsSync(path.join(process.env.PROBE_OUT, file)));',
+	`await sleep(${afterMs});`,
+	`fs.writeFileSync(path.join(process.env.PROBE_OUT, ${JSON.stringify(`${name}.json`)}), JSON.stringify({ start, end: Date.now(), delayedMs: start - launched, sawPartners }));`,
+	'console.log("PASS ran");',
+	'',
+].join("\n");
+const root1470at2 = mkRoot("r1470-at-2", {
+	"packages/probe/tests/a.test.mjs": meetingFixture("a", ["c"]),
+	"packages/probe/tests/b.test.mjs": meetingFixture("b", [], START_SKEW_MS, 100, "a"),
+	"packages/probe/tests/c.test.mjs": meetingFixture("c", ["a"]),
+	"packages/probe/tests/d.test.mjs": sleepRecordFixture("d", 100),
 });
-const run1470at2 = run(root1470, ["--jobs=2"]);
+const run1470at2 = run(root1470at2, ["--jobs=2"]);
 const ivl1470at2 = intervalsOf(run1470at2.out_dir, ["a", "b", "c", "d"]);
-const run1470at3 = run(root1470, ["--jobs=3"]);
+const root1470at3 = mkRoot("r1470-at-3", {
+	"packages/probe/tests/a.test.mjs": meetingFixture("a", ["b", "c"]),
+	"packages/probe/tests/b.test.mjs": meetingFixture("b", ["a", "c"], START_SKEW_MS, 100, "a"),
+	"packages/probe/tests/c.test.mjs": meetingFixture("c", ["a", "b"]),
+	"packages/probe/tests/d.test.mjs": sleepRecordFixture("d", 100),
+});
+const run1470at3 = run(root1470at3, ["--jobs=3"]);
 const ivl1470at3 = intervalsOf(run1470at3.out_dir, ["a", "b", "c", "d"]);
 const overlap1470at2 = maxOverlap(Object.values(ivl1470at2));
 const overlap1470at3 = maxOverlap(Object.values(ivl1470at3));
@@ -135,6 +161,14 @@ const cStartsBeforeAEnds = !!ivl1470at2.a && !!ivl1470at2.c && ivl1470at2.c.star
 check("R-1470: --jobs=2 and --jobs=3 keep exactly that many files running and never more, and a freed slot starts the next file while a longer one still runs",
 	run1470at2.code === 0 && run1470at3.code === 0 && overlap1470at2 === 2 && overlap1470at3 === 3 && cStartsBeforeAEnds,
 	JSON.stringify({ overlap1470at2, overlap1470at3, ivl1470at2, ivl1470at3 }),
+);
+// req: R-2669
+check("R-2669: R-1470's pool checks hold when one file starts 2.5 seconds late, at two and three jobs",
+	ivl1470at2.a?.sawPartners === true && ivl1470at2.b?.delayedMs >= START_SKEW_MS
+		&& ivl1470at2.b?.start - ivl1470at2.a?.start >= START_SKEW_MS && cStartsBeforeAEnds && overlap1470at2 === 2
+		&& [ivl1470at3.a, ivl1470at3.b, ivl1470at3.c].every((entry) => entry?.sawPartners === true)
+		&& ivl1470at3.b?.delayedMs >= START_SKEW_MS && ivl1470at3.b?.start - ivl1470at3.a?.start >= START_SKEW_MS && overlap1470at3 === 3,
+	JSON.stringify({ START_SKEW_MS, overlap1470at2, overlap1470at3, ivl1470at2, ivl1470at3 }),
 );
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -282,19 +316,28 @@ function isContiguousPair(seq) {
 // Each fixture also records {start, end}: without that, "no interleaving" would pass vacuously
 // against a runner that silently ignored --jobs and ran the two files one at a time (never
 // interleaving because they never overlapped at all) — overlap is a precondition, not a detail.
-const recordTiming = (name) => [
+const recordTiming = (name, partner, delayMs = 0) => [
 	'import * as fs from "node:fs";',
 	'import * as path from "node:path";',
-	"const __start = Date.now();",
-	`process.on("exit", () => { try { fs.writeFileSync(path.join(process.env.PROBE_OUT, ${JSON.stringify(`${name}.json`)}), JSON.stringify({ start: __start, end: Date.now() })); } catch {} });`,
+	'const __sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));',
+	'const __launched = Date.now();',
+	delayMs ? `while (Date.now() - __launched < ${delayMs}) await __sleep(Math.min(25, ${delayMs} - (Date.now() - __launched)));` : '',
+	delayMs ? `const __skewFile = path.join(process.env.PROBE_OUT, ${JSON.stringify(`${partner}.ready`)}); while (!fs.existsSync(__skewFile)) await __sleep(20); const __skewStart = Number(fs.readFileSync(__skewFile, "utf8")); while (Date.now() - __skewStart < ${delayMs}) await __sleep(Math.min(25, ${delayMs} - (Date.now() - __skewStart)));` : '',
+	'const __start = Date.now();',
+	`fs.writeFileSync(path.join(process.env.PROBE_OUT, ${JSON.stringify(`${name}.ready`)}), String(__start));`,
+	`const __partner = path.join(process.env.PROBE_OUT, ${JSON.stringify(`${partner}.ready`)});`,
+	`const __deadline = Date.now() + ${RENDEZVOUS_LIMIT_MS};`,
+	'while (!fs.existsSync(__partner) && Date.now() < __deadline) await __sleep(20);',
+	'const __sawPartner = fs.existsSync(__partner);',
+	`process.on("exit", () => { try { fs.writeFileSync(path.join(process.env.PROBE_OUT, ${JSON.stringify(`${name}.json`)}), JSON.stringify({ start: __start, end: Date.now(), delayedMs: __start - __launched, sawPartner: __sawPartner })); } catch {} });`,
 ].join("\n");
 const taggedLines = (tag, n, delayMs) => [
 	"const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));",
 	`for (let i = 1; i <= ${n}; i++) { await sleep(${delayMs}); console.log(${JSON.stringify(tag)} + "-" + String(i).padStart(4, "0")); }`,
 ].join("\n");
 const rootV1472 = mkRoot("r1472-verbose", {
-	"packages/probe/tests/v1.test.mjs": [recordTiming("v1"), taggedLines("v1", 40, 25), 'console.log("PASS tagged fixture ran");', ""].join("\n"),
-	"packages/probe/tests/v2.test.mjs": [recordTiming("v2"), taggedLines("v2", 40, 25), 'console.log("PASS tagged fixture ran");', ""].join("\n"),
+	"packages/probe/tests/v1.test.mjs": [recordTiming("v1", "v2"), taggedLines("v1", 40, 25), 'console.log("PASS tagged fixture ran");', ""].join("\n"),
+	"packages/probe/tests/v2.test.mjs": [recordTiming("v2", "v1", START_SKEW_MS), taggedLines("v2", 40, 25), 'console.log("PASS tagged fixture ran");', ""].join("\n"),
 });
 const verboseRun1472 = run(rootV1472, ["--verbose", "--jobs=2"]);
 const vSeq1472 = ownerSequence(verboseRun1472.out, { tag1: "v1-", tag2: "v2-", result1: "v1.test.mjs", result2: "v2.test.mjs" });
@@ -306,8 +349,8 @@ const failTaggedLines = (tag, n, delayMs) => [
 	"process.exit(1);",
 ].join("\n");
 const rootR1472 = mkRoot("r1472-plain", {
-	"packages/probe/tests/r1.test.mjs": [recordTiming("r1"), failTaggedLines("r1", 25, 25)].join("\n") + "\n",
-	"packages/probe/tests/r2.test.mjs": [recordTiming("r2"), failTaggedLines("r2", 25, 25)].join("\n") + "\n",
+	"packages/probe/tests/r1.test.mjs": [recordTiming("r1", "r2"), failTaggedLines("r1", 25, 25)].join("\n") + "\n",
+	"packages/probe/tests/r2.test.mjs": [recordTiming("r2", "r1", START_SKEW_MS), failTaggedLines("r2", 25, 25)].join("\n") + "\n",
 });
 const plainRun1472 = run(rootR1472, ["--jobs=2"]);
 const plainSeq1472 = ownerSequence(plainRun1472.out, { tag1: "      | FAIL r1-", tag2: "      | FAIL r2-", result1: "r1.test.mjs", result2: "r2.test.mjs" });
@@ -317,6 +360,18 @@ check("R-1472: files that ran at the same time print their verbose output, or th
 	verboseRun1472.code === 0 && plainRun1472.code === 1 && vOverlap1472 === 2 && rOverlap1472 === 2
 		&& isContiguousPair(vSeq1472) && isContiguousPair(plainSeq1472),
 	JSON.stringify({ vSeq1472, plainSeq1472, vOverlap1472, rOverlap1472 }),
+);
+const v1Timing1472 = readJson(verboseRun1472.out_dir, "v1.json");
+const v2Timing1472 = readJson(verboseRun1472.out_dir, "v2.json");
+const r1Timing1472 = readJson(plainRun1472.out_dir, "r1.json");
+const r2Timing1472 = readJson(plainRun1472.out_dir, "r2.json");
+// req: R-2668
+check("R-2668: R-1472's two files still run at the same time when one starts 2.5 seconds late, in verbose and plain mode",
+	v2Timing1472?.delayedMs >= START_SKEW_MS && r2Timing1472?.delayedMs >= START_SKEW_MS
+		&& v2Timing1472?.start - v1Timing1472?.start >= START_SKEW_MS && r2Timing1472?.start - r1Timing1472?.start >= START_SKEW_MS
+		&& [v1Timing1472, v2Timing1472, r1Timing1472, r2Timing1472].every((entry) => entry?.sawPartner === true)
+		&& vOverlap1472 === 2 && rOverlap1472 === 2,
+	JSON.stringify({ START_SKEW_MS, v1Timing1472, v2Timing1472, r1Timing1472, r2Timing1472, vOverlap1472, rOverlap1472 }),
 );
 
 // ════════════════════════════════════════════════════════════════════════════════════════════

@@ -2,7 +2,8 @@
  * @module packages/nana-pack/lib/test-runner-config.mjs
  * @purpose Declare the test runner's parallel tunables and volume-dependent file preconditions.
  * @inputs os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
- * @outputs JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, checkoutSpellingSkipReason
+ * @outputs JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
+ *  removal retry count and delay, and checkoutSpellingSkipReason
  * @effects disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
  * @errors checkoutSpellingSkipReason propagates temporary-folder creation errors
  */
@@ -38,6 +39,11 @@ export const SUITE_JOBS = 4;
 // every spawned test file's own env with no new code (the runner strips every ambient NANA_*
 // but the NANA_TEST_* knobs before building a test file's env).
 export const SUITE_JOBS_ENV = "NANA_SUITE_JOBS";
+
+// chosen 2026-10-23 (R-2666): matches build-report's transient Windows-folder cleanup policy;
+// Node's linear backoff gives about 1.5 seconds total. No Windows hold duration was measured.
+export const TEMP_REMOVE_RETRIES = 5;
+export const TEMP_REMOVE_RETRY_DELAY_MS = 100;
 
 // contract (R-1473, R-1474): a file on this list runs only while no other test file runs, when
 // --jobs=N is given with N greater than 1. Frozen so it can only be read, never mutated, by a
