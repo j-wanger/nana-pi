@@ -6,7 +6,7 @@
  * @effects disk (OS-temp git fixtures), process (git and report subprocesses).
  * @errors Failed checks print their title and make the process exit nonzero.
  */
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -24,6 +24,9 @@ const REPO = path.join(TD, "repo");
 const LINKED = path.join(TD, "linked");
 const NOGIT = path.join(TD, "not-repo");
 const SESSION_DIR = path.join(TD, "sessions");
+const HARD_KILL_WAIT_MS = 2000; // chosen: allows process tables and Windows handles to settle after the worker tree is killed.
+const TEMP_REMOVE_MAX_RETRIES = 5; // chosen: gives transient Windows folder handles several chances to close.
+const TEMP_REMOVE_RETRY_DELAY_MS = 100; // chosen: bounds cleanup retries to half a second before reporting the failure.
 const git = (cwd, ...args) => {
 	const result = spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", ...args], { cwd, encoding: "utf8" });
 	if (result.status !== 0) throw new Error(result.stderr);
@@ -112,18 +115,39 @@ const hardWorker = path.join(ROOT, "bin", "pi-worker.mjs");
 const hardOut = path.join(TD, "hard-out.md");
 const hardChild = spawn(process.execPath, [hardWorker, "--poll", "0.1", "--stall-secs", "20", "--out", hardOut, "--lane", "report-linked", "--brief", hardBrief], { cwd: LINKED, env: { ...process.env, HOME: hardHome, USERPROFILE: hardHome, PI_CODING_AGENT_DIR: hardAgent, PATH: `${hardBin}${path.delimiter}${process.env.PATH ?? ""}`, HARD_PID: hardPid }, stdio: "ignore" });
 const hardClosePromise = new Promise((resolve) => hardChild.once("close", (code, signal) => resolve({ code, signal })));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function pidAlive(pid) {
+	if (!Number.isInteger(pid) || pid <= 0) return false;
+	try { process.kill(pid, 0); return true; } catch { return false; }
+}
+async function waitForPidExit(pid) {
+	const deadline = Date.now() + HARD_KILL_WAIT_MS;
+	while (pidAlive(pid) && Date.now() < deadline) await sleep(20);
+	return !pidAlive(pid);
+}
 const hardDeadline = Date.now() + 10_000;
 while (!(fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0) && hardChild.exitCode === null && Date.now() < hardDeadline) await new Promise((resolve) => setTimeout(resolve, 25));
-const hardStarted = fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0;
-if (hardStarted) hardChild.kill("SIGKILL");
+let hardStarted = fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0;
+if (hardStarted) {
+	if (process.platform === "win32") execFileSync("taskkill", ["/PID", String(hardChild.pid), "/T", "/F"], { stdio: "ignore" });
+	else hardChild.kill("SIGKILL");
+}
 const hardClose = await Promise.race([hardClosePromise, new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 10_000))]);
+if (hardStarted) {
+	const fakePiPid = Number(fs.readFileSync(hardPid, "utf8"));
+	if (process.platform !== "win32") { try { process.kill(fakePiPid, "SIGTERM"); } catch {} }
+	if (!await waitForPidExit(fakePiPid)) hardStarted = false;
+}
 const hardReport = run(LINKED, ["--lane", "report-linked"]);
-if (hardStarted) { try { process.kill(Number(fs.readFileSync(hardPid, "utf8")), "SIGTERM"); } catch {} }
 fs.rmSync(path.join(LINKED_GIT_DIR, "nana-lane.lock"), { force: true });
 const hardLedger = fs.existsSync(LEDGER) ? fs.readFileSync(LEDGER, "utf8") : "missing";
 const hardOk = hardStarted && !hardClose.timeout && hardReport.status === 0 && /build .* \| lane report-linked \| no end \| exit -/.test(hardReport.stdout) && hardReport.stdout.includes("128 tokens | $0.13");
 // req: R-2601
 check("R-2601: the build report lists a start with no end as no end, with its session cost", baseNoEndOk && hardOk, JSON.stringify({ observed: noEnd.stdout, expected: noEndExpected, stderr: noEnd.stderr, hardClose, hardReport, hardLedger }));
 
-fs.rmSync(TD, { recursive: true, force: true });
+try {
+	fs.rmSync(TD, { recursive: true, force: true, maxRetries: TEMP_REMOVE_MAX_RETRIES, retryDelay: TEMP_REMOVE_RETRY_DELAY_MS });
+} catch (error) {
+	console.error(`cleanup failed: ${TD}: ${error.code ?? error.message}`);
+}
 process.exit(failures ? 1 : 0);
