@@ -130,8 +130,8 @@ function workerArgs(brief = INSIDE_BRIEF, extra = [], outPath = null) {
 	const output = outPath ?? path.join(TD, `out-${++outNumber}.md`);
 	return [WORKER, "--poll", "0.1", "--stall-secs", "20", "--out", output, "--lane", "alpha", "--brief", brief, ...extra];
 }
-function runWorker({ brief = INSIDE_BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_MS, outPath = null } = {}) {
-	return spawnSync(process.execPath, workerArgs(brief, extra, outPath), { cwd: LANE, env: { ...baseEnv(), ...env }, encoding: "utf8", timeout });
+function runWorker({ brief = INSIDE_BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_MS, outPath = null, cwd = LANE } = {}) {
+	return spawnSync(process.execPath, workerArgs(brief, extra, outPath), { cwd, env: { ...baseEnv(), ...env }, encoding: "utf8", timeout });
 }
 function lines() {
 	if (!fs.existsSync(LEDGER) || !fs.statSync(LEDGER).isFile()) return [];
@@ -223,6 +223,22 @@ resetRecords();
 const noSessionRun = runWorker({ env: { BR_MODE: "no-session" } });
 const noSessionEnd = lines().find((row) => row.kind === "end");
 const noSessionOk = noSessionRun.status === 0 && noSessionEnd?.cost === null && noSessionEnd?.costReason?.includes(noSessionEnd ? lines().find((row) => row.kind === "start")?.sessionDir : "never");
+let shortPathOk = true, shortPathDetail = "not run outside win32";
+if (process.platform === "win32") {
+	const shortPathProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${LANE}').ShortPath`], { encoding: "utf8" });
+	const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
+	if (!shortPath || shortPath.toLowerCase() === LANE.toLowerCase()) {
+		console.log("SKIP short-path build: this volume keeps no 8.3 short name");
+	} else {
+		resetRecords();
+		const shortRun = runWorker({ cwd: shortPath });
+		const shortStart = lines().find((row) => row.kind === "start");
+		const shortEnd = lines().find((row) => row.kind === "end");
+		const writtenSessionDir = fs.existsSync(SESSION_MARKER) ? fs.readFileSync(SESSION_MARKER, "utf8") : "";
+		shortPathOk = shortRun.status === 0 && shortStart?.sessionDir === writtenSessionDir && shortEnd?.cost === expectedUsage.cost.total && shortEnd?.sessions?.length === 1 && fs.existsSync(path.join(writtenSessionDir, shortEnd.sessions[0]));
+		shortPathDetail = JSON.stringify({ shortPath, shortRun: shortRun.status, shortStart, shortEnd, writtenSessionDir });
+	}
+}
 const libDir = path.join(TD, "lib-sessions"); fs.mkdirSync(libDir, { recursive: true });
 const libStarted = new Date(Date.now() - 1000).toISOString();
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -242,7 +258,7 @@ fs.rmSync(huge); fs.mkdirSync(huge);
 const folderFile = collectBuildUsage({ sessionDir: libDir, cwd: LANE, startedAt: new Date(Date.now() - 1000).toISOString() });
 const libFailures = ignoresLargeReview.cost === usage(1).cost.total && ignoresLargeReview.sessions.length === 1 && tiny.cost === null && tiny.costReason.includes(libDir) && folderFile.cost === null && folderFile.costReason.includes(libDir);
 // req: R-2598
-check("R-2598: the end record sums every usage pi wrote in the build's session file, or names why the cost is unknown", usageExact && flatOk && noSessionOk && libFailures, JSON.stringify({ usageEnd, expectedUsage, flatStart, flatEnd, noSessionEnd, tiny, folderFile }));
+check("R-2598: the end record sums every usage pi wrote in the build's session file, or names why the cost is unknown", usageExact && flatOk && noSessionOk && shortPathOk && libFailures, JSON.stringify({ usageEnd, expectedUsage, flatStart, flatEnd, noSessionEnd, shortPathDetail, tiny, folderFile }));
 
 resetRecords();
 fs.mkdirSync(COMMON, { recursive: true }); fs.writeFileSync(path.dirname(LEDGER), "blocker");
