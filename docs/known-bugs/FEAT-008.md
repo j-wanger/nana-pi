@@ -24,3 +24,6 @@
 - Land reads CI (land-reads-ci, independent check): a workflow whose jobs are all skipped by `if:` ends `completed/skipped`, so its repository would refuse every land, and a re-run does not help. No workflow here has one.
 - Land reads CI (land-reads-ci, independent check): an `action_required` run gets the catch-all "fix the workflow result, then run it again", where it needs the run approved. "CI response is not a workflow-run list" names no remedy.
 - Land reads CI (land-reads-ci, independent check): the time-out check also calls a kill at the output limit "timed out". A run whose name is null fails the whole list.
+- Land reads CI (land-reads-ci, final and land reviews): an https origin with a trailing slash (`https://github.com/o/r/`) fails the strict pattern, so the land skips CI with its note.
+- Land reads CI (land-reads-ci, land review): the re-run remedy names `--repo owner/repo` without the host, so with GH_HOST set elsewhere gh targets that host; `--repo github.com/owner/repo` would fix it.
+- Land reads CI (land-reads-ci, final review): the `.yaml` workflow extension branch has no test.
