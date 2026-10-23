@@ -8,7 +8,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -643,9 +643,24 @@ check("R-2589: a CI read that cannot complete refuses before the suite and names
 	assertCiRefused(missing, [], /gh.*PATH/i, { runGh: (cwd, args, options) => runner(cwd, args, { ...options, env: { ...options.env, PATH: empty } }) });
 	const childFixture = ciFixture("missing-gh-child"); ensureCiReview(childFixture); const before = git(childFixture.main, "rev-parse", "HEAD");
 	const locate = process.platform === "win32" ? ["where.exe", ["git"]] : ["which", ["git"]]; const gitPath = execFileSync(locate[0], locate[1], { encoding: "utf8" }).trim().split(/\r?\n/)[0];
-	const childEnv = { ...process.env, HOME: childFixture.home, USERPROFILE: childFixture.home, PATH: `${path.dirname(process.execPath)}${path.delimiter}${path.dirname(gitPath)}` }; const suite = `${JSON.stringify(process.execPath)} -e ${JSON.stringify("process.exit(0)")}`;
-	const child = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-land.mjs", import.meta.url)), "merge", "--tree", childFixture.feature, "--main", childFixture.main, "--suite", suite, "--reviewed", childFixture.reviewed[0]], { cwd: childFixture.feature, env: childEnv, encoding: "utf8", timeout: 30000 });
-	assert.equal(child.status, 1, `${child.stdout}\n${child.stderr}`); assert.match(child.stdout, /^refused:.*gh.*PATH/im); assert.equal(git(childFixture.main, "rev-parse", "HEAD"), before);
+	const childBin = path.join(childFixture.root, "node-git-bin"); mkdirSync(childBin);
+	let childPath;
+	if (process.platform === "win32") {
+		const shim = (name, real) => writeFileSync(path.join(childBin, `${name}.cmd`), `@echo off\r\n"${real}" %*\r\n`);
+		shim("node", process.execPath); shim("git", gitPath); childPath = childBin;
+	} else {
+		for (const [name, real] of [["node", process.execPath], ["git", gitPath]]) symlinkSync(real, path.join(childBin, name));
+		childPath = childBin;
+	}
+	const childEnv = { ...process.env, HOME: childFixture.home, USERPROFILE: childFixture.home, PATH: childPath };
+	const extensions = process.platform === "win32" ? (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";") : [""];
+	const ghResolves = childPath.split(path.delimiter).some((dir) => extensions.some((extension) => existsSync(path.join(dir, `gh${extension}`))));
+	if (ghResolves) console.log("SKIP R-2589 child no-gh assertions: gh resolves on the isolated node/git PATH");
+	else {
+		const suite = `${JSON.stringify(process.execPath)} -e ${JSON.stringify("process.exit(0)")}`;
+		const child = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-land.mjs", import.meta.url)), "merge", "--tree", childFixture.feature, "--main", childFixture.main, "--suite", suite, "--reviewed", childFixture.reviewed[0]], { cwd: childFixture.feature, env: childEnv, encoding: "utf8", timeout: 30000 });
+		assert.equal(child.status, 1, `${child.stdout}\n${child.stderr}`); assert.match(child.stdout, /^refused:.*gh.*PATH/im); assert.equal(git(childFixture.main, "rev-parse", "HEAD"), before);
+	}
 });
 
 // req: R-2590
