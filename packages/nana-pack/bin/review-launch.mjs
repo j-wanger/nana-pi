@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/bin/review-launch.mjs
- * @purpose Resolve a review command to its direct, Windows cmd.exe, or pi-specific launch.
+ * @purpose Resolve a non-pi command to its direct or Windows cmd.exe launch, while retaining the pi-specific route for review callers.
  * @inputs a child argv and injected platform, environment, cwd, file probes, text reader, and Node executable.
  * @outputs a spawn command, arguments and optional options, or a named refusal.
  * @effects disk (default Windows command, path existence and pi lookup probes).

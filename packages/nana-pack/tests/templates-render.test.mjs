@@ -569,15 +569,13 @@ function checkInstructionContracts() {
 		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
 		seatGuideNamedPath ?? "no bullet found");
 	const largerLanesBullets = [...shared.matchAll(/^- Larger lanes:.*$/gm)].map((m) => m[0]);
-	// req: R-1193
-	check("shared working pattern sends a larger or riskier lane to the roster's larger-lane builder, a pi entry through lane size larger and a Claude Code entry as a subagent in the lane worktree",
+	// req: R-2652
+	check("R-2652: the shared working pattern starts the larger-lane builder, pi or Claude Code, through pi-worker --lane-size larger and a small lane through --lane-size small",
 		largerLanesBullets.length === 1 &&
-		largerLanesBullets[0].includes("pi-worker --lane-size larger") &&
-		largerLanesBullets[0].includes("a Claude Code entry as a Claude Code subagent in the lane worktree") &&
-		largerLanesBullets[0].includes("pi-worker --lane-size small") &&
-		// the routing itself, not just the three substrings in any order or attribution — an
-		// inverted bullet (swapped entry kinds, or swapped lane sizes) must fail this.
-		/a pi entry through `pi-worker --lane-size larger`,\s*a Claude Code entry as a Claude Code subagent in the lane worktree after the seat runs `node "\$HOME\/nana-pi\/packages\/nana-pack\/bin\/brief-check\.mjs" --brief <file> --tree <worktree>` on the brief;\s*a small lane goes through `pi-worker --lane-size small`/.test(largerLanesBullets[0]),
+		largerLanesBullets[0].includes("a seat builds a larger or riskier lane with it through `pi-worker --lane-size larger`, a pi entry or a Claude Code entry alike") &&
+		largerLanesBullets[0].includes("a small lane goes through `pi-worker --lane-size small`") &&
+		largerLanesBullets[0].indexOf("pi-worker --lane-size larger") < largerLanesBullets[0].indexOf("pi-worker --lane-size small") &&
+		!largerLanesBullets[0].includes("subagent"),
 		JSON.stringify(largerLanesBullets));
 	// req: R-1213
 	check("shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user",

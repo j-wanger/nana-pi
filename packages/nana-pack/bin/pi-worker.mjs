@@ -1,24 +1,32 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/bin/pi-worker.mjs
- * @purpose Run a pi worker under a liveness watchdog, with optional linked-worktree lane checks and build records.
- * @inputs argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane
- *  mode the brief, worktree HEAD, feature known bugs, machine roster, git common folder, and pi sessions
- * @outputs worker output, result diagnostics, and lane-mode start/end records plus a final lane line
- * @effects disk (writes output and clone-shared build records), process (spawns and may kill the pi child process group)
- * @errors exit 1 on bad args, invalid lane, refused brief precedent, invalid or disallowed
- *  --lane-size, refused roster, failed worker, output failure, or exceeded lane ceiling; record failures only report
+ * @purpose Run a roster-selected pi or Claude Code worker under one lane check, lock, watchdog, prompt, settings and build-record lifecycle.
+ * @inputs argv, lane brief and HEAD, feature known bugs, machine roster, optional user Claude settings, git folders, and pi sessions
+ * @outputs worker output, launch and carry diagnostics, lane start/end records, and a final lane line
+ * @effects disk (temporary prompts/settings, output and build records), process (spawns and may kill pi or Claude Code child groups)
+ * @errors exit 1 on bad args, invalid lane, refused precedent/roster, failed worker, output failure or ceiling; settings-source and record failures report
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
-import { LANE_DEFAULTS, LANE_MAX_SECS, CLAUDE_CODE_RUNTIME, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL } from './worker-config.mjs';
+import {
+	CLAUDE_APPEND_PROMPT_FILE_FLAG, CLAUDE_BUILDER_BASH_LIMIT_MS, CLAUDE_BUILDER_CHILD_ENV,
+	CLAUDE_BUILDER_PERMISSION_MODE, CLAUDE_BUILDER_PROMPT_FILE, CLAUDE_BUILDER_SETTING_SOURCES,
+	CLAUDE_BUILDER_SETTINGS_FILE, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_TOOLS,
+	CLAUDE_CARRY_ENV_NAMES, CLAUDE_CARRY_KEYS, CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG,
+	CLAUDE_SETTINGS_FLAG, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_TOOLS_FLAG,
+	LANE_DEFAULTS, LANE_MAX_SECS, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL,
+} from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
+import { parseJsonBytes, jsonErrorPlace } from '../lib/json-text.mjs';
+import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from '../lib/claude-review-config.mjs';
+import { reviewLaunch } from './review-launch.mjs';
 import { appendBuildRecord, buildBriefPath, buildRecordsPath, buildSessionDir, collectBuildUsage, readBuildLedger, renderLaneLine } from '../lib/build-records.mjs';
 import { BUILD_LEDGER_READ_MAX_BYTES, BUILD_RECORD_LINE_PREFIX, BUILD_RECORD_SCHEMA, REPORT_COST_DIGITS, REPORT_MILLISECONDS_PER_MINUTE, WORKER_TAG } from '../lib/build-records-config.mjs';
 
@@ -72,7 +80,7 @@ function trusted(worktree) {
 let childEnv = { NANA_ROLE: 'worker' };
 let maxArg;
 let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, knownBugPath;
-let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature;
+let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaunch;
 let buildStart = null, buildStartKept = false, buildEnd = null, buildEndKept = false;
 let precedentLine = '';
 let validateLaneAttempt = () => null;
@@ -119,24 +127,21 @@ if (laneMode) {
 	const roster = rosterResult.roster;
 	if (laneSizePresent && laneSizeRaw !== 'small' && laneSizeRaw !== 'larger') laneFailure(`--lane-size must be small or larger (got ${JSON.stringify(laneSizeRaw)})`);
 	// R-1212: once the slot is set, every launch on this machine must name a size — the notice
-	// reaches every project at once, but the shared bullet (R-1193) reaches only a project whose
-	// marker region is refreshed.
+	// reaches every project at once, but the shared bullet (retired R-1193, replaced by R-2652)
+	// reaches only a project whose marker region is refreshed.
 	if (!laneSizePresent && roster.largerBuilder !== null) laneFailure('roster sets largerBuilder: pass --lane-size larger for a larger or riskier lane, or --lane-size small for a small one');
 	const laneSize = laneSizePresent ? laneSizeRaw : 'small';
 	let builder;
 	let builderLabel = 'builder';
 	if (laneSize === 'larger' && roster.largerBuilder !== null) {
-		if (roster.largerBuilder.runtime === CLAUDE_CODE_RUNTIME) {
-			// R-1191: pi-worker starts pi entries only; both ways out are the user's choice,
-			// never an order to edit the user's file (CHANGE.md 3.2, 3.7).
-			laneFailure('roster.largerBuilder is a Claude Code entry; pi-worker starts pi entries only: ask the user to start it as a subagent from a Claude Code seat, or to put a pi entry in largerBuilder');
-		}
 		builder = roster.largerBuilder;
 		builderLabel = LARGER_BUILDER_LABEL;
 	} else {
 		builder = roster[LANE_SIZE_SLOTS.small];
 	}
-	process.stderr.write(`pi-worker: ${builderLabel}: ${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}; source: ${rosterResult.source}\n`);
+	const isClaudeBuilder = builder.runtime === CLAUDE_CODE_RUNTIME;
+	const runtimeTokens = isClaudeBuilder ? `${CLAUDE_CODE_RUNTIME} ${builder.model}` : `${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}`;
+	process.stderr.write(`pi-worker: ${builderLabel}: ${runtimeTokens}; source: ${rosterResult.source}\n`);
 	process.stderr.write(`${precedentLine}\n`);
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
@@ -145,11 +150,41 @@ if (laneMode) {
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
 	preambleFile = path.join(preambleDir, 'preamble.md');
 	writeFileSync(preambleFile, preamble);
-	const piArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(knownBugPath ? ['--append-system-prompt', knownBugPath] : []), '-p', `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`];
+	const instruction = `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`;
+	let builderArgs;
+	if (isClaudeBuilder) {
+		const promptFile = path.join(preambleDir, CLAUDE_BUILDER_PROMPT_FILE);
+		const promptParts = [Buffer.from(preamble), Buffer.from('\n\n'), readFileSync(briefPath)];
+		if (knownBugPath) promptParts.push(Buffer.from('\n\n'), readFileSync(knownBugPath));
+		writeFileSync(promptFile, Buffer.concat(promptParts));
+		const settingsFile = path.join(preambleDir, CLAUDE_BUILDER_SETTINGS_FILE);
+		const sealed = {
+			NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
+			BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
+			BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
+		};
+		const carry = writeClaudeBuilderSettings(settingsFile, sealed);
+		process.stderr.write(`${carry.line}\n`);
+		builderArgs = [
+			CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, builder.model,
+			CLAUDE_PERMISSION_MODE_FLAG, CLAUDE_BUILDER_PERMISSION_MODE,
+			CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES,
+			CLAUDE_SETTINGS_FLAG, settingsFile,
+			CLAUDE_STRICT_MCP_FLAG,
+			CLAUDE_TOOLS_FLAG, CLAUDE_BUILDER_TOOLS,
+			CLAUDE_ALLOW_FLAG, CLAUDE_BUILDER_TOOLS,
+			CLAUDE_APPEND_PROMPT_FILE_FLAG, promptFile,
+			instruction,
+		];
+		childEnv = sealed;
+		claudeLaunch = (args, { cwd: launchCwd } = {}) => reviewLaunch([CLAUDE_BIN, ...args], { cwd: launchCwd });
+	} else {
+		builderArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(knownBugPath ? ['--append-system-prompt', knownBugPath] : []), '-p', instruction];
+		childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
+	}
 	const argvSeparator = argv.indexOf('--');
-	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...piArgs);
-	else argv.push('--', ...piArgs);
-	childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
+	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...builderArgs);
+	else argv.push('--', ...builderArgs);
 	maxArg = maxSecs;
 	if (!trusted(cwd)) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\n`);
 	function validateLane() {
@@ -169,6 +204,50 @@ if (laneMode) {
 // R-1125: win32 resolves a lane's paths by native real path, which keeps an 8.3 or differently
 // cased form the way git itself sees it; POSIX keeps the JS implementation, as landed.
 function fsReal(p) { return process.platform === 'win32' ? realpathSync.native(p) : realpathSync(p); }
+function writeClaudeBuilderSettings(settingsFile, sealed) {
+	const configured = process.env.CLAUDE_CONFIG_DIR;
+	const source = path.join(configured !== undefined && configured !== '' ? configured : path.join(homedir(), '.claude'), 'settings.json');
+	let parsed;
+	let reason = null;
+	try {
+		const bytes = readFileSync(source);
+		try { parsed = parseJsonBytes(bytes); }
+		catch (error) {
+			const place = jsonErrorPlace(error);
+			reason = `not valid JSON${place ? ` at line ${place.line}, column ${place.column}` : ''}`;
+		}
+	} catch (error) {
+		reason = error?.code === 'ENOENT' ? 'not found' : `cannot read (${error?.code ?? 'unknown'})`;
+	}
+	if (!reason && (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed))) reason = 'not a JSON object';
+	const settings = {};
+	const carriedKeys = [];
+	const carriedEnvNames = [];
+	if (!reason) {
+		for (const key of CLAUDE_CARRY_KEYS) if (Object.hasOwn(parsed, key)) {
+			settings[key] = parsed[key];
+			carriedKeys.push(key);
+		}
+		const sourceEnv = parsed.env;
+		if (sourceEnv !== null && typeof sourceEnv === 'object' && !Array.isArray(sourceEnv)) {
+			const allowed = new Set(CLAUDE_CARRY_ENV_NAMES.map((name) => name.toLowerCase()));
+			settings.env = {};
+			for (const [name, value] of Object.entries(sourceEnv)) if (allowed.has(name.toLowerCase())) {
+				settings.env[name] = value;
+				carriedEnvNames.push(name);
+			}
+		}
+	}
+	settings.env = { ...(settings.env ?? {}), ...sealed };
+	writeFileSync(settingsFile, JSON.stringify(settings), { mode: 0o600 });
+	let detail;
+	if (reason) detail = `none; ${reason}`;
+	else {
+		const names = [...carriedKeys.sort(), ...(carriedEnvNames.length ? [`env ${carriedEnvNames.sort().join(', ')}`] : [])];
+		detail = names.length ? names.join(', ') : 'none';
+	}
+	return { line: `pi-worker: claude settings carry: ${detail}; source: ${source}` };
+}
 function errorText(error) { return `${error?.code ? `${error.code}: ` : ''}${error?.message ?? String(error)}`; }
 function workerExit(result) {
 	if (result.signal) return { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[result.signal] ?? 1;
@@ -192,9 +271,9 @@ function keepBuildStart(outPath) {
 		lock: laneLock,
 		laneSize: selectedLaneSize,
 		slot: selectedSlot,
-		provider: selectedBuilder.provider,
+		provider: selectedBuilder.runtime === CLAUDE_CODE_RUNTIME ? CLAUDE_CODE_RUNTIME : selectedBuilder.provider,
 		model: selectedBuilder.model,
-		thinking: selectedBuilder.thinking,
+		thinking: selectedBuilder.runtime === CLAUDE_CODE_RUNTIME ? null : selectedBuilder.thinking,
 		cwd: process.cwd(),
 		sessionDir: buildSessionDir(process.cwd()),
 		out: path.resolve(process.cwd(), outPath),
@@ -272,7 +351,7 @@ let r;
 try {
 	if (laneMode) {
 		const preambleDir = path.dirname(preambleFile);
-		try { r = await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, validateAttempt: validateLaneAttempt }); }
+		try { r = await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
 		finally { rmSync(preambleDir, { recursive: true, force: true }); }
 	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
 } catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }

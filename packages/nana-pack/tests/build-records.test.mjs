@@ -112,11 +112,14 @@ const path = require("node:path");
   if (process.env.BR_MODE === "fail") process.exit(1);
 })().catch((error) => { console.error(error.stack || error); process.exit(2); });
 `;
-if (process.platform === "win32") writeFakePi(STUB, STUB_BODY);
-else {
-	const body = path.join(STUB, "body.cjs");
-	fs.writeFileSync(body, STUB_BODY);
+const body = path.join(STUB, "body.cjs");
+fs.writeFileSync(body, STUB_BODY);
+if (process.platform === "win32") {
+	writeFakePi(STUB, STUB_BODY);
+	fs.writeFileSync(path.join(STUB, "claude.cmd"), `@echo off\r\n"${process.execPath}" "${body}" %*\r\n`);
+} else {
 	fs.writeFileSync(path.join(STUB, "pi"), `#!/bin/sh\nexec "${process.execPath}" "${body}" "$@"\n`, { mode: 0o755 });
+	fs.writeFileSync(path.join(STUB, "claude"), `#!/bin/sh\nexec "${process.execPath}" "${body}" "$@"\n`, { mode: 0o755 });
 }
 
 const baseEnv = () => {
@@ -181,6 +184,18 @@ const refusalOk = lockRefused.status === 1 && precedentRefused.status === 1 && f
 const noHomeRecord = !fs.readdirSync(HOME, { recursive: true }).some((entry) => String(entry).endsWith("build-records.jsonl"));
 // req: R-2596
 check("R-2596: a lane build appends one start record under the clone's git folder before pi starts", Boolean(firstOk && firstFieldsOk && defaultSlotOk && refusalOk && noHomeRecord), JSON.stringify({ firstOk, firstFieldsOk, defaultSlotOk, refusalOk, noHomeRecord, startTip, lane: LANE, startRun: startRun.status, start, snapshot, sessionDir, outsideStart, lock: lockRefused.stderr, precedent: precedentRefused.stderr }));
+
+resetRecords();
+const claudeAgent = path.join(TD, "claude-agent"); fs.mkdirSync(claudeAgent, { recursive: true });
+fs.writeFileSync(path.join(claudeAgent, "nana-pack.json"), JSON.stringify({ roster: { scout: null, builder: { provider: "small-p", model: "small-m", thinking: null }, largerBuilder: { runtime: "claude-code", model: "fable" }, reviewer: { provider: "r", model: "rm", thinking: null }, land: null } }));
+const claudeRun = runWorker({ extra: ["--lane-size", "larger"], env: { PI_CODING_AGENT_DIR: claudeAgent } });
+const claudeRows = lines();
+const claudeStart = claudeRows.find((row) => row.kind === "start");
+const claudeEnd = claudeRows.find((row) => row.kind === "end" && row.build === claudeStart?.build);
+// req: R-2653
+check("R-2653: a Claude Code build's start record names provider claude-code, its model and a null thinking",
+	claudeRun.status === 0 && claudeStart?.provider === "claude-code" && claudeStart?.model === "fable" && claudeStart?.thinking === null && claudeStart?.slot === "largerBuilder" && claudeEnd?.build === claudeStart.build,
+	JSON.stringify({ status: claudeRun.status, stderr: claudeRun.stderr, claudeRows }));
 
 resetRecords();
 const okRun = runWorker({ env: { BR_MODE: "commit" } });
