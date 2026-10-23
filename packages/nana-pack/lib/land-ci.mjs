@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/lib/land-ci.mjs
  * @purpose Decide whether GitHub CI applies to a land and judge one workflow-runs response.
- * @inputs Remote names and URL, tip workflow paths, a workflow-runs JSON string, and the source tip.
+ * @inputs Remote names and URL, tip workflow paths, a workflow-runs JSON string, the source tip, and its parsed GitHub repository.
  * @outputs A GitHub repository or skip note, and CI success lines or a refusal reason.
  * @effects none
  * @errors Malformed workflow-run data is returned as a named refusal reason.
@@ -50,15 +50,16 @@ const isRun = (run) => run !== null && typeof run === "object" && !Array.isArray
 	&& typeof run.event === "string" && run.event.length > 0 && typeof run.status === "string" && run.status.length > 0
 	&& (run.conclusion === null || typeof run.conclusion === "string");
 const stateOf = (run) => run.status !== CI_DONE_STATUS ? run.status : String(run.conclusion);
-const remedyOf = (run) => {
+const remedyOf = (run, repository) => {
 	if (run.status !== CI_DONE_STATUS) return "wait for the run to finish";
-	if (run.conclusion === "cancelled") return `run gh run rerun ${run.id}`;
-	if (run.conclusion === "failure" || run.conclusion === "timed_out") return `run gh run rerun ${run.id} --failed, or fix the failure`;
+	const rerun = `gh run rerun ${run.id} --repo ${repository.owner}/${repository.repo}`;
+	if (run.conclusion === "cancelled") return `run ${rerun}`;
+	if (run.conclusion === "failure" || run.conclusion === "timed_out") return `run ${rerun} --failed, or fix the failure`;
 	return "fix the workflow result, then run it again";
 };
 
 /** Judge each workflow's highest-numbered run, independent of API list order or workflow name. */
-export function judgeRuns(stdout, tip) {
+export function judgeRuns(stdout, tip, repository) {
 	let body;
 	try { body = JSON.parse(String(stdout ?? "")); }
 	catch { return { ok: false, message: "CI response is not a workflow-run list" }; }
@@ -72,7 +73,7 @@ export function judgeRuns(stdout, tip) {
 	}
 	const bad = [...newest.values()].filter((run) => run.status !== CI_DONE_STATUS || run.conclusion !== CI_PASS_CONCLUSION);
 	if (bad.length) {
-		const details = bad.map((run) => `${run.name} run ${run.id} attempt ${run.run_attempt} is ${stateOf(run)}; ${remedyOf(run)}`);
+		const details = bad.map((run) => `${run.name} run ${run.id} attempt ${run.run_attempt} is ${stateOf(run)}; ${remedyOf(run, repository)}`);
 		return { ok: false, message: `CI at ${String(tip).slice(0, TIP_DIGITS)}: ${details.join("; ")}` };
 	}
 	return { ok: true, lines: [...newest.values()].map((run) => `ci: ${run.name} run ${run.id} attempt ${run.run_attempt} (${run.event}) success at ${String(tip).slice(0, TIP_DIGITS)}`) };

@@ -1457,7 +1457,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/land-ci.mjs`
 
 - **purpose** — Decide whether GitHub CI applies to a land and judge one workflow-runs response.
-- **inputs** — Remote names and URL, tip workflow paths, a workflow-runs JSON string, and the source tip.
+- **inputs** — Remote names and URL, tip workflow paths, a workflow-runs JSON string, the source tip, and its parsed GitHub repository.
 - **outputs** — A GitHub repository or skip note, and CI success lines or a refusal reason.
 - **effects** — none
 - **errors** — Malformed workflow-run data is returned as a named refusal reason.

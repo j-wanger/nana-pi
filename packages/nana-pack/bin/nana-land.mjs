@@ -20,6 +20,12 @@ import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_REMOTE, CI_RUNS
 
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
+const ghEnvironment = (environment) => {
+	const env = {};
+	for (const [key, value] of Object.entries(environment)) if (key.toUpperCase() !== "GH_FORCE_TTY") env[key] = value;
+	env.CLICOLOR_FORCE = "0";
+	return env;
+};
 /** Build the default gh runner with bounded time and output. */
 export function ghDefault({ timeoutMs = CI_READ_TIMEOUT_MS, maxBuffer = CHILD_OUTPUT_MAX_BYTES } = {}) {
 	return (cwd, args, { env = process.env } = {}) => ({ ...spawnSync("gh", args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", timeout: timeoutMs, maxBuffer }), nanaTimeoutMs: timeoutMs });
@@ -141,7 +147,8 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		else {
 			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
 			const args = ["api", "--hostname", CI_HOST, `${apiPath}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`];
-			const response = runGh(main, args, { env: process.env });
+			const env = ghEnvironment(process.env);
+			const response = runGh(main, args, { env });
 			const firstErrorLine = String(response?.stderr ?? "").split(/\r?\n/)[0].trim();
 			if (response?.error?.code === "ETIMEDOUT" || response?.signal && response?.status === null) throw new Error(`CI read timed out after ${response?.nanaTimeoutMs ?? CI_READ_TIMEOUT_MS} ms${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
 			if (response?.error) {
@@ -149,7 +156,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 				throw new Error(`gh could not start: ${response.error.message}`);
 			}
 			if (response?.status !== 0) throw new Error(`gh CI read failed (exit ${response?.status ?? response?.signal ?? "unknown"})${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
-			const verdict = judgeRuns(response.stdout, tip);
+			const verdict = judgeRuns(response.stdout, tip, scope.repository);
 			if (!verdict.ok) throw new Error(verdict.message);
 			ciLines = verdict.lines;
 		}

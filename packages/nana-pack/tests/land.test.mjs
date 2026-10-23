@@ -582,6 +582,8 @@ check("R-2586: a tip whose newest CI run of a workflow concluded other than succ
 	for (const [index, conclusion] of ["failure", "cancelled", "timed_out", "action_required", "neutral", "skipped", "stale", "startup_failure", null].entries()) {
 		const run = workflowRun({ id: 200 + index, run_attempt: 2, conclusion });
 		const out = assertCiRefused(fixture, [run], new RegExp(`ci run ${run.id} attempt 2.*${conclusion === null ? "null" : conclusion}`, "i")); assert.match(out.text, /ci/i);
+		if (conclusion === "cancelled") assert.match(out.text, new RegExp(`gh run rerun ${run.id} --repo example/fixture`));
+		if (conclusion === "failure") assert.match(out.text, new RegExp(`gh run rerun ${run.id} --repo example/fixture --failed`));
 	}
 	assertCiRefused(fixture, [workflowRun({ id: 210, run_number: 10 }), workflowRun({ id: 211, run_number: 11, conclusion: "failure" })], /ci run 211 attempt 1.*failure/i);
 	assertCiRefused(fixture, [workflowRun({ workflow_id: 1, name: "one", id: 220, run_number: 40 }), workflowRun({ workflow_id: 2, name: "two", id: 221, run_number: 3, conclusion: "failure" })], /two run 221 attempt 1.*failure/i);
@@ -673,22 +675,26 @@ check("R-2590: a repository or tip without GitHub CI skips the CI read and notes
 // req: R-2591
 check("R-2591: the CI read asks github.com for the full tip SHA in origin's repository", () => {
 	const origins = ["https://github.com/example/fixture.git", "https://github.com/example/fixture", "git@github.com:example/fixture.git", "ssh://git@github.com/example/fixture.git"];
-	const oldHost = process.env.GH_HOST, oldRepo = process.env.GH_REPO;
+	const oldHost = process.env.GH_HOST, oldRepo = process.env.GH_REPO, oldColor = process.env.CLICOLOR_FORCE, oldForceTty = process.env.GH_FORCE_TTY;
 	try {
-		process.env.GH_HOST = "example.invalid"; process.env.GH_REPO = "wrong/other";
+		process.env.GH_HOST = "example.invalid"; process.env.GH_REPO = "wrong/other"; process.env.CLICOLOR_FORCE = "1"; process.env.GH_FORCE_TTY = "1";
 		for (const [index, origin] of origins.entries()) {
 			const fixture = ciFixture(`request-${index}`, { origin }); const calls = []; const out = executeCi(fixture, [workflowRun()], { runGh: (cwd, args, options) => { calls.push({ cwd, args, options }); return { status: 0, stdout: runList([workflowRun()]), stderr: "" }; } });
 			assert.equal(out.code, 0, out.text); assert.equal(calls.length, 1); assert.equal(calls[0].cwd, path.resolve(fixture.main));
-			assert.deepEqual(calls[0].args, ["api", "--hostname", landConfig.CI_HOST, `repos/example/fixture/actions/runs?head_sha=${fixture.tip}&per_page=${landConfig.CI_RUNS_PAGE_SIZE}`]); assert.equal(calls[0].options.env, process.env);
+			assert.deepEqual(calls[0].args, ["api", "--hostname", landConfig.CI_HOST, `repos/example/fixture/actions/runs?head_sha=${fixture.tip}&per_page=${landConfig.CI_RUNS_PAGE_SIZE}`]);
+			const expectedEnv = { ...process.env, CLICOLOR_FORCE: "0" }; for (const key of Object.keys(expectedEnv)) if (key.toUpperCase() === "GH_FORCE_TTY") delete expectedEnv[key];
+			assert.deepEqual(calls[0].options.env, expectedEnv); assert.notEqual(calls[0].options.env, process.env);
 		}
 	} finally {
 		if (oldHost === undefined) delete process.env.GH_HOST; else process.env.GH_HOST = oldHost;
 		if (oldRepo === undefined) delete process.env.GH_REPO; else process.env.GH_REPO = oldRepo;
+		if (oldColor === undefined) delete process.env.CLICOLOR_FORCE; else process.env.CLICOLOR_FORCE = oldColor;
+		if (oldForceTty === undefined) delete process.env.GH_FORCE_TTY; else process.env.GH_FORCE_TTY = oldForceTty;
 	}
 	if (process.platform !== "win32") {
 		const fixture = ciFixture("fake-gh-child"); ensureCiReview(fixture); const fakeBin = path.join(fixture.root, "fake-bin"); mkdirSync(fakeBin); const record = path.join(fixture.root, "gh-record.txt"); const fake = path.join(fakeBin, "gh");
-		writeFileSync(fake, `#!/bin/sh\nprintf '%s\\n' "$PWD" "$@" > ${JSON.stringify(record)}\nprintf '%s\\n' '${runList([workflowRun()])}'\n`); chmodSync(fake, 0o755);
-		const gitPath = execFileSync("which", ["git"], { encoding: "utf8" }).trim(); const env = { ...process.env, HOME: fixture.home, USERPROFILE: fixture.home, PATH: `${fakeBin}${path.delimiter}${path.dirname(gitPath)}`, HTTPS_PROXY: "http://127.0.0.1:9" };
+		writeFileSync(fake, `#!/bin/sh\nprintf '%s\\n' "$PWD" "$@" > ${JSON.stringify(record)}\nif { [ -n "$CLICOLOR_FORCE" ] && [ "$CLICOLOR_FORCE" != "0" ]; } || [ -n "$GH_FORCE_TTY" ]; then\n\tprintf '\\033[32m%s\\033[0m\\n' '${runList([workflowRun()])}'\nelse\n\tprintf '%s\\n' '${runList([workflowRun()])}'\nfi\n`); chmodSync(fake, 0o755);
+		const gitPath = execFileSync("which", ["git"], { encoding: "utf8" }).trim(); const env = { ...process.env, HOME: fixture.home, USERPROFILE: fixture.home, PATH: `${fakeBin}${path.delimiter}${path.dirname(gitPath)}`, HTTPS_PROXY: "http://127.0.0.1:9", CLICOLOR_FORCE: "1", GH_FORCE_TTY: "1" };
 		const suite = `${JSON.stringify(process.execPath)} -e ${JSON.stringify("process.exit(0)")}`;
 		const child = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-land.mjs", import.meta.url)), "merge", "--tree", fixture.feature, "--main", fixture.main, "--suite", suite, "--reviewed", fixture.reviewed[0]], { cwd: fixture.feature, env, encoding: "utf8", timeout: 30000 });
 		assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`); const lines = readFileSync(record, "utf8").trim().split("\n"); assert.equal(realpathSync(lines[0]), realpathSync(fixture.main)); assert.deepEqual(lines.slice(1), ["api", "--hostname", landConfig.CI_HOST, `repos/example/fixture/actions/runs?head_sha=${fixture.tip}&per_page=${landConfig.CI_RUNS_PAGE_SIZE}`]);
