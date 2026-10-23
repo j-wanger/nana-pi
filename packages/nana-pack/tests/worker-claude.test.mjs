@@ -146,8 +146,9 @@ const runWorker = ({ brief = BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_M
 	env: baseEnv(env),
 });
 const selectedBriefLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
-const expectedPrompt = (briefBytes, withBugs) => {
-	const preamble = fs.readFileSync(PREAMBLE, "utf8").replaceAll("{{WORKTREE}}", real(LANE)).replaceAll("{{BRANCH}}", "feat/alpha");
+const expectedPrompt = (briefBytes, withBugs, launchedCwd = LANE) => {
+	const worktree = process.platform === "win32" ? fs.realpathSync.native(launchedCwd) : fs.realpathSync(launchedCwd);
+	const preamble = fs.readFileSync(PREAMBLE, "utf8").replaceAll("{{WORKTREE}}", worktree).replaceAll("{{BRANCH}}", "feat/alpha");
 	return Buffer.concat([Buffer.from(preamble), Buffer.from("\n\n"), Buffer.from(briefBytes), ...(withBugs ? [Buffer.from("\n\n"), Buffer.from(BUG_TEXT)] : [])]);
 };
 const sealedEnv = () => ({
@@ -189,20 +190,36 @@ writeBrief(promptBrief); removeArtifacts();
 const promptRun = runWorker();
 const promptCall = readRows(RECORD)[0];
 const promptCopy = fs.existsSync(PROMPT_COPY) ? fs.readFileSync(PROMPT_COPY) : Buffer.alloc(0);
-const promptFirstOk = promptRun.status === 0 && promptCall && Buffer.compare(promptCopy, expectedPrompt(promptBrief, true)) === 0 && !promptCopy.toString("utf8").includes("{{") &&
-	promptCopy.indexOf(promptBrief) > 0 && promptCopy.indexOf(Buffer.from(BUG_TEXT)) > promptCopy.indexOf(promptBrief) && promptCopy.toString("utf8").split(BUG_TEXT).length - 1 === 1 &&
-	!path.relative(real(LANE), promptCall.prompt).split(path.sep).every((part) => part !== "..") && !fs.existsSync(promptCall.prompt);
+const promptChecks = {
+	status: promptRun.status === 0,
+	call: Boolean(promptCall),
+	bytes: Boolean(promptCall) && Buffer.compare(promptCopy, expectedPrompt(promptBrief, true, promptCall.cwd)) === 0,
+	rendered: !promptCopy.toString("utf8").includes("{{"),
+	briefAfterPreamble: promptCopy.indexOf(promptBrief) > 0,
+	bugsAfterBrief: promptCopy.indexOf(Buffer.from(BUG_TEXT)) > promptCopy.indexOf(promptBrief),
+	bugsOnce: promptCopy.toString("utf8").split(BUG_TEXT).length - 1 === 1,
+	outsideWorktree: Boolean(promptCall) && !path.relative(real(LANE), promptCall.prompt).split(path.sep).every((part) => part !== ".."),
+	removed: Boolean(promptCall) && !fs.existsSync(promptCall.prompt),
+};
 const noFeatureBrief = Buffer.from("No feature line here.\r\n\r\nPrecedent:\r\n- seed\t");
 writeBrief(noFeatureBrief); removeArtifacts();
 const noFeatureRun = runWorker();
 const noFeatureCall = readRows(RECORD)[0];
 const noFeatureCopy = fs.existsSync(PROMPT_COPY) ? fs.readFileSync(PROMPT_COPY) : Buffer.alloc(0);
 const cleanStatus = git(LANE, "status", "--porcelain");
+const noFeatureChecks = {
+	status: noFeatureRun.status === 0,
+	call: Boolean(noFeatureCall),
+	bytes: Boolean(noFeatureCall) && Buffer.compare(noFeatureCopy, expectedPrompt(noFeatureBrief, false, noFeatureCall.cwd)) === 0,
+	noFeatureBugs: !noFeatureCopy.toString("utf8").includes(BUG_TEXT),
+	noUnplacedBugs: !noFeatureCopy.toString("utf8").includes("Unplaced fixture"),
+	removed: Boolean(noFeatureCall) && !fs.existsSync(noFeatureCall.prompt),
+	clean: cleanStatus === "",
+};
 // req: R-2647
 check("R-2647: the Claude Code builder's prompt file holds the rendered preamble, the brief and the feature's known bugs once each in that order, and is gone after the build",
-	promptFirstOk && noFeatureRun.status === 0 && noFeatureCall && Buffer.compare(noFeatureCopy, expectedPrompt(noFeatureBrief, false)) === 0 &&
-	!noFeatureCopy.toString("utf8").includes(BUG_TEXT) && !noFeatureCopy.toString("utf8").includes("Unplaced fixture") && !fs.existsSync(noFeatureCall.prompt) && cleanStatus === "",
-	JSON.stringify({ promptStatus: promptRun.status, promptStderr: promptRun.stderr, noFeatureStatus: noFeatureRun.status, noFeatureStderr: noFeatureRun.stderr, cleanStatus }));
+	Object.values(promptChecks).every(Boolean) && Object.values(noFeatureChecks).every(Boolean),
+	JSON.stringify({ promptChecks, promptStderr: promptRun.stderr, noFeatureChecks, noFeatureStderr: noFeatureRun.stderr, cleanStatus }));
 
 const precedentCases = [
 	["missing", "Feature: FEAT-006 · Missing\n"],
@@ -242,7 +259,8 @@ if (process.platform === "win32") {
 	const call = readRows(RECORD)[0];
 	const prompt = fs.existsSync(PROMPT_COPY) ? fs.readFileSync(PROMPT_COPY) : Buffer.alloc(0);
 	windowsPass = windowsRun.status === 0 && call && call.argv.includes(CLAUDE_SETTINGS_FLAG) && call.argv[call.argv.indexOf(CLAUDE_SETTINGS_FLAG) + 1] === call.settings &&
-		call.argv.includes(CLAUDE_BUILDER_TOOLS) && call.argv.includes(CLAUDE_BUILDER_SETTING_SOURCES) && prompt.indexOf(specialBrief) >= 0;
+		call.argv.includes(CLAUDE_BUILDER_TOOLS) && call.argv.includes(CLAUDE_BUILDER_SETTING_SOURCES) && prompt.indexOf(specialBrief) >= 0 &&
+		fs.existsSync(OUT) && fs.readFileSync(OUT, "utf8") === "fake Claude builder report\n";
 	windowsDetail = JSON.stringify({ result: windowsRun, call });
 }
 // req: R-2650

@@ -177,7 +177,12 @@ if (laneMode) {
 			instruction,
 		];
 		childEnv = sealed;
-		claudeLaunch = (args, { cwd: launchCwd } = {}) => reviewLaunch([CLAUDE_BIN, ...args], { cwd: launchCwd });
+		claudeLaunch = (args, { cwd: launchCwd } = {}) => {
+			const launch = reviewLaunch([CLAUDE_BIN, ...args], { cwd: launchCwd });
+			return launch.options?.windowsVerbatimArguments
+				? { ...launch, options: { ...launch.options, detached: false } }
+				: launch;
+		};
 	} else {
 		builderArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(knownBugPath ? ['--append-system-prompt', knownBugPath] : []), '-p', instruction];
 		childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
