@@ -172,7 +172,7 @@ const lines = (text) => text?.split("\n") ?? [];
 		const result = run(PRODUCER, ["--cwd", root]);
 		const file = path.join(root, "HANDOFF.md");
 		const outLines = result.stdout.trimEnd().split("\n");
-		return { root, cause, result, ok: result.status === 0 && !result.signal && outLines[0] === FRONTIER_TAG && outLines[1] === FRONTIER_HEADING && outLines.length === 3 && outLines[2].startsWith(FRONTIER_UNAVAILABLE) && outLines[2].includes(cause) && outLines[2].includes(promptPath(file)) };
+		return { root, cause, result, ok: result.status === 0 && !result.signal && outLines[0] === FRONTIER_TAG && outLines[1] === FRONTIER_HEADING && outLines.length === 3 && outLines[2].startsWith(FRONTIER_UNAVAILABLE) && outLines[2].includes(cause) && outLines[2].includes(promptPath(path.join(fs.realpathSync.native(root), "HANDOFF.md"))) };
 	});
 	// req: R-2611
 	check("R-2611: an unreadable HANDOFF.md gives one FRONTIER UNAVAILABLE line naming its cause and path", results.every((entry) => entry.ok), JSON.stringify(results.map(({ cause, result }) => ({ cause, status: result.status, out: result.stdout, signal: result.signal }))));
