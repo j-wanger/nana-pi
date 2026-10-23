@@ -90,4 +90,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R_2586] },
 ];
 
-process.exitCode = await runMutations({ lane: "land-reads-ci", self: import.meta.url, tip: "7019e48b", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "land-reads-ci", self: import.meta.url, tip: "4684392b", declared: DECLARED, pairs: PAIRS });
