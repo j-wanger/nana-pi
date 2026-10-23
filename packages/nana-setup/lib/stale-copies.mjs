@@ -16,7 +16,7 @@ import { codeSpan } from "../../nana-pack/lib/display.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { PROJECT_STALE_LABEL, PROJECT_STALE_PREFIX, PROJECT_STALE_ROOT_PHRASE, STALE_PREFIX } from "./stale-copies-config.mjs";
+import { PROJECT_STALE_LABEL, PROJECT_STALE_NO_PATH_CHARS, PROJECT_STALE_PREFIX, PROJECT_STALE_ROOT_PHRASE, STALE_PREFIX } from "./stale-copies-config.mjs";
 import { WORKING_FILE, readSharedWorking, regionVerdict } from "./working-region.mjs";
 
 /** Reviewer comes from the sealed review child environment; worker is the pi-worker contract. */
@@ -79,7 +79,7 @@ export function projectStaleLine(sessionDir, { env = process.env } = {}) {
 		const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(readBounded(agents));
 		if (regionVerdict(text, readSharedWorking()) !== "differs") return "";
 		let fix = null;
-		if (!root.includes('"') && printable(root)) {
+		if (![...PROJECT_STALE_NO_PATH_CHARS].some((character) => root.includes(character)) && printable(root)) {
 			fix = codeSpan(`node "${path.join(pkgRoot, "bin", "nana-setup.mjs")}" project "${root}"`);
 		}
 		if (!fix) fix = `\`nana-setup project\` ${PROJECT_STALE_ROOT_PHRASE}`;

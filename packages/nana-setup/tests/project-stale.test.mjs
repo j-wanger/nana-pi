@@ -64,6 +64,7 @@ function childEnv(extra = {}) {
 	const env = { ...process.env, HOME: home, USERPROFILE: home, ...extra };
 	for (const key of ["NANA_ROLE", "PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_TEST_TEMP_ROOTS"]) delete env[key];
 	if (Object.hasOwn(extra, "NANA_ROLE")) env.NANA_ROLE = extra.NANA_ROLE;
+	if (Object.hasOwn(extra, "NANA_TEST_TEMP_ROOTS")) env.NANA_TEST_TEMP_ROOTS = extra.NANA_TEST_TEMP_ROOTS;
 	return env;
 }
 
@@ -94,7 +95,7 @@ const projectLines = (result) => String(result.stdout ?? "").split(/\r?\n/).filt
 function expectedLine(sessionDir) {
 	const root = canonicalCwd(repoRootOf(canonicalCwd(sessionDir)));
 	const command = `node "${path.join(pkgRoot, "bin", "nana-setup.mjs")}" project "${root}"`;
-	const rendered = !root.includes('"') ? codeSpan(command) : null;
+	const rendered = ![...`"$\`%`].some((character) => root.includes(character)) ? codeSpan(command) : null;
 	const fix = rendered ?? `\`nana-setup project\` ${staleConfig.PROJECT_STALE_ROOT_PHRASE}`;
 	return `${staleConfig.PROJECT_STALE_PREFIX} ${staleConfig.PROJECT_STALE_LABEL} — tell the user; they fix it with ${fix}`;
 }
@@ -127,7 +128,7 @@ const r2623Facts = [];
 	r2623Facts.push(["hook subfolder", oneProjectLine(hookSub, expectedLine(sub)), hookSub]);
 	const direct = producerRun(ordinary);
 	r2623Facts.push(["producer", oneProjectLine(direct, expectedLine(ordinary)), direct]);
-	for (const [label, name] of [["space", "r2623 with space"], ["backtick", "r2623-`-tick"]]) {
+	for (const [label, name] of [["space", "r2623 with space"], ["backtick", "r2623-`-tick"], ["dollar sign", "r2623-$-dollar"], ["percent sign", "r2623-%-percent"]]) {
 		const root = repository(name, drifted());
 		const result = producerRun(root);
 		r2623Facts.push([label, oneProjectLine(result, expectedLine(root)), result]);
@@ -142,7 +143,7 @@ const r2623Facts = [];
 	fs.writeFileSync(journal, `${JSON.stringify({ ts: new Date().toISOString(), event: "directory_unadopted", cwd: ordinary, has: {} })}\n`);
 	const childTemp = path.join(base, "child-os-temp");
 	fs.mkdirSync(childTemp);
-	const withAdoption = child(hook, [], { cwd: outside, env: childEnv({ CLAUDE_PROJECT_DIR: ordinary, TMPDIR: childTemp, TMP: childTemp, TEMP: childTemp }) });
+	const withAdoption = child(hook, [], { cwd: outside, env: childEnv({ CLAUDE_PROJECT_DIR: ordinary, TMPDIR: childTemp, TMP: childTemp, TEMP: childTemp, NANA_TEST_TEMP_ROOTS: "" }) });
 	const outputLines = withAdoption.stdout.trimEnd().split(/\r?\n/);
 	r2623Facts.push(["adoption block whole", withAdoption.status === 0 && outputLines[0] === "[nana:adoption]" && outputLines.at(-1) === expectedLine(ordinary) && projectLines(withAdoption).length === 1, withAdoption]);
 }

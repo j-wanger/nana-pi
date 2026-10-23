@@ -16,6 +16,8 @@ export const STALE_SECTION = "nana-install-stale";
 export const PROJECT_STALE_PREFIX = "[nana:project] PROJECT STALE:";
 /** chosen: parallel the installed-copy section without merging independent remedies (R-2625). */
 export const PROJECT_STALE_SECTION = "nana-project-stale";
+/** chosen: double quote ends the quote; POSIX sh expands dollar and backtick in double quotes; cmd.exe expands percent. */
+export const PROJECT_STALE_NO_PATH_CHARS = '"$`%';
 /** chosen: staleNotice's label-then-remedy sentence names the exact marker-owned surface. */
 export const PROJECT_STALE_LABEL = "AGENTS.md working section";
 /** chosen: the safe fallback tells the user where a path-free command applies. */
