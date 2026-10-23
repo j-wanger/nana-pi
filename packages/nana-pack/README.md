@@ -714,8 +714,8 @@ project config never contributes to either one, trusted or not.
 - **One process-tree kill and one rename retry** (`lib/process-tree.mjs`, `lib/rename-retry.mjs`).
   The waiting and no-wait kill forms share the POSIX group signal, Windows `taskkill /T /F /PID`,
   pid guard and explicit fallback policy. The rename helper retries EPERM, EBUSY and EACCES three
-  times on every platform, with a recheck after each delay. The tree-kill source scan rejects a new
-  mapped production copy. Its declared exceptions are the shared implementation, runtime-measure's
+  times on every platform, with a recheck after each delay. `lib/tree-kill-scan.mjs` rejects a new
+  mapped production copy; its declared exceptions are the shared implementation, runtime-measure's
   snapshot walk, test-locked's composer and the frozen desk lifecycle. The scan does not detect
   copied rename loops.
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked

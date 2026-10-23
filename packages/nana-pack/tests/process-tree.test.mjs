@@ -16,11 +16,10 @@ import { fileURLToPath } from "node:url";
 import {
 	DEFAULT_KILL_SIGNAL,
 	TASKKILL_COMMAND,
-	TREE_KILL_EXCEPTIONS,
 	killProcessTree,
 	killProcessTreeNoWait,
-	scanTreeKillCopies,
 } from "../lib/process-tree.mjs";
+import { TREE_KILL_EXCEPTIONS, scanTreeKillCopies } from "../lib/tree-kill-scan.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let fails = 0;

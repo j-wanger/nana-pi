@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 419 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 420 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1656,9 +1656,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/process-tree.mjs`
 
-- **purpose** — Provide the one shared waiting and no-wait process-tree kill policy and detect new copies outside declared exceptions.
-- **inputs** — a positive pid, signal, platform, optional fallback and injected kill/run/start seams; repository root and code-map.config.json for scanning
-- **outputs** — killProcessTree's boolean outcome, killProcessTreeNoWait, scanTreeKillCopies findings, and sealed taskkill/default/exception constants
+- **purpose** — Provide the shared waiting and no-wait process-tree kill policy.
+- **inputs** — a positive pid, signal, platform, optional fallback and injected kill/run/start seams
+- **outputs** — killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
 - **effects** — process (signals a process group or starts taskkill)
 - **errors** — never throws
 - **callers** — `apps/bench/run.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/mutation-runner-config.mjs`, `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
@@ -1832,6 +1832,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
 - **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
 - **callers** — `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **callees** — —
+
+### `packages/nana-pack/lib/tree-kill-scan.mjs`
+
+- **purpose** — Find mapped production code that duplicates process-tree kill spellings.
+- **inputs** — repository root, code-map.config.json, mapped source files, and git's tracked-file list
+- **outputs** — scan findings and the sealed tree-kill exception paths
+- **effects** — disk and process (reads mapped files and invokes git ls-files)
+- **errors** — scan failures return a finding; malformed files are skipped
+- **callers** — `packages/nana-pack/tests/process-tree.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/verdict-config.mjs`
@@ -2632,7 +2642,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (one Windows-only real tree and temporary git commands), disk (OS-temp fixtures, removed at exit)
 - **errors** — a FAIL line naming the broken contract; a non-zero exit code
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/product-report.test.mjs`
 
