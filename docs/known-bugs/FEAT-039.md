@@ -40,3 +40,4 @@
 - Artifact age (report-deliverables, final review): the age takes the first commit in the date-ordered walk that lists the artifact. After a hand-resolved merge that keeps an older-dated side whole, it names main's commit while `git log -1 -- <path>` follows the side.
 - Artifact age (report-deliverables, final review): every report build walks the whole history once, even for one named artifact. Passing the path to git would shrink the walk but changes which merge side it follows.
 - Not-passed rule (audit re-check, 2026-10-22): the artifact audit asked that one failing run not mark a requirement failed until a second run confirms it; no lane built that.
+- Product view (park-deliverables, plan): a parked deliverable keeps both code marks and shows its park line as a claim; the view has no parked mark.
