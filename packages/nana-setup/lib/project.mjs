@@ -8,7 +8,7 @@
  * @outputs setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`,
  *  every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
- *  exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT,
+ *  re-exports SHARED_DIR, WORKING_BEGIN and WORKING_END; exports today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT,
  *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS, RENAME_RETRY_ATTEMPTS, RENAME_RETRY_DELAY_MS
  * @effects disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a
  *  parent-side deadline — SIGTERM then SIGKILL after the grace)
@@ -33,12 +33,12 @@ import * as fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
-import { repoRoot } from "./paths.mjs";
+import { repoRoot, SHARED_DIR } from "./paths.mjs";
+import { WORKING_BEGIN, WORKING_END, markerLines, readSharedWorking, regionVerdict } from "./working-region.mjs";
 import { parseJsonBytes } from "../../nana-pack/lib/json-text.mjs";
 import { KNOWLEDGE_CLI, SetupError, readPiPackConfig } from "./steps.mjs";
 
-/** The single source of the three seeds — shared with the copier templates and the skill. */
-export const SHARED_DIR = path.join(repoRoot, "templates", "_shared");
+export { SHARED_DIR, WORKING_BEGIN, WORKING_END };
 
 export function today(d = new Date()) {
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -182,9 +182,6 @@ export function stepSeeds(dir, o, { name, date }) {
 
 /* -------------------------------------------------------------------------- AGENTS.md */
 
-export const WORKING_BEGIN = "<!-- nana:working-under-nana-pi begin -->";
-export const WORKING_END = "<!-- nana:working-under-nana-pi end -->";
-
 /**
  * The one-line import, on every platform. Claude Code resolves a repo-relative `@path` import
  * with no approval prompt (https://code.claude.com/docs/en/memory.md, imports; checked
@@ -205,28 +202,8 @@ export function agentsStub(name) {
 		"<!-- one line per major folder, each pointing at its own AGENTS.md where one exists -->\n\n" +
 		"## Rules that don't move\n\n" +
 		"<!-- the few rules a session here must not break; add them as real failures show the need -->\n\n" +
-		`${WORKING_BEGIN}\n${readShared("working-under-nana-pi.md")}${WORKING_END}\n`
+		`${WORKING_BEGIN}\n${readSharedWorking()}${WORKING_END}\n`
 	);
-}
-
-function markerLines(text) {
-	const lines = [];
-	let fence = null;
-	let offset = 0;
-	for (const line of text.matchAll(/[^\n]*(?:\n|$)/g)) {
-		if (!line[0] && offset >= text.length) break;
-		const raw = line[0];
-		const body = raw.replace(/\r?\n$/, "");
-		const opening = /^\s*(`{3,}|~{3,})/.exec(body);
-		const closing = /^\s*(`{3,}|~{3,})\s*$/.exec(body);
-		if (fence === null && opening) fence = { char: opening[1][0], length: opening[1].length };
-		else if (fence !== null && closing && closing[1][0] === fence.char && closing[1].length >= fence.length) fence = null;
-		else if (fence === null && (body === WORKING_BEGIN || body === WORKING_END)) {
-			lines.push({ marker: body, start: offset, end: offset + raw.length });
-		}
-		offset += raw.length;
-	}
-	return lines;
 }
 
 /**
@@ -297,7 +274,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		const begin = begins[0];
 		const end = ends[0];
 		const nl = original.includes("\r\n") ? "\r\n" : "\n";
-		const canonical = readShared("working-under-nana-pi.md").replace(/\r?\n/g, nl);
+		const canonical = readSharedWorking().replace(/\r?\n/g, nl);
 		const replacement = `${original.slice(0, begin.end)}${canonical}${original.slice(end.start)}`;
 		const beginBytes = Buffer.from(WORKING_BEGIN, "ascii");
 		const endBytes = Buffer.from(WORKING_END, "ascii");
@@ -644,15 +621,11 @@ export async function checkProject(dir, layout = {}) {
 	const agentState = lstat(agentPath);
 	if (agentState?.isFile() && !agentState.isSymbolicLink()) {
 		const body = fs.readFileSync(agentPath, "utf8");
-		const markers = markerLines(body);
-		const begins = markers.filter((m) => m.marker === WORKING_BEGIN);
-		const ends = markers.filter((m) => m.marker === WORKING_END);
-		if (begins.length !== 1 || ends.length !== 1 || begins[0].start >= ends[0].start) {
+		const verdict = regionVerdict(body, readSharedWorking());
+		if (verdict === "malformed") {
 			checks.push({ label: "AGENTS.md working region", ok: false, note: true, detail: "markers absent or malformed — wrap the section once with the nana markers" });
 		} else {
-			const actual = body.slice(begins[0].end, ends[0].start).replace(/\r\n/g, "\n");
-			const expected = readShared("working-under-nana-pi.md").replace(/\r\n/g, "\n");
-			checks.push({ label: "AGENTS.md working region", ok: actual === expected, detail: actual === expected ? "matches shared section" : `differs — fix: nana-setup project ${dir}` });
+			checks.push({ label: "AGENTS.md working region", ok: verdict === "match", detail: verdict === "match" ? "matches shared section" : `differs — fix: nana-setup project ${dir}` });
 		}
 	} else if (agentState?.isSymbolicLink()) {
 		checks.push({ label: "AGENTS.md working region", ok: false, detail: "AGENTS.md is a symlink — left alone; move or remove it by hand" });
