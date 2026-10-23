@@ -220,7 +220,9 @@ await within("R-2624 cases", async () => {
 	}
 	{
 		const root = repository("r2624-cp1252");
-		fs.writeFileSync(path.join(root, "AGENTS.md"), Buffer.concat([Buffer.from([0x96]), Buffer.from(drifted())]));
+		const driftedText = drifted();
+		const beginLine = `${WORKING_BEGIN}\n`;
+		fs.writeFileSync(path.join(root, "AGENTS.md"), Buffer.concat([Buffer.from(beginLine), Buffer.from([0x96]), Buffer.from(driftedText.slice(beginLine.length))]));
 		await negativeControl("invalid UTF-8", root, () => fs.writeFileSync(path.join(root, "AGENTS.md"), drifted()));
 	}
 	{
