@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/ci-workflow.test.mjs
- * @purpose Pins root CI triggers, suite matrix, and gated release permissions and ordering.
+ * @purpose Pins root CI triggers, ceiling and floor pi install-check coverage, suite matrix, and gated release permissions and ordering.
  * @inputs The root GitHub Actions workflow.
  * @outputs PASS/FAIL lines and exit status.
  * @effects disk (reads the workflow).
@@ -29,7 +29,6 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
   assert.match(workflow, /^        with:\n          fetch-depth: 0/m);
   assert.match(workflow, /^      - run: git config user\.name "github-actions\[bot\]"\n      - run: git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"\n      - run: node scripts\/template-release\.mjs --push/m);
   assert(workflow.indexOf("pi --version") < workflow.indexOf("npm test"));
-  assert.match(workflow, /PI_VERSION: 1\.0\.2/);
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
   for (const [job, body] of [["suite", suite], ["release", release]]) {
@@ -51,11 +50,14 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
 check("every pi install in CI resolves at the declared cutoff", () => {
   const installLines = workflow.split("\n").filter((line) => !/^\s*#/.test(line) && line.includes("@earendil-works/pi-coding-agent"));
   assert(installLines.length >= 2, "at least two pi install lines are required");
-  assert(installLines.every((line) => line.endsWith(' --before="${PI_BEFORE}"')), "every pi install line must end with the cutoff flag");
+  assert(installLines.every((line) =>
+    (line.endsWith(' --before="${PI_BEFORE}"') && line.includes("@${PI_VERSION}")) ||
+    (line.endsWith(' --before="${PI_FLOOR_BEFORE}"') && line.includes("@${PI_FLOOR_VERSION}"))),
+  "every pi install line must use the cutoff declared with its version");
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
   for (const [job, body] of [["suite", suite], ["release", release]]) {
-    assert(body.split("\n").some((line) => line.includes("@earendil-works/pi-coding-agent") && line.endsWith(' --before="${PI_BEFORE}"')), `${job} job must hold a cutoff-pinned install`);
+    assert(body.split("\n").some((line) => line.includes("@earendil-works/pi-coding-agent@${PI_VERSION}") && line.endsWith(' --before="${PI_BEFORE}"')), `${job} job must hold a ceiling cutoff-pinned install`);
   }
 });
 // req: R-1091
@@ -74,7 +76,30 @@ check("the pi resolution cutoff is declared once, quoted, in UTC ISO form beside
 });
 // req: R-1091
 check("the pi resolution cutoff is sealed at the seat's install moment", () => {
-  assert.match(workflow, /^  PI_BEFORE: "2026-10-04T06:57:57Z"$/m);
+  assert.match(workflow, /^  PI_BEFORE: "2026-10-23T18:35:54Z"$/m);
+});
+// req: R-2712
+check("R-2712: the floor pi and its cutoff are declared once, the cutoff quoted in UTC ISO form, directly after PI_BEFORE", () => {
+  assert.equal((workflow.match(/^  PI_FLOOR_VERSION:/gm) ?? []).length, 1, "exactly one PI_FLOOR_VERSION key is required");
+  assert.equal((workflow.match(/^  PI_FLOOR_BEFORE:/gm) ?? []).length, 1, "exactly one PI_FLOOR_BEFORE key is required");
+  const env = workflow.match(/^env:\r?\n((?:[ \t].*(?:\r?\n|$))*)/m)?.[1] ?? "";
+  const lines = env.split(/\r?\n/);
+  const ceilingCutoff = lines.findIndex((line) => /^  PI_BEFORE:/.test(line));
+  const floorVersion = lines.findIndex((line) => /^  PI_FLOOR_VERSION:/.test(line));
+  const floorCutoff = lines.findIndex((line) => /^  PI_FLOOR_BEFORE:/.test(line));
+  assert(ceilingCutoff >= 0 && floorVersion > ceilingCutoff && floorCutoff > floorVersion, "the floor pair must follow PI_BEFORE");
+  assert(lines.slice(ceilingCutoff + 1, floorVersion).every((line) => line === "" || /^  #/.test(line)), "only comments may precede PI_FLOOR_VERSION");
+  assert(lines.slice(floorVersion + 1, floorCutoff).every((line) => line === "" || /^  #/.test(line)), "only comments may separate the floor keys");
+  const value = lines[floorCutoff].match(/^  PI_FLOOR_BEFORE: "([^"\r\n]+)"$/)?.[1];
+  assert(value, "PI_FLOOR_BEFORE must be double quoted");
+  assert.match(value, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.equal(new Date(value).toISOString(), value.replace("Z", ".000Z"), "floor cutoff must be a real UTC instant");
+});
+// req: R-2711 R-2712
+check("pin R-2711 and R-2712: CI tests the sealed ceiling and floor pi at the sealed floor cutoff", () => {
+  for (const pattern of [/^  PI_VERSION: 1\.4\.0$/gm, /^  PI_FLOOR_VERSION: 1\.0\.3$/gm, /^  PI_FLOOR_BEFORE: "2026-10-05T08:40:00Z"$/gm]) {
+    assert.equal((workflow.match(pattern) ?? []).length, 1);
+  }
 });
 // req: R-1092
 check("npm's before is never set through the environment or a repository-root .npmrc", () => {
@@ -268,6 +293,42 @@ check("R-2577: the suite job warms the copier cache before its first suite step"
   const firstSuiteStep = steps.findIndex((line) => /npm test/.test(line));
   assert(firstSuiteStep >= 0, "the suite job must include an npm test step");
   assert(steps.indexOf(warmups[0]) < firstSuiteStep, "the copier probe must precede the first npm test step");
+});
+// req: R-2711
+check("R-2711: the install check runs on macOS and Windows at the ceiling and the floor pi, every leg installing and checking only its own version, then running the one ungated check step", () => {
+  const job = workflow.match(/^  install-check:\r?\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
+  assert.match(job, /^ {8}os: \[macos-latest, windows-latest\]$/m);
+  assert.match(job, /^ {8}pi: \[ceiling, floor\]$/m);
+  assert.match(job, /^ {6}fail-fast: false$/m);
+  const matrix = job.match(/^ {6}matrix:\r?\n([\s\S]*?)(?=^ {4}\S)/m)?.[1] ?? "";
+  assert.doesNotMatch(matrix, /^\s*(?:include|exclude):/m);
+  const lines = job.split(/\r?\n/);
+  const starts = lines.map((line, index) => /^ {6}- /.test(line) ? index : -1).filter((index) => index >= 0);
+  const steps = starts.map((start, index) => lines.slice(start, starts[index + 1] ?? lines.length));
+  const runOf = (step) => step.find((line) => /^ {6}- run:/.test(line) || /^ {8}run:/.test(line))?.replace(/^\s*-?\s*run:\s*/, "") ?? "";
+  const ifOf = (step) => step.find((line) => /^ {8}if:/.test(line))?.trim().slice(4) ?? null;
+  const installs = steps.filter((step) => runOf(step).includes("@earendil-works/pi-coding-agent"));
+  assert.equal(installs.length, 2, "one ceiling and one floor install step are required");
+  const ceilingInstall = installs.find((step) => runOf(step).includes("@${PI_VERSION}"));
+  const floorInstall = installs.find((step) => runOf(step).includes("@${PI_FLOOR_VERSION}"));
+  assert(ceilingInstall && floorInstall, "both install versions are required");
+  assert.equal(ifOf(ceilingInstall), "matrix.pi == 'ceiling'");
+  assert.equal(ifOf(floorInstall), "matrix.pi == 'floor'");
+  assert.equal(runOf(floorInstall), runOf(ceilingInstall).replaceAll("PI_VERSION", "PI_FLOOR_VERSION").replaceAll("PI_BEFORE", "PI_FLOOR_BEFORE"));
+  assert(installs.every((step) => !(runOf(step).includes("PI_VERSION") && runOf(step).includes("PI_FLOOR_VERSION"))), "one step may not install both versions");
+  const versions = steps.filter((step) => runOf(step).includes('test "$(pi --version)"'));
+  assert.equal(versions.length, 2, "one version check per pi is required");
+  const ceilingVersion = versions.find((step) => runOf(step).includes('"${PI_VERSION}"'));
+  const floorVersion = versions.find((step) => runOf(step).includes('"${PI_FLOOR_VERSION}"'));
+  assert.equal(ifOf(ceilingVersion), "matrix.pi == 'ceiling'");
+  assert.equal(ifOf(floorVersion), "matrix.pi == 'floor'");
+  const checkSteps = steps.filter((step) => runOf(step).includes("packages/nana-setup/bin/install-check.mjs"));
+  assert.equal(checkSteps.length, 1, "exactly one install-check step is required");
+  assert.equal(ifOf(checkSteps[0]), null, "the install-check step must run on every matrix leg");
+  const checkAt = steps.indexOf(checkSteps[0]);
+  for (const step of [...installs, ...versions]) assert(steps.indexOf(step) < checkAt, "installs and version checks must precede install-check");
+  assert(steps.indexOf(ceilingVersion) > steps.indexOf(ceilingInstall));
+  assert(steps.indexOf(floorVersion) > steps.indexOf(floorInstall));
 });
 // req: R-1078
 check("install check is a blocking macOS and Windows job", () => {

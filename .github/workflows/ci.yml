@@ -8,13 +8,16 @@ permissions:
   contents: read
 
 env:
-  # 1.0.2: installed and verified version, pi 1.0 adoption 2026-10-04
-  PI_VERSION: 1.0.2
-  # measured 2026-10-13 (R-1091): the seat's pi 1.0.2 install moment (pi-coding-agent package.json mtime
-  # 2026-10-04T02:57:57-04:00); npm --before at this time reproduced the seat's `npm ls -g --all` exactly.
-  # Valid for PI_VERSION 1.0.2 from 2026-10-04T00:56:19.486Z (pi 1.0.2 published) to before
-  # 2026-10-05T08:30:34.061Z (first 1.0.3 sibling, pi-codemode). Move it with PI_VERSION.
-  PI_BEFORE: "2026-10-04T06:57:57Z"
+  # chosen 2026-10-23 (R-2711, R-2716): 1.4.0 is the supported ceiling; both CI probes passed.
+  PI_VERSION: 1.4.0
+  # measured 2026-10-23 (R-1091): the scratch install moment of pi 1.4.0; npm --before at this
+  # time reproduced that install's `npm ls -g --all` exactly (262 lines). Move it with PI_VERSION.
+  PI_BEFORE: "2026-10-23T18:35:54Z"
+  # chosen 2026-10-23 (R-2711, R-2712, R-2716): 1.0.3 is the supported floor; both CI probes passed.
+  PI_FLOOR_VERSION: 1.0.3
+  # measured 2026-10-23 (R-2712): inside pi 1.0.3's lockstep publish window; a scratch install
+  # resolved all six scoped pi dependencies at 1.0.3. Move it with PI_FLOOR_VERSION.
+  PI_FLOOR_BEFORE: "2026-10-05T08:40:00Z"
 
 jobs:
   install-check:
@@ -22,6 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
+        pi: [ceiling, floor]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     defaults:
@@ -33,8 +37,15 @@ jobs:
         with:
           node-version: 22
       - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
+        if: matrix.pi == 'ceiling'
+      - name: Verify ceiling pi version
+        if: matrix.pi == 'ceiling'
         run: test "$(pi --version)" = "${PI_VERSION}"
+      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_FLOOR_VERSION} --before="${PI_FLOOR_BEFORE}"
+        if: matrix.pi == 'floor'
+      - name: Verify floor pi version
+        if: matrix.pi == 'floor'
+        run: test "$(pi --version)" = "${PI_FLOOR_VERSION}"
       - name: Install check
         env:
           TEMP: ${{ runner.temp }}

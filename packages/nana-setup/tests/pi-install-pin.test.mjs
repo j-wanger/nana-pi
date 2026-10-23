@@ -20,6 +20,8 @@ const ciText = fs.readFileSync(path.join(root, ...CI_WORKFLOW), "utf8");
 const lines = ciText.split(/\r?\n/);
 const version = lines.find((line) => /^  PI_VERSION: (\S+)$/.test(line))?.match(/^  PI_VERSION: (\S+)$/)?.[1];
 const before = lines.find((line) => /^  PI_BEFORE: "([^"]*)"$/.test(line))?.match(/^  PI_BEFORE: "([^"]*)"$/)?.[1];
+const floorVersion = lines.find((line) => /^  PI_FLOOR_VERSION: (\S+)$/.test(line))?.match(/^  PI_FLOOR_VERSION: (\S+)$/)?.[1];
+const floorBefore = lines.find((line) => /^  PI_FLOOR_BEFORE: "([^"]*)"$/.test(line))?.match(/^  PI_FLOOR_BEFORE: "([^"]*)"$/)?.[1];
 const readmes = JSON.parse(fs.readFileSync(path.join(root, "readme-check.config.json"), "utf8")).readmes;
 function npmCommands(text) {
   // Every npm install command in a README, whatever the Markdown form: inline spans (one or more backticks,
@@ -82,17 +84,40 @@ check("the README scan finds a command continued after npm, a span across lines,
 });
 
 // req: R-1093
-check("every README pi install command carries CI's PI_VERSION and an unquoted PI_BEFORE", () => {
-  assert.ok(version && before);
+check("every README pi install command carries CI's ceiling or floor version with that version's unquoted cutoff", () => {
+  assert.ok(version && before && floorVersion && floorBefore);
   for (const rel of readmes) {
     const text = fs.readFileSync(path.join(root, rel), "utf8");
     const commands = npmCommands(text).filter((command) => command.includes("@earendil-works/pi-coding-agent"));
     for (const command of commands) {
-      assert.ok(command.includes(`@earendil-works/pi-coding-agent@${version}`), `${rel}: ${command}`);
-      assert.ok(new RegExp(`(?:^|\\s)--before=${before}(?=\\s|$)`).test(command), `${rel}: ${command}`);
-      assert.ok(!command.includes(`--before="${before}"`), `${rel}: quoted cutoff`);
+      const ceiling = command.includes(`@earendil-works/pi-coding-agent@${version}`) && new RegExp(`(?:^|\\s)--before=${before}(?=\\s|$)`).test(command);
+      const floor = command.includes(`@earendil-works/pi-coding-agent@${floorVersion}`) && new RegExp(`(?:^|\\s)--before=${floorBefore}(?=\\s|$)`).test(command);
+      assert.notEqual(ceiling, floor, `${rel}: command must carry exactly one matching CI pair: ${command}`);
+      assert.ok(!command.includes(`--before="${before}"`) && !command.includes(`--before="${floorBefore}"`), `${rel}: quoted cutoff`);
     }
   }
+});
+
+// req: R-2716
+check("R-2716: the root README names CI's floor and ceiling as the supported pi range", () => {
+  assert.ok(version && floorVersion);
+  const text = fs.readFileSync(path.join(root, "README.md"), "utf8");
+  const matches = [...text.matchAll(/supports pi (\d+\.\d+\.\d+) through (\d+\.\d+\.\d+)/g)];
+  assert.equal(matches.length, 1);
+  assert.deepEqual(matches[0].slice(1), [floorVersion, version]);
+});
+
+// req: R-2717
+check("R-2717: the setup README carries one floor pi install command at CI's floor version and cutoff", () => {
+  assert.ok(version && before && floorVersion && floorBefore);
+  const rootCommands = npmCommands(fs.readFileSync(path.join(root, "README.md"), "utf8"));
+  const ceilingCommands = rootCommands.filter((command) => command.includes(`@earendil-works/pi-coding-agent@${version}`) && command.includes(`--before=${before}`));
+  assert(ceilingCommands.length >= 1, "the root README must carry a ceiling command");
+  assert.equal(new Set(ceilingCommands).size, 1, "the root README ceiling command must have one form");
+  const expected = ceilingCommands[0].replace(`@${version}`, `@${floorVersion}`).replace(`--before=${before}`, `--before=${floorBefore}`);
+  const setupCommands = npmCommands(fs.readFileSync(path.join(root, "packages/nana-setup/README.md"), "utf8"));
+  const floorCommands = setupCommands.filter((command) => command.includes(`@earendil-works/pi-coding-agent@${floorVersion}`));
+  assert.deepEqual(floorCommands, [expected]);
 });
 
 // req: R-1093

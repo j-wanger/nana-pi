@@ -31,7 +31,7 @@ process.env.PATH = `${bin}${path.delimiter}${savedPath || ""}`;
 // req: R-997
 check("remote entry names pi's own managed clone as foreign", (() => { const s = row(["git:github.com/j-wanger/nana-pi"]); return s?.status === "fail" && s.detail.includes("git:github.com/j-wanger/nana-pi") && s.detail.includes(path.join(layout.piHome, "git")); })());
 // req: R-997
-check("remote source fails directly after healthy pi package coverage", (() => { const rows = diagnose(layout, { projectDir: home }); const packages = rows.findIndex((item) => item.label === "pi packages"); return rows[packages]?.status === "ok" && rows[packages + 1]?.label === "pi package source" && rows[packages + 1]?.status === "fail"; })());
+check("remote source fails directly after healthy pi package coverage", (() => { const rows = diagnose(layout, { projectDir: home }); const source = rows.findIndex((item) => item.label === "pi package source"); const packages = source - 1; return rows[packages]?.label === "pi packages" && rows[packages]?.status === "ok" && rows[source]?.status === "fail"; })());
 // req: R-997
 check("remote plus local registrations still identifies the remote source", (() => { const s = row(["git:github.com/j-wanger/nana-pi", path.relative(layout.piHome, path.join(repoRoot, "packages/nana-pack"))]); return s?.status === "fail" && s.detail.includes("git:github.com/j-wanger/nana-pi"); })());
 // req: R-998
@@ -46,7 +46,7 @@ check("managed checkout remedy clones first", (() => { const root = path.join(la
 check("unrelated npm-only entries produce no package-source state", row(["npm:pi-subagents@0.75.0"]) === null);
 const localEntry = path.relative(layout.piHome, repoRoot);
 const settingsObjects = [{ packages: [localEntry] }, { packages: ["git:github.com/j-wanger/nana-pi", localEntry] }];
-const packageRows = () => diagnose(layout, { projectDir: home }).filter((item) => item.label === "pi packages" || item.label === "pi package source").map(({ status, label, detail }) => ({ status, label, detail }));
+const packageRows = () => { const rows = diagnose(layout, { projectDir: home }); const source = rows.findIndex((item) => item.label === "pi package source"); return rows.slice(source - 1, source + 1).map(({ status, label, detail }) => ({ status, label, detail })); };
 // req: R-1810
 check("doctor prints the pi packages and pi package source rows for a pi settings.json saved with a byte-order mark as for the same file without one", settingsObjects.every((settings, index) => { const text = JSON.stringify(settings, null, 2) + "\n"; fs.writeFileSync(layout.piSettings, text); const baseline = packageRows(); const anchored = JSON.stringify(baseline.map(({ status }) => status)) === JSON.stringify(index === 0 ? ["ok", "ok"] : ["ok", "fail"]); return anchored && ["\uFEFF" + text, ("\uFEFF" + text).replace(/\n/g, "\r\n")].every((marked) => { fs.writeFileSync(layout.piSettings, marked); return JSON.stringify(packageRows()) === JSON.stringify(baseline); }); }));
 const validSettings = JSON.stringify({ packages: [localEntry] }, null, 2) + "\n";

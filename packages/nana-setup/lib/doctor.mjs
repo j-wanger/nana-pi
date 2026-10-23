@@ -9,7 +9,7 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail, installLabel? } rows, including linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
+ * @outputs an array of { status, label, detail, installLabel? } rows, including pi's scoped-package compatibility row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
@@ -43,6 +43,7 @@ import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
+import { piPackagesState } from "./pi-packages.mjs";
 
 const OK = "ok";
 const FAIL = "fail";
@@ -355,9 +356,10 @@ export function diagnose(layout, opts = {}) {
 		const executable = isWin ? findPi({ env: piEnv, cwd: process.cwd(), exists: piExists }) : "pi";
 		let probe;
 		let refusal;
+		let invocation;
 		if (!executable) probe = { error: new Error("pi not found on PATH") };
 		else {
-			const invocation = piInvocation(executable, ["--version"], { win32: isWin, env: piEnv, cwd: process.cwd(), exists: piExists, isFile: piIsFile, readText: piReadText });
+			invocation = piInvocation(executable, ["--version"], { win32: isWin, env: piEnv, cwd: process.cwd(), exists: piExists, isFile: piIsFile, readText: piReadText });
 			refusal = invocation.refused;
 			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8", timeout: piLimits.version });
 		}
@@ -365,6 +367,15 @@ export function diagnose(layout, opts = {}) {
 		const valid = /^v?\d+\.\d+\.\d+/.test(version);
 		const detail = valid ? version : refusal ? `pi launch refused: ${refusal} — install: ${PI_INSTALL_HINT}` : probe?.error?.code === "ETIMEDOUT" ? `pi --version gave no answer within ${piLimits.version / 1_000} s and was stopped — install: ${PI_INSTALL_HINT}` : probe?.error ? `pi not found or could not start — install: ${PI_INSTALL_HINT}` : probe?.status !== 0 ? `pi --version exited ${probe?.status} — install: ${PI_INSTALL_HINT}` : `pi --version printed no version — install: ${PI_INSTALL_HINT}`;
 		add(valid ? OK : layout.isRealHome ? FAIL : NOTE, "pi executable", detail);
+		const packages = piPackagesState({
+			win32: isWin,
+			env: piEnv,
+			piEntry: isWin && invocation?.command === process.execPath ? invocation.args?.[0] : null,
+			versionAtLeast,
+			firstOnPath,
+			...(piReadText ? { readText: piReadText } : {}),
+		});
+		add(packages.status, "pi packages", packages.detail);
 	}
 
 	// --- Claude Code half ---
