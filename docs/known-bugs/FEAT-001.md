@@ -37,3 +37,6 @@
 - Config line (config-advice-fixes): the independent check ran on the first build only. The second build changed tests only, adding two checks that pin the advice sentences. Nobody re-ran the independent check on it. The seat's wrong-code pairs ran on macOS only, and only the survivor re-ran on the second build.
 - Config line (config-advice-fixes, land review): the objective producer now accepts no settings at all, but passes them on to a function typed to require them. Nothing fails today, because the suite runs no type check.
 - Config line (config-advice-fixes, review): two requirements still say the forward-slash advice goes only to a bad escape or a raw control character. The code now also gives it for a bad backslash-u escape. A later lane rewords both requirements.
+- Objective producer (objective-hook-win, plan): the producer pays Node's TypeScript stripping on every start, about half its time on macOS.
+- Objective producer (objective-hook-win, plan): with pi resolvable from a folder above the checkout, the producer loads all of pi before it exits. It then took 463 to 758 ms on macOS, against 84 to 91 ms. CI and the seat's machine do not resolve pi; a gate lane owns the early import.
+- Objective producer (objective-hook-win, plan): objective-golden's comment still says the hook has a 10 s child timeout. It is cosmetic.

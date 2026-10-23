@@ -1,0 +1,62 @@
+# Seat step 7: Windows readings, scratch CI run 39971855936 job 120476324321 (windows-latest) at lane tip 49196066; hook-deadlines five runs, then hook-producers
+=== run 1
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 9134 ms; cases 1853,1854,2677,2742 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8078 ms; objective 4031 ms (before clock 18.43994140625 ms, after deadline 12.56005859375 ms); adoption 4043 ms (before clock 16.5380859375 ms, after deadline 26.4619140625 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+=== run 2
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 9088 ms; cases 1850,1849,2700,2682 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8068 ms; objective 4030 ms (before clock 18.325927734375 ms, after deadline 11.674072265625 ms); adoption 4035 ms (before clock 17.84912109375 ms, after deadline 17.15087890625 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+=== run 3
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 9044 ms; cases 1842,1840,2674,2682 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8064 ms; objective 4033 ms (before clock 16.72900390625 ms, after deadline 16.27099609375 ms); adoption 4029 ms (before clock 16.15087890625 ms, after deadline 12.84912109375 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+=== run 4
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 9036 ms; cases 1849,1838,2668,2676 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8072 ms; objective 4036 ms (before clock 17.93701171875 ms, after deadline 18.06298828125 ms); adoption 4032 ms (before clock 17.652099609375 ms, after deadline 14.347900390625 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+=== run 5
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 9036 ms; cases 1842,1841,2677,2671 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8071 ms; objective 4034 ms (before clock 16.366943359375 ms, after deadline 17.633056640625 ms); adoption 4033 ms (before clock 16.39404296875 ms, after deadline 16.60595703125 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+PASS R-2673: with no whole millisecond left before the deadline, the launcher prints the marker and starts no producer
+note: R-2673 elapsed 2 ms
+PASS R-2674: each producer's limit is the cap, or the whole milliseconds left before the deadline when fewer, and the cap when no deadline is given
+note: R-2674 elapsed 1 ms
+PASS seal: the producer cap is 2,500 ms and the hook deadline 4,000 ms, 1,000 ms under the installed limit
+note: seal elapsed 0 ms
+PASS launcher uses Node executable and canonical args
+PASS objective failure marker is byte exact
+PASS launcher uses Node executable and canonical args
+PASS adoption failure marker is byte exact
+PASS launcher configurations drive missing-CLI output with canonical markers
+PASS both launcher configurations fail open when fallback cwd resolution throws
+PASS successful producer output collapses trailing newlines to one
+PASS signal failure emits the exact marker
+PASS spawn failure emits its marker and does not throw
+PASS importing verifier logic completes with open stdin and empty stderr
