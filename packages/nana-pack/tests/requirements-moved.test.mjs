@@ -257,5 +257,20 @@ const trailingHead = deliverableBase.replace("Read by: R-001 · rule: required b
 // req: R-2540
 check("the movement report lists a row whose Made by or Read by lines changed", deliverableOutput.startsWith("tree movement base..head: 1 rows in 1 features\nFEAT-001 · Alpha\n") && deliverableLines.length === 1 && deliverableLines[0].includes("Made by/Read by lines changed") && changedIn(crlfBase, crlfHead) && changedIn(noFinalBase, noFinalHead) && changedIn(deliverableBase, trailingHead) && treeMovement({ baseText: deliverableBase, headText: deliverableBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", deliverableOutput);
 
+const parkLine = "Parked: R-001 · since 2026-10-22: the owner holds it";
+const parkedHead = deliverableBase.replace("Read by: R-001 · rule: required by the review checklist", `Read by: R-001 · rule: required by the review checklist\n${parkLine}`);
+const rewordedHead = parkedHead.replace("the owner holds it", "the owner still holds it");
+const parkedMovement = treeMovement({ baseText: deliverableBase, headText: parkedHead, baseRevLabel: "base", headRevLabel: "head" });
+const unparkedMovement = treeMovement({ baseText: parkedHead, headText: deliverableBase, baseRevLabel: "base", headRevLabel: "head" });
+const rewordedMovement = treeMovement({ baseText: parkedHead, headText: rewordedHead, baseRevLabel: "base", headRevLabel: "head" });
+const parkEntryIsSeparate = (output) => {
+  const entries = output.split("\n").filter((line) => /^  R-001 /.test(line));
+  return entries.length === 1 && entries[0].includes("Parked lines changed") && !entries[0].includes("Made by/Read by lines changed");
+};
+// req: R-2643
+check("R-2643: the movement report lists a row whose Parked line was added, removed or reworded",
+  parkEntryIsSeparate(parkedMovement) && parkEntryIsSeparate(unparkedMovement) && parkEntryIsSeparate(rewordedMovement) && treeMovement({ baseText: parkedHead, headText: parkedHead, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none",
+  `added:\n${parkedMovement}\nremoved:\n${unparkedMovement}\nreworded:\n${rewordedMovement}`);
+
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all checks passed");

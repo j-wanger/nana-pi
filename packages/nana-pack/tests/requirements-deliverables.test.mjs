@@ -16,6 +16,8 @@ import { parseLedger } from "../../../scripts/requirements-tree.mjs";
 import {
   DELIVERABLE_FIELD_LABELS,
   MAKER_RUNS,
+  PARKED_LABEL,
+  PARKED_SINCE,
   PART_SEPARATOR,
   PATH_REQUIRED,
   READER_KINDS,
@@ -23,6 +25,7 @@ import {
   RUNTIME_MAP_ARTIFACT,
   checkDeliverables,
   deliverableFieldLinesByRow,
+  deliverableReportLines,
 } from "../../../scripts/deliverables.mjs";
 
 let fails = 0;
@@ -157,6 +160,80 @@ const tunablesPinned = JSON.stringify(DELIVERABLE_FIELD_LABELS) === JSON.stringi
 if (!tunablesPinned) grammarFailures.push("sealed deliverable tunables differ");
 // req: R-2537
 check("a missing or unreadable line, or an automatic claim with no code path, gets one note naming it", grammarFailures.length === 0, grammarFailures.join("\n"));
+
+const parkedGrammarFailures = [];
+const parkedBase = "Made by: R-001 · manual: owner\nRead by: R-001 · person: owner";
+const expectPark = (label, parkLine, fragment, parked = 0, transform = (value) => value) => {
+  const report = checkDeliverables(parseLedger(transform(tree(`${parkedBase}\n${parkLine}`))), ["scripts/make.mjs", "docs/x.md"]);
+  const matching = report.notes.filter((entry) => entry.includes(fragment));
+  if (matching.length !== 1 || report.notes.length !== 1 || report.parkedDeliverables !== parked)
+    parkedGrammarFailures.push(`${label}: parked=${report.parkedDeliverables}; ${report.notes.join(" | ")}`);
+};
+expectPark("dash separator", "Parked: R-001 - since 2026-10-22: held", "cannot read Parked:");
+for (const [label, line] of [
+  ["date without since", "Parked: R-001 · 2026-10-22: held"],
+  ["date in another order", "Parked: R-001 · since 22-10-2026: held"],
+  ["date as a word", "Parked: R-001 · since soon: held"],
+]) expectPark(label, line, "needs a since date");
+for (const [label, line] of [
+  ["missing colon and reason", "Parked: R-001 · since 2026-10-22"],
+  ["blank reason", "Parked: R-001 · since 2026-10-22:   "],
+]) expectPark(label, line, "needs a reason");
+expectPark("third part", "Parked: R-001 · since 2026-10-22: held · more", "cannot read Parked:");
+
+const crossCapability = `# CAP-01 · First\nPurpose: first\nOutcome: first artifact\nKind: product\nDeliverables: R-001\nMade by: R-001 · manual: owner\nRead by: R-001 · person: owner\nParked: R-002 · since 2026-10-22: held\n\n## FEAT-001 · First feature\nPurpose: first feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n\n# CAP-02 · Second\nPurpose: second\nOutcome: second artifact\nKind: product\nDeliverables: R-002\nMade by: R-002 · manual: owner\nRead by: R-002 · person: owner\n\n## FEAT-002 · Second feature\nPurpose: second feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | The second artifact shall exist. | untested | — |\n`;
+const crossReport = checkDeliverables(parseLedger(crossCapability), []);
+if (crossReport.notes.length !== 1 || !crossReport.notes[0].includes("names an unlisted deliverable") || crossReport.parkedDeliverables !== 0)
+  parkedGrammarFailures.push(`cross capability: parked=${crossReport.parkedDeliverables}; ${crossReport.notes.join(" | ")}`);
+for (const [label, text] of [
+  ["constraint", `# CAP-01 · Constraint\nPurpose: constraint\nKind: constraint\nParked: R-001 · since 2026-10-22: held\n`],
+  ["kindless", `# CAP-01 · Kindless\nPurpose: kindless\nParked: R-001 · since 2026-10-22: held\n`],
+]) {
+  const report = checkDeliverables(parseLedger(text), []);
+  if (report.notes.length !== 1 || !report.notes[0].includes("outside a live Kind: product capability") || report.parkedDeliverables !== 0)
+    parkedGrammarFailures.push(`${label}: parked=${report.parkedDeliverables}; ${report.notes.join(" | ")}`);
+}
+for (const [label, parkLine, transform = (value) => value] of [
+  ["readable", "Parked: R-001 · since 2026-10-22: the owner holds it"],
+  ["spaced", "Parked: R-001  ·  since  2026-10-22:  the owner holds it"],
+  ["CRLF", "Parked: R-001 · since 2026-10-22: the owner holds it", (value) => value.replaceAll("\n", "\r\n")],
+  ["trailing tab and no final newline", "Parked: R-001 · since 2026-10-22: the owner holds it\t", (value) => value.replace(/\n$/, "")],
+]) {
+  const report = checkDeliverables(parseLedger(transform(tree(`${parkedBase}\n${parkLine}`))), []);
+  if (report.notes.length !== 0 || report.parkedDeliverables !== 1)
+    parkedGrammarFailures.push(`${label}: parked=${report.parkedDeliverables}; ${report.notes.join(" | ")}`);
+}
+for (const [label, parkLine] of [
+  ["lowercase", "parked: R-001 · since 2026-10-22: held"],
+  ["bold", "**Parked:** R-001 · since 2026-10-22: held"],
+  ["bullet", "- Parked: R-001 · since 2026-10-22: held"],
+]) {
+  const report = checkDeliverables(parseLedger(tree(`${parkedBase}\n${parkLine}`)), []);
+  if (report.notes.length !== 0 || report.parkedDeliverables !== 0)
+    parkedGrammarFailures.push(`${label}: parked=${report.parkedDeliverables}; ${report.notes.join(" | ")}`);
+}
+const featureParkReport = checkDeliverables(parseLedger(tree(parkedBase, "Parked: R-001 · since 2026-10-22: held")), []);
+if (featureParkReport.notes.length !== 0 || featureParkReport.parkedDeliverables !== 0)
+  parkedGrammarFailures.push(`feature line: parked=${featureParkReport.parkedDeliverables}; ${featureParkReport.notes.join(" | ")}`);
+if (PARKED_LABEL !== "Parked" || PARKED_SINCE !== "since") parkedGrammarFailures.push(`sealed park tunables differ: ${PARKED_LABEL}/${PARKED_SINCE}`);
+// req: R-2640
+check("R-2640: an unreadable or misplaced Parked line gets one note and parks nothing", parkedGrammarFailures.length === 0, parkedGrammarFailures.join("\n"));
+
+const staleParkFailures = [];
+for (const [label, lines, firstLine] of [
+  ["above maker", "Parked: R-001 · since 2026-10-22: held\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/make.mjs", 6],
+  ["below reader", "Made by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/make.mjs\nParked: R-001 · since 2026-10-22: held", 8],
+  ["two park lines", "Made by: R-001 · suite: scripts/make.mjs\nParked: R-001 · since 2026-10-22: held first\nRead by: R-001 · code: scripts/make.mjs\nParked: R-001 · since 2026-10-23: held second", 7],
+]) {
+  const text = tree(lines);
+  const report = checkDeliverables(parseLedger(text), ["scripts/make.mjs"]);
+  const stale = report.notes.filter((entry) => entry.includes("parks nothing"));
+  const output = deliverableReportLines(parseLedger(text), ".", () => ({ status: 0, stdout: Buffer.from("scripts/make.mjs\0"), stderr: Buffer.alloc(0) }));
+  if (stale.length !== 1 || !stale[0].includes("R-001") || !stale[0].includes(`Parked: line ${firstLine}`) || report.madeAndReadByCode !== 1 || report.parkedDeliverables !== 0 || JSON.stringify(output) !== JSON.stringify(["deliverables: 1 of 1 made and read by code", stale[0]]))
+    staleParkFailures.push(`${label}: counts=${report.madeAndReadByCode}/${report.parkedDeliverables}; output=${output.join(" | ")}`);
+}
+// req: R-2641
+check("R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line", staleParkFailures.length === 0, staleParkFailures.join("\n"));
 
 const repositoryLedger = readFileSync(fileURLToPath(new URL("../../../REQUIREMENTS.md", import.meta.url)), "utf8");
 const repositoryParsed = parseLedger(repositoryLedger);

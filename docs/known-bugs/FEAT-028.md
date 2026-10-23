@@ -50,8 +50,20 @@
 - Deliverable lines (deliverable-fields, final review): the HEAD-tree listing uses Node's default 1 MiB buffer. A repository whose listing passes 1 MiB, about 11,000 long names, gets "paths not checked" on every run, which hides the cause. nana-pi lists 211 KB; the movement report's 64 MiB value would close it.
 - Deliverable lines (deliverable-fields, final review): no test covers a retired product capability; dropping the retired condition stays green.
 - Deliverable lines (deliverable-fields, final review): no test pins a path that is a bare prefix of another, or a `Read by:` line with a third part; both behave right today.
-- Deliverable lines (deliverable-fields, final review): the README's `--root` clause still says "just its problems or a `0 problems` line"; it now also prints the count line and notes.
 - Deliverable lines (deliverable-fields, final review): the count trusts an automatic maker or a code reader whose path gets a "not tracked" note; the note shows.
 - Deliverable lines (deliverable-fields, final review): the movement report lists a whitespace-only change to a maker or reader line, while a whitespace-only row edit prints none.
 - Deliverable lines (report-deliverables, plan): a G row in `Deliverables:` can never carry maker or reader lines.
 - Deliverable count (audit re-check, 2026-10-22): no session-start reader shows the made-and-read count; the session-start frontier lane left it out.
+- Deliverable lines (park-deliverables, plan): the checker reads only a park date's shape, so an impossible date such as 2026-02-30 parks, as HANDOFF's ask tags do.
+- Deliverable lines (park-deliverables, plan): anyone who edits the ledger can park a row. The checker proves the line's shape, not the owner's decision; the movement report shows each park to the reviewer.
+- Deliverable lines (park-deliverables, plan): a park never expires, and nothing flags an old one. Reopening the desk relies on the park reasons and HANDOFF's desk line naming the step.
+- Deliverable lines (park-deliverables, plan): a park reason cannot hold ` · `; such a line gets a "cannot read" note and parks nothing.
+- Deliverable lines (park-deliverables, plan): lowercase `parked:`, `**Parked:**`, `- Parked:`, or a park line under a feature heading or inside a code fence is prose and gets no note; the row stays counted.
+- Deliverable lines (park-deliverables, plan): a park takes its row out of the count's total, so the ratio rises with no work done. The suffix and the movement report are the only signals.
+- Deliverable lines (park-deliverables, plan): the desk and stage maker and reader lines still say "desk frozen since 2026-10-10" instead of naming the run that makes each deliverable.
+- Deliverable lines (park-deliverables, seat): R-694's writing trial closed on 2026-10-21, yet R-694 stays a listed deliverable that code does not make and read.
+- Movement report (park-deliverables, attack): the AGENTS.md command runs the main checkout's script, so a lane that adds the first park lines shows none of them there.
+- Movement report (park-deliverables, seat): `rowSnapshot` splits maker, reader and park lines with inline label patterns instead of the deliverable label constants, so retuning a label needs a second code edit.
+- Deliverable lines (park-deliverables, final review): R-2641 says the stale note names the row's first `Parked:` line; the code names the first readable one, so a broken park line above a good one gets its own note and the stale note names the second.
+- Deliverable lines (park-deliverables, final review): the park branch checks its row with an inline pattern that repeats the existing row-shape pattern.
+- Deliverable lines (park-deliverables, round 2 review): its Landed line, now in the October session archive, quotes `14 of 31 made and read by code, 8 parked`; at its land the checker printed `16 of 32`, because other lanes added deliverables. The line is a dated record.

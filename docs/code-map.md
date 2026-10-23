@@ -634,7 +634,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Parse product-capability deliverable claims and produce the shared checker lines for their code coverage and HEAD-tracked paths.
 - **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, or an injected git runner.
-- **outputs** — Per-row claims, code predicates, deliverable notes and counts, and the exact lines printed by the tree checker.
+- **outputs** — Per-row claims, code predicates, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
@@ -714,7 +714,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Report requirement-row changes by feature and capability placement or field changes since a revision's merge base with HEAD.
 - **inputs** — argv (--root <dir> --base <rev>); REQUIREMENTS.md as committed at HEAD and at the merge base of <rev> and HEAD, read through git.
-- **outputs** — One summary line, affected feature blocks, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
+- **outputs** — One summary line, affected feature blocks including parked-line changes, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
 - **effects** — process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
 - **errors** — exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`

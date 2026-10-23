@@ -450,6 +450,26 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   check("the tree checker counts the deliverables made and read by code in every mode",
     hasOneCount(countRoot) && hasOneCount(countWrite) && hasOneCount(countCheck),
     `root ${countRoot.status}: ${countRoot.stdout} ${countRoot.stderr}\nwrite ${countWrite.status}: ${countWrite.stdout} ${countWrite.stderr}\ncheck ${countCheck.status}: ${countCheck.stdout} ${countCheck.stderr}`);
+
+  const parkedTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003, R-004\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · person: a person reads it\nParked: R-002 · since 2026-10-22: the owner holds it first\nParked: R-002 · since 2026-10-23: the owner holds it second\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\nParked: R-003 · since 2026-10-22: the owner holds it\nMade by: R-004 · manual: a person makes it\nRead by: R-004 · person: a person reads it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n| R-004 | The fourth artifact shall exist. | untested | — |\n";
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), parkedTree);
+  const parkedRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const parkedWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const parkedCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const parkedLine = "deliverables: 1 of 2 made and read by code, 2 parked";
+  const hasOneParkedCount = (result) => result.status === 0 && lines(result.stdout).filter((line) => line === parkedLine).length === 1;
+
+  const oneParkedTree = parkedTree
+    .replace("Deliverables: R-001, R-002, R-003, R-004", "Deliverables: R-002")
+    .replace(/^Made by: R-001.*\n|^Read by: R-001.*\n|^Made by: R-003.*\n|^Read by: R-003.*\n|^Parked: R-003.*\n|^Made by: R-004.*\n|^Read by: R-004.*\n/gm, "")
+    .replace(/^\| R-001.*\n|^\| R-003.*\n|^\| R-004.*\n/gm, "");
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), oneParkedTree);
+  const oneParkedRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const oneParkedLine = "deliverables: 0 of 0 made and read by code, 1 parked";
+  // req: R-2639
+  check("R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode",
+    hasOneParkedCount(parkedRoot) && hasOneParkedCount(parkedWrite) && hasOneParkedCount(parkedCheck) && oneParkedRoot.status === 0 && lines(oneParkedRoot.stdout).filter((line) => line === oneParkedLine).length === 1,
+    `root ${parkedRoot.status}: ${parkedRoot.stdout} ${parkedRoot.stderr}\nwrite ${parkedWrite.status}: ${parkedWrite.stdout} ${parkedWrite.stderr}\ncheck ${parkedCheck.status}: ${parkedCheck.stdout} ${parkedCheck.stderr}\none ${oneParkedRoot.status}: ${oneParkedRoot.stdout} ${oneParkedRoot.stderr}`);
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

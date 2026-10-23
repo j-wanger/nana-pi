@@ -1,0 +1,44 @@
+seat-mutate: lane park-deliverables, tip a6382024ed1dda92cf8cb50e96048194454f5236, table dbf9102932d2eac01c1cf035b83de8f9ac50aa9d1847f163e959c884fad947ce, merge-base ca4018ede83456a4f0a424d53d7bf8405f35dc44, 15 pairs in 5 shards (3+3+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T02:26:59.297Z
+DECLARED (plan) p1 to p16 follow the must-meet's wrong-code list in order
+DECLARED (seat) p10 is not written: deliverableClaims is read for every row before the field scan, so no natural build checks a park against only the lines above it (attack N2)
+DECLARED (seat) p13 lists a park claim first instead of in ledger order
+[1/5] seat-mutate: lane park-deliverables, shard 1/5, tip a6382024ed1dda92cf8cb50e96048194454f5236, merge-base ca4018ede83456a4f0a424d53d7bf8405f35dc44, 3 pairs, darwin, node v22.22.2, 2026-10-23T02:27:00.434Z
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 96 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 82 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane park-deliverables, shard 2/5, tip a6382024ed1dda92cf8cb50e96048194454f5236, merge-base ca4018ede83456a4f0a424d53d7bf8405f35dc44, 3 pairs, darwin, node v22.22.2, 2026-10-23T02:27:04.161Z
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 96 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 82 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane park-deliverables, shard 3/5, tip a6382024ed1dda92cf8cb50e96048194454f5236, merge-base ca4018ede83456a4f0a424d53d7bf8405f35dc44, 3 pairs, darwin, node v22.22.2, 2026-10-23T02:27:08.294Z
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 96 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 82 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[3/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane park-deliverables, shard 4/5, tip a6382024ed1dda92cf8cb50e96048194454f5236, merge-base ca4018ede83456a4f0a424d53d7bf8405f35dc44, 3 pairs, darwin, node v22.22.2, 2026-10-23T02:27:12.311Z
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane park-deliverables, shard 5/5, tip a6382024ed1dda92cf8cb50e96048194454f5236, merge-base ca4018ede83456a4f0a424d53d7bf8405f35dc44, 3 pairs, darwin, node v22.22.2, 2026-10-23T02:27:16.312Z
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 96 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+RED p1 parked rows stay in the total; only the suffix is added — 1/1 named: /^R-2639: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 parked rows leave the total, but no suffix — 1/1 named: /^R-2639: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the suffix prints , 0 parked when nothing is parked — 3/3 named: /^the tree checker counts the deliverables made and read by code in every mode/ | /^the tree checker prints deliverable notes in every mode/ | /^R-2543: /; UNNAMED red: [product-report.test.mjs] R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's c…; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 a park line with no since date parks its row — 1/1 named: /^R-2640: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p5 an empty reason gets its note but still parks — 1/1 named: /^R-2640: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED p6 the date's shape is not checked — 1/1 named: /^R-2640: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 another capability's park line parks the row — 1/1 named: /^R-2640: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 a park beats live — 1/1 named: /^R-2641: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 the stale note is given, but the row still counts as parked — 1/1 named: /^R-2641: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 Parked joins the required labels — 1/1 named: /^a missing or unreadable line, or an automatic claim with no code path, gets one note/; UNNAMED red: [requirements-deliverables.test.mjs] R-2640: an unreadable or misplaced Parked line gets one note and parks nothing dash separator: parked=0; deli… | [requirements-deliverables.test.mjs] R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line ab… | [requirements-deliverables.test.mjs] every deliverable in this repository's ledger has a Made by and a Read by line CAP-01 R-001: missing Parked: …; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 deliverableClaims leaves park lines out — 1/1 named: /^R-2642: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p13 park claims out of ledger order — 1/1 named: /^R-2642: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p14 the movement report folds park lines into maker and reader lines — 1/1 named: /^R-2643: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p15 the movement report ignores park lines — 1/1 named: /^R-2643: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p16 the parked count counts park lines, not rows — 1/1 named: /^R-2639: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 15/15 red (13 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 5 shards

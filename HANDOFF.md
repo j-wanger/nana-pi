@@ -6,14 +6,14 @@
 
 ## Where things stand
 
-- **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile.
+- **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **This file's word budget.** On 2026-10-22 the seat moved the Landed lines to the session archive and shortened every ask, dropping none. The frontier checker prints the remaining count.
 
 ## Next
 
 1. **Priority review, 2026-10-24.** Met: the requirements tree, four-digit IDs, the land rule, and the Windows CI runner with its fixes. Partly met: install and hooks. CI's install check passes on macOS and Windows, but the owner's own Windows run at current main is pending. No checklist step has run on a clean account or a fresh machine. The seat brings the review pack and proposes whether the artifact work becomes the next priority.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode until 2026-10-24).** Building: parking the desk deliverables and Claude Code builder parity. Planned: shared helpers, then the Windows flaky-test lane the owner approved on 2026-10-23.
+3. **Lanes in flight (power mode until 2026-10-24).** Building: Claude Code builder parity and the Windows flaky-test lane the owner approved on 2026-10-23. Planned: shared helpers.
 4. **Queue after that.** It holds the builder launch in the install check and the linked Claude folder's repair advice. It also holds a settings file with a byte-order mark and the audit's seat calls. Seat work: regenerate and republish the product report in a reviewed change.
 5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit a test the lane did not touch, in about 10 pull-request runs. Four tests failed more than once, and every re-run passed. One lane needed four re-runs before it could land. The owner approved a lane to harden these tests on 2026-10-23.
 6. **Karpathy's other formats.** Nothing blocks the review-timeline diagram any more, and nobody has started it.
@@ -23,6 +23,7 @@
 
 - **[blocking, since 2026-10-21] Your Windows run at current main, before 2026-10-24.** Default: yes. Commit or stash your work, drop the old launch branch, and pull main. Run `git rm -r --cached -q . && git reset --hard` once, for the old line endings. Then run install, doctor and `node packages/nana-setup/bin/install-check.mjs`. Check `claude --version` is 2.1.139 or later, and watch one pi-worker lane.
 - **[optional, since 2026-10-22] What a land waits for.** The land-reads-CI lane makes each land wait about 21 minutes for its tip's CI run. Nothing lands during a GitHub outage, urgent fixes included. Default: wait for the whole run.
+- **[optional, since 2026-10-22] Study deliverables.** Six bench and trial deliverables still count against the deliverable total. Park the five idle bench ones too? Default: keep them counted.
 - **[optional, since 2026-10-22] Two planned-lane defaults.** A copier project's drift line compares against main, not its template tag. nana-land does not print the CI timing records yet. Default: both stand.
 - **[optional, since 2026-10-21] The blocking-ask cap.** The trial ended with no blocking ask standing. Keep the cap of three blocking asks? Default: keep.
 - **[optional, since 2026-10-21] The trust gap in the lane loop.** Sharing the gate's pipe-check row onto the build and review features would close it. A share changes the tree, so it is your call.
