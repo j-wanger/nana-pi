@@ -13,9 +13,9 @@
 
 1. **Priority review, 2026-10-24.** Met: the requirements tree, four-digit IDs, the land rule, and the Windows CI runner with its fixes. Partly met: install and hooks. CI's install check passes on macOS and Windows, but the owner's own Windows run at current main is pending. No checklist step has run on a clean account or a fresh machine. The seat brings the review pack and proposes whether the artifact work becomes the next priority.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode until 2026-10-24).** Building: Claude Code builder parity and the Windows flaky-test lane the owner approved on 2026-10-23. Planned: shared helpers.
+3. **Lanes in flight (power mode until 2026-10-24).** Building: the Windows flaky-test lane the owner approved on 2026-10-23. Planned: shared helpers.
 4. **Queue after that.** It holds the builder launch in the install check and the linked Claude folder's repair advice. It also holds a settings file with a byte-order mark and the audit's seat calls. Seat work: regenerate and republish the product report in a reviewed change.
-5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit a test the lane did not touch, in about 10 pull-request runs. Four tests failed more than once, and every re-run passed. One lane needed four re-runs before it could land. The owner approved a lane to harden these tests on 2026-10-23.
+5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardens five of their causes.
 6. **Karpathy's other formats.** Nothing blocks the review-timeline diagram any more, and nobody has started it.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
@@ -25,6 +25,8 @@
 - **[optional, since 2026-10-22] What a land waits for.** The land-reads-CI lane makes each land wait about 21 minutes for its tip's CI run. Nothing lands during a GitHub outage, urgent fixes included. Default: wait for the whole run.
 - **[optional, since 2026-10-22] Study deliverables.** Six bench and trial deliverables still count against the deliverable total. Park the five idle bench ones too? Default: keep them counted.
 - **[optional, since 2026-10-22] Two planned-lane defaults.** A copier project's drift line compares against main, not its template tag. nana-land does not print the CI timing records yet. Default: both stand.
+- **[optional, since 2026-10-23] A real Claude Code builder behind a proxy.** The seat checked the builder's login and proxy settings against a fake endpoint only. On a machine behind a proxy, start one real build from your usual seat. Check that it logs in and commits. Default: the seat waits for your run.
+- **[optional, since 2026-10-23] Cloud provider settings for a Claude Code builder.** A builder started from a pi seat gets no Bedrock, Vertex or Foundry settings. Carry them too? Default: no.
 - **[optional, since 2026-10-21] The blocking-ask cap.** The trial ended with no blocking ask standing. Keep the cap of three blocking asks? Default: keep.
 - **[optional, since 2026-10-21] The trust gap in the lane loop.** Sharing the gate's pipe-check row onto the build and review features would close it. A share changes the tree, so it is your call.
 - **[optional, since 2026-10-21] The install feature's known bugs.** Its file holds 177 lines in 46 KB and grows about 2 KB each install lane. Split the feature, or let the seat prune stale lines? Default: prune.
@@ -51,8 +53,8 @@
 
 ## Landed (one line each; the narrative is in `docs/sessions/`)
 
-- 2026-09-18 to 2026-10-22: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`). The seat moved them on 2026-10-21, 2026-10-22 and 2026-10-23.
-- 2026-10-23: each CI suite leg now keeps its suite record as a run artifact, named by leg and attempt. A new command prints each record's totals and slowest files for a commit's CI runs. It names every leg that left no record and why, and it tells a re-run's copied legs apart from missing ones. On this lane's own run it printed all three legs, then both Linux attempts after a re-run. All 16 of the seat's wrong versions of the code turn a check red.
+- 2026-09-18 to 2026-10-23: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`). The seat moved them on 2026-10-21, 2026-10-22 and 2026-10-23, all but the newest.
+- 2026-10-23: pi-worker now starts a Claude Code larger-lane builder itself, as a headless Claude Code run, by the owner's 2026-10-23 approval. The seat no longer starts a subagent for it. The builder gets pi-worker's brief check, lane lock, time limit and build record. One prompt file carries the preamble, the brief and the feature's known bugs. A settings file carries only the login and network settings from the user's own Claude Code settings. On Windows the builder's report now reaches its output file.
 
 ## Known bugs
 
