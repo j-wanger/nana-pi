@@ -1,0 +1,38 @@
+seat-mutate: lane objective-hook-win, tip 171778fb297b608d00376e4b1f4dcee77d0bae6f, table ba9cb4f346f813d976be232d5a64ae734f35a956e2b6dc045933f793533ed632, merge-base 09181956592ddc089615731ab43241b476439311, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T14:39:24.713Z
+DECLARED (plan) p1 to p9 follow the draft's wrong-code list in order; p10 and p11 are the must-meet's
+DECLARED (seat) p5 names R-2671 and the seal, not R-2674: R-2674's check imports the cap by name, and its one fewer-than-cap case stays under 1,500
+DECLARED (seat) p9 runs as two pairs, p9a the cap and p9b the deadline
+DECLARED (seat) the draft's side effects on R-2010, R-2011, R-2012 and R-2613 are not named; pair 1's R-2011 and R-2613 margins are about 50 ms
+[1/5] seat-mutate: lane objective-hook-win, shard 1/5, tip 171778fb297b608d00376e4b1f4dcee77d0bae6f, merge-base 09181956592ddc089615731ab43241b476439311, 3 pairs, darwin, node v22.22.2, 2026-10-23T14:39:26.016Z
+[1/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/hook-producers.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane objective-hook-win, shard 2/5, tip 171778fb297b608d00376e4b1f4dcee77d0bae6f, merge-base 09181956592ddc089615731ab43241b476439311, 3 pairs, darwin, node v22.22.2, 2026-10-23T14:39:29.688Z
+[2/5] BASELINE ok   packages/nana-setup/tests/hook-producers.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane objective-hook-win, shard 3/5, tip 171778fb297b608d00376e4b1f4dcee77d0bae6f, merge-base 09181956592ddc089615731ab43241b476439311, 2 pairs, darwin, node v22.22.2, 2026-10-23T14:39:33.642Z
+[3/5] BASELINE ok   packages/nana-setup/tests/hook-producers.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (1 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane objective-hook-win, shard 4/5, tip 171778fb297b608d00376e4b1f4dcee77d0bae6f, merge-base 09181956592ddc089615731ab43241b476439311, 2 pairs, darwin, node v22.22.2, 2026-10-23T14:39:37.696Z
+[4/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-setup/tests/hook-producers.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane objective-hook-win, shard 5/5, tip 171778fb297b608d00376e4b1f4dcee77d0bae6f, merge-base 09181956592ddc089615731ab43241b476439311, 2 pairs, darwin, node v22.22.2, 2026-10-23T14:39:41.663Z
+[5/5] BASELINE ok   packages/nana-setup/tests/hook-producers.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 the hooks pass no deadline — 1/1 named: /^R-2672: /; UNNAMED red: [hook-deadlines.test.mjs] adoption hook prints both markers before its installed limit when both producers hang — code=0 elapsed=5051 l… | [hook-deadlines.test.mjs] R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a l…; 3 FAIL total (2 files changed, 4 insertions(+), 4 deletions(-))
+RED p2 no cap, only the deadline — 1/1 named: /^R-2674: /; UNNAMED red: [hook-deadlines.test.mjs] adoption hook prints its marker and the stale-copy output when the adoption producer hangs — code=0 elapsed=4… | [hook-deadlines.test.mjs] objective hook prints its marker before its installed limit when its producer hangs — code=0 elapsed=4039 lim…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the limit clamped to 0 and passed through — 1/1 named: /^R-2673: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p4 the deadline counted from a clock read when the launcher module loads — 1/1 named: /^R-2672: /; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RED p5 the cap left at 1,500 — 2/2 named: /^R-2671: / | /^seal: the producer cap is 2,500 ms and the hook deadline 4,000 ms/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 no Math.floor on the limit — 2/2 named: /^R-2673: / | /^R-2674: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 the launcher's default deadline is HOOK_DEADLINE_MS — 1/1 named: /^R-2674: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 the objective hook passes the deadline to its first producer only — 1/1 named: /^R-2672: /; UNNAMED red: [hook-deadlines.test.mjs] R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a l…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9a the cap changed — 1/1 named: /^seal: the producer cap is 2,500 ms and the hook deadline 4,000 ms/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9b the deadline changed — 1/1 named: /^seal: the producer cap is 2,500 ms and the hook deadline 4,000 ms/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p10 each hook computes HOOK_DEADLINE_MS - performance.now() once and passes that — 1/1 named: /^R-2671: /; 1 FAIL total (2 files changed, 6 insertions(+), 4 deletions(-))
+RED p11 the skip tests only limit === 0 — 1/1 named: /^R-2673: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 12/12 red (9 exactly their named titles, 0 with a named title green, 3 with an unnamed red), 0 survived, across 5 shards
