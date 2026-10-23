@@ -191,3 +191,11 @@
 - Windows shims (writing-adoption, final review): uninstall leaves every `.cmd` shim, the new nana-writing one included, as main already does. The setup README says so.
 - Test runs by hand (writing-adoption, seat and final review): the restore test fails before any check when node runs it directly in a seat shell. There npm's global folder resolves elsewhere. Through npm it passes all 14.
 - Claude settings link (linked-folder-advice plan): install replaces a linked Claude settings file with a regular file and exits 0, and the dotfiles file keeps its old bytes. A dangling settings link is replaced the same way. Whether install should write through a linked Claude folder at all is the owner's open item.
+- pi versions (pi-version-support): CI runs no suite on the floor pi 1.0.3. A later nana change that needs a pi API newer than 1.0.3 passes the suite and fails on 1.0.3 only where the install check exercises it.
+- pi versions (pi-version-support): CI tests no pi between the floor and the ceiling (1.0.4, 1.1.0, 1.2.0, 1.3.0). The plan measured only their imports, once.
+- pi versions (pi-version-support): pi-subagents 0.75.0 is unproven on pi 1.4.0 beyond the install check's pi-subagents line. Its completion wakes use a send call that pi 1.2.0 reworked, and its herdr bridge sends a user message without the newer delivery option.
+- pi versions (pi-version-support): from pi 1.2.0, a pi-review or pi-worker run whose final reply is cut off at the output limit exits 1 and is recorded as failed.
+- pi versions (pi-version-support): from pi 1.2.0, nana's prompt sections also go into runs that a subagent's completion starts, while the knowledge pull skips those runs.
+- pi versions (pi-version-support): the floor legs' README rehearsal installs the ceiling, not the floor. The setup README's floor command is pinned to CI by a check, and nothing runs it.
+- pi versions (pi-version-support): the desk passed its unit tests on pi 1.4.0 only; no browser test and no service restart ran there. The desk stays frozen.
+- pi versions (pi-version-support): each CI run now has three macOS jobs, so two lanes pushing at once may queue against GitHub's macOS job limit (inferred, not measured).

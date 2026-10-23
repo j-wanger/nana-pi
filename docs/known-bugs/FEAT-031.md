@@ -104,3 +104,4 @@
 - Windows flakes (win-flake-hardening, final review): R-2667 tests a kill helper that lives inside the test, as the plan decided; it proves the step cannot throw, not taskkill's real behaviour, and its status-255 and status-128 fakes cannot fail because spawnSync never throws on a non-zero status.
 - Mutation runner (lane-temp-cleanup plan): the mutation runner's child environment keeps `CLAUDE_CONFIG_DIR`, unlike the suite runner. The two test files that start a Claude build now clear it themselves.
 - build-report test (lane-temp-cleanup plan): its hard-kill case leaves one lane temp folder and one capture folder in the caller's temp folder on each direct run. The suite runner's per-file temp folder contains them.
+- Locked suite (pi-version-support, CI): "handled signals wait for suite termination before releasing the lock" failed once on CI's macOS suite leg at 291f8a14; the lane touched no runner code, and the check passed locally and on the other legs.

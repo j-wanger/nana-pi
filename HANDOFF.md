@@ -37,7 +37,7 @@
 - **[optional, since 2026-10-19] Stale labels in the not-passed list.** A test label marked changed since still keeps its row in the report's not-passed list. Reverse that? It changes one rule and one requirement.
 - **[optional, since 2026-10-19] A dry run under a held lock.** The dry run exits 0 and the real run exits 2. Should the dry run preview past the lock, then exit 2 and name it? Either way one requirement gives way.
 - **[optional, since 2026-10-19] Four more Claude skills on Windows.** The seat now installs spec, py-lint, py-review and py-test there. Confirm the Windows Claude Code seat should get them.
-- **[optional, since 2026-10-21] The pi upgrade.** pi 1.3.0 is out, and the README and CI pin 1.0.2 installed with `--before 2026-10-04`. Upgrading, and filing the upstream issue about the codemode break, are yours.
+- **[optional, since 2026-10-23] pi 1.4.0 on both machines.** This Mac runs pi 1.0.2, below the supported range. Upgrade with the setup README's command, then restart the desk. Your second machine can do the same or keep 1.0.3. Default: yes.
 - **[optional, since 2026-10-15] Lift your flat projects.** Each lift is its own lane, with your yes on its dry run. Confirm the work project that left the adoption refresh leaves the lift too; default: drop it. Then basketball-geek, then trading-zone.
 - **[optional, since 2026-10-05] Background subagents.** You saw subagents not running in the background. Where was it: pi, the desk or Claude Code? Did the agent wait, or never start one?
 - **[optional, since 2026-10-07] One TUI check.** Trigger a gate approval in an unfocused pi TUI window. Expect an "Approval needed in pi" notification, or a recorded notifier failure.
@@ -54,7 +54,7 @@
 ## Landed (one line each; the narrative is in `docs/sessions/`)
 
 - 2026-09-18 to 2026-10-23: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`). The seat moved them on 2026-10-21, 2026-10-22 and 2026-10-23, all but the newest.
-- 2026-10-23: a builder refusal, an early stop signal or a closed error pipe no longer leaves the carried Claude settings in the temp folder. The builder tests no longer read a caller's Claude folder setting.
+- 2026-10-23: nana supports pi 1.0.3 through 1.4.0. CI tests both ends on macOS and Windows, and doctor flags a pi whose own packages are newer than pi.
 
 ## Known bugs
 
