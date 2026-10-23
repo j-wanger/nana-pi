@@ -275,7 +275,7 @@ only, no diagram.
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,
-which never imports the ledger: it records nothing and can admit no verdict. `pi-review` has no
+which records no review round and can admit no verdict. `pi-review` has no
 worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
 was itself the bypass (sol r1: five `VERDICT: LAND` outputs under `--worker`, zero recorded).
 `pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`, `--worker`). A worker
@@ -305,7 +305,13 @@ node "$HOME/nana-pi/packages/nana-pack/bin/brief-check.mjs" --brief <file> --tre
 
 Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`. The gate refuses edit/write targets outside that root and the temporary roots it counts: the real `os.tmpdir()`, and on Windows a differing `TMP` too — except a temp folder that resolves to a drive or filesystem root, the home folder, or a folder above the home folder, which does not count. `/tmp` is a separate rule on every system but Windows: it counts as a temporary root regardless, even when it resolves under the home folder. Each target is judged at the path pi's own edit/write tools actually write it to — pi's `~`, `@` and `file://` forms are expanded first — and every root and target is compared by its true on-disk spelling (case, 8.3 short names, and symlinks all fold to the same real path), not by the literal string typed. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
 
-Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; automatic reclamation is deliberately disabled because a dead watchdog may leave its pi process group running. Before removing a lock by hand, confirm that no builder and no pi process group for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire pi process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory.
+Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; automatic reclamation is deliberately disabled because a dead watchdog may leave its pi process group running. Before removing a lock by hand, confirm that no builder and no pi process group for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire pi process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory. After taking the lock, a lane build appends a start record before pi starts and an end record before releasing the lock on each handled exit. Its final stderr line gives this build's outcome, elapsed minutes and pi-recorded cost, followed by the lane summary.
+
+#### Build records
+
+Lane builds share `<git common folder>/nana/build-records.jsonl` across one clone. Each schema-1 JSON line is a `start` or `end` record joined by its build id; an unpaired start is reported as `no end`. Tokens and cost are field-wise sums of pi-ai Usage values in matching pi sessions, not recalculations from token buckets. Missing, unreadable or over-cap sessions leave the cost unknown and name the session folder. Record-write failures are report-only and do not stop the builder or change its result.
+
+Read the clone's builds from any checkout with `node "$HOME/nana-pi/packages/nana-pack/bin/build-report.mjs" [--repo <path>] [--lane <name>]`. The report prints each build, lane totals, clone totals, unpriced builds and skipped ledger lines. Records are per clone, have no retention, and cover lane-mode pi builders only. A stall is `failed`; `no end` does not distinguish a live build, a hard-killed build or an exception. The cost is pi's model-catalog figure rather than a subscription bill. A custom pi `sessionDir` setting is not followed unless `PI_CODING_AGENT_SESSION_DIR` selects it.
 
 #### Machine roster
 

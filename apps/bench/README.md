@@ -95,8 +95,9 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
   `Usage` — `{input, output, cacheRead, cacheWrite, totalTokens, cost{…}}`, a public root export —
   and the bench carries those field names verbatim, takes pi's `totalTokens` rather than
   recomputing it from the buckets, and sums the `cost` pi already computed per message with
-  `calculateCost(model, usage)`. The only usage arithmetic still ours is a field-wise sum, because
-  pi exports no "add two Usage objects" helper. `message_update.usage` is ignored — it "may remain
+  `calculateCost(model, usage)`. The only usage arithmetic still ours is a field-wise sum in
+  `packages/nana-pack/lib/pi-usage.mjs`, re-exported by `lib/usage.mjs`, because pi exports no
+  "add two Usage objects" helper. `message_update.usage` is ignored — it "may remain
   zero when a provider only reports usage at completion" (`docs/json.md`).
 - **Money.** `cost` is a real number per run, or `null` **with a reason** when something went
   unpriced — never a guessed 0. The sidecar cannot know a nested search model's rates, so nested
