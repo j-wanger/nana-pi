@@ -52,6 +52,7 @@
 
 - 2026-09-18 to 2026-10-22: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`), up to 2026-10-20 on 2026-10-21 and the rest on 2026-10-22.
 - 2026-10-22: the brief check now reads the Precedent forms seats write. A numbered step list right after a plain Precedent list no longer counts as entries. A bold label line starts the section, and a bold or punctuated path now reaches the check bare. A heading such as "Precedent audit" no longer counts. A brief with no section is told both ways to start one, and brief-check names the brief path it tried. All 17 of the seat's wrong versions of the code turn a check red.
+- 2026-10-22: pi-worker now keeps a record of each lane build. It writes a start line once the build takes its lock, and an end line when it ends. The end line holds the outcome, exit code, minutes, attempts, and pi's own token and cost totals. Every worktree of a clone shares one record file. A failed write never changes the build. After each build, pi-worker prints this build's numbers and the lane's totals. A new build report prints every build, each lane's totals and how many lanes took two or more builds. 18 of the seat's 19 wrong versions of the code turn a check red; the last can turn red only on Windows.
 
 ## Known bugs
 

@@ -46,3 +46,17 @@
 - Precedent check (audit re-check, 2026-10-22): only briefs are checked; nothing checks a plan's must-meet for its Precedent section.
 - Known-bug attachment (audit re-check, 2026-10-22): it needs a `Feature:` line, which only nana-pi's own working section asks a brief to carry.
 - brief-check (brief-reader-fixes, final review round 1): a folder given as `--brief` gets brief-check's own `brief-check:` line, while pi-worker refuses the same input with `pi-worker: lane refused:`; R-2585's equality loop has no folder case.
+- Build records (build-records): the ledger lives in each clone. Deleting or re-cloning a repository loses its records, and one lane name in two clones keeps two ledgers.
+- Build records (build-records): only lane mode records a build. A plain pi-worker run, a Claude Code subagent builder and a build by hand keep no record.
+- Build records (build-records): a stall is recorded as `failed`; the STALL line on stderr is the only sign of it.
+- Build records (build-records): `no end` covers a build still running, one killed hard and one ended by an exception, and the report cannot tell them apart. After a hard kill, pi may still be working and spending.
+- Build records (build-records): the cost is pi's list-price figure from its model catalog, not what a subscription bills (inferred).
+- Build records (build-records): pi-worker follows `PI_CODING_AGENT_SESSION_DIR` and pi's default folder only. A `sessionDir` in pi settings leaves the cost unknown, with the folder named.
+- Build records (build-records): a builder's nested pi runs, such as a pi-review it starts or a project's e2e run, write differently named sessions and are not counted.
+- Build records (build-records): appends take no lock, so two in the same instant could tear a line (inferred never on a local disk). The reader skips and counts it.
+- Build records (build-records): a reused lane name merges into one lane line.
+- Build records (build-records): the review item is not recorded. Joining builds to review rounds by lane name matches 96 of 154 lane worktree folders here (measured 2026-10-22).
+- Build records (build-records): builds before this lane are not in the ledger.
+- Build records (build-records): pi-review.mjs and review-round.mjs still say pi-worker records nothing; they mean no review round.
+- Build records (build-records): over 32 MiB the ledger is not read; the report and the end line say so.
+- Build records (build-records, seat pairs): the Windows short-path case for R-2598 has run only on macOS, where it skips. Nobody has seen its wrong-code pair turn red on Windows.
