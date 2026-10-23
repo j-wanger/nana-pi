@@ -61,3 +61,8 @@
 - Build records (build-records): over 32 MiB the ledger is not read; the report and the end line say so.
 - Build records (build-records, seat pairs): the Windows short-path case for R-2598 has run only on macOS, where it skips. Nobody has seen its wrong-code pair turn red on Windows.
 - brief-check (main CI, 2026-10-22): on the Windows suite leg, R-2585's passing case once outlived its 15-second limit and the file then hit EBUSY on its lane folder; the re-run passed. Its limits are inline literals.
+- Build records (build-records, final review): a `no end` build whose start is the last in its session folder has no window end, so a later plain pi-worker run in the same worktree, whose sessions share the `pi-worker-a…` names, adds its cost to that build.
+- Build records (build-records, final review): one `.jsonl` in the window whose head cannot be read makes the whole build's cost unknown, before the path and name filters could skip it; skipping that candidate would keep D4's intent.
+- Build records (build-records, final review): every build end pairs the whole ledger and reads sessions for every killed build in the clone, not only this lane's; filtering by lane first would be cheaper.
+- Build records (build-records, final review): the report maps an unknown outcome to `failed` without counting it; only a future schema-1 writer could produce one.
+- Build records (build-records, Windows CI): the not-kept line repeats the error code, as in `ENOENT: ENOENT: no such file or directory`, because it prints the code before a message that already starts with it.
