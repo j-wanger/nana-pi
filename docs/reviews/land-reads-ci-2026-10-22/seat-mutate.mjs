@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane land-reads-ci (gate lane: a land tool), written by the seat 2026-10-22 after build 1, on
-// the shared runner, at tip 3d2953dc. They are the must-meet's seventeen pairs in its order. Run from the worktree root on
+// the shared runner, at tip 3d2953dc. They are the must-meet's seventeen pairs in its order; p18 and p19 (after build 2, at
+// 7019e48b) cover Amendment 1. Run from the worktree root on
 // macOS:   SEAT_MUTATE_OUT=<file> node docs/reviews/land-reads-ci-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
@@ -24,6 +25,7 @@ const GREEN = "'{\"total_count\":1,\"workflow_runs\":[{\"workflow_id\":1,\"name\
 const DECLARED = [
 	"(plan) p1 to p17 follow the must-meet's wrong-code list in order",
 	"(seat) p8 reads a failed gh call as a passing run list, the shape of 'CI does not apply' that still lands",
+	"(seat) p18 and p19 cover Amendment 1 (colour off, --repo in the re-run remedy), added after build 2",
 ];
 
 const PAIRS = [
@@ -37,7 +39,7 @@ const PAIRS = [
 		one(LIB, "run.run_number > prior.run_number", "run.run_number < prior.run_number"),
 	], tests: [T], expectRed: [R_2588] },
 	{ n: "p4", name: "jobs read for the run's attempts", edits: [
-		one(LAND, "const verdict = judgeRuns(response.stdout, tip);", "const jobs = runGh(main, [\"api\", \"--hostname\", CI_HOST, `${apiPath}/1/attempts/1/jobs`], { env: process.env });\n\t\t\tif (jobs?.status === 0 && /failure/.test(String(jobs.stdout))) throw new Error(\"a job failed\");\n\t\t\tconst verdict = judgeRuns(response.stdout, tip);"),
+		one(LAND, "const verdict = judgeRuns(response.stdout, tip, scope.repository);", "const jobs = runGh(main, [\"api\", \"--hostname\", CI_HOST, `${apiPath}/1/attempts/1/jobs`], { env });\n\t\t\tif (jobs?.status === 0 && /failure/.test(String(jobs.stdout))) throw new Error(\"a job failed\");\n\t\t\tconst verdict = judgeRuns(response.stdout, tip, scope.repository);"),
 	], tests: [T], expectRed: [R_2588] },
 	{ n: "p5", name: "completed with neutral, skipped or null passes", edits: [
 		one(LIB, BAD, "const bad = [...newest.values()].filter((run) => run.status !== CI_DONE_STATUS || ![\"success\", \"neutral\", \"skipped\", null].includes(run.conclusion));"),
@@ -80,6 +82,12 @@ const PAIRS = [
 	{ n: "p17", name: "the default runner passes no timeout", edits: [
 		one(LAND, "encoding: \"utf8\", timeout: timeoutMs, maxBuffer }", "encoding: \"utf8\", maxBuffer }"),
 	], tests: [T], expectRed: [R_2589] },
+	{ n: "p18", name: "gh keeps the seat's forced colour", edits: [
+		one(LAND, "const env = ghEnvironment(process.env);", "const env = process.env;"),
+	], tests: [T], expectRed: [R_2591] },
+	{ n: "p19", name: "the re-run remedy without its repository", edits: [
+		one(LIB, "const rerun = `gh run rerun ${run.id} --repo ${repository.owner}/${repository.repo}`;", "const rerun = `gh run rerun ${run.id}`;"),
+	], tests: [T], expectRed: [R_2586] },
 ];
 
-process.exitCode = await runMutations({ lane: "land-reads-ci", self: import.meta.url, tip: "3d2953dc", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "land-reads-ci", self: import.meta.url, tip: "7019e48b", declared: DECLARED, pairs: PAIRS });
