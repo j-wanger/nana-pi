@@ -13,9 +13,9 @@
 
 1. **Priority review, 2026-10-24.** Met: the requirements tree, four-digit IDs, the land rule, and the Windows CI runner with its fixes. Partly met: install and hooks. CI's install check passes on macOS and Windows, but the owner's own Windows run at current main is pending. No checklist step has run on a clean account or a fresh machine. The seat brings the review pack and proposes whether the artifact work becomes the next priority.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode until 2026-10-24).** Building: shared helpers. The seat plans no other lane until the owner picks one.
-4. **Queue after that.** It holds the builder launch in the install check and the linked Claude folder's repair advice. It also holds a settings file with a byte-order mark and the audit's seat calls. Seat work: regenerate and republish the product report in a reviewed change.
-5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five of their causes on 2026-10-23. Shared helpers takes the install relay's kill next.
+3. **Lanes in flight (power mode until 2026-10-24).** Planned: the objective hook on Windows and the builder launch in the install check. The owner picked both on 2026-10-23.
+4. **Queue after that.** It holds the linked Claude folder's repair advice and a settings file with a byte-order mark and the audit's seat calls. Seat work: regenerate and republish the product report in a reviewed change.
+5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five of their causes on 2026-10-23. The install relay's kill now uses the shared helper; nobody knows yet whether that ends its Windows failures.
 6. **Karpathy's other formats.** Nothing blocks the review-timeline diagram any more, and nobody has started it.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
@@ -54,7 +54,7 @@
 ## Landed (one line each; the narrative is in `docs/sessions/`)
 
 - 2026-09-18 to 2026-10-23: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`). The seat moved them on 2026-10-21, 2026-10-22 and 2026-10-23, all but the newest.
-- 2026-10-23: five Windows test failures that no lane caused no longer depend on timing. The runner retries removing a finished file's temp folder; if it stays busy, it prints one failure line and runs the rest. build-report's kill step can no longer throw. Two parallel-runner checks now make their files wait for each other instead of hoping they overlap. brief-check's check never starts the CPU sampler.
+- 2026-10-23: one shared process-tree kill and one shared rename retry replace six kill copies and two rename copies. A suite check now fails on a new kill copy outside four declared exceptions. The builder preamble and the shipped rulings now say to import a helper and never copy it.
 
 ## Known bugs
 

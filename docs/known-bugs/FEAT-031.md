@@ -100,3 +100,5 @@
 - Windows flakes (win-flake-hardening, plan): build-report's hard-kill worker polls above the test's start wait by reading; no test pins it.
 - Windows flakes (win-flake-hardening, plan): templates-update's adopt failure and R-2023's relay kill stay for shared-helpers; their link is inferred.
 - Windows flakes (win-flake-hardening, plan): CI re-runs cannot prove the failure rate fell; the proof is the injected schedules and their wrong-code pairs.
+- Windows flakes (win-flake-hardening, final review): in R-2668's and R-2669's fixtures the late file's wait for its partner's ready file has no deadline, so a partner that never starts hangs the fixture until the runner's per-file timeout instead of failing fast; it matters only when the runner is already broken.
+- Windows flakes (win-flake-hardening, final review): R-2667 tests a kill helper that lives inside the test, as the plan decided; it proves the step cannot throw, not taskkill's real behaviour, and its status-255 and status-128 fakes cannot fail because spawnSync never throws on a non-zero status.
