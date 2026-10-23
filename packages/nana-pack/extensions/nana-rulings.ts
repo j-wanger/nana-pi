@@ -28,33 +28,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readBounded } from "../lib/bounded-read.mjs";
+import { readBounded, readFailureCause } from "../lib/bounded-read.mjs";
 import { piAgentDir } from "../lib/agent-dir.mjs";
 import { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULINGS_UNAVAILABLE } from "../lib/rulings-config.mjs";
 import { PROJECT_STALE_SECTION, STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
 import { linkOk, projectStaleLine, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
-
-/** A short, user-facing cause for the marker, from readBounded's thrown error code (or "empty",
- *  decided by the caller since readBounded itself does not refuse a zero-byte file) — never
- *  throws itself. */
-function causeFor(err: unknown, isEmpty: boolean): string {
-	if (isEmpty) return "empty";
-	const code = (err as { code?: string } | null)?.code;
-	switch (code) {
-		case "ENOENT":
-			return "missing";
-		case "EISDIR":
-			return "a directory";
-		case "ERR_NOT_REGULAR":
-			return "not a regular file";
-		case "ERR_TOO_LARGE":
-			return `larger than ${RULINGS_READ_CAP} bytes`;
-		default: {
-			const message = (err as { message?: string } | null)?.message;
-			return message ? `unreadable (${message})` : "unreadable";
-		}
-	}
-}
 
 /** One line, addressed to the USER — an agent that reads this tells the user, and never runs
  *  `nana-setup install` on its own (R-1411). Never contains a newline. */
@@ -70,9 +48,9 @@ export function buildBlock(agentDir: string = piAgentDir()): string {
 	try {
 		bytes = readBounded(filePath, RULINGS_READ_CAP);
 	} catch (err) {
-		return marker(causeFor(err, false), filePath);
+		return marker(readFailureCause(err, RULINGS_READ_CAP), filePath);
 	}
-	if (bytes.length === 0) return marker(causeFor(null, true), filePath);
+	if (bytes.length === 0) return marker("empty", filePath);
 	try {
 		const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 		return `${RULINGS_HEADING}\n\n${text}`;

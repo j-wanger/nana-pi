@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/bounded-read.mjs
  * @purpose Read a bounded number of bytes from a regular file without blocking on special files.
  * @inputs a file path, optional byte limit, and Node filesystem constants
- * @outputs a Buffer containing at most the requested limit plus one bytes
+ * @outputs a Buffer containing at most the requested limit plus one bytes, and stable user-facing read-failure causes
  * @effects disk (opens and reads one file descriptor)
  * @errors throws filesystem errors, ERR_NOT_REGULAR, or ERR_TOO_LARGE
  */
@@ -13,6 +13,18 @@ export const BOUNDED_READ_CAP = 1024 * 1024;
 
 /** chosen: one extra byte distinguishes a file that crosses the caller's read window. */
 export const readBudget = (fileSize, readLimit) => Math.min(fileSize, readLimit + 1);
+
+/** A short user-facing cause for a readBounded error, never throwing itself. */
+export function readFailureCause(err, capBytes = BOUNDED_READ_CAP) {
+ const code = err?.code;
+ switch (code) {
+  case "ENOENT": return "missing";
+  case "EISDIR": return "a directory";
+  case "ERR_NOT_REGULAR": return "not a regular file";
+  case "ERR_TOO_LARGE": return `larger than ${capBytes} bytes`;
+  default: return err?.message ? `unreadable (${err.message})` : "unreadable";
+ }
+}
 
 /** Open nonblocking, verify the descriptor is a bounded regular file, and read no more than limit+1. */
 export function readBounded(file, cap = BOUNDED_READ_CAP, readLimit = cap) {
