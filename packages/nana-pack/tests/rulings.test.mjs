@@ -226,6 +226,12 @@ function containsWholeWord(text, word) {
 		bulletLines.length >= 1 && badBullets.length === 0,
 		JSON.stringify({ bulletCount: bulletLines.length, badBullets }),
 	);
+	const helperRuling = "- 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.";
+	// req: R-2663
+	check("R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move",
+		bulletLines.filter((line) => line === helperRuling).length === 1,
+		JSON.stringify({ helperRuling, matches: bulletLines.filter((line) => line.includes("helper")) }),
+	);
 }
 
 {

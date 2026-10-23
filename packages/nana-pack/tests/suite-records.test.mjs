@@ -456,7 +456,7 @@ function runnerFixture(name, exit) {
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
 	fs.mkdirSync(path.join(root, "packages", "probe", "tests"), { recursive: true });
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
-	for (const file of ["runtime-map-config.mjs", "suite-records-config.mjs", "land-config.mjs", "windows-skips-config.mjs", "test-runner-config.mjs"])
+	for (const file of ["process-tree.mjs", "runtime-map-config.mjs", "suite-records-config.mjs", "land-config.mjs", "windows-skips-config.mjs", "test-runner-config.mjs"])
 		fs.copyFileSync(path.join(REPO, "packages", "nana-pack", "lib", file), path.join(root, "packages", "nana-pack", "lib", file));
 	fs.writeFileSync(path.join(root, "packages", "probe", "tests", "fixture.test.mjs"), `console.log("PASS fixture ran"); process.exitCode = ${exit};\n`);
 	const plain = path.join(root, "plain"); fs.writeFileSync(plain, "file");

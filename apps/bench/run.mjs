@@ -49,6 +49,7 @@ import { assertFingerprint, fileSha, filterPlan, loadOrCreateSchedule, profilesF
 import { renderRun } from "./lib/profiles.mjs";
 import { createPricer, loadPiExports } from "./lib/pi-exports.mjs";
 import { costOfRecord, costTotal, emptyUsage, incompleteReason, observedCostOfRecord, parseStream, totalTokens } from "./lib/usage.mjs";
+import { killProcessTreeNoWait } from "../../packages/nana-pack/lib/process-tree.mjs";
 
 const KEY_ERROR = /\b(api[_ -]?key|unauthorized|invalid_api_key|authentication|401|403|not logged in|no credentials)\b/i;
 /** Emitted on stderr by ext/bench-nested-usage.ts when nested spend outlived its tool result. */
@@ -122,10 +123,7 @@ export const treeAlive = (pid) => {
 
 /** Signal the whole process group (POSIX) or the process tree (win32). */
 function signalTree(pid, signal) {
-	try {
-		if (process.platform === "win32") spawn("taskkill", ["/pid", String(pid), "/t", signal === "SIGKILL" ? "/f" : "/f"], { windowsHide: true });
-		else process.kill(-pid, signal);
-	} catch { /* already gone */ }
+	killProcessTreeNoWait(pid, { signal });
 }
 
 /**

@@ -7,6 +7,7 @@ Scope
 - Never edit `HANDOFF.md`, `docs/known-bugs/` or session archives.
 - New requirement rows take IDs only from the range your brief names.
 - Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.
+- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.
 - The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.
 - A findings list is closures only.
 - Never start model sessions or subagents.

@@ -346,6 +346,7 @@ const preambleText = prompt1Text;
 const RULE_LINE = {
 	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
+	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.",
 	knownBugsContext: "- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.",
 	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
 	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
@@ -365,6 +366,8 @@ const preambleOnce = (line) => preambleText.includes(line) && preambleText.split
 check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
 // req: R-2582
 check("R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure", preambleOnce(RULE_LINE.precedentFirst), RULE_LINE.precedentFirst);
+// req: R-2662
+check("R-2662: the builder preamble tells the builder to import a needed function, never copy it, and stop on a private helper the brief does not move", preambleOnce(RULE_LINE.reuseNotCopy), RULE_LINE.reuseNotCopy);
 // req: R-2583
 check("R-2583: the builder preamble frames the attached known bugs as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
 // req: R-1110

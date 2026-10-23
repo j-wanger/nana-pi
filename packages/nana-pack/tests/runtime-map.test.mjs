@@ -30,6 +30,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const TEST_LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
+const PROCESS_TREE = path.join(REPO, "packages", "nana-pack", "lib", "process-tree.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const LAND_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "land-config.mjs");
 const SUITE_RECORDS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs");
@@ -68,6 +69,7 @@ function mkGitFixture(name, files) {
 const MM2_SLEEP_MS = 300; // chosen: a lower bound the recorded seconds must clear; no upper bound asserted
 const rootMM2 = mkGitFixture("mm2", {
 	"scripts/test.mjs": fs.readFileSync(RUNNER, "utf8"),
+	"packages/nana-pack/lib/process-tree.mjs": fs.readFileSync(PROCESS_TREE, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
 	"packages/nana-pack/lib/suite-records-config.mjs": fs.readFileSync(SUITE_RECORDS_CONFIG, "utf8"),
 	"packages/nana-pack/lib/land-config.mjs": fs.readFileSync(LAND_CONFIG, "utf8"),
@@ -513,6 +515,7 @@ const mainMM9 = mkGitFixture("mm9-main", {
 	"scripts/runtime-measure.mjs": fs.readFileSync(RUNTIME_MEASURE, "utf8"),
 	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
 	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
+	"packages/nana-pack/lib/process-tree.mjs": fs.readFileSync(PROCESS_TREE, "utf8"),
 	"packages/nana-pack/lib/runtime-map-config.mjs": fs.readFileSync(RUNTIME_MAP_CONFIG, "utf8"),
 	"packages/nana-pack/lib/land-config.mjs": fs.readFileSync(LAND_CONFIG, "utf8"),
 	"packages/nana-pack/lib/suite-records-config.mjs": fs.readFileSync(SUITE_RECORDS_CONFIG, "utf8"),

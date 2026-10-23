@@ -485,7 +485,6 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		first.status === 0 && second.status === 0 && rows.length === 2 && roundsOf("kept-text").length === 1 &&
 		mod.REVIEW_TEXT_STORE_NAME === "review-ledger.texts" && path.basename(mod.ledgerPaths(home).texts) === mod.REVIEW_TEXT_STORE_NAME &&
 		mod.REVIEW_TEXT_EXTENSION === ".md" && mod.REVIEW_TEXT_HASH === "sha256" && mod.REVIEW_TEXT_HASH_HEX_CHARS === 64 &&
-		mod.REVIEW_TEXT_RENAME_ATTEMPTS === 3 && mod.REVIEW_TEXT_RENAME_DELAY_MS === 20 &&
 		rows[0]?.text?.sha256 === rawHash && rows[0]?.text?.bytes === rawBytes.length && /^[0-9a-f]{64}$/.test(rows[0]?.text?.sha256 ?? "") &&
 		rows[1]?.text?.sha256 === secondHash && rows[1]?.text?.bytes === secondBytes.length &&
 		rawFile && fs.existsSync(rawFile) && fs.readFileSync(rawFile).equals(rawBytes) &&
@@ -493,6 +492,31 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		!fs.existsSync(tmpMissing) && typeof tempComplete.ok === "boolean" && tempRow?.text?.sha256 === tempHash &&
 		tempFile && fs.existsSync(tempFile) && fs.readFileSync(tempFile, "utf8") === tempText,
 		JSON.stringify({ first: first.stderr, second: second.stderr, rows, tempComplete, tempRow, store: mod.ledgerPaths(home).texts }));
+}
+
+{
+	freshHome("rename-retry-codes"); A.at(0);
+	let allCodes = true;
+	for (const code of ["EPERM", "EBUSY", "EACCES"]) {
+		const item = `rename-retry-${code.toLowerCase()}`;
+		const text = `${code} captured review\nVERDICT: LAND\n`;
+		const bytes = Buffer.from(text, "utf8");
+		const hash = createHash("sha256").update(bytes).digest("hex");
+		const admitted = mod.admit(["--item", item, "--role", "ledger"], { home, cwd: A.d, launcher: "test" });
+		let renameCalls = 0;
+		const rename = (from, to) => {
+			renameCalls++;
+			if (renameCalls === 1) throw Object.assign(new Error(code), { code });
+			fs.renameSync(from, to);
+		};
+		const completed = mod.complete(admitted.res, out(), { home, text, rename });
+		const row = jsonl(tallyFile).find((entry) => entry.item === item);
+		const stored = storedTextFile(home, hash);
+		allCodes &&= admitted.ok && completed.ok && renameCalls === 2 && row?.text?.sha256 === hash
+			&& stored && fs.existsSync(stored) && fs.readFileSync(stored).equals(bytes);
+	}
+	// req: R-2660
+	check("R-2660: a kept review text whose first rename fails with EPERM, EBUSY or EACCES is still kept and its round recorded, on every platform", allCodes);
 }
 
 {

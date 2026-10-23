@@ -33,6 +33,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
+const PROCESS_TREE = path.join(REPO, "packages", "nana-pack", "lib", "process-tree.mjs");
 const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const SUITE_RECORDS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
@@ -57,6 +58,7 @@ function mkRoot(name, files) {
 	fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
+	fs.copyFileSync(PROCESS_TREE, path.join(root, "packages", "nana-pack", "lib", "process-tree.mjs"));
 	fs.copyFileSync(RUNTIME_MAP_CONFIG, path.join(root, "packages", "nana-pack", "lib", "runtime-map-config.mjs"));
 	fs.copyFileSync(SUITE_RECORDS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "suite-records-config.mjs"));
 	fs.copyFileSync(path.join(REPO, "packages", "nana-pack", "lib", "land-config.mjs"), path.join(root, "packages", "nana-pack", "lib", "land-config.mjs"));

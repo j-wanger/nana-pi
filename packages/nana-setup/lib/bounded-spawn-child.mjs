@@ -2,14 +2,14 @@
 /**
  * @module packages/nana-setup/lib/bounded-spawn-child.mjs
  * @purpose Relay one bounded child launch and end its process tree at the deadline, on termination or when its parent dies.
- * @inputs one JSON launch specification on stdin; TASKKILL_ARGS; relay parent-poll, settle and signal-grace limits; process.env and process.platform
+ * @inputs one JSON launch specification on stdin; relay parent-poll, settle and signal-grace limits; process.env and process.platform
  * @outputs one JSON result line on stdout
  * @effects process (spawns a detached POSIX group or Windows child, kills its tree when required, then exits)
  * @errors launch and timeout failures are serialized as result.error; malformed specifications become coded relay errors
  */
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import * as fs from "node:fs";
-import { TASKKILL_ARGS } from "../../nana-pack/lib/mutation-runner-config.mjs";
+import { killProcessTree } from "../../nana-pack/lib/process-tree.mjs";
 import { RELAY_PARENT_POLL_MS, RELAY_SETTLE_MS, RELAY_SIGNAL_GRACE_MS } from "./bounded-spawn.mjs";
 
 let child;
@@ -53,21 +53,7 @@ function relay(result, exitCode = 0) {
 
 function killTree() {
 	if (!child?.pid) return;
-	let ended = false;
-	if (process.platform === "win32") {
-		try {
-			const result = spawnSync("taskkill", [...TASKKILL_ARGS, String(child.pid)], { stdio: "ignore", windowsHide: true });
-			ended = result.status === 0;
-		} catch {}
-	} else {
-		try {
-			process.kill(-child.pid, "SIGKILL");
-			ended = true;
-		} catch {}
-	}
-	if (!ended) {
-		try { child.kill("SIGKILL"); } catch {}
-	}
+	killProcessTree(child.pid, { fallback: (signal) => { try { child.kill(signal); } catch {} } });
 }
 
 function timeoutResult() {
@@ -94,14 +80,7 @@ function finishTermination(signal) {
 
 function passSignal(signal) {
 	if (process.platform === "win32" || !child?.pid) return;
-	let sent = false;
-	try {
-		process.kill(-child.pid, signal);
-		sent = true;
-	} catch {}
-	if (!sent) {
-		try { child.kill(signal); } catch {}
-	}
+	killProcessTree(child.pid, { signal, fallback: (sentSignal) => { try { child.kill(sentSignal); } catch {} } });
 }
 
 function terminate(signal) {

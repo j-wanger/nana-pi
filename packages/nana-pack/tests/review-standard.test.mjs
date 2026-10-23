@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-standard.test.mjs
  * @purpose Pins the review standard's required verdict and MUST text, and pi-review's refusal before admission when the standard file is missing, not a regular file, or blank.
- * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/review-standard.mjs, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
+ * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/review-standard.mjs, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
  * @outputs PASS/FAIL lines per check on stdout, and a nonzero exit when any check fails.
  * @effects disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -51,7 +51,7 @@ check("R-1108: the review standard makes a missing or empty must-meet test, a br
 
 // ---------------------------------------------------------------- R-1106/R-1680-1682: refusal before admission from a pack copy
 // A copy of bin/, lib/review-standard.mjs, lib/verdict-config.mjs, lib/win-command.mjs,
-// lib/win-command-config.mjs, lib/real-path.mjs and prompts/ lets each variant mutate the copy's own
+// lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/ lets each variant mutate the copy's own
 // review-standard.md without ever touching the real file. win32 lays the stub out as an npm
 // global install (writeFakePi, ./fake-pi.mjs) since piLaunch never runs a POSIX shell script there;
 // POSIX keeps the sh stub.
@@ -63,7 +63,7 @@ const BLANK_TITLE = "blank review standard is refused before admission";
 	const pack = path.join(scratch, "pack-copy");
 	for (const dir of ["bin", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(pack, dir), { recursive: true });
 	fs.mkdirSync(path.join(pack, "lib"), { recursive: true });
-	for (const lib of ["review-standard.mjs", "verdict-config.mjs", "win-command.mjs", "win-command-config.mjs", "real-path.mjs"]) {
+	for (const lib of ["review-standard.mjs", "verdict-config.mjs", "win-command.mjs", "win-command-config.mjs", "process-tree.mjs", "rename-retry.mjs", "real-path.mjs"]) {
 		fs.copyFileSync(path.join(PACK, "lib", lib), path.join(pack, "lib", lib));
 	}
 	const copyBin = path.join(pack, "bin", "pi-review.mjs");

@@ -27,3 +27,4 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-21: Known bugs live one line each in their feature's file, not in HANDOFF.
 - 2026-10-22: A produced artifact is a feature to maintain. Each deliverable names the run that makes it and the code that reads it. Closing a hand-made maker or a rule-only reader comes first.
 - 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. pi-worker refuses a brief without it.
+- 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.
