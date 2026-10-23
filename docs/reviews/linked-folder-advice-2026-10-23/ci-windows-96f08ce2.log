@@ -1,0 +1,13 @@
+# CI suite (windows-latest), run 39992447994 job 120547352341, tip 96f08ce2: the linked-claude-folder file's lines and the suite summary
+PASS R-2290: install through a linked Claude folder prints no retired row for an absent retired path or a skill link or copy install made
+PASS R-2291: through a linked Claude folder each present retired artifact is reported ✗ and left byte-for-byte untouched
+PASS R-2292: every ✗ skill row doctor prints for a linked Claude or skills folder names the folder the session-start line names, to move aside
+PASS R-2294: doctor's last line lists every ✗ skill row under a linked Claude or skills folder as a fix by hand
+PASS R-2293: moving aside the folder doctor's skill rows name and running install leaves every skill row ✓
+PASS R-2701: under a linked Claude or skills folder, each legacy row install's dry run refuses names that folder and every present path to move by hand, and a row install would move keeps its install advice
+PASS R-2702: moving every path a legacy row names to move by hand leaves that row ✓
+PASS R-2703: in a home whose Claude or skills folder is a link, every ✓ skill and legacy row reads as it does in an unlinked home
+PASS R-2704: a Claude home, or its rules, shared-memory or (off win32) hooks folder, that is a link whose target cannot be reached makes install refuse before any write, naming that link, and a broken skills or win32 hooks link does not
+PASS R-2705: for such a broken link, doctor's last line names install's refusal instead of telling the user to run install
+PASS  packages/nana-setup/tests/linked-claude-folder.test.mjs         10 pass  24.2s
+218 files: 200 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7355 pass, 0 fail, 124 skip · 961.7s

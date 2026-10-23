@@ -23,7 +23,7 @@
  *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
- * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
+ * @errors SetupError — the Claude home, rules, shared-memory or off-win32 hooks folder is an unreachable link; settings.json unreadable, not valid JSON, or a shape the merge will not
  *  edit; install cannot take its settings lock before its first write and hold it through the
  *  PATH entries; settings.json changed on disk during the run; a plist placeholder with no
  *  value. Every other failure is a row: PROBLEM for a non-regular
@@ -1146,10 +1146,29 @@ export function installExitCode(results) {
 	return results.some((result) => result.status === PROBLEM) ? 1 : 0;
 }
 
+function refuseUnreachableClaudeFolder(layout) {
+	const candidates = [
+		layout.claudeHome,
+		...(win() ? [] : [layout.hooksDir]),
+		layout.rulesDir,
+		path.dirname(layout.sharedMemoryDir),
+		layout.sharedMemoryDir,
+	];
+	for (const folder of candidates) {
+		if (!lstatSafe(folder)?.isSymbolicLink()) continue;
+		try {
+			fs.statSync(folder);
+		} catch (error) {
+			throw new SetupError(`${folder} is a link whose target cannot be reached (${error.code ?? "unreadable"}) — move the link aside or restore its target, then re-run.\nNothing was changed.`);
+		}
+	}
+}
+
 export function install(layout, opts = {}) {
 	// `afterTempWrite` is the settings write's test seam; the CLI never produces it.
 	const o = { dryRun: Boolean(opts.dryRun), afterTempWrite: opts.afterTempWrite };
-	// Pre-flight: the one thing that can abort. Parse before any write.
+	// Pre-flight: everything that can abort runs before any write.
+	refuseUnreachableClaudeFolder(layout);
 	const settingsState = readClaudeSettings(layout);
 	const results = [];
 	const fileSteps = (lockHeld) => {

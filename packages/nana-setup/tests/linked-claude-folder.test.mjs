@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-setup/tests/linked-claude-folder.test.mjs
- * @purpose Pin install's and doctor's behavior for a Claude home or skills folder that is a link: no retired row for an absent path, a present retired artifact left untouched, and doctor's fix-by-hand guidance naming the folder to move.
+ * @purpose Pin install's and doctor's behavior for linked Claude folders, including retired-artifact advice, healthy-row parity, and unreachable-folder preflight refusals.
  * @inputs The nana-setup CLI, `bin/stale-copies.mjs`, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
- * @outputs PASS/FAIL lines for R-2290 through R-2294 and a final SUMMARY line.
+ * @outputs PASS/FAIL lines for R-2290 through R-2294 and R-2701 through R-2705, and a final SUMMARY line.
  * @effects disk (temporary fixtures, including directory junctions/symlinks and file symlinks), process (runs install, doctor and stale-copies with sanitized environments).
  * @errors Failed assertions print their observed output; the test process exits nonzero on any failure.
  */
@@ -78,6 +78,31 @@ function tryReadlink(p) {
 
 function tryReadFileBase64(p) {
 	try { return fs.readFileSync(p).toString("base64"); } catch { return null; }
+}
+
+function copyTree(from, to) {
+	const stat = fs.lstatSync(from);
+	if (stat.isDirectory()) {
+		fs.mkdirSync(to, { recursive: true });
+		for (const name of fs.readdirSync(from)) copyTree(path.join(from, name), path.join(to, name));
+	} else fs.copyFileSync(from, to);
+}
+
+function walk(home) {
+	const entries = [];
+	const visit = (dir) => {
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+			const absolute = path.join(dir, entry.name);
+			const relative = path.relative(home, absolute).split(path.sep).join("/");
+			const stat = fs.lstatSync(absolute);
+			if (stat.isSymbolicLink()) entries.push(["link", relative, tryReadlink(absolute)]);
+			else if (stat.isDirectory()) { entries.push(["directory", relative]); visit(absolute); }
+			else if (stat.isFile()) entries.push(["file", relative, fs.readFileSync(absolute).toString("base64")]);
+			else entries.push(["other", relative]);
+		}
+	};
+	visit(home);
+	return entries;
 }
 
 /** One row of `install`'s `  <mark> <label>  <status>  <detail>` output. */
@@ -317,6 +342,202 @@ if (r2292Pass) {
 }
 // req: R-2293
 check("R-2293: moving aside the folder doctor's skill rows name and running install leaves every skill row ✓", r2293Pass, r2293Detail);
+
+// -------------------------------------------------------------------------- R-2701 / R-2702
+
+const retiredFixture = path.join(pkgRoot, "tests", "fixtures", "retired", "py-init");
+const legacyRows = [
+	{ label: "legacy enforcement flags", folder: (item) => item.claude, names: (item) => item.flags },
+	{ label: "legacy scaffolders", folder: (item) => item.skills, names: () => ["py-init"] },
+];
+
+function buildLegacyHome(name, linked) {
+	const home = fixtureHome(name);
+	const cwd = freshCwd(`${name}-cwd`);
+	const claude = path.join(home, ".claude");
+	let linkedFolder = null;
+	if (linked === "claude") {
+		const target = makeDir(home, `${name}-dotfiles-claude`);
+		fs.symlinkSync(target, claude, linkType);
+		linkedFolder = claude;
+	} else {
+		fs.mkdirSync(claude, { recursive: true });
+	}
+	const skills = path.join(claude, "skills");
+	if (linked === "skills") {
+		const target = makeDir(home, `${name}-dotfiles-skills`);
+		fs.symlinkSync(target, skills, linkType);
+		linkedFolder = skills;
+	} else fs.mkdirSync(skills, { recursive: true });
+	const flags = linked === "claude" ? ["enforce-memory"] : ["enforce", "enforce-memory"];
+	for (const flag of flags) fs.writeFileSync(path.join(claude, flag), "");
+	copyTree(retiredFixture, path.join(skills, "py-init"));
+	return { home, cwd, claude, skills, flags, linked, linkedFolder };
+}
+
+const legacyHomes = [
+	buildLegacyHome("legacy-claude", "claude"),
+	buildLegacyHome("legacy-skills", "skills"),
+	buildLegacyHome("legacy-none", "none"),
+];
+const legacyFacts = legacyHomes.map((item) => {
+	const doctor = runCli(["doctor"], item);
+	const dry = runCli(["install", "--dry-run"], item);
+	const rows = installRows(dry);
+	const facts = legacyRows.map((spec) => {
+		const names = spec.names(item);
+		const paths = names.map((name) => path.join(spec.folder(item), name));
+		const dryRows = paths.map((presentPath) => rows.find((row) => row.label === `retired ${path.relative(item.home, presentPath).split(path.sep).join("/")}`));
+		const refused = item.linked === "claude" || item.linked === "skills" && spec.label === "legacy scaffolders";
+		const row = doctorRow(doctor, spec.label);
+		const spans = codeSpansOf(row?.detail ?? "");
+		const dryOk = dryRows.length === paths.length && dryRows.every((dryRow) => dryRow?.status === (refused ? "problem" : "updated"));
+		const adviceOk = refused
+			? row?.mark === "!" && spans[0] === item.linkedFolder && JSON.stringify(spans.slice(1)) === JSON.stringify(paths) && row.detail.includes("install will not back these up through the linked folder") && row.detail.includes("out of the way by hand") && !row.detail.includes("nana-setup install")
+			: row?.mark === "!" && row.detail.includes("run nana-setup install");
+		return { label: spec.label, paths, refused, dryRows, row, dryOk, adviceOk };
+	});
+	return { linked: item.linked, doctorStatus: doctor.status, dryStatus: dry.status, facts };
+});
+const r2701Pass = legacyFacts.every((item) => item.facts.every((fact) => fact.dryOk && fact.adviceOk));
+// req: R-2701
+check("R-2701: under a linked Claude or skills folder, each legacy row install's dry run refuses names that folder and every present path to move by hand, and a row install would move keeps its install advice", r2701Pass, JSON.stringify(legacyFacts));
+
+const movedRoot = tmpDir(path.join(os.tmpdir(), "nana-linked-legacy-moved-"));
+const r2702Facts = legacyHomes.filter((item) => item.linkedFolder).map((item) => {
+	const before = runCli(["doctor"], item);
+	const byHand = legacyRows.flatMap((spec) => {
+		const row = doctorRow(before, spec.label);
+		if (!row || row.detail.includes("nana-setup install")) return [];
+		return [{ label: spec.label, paths: codeSpansOf(row.detail).slice(1) }];
+	});
+	let moves = 0;
+	for (const row of byHand) for (const source of row.paths) {
+		fs.renameSync(source, path.join(movedRoot, `${item.linked}-${moves}-${path.basename(source)}`));
+		moves++;
+	}
+	const after = runCli(["doctor"], item);
+	const rowsOk = byHand.every(({ label }) => {
+		const row = doctorRow(after, label);
+		return row?.mark === "✓" && row.detail === "none present";
+	});
+	return { linked: item.linked, byHand, moves, rowsOk, afterStatus: after.status };
+});
+const r2702Pass = r2702Facts.length === 2 && r2702Facts.every((item) => item.byHand.length > 0 && item.moves > 0 && item.rowsOk);
+// req: R-2702
+check("R-2702: moving every path a legacy row names to move by hand leaves that row ✓", r2702Pass, JSON.stringify(r2702Facts));
+
+// --------------------------------------------------------------------------------- R-2703
+
+function buildInstalledSkillsLink(name, extraEnv = {}) {
+	const home = fixtureHome(name);
+	const cwd = freshCwd(`${name}-cwd`);
+	const installed = runCli(["install"], { home, cwd, extraEnv });
+	if (installed.status !== 0) throw new Error(`fixture ${name}: install failed (${installed.status})\n${installed.stdout}\n${installed.stderr}`);
+	const skills = path.join(home, ".claude", "skills");
+	const target = path.join(home, `${name}-dotfiles-skills`);
+	fs.renameSync(skills, target);
+	fs.symlinkSync(target, skills, linkType);
+	return { home, cwd, linkedFolder: skills };
+}
+
+const parityLabels = [...CLAUDE_SKILLS.map((name) => `skill ${name}`), "legacy enforcement flags", "legacy scaffolders"];
+const r2703Facts = [
+	{ name: "native", extraEnv: {} },
+	{ name: "forced-win32", extraEnv: winEnv },
+].map(({ name, extraEnv }) => {
+	const controlHome = fixtureHome(`parity-${name}-control`);
+	const controlCwd = freshCwd(`parity-${name}-control-cwd`);
+	const controlInstall = runCli(["install"], { home: controlHome, cwd: controlCwd, extraEnv });
+	const claude = buildHomeBD(`parity-${name}-claude`, extraEnv);
+	const skills = buildInstalledSkillsLink(`parity-${name}-skills`, extraEnv);
+	const controlDoctor = runCli(["doctor"], { home: controlHome, cwd: controlCwd, extraEnv });
+	const linkedDoctors = [
+		runCli(["doctor"], { ...claude, extraEnv }),
+		runCli(["doctor"], { ...skills, extraEnv }),
+	];
+	const rowsOk = controlInstall.status === 0 && linkedDoctors.every((doctor) => parityLabels.every((label) => {
+		const expected = doctorRow(controlDoctor, label);
+		const actual = doctorRow(doctor, label);
+		return expected?.mark === "✓" && actual?.mark === "✓" && actual.detail === expected.detail;
+	}));
+	return { name, controlInstall: controlInstall.status, controlDoctor: controlDoctor.status, linkedStatuses: linkedDoctors.map((doctor) => doctor.status), rowsOk };
+});
+const r2703Pass = r2703Facts.every((item) => item.rowsOk);
+// req: R-2703
+check("R-2703: in a home whose Claude or skills folder is a link, every ✓ skill and legacy row reads as it does in an unlinked home", r2703Pass, JSON.stringify(r2703Facts));
+
+// -------------------------------------------------------------------------- R-2704 / R-2705
+
+function buildBrokenFolder(name, relative, extraEnv = {}, { loop = false } = {}) {
+	const home = fixtureHome(name);
+	const cwd = freshCwd(`${name}-cwd`);
+	const claude = path.join(home, ".claude");
+	if (relative) fs.mkdirSync(path.dirname(path.join(claude, relative)), { recursive: true });
+	const link = relative ? path.join(claude, relative) : claude;
+	if (loop) fs.symlinkSync(link, link, "dir");
+	else {
+		const target = makeDir(home, `${name}-target`);
+		fs.symlinkSync(target, link, linkType);
+		fs.rmSync(target, { recursive: true });
+	}
+	return { name, home, cwd, link, extraEnv, loop };
+}
+
+function firstRefusalLine(result) {
+	return String(result.stderr ?? "").split(/\r?\n/).map((line) => line.trim()).find((line) => line.startsWith("nana-setup: "))?.slice("nana-setup: ".length) ?? "";
+}
+
+function failedDoctorCount(result) {
+	return result.stdout.split(/\r?\n/).filter((line) => /^\s*✗ /u.test(line)).length;
+}
+
+const brokenCases = [
+	buildBrokenFolder("broken-native-claude", ""),
+	buildBrokenFolder("broken-native-rules", "rules"),
+	buildBrokenFolder("broken-native-memory", "nana-memory"),
+	buildBrokenFolder("broken-native-shared", path.join("nana-memory", "shared")),
+	...(process.platform === "win32" ? [] : [buildBrokenFolder("broken-native-hooks", "hooks")]),
+	buildBrokenFolder("broken-win32-claude", "", winEnv),
+	buildBrokenFolder("broken-win32-rules", "rules", winEnv),
+	buildBrokenFolder("broken-win32-memory", "nana-memory", winEnv),
+	buildBrokenFolder("broken-win32-shared", path.join("nana-memory", "shared"), winEnv),
+	...(process.platform === "win32" ? [] : [buildBrokenFolder("broken-native-rules-loop", "rules", {}, { loop: true })]),
+];
+const brokenFacts = brokenCases.map((item) => {
+	const before = walk(item.home);
+	const install = runCli(["install"], item);
+	const after = walk(item.home);
+	const refusal = firstRefusalLine(install);
+	const unchanged = JSON.stringify(after) === JSON.stringify(before);
+	const noStack = !/^\s+at /m.test(`${install.stdout}\n${install.stderr}`);
+	return { ...item, before, after, install, refusal, unchanged, noStack };
+});
+
+const skillsControl = buildBrokenFolder("broken-control-skills", "skills");
+const skillsInstall = runCli(["install"], skillsControl);
+const skillsDoctor = runCli(["doctor"], skillsControl);
+const skillsSummary = lastNonEmptyLine(skillsDoctor);
+const skillsControlOk = skillsInstall.status === 1 && !/^\s+at /m.test(`${skillsInstall.stdout}\n${skillsInstall.stderr}`) && fs.existsSync(path.join(skillsControl.home, ".claude", "rules")) && CLAUDE_SKILLS.every((name) => skillsSummary.includes(`skill ${name}`)) && skillsSummary.includes("fix by hand") && !skillsSummary.includes("will not run until this is fixed");
+
+const hooksControl = buildBrokenFolder("broken-control-win32-hooks", "hooks", winEnv);
+const hooksInstall = runCli(["install"], hooksControl);
+const hooksControlOk = hooksInstall.status === 0 && !/^\s+at /m.test(`${hooksInstall.stdout}\n${hooksInstall.stderr}`) && !hooksInstall.stderr.includes(hooksControl.link);
+
+const r2704Pass = brokenFacts.every((item) => item.install.status === 2 && item.refusal.startsWith(`${item.link} `) && item.refusal.includes("move") && (item.loop ? item.refusal.includes("(ELOOP)") : true) && item.noStack && item.unchanged) && skillsControlOk && hooksControlOk;
+// req: R-2704
+check("R-2704: a Claude home, or its rules, shared-memory or (off win32) hooks folder, that is a link whose target cannot be reached makes install refuse before any write, naming that link, and a broken skills or win32 hooks link does not", r2704Pass, JSON.stringify({ broken: brokenFacts.map((item) => ({ name: item.name, link: item.link, status: item.install.status, refusal: item.refusal, unchanged: item.unchanged, noStack: item.noStack, stderr: item.install.stderr })), skills: { status: skillsInstall.status, summary: skillsSummary, stderr: skillsInstall.stderr, ok: skillsControlOk }, hooks: { status: hooksInstall.status, stderr: hooksInstall.stderr, ok: hooksControlOk } }));
+
+const r2705Facts = brokenFacts.map((item) => {
+	const doctor = runCli(["doctor"], item);
+	const count = failedDoctorCount(doctor);
+	const summary = lastNonEmptyLine(doctor);
+	const expected = `${count} missing — nana-setup install will not run until this is fixed: ${item.refusal}`;
+	return { name: item.name, status: doctor.status, count, summary, expected, ok: doctor.status === 1 && count > 0 && summary.startsWith(expected) };
+});
+const r2705Pass = r2705Facts.every((item) => item.ok);
+// req: R-2705
+check("R-2705: for such a broken link, doctor's last line names install's refusal instead of telling the user to run install", r2705Pass, JSON.stringify(r2705Facts));
 
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);
 process.exitCode = fails ? 1 : 0;

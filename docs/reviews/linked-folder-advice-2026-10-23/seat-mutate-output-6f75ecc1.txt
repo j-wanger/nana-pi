@@ -1,0 +1,42 @@
+seat-mutate: lane linked-folder-advice, tip 6f75ecc11240d24f01d16c686c1c61247eca8a07, table c25818ab98c8e79bf5b324bf6ccf9ae27804e98445e827031a1c8f768ecb1cde, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 21 pairs in 5 shards (5+4+4+4+4, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T17:05:20.050Z
+DECLARED (plan) W1 to W15 and W17 to W19 follow the draft's pair table; V1, V2 and V15 are the must-meet's
+DECLARED (seat) W9 makes the guard skip the dry run, the same reach as a guard in runInstall: doctor's dry run misses it
+DECLARED (seat) W12 names R-2291 to R-2294 and R-2701, as the draft lists; W17 names install.test.mjs's fresh install (attack N-2)
+[1/5] seat-mutate: lane linked-folder-advice, shard 1/5, tip 6f75ecc11240d24f01d16c686c1c61247eca8a07, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 5 pairs, darwin, node v22.22.2, 2026-10-23T17:05:20.989Z
+[1/5] BASELINE ok   packages/nana-setup/tests/linked-claude-folder.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/install.test.mjs (exit 0, 110 PASS, 0 FAIL, )
+[1/5] RESULT: 5/5 red (3 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane linked-folder-advice, shard 2/5, tip 6f75ecc11240d24f01d16c686c1c61247eca8a07, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:05:25.038Z
+[2/5] BASELINE ok   packages/nana-setup/tests/linked-claude-folder.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane linked-folder-advice, shard 3/5, tip 6f75ecc11240d24f01d16c686c1c61247eca8a07, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:05:29.051Z
+[3/5] BASELINE ok   packages/nana-setup/tests/linked-claude-folder.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (3 exactly their named titles, 1 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane linked-folder-advice, shard 4/5, tip 6f75ecc11240d24f01d16c686c1c61247eca8a07, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:05:33.095Z
+[4/5] BASELINE ok   packages/nana-setup/tests/linked-claude-folder.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[4/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane linked-folder-advice, shard 5/5, tip 6f75ecc11240d24f01d16c686c1c61247eca8a07, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:05:37.360Z
+[5/5] BASELINE ok   packages/nana-setup/tests/linked-claude-folder.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[5/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED W1 the flags row keyed on linkedFolder instead of install's Claude-home test — 1/1 named: /^R-2701: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W2 the scaffolders row keyed on the Claude home only — 2/2 named: /^R-2701: / | /^R-2702: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W3 the by-hand text names no paths — 2/2 named: /^R-2701: / | /^R-2702: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W4 the by-hand text omits the linked folder — 2/2 named: /^R-2701: / | /^R-2702: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W5 the by-hand text still ends with run nana-setup install — 2/2 named: /^R-2701: / | /^R-2702: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W6 the linked branch checked before the count, so a ✓ legacy row gets advice — 2/2 named: /^R-2702: / | /^R-2703: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W7 the skill loop drops !st.ok, so ✓ skill rows get the move-aside text — 1/1 named: /^R-2703: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W8 no guard (main's install()) — 2/2 named: /^R-2704: / | /^R-2705: /; 2 FAIL total (1 file changed, 1 deletion(-))
+RED W9 the guard out of the dry run's reach — 1/1 named: /^R-2705: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W10 the guard checks the Claude home only — 2/2 named: /^R-2704: / | /^R-2705: /; 2 FAIL total (1 file changed, 4 deletions(-))
+RED W11 the guard checks the hooks folder on win32 too — 1/1 named: /^R-2704: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W12 the guard refuses any linked folder, reachable or not — 5/5 named: /^R-2291: / | /^R-2292: / | /^R-2293: / | /^R-2294: / | /^R-2701: /; 5 FAIL total (1 file changed, 1 insertion(+))
+RED W13 the guard runs inside the file steps, after the settings lock — 1/2 named: /^R-2704: /; named but GREEN: /^R-2705: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W14 the refusal does not name the link — 1/1 named: /^R-2704: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W15 the refusal names the link on its second line only — 1/1 named: /^R-2704: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED W17 the guard refuses a missing folder, not only a link — (no named case); named but NOT REACHED: /^install exits 0$/; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH linked-claude-folder.test.mjs THREW (later checks never ran) || install.test.mjs THREW (later checks never ran)
+RED W18 the guard skips the shared-memory folder itself — 2/2 named: /^R-2704: / | /^R-2705: /; 2 FAIL total (1 file changed, 1 deletion(-))
+RED W19 the by-hand paths spelled through the link's target — 1/1 named: /^R-2701: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED V1 the by-hand row names both flags whatever is present — 1/1 named: /^R-2701: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH linked-claude-folder.test.mjs THREW (later checks never ran)
+RED V2 the guard also checks the skills folder — 1/1 named: /^R-2704: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED V15 the guard skips both shared-memory folders on win32 — 1/1 named: /^R-2704: /; UNNAMED red: [linked-claude-folder.test.mjs] R-2705: for such a broken link, doctor's last line names install's refusal instead of telling the user to run…; 2 FAIL total (1 file changed, 1 insertion(+), 2 deletions(-))
+RESULT: 21/21 red (18 exactly their named titles, 3 with a named title green, 1 with an unnamed red), 0 survived, across 5 shards
