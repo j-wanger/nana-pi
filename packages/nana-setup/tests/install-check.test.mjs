@@ -88,8 +88,8 @@ check("environment removes overrides and redirects home, temp and npm cache", ()
 check("sealed override list removes every listed key and caller npm config keys case-insensitively", () => {
   const source = Object.fromEntries([...OVERRIDE_ENV.map((key) => [key, "caller"]), ["Npm_Config_Cache", "outside"], ["npm_config_userconfig", "outside"], ["PATH", "/bin"]]);
   const env = buildEnvironment(source, "/temp/home", "win32");
-  assert.equal(OVERRIDE_ENV.length, 8);
-  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
+  assert.equal(OVERRIDE_ENV.length, 9);
+  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
   assert.deepEqual(Object.keys(env).filter((key) => key.toLowerCase().startsWith("npm_config_")).map((key) => key.toLowerCase()), ["npm_config_cache"]);
   assert.equal(Object.keys(env).some((key) => OVERRIDE_ENV.some((item) => item.toLowerCase() === key.toLowerCase())), false);
 });
@@ -215,7 +215,7 @@ function hookScriptFileName(call) {
   const name = path.posix.basename(String(script).replaceAll("\\", "/"));
   return HOOKS.some((hook) => path.basename(hook.script) === name) ? name : null;
 }
-function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null, reviewRecordForms = null, sleep = async () => {} } = {}) {
+function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null, reviewRecordForms = null, workerRecordForms = null, gitBash = true, sleep = async () => {} } = {}) {
   const home = tempHome();
   const calls = [];
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -243,8 +243,14 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       fs.writeFileSync(path.join(home, ".claude/settings.json"), JSON.stringify({ hooks }));
       const bin = path.join(home, ".local", "bin");
       fs.mkdirSync(bin, { recursive: true });
+      fs.writeFileSync(path.join(home, ".pi/agent/nana-pack.json"), JSON.stringify({ objective: { projectFile: "OBJECTIVE.md" } }));
+      fs.writeFileSync(path.join(home, ".pi/agent/settings.json"), JSON.stringify({ packages: [path.join(root, "packages/nana-pack")] }));
       fs.writeFileSync(path.join(bin, "pi-review"), "#!/bin/sh\n");
-      if (platformName === "win32") fs.writeFileSync(path.join(bin, "pi-review.cmd"), "@echo off\r\n");
+      fs.writeFileSync(path.join(bin, "pi-worker"), "#!/bin/sh\n");
+      if (platformName === "win32") {
+        fs.writeFileSync(path.join(bin, "pi-review.cmd"), "@echo off\r\n");
+        fs.writeFileSync(path.join(bin, "pi-worker.cmd"), "@echo off\r\n");
+      }
       return { status: 0, stdout: "" };
     }
     if (args[0] === "init") return { status: 0 };
@@ -278,6 +284,38 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       }
       return { status: 0, stdout: "fixture review complete" };
     }
+    const workerText = `${joined}\n${options.input ?? ""}`;
+    if (workerText.includes("--lane") && workerText.includes("pi-worker")) {
+      const build = installConfig.PI_BUILD;
+      const lane = reviewArgument(args, options.input, "--lane");
+      const briefFile = reviewArgument(args, options.input, "--brief");
+      const outFile = reviewArgument(args, options.input, "--out");
+      const form = options.input ? "sh" : command.toLowerCase().endsWith("cmd.exe") ? "cmd" : "path";
+      const packConfig = JSON.parse(fs.readFileSync(path.join(home, ".pi/agent/nana-pack.json"), "utf8"));
+      const piSettings = JSON.parse(fs.readFileSync(path.join(home, ...build.settings.path), "utf8"));
+      const hasFixture = Array.isArray(piSettings[build.settings.key]) && piSettings[build.settings.key].includes(path.join(root, installConfig.PI_REVIEW.fixture));
+      fs.mkdirSync(path.dirname(outFile), { recursive: true });
+      if (!hasFixture) {
+        fs.writeFileSync(outFile, `Error: Unknown provider "${installConfig.PI_REVIEW.provider}".\n`);
+        return { status: 1, stderr: "pi-worker: build record: failed" };
+      }
+      fs.writeFileSync(outFile, `${installConfig.PI_REVIEW.answer}\n\n${installConfig.PI_REVIEW.verdictLine}`);
+      if (workerRecordForms === null || workerRecordForms.includes(form)) {
+        const worktree = options.cwd;
+        const branch = `${build.branchPrefix}${lane}`;
+        const preamble = fs.readFileSync(path.join(root, build.preamble.file), "utf8").replaceAll(build.preamble.worktree, worktree).replaceAll(build.preamble.branch, branch);
+        const brief = fs.readFileSync(briefFile, "utf8");
+        const packages = Array.isArray(piSettings.packages) ? piSettings.packages : [];
+        fs.writeFileSync(path.join(home, installConfig.PI_REVIEW.record), JSON.stringify({ system: `${preamble}\n${brief}${packages.some((entry) => String(entry).includes("nana-pack")) ? `\n${installConfig.PI_TURN.writingTag}` : ""}`, userMessages: ["fixture"], role: build.role }));
+      }
+      const ledger = path.join(home, installConfig.PI_REVIEW.repoFolder, ...build.ledger);
+      fs.mkdirSync(path.dirname(ledger), { recursive: true });
+      const id = `build-${lane}`;
+      const lock = path.join(home, installConfig.PI_REVIEW.repoFolder, ...build.lock.gitFolder, path.basename(options.cwd), build.lock.file);
+      const builder = packConfig.roster?.builder ?? { provider: "openai-codex", model: "gpt-6-luna" };
+      fs.appendFileSync(ledger, `${JSON.stringify({ v: build.recordSchema, kind: build.recordKinds.start, build: id, lane, provider: builder.provider, model: builder.model, lock })}\n${JSON.stringify({ v: build.recordSchema, kind: build.recordKinds.end, build: id, outcome: build.outcome, exit: 0 })}\n`);
+      return { status: 0, stdout: "fixture build complete" };
+    }
     if (joined.includes("nana-objective.mjs")) {
       const objective = fs.readFileSync(path.join(home, ".pi/agent/nana-objective.md"), "utf8");
       return { status: 0, stdout: `[nana:objective] ${objective.match(/installcheck_[a-z0-9]+/)?.[0] ?? "fixture"}` };
@@ -302,8 +340,8 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
   const pathEnv = platformName === "win32" ? { Path: "C:\\Git\\cmd;C:\\tools" } : { PATH: "/bin" };
   const winExists = (candidate) => {
     const normalized = candidate.toLowerCase().replaceAll("/", "\\");
-    const launcher = path.join(home, ".local", "bin", "pi-review.cmd").toLowerCase().replaceAll("/", "\\");
-    return normalized === launcher || normalized === "c:\\git\\cmd\\git.exe" || normalized === "c:\\git\\bin\\bash.exe" || normalized === (piShim ? "c:\\tools\\pi.cmd" : "c:\\tools\\pi.exe");
+    const launchers = ["pi-review.cmd", "pi-worker.cmd"].map((name) => path.join(home, ".local", "bin", name).toLowerCase().replaceAll("/", "\\"));
+    return launchers.includes(normalized) || normalized === "c:\\git\\cmd\\git.exe" || (gitBash && normalized === "c:\\git\\bin\\bash.exe") || normalized === (piShim ? "c:\\tools\\pi.cmd" : "c:\\tools\\pi.exe");
   };
   const run = runInstallCheck({ root, home, platformName, env: { ...pathEnv, ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? winExists : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {}, sleep });
   return { home, calls, run };
@@ -364,7 +402,7 @@ check("environment: HOME, USERPROFILE, TMPDIR, TEMP, TMP and npm_config_cache po
 });
 
 // req: R-1071, R-1075, R-1079, R-1084
-check("environment: every child gets the base environment plus only its own step's additions (CLAUDE_PROJECT_DIR for each hook, NANA_TEST_TEMP_ROOTS empty for the pi session)", async () => {
+check("environment: every child gets the base environment plus only its own step's additions (CLAUDE_PROJECT_DIR for each hook, NANA_TEST_TEMP_ROOTS empty for the pi session, the offline value for each build)", async () => {
   const fixture = recordingRun({ env: { PI_CODING_AGENT_DIR: "/outside", npm_config_userconfig: "/outside" } });
   try {
     await fixture.run;
@@ -375,8 +413,10 @@ check("environment: every child gets the base environment plus only its own step
       const expected = { ...base };
       const isHook = hookScriptFileName(call) !== null;
       const isSession = call.args.includes("--mode") && call.args.includes("rpc");
+      const isBuild = `${call.command} ${call.args.join(" ")} ${call.options.input ?? ""}`.includes("pi-worker") && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes("--lane");
       if (isHook) expected.CLAUDE_PROJECT_DIR = path.join(fixture.home, "project");
       if (isSession) expected.NANA_TEST_TEMP_ROOTS = "";
+      if (isBuild) Object.assign(expected, installConfig.PI_BUILD.env);
       assert.deepEqual(call.options.env, expected);
     }
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
@@ -526,7 +566,7 @@ check("reporting: the first lines name Git Bash on win32 only, then pi and node"
 
 // req: R-1071
 check("pin R-1071: the override list", () => {
-  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
+  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
 });
 
 // req: R-1070, R-1080
@@ -786,7 +826,7 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       assert.equal((memory.match(/^- \[/gm) ?? []).length, 1);
       assert.equal(fs.existsSync(path.join(fixture.home, ".claude-placeholder")), false);
       assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "notes"));
-      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative === ".pi/agent/nana-journal.jsonl" || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
+      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative.startsWith(".local/bin/pi-worker") || relative === ".pi/agent/nana-pack.json" || relative === ".pi/agent/settings.json" || relative === ".pi/agent/nana-journal.jsonl" || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
       const written = [];
       const visit = (directory) => {
         for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -798,13 +838,17 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       };
       visit(fixture.home);
       const reviewOutputs = (platformName === "win32" ? installConfig.PI_REVIEW.runs.win32 : installConfig.PI_REVIEW.runs.default).map((run) => [installConfig.PI_REVIEW.outFolder, `${run.item}.md`].join("/"));
+      const buildRuns = platformName === "win32" ? installConfig.PI_BUILD.runs.win32 : installConfig.PI_BUILD.runs.default;
+      const buildFiles = buildRuns.flatMap((run) => [[installConfig.PI_BUILD.outFolder, `${run.lane}-brief.md`].join("/"), [installConfig.PI_BUILD.outFolder, `${run.lane}.md`].join("/")]);
       assert.deepEqual(written.sort(), [
         ".claude/nana-memory/shared/MEMORY.md",
         ".pi/agent/nana-objective.md",
         installConfig.PI_REVIEW.record,
         installConfig.PI_REVIEW.tally.join("/"),
         [installConfig.PI_REVIEW.repoFolder, installConfig.PI_REVIEW.fixtureFile].join("/"),
+        [installConfig.PI_REVIEW.repoFolder, ...installConfig.PI_BUILD.ledger].join("/"),
         ...reviewOutputs,
+        ...buildFiles,
       ].sort());
       const child = fixture.calls.find(call => call.args[0] === "init").options.env;
       const pathKey = Object.keys(child).find((key) => key.toLowerCase() === "path");
@@ -1201,8 +1245,10 @@ check("pi post-edit config: a missing, unparseable or non-object installed nana-
   for (const original of [null, "{ not json", "[]"]) {
     const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
       const result = await spawn(command, args, options);
-      if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install") && original !== null) {
-        fs.writeFileSync(path.join(fixture.home, ".pi", "agent", "nana-pack.json"), original);
+      if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install")) {
+        const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
+        if (original === null) fs.rmSync(configPath, { force: true });
+        else fs.writeFileSync(configPath, original);
       }
       return result;
     } });
@@ -1505,6 +1551,240 @@ check("pin R-2070 to R-2076: the review's sealed fixture, provider, model, argum
     role: "reviewer",
   });
   assert.equal(installConfig.SPAWN_TIMEOUT_MS.review, 180000);
+});
+
+function passingWorkerJudgment(overrides = {}) {
+  const build = installConfig.PI_BUILD;
+  const lane = build.runs.default[0].lane;
+  const worktree = path.join("/tmp", build.worktreeFolder, lane);
+  const branch = `${build.branchPrefix}${lane}`;
+  const brief = `${build.briefHeading}\n\n${build.briefTask} installcheck_judge-${lane}\n\n${build.precedentLabel}\n- ${installConfig.PI_REVIEW.fixtureFile}\n`;
+  const preambleSource = `root ${build.preamble.worktree}\r\nbranch ${build.preamble.branch}\r\ntrailing tab\t`;
+  const preamble = preambleSource.replaceAll(build.preamble.worktree, worktree).replaceAll(build.preamble.branch, branch);
+  const lock = path.join("/tmp", installConfig.PI_REVIEW.repoFolder, ...build.lock.gitFolder, path.basename(worktree), build.lock.file);
+  const id = "build-id";
+  const ledgerRows = [
+    { v: build.recordSchema, kind: build.recordKinds.start, build: id, lane, provider: installConfig.PI_REVIEW.provider, model: installConfig.PI_REVIEW.model, lock },
+    { v: build.recordSchema, kind: build.recordKinds.end, build: id, outcome: build.outcome, exit: 0 },
+  ].map(JSON.stringify);
+  const ledgerText = `${ledgerRows[0]} \t\r\n${ledgerRows[1]}`;
+  return {
+    launch: { status: 0, error: null },
+    outputText: `${installConfig.PI_REVIEW.answer}\r\n\r\n${installConfig.PI_REVIEW.verdictLine}\r\n \t`,
+    record: { system: `${preamble}\n${brief}\n${installConfig.PI_TURN.writingTag}`, role: build.role },
+    preamble,
+    brief,
+    ledgerText,
+    lane,
+    expectedLock: lock,
+    lockExists: false,
+    platformName: "linux",
+    ...overrides,
+  };
+}
+
+// req: R-2681
+check("pi-worker launch: off win32, one build starts by the path of the temporary home's bin pi-worker from a linked worktree of the review repository on the sealed lane branch, with the sealed arguments, a brief and output outside that worktree and the offline value", async () => {
+  const fixture = recordingRun({ platformName: "linux" });
+  try {
+    const result = await fixture.run;
+    const build = installConfig.PI_BUILD;
+    const run = build.runs.default[0];
+    const calls = fixture.calls.filter((call) => `${call.command} ${call.args.join(" ")} ${call.options.input ?? ""}`.includes("pi-worker") && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes("--lane"));
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    const worktree = path.join(fixture.home, build.worktreeFolder, run.lane);
+    const brief = path.join(fixture.home, build.outFolder, `${run.lane}-brief.md`);
+    const output = path.join(fixture.home, build.outFolder, `${run.lane}.md`);
+    assert.equal(call.command, path.join(fixture.home, ".local", "bin", "pi-worker"));
+    assert.equal(call.options.cwd, worktree);
+    assert.deepEqual(call.args, ["--lane", run.lane, "--brief", brief, "--out", output, ...build.launcherArgs]);
+    assert.equal(call.args.includes("--"), false);
+    assert.equal(brief.startsWith(`${worktree}${path.sep}`), false);
+    assert.equal(output.startsWith(`${worktree}${path.sep}`), false);
+    assert.match(fs.readFileSync(brief, "utf8"), new RegExp(`${build.briefTask} installcheck_[a-z0-9]+-${run.lane}\\n\\n${build.precedentLabel}`));
+    assert.equal(call.options.env.PI_OFFLINE, build.env.PI_OFFLINE);
+    assert.equal(call.options.timeout, installConfig.SPAWN_TIMEOUT_MS.build);
+    const worktreeCall = fixture.calls.find((item) => item.command === "git" && item.args.includes("worktree") && item.args.includes(worktree));
+    assert.ok(worktreeCall);
+    assert.deepEqual(worktreeCall.args.slice(-5), ["worktree", "add", "--quiet", "-b", `${build.branchPrefix}${run.lane}`, worktree].slice(-5));
+    assert.deepEqual(result.lines.filter((line) => line.includes("pi-worker")), [`PASS ${run.label}`]);
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2682
+check("pi-worker launch: on win32, the temporary home's pi-worker.cmd starts under the command interpreter and Git Bash runs a command naming pi-worker bare, each once from its own worktree on its own lane branch with its own brief and output", async () => {
+  const fixture = recordingRun({ platformName: "win32" });
+  try {
+    const result = await fixture.run;
+    const build = installConfig.PI_BUILD;
+    const calls = fixture.calls.filter((call) => `${call.command} ${call.args.join(" ")} ${call.options.input ?? ""}`.includes("pi-worker") && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes("--lane"));
+    assert.equal(calls.length, 2);
+    const cmd = calls.find((call) => call.command === "C:\\Windows\\System32\\cmd.exe");
+    const sh = calls.find((call) => call.command === "C:\\Git\\bin\\bash.exe");
+    assert.ok(cmd); assert.ok(sh);
+    assert.equal(cmd.options.windowsVerbatimArguments, true);
+    assert.ok(cmd.args.at(-1).includes(`"${path.join(fixture.home, ".local", "bin", "pi-worker.cmd")}"`));
+    assert.equal(cmd.args.at(-1).includes("pi-worker.mjs"), false);
+    assert.deepEqual(sh.args, []);
+    assert.match(sh.options.input, /^'pi-worker' /);
+    assert.equal(sh.options.input.includes(path.join(fixture.home, ".local", "bin", "pi-worker")), false);
+    for (const run of build.runs.win32) {
+      const worktree = path.join(fixture.home, build.worktreeFolder, run.lane);
+      const brief = path.join(fixture.home, build.outFolder, `${run.lane}-brief.md`);
+      const output = path.join(fixture.home, build.outFolder, `${run.lane}.md`);
+      assert.equal(calls.filter((call) => `${call.args.join(" ")} ${call.options.input ?? ""}`.includes(run.lane) && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes(brief) && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes(output) && call.options.cwd === worktree).length, 1);
+      assert.ok(fixture.calls.some((call) => call.command === "git" && call.args.includes(worktree) && call.args.includes(`${build.branchPrefix}${run.lane}`)));
+    }
+    assert.deepEqual(result.lines.filter((line) => line.includes("pi-worker")), build.runs.win32.map((run) => `PASS ${run.label}`));
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  const missing = recordingRun({ platformName: "win32", gitBash: false });
+  try {
+    const result = await missing.run;
+    assert.ok(result.lines.includes("FAIL pi-review (sh) — launch: Git Bash was not found"), result.lines.join("\n"));
+    assert.ok(result.lines.includes("FAIL pi-worker (sh) — launch: Git Bash was not found"), result.lines.join("\n"));
+  } finally { fs.rmSync(missing.home, { recursive: true, force: true }); }
+});
+
+// req: R-2683
+check("pi-worker lines: one line per run, PASS only when the run exits 0 in time and its output's last two non-blank lines are the fixture's answer and verdict lines", async () => {
+  const good = passingWorkerJudgment();
+  assert.equal(installCheck.judgePiWorker(good).passed, true);
+  const variants = [
+    { ...good, launch: { status: null, error: { code: "ETIMEDOUT" }, ms: 123 }, code: "timeout" },
+    { ...good, launch: { status: null, error: { code: "ENOENT", message: "missing" } }, code: "launch" },
+    { ...good, launch: { status: 1, error: null }, code: "exit" },
+    { ...good, outputText: null, code: "missing-report" },
+    { ...good, outputText: `${installConfig.PI_REVIEW.verdictLine}\n${installConfig.PI_REVIEW.answer}`, code: "report" },
+    { ...good, outputText: installConfig.PI_REVIEW.verdictLine, code: "report" },
+    { ...good, outputText: `${installConfig.PI_REVIEW.answer}\n${installConfig.PI_REVIEW.verdictLine}\t`, code: "report" },
+  ];
+  for (const variant of variants) assert.equal(installCheck.judgePiWorker(variant).code, variant.code);
+  for (const platformName of ["linux", "win32"]) {
+    const fixture = recordingRun({ platformName });
+    try {
+      const result = await fixture.run;
+      const runs = platformName === "win32" ? installConfig.PI_BUILD.runs.win32 : installConfig.PI_BUILD.runs.default;
+      assert.deepEqual(result.lines.filter((line) => line.includes("pi-worker")), runs.map((run) => `PASS ${run.label}`));
+    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  }
+  const setupFailure = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => command === "git" && args.includes("commit") ? { status: 128, stderr: "fixture commit failed" } : spawn(command, args, options) });
+  try {
+    const result = await setupFailure.run;
+    assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-review — launch: review repository setup failed:")), result.lines.join("\n"));
+    assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-worker — launch: review repository setup failed:")), result.lines.join("\n"));
+  } finally { fs.rmSync(setupFailure.home, { recursive: true, force: true }); }
+  for (const broken of ["missing-roster", "non-object-settings"]) {
+    const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+      const result = await spawn(command, args, options);
+      if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install")) {
+        if (broken === "missing-roster") fs.rmSync(path.join(fixture.home, ".pi/agent/nana-pack.json"), { force: true });
+        else fs.writeFileSync(path.join(fixture.home, ".pi/agent/settings.json"), "[]");
+      }
+      return result;
+    } });
+    try {
+      const result = await fixture.run;
+      assert.ok(result.lines.includes("FAIL pi-worker — launch: temporary home's roster or pi settings could not be edited"), result.lines.join("\n"));
+      assert.equal(fixture.calls.some((call) => `${call.command} ${call.args.join(" ")} ${call.options.input ?? ""}`.includes("pi-worker") && `${call.args.join(" ")} ${call.options.input ?? ""}`.includes("--lane")), false);
+    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  }
+});
+
+// req: R-2684
+check("pi-worker record: a record missing the rendered builder preamble, the whole brief, the writing tag or the worker role fails, and on win32 the cmd run's record cannot pass the sh run", async () => {
+  const good = passingWorkerJudgment();
+  const build = installConfig.PI_BUILD;
+  const otherBranch = good.preamble.replace(`${build.branchPrefix}${good.lane}`, `${build.branchPrefix}other`);
+  for (const [record, code] of [
+    [{ ...good.record, system: `root ${build.preamble.worktree}\nbranch ${build.preamble.branch}\n${good.brief}\n${installConfig.PI_TURN.writingTag}` }, "preamble"],
+    [{ ...good.record, system: good.record.system.replace(good.preamble, good.preamble.replace(path.join("/tmp", build.worktreeFolder, good.lane), "/tmp/other")) }, "preamble"],
+    [{ ...good.record, system: good.record.system.replace(good.preamble, otherBranch) }, "preamble"],
+    [{ ...good.record, system: good.record.system.replace(`installcheck_judge-${good.lane}`, `installcheck_judge-${good.lane.slice(0, -1)}`) }, "brief"],
+    [{ ...good.record, system: good.record.system.replace(installConfig.PI_TURN.writingTag, "") }, "writing"],
+    [{ ...good.record, role: "reviewer" }, "role"],
+    [{ system: good.record.system }, "role"],
+  ]) assert.equal(installCheck.judgePiWorker({ ...good, record }).code, code);
+  const fixture = recordingRun({ platformName: "win32", workerRecordForms: ["cmd"] });
+  try {
+    const result = await fixture.run;
+    assert.ok(result.lines.includes("PASS pi-worker (cmd)"), result.lines.join("\n"));
+    assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-worker (sh) — missing-record:")), result.lines.join("\n"));
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2685
+check("pi-worker ledger: no record, a start without an end, two starts, a mismatched build id, only another lane's records, another provider or model, or an end that is not ok with exit 0 each fail that run's line", () => {
+  const good = passingWorkerJudgment();
+  const build = installConfig.PI_BUILD;
+  const rows = good.ledgerText.split(/\r?\n/).map(JSON.parse);
+  const [start, end] = rows;
+  const another = { ...start, lane: "another", build: "another" };
+  const anotherEnd = { ...end, build: "another" };
+  assert.equal(installCheck.judgePiWorker({ ...good, ledgerText: [another, anotherEnd, start, end].map(JSON.stringify).join("\n") }).passed, true);
+  for (const ledgerRows of [
+    [], [start], [start, { ...start, build: "second" }, end], [start, { ...end, build: "other" }], [another, anotherEnd],
+    [{ ...start, provider: "another-provider" }, end], [{ ...start, model: "another-model" }, end], [start, { ...end, outcome: "failed" }], [start, { ...end, exit: 1 }],
+  ]) assert.equal(installCheck.judgePiWorker({ ...good, ledgerText: ledgerRows.map(JSON.stringify).join("\n") }).code, "build-record");
+  assert.equal(build.recordSchema, 1);
+});
+
+// req: R-2686
+check("pi-worker lock: a start record naming another lock path, or a lane lock still present after the run, fails that run's line", () => {
+  const good = passingWorkerJudgment();
+  const rows = good.ledgerText.split(/\r?\n/).map(JSON.parse);
+  assert.equal(installCheck.judgePiWorker(good).passed, true);
+  assert.equal(installCheck.judgePiWorker({ ...good, ledgerText: [{ ...rows[0], lock: path.join("/tmp", "nana-lane.lock") }, rows[1]].map(JSON.stringify).join("\n") }).code, "lock");
+  assert.equal(installCheck.judgePiWorker({ ...good, lockExists: true }).code, "lock");
+});
+
+// req: R-2687
+check("pi-worker exit: a failed build's line names the exit status and pi's first output line, or the launcher's last stderr line when there is no output, such as a lane refusal", async () => {
+  const good = passingWorkerJudgment();
+  const refusal = "pi-worker: lane refused: worktree lock X exists (recorded pid 1)";
+  let judged = installCheck.judgePiWorker({ ...good, launch: { status: 1, stderr: `noise\r\n${refusal}` }, outputText: null });
+  assert.equal(judged.code, "exit"); assert.ok(judged.detail.includes("exit status 1")); assert.ok(judged.detail.includes(refusal));
+  judged = installCheck.judgePiWorker({ ...good, launch: { status: 1, stderr: "pi-worker: build record: failed" }, outputText: "Error: Unknown provider \"x\".\r\nmore" });
+  assert.ok(judged.detail.includes("Error: Unknown provider")); assert.equal(judged.detail.includes("build record"), false);
+  judged = installCheck.judgePiWorker({ ...good, launch: { status: 1, stderr: `noise\n${refusal}` }, outputText: " \r\n\t" });
+  assert.ok(judged.detail.includes(refusal));
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+    const result = await spawn(command, args, options);
+    if (!`${command} ${args.join(" ")} ${options.input ?? ""}`.includes("pi-worker") || !`${args.join(" ")} ${options.input ?? ""}`.includes("--lane")) return result;
+    const output = reviewArgument(args, options.input, "--out"); fs.rmSync(output, { force: true });
+    return { status: 1, stderr: refusal };
+  } });
+  try { const result = await fixture.run; assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-worker — exit: exit status 1;") && line.includes(refusal)), result.lines.join("\n")); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-2681, R-2682, R-2683, R-2684, R-2685, R-2686, R-2687
+check("pin R-2681 to R-2687: the build's sealed runs, lanes, labels, folders, brief text, launcher arguments, offline value, roster, settings path, ledger, record kinds, lock, preamble, role and outcome, and its timeout above the lane ceiling", () => {
+  assert.deepEqual(installConfig.PI_BUILD, {
+    runs: {
+      default: [{ label: "pi-worker", lane: "install-check-build", form: "path" }],
+      win32: [{ label: "pi-worker (cmd)", lane: "install-check-build-cmd", form: "cmd" }, { label: "pi-worker (sh)", lane: "install-check-build-sh", form: "sh" }],
+    },
+    worktreeFolder: "build-worktrees",
+    outFolder: "build-out",
+    branchPrefix: "feat/",
+    briefHeading: "# Install check build",
+    briefTask: "Build nothing and report one line for",
+    precedentLabel: "Precedent:",
+    launcherArgs: ["--lane-size", "small", "--max-secs", "120"],
+    env: { PI_OFFLINE: "1" },
+    roster: { scout: null, builder: { provider: installConfig.PI_REVIEW.provider, model: installConfig.PI_REVIEW.model, thinking: null }, largerBuilder: null, reviewer: { provider: installConfig.PI_REVIEW.provider, model: installConfig.PI_REVIEW.model, thinking: null }, land: null },
+    settings: { path: [".pi", "agent", "settings.json"], key: "extensions" },
+    ledger: [".git", "nana", "build-records.jsonl"],
+    recordKinds: { start: "start", end: "end" },
+    recordSchema: 1,
+    lock: { gitFolder: [".git", "worktrees"], file: "nana-lane.lock" },
+    preamble: { file: "packages/nana-pack/prompts/builder-preamble.md", worktree: "{{WORKTREE}}", branch: "{{BRANCH}}" },
+    role: "worker",
+    outcome: "ok",
+  });
+  assert.equal(installConfig.SPAWN_TIMEOUT_MS.build, 180000);
+  assert.ok(Number(installConfig.PI_BUILD.launcherArgs.at(-1)) * 1000 < installConfig.SPAWN_TIMEOUT_MS.build);
 });
 
 check("pin R-2000 to R-2004: the post-edit item, tool, fixture file, match, placeholder, failure lead, check source and exit code, and the PowerShell item, tool, platforms and tool list", () => {

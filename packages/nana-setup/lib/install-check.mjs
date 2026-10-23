@@ -2,14 +2,14 @@
  * @module packages/nana-setup/lib/install-check.mjs
  * @purpose Implements pure install-check contracts and the isolated subprocess runner.
  * @inputs Sealed configuration, process environment, platform, clock and spawn function.
- * @outputs Child results, item judgments, environment construction and failure diagnostics.
+ * @outputs Child results, review and build judgments, environment construction and failure diagnostics.
  * @effects disk, process
  * @errors Child failures become item results; invalid hook shapes are reported as failures.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS, PI_SUBAGENTS_RETRY } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_BUILD, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_EDIT, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS, PI_SUBAGENTS_RETRY } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
@@ -283,6 +283,40 @@ export function judgePiReview({ launch, reviewText, tallyText, record, standard,
   return { passed: true, code: null, detail: "" };
 }
 
+export function judgePiWorker({ launch, outputText, record, preamble, brief, ledgerText, lane, expectedLock, lockExists, platformName = process.platform }) {
+  if (launch?.error?.code === "ETIMEDOUT") return { passed: false, code: "timeout", detail: `build timed out after ${launch.ms ?? 0} ms` };
+  if (launch?.error) return { passed: false, code: "launch", detail: launch.error.message ?? launch.error.code ?? "worker launcher could not start" };
+  if (launch?.status !== 0) {
+    const outputLine = typeof outputText === "string" ? outputText.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() : null;
+    const stderrLine = String(launch?.stderr ?? "").split(/\r?\n/).filter((line) => line.trim() !== "").at(-1)?.trim();
+    return { passed: false, code: "exit", detail: `exit status ${launch?.status ?? "unknown"}${outputLine || stderrLine ? `; ${outputLine || stderrLine}` : ""}` };
+  }
+  if (typeof outputText !== "string") return { passed: false, code: "missing-report", detail: "build output could not be read" };
+  const reportLines = outputText.split(/\r?\n/).filter((line) => line.trim() !== "");
+  if (reportLines.at(-2) !== PI_REVIEW.answer || reportLines.at(-1) !== PI_REVIEW.verdictLine) return { passed: false, code: "report", detail: `last two non-blank build lines are not ${PI_REVIEW.answer} and ${PI_REVIEW.verdictLine}` };
+  if (!isPlainObject(record)) return { passed: false, code: "missing-record", detail: `no readable ${PI_REVIEW.record} record` };
+  const system = typeof record.system === "string" ? record.system : "";
+  if (typeof preamble !== "string" || !preamble || !system.includes(preamble)) return { passed: false, code: "preamble", detail: "worker system prompt does not hold the rendered builder preamble" };
+  if (typeof brief !== "string" || !brief || !system.includes(brief)) return { passed: false, code: "brief", detail: "worker system prompt does not hold the whole brief" };
+  if (!system.includes(PI_TURN.writingTag)) return { passed: false, code: "writing", detail: `worker system prompt does not hold ${PI_TURN.writingTag}` };
+  if (record.role !== PI_BUILD.role) return { passed: false, code: "role", detail: `worker record role is not ${PI_BUILD.role}` };
+  const rows = [];
+  try {
+    for (const line of String(ledgerText ?? "").split(/\r\n|\r|\n/)) if (line.trim()) rows.push(JSON.parse(line));
+  } catch {
+    return { passed: false, code: "build-record", detail: "build ledger has an unreadable line" };
+  }
+  const starts = rows.filter((row) => row?.v === PI_BUILD.recordSchema && row?.kind === PI_BUILD.recordKinds.start && row?.lane === lane);
+  const ends = starts.length === 1 ? rows.filter((row) => row?.v === PI_BUILD.recordSchema && row?.kind === PI_BUILD.recordKinds.end && row?.build === starts[0]?.build) : [];
+  if (starts.length !== 1 || ends.length !== 1 || starts[0]?.provider !== PI_REVIEW.provider || starts[0]?.model !== PI_REVIEW.model || ends[0]?.outcome !== PI_BUILD.outcome || ends[0]?.exit !== 0) {
+    return { passed: false, code: "build-record", detail: `build ledger does not hold exactly one accepted pair for lane ${lane}` };
+  }
+  if (typeof starts[0]?.lock !== "string" || comparablePath(starts[0].lock, platformName) !== comparablePath(expectedLock, platformName) || lockExists) {
+    return { passed: false, code: "lock", detail: `lane lock is not released at ${expectedLock}` };
+  }
+  return { passed: true, code: null, detail: "" };
+}
+
 function shellQuote(value) {
   return `'${String(value).replaceAll("'", `'\\''`)}'`;
 }
@@ -398,6 +432,18 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     const powershellJudgment = judgePiPowerShell({ record: turnRecord });
     report(PI_TURN_POWERSHELL.item, turnTimedOut ? "timeout" : powershellJudgment.code, !turnTimedOut && powershellJudgment.passed, turn.error ? reason(turn) : powershellJudgment.detail);
   }
+  const launchInstalled = async (name, form, args, { cwd, timeout, env: launchEnv = childEnv }) => {
+    if (form === "path") return invoke(path.join(home, ".local", "bin", name), args, { cwd, timeout, env: launchEnv });
+    if (form === "cmd") {
+      const launch = winCommand(path.join(home, ".local", "bin", `${name}.cmd`), args, { comspec: childEnv.ComSpec });
+      return launch.refused
+        ? { status: null, error: Object.assign(new Error(launch.refused), { code: "ELAUNCH" }) }
+        : invoke(launch.command, launch.args, { ...launch.options, cwd, timeout, env: launchEnv });
+    }
+    if (!bash) return { status: null, error: Object.assign(new Error("Git Bash was not found"), { code: "ELAUNCH" }) };
+    const commandLine = [name, ...args].map(shellQuote).join(" ");
+    return invoke(bash, [], { cwd, timeout, input: `${commandLine}\n`, env: launchEnv });
+  };
   const reviewRepo = path.join(home, PI_REVIEW.repoFolder);
   const reviewOut = path.join(home, PI_REVIEW.outFolder);
   fs.mkdirSync(reviewRepo, { recursive: true });
@@ -421,18 +467,8 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     let launched;
     if (reviewGitFailure) {
       launched = { status: null, error: Object.assign(new Error(`review repository setup failed: ${reason(reviewGitFailure)}`), { code: "ELAUNCH" }) };
-    } else if (run.form === "path") {
-      launched = await invoke(path.join(home, ".local", "bin", "pi-review"), reviewArgs, { cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review });
-    } else if (run.form === "cmd") {
-      const launch = winCommand(path.join(home, ".local", "bin", "pi-review.cmd"), reviewArgs, { comspec: childEnv.ComSpec });
-      launched = launch.refused
-        ? { status: null, error: Object.assign(new Error(launch.refused), { code: "ELAUNCH" }) }
-        : await invoke(launch.command, launch.args, { ...launch.options, cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review });
-    } else if (!bash) {
-      launched = { status: null, error: Object.assign(new Error("Git Bash was not found"), { code: "ELAUNCH" }) };
     } else {
-      const commandLine = ["pi-review", ...reviewArgs].map(shellQuote).join(" ");
-      launched = await invoke(bash, [], { cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review, input: `${commandLine}\n` });
+      launched = await launchInstalled("pi-review", run.form, reviewArgs, { cwd: reviewRepo, timeout: SPAWN_TIMEOUT_MS.review });
     }
     let reviewText = null; try { reviewText = fs.readFileSync(output, "utf8"); } catch {}
     let tallyText = null; try { tallyText = fs.readFileSync(reviewTallyPath, "utf8"); } catch {}
@@ -505,6 +541,60 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     doctorDetail = `${kept.join("; ")}${kept.length ? "; " : ""}… and ${labels.length - kept.length} more`;
   }
   report("doctor", labels.length ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(doctor) && labels.length === 0, labels.length ? doctorDetail : okay(doctor) ? "" : reason(doctor));
+  const buildRuns = platformName === "win32" ? PI_BUILD.runs.win32 : PI_BUILD.runs.default;
+  const buildOut = path.join(home, PI_BUILD.outFolder);
+  const worktreeParent = path.join(home, PI_BUILD.worktreeFolder);
+  fs.mkdirSync(buildOut, { recursive: true });
+  fs.mkdirSync(worktreeParent, { recursive: true });
+  const packConfigPath = path.join(home, ".pi", "agent", "nana-pack.json");
+  const piSettingsPath = path.join(home, ...PI_BUILD.settings.path);
+  let buildSetupError = null;
+  try {
+    const packConfig = JSON.parse(fs.readFileSync(packConfigPath, "utf8"));
+    const piSettings = JSON.parse(fs.readFileSync(piSettingsPath, "utf8"));
+    if (!isPlainObject(packConfig) || !isPlainObject(piSettings)) throw new Error("temporary home's roster or pi settings could not be edited");
+    const extensions = Array.isArray(piSettings[PI_BUILD.settings.key]) ? piSettings[PI_BUILD.settings.key] : [];
+    const fixtureExtension = path.join(root, PI_REVIEW.fixture);
+    fs.writeFileSync(packConfigPath, `${JSON.stringify({ ...packConfig, roster: PI_BUILD.roster }, null, 2)}\n`);
+    fs.writeFileSync(piSettingsPath, `${JSON.stringify({ ...piSettings, [PI_BUILD.settings.key]: extensions.includes(fixtureExtension) ? extensions : [...extensions, fixtureExtension] }, null, 2)}\n`);
+  } catch {
+    buildSetupError = "temporary home's roster or pi settings could not be edited";
+  }
+  let preambleSource = null;
+  try { preambleSource = fs.readFileSync(path.join(root, PI_BUILD.preamble.file), "utf8"); } catch {}
+  const buildLedgerPath = path.join(reviewRepo, ...PI_BUILD.ledger);
+  for (const run of buildRuns) {
+    const branch = `${PI_BUILD.branchPrefix}${run.lane}`;
+    const worktree = path.join(worktreeParent, run.lane);
+    const briefPath = path.join(buildOut, `${run.lane}-brief.md`);
+    const outputPath = path.join(buildOut, `${run.lane}.md`);
+    const runToken = `${token}-${run.lane}`;
+    const brief = `${PI_BUILD.briefHeading}\n\n${PI_BUILD.briefTask} ${runToken}\n\n${PI_BUILD.precedentLabel}\n- ${PI_REVIEW.fixtureFile}\n`;
+    fs.writeFileSync(briefPath, brief);
+    fs.rmSync(reviewRecordPath, { force: true });
+    let launched;
+    if (reviewGitFailure) {
+      launched = { status: null, error: Object.assign(new Error(`review repository setup failed: ${reason(reviewGitFailure)}`), { code: "ELAUNCH" }) };
+    } else if (buildSetupError) {
+      launched = { status: null, error: Object.assign(new Error(buildSetupError), { code: "ELAUNCH" }) };
+    } else {
+      const worktreeResult = await reviewGit(["worktree", "add", "--quiet", "-b", branch, worktree]);
+      if (!okay(worktreeResult)) launched = { status: null, error: Object.assign(new Error(`build worktree setup failed: ${reason(worktreeResult)}`), { code: "ELAUNCH" }) };
+      else {
+        const buildArgs = ["--lane", run.lane, "--brief", briefPath, "--out", outputPath, ...PI_BUILD.launcherArgs];
+        launched = await launchInstalled("pi-worker", run.form, buildArgs, { cwd: worktree, timeout: SPAWN_TIMEOUT_MS.build, env: { ...childEnv, ...PI_BUILD.env } });
+      }
+    }
+    let outputText = null; try { outputText = fs.readFileSync(outputPath, "utf8"); } catch {}
+    let buildRecord = null; try { buildRecord = JSON.parse(fs.readFileSync(reviewRecordPath, "utf8")); } catch {}
+    let ledgerText = null; try { ledgerText = fs.readFileSync(buildLedgerPath, "utf8"); } catch {}
+    let canonicalWorktree = worktree;
+    try { canonicalWorktree = platformName === "win32" ? fs.realpathSync.native(worktree) : fs.realpathSync(worktree); } catch {}
+    const preamble = typeof preambleSource === "string" ? preambleSource.replaceAll(PI_BUILD.preamble.worktree, canonicalWorktree).replaceAll(PI_BUILD.preamble.branch, branch) : null;
+    const expectedLock = path.join(reviewRepo, ...PI_BUILD.lock.gitFolder, path.basename(canonicalWorktree), PI_BUILD.lock.file);
+    const judged = judgePiWorker({ launch: launched, outputText, record: buildRecord, preamble, brief, ledgerText, lane: run.lane, expectedLock, lockExists: (exists ?? fs.existsSync)(expectedLock), platformName });
+    report(run.label, judged.code, judged.passed, judged.detail);
+  }
   if (README_REHEARSAL.platforms.includes(platformName)) {
     const readmeHome = path.join(home, README_REHEARSAL.home);
     const readmeEnv = buildEnvironment(env, readmeHome, platformName);
