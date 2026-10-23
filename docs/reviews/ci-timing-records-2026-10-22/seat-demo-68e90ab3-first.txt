@@ -1,0 +1,7 @@
+ci record: darwin macos-latest run 39901143352 attempt 1 (pull_request): 212 files, 210 PASS, 0 FAIL, 2 SKIP, exit 0, wall 322.7s at 4 jobs
+ci record: slowest darwin macos-latest run 39901143352 attempt 1: packages/nana-pack/tests/review-ledger.test.mjs 77.6s, packages/nana-pack/tests/land.test.mjs 47.1s, packages/nana-pack/tests/review-test-waits.test.mjs 42.4s, packages/nana-setup/tests/pi-launch-limits.test.mjs 39.4s, packages/nana-pack/tests/templates-update.test.mjs 38s
+ci record: linux ubuntu-latest run 39901143352 attempt 1 (pull_request): 212 files, 209 PASS, 0 FAIL, 3 SKIP, exit 0, wall 401.1s at 4 jobs
+ci record: slowest linux ubuntu-latest run 39901143352 attempt 1: packages/nana-pack/tests/requirements-regroup.test.mjs 80.6s, packages/nana-pack/tests/product-report.test.mjs 79.5s, packages/nana-pack/tests/requirements-lift.test.mjs 72.8s, packages/nana-pack/tests/objective-golden.test.mjs 62.5s, packages/nana-pack/tests/review-ledger.test.mjs 56.9s
+ci record: win32 windows-latest run 39901143352 attempt 1 (pull_request): 212 files, 194 PASS, 0 FAIL, 18 SKIP, exit 0, wall 1111s at 4 jobs
+ci record: slowest win32 windows-latest run 39901143352 attempt 1: packages/nana-pack/tests/land.test.mjs 354.4s, packages/nana-pack/tests/templates-update.test.mjs 273.1s, packages/nana-pack/tests/review-ledger.test.mjs 272.1s, packages/nana-pack/tests/path-spelling.test.mjs 168.5s, packages/nana-pack/tests/product-report.test.mjs 165.4s
+ci record: 3 records from 1 CI runs at 68e90ab3; seconds are hosted-runner seconds under each record's job count

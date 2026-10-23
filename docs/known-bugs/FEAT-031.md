@@ -80,3 +80,16 @@
 - Run-alone list (ci-jobs, final review): the 350 s to 456 s figure above predates review-outputs-kept's extra review-ledger tests, so it may now be low; the ci-jobs land's suite record read 470.6 s.
 - Parallel suite (claude-review-launcher CI, 2026-10-22): test-runner-parallel's R-1472 check (files that ran together print unbroken blocks) failed once on the Windows leg at four files (run 39817507050, first try at 7d664b98); its re-run passed. If it fails again it joins the run-alone list with its runs as provenance.
 - Suite records (audit re-check, 2026-10-22): no session-start reader shows the last suite record's result.
+- CI records (ci-timing-records, plan): a pull_request run tests GitHub's merge of the head into main at run time; the record names the event, not the merged tree.
+- CI records (ci-timing-records, plan): runs before this lane have no record; their per-file seconds stay only in logs that expire after 90 days.
+- CI records (ci-timing-records, plan): records expire with the repository's 90-day artifact retention.
+- CI records (ci-timing-records, plan): CI seconds are hosted-runner seconds under four files at once; one record is one sample.
+- CI records (ci-timing-records, plan): the seat runs ci-records by hand; no land step, hook or CI step reads the records.
+- CI records (ci-timing-records, plan): an upload failure leaves that leg without a record; the reader names the leg.
+- CI records (ci-timing-records, plan): a runner crash before its record write leaves no record; the reader names the leg with its job conclusion.
+- CI records (ci-timing-records, plan): at most 100 runs per commit and 100 artifacts or jobs per run are read, with no paging.
+- CI records (ci-timing-records, plan): the record holds no per-file time limit, so headroom against the per-file timeout is read by eye.
+- CI records (ci-timing-records, plan): ci-records needs gh, signed in; its tests use a fake gh on every system, and a real gh has run only on macOS.
+- CI records (ci-timing-records, seat demo): artifacts' creation times and the cross-attempt artifact listing were measured once, on run 39901143352: after a Linux-leg re-run both Linux records printed and no copied leg was called missing.
+- CI records (ci-timing-records, plan): CI records never enter the local store or the runtime map.
+- CI records (ci-timing-records, seat): the test reads the fixture repository from the remote named `origin` by a literal, not the config's remote name.
