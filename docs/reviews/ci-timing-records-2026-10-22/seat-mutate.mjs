@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane ci-timing-records (ordinary), written by the seat 2026-10-22 after build 1, on the
-// shared runner, at tip 56def663, re-run at 8c72ab36 after builds 2 and 3. They are the must-meet's fifteen pairs in its
+// shared runner, at tip 56def663, re-run at 8c72ab36 after builds 2 and 3 and at 4e434217 after build 4. They are the must-meet's fifteen pairs in its
 // order, plus p16 for the seat's demo finding F2. Run from the worktree root on macOS:   SEAT_MUTATE_OUT=<file> node docs/reviews/ci-timing-records-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
@@ -84,4 +84,4 @@ const PAIRS = [
 	], tests: [T_REC], expectRed: [R_2634] },
 ];
 
-process.exitCode = await runMutations({ lane: "ci-timing-records", self: import.meta.url, tip: "8c72ab36", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "ci-timing-records", self: import.meta.url, tip: "4e434217", declared: DECLARED, pairs: PAIRS });

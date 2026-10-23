@@ -1,0 +1,41 @@
+seat-mutate: lane ci-timing-records, tip 4e434217488d14153a62fd470eed55386cb41b86, table 6f99a53887791b927b00c4b201a2a93a35ef0e8d64837cc5451d2e92f69f7637, merge-base 3bbb066216e99504eadbddf3abe6c2cc67edf8df, 16 pairs in 5 shards (4+3+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T03:59:32.239Z
+DECLARED (plan) p1 to p15 follow the must-meet's wrong-code list in order
+DECLARED (seat) p8 keeps each run's newest attempt per leg after the sort; p13 drops the start-time half of the left-no-record test
+DECLARED (seat) p16 is the seat's demo finding F2: the download names the artifact id where gh reads a run id
+[1/5] seat-mutate: lane ci-timing-records, shard 1/5, tip 4e434217488d14153a62fd470eed55386cb41b86, merge-base 3bbb066216e99504eadbddf3abe6c2cc67edf8df, 4 pairs, darwin, node v22.22.2, 2026-10-23T03:59:33.394Z
+[1/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/ci-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (1 exactly their named titles, 0 with a named title green, 3 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane ci-timing-records, shard 2/5, tip 4e434217488d14153a62fd470eed55386cb41b86, merge-base 3bbb066216e99504eadbddf3abe6c2cc67edf8df, 3 pairs, darwin, node v22.22.2, 2026-10-23T03:59:37.191Z
+[2/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/ci-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane ci-timing-records, shard 3/5, tip 4e434217488d14153a62fd470eed55386cb41b86, merge-base 3bbb066216e99504eadbddf3abe6c2cc67edf8df, 3 pairs, darwin, node v22.22.2, 2026-10-23T03:59:41.227Z
+[3/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/ci-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[3/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane ci-timing-records, shard 4/5, tip 4e434217488d14153a62fd470eed55386cb41b86, merge-base 3bbb066216e99504eadbddf3abe6c2cc67edf8df, 3 pairs, darwin, node v22.22.2, 2026-10-23T03:59:45.281Z
+[4/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/ci-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (2 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane ci-timing-records, shard 5/5, tip 4e434217488d14153a62fd470eed55386cb41b86, merge-base 3bbb066216e99504eadbddf3abe6c2cc67edf8df, 3 pairs, darwin, node v22.22.2, 2026-10-23T03:59:49.224Z
+[5/5] BASELINE ok   packages/nana-pack/tests/ci-workflow.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/ci-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (1 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+RED p1 upload with the default if — 1/1 named: /^R-2632: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED p2 artifact name without the run attempt — 1/1 named: /^R-2632: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 upload path not the knob path — 1/1 named: /^R-2632: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 if-no-files-found: error — 1/1 named: /^R-2632: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED p5 the knob on the non-Windows step only — 1/1 named: /^R-2631: /; 1 FAIL total (1 file changed, 2 deletions(-))
+RED p6 continue-on-error moved onto an npm test step — 2/2 named: /^R-1530: / | /^R-2632: /; UNNAMED red: [ci-workflow.test.mjs] R-1531: a failing Linux suite leg alone does not stop the release job continue-on-error is allowed only on th…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 no workflow-path filter — 1/1 named: /^R-2634: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 only the newest attempt per leg kept — 1/1 named: /^R-2634: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED p9 every artifact downloaded into one folder — (no named case); named but GREEN: /^R-2634: /; UNNAMED red: [ci-records.test.mjs] R-2637: ci-records names each suite leg with no readable record and why AssertionError [ERR_ASSERTION]: suite…; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p10 the revision passed unresolved — 1/1 named: /^R-2634: /; UNNAMED red: [ci-records.test.mjs] R-2633: a record the runner writes under CI's arguments reads back in ci-records with the runner's own totals… | [ci-records.test.mjs] R-2635: ci-records lists each record's slowest files, slowest first and capped AssertionError [ERR_ASSERTION]… | [ci-records.test.mjs] R-2637: ci-records names each suite leg with no readable record and why AssertionError [ERR_ASSERTION]: ci re… | [ci-records.test.mjs] R-2638: ci-records exits 1 with one named line when the revision, gh or every record is missing, and 0 when a…; 5 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 unnamed failures left out of FAIL — 1/1 named: /^R-2633: /; UNNAMED red: [ci-records.test.mjs] packages/probe/tests/b-fail.test.mjs    1 pass  0.0s  — exit 2 | [ci-records.test.mjs] tracked repository files changed by tests: tracked.txt; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 slowest list ascending — 1/1 named: /^R-2635: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p13 legs matched to artifacts by attempt alone — 1/1 named: /^R-2637: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p14 a running leg reported as missing — 1/1 named: /^R-2637: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p15 only gh status 1 treated as failure — 1/1 named: /^R-2638: /; UNNAMED red: [ci-records.test.mjs] R-2637: ci-records names each suite leg with no readable record and why AssertionError [ERR_ASSERTION]: run 4…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p16 the artifact id passed as the download's run id — 1/1 named: /^R-2634: /; UNNAMED red: [ci-records.test.mjs] R-2633: a record the runner writes under CI's arguments reads back in ci-records with the runner's own totals… | [ci-records.test.mjs] R-2635: ci-records lists each record's slowest files, slowest first and capped AssertionError [ERR_ASSERTION]… | [ci-records.test.mjs] R-2637: ci-records names each suite leg with no readable record and why AssertionError [ERR_ASSERTION]: ci re… | [ci-records.test.mjs] R-2638: ci-records exits 1 with one named line when the revision, gh or every record is missing, and 0 when a…; 5 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 16/16 red (10 exactly their named titles, 2 with a named title green, 6 with an unnamed red), 0 survived, across 5 shards
