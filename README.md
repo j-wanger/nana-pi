@@ -82,7 +82,7 @@ extracts rows from a project that has none yet) into both pi and Claude Code, pl
 
 Nothing in this repo is published to npm and nothing here has a lockfile.
 Dependencies vary by component; a globally installed pi is the common requirement for
-the pi-hosted ones. nana supports pi 1.0.3 through 1.4.0. For pi 1.0.3 through 1.2.0, install with an npm `--before` cutoff from before the next pi release; doctor's first `pi packages` row reports a mixed install. The CI-record reader shells out to `gh`, signed in; its tests use a fake on every system, while a real `gh` has run only on macOS. Per component:
+the pi-hosted ones. nana supports pi 1.0.3 through 1.4.0. For pi 1.0.3 through 1.2.0, install with an npm `--before` cutoff from before the next pi release; doctor's `pi dependencies` row reports a mixed install. The CI-record reader shells out to `gh`, signed in; its tests use a fake on every system, while a real `gh` has run only on macOS. Per component:
 
 | Component | Runtime | Dev / test |
 |---|---|---|
@@ -290,7 +290,7 @@ desk or bench file on the declared Windows skip list
 starting it.
 
 `npm test -- --jobs=N` keeps up to N collected files running at once (default 1), reporting
-the same labels, counts, excerpts, warnings, failed list, self-test verdict, totals and exit
+matching labels, counts, excerpts, warnings, failed list, self-test verdict, totals and exit
 code as a serial run, apart from timings and the order file blocks print in; a file on the
 declared run-alone list (`packages/nana-pack/lib/test-runner-config.mjs`) still runs alone,
 after every other file's pool has drained. `npm run test:locked` with no filter passes

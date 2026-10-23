@@ -1,5 +1,5 @@
 /**
- * @module packages/nana-setup/lib/pi-packages.mjs
+ * @module packages/nana-setup/lib/pi-dependencies.mjs
  * @purpose Find the package behind the pi executable and judge its installed scoped dependencies.
  * @inputs pi invocation state, environment, injected version and PATH helpers, and package.json files above the executable and in dependency lookup paths.
  * @outputs piPackagesState() returning one doctor-row state { status, detail }.

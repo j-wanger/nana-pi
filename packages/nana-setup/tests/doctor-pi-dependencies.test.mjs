@@ -1,5 +1,5 @@
 /**
- * @module packages/nana-setup/tests/doctor-pi-packages.test.mjs
+ * @module packages/nana-setup/tests/doctor-pi-dependencies.test.mjs
  * @purpose Pins doctor's diagnosis of the scoped dependencies installed for the pi package on PATH.
  * @inputs doctor.mjs, steps.mjs, and synthetic npm package trees under OS temporary folders.
  * @outputs PASS/FAIL lines and a nonzero exit on failed checks.
@@ -100,14 +100,17 @@ function winFixture({ newer = true } = {}) {
   };
 }
 
-function packageRow(fixture, platform = "darwin") {
+function doctorRows(fixture, platform = "darwin") {
   const layout = { ...resolveLayout({ home: fixture.home }), isRealHome: true };
-  return diagnose(layout, { projectDir: fixture.home, pi: { platform: () => platform, env: fixture.env, spawn: fixture.spawn, exists: fixture.exists, isFile: fixture.isFile, readText: fixture.readText } })
-    .find((row) => row.label === "pi packages");
+  return diagnose(layout, { projectDir: fixture.home, pi: { platform: () => platform, env: fixture.env, spawn: fixture.spawn, exists: fixture.exists, isFile: fixture.isFile, readText: fixture.readText } });
+}
+
+function packageRow(fixture, platform = "darwin") {
+  return doctorRows(fixture, platform).find((row) => row.label === "pi dependencies");
 }
 
 // req: R-2713
-check("R-2713: a pi package with its own packages installed newer than itself prints a ✗ pi packages row naming each of them, both versions and the install hint", () => {
+check("R-2713: a pi package with its own packages installed newer than itself prints a ✗ pi dependencies row naming each of them, both versions and the install hint", () => {
   const dependencies = { "@earendil-works/pi-codemode": "^1.0.3", "@earendil-works/pi-ai": "^1.0.3", chalk: "6.0.0" };
   const installed = { "@earendil-works/pi-codemode": "1.4.0", "@earendil-works/pi-ai": "1.4.0" };
   const row = packageRow(posixFixture({ dependencies, installed, decoy: true }));
@@ -123,22 +126,26 @@ check("R-2713: a pi package with its own packages installed newer than itself pr
 });
 
 // req: R-2714
-check("R-2714: a pi package whose own packages are at or below its version, nested or hoisted, prints a ✓ pi packages row naming its version and count", () => {
-  const row = packageRow(posixFixture({
+check("R-2714: a pi package whose own packages are at or below its version, nested or hoisted, prints a ✓ pi dependencies row naming its version and count", () => {
+  const fixture = posixFixture({
     dependencies: { "@earendil-works/pi-codemode": "^1.0.3", "@earendil-works/pi-ai": "^1.0.3", "@earendil-works/pi-mcp": "^1.0.3", chalk: "6.0.0" },
     devDependencies: { "@earendil-works/pi-client": "^1.0.3" },
     installed: { "@earendil-works/pi-codemode": "1.0.3", "@earendil-works/pi-ai": "1.0.2", "@earendil-works/pi-mcp": { version: "1.0.3", where: "hoisted" } },
-  }));
+  });
+  const row = packageRow(fixture);
   assert.equal(row?.status, "ok");
   assert.ok(row.detail.includes("1.0.3"));
   assert.match(row.detail, /\b3\b/);
   assert.ok(!row.detail.includes("pi-client"));
   assert.ok(!row.detail.includes("·"));
+  const allRows = doctorRows(fixture);
+  assert.equal(allRows.filter((item) => item.label === "pi dependencies").length, 1);
+  assert.equal(allRows.filter((item) => item.label === "pi packages").length, 1);
   assert.equal(packageRow(winFixture({ newer: false }), "win32")?.status, "ok");
 });
 
 // req: R-2715
-check("R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable version prints a · pi packages row, never ✗", () => {
+check("R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable version prints a · pi dependencies row, never ✗", () => {
   const rows = [
     packageRow(outsideFixture()),
     packageRow(posixFixture({ dependencies: { "@earendil-works/pi-ai": "^1.0.3" }, installed: { "@earendil-works/pi-ai": null } })),

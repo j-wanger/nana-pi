@@ -9,7 +9,7 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail, installLabel? } rows, including pi's scoped-package compatibility row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
+ * @outputs an array of { status, label, detail, installLabel? } rows, including pi's `pi dependencies` row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
@@ -43,7 +43,7 @@ import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
-import { piPackagesState } from "./pi-packages.mjs";
+import { piPackagesState } from "./pi-dependencies.mjs";
 
 const OK = "ok";
 const FAIL = "fail";
@@ -375,7 +375,7 @@ export function diagnose(layout, opts = {}) {
 			firstOnPath,
 			...(piReadText ? { readText: piReadText } : {}),
 		});
-		add(packages.status, "pi packages", packages.detail);
+		add(packages.status, "pi dependencies", packages.detail);
 	}
 
 	// --- Claude Code half ---
