@@ -3,7 +3,7 @@
  * @module scripts/requirements-moved.mjs
  * @purpose Report requirement-row changes by feature and capability placement or field changes since a revision's merge base with HEAD.
  * @inputs argv (--root <dir> --base <rev>); REQUIREMENTS.md as committed at HEAD and at the merge base of <rev> and HEAD, read through git.
- * @outputs One summary line, affected feature blocks, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
+ * @outputs One summary line, affected feature blocks including parked-line changes, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
  * @effects process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
  * @errors exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
  */
@@ -57,7 +57,14 @@ function rowSnapshot(parsed) {
   const map = new Map();
   const fieldLines = deliverableFieldLinesByRow(parsed);
   for (const row of readRequirementRows(parsed)) {
-    map.set(row.id, { status: row.status, requirement: row.requirement, featureId: featureIdOf(row.heading), deliverableLines: fieldLines.get(row.id) ?? [] });
+    const all = fieldLines.get(row.id) ?? [];
+    map.set(row.id, {
+      status: row.status,
+      requirement: row.requirement,
+      featureId: featureIdOf(row.heading),
+      deliverableLines: all.filter((line) => /^(?:Made by|Read by):/.test(line)),
+      parkedLines: all.filter((line) => /^Parked:/.test(line)),
+    });
   }
   return map;
 }
@@ -156,6 +163,7 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
       if (b.status !== h.status) parts.push(`${b.status} -> ${h.status}`);
       if (b.requirement !== h.requirement) parts.push("text changed");
       if (JSON.stringify(b.deliverableLines) !== JSON.stringify(h.deliverableLines)) parts.push("Made by/Read by lines changed");
+      if (JSON.stringify(b.parkedLines) !== JSON.stringify(h.parkedLines)) parts.push("Parked lines changed");
       if (b.featureId !== h.featureId) parts.push(`moved from ${b.featureId ?? "(no feature)"}`);
       if (parts.length === 0) continue; // Evidence-only edit: not movement.
       groupFeature = h.featureId;

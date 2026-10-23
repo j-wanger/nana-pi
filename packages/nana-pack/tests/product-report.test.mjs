@@ -1232,6 +1232,35 @@ try {
       count && Number(count[1]) === withNeitherMark && Number(count[2]) === allItems.length,
       JSON.stringify({ items: items.map((item) => item.textContent), claims: Object.fromEntries(Object.keys(byId).map((id) => [id, claims(id)])), countLine, exports: [productReportModule.NOT_MADE_BY_CODE, productReportModule.NOT_READ_BY_CODE, productReportModule.NO_ARTIFACT_NAMED] }));
   });
+  await withinCaseLimit("R-2642", async () => {
+    const ledger = [
+      "# CAP-60 · Product stage", "Purpose: produce deliverables.", "Outcome: deliverables are visible.", "Kind: product", "Deliverables: R-6000, R-6001",
+      "Made by: R-6000 · manual: a person makes it",
+      "Parked: R-6000 · since 2026-10-22: the owner holds it",
+      "Read by: R-6000 · person: a person reads it",
+      "Made by: R-6001 · manual: a person makes it", "Read by: R-6001 · person: a person reads it", "",
+      "## FEAT-060 · Direct homes", "Purpose: own direct deliverables.", "Status: active", "", table([["R-6000", "implemented"], ["R-6001", "implemented"]]).trimEnd(),
+    ].join("\n");
+    const repo = treeFixture("parked-deliverable-claim", ledger);
+    const out = path.join(temp, "parked-deliverable-claim.html");
+    await generateReport({ root: repo.root, out });
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#product");
+    const card = capabilityCard(product, "CAP-60");
+    const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
+    const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
+    const claims = (id) => (byId[id]?.children.find((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent);
+    const r6000Claims = [
+      "Made by: manual: a person makes it",
+      "Parked: since 2026-10-22: the owner holds it",
+      "Read by: person: a person reads it",
+    ];
+    const countLine = product.root.children.find((node) => node.attrs?.class === "deliverable-report-line" && /^deliverables:/.test(node.textContent))?.textContent ?? "";
+    const bothMarks = ["not made by code", "not read by code"].every((mark) => byId["R-6000"]?.textContent.includes(mark));
+    // req: R-2642
+    check("R-2642: the Product view lists a deliverable's Parked line among its claims in ledger order",
+      JSON.stringify(claims("R-6000")) === JSON.stringify(r6000Claims) && !claims("R-6001").some((claim) => claim.startsWith("Parked:")) && bothMarks && countLine === "deliverables: 0 of 1 made and read by code, 1 parked",
+      JSON.stringify({ claims: Object.fromEntries(Object.keys(byId).map((id) => [id, claims(id)])), bothMarks, countLine }));
+  });
   await withinCaseLimit("R-2543", async () => {
     const ledgers = [
       ["product-lines", ["# CAP-80 · Product", "Purpose: make one.", "Outcome: one exists.", "Kind: product", "Deliverables: R-8000", "Made by: R-8000 · manual: a person makes it", "Read by: R-8000 · rule: a rule reads it", "", "## FEAT-080 · Home", "Purpose: own one.", "Status: active", "", table([["R-8000", "implemented"]]).trimEnd()].join("\r\n"), ["deliverables: 0 of 1 made and read by code"]],

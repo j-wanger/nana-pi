@@ -3,7 +3,7 @@
  * @module scripts/deliverables.mjs
  * @purpose Parse product-capability deliverable claims and produce the shared checker lines for their code coverage and HEAD-tracked paths.
  * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, or an injected git runner.
- * @outputs Per-row claims, code predicates, deliverable notes and counts, and the exact lines printed by the tree checker.
+ * @outputs Per-row claims, code predicates, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
@@ -13,6 +13,10 @@ import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 
 // Contract: the owner's 2026-10-22 approval; R-2537.
 export const DELIVERABLE_FIELD_LABELS = Object.freeze(["Made by", "Read by"]);
+// Contract: the owner's 2026-10-22 decision to park desk and app deliverables; R-2640.
+export const PARKED_LABEL = "Parked";
+// Contract: HANDOFF's parked ask form; R-878 and R-2640.
+export const PARKED_SINCE = "since";
 // Contract: the audit's six runs plus hook and extension from the seat brief, and manual from the ruling; R-2537.
 export const MAKER_RUNS = Object.freeze(["session start", "suite", "land", "review", "build", "CI", "hook", "extension", "manual"]);
 // Contract: code and rule come from the ruling; prompt and person are chosen because injected context and pages are readers; R-2537.
@@ -31,8 +35,9 @@ export const DELIVERABLE_PATHS_NOT_CHECKED = "deliverable note: paths not checke
 const MAKER_SET = new Set(MAKER_RUNS);
 const READER_SET = new Set(READER_KINDS);
 const REASON_SET = new Set(REASON_REQUIRED);
-const FIELD_PREFIX = /^(Made by|Read by):\s*(.*)$/;
+const FIELD_PREFIX = new RegExp(`^(${[...DELIVERABLE_FIELD_LABELS, PARKED_LABEL].join("|")}):\\s*(.*)$`);
 const ROW_AT_START = /^(R-(?:[0-9]{3}|[1-9][0-9]{3}))\b/;
+const PARKED_DATE = new RegExp(`^${PARKED_SINCE}\\s+(\\d{4}-\\d{2}-\\d{2})$`);
 
 const capabilityEntries = (heading, label) => heading.capabilityFields?.[label] ?? [];
 const capabilityKind = (heading) => capabilityEntries(heading, "Kind")[0]?.value ?? null;
@@ -57,7 +62,7 @@ function ownFieldLines(parsed, capability) {
   return lines;
 }
 
-/** Row ID -> its exact maker and reader field lines in capability spans, in document order. */
+/** Row ID -> its exact maker, reader and park field lines in capability spans, in document order. */
 export function deliverableFieldLinesByRow(parsed) {
   const result = new Map();
   for (const capability of parsed.headings.filter((heading) => heading.id?.startsWith("CAP-"))) {
@@ -84,6 +89,10 @@ export function deliverableClaims(parsed, capability) {
     const colon = claim.indexOf(":");
     const kind = (colon < 0 ? claim : claim.slice(0, colon)).trim();
     const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
+    if (field.label === PARKED_LABEL) {
+      claims.get(row).push({ label: field.label, text: claimText, artifact: null, madeByCode: false, readByCode: false });
+      continue;
+    }
     const madeByCode = field.label === "Made by" && parts.length <= 3 && MAKER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
     const readByCode = field.label === "Read by" && parts.length === 2 && READER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
     const artifact = field.label === "Made by" && parts.length === 3 && parts[2].trim() ? parts[2].trim() : null;
@@ -113,6 +122,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   let checkedDeliverables = 0;
   let fieldLineCount = 0;
   let madeAndReadByCode = 0;
+  let parkedDeliverables = 0;
 
   const addPath = (row, path, line, kind) => {
     const value = path.trim();
@@ -134,11 +144,46 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     const listedSet = new Set(listed);
     const seen = new Map(listed.map((row) => [row, new Set()]));
     const claimsByRow = deliverableClaims(parsed, capability);
+    const parkedRows = new Set();
+    const staleParkRows = new Set();
 
     for (const field of fields) {
       const rowHint = ROW_AT_START.exec(field.body)?.[1] ?? null;
       const parts = field.body.split(PART_SEPARATOR);
-      if (rowHint && listedSet.has(rowHint)) seen.get(rowHint).add(field.label);
+      if (rowHint && listedSet.has(rowHint) && field.label !== PARKED_LABEL) seen.get(rowHint).add(field.label);
+      if (field.label === PARKED_LABEL) {
+        const parkParts = field.body.split(/\s*·\s*/u);
+        const row = parkParts[0]?.trim() ?? "";
+        if (parkParts.length !== 2 || !/^R-(?:[0-9]{3}|[1-9][0-9]{3})$/.test(row)) {
+          notes.push(note(`${rowHint ? `${rowHint} ` : ""}cannot read ${PARKED_LABEL}: line ${field.line}`));
+          continue;
+        }
+        if (!listedSet.has(row)) {
+          notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} names an unlisted deliverable`));
+          continue;
+        }
+        const parkedClaim = parkParts[1].trim();
+        const colon = parkedClaim.indexOf(":");
+        const dateClaim = (colon < 0 ? parkedClaim : parkedClaim.slice(0, colon)).trim();
+        const reason = colon < 0 ? "" : parkedClaim.slice(colon + 1).trim();
+        if (!PARKED_DATE.test(dateClaim)) {
+          notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} needs a ${PARKED_SINCE} date`));
+          continue;
+        }
+        if (!reason) {
+          notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} needs a reason`));
+          continue;
+        }
+        if (isMadeAndReadByCode(claimsByRow.get(row) ?? [])) {
+          if (!staleParkRows.has(row)) {
+            notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} parks nothing; code makes and reads it`));
+            staleParkRows.add(row);
+          }
+        } else {
+          parkedRows.add(row);
+        }
+        continue;
+      }
       if (parts.length < 2) {
         notes.push(note(`${rowHint ? `${rowHint} ` : ""}cannot read ${field.label}: line ${field.line}; expected "${PART_SEPARATOR}"`));
         continue;
@@ -200,6 +245,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     }
 
     madeAndReadByCode += listed.filter((row) => isMadeAndReadByCode(claimsByRow.get(row) ?? [])).length;
+    parkedDeliverables += parkedRows.size;
     for (const row of listed) {
       for (const label of DELIVERABLE_FIELD_LABELS) {
         if (!seen.get(row)?.has(label)) notes.push(note(`${row} has no readable ${label}: line`));
@@ -214,7 +260,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     }
   }
 
-  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, madeAndReadByCode };
+  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, madeAndReadByCode, parkedDeliverables };
 }
 
 /** Return the exact deliverable lines plus the HEAD paths used to derive them. */
@@ -239,7 +285,7 @@ export function deliverableReport(parsed, ledgerFolder, gitRunner = (args, optio
   }
   return {
     lines: [
-      ...(report.fieldLineCount > 0 ? [`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables} made and read by code`] : []),
+      ...(report.fieldLineCount > 0 ? [`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables - report.parkedDeliverables} made and read by code${report.parkedDeliverables ? `, ${report.parkedDeliverables} parked` : ""}`] : []),
       ...report.notes,
     ],
     trackedPaths,
