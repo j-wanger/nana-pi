@@ -1,0 +1,44 @@
+seat-mutate: lane session-start-frontier, tip c3cf37dbd1e31d3cb92c32954e3d9eb1d5493ac5, table 551a8493a8413272a86c18bcdb738542cc230731116294b112f417b55a233651, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 18 pairs in 5 shards (4+4+4+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-22T22:51:06.252Z
+DECLARED (plan) p1 to p18 follow the must-meet's wrong-code list in order; p10 is swapped as the header says
+DECLARED (seat) p3 changes the shared root walk in adoption.mjs to accept only a .git folder, and runs only the frontier files
+[1/5] seat-mutate: lane session-start-frontier, shard 1/5, tip c3cf37dbd1e31d3cb92c32954e3d9eb1d5493ac5, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-22T22:51:07.468Z
+[1/5] BASELINE ok   packages/nana-setup/tests/frontier-hook.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/frontier-summary.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/frontier-golden.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane session-start-frontier, shard 2/5, tip c3cf37dbd1e31d3cb92c32954e3d9eb1d5493ac5, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-22T22:51:11.515Z
+[2/5] BASELINE ok   packages/nana-setup/tests/frontier-hook.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/frontier-summary.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane session-start-frontier, shard 3/5, tip c3cf37dbd1e31d3cb92c32954e3d9eb1d5493ac5, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-22T22:51:15.602Z
+[3/5] BASELINE ok   packages/nana-setup/tests/frontier-hook.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/frontier-summary.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/hook-deadlines.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane session-start-frontier, shard 4/5, tip c3cf37dbd1e31d3cb92c32954e3d9eb1d5493ac5, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 3 pairs, darwin, node v22.22.2, 2026-10-22T22:51:19.652Z
+[4/5] BASELINE ok   packages/nana-setup/tests/frontier-hook.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/frontier-summary.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane session-start-frontier, shard 5/5, tip c3cf37dbd1e31d3cb92c32954e3d9eb1d5493ac5, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 3 pairs, darwin, node v22.22.2, 2026-10-22T22:51:23.651Z
+[5/5] BASELINE ok   packages/nana-pack/tests/frontier-summary.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 the hook runs the frontier producer before the objective producer — 1/1 named: /^R-2606: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p2 the producer reads <cwd>/HANDOFF.md, not the repository root's — 1/1 named: /^R-2606: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the root walk accepts only a .git folder — 1/1 named: /^R-2606: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 nothing printed outside a repository — 1/1 named: /^R-2606: /; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RED p5 every list item under Next is listed, nested sub-items included — 1/1 named: /^R-2607: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 titles from every Next-named heading — 1/1 named: /^R-2607: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 the title keeps its bold marks — 1/1 named: /^R-2607: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 asks in file order, not blocking first — 1/1 named: /^R-2607: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 an untitled ask is dropped — 1/1 named: /^R-2607: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p10 the unavailable line without the path — 1/1 named: /^R-2611: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 the summary line rebuilt in the new lib with split(" ") — 1/1 named: /^R-2608: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 a title rendered raw — 1/1 named: /^R-2609: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p13 titles chosen in display order, so a long Next pushes blocking asks out — 1/1 named: /^R-2609: /; 1 FAIL total (1 file changed, 1 insertion(+), 2 deletions(-))
+RED p14 only worker is silenced — 1/1 named: /^R-2610: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p15 an unreadable file reads as absent — 1/1 named: /^R-2611: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p16 the extension computes the block once and keeps it across a reload — 1/1 named: /^R-2612: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p17 the hook writes both blocks with no shared budget — 1/1 named: /^R-2613: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p18 the frontier producer spawned outside runHookProducer and its limit — 1/1 named: /^R-2613: /; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RESULT: 18/18 red (18 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards

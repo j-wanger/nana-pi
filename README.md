@@ -8,8 +8,8 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack: nine extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, writing, roster notice, rulings), plus scaffold +
+- `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
+  post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships the extensions of `nana-pack` and
   `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
@@ -190,7 +190,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all nine extensions, the knowledge pull + every skill (the root package.json
+# 1. the nana-pack — all ten extensions, the knowledge pull + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 

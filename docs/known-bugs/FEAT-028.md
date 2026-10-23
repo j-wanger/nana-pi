@@ -64,3 +64,5 @@
 - Deliverable lines (park-deliverables, seat): R-694's writing trial closed on 2026-10-21, yet R-694 stays a listed deliverable that code does not make and read.
 - Movement report (park-deliverables, attack): the AGENTS.md command runs the main checkout's script, so a lane that adds the first park lines shows none of them there.
 - Movement report (park-deliverables, seat): `rowSnapshot` splits maker, reader and park lines with inline label patterns instead of the deliverable label constants, so retuning a label needs a second code edit.
+- Deliverable lines (park-deliverables, final review): R-2641 says the stale note names the row's first `Parked:` line; the code names the first readable one, so a broken park line above a good one gets its own note and the stale note names the second.
+- Deliverable lines (park-deliverables, final review): the park branch checks its row with an inline pattern that repeats the existing row-shape pattern.

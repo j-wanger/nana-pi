@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/hook-deadlines.test.mjs
  * @purpose Prove session-start hooks replace hung producer output with markers before their installed limit.
  * @inputs Copied canonical hooks and launcher library, checkout hook metadata, and live or hung producer stubs.
- * @outputs PASS/FAIL checks for adoption and objective hook deadline behavior.
+ * @outputs PASS/FAIL checks for adoption and objective/frontier hook deadline and shared-budget behavior.
  * @effects disk (creates a throwaway checkout), process (spawns copied hooks and producer stubs).
  * @errors A watchdog kills an over-limit hook; failed checks set a nonzero process exit code.
  */
@@ -13,7 +13,10 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { hookProducerConfig } from "../lib/hook-producer.mjs";
 import { desiredHooks } from "../lib/settings.mjs";
+import { SHARED_MEMORY_OUTPUT_BUDGET } from "../lib/shared-memory-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+
+delete process.env.NANA_ROLE;
 
 const checkoutRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-hook-deadlines-")));
@@ -27,12 +30,16 @@ fs.mkdirSync(tempHome, { recursive: true });
 fs.mkdirSync(path.dirname(hooksDir), { recursive: true });
 fs.cpSync(path.join(checkoutRoot, "packages", "nana-setup", "claude", "hooks"), hooksDir, { recursive: true });
 fs.cpSync(path.join(checkoutRoot, "packages", "nana-setup", "lib"), copiedLib, { recursive: true });
+fs.cpSync(path.join(checkoutRoot, "packages", "nana-pack", "lib"), path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
+fs.cpSync(path.join(checkoutRoot, "packages", "nana-pack", "bin"), path.join(root, "packages", "nana-pack", "bin"), { recursive: true });
 
 const stubPaths = {
 	adoption: path.join(root, "packages", "nana-pack", "bin", "nana-adoption.mjs"),
 	"stale-copies": path.join(root, "packages", "nana-setup", "bin", "stale-copies.mjs"),
 	objective: path.join(root, "packages", "nana-pack", "bin", "nana-objective.mjs"),
+	frontier: path.join(root, "packages", "nana-pack", "bin", "nana-frontier-summary.mjs"),
 };
+const liveFrontierSource = fs.readFileSync(path.join(checkoutRoot, "packages", "nana-pack", "bin", "nana-frontier-summary.mjs"));
 const hungStub = `process.stdout.write("PARTIAL\\n");\nsetTimeout(() => {}, ${STUB_HANG_MS});\n`;
 const liveLine = "STALE COPY OK\n";
 const liveStub = `process.stdout.write(${JSON.stringify(liveLine)});\n`;
@@ -90,9 +97,27 @@ expected = hookProducerConfig("adoption", root).marker + hookProducerConfig("sta
 check("adoption hook prints both markers before its installed limit when both producers hang", result.code === 0 && !result.timedOut && result.stdout === expected && result.elapsed < installedLimit("SessionStart adoption"), `code=${String(result.code)} elapsed=${result.elapsed} limit=${installedLimit("SessionStart adoption")} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`);
 
 writeStub("objective", hungStub);
+writeStub("frontier", "");
 result = await runHook("nana-objective.mjs");
 expected = hookProducerConfig("objective", root).marker;
 // req: R-2012
 check("objective hook prints its marker before its installed limit when its producer hangs", result.code === 0 && !result.timedOut && result.stdout === expected && result.elapsed < installedLimit("SessionStart objective"), `code=${String(result.code)} elapsed=${result.elapsed} limit=${installedLimit("SessionStart objective")} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`);
+
+writeStub("objective", hungStub);
+writeStub("frontier", hungStub);
+const bothHung = await runHook("nana-objective.mjs");
+const bothMarkers = hookProducerConfig("objective", root).marker + hookProducerConfig("frontier", root).marker;
+
+writeStub("objective", `process.stdout.write("x".repeat(8000));\n`);
+fs.writeFileSync(stubPaths.frontier, liveFrontierSource);
+fs.writeFileSync(path.join(root, "HANDOFF.md"), ["## Next", ...Array.from({ length: 100 }, (_, index) => `- Next ${index} ${"n".repeat(100)}`), "## Open for the owner", ...Array.from({ length: 20 }, (_, index) => `- **[blocking, since 2026-10-01] Ask ${index}.** body`)].join("\n"));
+const budgeted = await runHook("nana-objective.mjs");
+const objectiveWhole = `${"x".repeat(8000)}\n`;
+// req: R-2613
+check("R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap",
+	bothHung.code === 0 && !bothHung.timedOut && bothHung.stdout === bothMarkers && bothHung.elapsed < installedLimit("SessionStart objective") &&
+	budgeted.code === 0 && !budgeted.timedOut && budgeted.stdout.startsWith(objectiveWhole) && budgeted.stdout.length <= SHARED_MEMORY_OUTPUT_BUDGET + 1000 && budgeted.stdout.includes("[nana:frontier]"),
+	`hung code=${String(bothHung.code)} elapsed=${bothHung.elapsed} limit=${installedLimit("SessionStart objective")} stdout=${JSON.stringify(bothHung.stdout)} stderr=${JSON.stringify(bothHung.stderr)}; budget code=${String(budgeted.code)} length=${budgeted.stdout.length} stdout-tail=${JSON.stringify(budgeted.stdout.slice(-300))}`,
+);
 
 if (failures) process.exitCode = 1;

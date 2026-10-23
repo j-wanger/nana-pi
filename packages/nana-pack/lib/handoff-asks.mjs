@@ -8,7 +8,7 @@
  */
 import { OPEN_SECTION_PREFIX, isNamed } from "./frontier-config.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
-const TAG = /\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]/i;
+export const TAG = /\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]/i;
 const TITLE = /^\s*(?:[-*+]\s+|\d+[.)]\s+)\*\*\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]\s+(.+?)\.\*\*(.*)$/i;
 
 export function splitOpenSection(text) {

@@ -29,7 +29,7 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 
 The Product view lists each deliverable's written maker and reader claims, marks whether code makes and reads it, and shows a named artifact's git age or why no age is available. The `runtime-map` artifact shows its recorded tip, UTC measurement time, uncommitted-file count, and commits and whole days to HEAD instead of the maker file's git age.
 
-Nine extensions giving pi the hook coverage we require (Claude Code parity classes):
+Ten extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -39,6 +39,7 @@ Nine extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
+| `nana-frontier-summary` | Bounded Next titles, open asks and the HANDOFF frontier check | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The adopted writing-for-the-owner rule, on by default; user-scope `writing.enabled: false` turns it off | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
 | `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, plus a project-stale section when the marker-owned working section differs | `session_start` (all reasons) + `before_agent_start` (inject) |
@@ -275,7 +276,7 @@ only, no diagram.
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,
-which never imports the ledger: it records nothing and can admit no verdict. `pi-review` has no
+which records no review round and can admit no verdict. `pi-review` has no
 worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
 was itself the bypass (sol r1: five `VERDICT: LAND` outputs under `--worker`, zero recorded).
 `pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`, `--worker`). A worker
@@ -305,7 +306,13 @@ node "$HOME/nana-pi/packages/nana-pack/bin/brief-check.mjs" --brief <file> --tre
 
 Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`. The gate refuses edit/write targets outside that root and the temporary roots it counts: the real `os.tmpdir()`, and on Windows a differing `TMP` too — except a temp folder that resolves to a drive or filesystem root, the home folder, or a folder above the home folder, which does not count. `/tmp` is a separate rule on every system but Windows: it counts as a temporary root regardless, even when it resolves under the home folder. Each target is judged at the path pi's own edit/write tools actually write it to — pi's `~`, `@` and `file://` forms are expanded first — and every root and target is compared by its true on-disk spelling (case, 8.3 short names, and symlinks all fold to the same real path), not by the literal string typed. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
 
-Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; automatic reclamation is deliberately disabled because a dead watchdog may leave its pi process group running. Before removing a lock by hand, confirm that no builder and no pi process group for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire pi process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory.
+Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; automatic reclamation is deliberately disabled because a dead watchdog may leave its pi process group running. Before removing a lock by hand, confirm that no builder and no pi process group for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire pi process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory. After taking the lock, a lane build appends a start record before pi starts and an end record before releasing the lock on each handled exit. Its final stderr line gives this build's outcome, elapsed minutes and pi-recorded cost, followed by the lane summary.
+
+#### Build records
+
+Lane builds share `<git common folder>/nana/build-records.jsonl` across one clone. Each schema-1 JSON line is a `start` or `end` record joined by its build id; an unpaired start is reported as `no end`. Tokens and cost are field-wise sums of pi-ai Usage values in matching pi sessions, not recalculations from token buckets. Missing, unreadable or over-cap sessions leave the cost unknown and name the session folder. Record-write failures are report-only and do not stop the builder or change its result.
+
+Read the clone's builds from any checkout with `node "$HOME/nana-pi/packages/nana-pack/bin/build-report.mjs" [--repo <path>] [--lane <name>]`. The report prints each build, lane totals, clone totals, unpriced builds and skipped ledger lines. Records are per clone, have no retention, and cover lane-mode pi builders only. A stall is `failed`; `no end` does not distinguish a live build, a hard-killed build or an exception. The cost is pi's model-catalog figure rather than a subscription bill. A custom pi `sessionDir` setting is not followed unless `PI_CODING_AGENT_SESSION_DIR` selects it.
 
 #### Machine roster
 
@@ -396,6 +403,28 @@ submodule contents, so logs redirected inside a submodule are not detected.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes), `tests/review-launch.test.mjs` (command launch).
+
+## Session-start frontier summary
+
+The `nana-frontier-summary` extension and the existing Claude Code objective hook read
+`HANDOFF.md` from the repository root at every session start. Outside a repository, they read
+it from the session folder. The bounded block quotes only top-level titles from the first Next
+section and Open for the owner asks with their tag or no-tag label. The report-only frontier
+check summary follows those titles.
+Blocking asks get selection priority, while displayed groups keep Next first and then blocking,
+optional, parked and untagged asks.
+
+The block holds at most 4,000 characters and each displayed title holds at most 160 characters.
+The Claude objective and frontier producers share a 9,000-character output budget, leaving the
+objective whole before fitting the frontier. A missing file is silent. Reviewer and worker
+launcher roles receive no frontier block. Other unusable files produce one bounded unavailable
+line. There is no user or project switch, and a symlinked `HANDOFF.md` is followed.
+
+Run the producer directly with:
+
+```bash
+node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd <dir>
+```
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 
