@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane lane-temp-cleanup (gate, on the owner's word), written by the seat 2026-10-23 after build 2, at tip f3df8596.
-// They are the draft's pairs 1 to 14 and the must-meet's V1 to V4. Run from the lane worktree root, with CLAUDE_CONFIG_DIR unset
+// Seat wrong-code pairs for lane lane-temp-cleanup (gate, on the owner's word), written by the seat 2026-10-23 after build 2, at tip f3df8596; rerun after build 3 at 07d692b3.
+// They are the draft's pairs 1 to 14, the must-meet's V1 to V4, and the round 1 finding's V5 to V7. Run from the lane worktree root, with CLAUDE_CONFIG_DIR unset
 // (the mutation runner does not scrub it):
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/lane-temp-cleanup-2026-10-23/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -14,6 +14,7 @@ const R_2665 = /^R-2665: /; // R-2665
 const R_2691 = /^R-2691: /; // R-2691
 const R_2692 = /^R-2692: /; // R-2692
 const R_2693 = /^R-2693: /; // R-2693
+const R_2694 = /^R-2694: /; // R-2694
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 
 const REVIEW_MSG = "\tprocess.stderr.write(`pi-worker: ${reviewFlag} is a review option — pi-worker records nothing. A review goes through pi-review --item <slug>.\\n`);\n";
@@ -23,7 +24,7 @@ const LATE_CHECK_RM = "const reviewFlag = ['--item', '--role', '--revision', '--
 const RETRIES_LINE = "if (laneMode && w.retries > 0) laneFailure('--retries greater than zero is refused in lane mode');\n";
 const LISTENERS = "\tfor (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => {});\n";
 const STDERR_LISTENER = "\tprocess.stderr.on('error', () => {});\n";
-const TRUST_LINE = "\tif (!trusted(cwd)) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\\n`);\n";
+const TRUST_LINE = "\tif (!worktreeTrusted) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\\n`);\n";
 const WATCHDOG_CALL = "\t\ttry { r = await runWatchdog(WORKER_TAG,";
 
 const DECLARED = [
@@ -95,6 +96,18 @@ const PAIRS = [
 	{ n: "V4", name: "no stderr error listener", edits: [
 		one(PW, STDERR_LISTENER, ""),
 	], tests: [T_WC], expectRed: [R_2692] },
+	{ n: "V5", name: "the trust check back after the start-up listeners", edits: [
+		one(PW, "\tconst worktreeTrusted = trusted(cwd);\n", ""),
+		one(PW, "\tif (!worktreeTrusted) process.stderr.write(", "\tif (!trusted(cwd)) process.stderr.write("),
+	], tests: [T_WC], expectRed: [R_2694] },
+	{ n: "V6", name: "the user Claude settings read back after the start-up listeners", edits: [
+		one(PW, "\tconst carry = sealed ? readClaudeBuilderSettings(sealed) : null;\n", "\tlet carry = null;\n"),
+		one(PW, "\t\twriteClaudeBuilderSettings(settingsFile, carry);\n", "\t\tcarry = readClaudeBuilderSettings(sealed);\n\t\twriteClaudeBuilderSettings(settingsFile, carry);\n"),
+	], tests: [T_WC], expectRed: [R_2694] },
+	{ n: "V7", name: "the HEAD read back inside the build-start record", edits: [
+		one(PW, "\ttry { buildStartTip = git('rev-parse', 'HEAD'); } catch { buildStartTip = null; }\n", ""),
+		one(PW, "\t\ttip: buildStartTip,", "\t\ttip: (() => { try { return git('rev-parse', 'HEAD'); } catch { return null; } })(),"),
+	], tests: [T_WC], expectRed: [R_2694] },
 ];
 
-process.exitCode = await runMutations({ lane: "lane-temp-cleanup", self: import.meta.url, tip: "f3df8596", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "lane-temp-cleanup", self: import.meta.url, tip: "07d692b3", declared: DECLARED, pairs: PAIRS });
