@@ -74,3 +74,13 @@ As the draft's list, with the README hard-kill sentence naming the pi seat's sto
 6. The independent check.
 7. Draft PR CI; the Windows leg must show R-2691 and R-2692 PASS and R-2693 SKIP; read R-2692's Windows detail for foreign temp entries.
 8. Notes before the final round; Opus and astra on the exact tip.
+
+## Round 1 finding, adopted (2026-10-23)
+
+The land reviewer's round 1 (astra, SEND-BACK at e9d2c48b) holds one MUST: the start-up listeners sit before three blocking reads, so a SIGTERM sent to pi-worker's own process while one of them hangs (a trust store or Claude folder on an unavailable network home, a stalled git) no longer ends pi-worker, where main's default action did. The final reviewer (Opus, LAND) graded the same case SHOULD. The seat adopts it: build brief 3 moves the trust check, the read of the user Claude settings file and the worktree HEAD read ahead of the listeners and the temp folder, so a hang there ends on SIGTERM as on main, before any temp file or lane lock exists. New row:
+
+| ID | Requirement (EARS) | Test file::title |
+|---|---|---|
+| R-2694 | WHERE the platform is not win32, IF pi-worker lane mode's trust check, its read of the user Claude settings file or its read of the worktree's HEAD does not return, THEN a SIGTERM sent to pi-worker's own process shall end it, leaving no temp file and no lane lock of its own. | `packages/nana-pack/tests/worker-claude.test.mjs::R-2694: off Windows, SIGTERM sent to pi-worker while its trust check, Claude settings read or HEAD read hangs ends it before any temp file or lane lock exists` |
+
+Pairs added: V5 (the trust check back after the listeners), V6 (the settings read back after the listeners), V7 (the HEAD read back inside the build-start record) → R-2694. Known limit kept: writes into the local temp folder, the lane lock and the build ledger stay inside the window; a hang there (a worktree on an unavailable mount) still ignores a SIGTERM to pi-worker's own process.

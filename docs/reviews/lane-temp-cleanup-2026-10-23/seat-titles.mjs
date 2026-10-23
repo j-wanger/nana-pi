@@ -14,6 +14,9 @@ const SESSIONS = {
 		["packages/nana-pack/tests/worker-claude.test.mjs","R-2692: a finished build, a held lock, a bad stall option, an unwritable output, the ceiling and, off Windows, SIGTERM and a closed stderr each leave the temp folder empty",["R-2692"]],
 		["packages/nana-pack/tests/worker-claude.test.mjs","R-2693: off Windows, SIGINT, SIGTERM or SIGHUP sent once the temp files exist and before the builder starts stops a Claude or pi build with the stop exit code and abort line and leaves no temp file and no lane lock",["R-2693"]],
 	],
+	3: [
+		["packages/nana-pack/tests/worker-claude.test.mjs","R-2694: off Windows, SIGTERM sent to pi-worker while its trust check, Claude settings read or HEAD read hangs ends it before any temp file or lane lock exists",["R-2694"]],
+	],
 };
 
 const want = process.argv[2] ?? "all";
