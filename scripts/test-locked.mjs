@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 import { COVERAGE_ENV, COVERAGE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
-import { readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
+import { readRunRecord, readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
 import {
 	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
@@ -176,17 +176,6 @@ export function sweepDeadCoverage(tempRoot) {
 function headOf(cwd) {
 	const result = spawnSync("git", ["rev-parse", "HEAD^{commit}"], { cwd, encoding: "utf8" });
 	return result.status === 0 ? result.stdout.trim() : null;
-}
-
-function readRunRecord(recordFile) {
-	let text;
-	try { text = fs.readFileSync(recordFile, "utf8"); }
-	catch (error) { throw new Error(`run record is missing or unreadable: ${error?.message ?? "unknown error"}`); }
-	let record;
-	try { record = JSON.parse(text); }
-	catch (error) { throw new Error(`run record is unreadable: ${error?.message ?? "invalid JSON"}`); }
-	if (record?.schema !== RECORD_SCHEMA || !Array.isArray(record.files)) throw new Error("run record is unreadable: unsupported schema or files");
-	return record;
 }
 
 function finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root, env, recordedAt }) {

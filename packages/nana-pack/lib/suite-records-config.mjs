@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/suite-records-config.mjs
  * @purpose Declare the suite-record store's contract values and tunables with their provenance.
  * @inputs Land-time environment names, note prefix, and main ref from land-config.mjs.
- * @outputs Record environment, schema, store, retention, comparison, line, trigger, and imported land constants.
+ * @outputs Record environment, schema, store, retention, comparison, local and CI line, artifact, workflow, job, paging, command, and imported land constants.
  * @effects none
  * @errors none
  */
@@ -36,3 +36,27 @@ export const RECORD_LINE_PREFIX = "suite record:";
 
 // contract (R-2547): the complete vocabulary for why a full suite record was made.
 export const RECORD_TRIGGERS = Object.freeze(["land", "measure", "run"]);
+
+// contract (R-2632, R-2634): CI suite-record artifacts share this name prefix.
+export const CI_ARTIFACT_PREFIX = "suite-record-";
+
+// contract (R-2634): GitHub's workflow-run path for the root CI workflow, measured 2026-10-22.
+export const CI_WORKFLOW_RUN_PATH = ".github/workflows/ci.yml";
+
+// contract (R-2634): the root workflow's suite job id; matrix legs are `suite (<os>)`.
+export const CI_SUITE_JOB = "suite";
+
+// contract (R-2634 to R-2638): distinguish CI record output from suite and verdict lines.
+export const CI_RECORD_LINE_PREFIX = "ci record:";
+
+// chosen (R-2635, 2026-10-22): match SLOWER_LIST_MAX and retain the five measured slowest Windows files.
+export const SLOWEST_LIST_MAX = 5;
+
+// measured (R-2634, 2026-10-22): GitHub returns at most 100 entries when per_page exceeds 100.
+export const GH_PAGE_SIZE = 100;
+
+// chosen (R-2638, 2026-10-22): 4 MiB exceeds the measured projection of about 1.2 MiB for 100 runs.
+export const GH_OUTPUT_MAX_BYTES = 4 * 1024 * 1024;
+
+// contract (R-2638): tests replace gh with a JSON command array on every platform.
+export const GH_COMMAND_ENV = "NANA_CI_RECORDS_GH_COMMAND";

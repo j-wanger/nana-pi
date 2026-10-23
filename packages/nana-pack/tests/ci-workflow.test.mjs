@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CI_ARTIFACT_PREFIX } from "../lib/suite-records-config.mjs";
 
 let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
@@ -112,19 +113,30 @@ check("suite runs on Windows with bash and the pinned toolchain", () => {
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b), "suite setup, version check, and npm test must stay ordered");
 });
 // Reads the suite job's job-level `continue-on-error:` and returns, for a matrix os name,
-// whether that leg's failure stops the release job (R-1530, R-1531). Rejects more than one
-// continue-on-error line, a line not at the four-space job level (a step key included), and a
-// value that is not one of absent, `true`, `false`, or one `${{ matrix.os ==|!= '<os>' }}`.
+// whether that leg's failure stops the release job (R-1530, R-1531). The sole step-level
+// exception is `true` on the upload-artifact@v4 step; every other step-level use is refused.
 function suiteBlocksOn(workflowText) {
   const suite = workflowText.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  const lines = suite.split("\n").filter((line) => line.includes("continue-on-error:"));
-  if (lines.length > 1) throw new Error(`more than one continue-on-error line in the suite job: ${lines.join(" | ")}`);
-  let expr = "false";
-  if (lines.length === 1) {
-    if (!/^ {4}continue-on-error:/.test(lines[0])) {
-      throw new Error(`continue-on-error must sit at the four-space job level: ${JSON.stringify(lines[0])}`);
+  const suiteLines = suite.split("\n");
+  const lines = suiteLines.filter((line) => line.includes("continue-on-error:"));
+  const jobLines = lines.filter((line) => /^ {4}continue-on-error:/.test(line));
+  const stepLines = lines.filter((line) => !/^ {4}continue-on-error:/.test(line));
+  if (jobLines.length > 1) throw new Error(`more than one job-level continue-on-error line in the suite job: ${jobLines.join(" | ")}`);
+  for (const line of stepLines) {
+    const index = suiteLines.indexOf(line);
+    let start = index;
+    while (start >= 0 && !/^ {6}- /.test(suiteLines[start])) start--;
+    let end = index + 1;
+    while (end < suiteLines.length && !/^ {6}- /.test(suiteLines[end])) end++;
+    const step = suiteLines.slice(start, end).join("\n");
+    if (line !== "        continue-on-error: true" || !/^ {6}- uses: actions\/upload-artifact@v4$/m.test(step)) {
+      throw new Error(`continue-on-error is allowed only on the upload-artifact@v4 step: ${JSON.stringify(line)}`);
     }
-    expr = lines[0].slice(lines[0].indexOf(":") + 1).trim();
+  }
+  if (stepLines.length > 1) throw new Error(`more than one upload continue-on-error line in the suite job: ${stepLines.join(" | ")}`);
+  let expr = "false";
+  if (jobLines.length === 1) {
+    expr = jobLines[0].slice(jobLines[0].indexOf(":") + 1).trim();
   }
   return (os) => {
     if (expr === "true") return false;
@@ -203,6 +215,49 @@ check("R-2558: the per-file time limit is set once, in the suite job's env, seal
   for (let i = entry.index - 1; i >= 0 && /^      #/.test(lines[i]); i--) comments.unshift(lines[i]);
   assert(comments.some((line) => /\bchosen\b/.test(line)), "a chosen provenance comment must directly precede the key");
   assert.doesNotMatch(lines.filter((line) => /NANA_TEST_TIMEOUT_MS=/.test(line)).join("\n"), /NANA_TEST_TIMEOUT_MS=/, "the timeout must not be assigned inline in a run line");
+});
+// req: R-2631
+check("R-2631: every CI suite step points the runner's record knob at the leg's temp folder", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const lines = suite.split("\n");
+  const starts = lines.map((line, index) => /^ {6}- run: npm test(?:\s|$)/.test(line) ? index : -1).filter((index) => index >= 0);
+  assert(starts.length >= 2, "the suite job must have at least two npm test steps");
+  for (const start of starts) {
+    let end = start + 1;
+    while (end < lines.length && !/^ {6}- /.test(lines[end])) end++;
+    const block = lines.slice(start, end).join("\n");
+    assert.match(block, /^ {8}env:\n {10}NANA_SUITE_RECORD_FILE: \$\{\{ runner\.temp \}\}\/\$\{\{ env\.NANA_CI_RECORD_NAME \}\}$/m);
+  }
+  const keys = lines.map((line, index) => ({ line, index })).filter(({ line }) => /^ {6}NANA_CI_RECORD_NAME:/.test(line));
+  assert.equal(keys.length, 1, "the suite job env must define NANA_CI_RECORD_NAME exactly once");
+  assert.equal(keys[0].line, '      NANA_CI_RECORD_NAME: "nana-suite-record.json"');
+  const comments = [];
+  for (let index = keys[0].index - 1; index >= 0 && /^ {6}#/.test(lines[index]); index--) comments.unshift(lines[index]);
+  assert(comments.some((line) => /\bchosen\b/.test(line)), "a chosen comment must directly precede the record name");
+  assert.equal((workflow.match(/^\s*NANA_CI_RECORD_NAME:/gm) ?? []).length, 1, "the record name must have one home");
+});
+// req: R-2632
+check("R-2632: every suite leg uploads its record after the suite, failed or not, named by leg and attempt, without failing the leg", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const lines = suite.split("\n");
+  const starts = lines.map((line, index) => line === "      - uses: actions/upload-artifact@v4" ? index : -1).filter((index) => index >= 0);
+  assert.equal(starts.length, 1, "the suite job must have exactly one upload-artifact@v4 step");
+  const start = starts[0];
+  let end = start + 1;
+  while (end < lines.length && !/^ {6}- /.test(lines[end])) end++;
+  const step = lines.slice(start, end).join("\n");
+  const lastTest = lines.map((line, index) => /^ {6}- run: npm test(?:\s|$)/.test(line) ? index : -1).filter((index) => index >= 0).at(-1);
+  assert(start > lastTest, "the upload step must follow the last npm test step");
+  assert.match(step, /^ {8}if: \$\{\{ !cancelled\(\) \}\}$/m);
+  assert.match(step, /^ {8}continue-on-error: true$/m);
+  assert.match(step, new RegExp(`^ {10}name: ${CI_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\$\\{\\{ matrix\\.os \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}$`, "m"));
+  assert.match(step, /^ {10}path: \$\{\{ runner\.temp \}\}\/\$\{\{ env\.NANA_CI_RECORD_NAME \}\}$/m);
+  assert.doesNotMatch(step, /^\s*if-no-files-found:\s*error\s*$/m);
+  suiteBlocksOn(workflow);
+  const moved = workflow
+    .replace("        continue-on-error: true\n", "")
+    .replace("        if: matrix.os != 'windows-latest'", "        if: matrix.os != 'windows-latest'\n        continue-on-error: true");
+  assert.throws(() => suiteBlocksOn(moved), /allowed only on the upload-artifact@v4 step/);
 });
 // req: R-2577
 check("R-2577: the suite job warms the copier cache before its first suite step", () => {

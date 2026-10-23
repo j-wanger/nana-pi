@@ -1917,7 +1917,7 @@ Also applies: R-461
 Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
 Outcome: A developer can see which promises a change affects and what evidence supports its behavior and engineering quality.
 Kind: product
-Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239, R-2547
+Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239, R-2547, R-2632
 Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does · docs/requirements-tree.md
 Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs
 Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes
@@ -1932,11 +1932,13 @@ Read by: R-1272 · code: scripts/product-report.mjs
 Made by: R-616 · suite: scripts/test.mjs
 Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs
 Read by: R-616 · code: packages/nana-pack/bin/nana-land.mjs, .github/workflows/ci.yml
-Read by: R-616 · person: the per-file lines and totals reach only whoever reads the terminal; nothing keeps the seconds
+Read by: R-616 · person: whoever reads the terminal sees the per-file lines and totals; R-2547 keeps local seconds and R-2632 keeps CI seconds
 Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says
 Read by: R-1239 · person: the seat reads the record's result line after each run; no code reads the record, and no rule names it for the reviewer
 Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs
 Read by: R-2547 · code: scripts/test-locked.mjs, packages/nana-pack/lib/suite-records.mjs
+Made by: R-2632 · CI: .github/workflows/ci.yml, scripts/test.mjs
+Read by: R-2632 · person: the seat runs scripts/ci-records.mjs by hand; no land step, hook or CI step runs it
 
 ## FEAT-028 · Maintain requirement identity and trace links
 Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
@@ -2259,6 +2261,13 @@ Status: active
 | R-2553 | IF the run record is missing, unreadable or cannot be written or stored, THEN the locked suite shall run the suite, exit with the suite's own code and print one record line naming why. | implemented | `packages/nana-pack/tests/suite-records.test.mjs::R-2553: a missing, unreadable, unwritable or unstorable record keeps the locked run's exit code and names why` |
 | R-2554 | WHEN the locked suite stores a run record, it shall print at most two record lines, the last restating the PASS and FAIL counts of the run's final result and every failed name, and naming once each file that failed under coverage and passed when rerun alone. | implemented | `packages/nana-pack/tests/suite-records.test.mjs::R-2554: a locked run prints at most two record lines and the last restates the PASS and FAIL counts and every failed name` |
 | R-2555 | WHEN the locked suite stores a run record, its last record line shall name the count and summed minutes of stored full runs whose tip is in the merge base to HEAD range, this run included. | implemented | `packages/nana-pack/tests/suite-records.test.mjs::R-2555: a locked run names this lane's stored full-run count and minutes` |
+| R-2631 | The root CI suite job shall set `NANA_SUITE_RECORD_FILE` to `${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}` in the `env` of each `npm test` step, with `NANA_CI_RECORD_NAME` set once, in the job's `env`, under a comment holding the word `chosen`. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2631: every CI suite step points the runner's record knob at the leg's temp folder` |
+| R-2632 | The root CI suite job shall upload `${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}` with `actions/upload-artifact@v4`, after its last `npm test` step, under `if: ${{ !cancelled() }}` and `continue-on-error: true`, with no `if-no-files-found: error`, as an artifact named `CI_ARTIFACT_PREFIX` followed by `${{ matrix.os }}-${{ github.run_attempt }}`. | implemented | `packages/nana-pack/tests/ci-workflow.test.mjs::R-2632: every suite leg uploads its record after the suite, failed or not, named by leg and attempt, without failing the leg` |
+| R-2633 | WHEN the test runner writes its record under the arguments ci.yml's `npm test` steps pass, ci-records shall print that record's file, PASS, FAIL and SKIP counts equal to the runner's own totals line. | implemented | `packages/nana-pack/tests/ci-records.test.mjs::R-2633: a record the runner writes under CI's arguments reads back in ci-records with the runner's own totals` |
+| R-2634 | WHEN ci-records runs for a commit, it shall print one totals line for each unexpired record artifact of each CI-workflow run whose head is that commit, naming the platform, leg, run id, attempt and event, the file, PASS, FAIL and SKIP counts, the exit code, the wall seconds and the job count. | implemented | `packages/nana-pack/tests/ci-records.test.mjs::R-2634: ci-records prints one totals line per record artifact of each CI run of the commit` |
+| R-2635 | WHEN ci-records prints a record's totals line, it shall follow it with one line listing that record's `SLOWEST_LIST_MAX` slowest non-SKIP files, slowest first, each with its seconds and any non-PASS label. | implemented | `packages/nana-pack/tests/ci-records.test.mjs::R-2635: ci-records lists each record's slowest files, slowest first and capped` |
+| R-2637 | IF a suite leg in a run's newest attempt is still running, has no record artifact in that run, or started its newest attempt after its newest record was made, or a record artifact cannot be downloaded or read as a schema-1 run record, or a run's artifact or job listing fails, THEN ci-records shall print one line naming that leg, artifact or run and why. | implemented | `packages/nana-pack/tests/ci-records.test.mjs::R-2637: ci-records names each suite leg with no readable record and why` |
+| R-2638 | ci-records shall exit 0 only when it printed at least one record, and otherwise exit 1 after one line naming the cause: an unresolved revision, a failed gh call, no CI run, or no readable record. | implemented | `packages/nana-pack/tests/ci-records.test.mjs::R-2638: ci-records exits 1 with one named line when the revision, gh or every record is missing, and 0 when a record printed` |
 | R-1322 | The mutation runner shall create and reset its scratch worktrees with `core.autocrlf` off, so each holds the committed bytes. | implemented | `packages/nana-pack/tests/mutation-runner.test.mjs::R-1322: a scratch worktree from a repository with core.autocrlf=true holds the committed LF bytes, and a pair whose anchor spans a line break applies` |
 | R-1380 | WHERE the platform is win32, the test runner shall SKIP each test file on the declared Windows skip list without starting it, printing that file's declared reason. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it` |
 | R-1381 | WHERE the platform is not win32, the test runner shall run each test file on the declared Windows skip list. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::R-1381: off win32 each file on the declared Windows skip list runs` |
