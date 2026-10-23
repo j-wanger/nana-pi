@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane claude-code-builder-parity (gate), written by the seat 2026-10-23 after build 1, on the
-// shared runner; re-run at tip f8bdd255 after build 2. They are the must-meet's 34 pairs in its order, less p12 (Windows only); pair 3 is three runs (3a to 3c).
+// shared runner; re-run at tip f8bdd255 after build 2 and at 032080a2 after build 3. They are the must-meet's 34 pairs in its order, less p12 (Windows only); pair 3 is three runs (3a to 3c).
 // The lane changes pi-watchdog, which the runner does not import, so the lane's runner judges them. Run from the
 // worktree root on macOS:   SEAT_MUTATE_OUT=<file> node docs/reviews/claude-code-builder-parity-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -154,4 +154,4 @@ const PAIRS = [
 	], tests: [T_WC], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "claude-code-builder-parity", self: import.meta.url, tip: "f8bdd255", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "claude-code-builder-parity", self: import.meta.url, tip: "032080a2", declared: DECLARED, pairs: PAIRS });
