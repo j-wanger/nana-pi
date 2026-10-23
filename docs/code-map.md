@@ -1481,7 +1481,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — A GitHub repository or skip note, and CI success lines or a refusal reason.
 - **effects** — none
 - **errors** — Malformed workflow-run data is returned as a named refusal reason.
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `scripts/product-report.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `scripts/product-report.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`
 
 ### `packages/nana-pack/lib/land-config.mjs`
@@ -1892,7 +1892,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs bounded runner, fake gh and CLI children), disk (temporary fixtures and downloaded artifacts).
 - **errors** — Reports the requirement title whose CI-record behavior differs and exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/ci-workflow.test.mjs`
 

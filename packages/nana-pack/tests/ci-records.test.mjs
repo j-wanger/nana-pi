@@ -7,7 +7,7 @@
  * @errors Reports the requirement title whose CI-record behavior differs and exits nonzero.
  */
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -26,6 +26,7 @@ import {
 	SLOWEST_LIST_MAX,
 } from "../lib/suite-records-config.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
+import { githubRepoOf } from "../lib/land-ci.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -34,6 +35,10 @@ const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const WORKFLOW = fs.readFileSync(path.join(REPO, ".github", "workflows", "ci.yml"), "utf8");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "ci-records-test-")));
 const CASE_LIMIT_MS = 30_000;
+const ORIGIN_URL = execFileSync("git", ["remote", "get-url", "origin"], { cwd: REPO, encoding: "utf8" }).trim();
+const GITHUB_REPO = githubRepoOf(ORIGIN_URL);
+assert(GITHUB_REPO, "checkout origin must name a github.com repository");
+const REPOSITORY = `${GITHUB_REPO.owner}/${GITHUB_REPO.repo}`;
 const SHA = spawnSync("git", ["rev-parse", "HEAD"], { cwd: REPO, encoding: "utf8" }).stdout.trim();
 const SHORT_SHA = SHA.slice(0, 9);
 let failures = 0;
@@ -66,7 +71,7 @@ fs.writeFileSync(FAKE_GH, [
 	'  const id = args[2]; const repo = args[args.indexOf("--repo") + 1]; const name = args[args.indexOf("--name") + 1]; const dir = args[args.indexOf("--dir") + 1];',
 	'  const run = (state.runs ?? []).find((item) => String(item.id) === id);',
 	'  const artifact = state.artifacts?.[id]?.artifacts?.find((item) => item.name === name);',
-	'  const answer = repo === "j-wanger/nana-pi" && run && artifact ? state.downloads?.[id]?.[name] : null;',
+	'  const answer = repo === state.repository && run && artifact ? state.downloads?.[id]?.[name] : null;',
 	'  if (!answer) fail({ status: 1, stdout: JSON.stringify({ message: "Not Found" }), stderr: "gh: Not Found (HTTP 404)\\n" });',
 	'  if (answer.failure) fail(answer.failure);',
 	'  fs.mkdirSync(dir, { recursive: true });',
@@ -78,7 +83,7 @@ fs.writeFileSync(FAKE_GH, [
 let stateNumber = 0;
 function writeState(state) {
 	const file = path.join(TD, `state-${++stateNumber}.json`);
-	fs.writeFileSync(file, JSON.stringify({ sha: SHA, ...state }));
+	fs.writeFileSync(file, JSON.stringify({ sha: SHA, repository: REPOSITORY, ...state }));
 	return file;
 }
 const fakeCommand = Object.freeze([process.execPath, FAKE_GH]);
@@ -319,6 +324,7 @@ check("R-2637: ci-records names each suite leg with no readable record and why",
 		"run 42: job listing failed: please authenticate",
 	]) assert(result.out.includes(text), `${text}\n${result.out}`);
 	assert(!result.out.includes("macos-latest: no record"), result.out);
+	assert(!result.out.split(/\r?\n/).some((line) => line.includes("run 40 macos-latest:")), result.out);
 	const cleanupStateFile = writeState(oneRecordState());
 	const lines = [];
 	const fsApi = { ...fs, rmSync(target, options) { if (options?.recursive) { const error = new Error("busy"); error.code = "EBUSY"; throw error; } return fs.rmSync(target, options); } };
