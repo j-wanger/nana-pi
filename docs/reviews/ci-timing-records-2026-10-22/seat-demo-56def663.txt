@@ -1,0 +1,4 @@
+ci record: artifact suite-record-macos-latest-1 from run 39892540334: download failed: error fetching artifacts: HTTP 404: Not Found (https://api.github.com/repos/j-wanger/nana-pi/actions/runs/12475890665/artifacts?per_page=100)
+ci record: artifact suite-record-windows-latest-1 from run 39892540334: download failed: error fetching artifacts: HTTP 404: Not Found (https://api.github.com/repos/j-wanger/nana-pi/actions/runs/12475737152/artifacts?per_page=100)
+ci record: artifact suite-record-ubuntu-latest-1 from run 39892540334: download failed: error fetching artifacts: HTTP 404: Not Found (https://api.github.com/repos/j-wanger/nana-pi/actions/runs/12475552851/artifacts?per_page=100)
+ci record: no readable record for 56def663
