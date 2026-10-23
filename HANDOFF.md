@@ -52,6 +52,7 @@
 
 - 2026-09-18 to 2026-10-22: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`), up to 2026-10-20 on 2026-10-21 and the rest on 2026-10-22.
 - 2026-10-22: the brief check now reads the Precedent forms seats write. A numbered step list right after a plain Precedent list no longer counts as entries. A bold label line starts the section, and a bold or punctuated path now reaches the check bare. A heading such as "Precedent audit" no longer counts. A brief with no section is told both ways to start one, and brief-check names the brief path it tried. All 17 of the seat's wrong versions of the code turn a check red.
+- 2026-10-22: a session in a project whose AGENTS.md working section is out of date now says so. Both seats show one line naming the command that refreshes it: the Claude Code hook prints it, and pi gets it as a prompt section. The line appears exactly where `nana-setup project --check` says the section differs. Linked worktrees, nana-pi's own checkout, dismissed folders and builder or reviewer children get none. Deciding it starts no process. A folder name a shell would expand gets the command without its path. All 16 of the seat's wrong versions of the code turn a check red. An independent check found no material problem.
 
 ## Known bugs
 

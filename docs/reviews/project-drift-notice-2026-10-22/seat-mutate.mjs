@@ -24,6 +24,7 @@ const GATE = "if (hasAdoptionInstallRecord(layout, settings)) {";
 
 const DECLARED = [
 	"(plan) p1 to p15 follow the must-meet's wrong-code list in order",
+	"(seat) p16 (after build 3, at c0ab6b2d) is the quote-only check build 3 replaced; p3 re-anchored to it",
 	"(seat) p7 skips the dismissal-marker guard, one of the four D2 guards the plan lists",
 	"(seat) p11 has the Claude producer await checkProject whole before its line: checkProject is async, so the sync lib cannot call it; run 1's import-only form was too weak (loading project.mjs spawns nothing)",
 ];
@@ -36,7 +37,7 @@ const PAIRS = [
 		one(LIB, ROOT, "const root = fs.existsSync(path.join(session, \".git\")) ? session : null;"),
 	], tests: [T], expectRed: [R_2623] },
 	{ n: "p3", name: "the root rendered with no quote or span check", edits: [
-		one(LIB, "if (!root.includes('\"') && printable(root)) {", "if (true) {"),
+		one(LIB, "if (![...PROJECT_STALE_NO_PATH_CHARS].some((character) => root.includes(character)) && printable(root)) {", "if (true) {"),
 	], tests: [T], expectRed: [R_2623] },
 	{ n: "p4", name: "no CRLF normalisation", edits: [
 		one(REGION, "const actual = text.slice(begins[0].end, ends[0].start).replace(/\\r\\n/g, \"\\n\");", "const actual = text.slice(begins[0].end, ends[0].start);"),
@@ -75,6 +76,9 @@ const PAIRS = [
 		one(BIN, EARLY_WRITE, ""),
 		one(BIN, GATE, `${GATE}\n\tconst projectNotice = projectStaleLine(sessionDir);\n\tif (projectNotice) process.stdout.write(\`\${projectNotice}\\n\`);`),
 	], tests: [T], expectRed: [R_2623] },
+	{ n: "p16", name: "only the double quote sends the line to the no-path form", edits: [
+		one(LIB, "if (![...PROJECT_STALE_NO_PATH_CHARS].some((character) => root.includes(character)) && printable(root)) {", "if (!root.includes('\"') && printable(root)) {"),
+	], tests: [T], expectRed: [R_2623] },
 ];
 
-process.exitCode = await runMutations({ lane: "project-drift-notice", self: import.meta.url, tip: "e1ac980f", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "project-drift-notice", self: import.meta.url, tip: "c0ab6b2d", declared: DECLARED, pairs: PAIRS });
