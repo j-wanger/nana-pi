@@ -7,3 +7,4 @@
 - g005-carveout: Python projects carry the pi wording too, where it does not apply. It is harmless.
 - g005-carveout: on Windows, the rule and skill copies take the new wording only at the next install.
 - g005-carveout: the product report's assessment of the engineering-standards feature stays out of date until the queued report refresh.
+- Precedent ruling (audit re-check, 2026-10-22): no test pins the ruling's content, the spec skill reads no code, and lessons and review findings reach no planner.

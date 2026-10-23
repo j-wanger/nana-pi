@@ -54,3 +54,4 @@
 - Deliverable lines (deliverable-fields, final review): the count trusts an automatic maker or a code reader whose path gets a "not tracked" note; the note shows.
 - Deliverable lines (deliverable-fields, final review): the movement report lists a whitespace-only change to a maker or reader line, while a whitespace-only row edit prints none.
 - Deliverable lines (report-deliverables, plan): a G row in `Deliverables:` can never carry maker or reader lines.
+- Deliverable count (audit re-check, 2026-10-22): no session-start reader shows the made-and-read count; the session-start frontier lane left it out.

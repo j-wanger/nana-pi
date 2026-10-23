@@ -1,0 +1,41 @@
+seat-mutate: lane brief-reader-fixes, tip a4e0c45f47463637ff72ab567f6b9f96f973ae46, table 4722c8ce9399a8d56efc7304ada9a9c581ac2a0ac081f4b57706f43782567d70, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 17 pairs in 5 shards (4+4+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-22T22:34:28.286Z
+DECLARED (plan) p1 to p11 are the planner's: the label section keeps reading items of the other kind; it ends at any unindented non-list line; the kind boundary also on heading sections; kind compared by character; only **Precedent:** read as bold; the inline form read as a section; one trailing mark stripped, not a run; bold stripped only as a whole-token pair; every * stripped; the heading predicate left as plain isNamed; a heading counted only when exactly Precedent
+DECLARED (adversary) p12 to p17 are the adversary's: the kind boundary ignores indentation; the colon not stripped; ** removed after the none: check; brief-check refuses without the path; brief-check resolves the brief from its working folder; the unsafe-path check only after the mark strip
+DECLARED (seat) p3 runs the frontier and handoff-asks files as well, because heading sections must read as on main
+[1/5] seat-mutate: lane brief-reader-fixes, shard 1/5, tip a4e0c45f47463637ff72ab567f6b9f96f973ae46, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-22T22:34:29.208Z
+[1/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/brief-check.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane brief-reader-fixes, shard 2/5, tip a4e0c45f47463637ff72ab567f6b9f96f973ae46, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-22T22:34:33.636Z
+[2/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane brief-reader-fixes, shard 3/5, tip a4e0c45f47463637ff72ab567f6b9f96f973ae46, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 3 pairs, darwin, node v22.22.2, 2026-10-22T22:34:37.337Z
+[3/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/frontier.test.mjs (exit 0, 53 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/handoff-asks.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/5] RESULT: 3/3 red (1 exactly their named titles, 2 with a named title green, 2 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane brief-reader-fixes, shard 4/5, tip a4e0c45f47463637ff72ab567f6b9f96f973ae46, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 3 pairs, darwin, node v22.22.2, 2026-10-22T22:34:41.692Z
+[4/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (2 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane brief-reader-fixes, shard 5/5, tip a4e0c45f47463637ff72ab567f6b9f96f973ae46, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 3 pairs, darwin, node v22.22.2, 2026-10-22T22:34:45.625Z
+[5/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 65 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/brief-check.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 the label section keeps reading items of the other kind — 1/1 named: /^R-2616: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 the label section ends at any unindented non-list line — 1/1 named: /^R-2616: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the kind boundary also on heading sections — (no named case); named but GREEN: /^R-2580: /, /^R-2620: /; UNNAMED red: [frontier.test.mjs] each bullet or numbered Open for the owner entry without a tag is reported <tmp> 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 kind compared by character — 1/1 named: /^R-2616: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p5 only **Precedent:** read as bold — 1/1 named: /^R-2617: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 the inline form read as a section — 1/1 named: /^R-2618: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 one trailing mark stripped, not a run — 1/1 named: /^R-2619: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 bold stripped only as a whole-token pair — 1/1 named: /^R-2619: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 every * stripped — (no named case); named but GREEN: /^R-2619: /; UNNAMED red: [worker-lane.test.mjs] R-2579: Precedent entries not tracked at HEAD are refused, each one named; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p10 the heading predicate left as plain isNamed — 1/1 named: /^R-2620: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 a heading counted only when exactly Precedent — 1/1 named: /^R-2620: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 the kind boundary ignores indentation — 1/1 named: /^R-2616: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p13 the colon not stripped — 1/1 named: /^R-2619: /; UNNAMED red: [worker-lane.test.mjs] seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line star…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p14 ** removed after the none: check — 1/1 named: /^R-2619: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p15 brief-check refuses without the path — 1/1 named: /^R-2621: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p16 brief-check resolves the brief from its working folder — 1/1 named: /^R-2621: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p17 the unsafe-path check only after the mark strip — 1/1 named: /^R-2619: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 17/17 red (14 exactly their named titles, 4 with a named title green, 3 with an unnamed red), 0 survived, across 5 shards

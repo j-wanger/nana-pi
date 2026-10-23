@@ -1497,7 +1497,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 - **purpose** — Scan Markdown outside fences for named heading or label sections and their list entries.
-- **inputs** — Markdown text, a heading-name predicate, and an optional exact label.
+- **inputs** — Markdown text, a heading-name predicate, and optional exact plain or bold label lines.
 - **outputs** — Ordered sections with source lines and list entries whose continuation lines stay grouped.
 - **effects** — none
 - **errors** — None; absent sections produce an empty array.

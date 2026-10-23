@@ -61,3 +61,4 @@
 - Git Bash paths in the gate (gate-rm-gitbash-tmp, land review): the pack README says other shells and a hand-edited mount table are not translated. The gate still applies the Git for Windows reading there, since it cannot detect either case.
 - Git Bash paths in the gate (gate-rm-gitbash-tmp, two reviews): on Windows without Git Bash, the test header promises 16 pass and 1 skip. The real count there is 15 pass and 2 skip.
 - Git Bash paths in the gate (gate-rm-gitbash-tmp, final review): R-2492 says any spelling that starts with a slash and one letter reads as a drive. The code leaves a spelling with a backslash or a leading double slash unread, so it asks.
+- Gate blocks (audit re-check, 2026-10-22): a gate block is never kept, so no count of blocks exists.
