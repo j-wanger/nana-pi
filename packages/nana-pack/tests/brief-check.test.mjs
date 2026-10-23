@@ -115,7 +115,13 @@ const sharedByBoth = fs.existsSync(sharedCheck) &&
 	!["readBrief", "checkPrecedent", "ls-tree", "KNOWN_BUGS_DIR"].some((token) => checkerSource.includes(token));
 
 const hold = fs.existsSync(holdRecord) ? JSON.parse(fs.readFileSync(holdRecord, "utf8")) : null;
-const samplerResolvedFirst = resolvedSampler && path.resolve(resolvedSampler).toLowerCase() === path.resolve(samplerShim).toLowerCase();
+const realpath = process.platform === "win32" ? fs.realpathSync.native : fs.realpathSync;
+let samplerResolvedFirst = false;
+if (resolvedSampler) {
+	try {
+		samplerResolvedFirst = realpath(resolvedSampler) === realpath(samplerShim);
+	} catch {}
+}
 const ok = observations.every((entry) => entry.ok) && sharedByBoth;
 const check = (title, pass, detail = "") => {
 	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : detail);
