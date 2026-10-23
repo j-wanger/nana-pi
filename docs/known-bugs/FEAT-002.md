@@ -50,3 +50,4 @@
 - Frontier block (session-start-frontier, independent check): a bold lead holding U+2028 or U+2029 does not match the bold pattern, so that title prints with its `**` marks, still on one clean line.
 - Frontier block (session-start-frontier, land review): a read or decode failure returns the unavailable block before `--max` applies, so a folder named HANDOFF.md beside a long objective can exceed the frontier's share of the hook budget.
 - Frontier block (session-start-frontier, final review): an ask with bold around the tag only (`- **[blocking, since …]** text`) renders as `[blocking, since …] **** text`; the title pattern needs the title inside the bold, and the fallback strips only the tag.
+- Objective hook (win-flake-hardening, plan): the Claude Code objective hook's 1,500 ms producer limit was missed twice on main's Windows CI runs; a hook lane owns the fix.

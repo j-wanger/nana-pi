@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane win-flake-hardening (ordinary), written by the seat 2026-10-23 after build 1, on the
-// shared runner, at tip 6406ea8e. They are the must-meet's pairs in its order (the draft's list with the seat's changes),
+// shared runner, at tip 6406ea8e, re-run at 409ce615 after build 2. They are the must-meet's pairs in its order (the draft's list with the seat's changes),
 // less pair 6, plus p5b and p17. The shared runner runs each test file directly, not through scripts/test.mjs, so the
 // lane's runner edits are judged by the copies the tests make. Run from the worktree root on macOS:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/win-flake-hardening-2026-10-23/seat-mutate.mjs
@@ -98,4 +98,4 @@ const PAIRS = [
 	], tests: [T_RUN], expectRed: [R_2666] },
 ];
 
-process.exitCode = await runMutations({ lane: "win-flake-hardening", self: import.meta.url, tip: "6406ea8e", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "win-flake-hardening", self: import.meta.url, tip: "409ce615", declared: DECLARED, pairs: PAIRS });

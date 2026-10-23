@@ -55,7 +55,6 @@
 - Windows flakes (win-leg-flakes, plan): with the larger limits, stale-copies no longer catches an install that slows from under 1 second to under 20. The launch-limit test now accepts a stop up to 7.5 seconds.
 - Windows flakes (win-leg-flakes, plan): the slowed-install check skips on Windows by design. The forced-Windows fixtures run on macOS and Linux. The hook-detail check runs on every system.
 - Windows flakes (win-leg-flakes, plan): CI re-runs cannot prove the failure rate fell. The proof is the two slowed and failing meta-runs and the call-site checks.
-- Test runner (win-leg-flakes, cause audit): the runner's cleanup of a file's temp folder and home has no guard. In run 39464607963 an EBUSY there killed the runner after 154 of 200 files, so 46 files never ran and no summary printed. A small lane on the runner fixes it.
 - PowerShell config check (win-leg-flakes, cause audit): pack-config-utf16 ends on an uncaught ENOENT when PowerShell writes no file. Its header promises a named failure with PowerShell's status, error and time.
 - Stale-copies on Windows (win-leg-flakes, cause audit): an install the test stops at its limit leaves its knowledge-build grandchild holding the index file. The test stops only the direct child.
 - Install-child limit (win-leg-flakes, plan; final review): five test files now each define the same 20-second install-child limit. One shared test value would keep them together. The stale-copies file exports its copy, though nothing imports it.
@@ -78,7 +77,6 @@
 - Run-alone list (ci-jobs, seat): review-ledger now runs alone at four jobs, so the seat Mac's locked full suite grew from about 350 s to 456 s (build 4, 2026-10-22). Only its reservation-renewal section is load-sensitive; splitting that section into its own file would win the time back.
 - Run-alone list (ci-jobs, seat): each CI run at four found one more load-sensitive file (post-edit-utf8 on Windows, review-ledger on macOS). Others may surface; each joins the list with its run as provenance.
 - Run-alone list (ci-jobs, final review): the 350 s to 456 s figure above predates review-outputs-kept's extra review-ledger tests, so it may now be low; the ci-jobs land's suite record read 470.6 s.
-- Parallel suite (claude-review-launcher CI, 2026-10-22): test-runner-parallel's R-1472 check (files that ran together print unbroken blocks) failed once on the Windows leg at four files (run 39817507050, first try at 7d664b98); its re-run passed. If it fails again it joins the run-alone list with its runs as provenance.
 - Suite records (audit re-check, 2026-10-22): no session-start reader shows the last suite record's result.
 - CI records (ci-timing-records, plan): a pull_request run tests GitHub's merge of the head into main at run time; the record names the event, not the merged tree.
 - CI records (ci-timing-records, plan): runs before this lane have no record; their per-file seconds stay only in logs that expire after 90 days.
@@ -95,3 +93,10 @@
 - CI records (ci-timing-records, seat): the test reads the fixture repository from the remote named `origin` by a literal, not the config's remote name.
 - CI records (ci-timing-records, final review): when gh hits its time limit, the line reads "gh could not start", though gh started and timed out; the leg or run is still named and the command still exits 1.
 - CI records (ci-timing-records, final review): when a run's artifact listing fails, that run gets one line and its legs get none, as the plan asks.
+- Windows flakes (win-flake-hardening, plan): only a finished file's temp folder is guarded; a busy per-file home folder still ends the runner, as before, though all four measured holds were under the temp folder.
+- Windows flakes (win-flake-hardening, plan): the temp-folder removal retries (5 at 100 ms) are chosen, not measured on a Windows hold.
+- Windows flakes (win-flake-hardening, plan): R-1471's and R-1473's overlap preconditions keep their timing; neither failed in 93 Windows attempts.
+- Windows flakes (win-flake-hardening, plan): worker-lane and build-records keep `--poll 0.1`, and worker-lane keeps its 15-second limit, so a slow CPU sampler can still reach them as it reached brief-check.
+- Windows flakes (win-flake-hardening, plan): build-report's hard-kill worker polls above the test's start wait by reading; no test pins it.
+- Windows flakes (win-flake-hardening, plan): templates-update's adopt failure and R-2023's relay kill stay for shared-helpers; their link is inferred.
+- Windows flakes (win-flake-hardening, plan): CI re-runs cannot prove the failure rate fell; the proof is the injected schedules and their wrong-code pairs.
