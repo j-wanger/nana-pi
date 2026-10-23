@@ -1,0 +1,40 @@
+seat-mutate: lane lane-temp-cleanup, tip f3df859617da128c18a10b7be08266ba65632575, table f5881aa0f70dcabe64b67525c6e20646cd0cfed0b8a846b37e37968022fdd75f, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 18 pairs in 5 shards (4+4+4+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T17:06:01.225Z
+DECLARED (plan) p1 to p14 follow the draft's wrong-code list in order; V1 to V4 are the must-meet's
+DECLARED (seat) p1 rebuilds main's order: the review check after parseWatchdogArgv reading w.ownArgs, and no start-up listeners
+DECLARED (seat) p3 guards the early check with !own.includes('--lane'), since laneMode is declared after it
+DECLARED (seat) p7 keeps the try's finally as a no-op so the file still parses
+DECLARED (seat) p13 and p14 are test-fixture edits; the decoy itself is not a pair, because it is the pin's trigger
+[1/5] seat-mutate: lane lane-temp-cleanup, shard 1/5, tip f3df859617da128c18a10b7be08266ba65632575, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:06:02.589Z
+[1/5] BASELINE ok   packages/nana-pack/tests/worker-claude.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane lane-temp-cleanup, shard 2/5, tip f3df859617da128c18a10b7be08266ba65632575, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:06:06.577Z
+[2/5] BASELINE ok   packages/nana-pack/tests/worker-claude.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane lane-temp-cleanup, shard 3/5, tip f3df859617da128c18a10b7be08266ba65632575, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 4 pairs, darwin, node v22.22.2, 2026-10-23T17:06:10.622Z
+[3/5] BASELINE ok   packages/nana-pack/tests/worker-claude.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane lane-temp-cleanup, shard 4/5, tip f3df859617da128c18a10b7be08266ba65632575, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 3 pairs, darwin, node v22.22.2, 2026-10-23T17:06:15.008Z
+[4/5] BASELINE ok   packages/nana-pack/tests/worker-claude.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane lane-temp-cleanup, shard 5/5, tip f3df859617da128c18a10b7be08266ba65632575, merge-base 8c24e357609e8079c9bce0b209cb607c65b61750, 3 pairs, darwin, node v22.22.2, 2026-10-23T17:06:18.866Z
+[5/5] BASELINE ok   packages/nana-pack/tests/worker-claude.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 main's pi-worker: the review check after the temp folder and no start-up listeners — 2/2 named: /^R-2691: / | /^R-2693: /; 2 FAIL total (1 file changed, 5 insertions(+), 6 deletions(-))
+RED p2 the review check left after the temp folder, with an rmSync of the folder before its exit — 1/1 named: /^R-2691: /; 1 FAIL total (1 file changed, 6 insertions(+), 5 deletions(-))
+RED p3 the early review check guarded by not lane mode — 1/1 named: /^R-2691: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 the early review check's list cut to --item only — 1/1 named: /^R-2691: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p5 laneFailure without its rmSync — 1/1 named: /^R-2692: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED p6 the watchdog-option exit without its rmSync — 1/1 named: /^R-2692: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 the runWatchdog finally without its rmSync — 3/3 named: /^R-2692: / | /^R-2647: / | /^R-2655: /; UNNAMED red: [worker-claude.test.mjs] R-2693: off Windows, SIGINT, SIGTERM or SIGHUP sent once the temp files exist and before the builder starts s…; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 the start-up listeners registered after mkdtempSync, with the trust check between them — 1/1 named: /^R-2693: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 no start-up listeners — 1/1 named: /^R-2693: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED p10 the start-up listeners registered just before await runWatchdog — 1/1 named: /^R-2693: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 a start-up listener that removes the folder and exits 1 itself — 1/1 named: /^R-2693: /; UNNAMED red: [worker-claude.test.mjs] R-2651: a Claude Code builder whose CPU stays flat past the stall limit runs to its end, and the ceiling and … | [worker-claude.test.mjs] R-2654: a Claude Code builder runs with auto-memory off and the builder Bash limit as both Bash time limits {… | [worker-claude.test.mjs] R-2655: a Claude Code builder gets a settings file outside the worktree carrying only the login keys and netw… | [worker-claude.test.mjs] R-2664: the builder's settings file holds the sealed builder env whatever the user settings env says {"result… | [worker-claude.test.mjs] R-2665: a missing, unreadable, malformed or non-object user settings file prints one carry line without its c… | [worker-claude.test.mjs] R-2692: a finished build, a held lock, a bad stall option, an unwritable output, the ceiling and, off Windows…; 7 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 start-up listeners for SIGTERM only — 1/1 named: /^R-2693: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p13 test helper: workerArgs keeps its default --out when a case passes its own — 1/1 named: /^R-2692: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p14 test fixture: baseEnv without delete env.CLAUDE_CONFIG_DIR — 3/3 named: /^R-2655: / | /^R-2664: / | /^R-2665: /; 3 FAIL total (1 file changed, 1 deletion(-))
+RED V1 start-up listeners removed before runWatchdog — 1/1 named: /^R-2693: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED V2 the lane-mode review check placed late in the lane block, just before the temp folder — 1/1 named: /^R-2691: /; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RED V3 start-up listeners registered only for a Claude builder — 1/1 named: /^R-2693: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED V4 no stderr error listener — 1/1 named: /^R-2692: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RESULT: 18/18 red (16 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 5 shards
