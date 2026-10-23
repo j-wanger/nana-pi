@@ -2,11 +2,11 @@
  * @module packages/nana-pack/tests/build-report.test.mjs
  * @purpose Pin build-report's build, lane, total, unreadable-line, and unpaired-start output.
  * @inputs build-report, build-record readers/renderers, and temporary clone-shared ledgers and session files.
- * @outputs Two requirement-tagged PASS/FAIL checks.
+ * @outputs Three requirement-tagged PASS/FAIL checks.
  * @effects disk (OS-temp git fixtures), process (git and report subprocesses).
  * @errors Failed checks print their title and make the process exit nonzero.
  */
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -101,6 +101,24 @@ const noEndExpected = [
 ].join("\n") + "\n";
 const baseNoEndOk = noEnd.status === 0 && noEnd.stdout === noEndExpected && noEnd.stdout.indexOf("build n1") < noEnd.stdout.indexOf("build n2") && noEnd.stdout.includes("2 min | 64 tokens | $0.06");
 
+function killWorkerTree(child, { platform = process.platform, runner = spawnSync } = {}) {
+	if (!child?.pid) return;
+	try {
+		if (platform === "win32") runner("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+		else child.kill("SIGKILL");
+	} catch { /* the tree already ended or the kill command could not start */ }
+}
+const killCases = [
+	() => killWorkerTree({ pid: 42 }, { platform: "win32", runner: () => ({ status: 255 }) }),
+	() => killWorkerTree({ pid: 42 }, { platform: "win32", runner: () => ({ status: 128 }) }),
+	() => killWorkerTree({ pid: 42 }, { platform: "win32", runner: () => { throw Object.assign(new Error("cannot start"), { code: "ENOENT" }); } }),
+];
+const killReturns = killCases.map((runCase) => { try { runCase(); return true; } catch { return false; } });
+let defaultKillOptions = null;
+try { killWorkerTree({ pid: 42 }, { platform: "win32", runner: (_command, _args, options) => { defaultKillOptions = options; return { status: 0 }; } }); } catch {}
+// req: R-2667
+check("R-2667: the hard-kill step's tree kill returns without throwing whatever status it gets or when it cannot start", killReturns.every(Boolean) && defaultKillOptions?.stdio === "ignore", JSON.stringify({ killReturns, defaultKillOptions }));
+
 // A hard-killed worker leaves the start unpaired while its independently running pi session remains reportable.
 fs.writeFileSync(LEDGER, "");
 const hardBrief = path.join(LINKED, "brief.md"); fs.writeFileSync(hardBrief, "Feature: FEAT-006 · Build records\n\nPrecedent:\n- seed\n");
@@ -113,7 +131,7 @@ if (process.platform === "win32") writeFakePi(hardBin, hardBody);
 else { const body = path.join(hardBin, "body.cjs"); fs.writeFileSync(body, hardBody); fs.writeFileSync(path.join(hardBin, "pi"), `#!/bin/sh\nexec "${process.execPath}" "${body}" "$@"\n`, { mode: 0o755 }); }
 const hardWorker = path.join(ROOT, "bin", "pi-worker.mjs");
 const hardOut = path.join(TD, "hard-out.md");
-const hardChild = spawn(process.execPath, [hardWorker, "--poll", "0.1", "--stall-secs", "20", "--out", hardOut, "--lane", "report-linked", "--brief", hardBrief], { cwd: LINKED, env: { ...process.env, HOME: hardHome, USERPROFILE: hardHome, PI_CODING_AGENT_DIR: hardAgent, PATH: `${hardBin}${path.delimiter}${process.env.PATH ?? ""}`, HARD_PID: hardPid }, stdio: "ignore" });
+const hardChild = spawn(process.execPath, [hardWorker, "--poll", "60", "--stall-secs", "20", "--out", hardOut, "--lane", "report-linked", "--brief", hardBrief], { cwd: LINKED, env: { ...process.env, HOME: hardHome, USERPROFILE: hardHome, PI_CODING_AGENT_DIR: hardAgent, PATH: `${hardBin}${path.delimiter}${process.env.PATH ?? ""}`, HARD_PID: hardPid }, stdio: "ignore" });
 const hardClosePromise = new Promise((resolve) => hardChild.once("close", (code, signal) => resolve({ code, signal })));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function pidAlive(pid) {
@@ -128,10 +146,7 @@ async function waitForPidExit(pid) {
 const hardDeadline = Date.now() + 10_000;
 while (!(fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0) && hardChild.exitCode === null && Date.now() < hardDeadline) await new Promise((resolve) => setTimeout(resolve, 25));
 let hardStarted = fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0;
-if (hardStarted) {
-	if (process.platform === "win32") execFileSync("taskkill", ["/PID", String(hardChild.pid), "/T", "/F"], { stdio: "ignore" });
-	else hardChild.kill("SIGKILL");
-}
+if (hardStarted) killWorkerTree(hardChild);
 const hardClose = await Promise.race([hardClosePromise, new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 10_000))]);
 if (hardStarted) {
 	const fakePiPid = Number(fs.readFileSync(hardPid, "utf8"));

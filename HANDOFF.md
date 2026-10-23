@@ -13,9 +13,9 @@
 
 1. **Priority review, 2026-10-24.** Met: the requirements tree, four-digit IDs, the land rule, and the Windows CI runner with its fixes. Partly met: install and hooks. CI's install check passes on macOS and Windows, but the owner's own Windows run at current main is pending. No checklist step has run on a clean account or a fresh machine. The seat brings the review pack and proposes whether the artifact work becomes the next priority.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode until 2026-10-24).** Building: the Windows flaky-test lane the owner approved on 2026-10-23. Planned: shared helpers.
+3. **Lanes in flight (power mode until 2026-10-24).** Building: shared helpers. The seat plans no other lane until the owner picks one.
 4. **Queue after that.** It holds the builder launch in the install check and the linked Claude folder's repair advice. It also holds a settings file with a byte-order mark and the audit's seat calls. Seat work: regenerate and republish the product report in a reviewed change.
-5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardens five of their causes.
+5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five of their causes on 2026-10-23. Shared helpers takes the install relay's kill next.
 6. **Karpathy's other formats.** Nothing blocks the review-timeline diagram any more, and nobody has started it.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
@@ -54,7 +54,7 @@
 ## Landed (one line each; the narrative is in `docs/sessions/`)
 
 - 2026-09-18 to 2026-10-23: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`). The seat moved them on 2026-10-21, 2026-10-22 and 2026-10-23, all but the newest.
-- 2026-10-23: pi-worker now starts a Claude Code larger-lane builder itself, as a headless Claude Code run, by the owner's 2026-10-23 approval. The seat no longer starts a subagent for it. The builder gets pi-worker's brief check, lane lock, time limit and build record. One prompt file carries the preamble, the brief and the feature's known bugs. A settings file carries only the login and network settings from the user's own Claude Code settings. On Windows the builder's report now reaches its output file.
+- 2026-10-23: five Windows test failures that no lane caused no longer depend on timing. The runner retries removing a finished file's temp folder; if it stays busy, it prints one failure line and runs the rest. build-report's kill step can no longer throw. Two parallel-runner checks now make their files wait for each other instead of hoping they overlap. brief-check's check never starts the CPU sampler.
 
 ## Known bugs
 

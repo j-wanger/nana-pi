@@ -60,3 +60,4 @@
 - Project drift line (project-drift-notice, independent check): the role guard is an exact, case-sensitive match, so `Worker`, `REVIEWER` and ` worker` get the line, as the knowledge hook's compare does. Every launcher sets lowercase values.
 - Project drift line (project-drift-notice, final review): the Claude producer writes the project line before its installed-copy check; if that later check throws, the hook launcher drops the producer's stdout for the unavailable marker, so that session loses the project line.
 - Project drift line (project-drift-notice, land review): the no-path guard checks the project root but not this checkout's own path, so a toolkit checkout whose path holds `$` gives a command whose executable path expands in POSIX shells and PowerShell.
+- Project drift check (win-flake-hardening, plan): R-2628's check failed once on a Windows pull-request leg on 2026-10-23 (run 39904357481) and passed on re-run; not yet diagnosed.

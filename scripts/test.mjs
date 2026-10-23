@@ -8,7 +8,8 @@
  *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
- *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code; with
+ *  file in non-verbose mode, one counted FAIL line when a finished file's temporary folder remains busy,
+ *  a totals line with warnings and the self-test verdict, and the exit code; with
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
  *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
  *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
@@ -16,10 +17,12 @@
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
- *  fixtures, all removed on every exit path; while NANA_COVERAGE_DIR is set, a record and a completion
+ *  fixtures, with each finished file's removals retried and all removed on every exit path when possible;
+ *  while NANA_COVERAGE_DIR is set, a record and a completion
  *  file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
- * @errors exit 1 when any file failed, timed out, died on a signal, matched nothing, or a self-test fixture
- *  missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
+ * @errors exit 1 when any file failed, timed out, died on a signal, matched nothing, left a temporary
+ *  folder that survived its retries, or a self-test fixture missed its expected verdict; exit 130 on
+ *  SIGINT and 143 on SIGTERM; exit 0 otherwise
  */
 // The canonical test path: `npm test` from the repo root.
 //
@@ -70,7 +73,13 @@ import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packag
 import { killProcessTree } from "../packages/nana-pack/lib/process-tree.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
-import { checkoutSpellingSkipReason, JOBS_FLAG, RUN_ALONE } from "../packages/nana-pack/lib/test-runner-config.mjs";
+import {
+	checkoutSpellingSkipReason,
+	JOBS_FLAG,
+	RUN_ALONE,
+	TEMP_REMOVE_RETRIES,
+	TEMP_REMOVE_RETRY_DELAY_MS,
+} from "../packages/nana-pack/lib/test-runner-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
@@ -391,6 +400,19 @@ const selfTestMismatch = [];
 const suiteFiles = new Array(files.length);
 const unnamedFailures = [];
 const display = (f) => (fixtureOf.has(f) ? "(self-test) " + path.basename(f) : rel(f));
+const finishedRemoveOptions = { recursive: true, force: true, maxRetries: TEMP_REMOVE_RETRIES, retryDelay: TEMP_REMOVE_RETRY_DELAY_MS };
+/** Remove a finished file's temporary folder without aborting the remaining run. */
+function removeFinishedTemp(name, folder) {
+	try {
+		fs.rmSync(folder, finishedRemoveOptions);
+		activeFileTmp.delete(folder);
+	} catch (error) {
+		const failure = `${name}: temp folder not removed: ${folder} (${error?.code ?? "unknown"})`;
+		console.log(`FAIL ${failure}`);
+		unnamedFailures.push(failure);
+		tally.FAIL++;
+	}
+}
 const width = Math.max(...files.map((f) => display(f).length));
 const started = Date.now();
 
@@ -477,9 +499,8 @@ if (jobs === 1) {
 				if (!verbose) for (const l of rep.excerpt) console.log(l);
 			}
 			if (fx?.holdsPipe) reapPipeHolder();
-			fs.rmSync(home, { recursive: true, force: true });
-			fs.rmSync(fileTmp, { recursive: true, force: true });
-			activeFileTmp.delete(fileTmp);
+			fs.rmSync(home, finishedRemoveOptions);
+			removeFinishedTemp(name, fileTmp);
 		}
 	} finally {
 		cleanup();
@@ -534,9 +555,8 @@ if (jobs === 1) {
 		if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
 		perFile[index] = { warn: rep.warn ? `WARN ${name}: FAIL line with exit 0` : null, failed: !rep.ok ? name : null, mismatch: rep.mismatch ? name : null };
 		if (fx?.holdsPipe) reapPipeHolder();
-		fs.rmSync(home, { recursive: true, force: true });
-		fs.rmSync(fileTmp, { recursive: true, force: true });
-		activeFileTmp.delete(fileTmp);
+		fs.rmSync(home, finishedRemoveOptions);
+		removeFinishedTemp(name, fileTmp);
 	}
 
 	/** N workers pull the next queued file as soon as they are free — never started in batches. */

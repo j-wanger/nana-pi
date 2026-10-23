@@ -282,7 +282,7 @@ and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir wi
 temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
 if any file fails — also when no file matched the filter, or a `--self-test` fixture missed
 its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
-active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
+active test's process tree. It retries removing each finished file's temporary folder; if the folder stays busy, it prints one FAIL line naming the file, folder and error, counts one failure, and continues. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
 `npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
 deliberately failing file to prove the runner turns red. On win32 the runner also SKIPs each
 desk or bench file on the declared Windows skip list
