@@ -1,0 +1,22 @@
+pi: ~/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: ~/.hermes/node/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi-review
+PASS hook set
+PASS hook roster notice
+PASS hook shared memory
+PASS hook knowledge pull
+PASS hook verifier pipe (Bash)
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+node packages/nana-setup/bin/install-check.mjs  11.34s user 8.90s system 75% cpu 26.963 total
+exit=0
