@@ -3278,7 +3278,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Defines the independent sealed contract and tunables for the install check.
 - **inputs** — None.
-- **outputs** — Hook, environment, retry, known-red, doctor-note and filesystem-path contracts.
+- **outputs** — Hook, environment, retry, review, build, known-red, doctor-note and filesystem-path contracts.
 - **effects** — none
 - **errors** — None.
 - **callers** — `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`
@@ -3308,7 +3308,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Implements pure install-check contracts and the isolated subprocess runner.
 - **inputs** — Sealed configuration, process environment, platform, clock and spawn function.
-- **outputs** — Child results, item judgments, environment construction and failure diagnostics.
+- **outputs** — Child results, review and build judgments, environment construction and failure diagnostics.
 - **effects** — disk, process
 - **errors** — Child failures become item results; invalid hook shapes are reported as failures.
 - **callers** — `packages/nana-setup/bin/install-check.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/win-shims.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`

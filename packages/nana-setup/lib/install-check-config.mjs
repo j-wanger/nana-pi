@@ -2,7 +2,7 @@
  * @module packages/nana-setup/lib/install-check-config.mjs
  * @purpose Defines the independent sealed contract and tunables for the install check.
  * @inputs None.
- * @outputs Hook, environment, retry, known-red, doctor-note and filesystem-path contracts.
+ * @outputs Hook, environment, retry, review, build, known-red, doctor-note and filesystem-path contracts.
  * @effects none
  * @errors None.
  */
@@ -23,8 +23,9 @@ export const ROSTER_NOTICE_PREFIX = "nana active · roster";
 export const ROSTER_NOTICE_UNAVAILABLE_PREFIX = "nana active · roster notice unavailable (";
 // Contract value: documented command-hook fields, excluding fields which alter dispatch, read 2026-10-12.
 export const ALLOWED_HOOK_KEYS = ["type", "command", "args", "timeout", "statusMessage"];
-// Contract values: environment readers in nana-pack, nana-knowledge and nana-setup, audited 2026-10-12.
-export const OVERRIDE_ENV = ["PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"];
+// Contract values: environment readers in nana-pack, nana-knowledge and nana-setup, audited 2026-10-12;
+// PI_CODING_AGENT_SESSION_DIR contract: pi 1.0.2 environment-variables.md and build-records.mjs:44, read 2026-10-23.
+export const OVERRIDE_ENV = ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"];
 // Contract path: nana-knowledge/lib/paths.ts, read 2026-10-13.
 export const PULL_LOG_PATH = [".pi", "agent", "nana-knowledge", "pull.log"];
 // Provenance: Windows install-check run 38393751564 after main merge; every hook passed, 2026-10-13.
@@ -124,13 +125,39 @@ export const PI_REVIEW = (() => {
     role: "reviewer", // Contract: pi-review.mjs child role (R-2075).
   };
 })();
+// Contract values: pi-worker.mjs, brief-precedent.mjs and build-records-config.mjs, read 2026-10-23;
+// fixture-only lanes and folders are chosen to isolate deterministic offline lane builds.
+export const PI_BUILD = {
+  runs: {
+    default: [{ label: "pi-worker", lane: "install-check-build", form: "path" }], // Chosen 2026-10-23 (R-2681, R-2683): one path launch off Windows, as the review's.
+    win32: [{ label: "pi-worker (cmd)", lane: "install-check-build-cmd", form: "cmd" }, { label: "pi-worker (sh)", lane: "install-check-build-sh", form: "sh" }], // Chosen 2026-10-23 (R-2682, R-2683): cmd then Git Bash; each worktree needs its own lane.
+  },
+  worktreeFolder: "build-worktrees", // Chosen 2026-10-23 (R-2681, R-2682): worktrees stay outside the review repository.
+  outFolder: "build-out", // Chosen 2026-10-23 (R-2681): briefs and outputs stay outside every worktree.
+  branchPrefix: "feat/", // Contract: pi-worker.mjs:104, read 2026-10-23 (R-2681).
+  briefHeading: "# Install check build", // Chosen 2026-10-23 (R-2684): names the build in the fixture record so a reader can tell it from the review.
+  briefTask: "Build nothing and report one line for", // Chosen 2026-10-23 (R-2684): a run token follows it.
+  precedentLabel: "Precedent:", // Contract: brief-config.mjs:10 and brief-precedent.mjs:53, read 2026-10-23 (R-2681).
+  launcherArgs: ["--lane-size", "small", "--max-secs", "120"], // Contract: pack README small-lane launch; 120 s ends before the check timeout (R-2681).
+  env: { PI_OFFLINE: "1" }, // Contract: pi 1.0.2 cli.md:229-230; lane mode refuses pi arguments (R-2681).
+  roster: { scout: null, builder: { provider: PI_REVIEW.provider, model: PI_REVIEW.model, thinking: null }, largerBuilder: null, reviewer: { provider: PI_REVIEW.provider, model: PI_REVIEW.model, thinking: null }, land: null }, // Contract: R-1122 roster shape; chosen fixture model and default thinking (R-2685).
+  settings: { path: [".pi", "agent", "settings.json"], key: "extensions" }, // Contract: pi 1.0.2 settings.md Resources (R-2684).
+  ledger: [".git", "nana", "build-records.jsonl"], // Contract: build-records-config.mjs:10, read 2026-10-23 (R-2685).
+  recordKinds: { start: "start", end: "end" }, // Contract: build-records-config.mjs:12-14, read 2026-10-23 (R-2685).
+  recordSchema: 1, // Contract: build-records-config.mjs:12-14, read 2026-10-23 (R-2685).
+  lock: { gitFolder: [".git", "worktrees"], file: "nana-lane.lock" }, // Contract: pi-worker.mjs:382; git names metadata after the worktree folder (R-2686).
+  preamble: { file: "packages/nana-pack/prompts/builder-preamble.md", worktree: "{{WORKTREE}}", branch: "{{BRANCH}}" }, // Contract: pi-worker.mjs:146-147, read 2026-10-23 (R-2684).
+  role: "worker", // Contract: pi-worker.mjs:188, read 2026-10-23 (R-2684).
+  outcome: "ok", // Contract: build-records-config.mjs:17, read 2026-10-23 (R-2685).
+};
 // Probe 2026-10-19: RPC output with pi-subagents was 21,699 bytes and placed a widget after
 // byte 20,970. The unavailable word is chosen to cover nana's explicit degraded-state notices.
 export const PI_SESSION = { unavailableWord: "unavailable", maxOutput: 100000 };
 // Chosen 2026-10-12: bound network and doctor subprocesses within the 20-minute CI job.
 // Probe 2026-10-19: the offline faux turn took 0.66 s; 60 s leaves cold Windows runner headroom.
 // Chosen 2026-10-20: review gets 180 s, above one 75 s stall bound plus its 15 s poll (R-2073).
-export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, review: 180000, hook: 5000, doctor: 120000, git: 30000 };
+// Chosen 2026-10-23: build gets 180 s, above pi-worker's 120 s ceiling plus startup, brief checks and record writes (R-2683).
+export const SPAWN_TIMEOUT_MS = { install: 300000, pi: 300000, list: 60000, session: 60000, turn: 60000, review: 180000, build: 180000, hook: 5000, doctor: 120000, git: 30000 };
 // Contract values: the macOS and Windows fresh-machine checklist rehearsal grammar and sandbox shape
 // (R-1540 to R-1546, R-1853 to R-1855), chosen 2026-10-19 to run each checklist as written.
 export const README_REHEARSAL = {

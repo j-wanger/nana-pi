@@ -19,3 +19,4 @@
 - Shared helpers (shared-helpers, wrong-code pairs): with the no-wait form's error listener removed, or a win32-only rename gate, the process-tree and rename-retry test files throw before their named check, so the suite fails with a stack rather than the row's title.
 - Shared helpers (shared-helpers, independent check): the pack README says the rename helper retries EPERM, EBUSY and EACCES three times; it makes three attempts, two of them retries.
 - Shared helpers (shared-helpers, independent check): `killProcessTreeNoWait` listens for the taskkill child's `error` with `once`, where post-edit used `on`, so a second error event from that child would go unhandled (inferred unlikely: nothing signals that child).
+- Shared helpers (shared-helpers, final review): `mutation-runner-config.mjs` declares `@effects none` but now re-exports `TASKKILL_ARGS` from `process-tree.mjs`, which imports `child_process`. The import has no side effect, so this is a layering note only.
