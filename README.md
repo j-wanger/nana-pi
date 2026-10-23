@@ -82,7 +82,7 @@ extracts rows from a project that has none yet) into both pi and Claude Code, pl
 
 Nothing in this repo is published to npm and nothing here has a lockfile.
 Dependencies vary by component; a globally installed pi is the common requirement for
-the pi-hosted ones. Per component:
+the pi-hosted ones. The CI-record reader shells out to `gh`, signed in; its tests use a fake on every system, while a real `gh` has run only on macOS. Per component:
 
 | Component | Runtime | Dev / test |
 |---|---|---|
@@ -275,7 +275,7 @@ The Issues view also lists every implemented row that did not pass in this clone
 
 On a shared machine, run the full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
 
-Each unfiltered locked run keeps a suite record in the suite-runs store beneath the clone's shared git directory. Its two closing record lines name the clean baseline and slower files, then repeat the PASS and FAIL counts and every failure with its class and cause, followed by this lane's full-run count and minutes. A land prefixes both lines so its success report retains them.
+Each unfiltered locked run keeps a suite record in the suite-runs store beneath the clone's shared git directory. Its two closing record lines name the clean baseline and slower files, then repeat the PASS and FAIL counts and every failure with its class and cause, followed by this lane's full-run count and minutes. A land prefixes both lines so its success report retains them. Each CI suite leg uploads the same runner record. `node scripts/ci-records.mjs [<rev>]` prints each leg's totals and slowest files.
 
 `npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
 and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh

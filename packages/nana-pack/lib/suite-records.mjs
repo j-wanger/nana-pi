@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/suite-records.mjs
  * @purpose Resolve, retain, read, compare, and summarize full-suite run records shared by a clone's worktrees.
- * @inputs A repository root and run record, with injectable filesystem, git runner, clock, process id, and retention cap.
- * @outputs Git facts, a stored record path, valid current-schema records, or the two closing record lines.
+ * @inputs A repository root, record file or run record, with injectable filesystem, git runner, clock, process id, and retention cap.
+ * @outputs A validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, or closing record lines.
  * @effects disk (git-common-dir suite record files), process (git queries through the injected runner).
  * @errors Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
  */
@@ -163,11 +163,23 @@ function baselineOf(records, distances) {
 			|| timeValue(right) - timeValue(left))[0] ?? null;
 }
 
+/** Read one runner record with stable diagnostics shared by local and CI readers. */
+export function readRunRecord(recordFile, { fsApi = fs } = {}) {
+	let text;
+	try { text = fsApi.readFileSync(recordFile, "utf8"); }
+	catch (error) { throw new Error(`run record is missing or unreadable: ${error?.message ?? "unknown error"}`); }
+	let record;
+	try { record = JSON.parse(text); }
+	catch (error) { throw new Error(`run record is unreadable: ${error?.message ?? "invalid JSON"}`); }
+	if (record?.schema !== RECORD_SCHEMA || !Array.isArray(record.files)) throw new Error("run record is unreadable: unsupported schema or files");
+	return record;
+}
+
 function numberText(value) {
 	return Number.isInteger(value) ? String(value) : Number(value.toFixed(2)).toString();
 }
 
-function finalFiles(record) {
+export function finalFiles(record) {
 	const byPath = new Map();
 	for (const file of record?.files ?? []) {
 		const entries = byPath.get(file.path) ?? [];
@@ -175,6 +187,17 @@ function finalFiles(record) {
 		byPath.set(file.path, entries);
 	}
 	return [...byPath.values()].map((entries) => entries.filter((entry) => entry.coverage === false).at(-1) ?? entries.at(-1));
+}
+
+/** Count final PASS, FAIL and SKIP labels, including failures without a file. */
+export function recordCounts(record) {
+	const final = finalFiles(record);
+	return {
+		files: final.length,
+		PASS: final.filter((file) => file.label === "PASS").length,
+		FAIL: final.filter((file) => file.label === "FAIL").length + (record?.unnamedFailures ?? []).length,
+		SKIP: final.filter((file) => file.label === "SKIP").length,
+	};
 }
 
 function slowerText(current, baseline) {
@@ -244,9 +267,8 @@ export function suiteRecordLines(current, { root, records = readSuiteRecords({ r
 		return file.label === "PASS" && file.coverage === false
 			&& labels.some((entry) => entry.coverage === true && entry.label === "FAIL");
 	}).map((file) => file.path);
-	const passCount = final.filter((file) => file.label === "PASS").length;
-	const failCount = failedFiles.length + (current.unnamedFailures ?? []).length;
+	const counts = recordCounts(current);
 	const lane = laneTotals(root, current, records, runGit);
-	const last = `${RECORD_LINE_PREFIX} ${passCount} PASS, ${failCount} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; passed only without coverage: ${passedOnlyWithoutCoverage.length ? passedOnlyWithoutCoverage.join(", ") : "none"}; this lane: ${lane.count} full runs, ${lane.minutes} min`;
+	const last = `${RECORD_LINE_PREFIX} ${counts.PASS} PASS, ${counts.FAIL} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; passed only without coverage: ${passedOnlyWithoutCoverage.length ? passedOnlyWithoutCoverage.join(", ") : "none"}; this lane: ${lane.count} full runs, ${lane.minutes} min`;
 	return [first, last];
 }

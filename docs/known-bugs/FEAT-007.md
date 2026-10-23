@@ -102,3 +102,4 @@
 - Claude review launcher (claude-review-launcher, final review): R-2564 checks the standard input that reaches a `.cmd` shim, not the argv, so a change to Windows argument quoting would pass it.
 - Claude review launcher (claude-review-launcher, final review): the launcher neither accepts nor forwards `--revision`, so a round always records the tree's current HEAD; a seat cannot record a round for another commit through it.
 - Review cost (audit re-check, 2026-10-22): no review round records its cost, and round durations are read only by the hand-run timeline report.
+- Verdict reading (ci-timing-records, round 1): an Opus review opened with a bold "Verdict: LAND." line above its exact last-line `VERDICT: LAND`; the ledger read the round as unread (first-line conflict) and nana-land refuses that revision, so the round was lost and the lane took a new commit and a confirmation round.
