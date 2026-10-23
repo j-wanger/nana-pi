@@ -34,6 +34,7 @@ import { readFileSync, existsSync, mkdtempSync, openSync, closeSync, rmSync, sta
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import * as path from 'node:path';
+import { killProcessTree } from '../lib/process-tree.mjs';
 import { findPi } from '../lib/win-command.mjs';
 import { PI_PACKAGE, PI_BIN_NAME, NPM_DIRS, WIN_CPU_TICKS_PER_SECOND } from './worker-config.mjs';
 
@@ -161,12 +162,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // exactly the failure mode this tool exists for. `detached:true` makes POSIX children group leaders;
 // Windows uses taskkill on the pid and needs no detached process group.
 function killGroup(child, signal = 'SIGKILL') {
-  if (process.platform === 'win32') {
-    try { execSync(`taskkill /T /F /PID ${child.pid}`, { stdio: 'ignore' }); } catch { /* tree already gone */ }
-  } else {
-    try { process.kill(-child.pid, signal); } catch { /* group already gone */ }
-    try { child.kill(signal); } catch { /* already dead */ }
-  }
+  killProcessTree(child?.pid, { signal });
+  if (process.platform !== 'win32') try { child.kill(signal); } catch { /* already dead */ }
 }
 
 const nonEmpty = () => true;

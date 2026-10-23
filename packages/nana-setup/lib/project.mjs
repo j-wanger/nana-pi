@@ -9,7 +9,7 @@
  *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`,
  *  every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
  *  re-exports SHARED_DIR, WORKING_BEGIN and WORKING_END; exports today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT,
- *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS, RENAME_RETRY_ATTEMPTS, RENAME_RETRY_DELAY_MS
+ *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS and REFRESH_KILL_GRACE_MS
  * @effects disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a
  *  parent-side deadline — SIGTERM then SIGKILL after the grace)
  * @errors SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a
@@ -32,6 +32,7 @@ import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import * as path from "node:path";
+import { renameWithRetry } from "../../nana-pack/lib/rename-retry.mjs";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { repoRoot, SHARED_DIR } from "./paths.mjs";
 import { WORKING_BEGIN, WORKING_END, markerLines, readSharedWorking, regionVerdict } from "./working-region.mjs";
@@ -204,39 +205,6 @@ export function agentsStub(name) {
 		"<!-- the few rules a session here must not break; add them as real failures show the need -->\n\n" +
 		`${WORKING_BEGIN}\n${readSharedWorking()}${WORKING_END}\n`
 	);
-}
-
-/**
- * `renameSync` over a file whose own descriptor Windows still holds exclusively can refuse
- * briefly right after the handle closes (EPERM), or while another reader or an AV scan holds it
- * (EBUSY). CHOSEN: three attempts, 20ms apart (inferred cause, no measured hold time — Windows
- * triage 2026-10-17, rows.json `project-working-region.test.mjs`) — long enough to clear a
- * transient hold, short enough that a genuinely locked file still fails within a tenth of a
- * second rather than hanging the command.
- */
-export const RENAME_RETRY_ATTEMPTS = 3;
-export const RENAME_RETRY_DELAY_MS = 20;
-
-/**
- * `rename` is the injectable seam (default the real `fs.renameSync`, the way `writeTemp` is);
- * `delay` likewise stands in for the real wait. `recheck` runs AFTER the delay and before every
- * RETRY — not the first attempt, which follows the caller's own fresh check — and must throw if
- * the destination no longer matches what the refresh read: a save made by the file's owner
- * anywhere in the window between attempts, INCLUDING during the delay itself, must stop the
- * next retry from clobbering it (sol r1/r2 MUST, 2026-10-17). Checking before the delay would
- * miss a save landing during it.
- */
-function renameWithRetry(src, dest, { rename = (from, to) => fs.renameSync(from, to), recheck = () => {}, delay = () => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS) } = {}) {
-	for (let attempt = 1; ; attempt++) {
-		try {
-			rename(src, dest);
-			return;
-		} catch (error) {
-			if (attempt >= RENAME_RETRY_ATTEMPTS || (error?.code !== "EPERM" && error?.code !== "EBUSY")) throw error;
-			delay();
-			recheck();
-		}
-	}
 }
 
 export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8"), rename = (src, dest) => fs.renameSync(src, dest), delay } = {}) {

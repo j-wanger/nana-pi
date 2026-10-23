@@ -30,6 +30,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
+import { killProcessTreeNoWait } from "../lib/process-tree.mjs";
 import { resolveToolPath } from "../lib/gate-paths.ts";
 import {
 	POST_EDIT_COMMAND_CAP,
@@ -113,33 +114,8 @@ function statusLine(outcomes: Outcome[], name: string): { text: string; color: "
  * why run()'s escalation settles the promise either way.
  */
 function killTree(child: ChildProcess, escalate: boolean): void {
-	const pid = child.pid;
-	if (pid === undefined) return;
 	const signal: NodeJS.Signals = escalate ? "SIGKILL" : "SIGTERM";
-	const direct = () => {
-		try {
-			child.kill(signal);
-		} catch {
-			// already reaped
-		}
-	};
-	if (process.platform !== "win32") {
-		try {
-			process.kill(-pid, signal);
-		} catch {
-			direct(); // group already gone (or never created)
-		}
-		return;
-	}
-	try {
-		const tk = spawn("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true, stdio: "ignore" });
-		tk.on("error", direct);
-		tk.on("close", (code) => {
-			if (code !== 0) direct();
-		});
-	} catch {
-		direct();
-	}
+	killProcessTreeNoWait(child.pid, { signal, fallback: (sentSignal) => { try { child.kill(sentSignal); } catch { /* already reaped */ } } });
 }
 
 // Classify an exec result into a distinct status. error/timeout/not_run must

@@ -19,6 +19,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as readline from "node:readline";
 import { fileURLToPath } from "node:url";
+import { killProcessTree } from "./process-tree.mjs";
 import {
 	BASELINE_RETRIES,
 	DRAIN_MS,
@@ -37,7 +38,6 @@ import {
 	SIGNAL_EXITS,
 	STAGGER_SECS_DEFAULT,
 	TABLE_HASH_ALGO,
-	TASKKILL_ARGS,
 	WORKTREE_REMOVE_RETRIES,
 	WORKTREE_REMOVE_RETRY_MS,
 	WORKTREE_LOCK_WAIT_MS,
@@ -211,11 +211,7 @@ export function resetScratch(dir, tip, _config) {
 }
 
 function killPid(pid) {
-	if (!Number.isInteger(pid) || pid <= 0) return;
-	try {
-		if (posix) process.kill(-pid, "SIGKILL");
-		else spawnSync("taskkill", [...TASKKILL_ARGS, String(pid)], { stdio: "ignore", windowsHide: true });
-	} catch { /* already gone */ }
+	killProcessTree(pid);
 }
 
 function pidIsAlive(pid) {

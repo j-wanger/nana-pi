@@ -1,0 +1,5 @@
+# Seat Windows wrong-code pair p23 at 77cba752 (scratch CI run 39959288705, windows-latest; table and helper on a scratch branch, never merged)
+# p23: post-edit passes no fallback to the no-wait tree kill. Expects R-1701.
+BASELINE ok packages/nana-pack/tests/post-edit-hardening.test.mjs (exit 0, 17 PASS, 0 FAIL)
+RED p23 post-edit passes no fallback — 1/1 named: win32: with taskkill off PATH the timed-out check's shell is killed and the run settles
+RESULT: 1/1 red

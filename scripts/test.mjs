@@ -70,6 +70,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import { killProcessTree } from "../packages/nana-pack/lib/process-tree.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
 import {
@@ -126,11 +127,7 @@ const activeFileTmp = new Set(); // every currently-running file's temp root
 
 /** Kill a child's whole tree. POSIX: it leads its own process group. win32: taskkill /T. */
 function killTree(child) {
-	if (!child || child.pid == null) return;
-	try {
-		if (posix) process.kill(-child.pid, "SIGKILL");
-		else spawnSync("taskkill", ["/T", "/F", "/PID", String(child.pid)], { stdio: "ignore", windowsHide: true });
-	} catch {}
+	killProcessTree(child?.pid);
 }
 
 /** Self-test only: the hang fixture records its escaped grandchild so the runner can reap it. */

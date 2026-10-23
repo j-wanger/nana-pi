@@ -4,7 +4,7 @@
  *  user-scope lock.
  * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git
  *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
- *  file identities, captured review text, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
+ *  file identities, captured review text, complete()'s optional rename seam, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
  *  tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the
  *  projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
@@ -68,6 +68,7 @@ import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
+import { renameWithRetry } from '../lib/rename-retry.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
 export const REVIEW_ROUND_CAP = 3;
@@ -83,9 +84,6 @@ export const REVIEW_TEXT_HASH = 'sha256';
 export const REVIEW_TEXT_HASH_HEX_CHARS = 64;
 // chosen 2026-10-22: eight digest characters keep committed review names readable and distinct per item (R-2573).
 export const KEEP_NAME_HASH_CHARS = 8;
-// copied locally from nana-setup/lib/project.mjs, 2026-10-22: Windows can briefly hold a renamed file.
-export const REVIEW_TEXT_RENAME_ATTEMPTS = 3;
-export const REVIEW_TEXT_RENAME_DELAY_MS = 20;
 // chosen, measured 2026-10-22: no size cap; observed p95 8.5 KB and maximum 17.8 KB.
 // chosen: names the throwaway scratch index+object folder workingState borrows the repo's objects into
 // (W7c amend, 2026-10-18), so a leftover from a crashed derivation is recognizable in the OS temp dir.
@@ -399,16 +397,6 @@ function ensureDir(d) {
   if (!st.isDirectory()) throw new Error(`${d} is not a directory — refused`);
 }
 
-function renameReviewText(src, dest) {
-  for (let attempt = 1; ; attempt++) {
-    try { renameSync(src, dest); return; } catch (e) {
-      const retryable = process.platform === 'win32' && ['EPERM', 'EBUSY', 'EACCES'].includes(e?.code);
-      if (!retryable || attempt >= REVIEW_TEXT_RENAME_ATTEMPTS) throw e;
-      sleepMs(REVIEW_TEXT_RENAME_DELAY_MS);
-    }
-  }
-}
-
 function reviewTextRef(text) {
   const bytes = Buffer.from(String(text ?? ''), 'utf8');
   const sha256 = createHash(REVIEW_TEXT_HASH).update(bytes).digest('hex');
@@ -452,7 +440,7 @@ export function readReviewText(home = homedir(), ref) {
 }
 
 /** Write captured review bytes content-addressed in the store. Call under the ledger lock. */
-function writeReviewText(p, text) {
+function writeReviewText(p, text, rename) {
   const kept = reviewTextRef(text);
   ensureDir(p.texts);
   const target = join(p.texts, `${kept.record.sha256}${REVIEW_TEXT_EXTENSION}`);
@@ -473,7 +461,7 @@ function writeReviewText(p, text) {
       refuseNonRegular(target);
       unlinkSync(target);
     }
-    renameReviewText(temp, target);
+    renameWithRetry(temp, target, { rename });
     const targetFd = openChecked(target, C.O_RDWR);
     try { fchmodSync(targetFd, 0o600); } finally { closeSync(targetFd); }
     return kept.record;
@@ -819,7 +807,7 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
  *  `text` is the launcher's captured string; `out` stays for diagnostics and old callers. The UTF-8 bytes
  *  of `text` are stored before either ledger line is appended.
  *  Never throws: {ok:true, round, verdict, unread} | {ok:false, message}. `r` = admit(...).res */
-export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1, text } = {}) {
+export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1, text, rename } = {}) {
   const p = ledgerPaths(home);
   try {
     return withLock(p, () => {
@@ -850,7 +838,7 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
       }
       const parsed = readVerdict(captured);
       let kept;
-      try { kept = writeReviewText(p, captured); } catch (e) {
+      try { kept = writeReviewText(p, captured, rename); } catch (e) {
         throw new Error(`${e.message} (output kept at ${out ?? held.out})`);
       }
       const textRecord = { text: kept };

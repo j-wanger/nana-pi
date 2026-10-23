@@ -7,7 +7,7 @@
  *  WORKTREE_LOCK_WAIT_LIMIT_MS, WORKTREE_LOCK_RELEASE_WAIT_LIMIT_MS, DRAIN_MS, SCRATCH_PREFIX, MAIN_BRANCH,
  *  ENV_NAMES, LOCK_SUFFIX, WORKTREE_LOCK_BREAKER_SUFFIX, TABLE_HASH_ALGO,
  *  OVERRIDABLE, EXIT_REFUSED, EXIT_TABLE_FAULT,
- *  SIGNAL_EXITS, CHILD_NODE_ARGS, TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
+ *  SIGNAL_EXITS, CHILD_NODE_ARGS, re-exported TASKKILL_ARGS, TS_CHECK_ARGS, NPM_COMMAND, NPM_KEYS, GLOBAL_PREFIX_KEY, logName
  * @effects none
  * @errors none
  */
@@ -113,8 +113,8 @@ export const SIGNAL_EXITS = Object.freeze({ SIGINT: 130, SIGTERM: 143 });
 // contract R-1232, after R-603 (scripts/test.mjs): the flag every test file runs with.
 export const CHILD_NODE_ARGS = Object.freeze(["--experimental-strip-types"]);
 
-// contract R-1233: the suite runner's tree kill (scripts/test.mjs :81).
-export const TASKKILL_ARGS = Object.freeze(["/T", "/F", "/PID"]);
+// contract R-1233: retained here as a compatibility re-export for the mutation runner's sealed config surface.
+export { TASKKILL_ARGS } from "./process-tree.mjs";
 
 // contract R-1235: the repository's own `.ts` post-edit command (.pi/nana-pack.json :5), whose checker
 // R-993 and R-994 state. The last element is the checker script's path, resolved against the table's

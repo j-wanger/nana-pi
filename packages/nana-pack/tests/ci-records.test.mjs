@@ -173,7 +173,7 @@ check("R-2633: a record the runner writes under CI's arguments reads back in ci-
 	fs.mkdirSync(path.join(root, "packages", "probe", "tests"), { recursive: true });
 	fs.mkdirSync(path.join(root, "apps", "bench", "test"), { recursive: true });
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
-	for (const name of ["runtime-map-config.mjs", "suite-records-config.mjs", "land-config.mjs", "windows-skips-config.mjs", "test-runner-config.mjs"])
+	for (const name of ["process-tree.mjs", "runtime-map-config.mjs", "suite-records-config.mjs", "land-config.mjs", "windows-skips-config.mjs", "test-runner-config.mjs"])
 		fs.copyFileSync(path.join(REPO, "packages", "nana-pack", "lib", name), path.join(root, "packages", "nana-pack", "lib", name));
 	fs.writeFileSync(path.join(root, "packages", "probe", "tests", "a-pass.test.mjs"), 'console.log("PASS runner pass");\n');
 	fs.writeFileSync(path.join(root, "packages", "probe", "tests", "b-fail.test.mjs"), 'console.log("PASS reached failure"); process.exit(2);\n');
