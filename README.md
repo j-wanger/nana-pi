@@ -8,8 +8,8 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack: nine extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, writing, roster notice, rulings), plus scaffold +
+- `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
+  post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships the extensions of `nana-pack` and
   `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
@@ -68,7 +68,7 @@ measured tip, time, age, checkout drift and main's movement, and marks stale onl
 file which has since changed or been removed. Copies run from a temporary folder and children stopped by a signal
 are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
-nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems or a `0 problems` line. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
+nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
 `node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root <dir> --base <rev>` prints, per feature, which rows <dir>'s REQUIREMENTS.md added, removed, re-statused, reworded or moved since the merge base of `<rev>` and HEAD.
 `node "$HOME/nana-pi/scripts/blast-radius.mjs" --root <dir> --base <rev> --out <page>` writes one self-contained HTML page whose SVG draws, from the code map alone, every module changed since the merge base of `<rev>` and HEAD, their transitive callers and callees in four columns (tests, upstream, changed, downstream), the edges between them, the changed files the map does not hold, and which changed modules carry no linked test.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`.
@@ -190,7 +190,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all nine extensions, the knowledge pull + every skill (the root package.json
+# 1. the nana-pack — all ten extensions, the knowledge pull + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 

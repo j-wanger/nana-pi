@@ -8,17 +8,8 @@
  * @errors unreadable input and malformed options or dates are reported; errors exit nonzero only in strict mode
  */
 import * as fs from "node:fs";
-import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, OPEN_SECTION_NAME, OPEN_SECTION_PREFIX, READ_WINDOW_BYTES, READ_WINDOW_LINES, isNamed } from "../lib/frontier-config.mjs";
-import { splitOpenSection } from "../lib/handoff-asks.mjs";
+import { checkFrontier, frontierSummaryLine, isDate } from "../lib/frontier-check.mjs";
 
-const isDate = (value) => {
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-	const [year, month, day] = value.split("-").map(Number);
-	const date = new Date(Date.UTC(year, month - 1, day));
-	return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-};
-const isHeading = (line) => /^\s{0,3}#{1,6}\s+/.test(line);
-const isListItem = (line) => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
 const args = process.argv.slice(2);
 let strict = args.includes("--strict");
 let today = new Date().toISOString().slice(0, 10);
@@ -52,114 +43,7 @@ try {
 	console.log("summary findings=1");
 	process.exit(strict ? 1 : 0);
 }
-
-const lines = text.split(/\r\n|\r|\n/);
-const outsideFence = [];
-let fence = null;
-for (let i = 0; i < lines.length; i++) {
-	const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(lines[i]);
-	outsideFence[i] = fence === null;
-	if (marker && (fence === null || (marker[1][0] === fence[0] && marker[1].length >= fence[1]))) {
-		fence = fence === null ? [marker[1][0], marker[1].length] : null;
-	}
-}
-const findings = [];
-const add = (line, kind, detail) => findings.push({ line, kind, detail });
-const headings = [];
-for (let i = 0; i < lines.length; i++) {
-	const match = outsideFence[i] && /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(lines[i]);
-	if (match) headings.push({ index: i, level: match[1].length, title: match[2] });
-}
-const headingStackAt = (index) => {
-	const stack = [];
-	for (const heading of headings) {
-		if (heading.index > index) break;
-		while (stack.length && stack.at(-1).level >= heading.level) stack.pop();
-		stack.push(heading);
-	}
-	return stack;
-};
-const inSection = (index, title) => headingStackAt(index).some((heading) => isNamed(heading.title, title));
-const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-if (wordCount > HANDOFF_WORD_BUDGET) add(1, "word-budget", `words=${wordCount} budget=${HANDOFF_WORD_BUDGET}`);
-const entriesBetween = (start, end) => {
-	const entries = [];
-	for (let i = start; i < end; i++) {
-		if (!outsideFence[i] || !isListItem(lines[i])) continue;
-		const entry = { line: i + 1, text: [lines[i]] };
-		for (let j = i + 1; j < end && !/^\s*$/.test(lines[j]) && !isListItem(lines[j]) && !isHeading(lines[j]); j++) entry.text.push(lines[j]);
-		entries.push(entry);
-	}
-	return entries;
-};
-for (const heading of headings.filter((h) => /landed/i.test(h.title))) {
-	const nextHeading = headings.find((h) => h.index > heading.index && h.level <= heading.level);
-	for (const entry of entriesBetween(heading.index + 1, nextHeading?.index ?? lines.length)) {
-		if (entry.text.length > 1) add(entry.line, "landed-entry", `entry spans ${entry.text.length} lines`);
-	}
-}
-const nextHeading = headings.find((h) => inSection(h.index, "next"));
-const nextEndHeading = nextHeading && headings.find((h) => h.index > nextHeading.index && h.level <= nextHeading.level);
-const nextEnd = nextEndHeading?.index ?? lines.length;
-const nextItems = nextHeading ? entriesBetween(nextHeading.index + 1, nextEnd).flatMap((e) => {
-	const match = /^(\d+)[.)]\s+/.exec(e.text[0]);
-	return match ? [Number(match[1])] : [];
-}) : [];
-for (let i = 0; i < lines.length; i++) {
-	if (!outsideFence[i]) continue;
-	for (const ref of lines[i].matchAll(/\bitem\s+(\d+)\s+of\s+Next\b/gi)) {
-		const number = Number(ref[1]);
-		if (!nextItems.includes(number)) add(i + 1, "broken-reference", `item ${number} of Next does not resolve`);
-	}
-	if ((inSection(i, "next") || inSection(i, OPEN_SECTION_PREFIX)) && /\bLANDED\b/i.test(lines[i])) {
-		add(i + 1, "misplaced-landed", "LANDED appears under Next or Open for the owner");
-	}
-	if (inSection(i, "next") || inSection(i, OPEN_SECTION_PREFIX)) {
-		const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^;().\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
-		for (const due of lines[i].matchAll(dateCue)) {
-			const date = due[2] ?? due[1];
-			if (isDate(date) && date < today) add(i + 1, "overdue-date", `${date} precedes ${today}`);
-		}
-	}
-}
-for (const entry of splitOpenSection(text)) {
-	const tag = entry.tag;
-	if (!tag || !isDate(tag.since) || tag.since > today) add(entry.line, "open-tag", "Open for the owner entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date");
-}
-
-const bytes = Buffer.byteLength(text, "utf8");
-const hasFinalEol = /(?:\r\n|\r|\n)$/.test(text);
-const lineCount = lines.length - (hasFinalEol ? 1 : 0);
-if (bytes > READ_WINDOW_BYTES || lineCount > READ_WINDOW_LINES) {
-	add(1, "file-size", `bytes=${bytes} lines=${lineCount} window=${READ_WINDOW_BYTES} bytes, ${READ_WINDOW_LINES} lines`);
-}
-const displayName = (name) => name === OPEN_SECTION_PREFIX ? OPEN_SECTION_NAME : name;
-const firstArchive = headings.find((heading) => ARCHIVE_SECTION_NAMES.some((name) => isNamed(heading.title, name)));
-if (firstArchive) {
-	const archiveName = ARCHIVE_SECTION_NAMES.find((name) => isNamed(firstArchive.title, name));
-	for (const heading of headings) {
-		if (heading.index <= firstArchive.index) continue;
-		const liveName = LIVE_SECTION_NAMES.find((name) => isNamed(heading.title, name));
-		if (liveName) add(heading.index + 1, "section-order", `${displayName(liveName)} comes after ${archiveName} at line ${firstArchive.index + 1}`);
-	}
-}
-const lineEnds = [];
-const endings = /\r\n|\r|\n/g;
-let ending;
-while ((ending = endings.exec(text))) lineEnds.push(ending.index);
-lineEnds.push(text.length);
-for (const heading of headings) {
-	const liveName = LIVE_SECTION_NAMES.find((name) => isNamed(heading.title, name));
-	if (!liveName) continue;
-	const boundary = headings.find((candidate) => candidate.index > heading.index && candidate.level <= heading.level);
-	const endIndex = boundary ? boundary.index - 1 : lines.length - 1 - (hasFinalEol ? 1 : 0);
-	const end = endIndex + 1;
-	const endBytes = Buffer.byteLength(text.slice(0, lineEnds[endIndex] ?? text.length), "utf8");
-	if (endBytes > READ_WINDOW_BYTES || end > READ_WINDOW_LINES) {
-		add(heading.index + 1, "read-window", `${displayName(liveName)} ends at byte ${endBytes}, line ${end}; a default read shows ${READ_WINDOW_BYTES} bytes or ${READ_WINDOW_LINES} lines`);
-	}
-}
-
-for (const finding of findings) console.log(`${file}:${finding.line}: ${finding.kind}: ${finding.detail}`);
-console.log(`summary words=${wordCount} budget=${HANDOFF_WORD_BUDGET} findings=${findings.length}`);
-process.exitCode = strict && findings.length > 0 ? 1 : 0;
+const result = checkFrontier(text, today);
+for (const finding of result.findings) console.log(`${file}:${finding.line}: ${finding.kind}: ${finding.detail}`);
+console.log(frontierSummaryLine(result));
+process.exitCode = strict && result.findings.length > 0 ? 1 : 0;

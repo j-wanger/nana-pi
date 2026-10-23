@@ -92,8 +92,10 @@ Read by: R-001 · prompt: packages/nana-pack/extensions/nana-objective.ts
 Made by: R-108 · extension: packages/nana-pack/extensions/nana-handoff.ts, packages/nana-pack/lib/adoption.mjs
 Read by: R-108 · prompt: packages/nana-pack/extensions/nana-handoff.ts
 Read by: R-108 · code: packages/nana-pack/lib/adoption.mjs
-Made by: R-873 · manual: someone runs nana-frontier on HANDOFF.md by hand to see the word-budget finding
-Read by: R-873 · person: the word-budget finding reaches someone only when they run nana-frontier by hand
+Made by: R-873 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-frontier-summary.mjs
+Made by: R-873 · extension: packages/nana-pack/extensions/nana-frontier-summary.ts, packages/nana-pack/lib/frontier-summary.mjs
+Read by: R-873 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
+Read by: R-873 · prompt: packages/nana-pack/extensions/nana-frontier-summary.ts
 Made by: R-201 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib/build.ts
 Made by: R-201 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts
 Read by: R-201 · code: packages/nana-knowledge/lib/query.ts, packages/nana-knowledge/lib/hook.ts
@@ -244,6 +246,14 @@ Purpose: Inspect the HANDOFF frontier for oversized or stale entries and preserv
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-873 | A HANDOFF frontier report shall report when the document exceeds its 1,200-word budget. | implemented | `packages/nana-pack/tests/frontier.test.mjs::seal: HANDOFF word budget is 1,200`, `packages/nana-pack/tests/frontier.test.mjs::word budget reports a document over 1,200 words` |
+| R-2606 | WHEN a Claude Code session starts in a folder inside a git repository whose root holds a HANDOFF.md, the objective hook shall print that file's frontier block, tagged `[nana:frontier]`, after the objective block. | implemented | `packages/nana-setup/tests/frontier-hook.test.mjs::R-2606: the objective hook prints the repository HANDOFF's frontier block after the objective block, from a subfolder and a linked worktree` |
+| R-2607 | WHEN the HANDOFF.md has a Next or an Open for the owner section, the frontier block shall show, in this order within its cap, each top-level item title of its first Next section in file order, then each ask's tag and title, blocking asks first, then optional, parked and untagged, each group in file order. | implemented | `packages/nana-pack/tests/frontier-summary.test.mjs::R-2607: Next titles and ask tags and titles are listed in block order, and nested items, fences and other sections are not` |
+| R-2608 | The frontier block shall end with the frontier checker's summary line and finding counts for the same HANDOFF.md and date. | implemented | `packages/nana-pack/tests/frontier-summary.test.mjs::R-2608: the block ends with the frontier checker's own summary line and counts` |
+| R-2609 | The frontier block shall hold at most the smaller of `FRONTIER_OUTPUT_CAP` and the producer's `--max` characters, each title as one line of at most `FRONTIER_TITLE_CAP` characters free of control characters, line breaks and bidi marks, blocking asks kept before any other title, and a count of any titles it left out. | implemented | `packages/nana-pack/tests/frontier-summary.test.mjs::R-2609: the block stays within its caps, renders each title as one clean line, keeps blocking asks first and counts the titles it left out` |
+| R-2610 | IF the repository root holds no HANDOFF.md, or `NANA_ROLE` is `reviewer` or `worker`, THEN the frontier producer shall print nothing and exit 0. | implemented | `packages/nana-pack/tests/frontier-summary.test.mjs::R-2610: no HANDOFF.md or a reviewer or worker role gives no output and exit 0` |
+| R-2611 | IF the repository root's HANDOFF.md is not a regular file, is over the bounded read cap or is not valid UTF-8, THEN the frontier block shall be its heading and one `FRONTIER UNAVAILABLE:` line naming the cause and the path. | implemented | `packages/nana-pack/tests/frontier-summary.test.mjs::R-2611: an unreadable HANDOFF.md gives one FRONTIER UNAVAILABLE line naming its cause and path` |
+| R-2612 | WHEN a pi session starts for any reason, the frontier summary extension shall set the `nana-frontier` system-prompt section to the frontier producer's output for that session folder without its tag line, and set no section when the producer prints nothing. | implemented | `packages/nana-pack/tests/frontier-golden.test.mjs::R-2612: the pi section equals the Claude hook's frontier block minus its tag line for every session start reason, and is re-read after an edit` |
+| R-2613 | IF neither the objective producer nor the frontier producer has exited when the producer time limit passes, THEN the objective hook shall print the objective unavailable marker and then the frontier unavailable marker before its installed limit, with its whole stdout staying within Claude Code's hook output cap when both producers succeed. | implemented | `packages/nana-setup/tests/hook-deadlines.test.mjs::R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap` |
 | R-874 | WHEN a heading contains Landed, the HANDOFF frontier report shall report each entry with more than one physical content line joined without a blank line. | implemented | `packages/nana-pack/tests/frontier.test.mjs::Landed section reports every multi-line entry` |
 | R-875 | WHEN a LANDED marker appears within Next or a heading starting with "Open for" and a space, the HANDOFF frontier report shall report that marker's line. | implemented | `packages/nana-pack/tests/frontier.test.mjs::LANDED marker under Next is reported`; `packages/nana-pack/tests/frontier.test.mjs::LANDED is detected under the real parenthetical Open for the owner heading`; `packages/nana-pack/tests/frontier.test.mjs::nested Next heading remains in the enclosing section`; `packages/nana-pack/tests/frontier.test.mjs::fenced examples do not create headings or findings` |
 | R-876 | WHEN a numbered reference says item N of Next, the HANDOFF frontier report shall report it if Next has no item N. | implemented | `packages/nana-pack/tests/frontier.test.mjs::unresolvable item-of-Next reference is reported`; `packages/nana-pack/tests/frontier.test.mjs::nested numbered sub-items cannot resolve item-of-Next references` |
@@ -974,7 +984,7 @@ Made by: R-327 · manual: someone runs nana-setup project by hand once per proje
 Read by: R-327 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
 Read by: R-327 · prompt: packages/nana-pack/extensions/nana-objective.ts
 Read by: R-327 · code: packages/nana-pack/lib/adoption.mjs
-Read by: R-327 · rule: the working section tells each session to read HANDOFF.md at startup; no hook or extension loads it
+Read by: R-327 · prompt: packages/nana-pack/extensions/nana-frontier-summary.ts
 Made by: R-1150 · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand
 Read by: R-1150 · code: templates/python/template/tests/conftest.py, templates/typescript/template/tests/requirements-trace.ts
 Read by: R-1150 · rule: the requirements skill tells agents to run nana-pi's tree checker on the project by hand; no rendered project wires it in
@@ -1663,8 +1673,10 @@ Kind: product
 Deliverables: R-406, R-422, R-159, R-1194, R-457
 Made by: R-406 · manual: desk frozen since 2026-10-10
 Read by: R-406 · person: desk frozen since 2026-10-10
+Parked: R-406 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
 Made by: R-422 · manual: desk frozen since 2026-10-10
 Read by: R-422 · person: desk frozen since 2026-10-10
+Parked: R-422 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
 Made by: R-159 · extension: packages/nana-pack/extensions/nana-lifecycle.ts, packages/nana-pack/lib/config.ts
 Read by: R-159 · prompt: packages/nana-setup/claude/hooks/nana-adoption.mjs
 Read by: R-159 · person: no code reads any other event; a person opens the journal to see them
@@ -1674,6 +1686,7 @@ Read by: R-1194 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.m
 Read by: R-1194 · person: Claude Code shows it as a user message at session start, and the pi TUI shows it as a widget
 Made by: R-457 · manual: desk frozen since 2026-10-10
 Read by: R-457 · person: desk frozen since 2026-10-10
+Parked: R-457 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
 
 ## FEAT-020 · Find and read previous sessions
 Purpose: Read, title, navigate and display session history while retaining correct branch identity.
@@ -1830,14 +1843,19 @@ Kind: product
 Deliverables: R-260, R-256, R-257, R-437, R-264
 Made by: R-260 · manual: desk frozen since 2026-10-10
 Read by: R-260 · person: desk frozen since 2026-10-10
+Parked: R-260 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
 Made by: R-256 · manual: desk frozen since 2026-10-10
 Read by: R-256 · person: desk frozen since 2026-10-10
+Parked: R-256 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
 Made by: R-257 · manual: desk frozen since 2026-10-10
 Read by: R-257 · person: desk frozen since 2026-10-10
+Parked: R-257 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
 Made by: R-437 · manual: desk frozen since 2026-10-10
 Read by: R-437 · person: desk frozen since 2026-10-10
+Parked: R-437 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
 Made by: R-264 · manual: desk frozen since 2026-10-10
 Read by: R-264 · person: desk frozen since 2026-10-10
+Parked: R-264 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
 
 ## FEAT-025 · Use consistent structured tool output
 Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
@@ -1997,7 +2015,11 @@ Also applies: G-013, G-014, G-015
 | R-2538 | WHEN the tree has no problem, the tree checker shall print each deliverable note on its own stdout line after its summary in every mode, with the exit status and outline it gives without the lines. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker prints deliverable notes in every mode and keeps its exit status and outline` |
 | R-2539 | Every deliverable of a live `Kind: product` capability in this repository's REQUIREMENTS.md shall carry at least one `Made by:` line and one `Read by:` line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::every deliverable in this repository's ledger has a Made by and a Read by line` |
 | R-2540 | WHEN a row's `Made by:` or `Read by:` lines differ between the base and the tip, the tree movement report shall list one changed-lines entry for that row. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::the movement report lists a row whose Made by or Read by lines changed` |
-| R-2541 | WHEN the tree has deliverable lines and no problem, the tree checker shall print, in every mode, one line counting the deliverables made by an automatic run and read by code or a prompt, out of all listed deliverables. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker counts the deliverables made and read by code in every mode` |
+| R-2541 | WHEN the tree has deliverable lines and no problem, the tree checker shall print, in every mode, one line counting the deliverables made by an automatic run and read by code or a prompt, out of all listed deliverables, less those a `Parked:` line holds back (R-2639). | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker counts the deliverables made and read by code in every mode` |
+| R-2639 | WHEN a listed deliverable that code does not both make and read carries a readable `Parked:` line, the tree checker shall, in every mode, leave that row out of the count line's total once and end that line with `, <n> parked` counting parked rows. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode` |
+| R-2640 | IF a `Parked:` line lacks the separator or has a third part, names a row its capability does not list, lacks `since` and a YYYY-MM-DD date before a colon, has no reason after that colon, or sits outside a live `Kind: product` capability, THEN the deliverable check shall report one note naming the row or the line in place of parking the row. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2640: an unreadable or misplaced Parked line gets one note and parks nothing` |
+| R-2641 | WHEN a deliverable with a readable `Parked:` line is one the count line counts as made and read by code, the deliverable check shall report one note naming the row and its first `Parked:` line, counting the row as made and read by code, not parked. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line` |
+| R-2643 | WHEN a row's `Parked:` lines differ between the base and the tip, the tree movement report shall list one entry for that row naming `Parked lines changed`. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2643: the movement report lists a row whose Parked line was added, removed or reworded` |
 | R-1157 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157: --root checks another project's ledger, names its problems and writes no outline`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: a row outside its feature exits 1 naming it`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: --root <dir> --write exits 2 with usage` |
 | R-1158 | The tree checker shall report the same problems, at the same line numbers, for a ledger with CRLF line endings as for the same ledger with LF line endings. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` |
 | R-1159 | WHEN the tree checker reads a REQUIREMENTS.md that holds requirement rows but no capability or feature heading, it shall report one problem, which names the row count, says the ledger has no requirements tree yet and points to the requirements skill for the next step, in place of one problem per row. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with rows and no tree gets one line naming the row count and the next step`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it`, `packages/nana-pack/tests/product-report.test.mjs::a ledger with rows and no tree is refused with one problem line, not one per row` |
@@ -2462,6 +2484,7 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 | R-2454 | The product report's Product view shall show each capability carrying a `Retired:` line after every other capability, with a card naming its successors. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2454: a retired capability's card comes after every other card and names its successors` |
 | R-2542 | WHEN a live `Kind: product` capability's card in the Product view lists a deliverable, the product report shall show under it each `Made by:` and `Read by:` claim for that row from that capability's own span, in ledger order as written after the row ID, with the marks "not made by code" and "not read by code" as the tree checker counts them and "no artifact named" when no maker claim names one, in place of the features that share the row. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's code marks, and no consumers` |
 | R-2543 | The product report's Product view shall show, before the capability cards, the deliverable count line and notes that the tree checker prints for the same ledger and HEAD tree, in the same order. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2543: the Product view shows the tree checker's deliverable count line and notes for the same ledger and HEAD` |
+| R-2642 | WHEN a live product capability lists a deliverable that carries a `Parked:` line, the product report's Product view shall list that line among the deliverable's claims in ledger order. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2642: the Product view lists a deliverable's Parked line among its claims in ledger order` |
 | R-2544 | WHEN a `Made by:` claim names an artifact path, the product report shall show beside it the commits from the last commit that changed that path to HEAD, counted as `git rev-list --count` counts them, and the whole days between their committer times, with that commit's first 8 characters and subject, or say why the age is unknown. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown` |
 | R-2545 | WHEN a `Made by:` claim names `runtime-map`, the product report shall show beside it the tip, the UTC measurement time and any uncommitted-file count the runtime data records, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or say why it cannot. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot` |
 
