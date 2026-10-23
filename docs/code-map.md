@@ -1149,7 +1149,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Run a roster-selected pi or Claude Code worker under one lane check, lock, watchdog, prompt, settings and build-record lifecycle.
 - **inputs** — argv, lane brief and HEAD, feature known bugs, machine roster, optional user Claude settings, git folders, and pi sessions
 - **outputs** — worker output, launch and carry diagnostics, lane start/end records, and a final lane line
-- **effects** — disk (temporary prompts/settings, output and build records), process (spawns and may kill pi or Claude Code child groups)
+- **effects** — disk (temporary prompts/settings, output and build records), process (registers no-op start-up signal listeners in lane mode, spawns and may kill pi or Claude Code child groups)
 - **errors** — exit 1 on bad args, invalid lane, refused precedent/roster, failed worker, output failure or ceiling; settings-source and record failures report
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/json-text.mjs`

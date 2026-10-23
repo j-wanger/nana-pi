@@ -4,7 +4,7 @@
  * @purpose Run a roster-selected pi or Claude Code worker under one lane check, lock, watchdog, prompt, settings and build-record lifecycle.
  * @inputs argv, lane brief and HEAD, feature known bugs, machine roster, optional user Claude settings, git folders, and pi sessions
  * @outputs worker output, launch and carry diagnostics, lane start/end records, and a final lane line
- * @effects disk (temporary prompts/settings, output and build records), process (spawns and may kill pi or Claude Code child groups)
+ * @effects disk (temporary prompts/settings, output and build records), process (registers no-op start-up signal listeners in lane mode, spawns and may kill pi or Claude Code child groups)
  * @errors exit 1 on bad args, invalid lane, refused precedent/roster, failed worker, output failure or ceiling; settings-source and record failures report
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -36,6 +36,11 @@ const LANE_ONLY_FLAGS = ['--lane', '--brief', '--max-secs', '--lane-size'];
 const all = process.argv;
 const separator = all.indexOf('--');
 const own = separator < 0 ? all : all.slice(0, separator);
+const reviewFlag = ['--item', '--role', '--revision', '--over-cap', '--worker'].find((flag) => own.includes(flag));
+if (reviewFlag) {
+	process.stderr.write(`pi-worker: ${reviewFlag} is a review option — pi-worker records nothing. A review goes through pi-review --item <slug>.\n`);
+	process.exit(1);
+}
 const ownOptionNames = new Set(['--out', '--stall-secs', '--retries', '--poll', '--lane', '--brief', '--max-secs', '--lane-size']);
 const ownValues = new Map();
 let duplicateOwnOption = null;
@@ -147,6 +152,8 @@ if (laneMode) {
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	laneRoot = cwd; laneGitDir = dirs[0]; laneCommonDir = dirs[1];
 	selectedBuilder = builder; selectedLaneSize = laneSize; selectedSlot = builderLabel === LARGER_BUILDER_LABEL ? 'largerBuilder' : 'builder';
+	for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => {});
+	process.stderr.on('error', () => {});
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
 	preambleFile = path.join(preambleDir, 'preamble.md');
 	writeFileSync(preambleFile, preamble);
@@ -341,11 +348,6 @@ function buildEndLine() {
 const w = parseWatchdogArgv(argv, { defaultRetries: 0 });
 if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); process.stderr.write(w.error === 'usage' ? (laneMode || own.some((arg) => LANE_ONLY_FLAGS.includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }
 if (laneMode && w.retries > 0) laneFailure('--retries greater than zero is refused in lane mode');
-const reviewFlag = ['--item', '--role', '--revision', '--over-cap', '--worker'].find((f) => w.ownArgs.includes(f));
-if (reviewFlag) {
-	process.stderr.write(`pi-worker: ${reviewFlag} is a review option — pi-worker records nothing. A review goes through pi-review --item <slug>.\n`);
-	process.exit(1);
-}
 if (w.retriesExplicit && !laneMode) process.stderr.write(RETRIES_NOTICE('pi-worker', w.retries));
 if (w.retries > 0 && !laneMode) process.stderr.write(`pi-worker: --retries ${w.retries} — a re-attempt REPEATS any file mutations the failed attempt already made\n`);
 if (laneMode) {

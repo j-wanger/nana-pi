@@ -126,6 +126,7 @@ const baseEnv = () => {
 	const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: AGENT, PATH: `${STUB}${path.delimiter}${process.env.PATH ?? ""}`, BR_SPAWNED: SPAWNED, BR_LEDGER: LEDGER, BR_SNAPSHOT: SNAPSHOT, BR_SESSION_MARKER: SESSION_MARKER, BR_CHILD_PID: CHILD_PID, BR_WORKER_PID: WORKER_PID };
 	delete env.PI_CODING_AGENT_SESSION_DIR;
 	delete env.BR_SWAP_LEDGER;
+	delete env.CLAUDE_CONFIG_DIR;
 	return env;
 };
 let outNumber = 0;

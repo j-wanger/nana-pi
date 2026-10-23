@@ -54,6 +54,7 @@ const PROMPT_COPY = path.join(TEMP, "prompt-copy.md");
 const SETTINGS_COPY = path.join(TEMP, "settings-copy.json");
 const PID_FILE = path.join(TEMP, "claude.pid");
 const PI_MARKER = path.join(TEMP, "pi-spawned");
+const DECOY_CONFIG = path.join(TEMP, "decoy-claude-config");
 let failures = 0;
 
 const check = (title, ok, detail = "", skipped = false) => {
@@ -81,7 +82,9 @@ const roster = {
 	land: null,
 };
 
-for (const directory of [REPO, HOME, AGENT, BIN]) fs.mkdirSync(directory, { recursive: true });
+for (const directory of [REPO, HOME, AGENT, BIN, DECOY_CONFIG]) fs.mkdirSync(directory, { recursive: true });
+fs.writeFileSync(path.join(DECOY_CONFIG, "settings.json"), JSON.stringify({ env: { HTTPS_PROXY: "http://decoy.invalid:9" } }));
+process.env.CLAUDE_CONFIG_DIR = DECOY_CONFIG;
 git(REPO, "init", "-q", "-b", "main");
 fs.writeFileSync(path.join(REPO, "seed"), "seed\n");
 fs.mkdirSync(path.join(REPO, "docs", "known-bugs"), { recursive: true });
@@ -120,25 +123,31 @@ if (process.platform === "win32") {
 	fs.writeFileSync(path.join(BIN, "pi"), `#!/bin/sh\nprintf 'spawned\\n' > "${PI_MARKER}"\nprintf 'fake pi\\n'\n`, { mode: 0o755 });
 }
 
-const baseEnv = (extra = {}) => ({
-	...process.env,
-	HOME,
-	USERPROFILE: HOME,
-	PI_CODING_AGENT_DIR: AGENT,
-	PATH: `${BIN}${path.delimiter}${process.env.PATH ?? ""}`,
-	WC_RECORD: RECORD,
-	WC_PROMPT_COPY: PROMPT_COPY,
-	WC_SETTINGS_COPY: SETTINGS_COPY,
-	WC_PID_FILE: PID_FILE,
-	WC_LOCK: LOCK,
-	...extra,
-});
+const baseEnv = (extra = {}) => {
+	const env = {
+		...process.env,
+		HOME,
+		USERPROFILE: HOME,
+		PI_CODING_AGENT_DIR: AGENT,
+		PATH: `${BIN}${path.delimiter}${process.env.PATH ?? ""}`,
+		WC_RECORD: RECORD,
+		WC_PROMPT_COPY: PROMPT_COPY,
+		WC_SETTINGS_COPY: SETTINGS_COPY,
+		WC_PID_FILE: PID_FILE,
+		WC_LOCK: LOCK,
+	};
+	delete env.CLAUDE_CONFIG_DIR;
+	return { ...env, ...extra };
+};
 const writeBrief = (bytes) => { fs.writeFileSync(BRIEF, bytes); return BRIEF; };
 const workerArgs = (brief = BRIEF, extra = []) => [
 	WORKER,
 	...(extra.includes("--poll") ? [] : ["--poll", "0.2"]),
 	...(extra.includes("--stall-secs") ? [] : ["--stall-secs", "2"]),
-	"--out", OUT, "--lane", "alpha", "--brief", brief, "--lane-size", "larger", ...extra,
+	...(extra.includes("--out") ? [] : ["--out", OUT]),
+	"--lane", "alpha", "--brief", brief,
+	...(extra.includes("--lane-size") ? [] : ["--lane-size", "larger"]),
+	...extra,
 ];
 const runWorker = ({ brief = BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_MS } = {}) => spawnSync(process.execPath, workerArgs(brief, extra), {
 	cwd: LANE,
@@ -146,6 +155,38 @@ const runWorker = ({ brief = BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_M
 	timeout,
 	env: baseEnv(env),
 });
+const caseTemp = (name) => tmpDir(path.join(TEMP, `${name}-`));
+const tempEnv = (root, extra = {}) => ({ TMPDIR: root, TEMP: root, TMP: root, ...extra });
+const tempEmpty = (root) => fs.readdirSync(root).length === 0;
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const startWorker = ({ brief = BRIEF, extra = [], env = {} } = {}) => {
+	const child = spawn(process.execPath, workerArgs(brief, extra), { cwd: LANE, env: baseEnv(env), stdio: ["ignore", "ignore", "pipe"] });
+	let stderr = "";
+	child.stderr.on("data", (chunk) => { stderr += chunk; });
+	let forceTimer;
+	const closed = new Promise((resolve) => {
+		const timer = setTimeout(() => {
+			try { child.kill("SIGKILL"); } catch {}
+			forceTimer = setTimeout(() => resolve({ code: null, signal: "TIMEOUT" }), 1000);
+		}, CASE_LIMIT_MS);
+		child.once("close", (code, signal) => {
+			clearTimeout(timer);
+			clearTimeout(forceTimer);
+			resolve({ code, signal });
+		});
+	});
+	return { child, closed, stderr: () => stderr };
+};
+const waitFor = async (predicate, child, limit = 5000) => {
+	const deadline = Date.now() + limit;
+	while (!predicate() && child.exitCode === null && child.signalCode === null && Date.now() < deadline) await delay(1);
+	return predicate();
+};
+const stopFixtureBuilder = () => {
+	if (process.platform === "win32" || !fs.existsSync(PID_FILE)) return;
+	const pid = Number(fs.readFileSync(PID_FILE, "utf8"));
+	try { process.kill(-pid, "SIGKILL"); } catch { try { process.kill(pid, "SIGKILL"); } catch {} }
+};
 const selectedBriefLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
 const expectedPrompt = (briefBytes, withBugs, launchedCwd = LANE) => {
 	const worktree = process.platform === "win32" ? fs.realpathSync.native(launchedCwd) : fs.realpathSync(launchedCwd);
@@ -403,6 +444,107 @@ for (const [name, reason, arrange] of failureCases) {
 // req: R-2665
 check("R-2665: a missing, unreadable, malformed or non-object user settings file prints one carry line without its content, and the builder still starts with only the sealed env",
 	failureObservations.every((item) => item.ok), JSON.stringify(failureObservations));
+
+fs.rmSync(homeSettings, { recursive: true, force: true });
+fs.writeFileSync(homeSettings, JSON.stringify({ apiKeyHelper: "/fake/early-helper", env: { ANTHROPIC_API_KEY: "sk-ant-EARLY-REFUSAL" } }));
+writeBrief("Precedent:\n- seed\n");
+const reviewOptionCases = [
+	["--item", ["--item", "x"]],
+	["--role", ["--role", "sol"]],
+	["--revision", ["--revision", "HEAD"]],
+	["--over-cap", ["--over-cap", "why"]],
+	["--worker", ["--worker"]],
+];
+const reviewOptionObservations = [];
+for (const [option, extra] of reviewOptionCases) {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const root = caseTemp(`review-${option.slice(2)}`);
+	const result = runWorker({ extra, env: tempEnv(root) });
+	reviewOptionObservations.push({ option, status: result.status, line: result.stderr.includes(`pi-worker: ${option} is a review option`), noCarry: !result.stderr.includes("pi-worker: claude settings carry:"), empty: tempEmpty(root), calls: readRows(RECORD).length, stderr: result.stderr });
+}
+removeArtifacts(); fs.rmSync(LOCK, { force: true });
+const missingBriefRoot = caseTemp("review-missing-brief");
+const missingBrief = path.join(TEMP, "does-not-exist.md");
+const missingBriefResult = runWorker({ brief: missingBrief, extra: ["--item", "x"], env: tempEnv(missingBriefRoot) });
+reviewOptionObservations.push({ option: "--item missing brief", status: missingBriefResult.status, line: missingBriefResult.stderr.includes("pi-worker: --item is a review option"), noCarry: !missingBriefResult.stderr.includes("pi-worker: claude settings carry:"), empty: tempEmpty(missingBriefRoot), calls: readRows(RECORD).length, stderr: missingBriefResult.stderr });
+// req: R-2691
+check("R-2691: in lane mode each review option exits 1 with the review-option line before the brief or the user Claude settings are read or any temp file is written",
+	reviewOptionObservations.every((item) => item.status === 1 && item.line && item.noCarry && item.empty && item.calls === 0), JSON.stringify(reviewOptionObservations));
+
+const cleanupObservations = [];
+const runCleanupCase = (name, options = {}, arrange = () => {}) => {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const root = caseTemp(`cleanup-${name}`);
+	arrange(root);
+	const result = runWorker({ ...options, env: tempEnv(root, options.env) });
+	cleanupObservations.push({ name, status: result.status, empty: tempEmpty(root), carry: result.stderr.split(/\r?\n/).filter((line) => line.startsWith("pi-worker: claude settings carry:")).length, error: result.stderr, lock: fs.existsSync(LOCK) });
+	fs.rmSync(LOCK, { force: true });
+	return result;
+};
+runCleanupCase("finished");
+runCleanupCase("held lock", {}, () => fs.writeFileSync(LOCK, "999999\n"));
+runCleanupCase("bad stall option", { extra: ["--stall-secs", "abc"] });
+const missingOutputParent = path.join(TEMP, "missing-output-parent");
+fs.rmSync(missingOutputParent, { recursive: true, force: true });
+runCleanupCase("unwritable output", { extra: ["--out", path.join(missingOutputParent, "out.md")] });
+runCleanupCase("ceiling", { extra: ["--max-secs", "1", "--stall-secs", "10"], env: { WC_SLEEP_MS: "10000" } });
+if (process.platform !== "win32") {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const signalRoot = caseTemp("cleanup-sigterm");
+	const signalRun = startWorker({ extra: ["--max-secs", "10", "--stall-secs", "10"], env: tempEnv(signalRoot, { WC_SLEEP_MS: "10000" }) });
+	const signalStarted = await waitFor(() => fs.existsSync(PID_FILE), signalRun.child);
+	if (signalStarted) signalRun.child.kill("SIGTERM");
+	const signalEnd = await signalRun.closed;
+	cleanupObservations.push({ name: "SIGTERM", status: signalEnd.code, empty: tempEmpty(signalRoot), started: signalStarted, abort: signalRun.stderr().includes("[pi-worker] aborted by SIGTERM"), lock: fs.existsSync(LOCK), error: signalRun.stderr() });
+	stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
+
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const closedRoot = caseTemp("cleanup-closed-stderr");
+	const closedRun = startWorker({ extra: ["--max-secs", "10", "--stall-secs", "10"], env: tempEnv(closedRoot, { WC_SLEEP_MS: "1200" }) });
+	const closedStarted = await waitFor(() => fs.existsSync(PID_FILE), closedRun.child);
+	if (closedStarted) closedRun.child.stderr.destroy();
+	const closedEnd = await closedRun.closed;
+	cleanupObservations.push({ name: "closed stderr", status: closedEnd.code, empty: tempEmpty(closedRoot), started: closedStarted, lock: fs.existsSync(LOCK), error: closedRun.stderr() });
+	stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
+} else console.log("SKIP R-2692 SIGTERM and closed-stderr subcases — POSIX pipe and signal delivery only");
+const cleanupPass = cleanupObservations.every((item) => item.empty) &&
+	cleanupObservations.find((item) => item.name === "finished")?.status === 0 && cleanupObservations.find((item) => item.name === "finished")?.carry === 1 &&
+	cleanupObservations.find((item) => item.name === "held lock")?.status === 1 && cleanupObservations.find((item) => item.name === "held lock")?.carry === 1 &&
+	cleanupObservations.find((item) => item.name === "bad stall option")?.status === 1 && cleanupObservations.find((item) => item.name === "bad stall option")?.error.includes("pi-worker: --stall-secs and --poll must be positive numbers") &&
+	cleanupObservations.find((item) => item.name === "unwritable output")?.status === 1 && cleanupObservations.find((item) => item.name === "unwritable output")?.error.includes("[pi-worker] FAILED: cannot write") &&
+	cleanupObservations.find((item) => item.name === "ceiling")?.status === 1 && cleanupObservations.find((item) => item.name === "ceiling")?.carry === 1 &&
+	(process.platform === "win32" || (cleanupObservations.find((item) => item.name === "SIGTERM")?.status === 143 && cleanupObservations.find((item) => item.name === "SIGTERM")?.started && cleanupObservations.find((item) => item.name === "SIGTERM")?.abort && cleanupObservations.find((item) => item.name === "closed stderr")?.status === 0 && cleanupObservations.find((item) => item.name === "closed stderr")?.started));
+// req: R-2692
+check("R-2692: a finished build, a held lock, a bad stall option, an unwritable output, the ceiling and, off Windows, SIGTERM and a closed stderr each leave the temp folder empty",
+	cleanupPass, JSON.stringify(cleanupObservations));
+
+const startupSignalCase = async ({ signal, laneSize = "larger" }) => {
+	let last = null;
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		removeArtifacts(); fs.rmSync(LOCK, { force: true });
+		const root = caseTemp(`startup-${laneSize}-${signal.toLowerCase()}-${attempt}`);
+		const marker = laneSize === "small" ? PI_MARKER : PID_FILE;
+		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000" }) });
+		const hasTempFile = await waitFor(() => fs.readdirSync(root).length > 0, run.child);
+		const startedBeforeSignal = fs.existsSync(marker);
+		if (hasTempFile && !startedBeforeSignal) run.child.kill(signal);
+		const ended = await run.closed;
+		last = { signal, laneSize, attempt, hasTempFile, startedBeforeSignal, ended, empty: tempEmpty(root), lock: fs.existsSync(LOCK), abort: run.stderr().includes(`[pi-worker] aborted by ${signal}`), stderr: run.stderr() };
+		stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
+		if (hasTempFile && !startedBeforeSignal) return last;
+	}
+	return last;
+};
+let startupSignalObservations = [];
+if (process.platform !== "win32") {
+	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) startupSignalObservations.push(await startupSignalCase({ signal }));
+	startupSignalObservations.push(await startupSignalCase({ signal: "SIGTERM", laneSize: "small" }));
+} else console.log("SKIP R-2693: startup signal window — POSIX signal delivery only");
+const expectedSignalExit = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 };
+// req: R-2693
+check("R-2693: off Windows, SIGINT, SIGTERM or SIGHUP sent once the temp files exist and before the builder starts stops a Claude or pi build with the stop exit code and abort line and leaves no temp file and no lane lock",
+	process.platform === "win32" || (startupSignalObservations.length === 4 && startupSignalObservations.every((item) => item.hasTempFile && !item.startedBeforeSignal && item.ended.code === expectedSignalExit[item.signal] && item.abort && item.empty && !item.lock)),
+	JSON.stringify(startupSignalObservations), process.platform === "win32");
 
 const literalCarryNames = [
 	"HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "CLAUDE_CODE_PROXY_RESOLVES_HOSTS", "CLAUDE_CODE_PROXY_AUTH_HELPER_TTL_MS", "CLAUDE_CODE_ENABLE_PROXY_AUTH_HELPER",
