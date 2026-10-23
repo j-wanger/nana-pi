@@ -91,4 +91,4 @@ const PAIRS = [
 	], tests: [DT], expectRed: [R_2613] },
 ];
 
-process.exitCode = await runMutations({ lane: "session-start-frontier", self: import.meta.url, tip: "c3cf37db", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "session-start-frontier", self: import.meta.url, tip: "0767073c", declared: DECLARED, pairs: PAIRS });
