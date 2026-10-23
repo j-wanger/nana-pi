@@ -60,3 +60,4 @@
 - Build records (build-records): pi-review.mjs and review-round.mjs still say pi-worker records nothing; they mean no review round.
 - Build records (build-records): over 32 MiB the ledger is not read; the report and the end line say so.
 - Build records (build-records, seat pairs): the Windows short-path case for R-2598 has run only on macOS, where it skips. Nobody has seen its wrong-code pair turn red on Windows.
+- brief-check (main CI, 2026-10-22): on the Windows suite leg, R-2585's passing case once outlived its 15-second limit and the file then hit EBUSY on its lane folder; the re-run passed. Its limits are inline literals.
