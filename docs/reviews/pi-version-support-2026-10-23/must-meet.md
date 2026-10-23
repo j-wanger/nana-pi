@@ -104,3 +104,17 @@ As the draft's list, with: the setup README's "Upgrade pi itself" paragraph carr
 8. The independent check.
 9. Notes before the final round, with lane-temp-cleanup's late notes.
 10. Opus and astra on the exact tip.
+
+## Build 1 finding, adopted (seat, 2026-10-23)
+
+Doctor already prints a `pi packages` row: nana-pi's registration in pi's settings, which is also install's step label. Build 1 gave the new row the same label, so two doctor rows share it. Every lookup by that label then finds the new row first: `pi-launch-limits.test.mjs`, `pi-registration.test.mjs`'s `✓ pi packages` checks and `copy-record.test.mjs` can pass on the new row while registration is broken. The build rewrote two lookups in `doctor-package-source.test.mjs` and the READMEs say "the first `pi packages` row". The plan and the attack both missed the existing label.
+
+- The new row's label is `pi dependencies`. R-2713 to R-2715 say `pi dependencies` row, and their titles say "pi dependencies row" (titles below replace the ones above).
+- The module is `packages/nana-setup/lib/pi-dependencies.mjs` and the test file `packages/nana-setup/tests/doctor-pi-dependencies.test.mjs`.
+- `doctor-package-source.test.mjs` returns to main's text.
+- R-2714's test also asserts that exactly one doctor row carries `pi dependencies` and exactly one carries `pi packages`. Pair 32: the new row labelled `pi packages` → R-2714.
+
+Titles of record for R-2713 to R-2715, in `packages/nana-setup/tests/doctor-pi-dependencies.test.mjs`:
+- `R-2713: a pi package with its own packages installed newer than itself prints a ✗ pi dependencies row naming each of them, both versions and the install hint`
+- `R-2714: a pi package whose own packages are at or below its version, nested or hoisted, prints a ✓ pi dependencies row naming its version and count`
+- `R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable version prints a · pi dependencies row, never ✗`
