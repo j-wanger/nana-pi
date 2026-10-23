@@ -646,8 +646,7 @@ check("R-2589: a CI read that cannot complete refuses before the suite and names
 	const childBin = path.join(childFixture.root, "node-git-bin"); mkdirSync(childBin);
 	let childPath;
 	if (process.platform === "win32") {
-		const shim = (name, real) => writeFileSync(path.join(childBin, `${name}.cmd`), `@echo off\r\n"${real}" %*\r\n`);
-		shim("node", process.execPath); shim("git", gitPath); childPath = childBin;
+		childPath = path.dirname(gitPath);
 	} else {
 		for (const [name, real] of [["node", process.execPath], ["git", gitPath]]) symlinkSync(real, path.join(childBin, name));
 		childPath = childBin;
