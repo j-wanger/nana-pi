@@ -2,10 +2,10 @@
 /**
  * @module packages/nana-pack/bin/nana-land.mjs
  * @purpose Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
- * @inputs merge or cleanup arguments, a home directory for the review tally and kept-text store, and an injectable process runner.
- * @outputs Named pure argument helpers and command results or printed CLI records naming relied-on, damaged, and uncommitted review texts.
- * @effects process (runs git and a suite command), disk (git merge and worktree cleanup).
- * @errors Invalid arguments, missing intact review evidence, failed preconditions, suite failures, and git failures return a named refusal without continuing.
+ * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, lock, and release-status runners.
+ * @outputs Named argument and gh-runner helpers plus command results or CLI records naming reviews, CI runs, and release status.
+ * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge and worktree cleanup).
+ * @errors Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
  */
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
@@ -15,10 +15,21 @@ import { fileURLToPath } from "node:url";
 import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
-import { LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { ciScope, githubRepoOf, judgeRuns } from "../lib/land-ci.mjs";
+import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 
-const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
+const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
+const ghEnvironment = (environment) => {
+	const env = {};
+	for (const [key, value] of Object.entries(environment)) if (key.toUpperCase() !== "GH_FORCE_TTY") env[key] = value;
+	env.CLICOLOR_FORCE = "0";
+	return env;
+};
+/** Build the default gh runner with bounded time and output. */
+export function ghDefault({ timeoutMs = CI_READ_TIMEOUT_MS, maxBuffer = CHILD_OUTPUT_MAX_BYTES } = {}) {
+	return (cwd, args, { env = process.env } = {}) => ({ ...spawnSync("gh", args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", timeout: timeoutMs, maxBuffer }), nanaTimeoutMs: timeoutMs });
+}
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
 const landNotes = (result) => [result.stdout ?? "", result.stderr ?? ""]
 	.flatMap((text) => text.split(/\r?\n/))
@@ -67,8 +78,8 @@ function reviewedPairs(pairs) {
 	});
 }
 
-/** Run a fail-closed merge; runGit and runCommand are injectable for controlled callers and tests. */
-export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus }) {
+/** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
+export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault(), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
@@ -124,6 +135,31 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
+		const remoteNames = git(runGit, main, "remote");
+		const hasOrigin = remoteNames.split(/\r?\n/).map((name) => name.trim()).includes(CI_REMOTE);
+		const originUrl = hasOrigin ? git(runGit, main, "remote", "get-url", CI_REMOTE) : "";
+		const repository = githubRepoOf(originUrl);
+		const workflowPaths = repository ? git(runGit, tree, "ls-tree", "-z", "--name-only", tip, "--", `${CI_WORKFLOW_DIR}/`) : "";
+		const scope = ciScope({ remoteNames, originUrl, workflowPaths });
+		let ciLines = [];
+		let ciNote = null;
+		if (!scope.applies) ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
+		else {
+			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
+			const args = ["api", "--hostname", CI_HOST, `${apiPath}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`];
+			const env = ghEnvironment(process.env);
+			const response = runGh(main, args, { env });
+			const firstErrorLine = String(response?.stderr ?? "").split(/\r?\n/)[0].trim();
+			if (response?.error?.code === "ETIMEDOUT" || response?.signal && response?.status === null) throw new Error(`CI read timed out after ${response?.nanaTimeoutMs ?? CI_READ_TIMEOUT_MS} ms${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
+			if (response?.error) {
+				if (response.error.code === "ENOENT") throw new Error(`cannot start gh from PATH: ${response.error.message}`);
+				throw new Error(`gh could not start: ${response.error.message}`);
+			}
+			if (response?.status !== 0) throw new Error(`gh CI read failed (exit ${response?.status ?? response?.signal ?? "unknown"})${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
+			const verdict = judgeRuns(response.stdout, tip, scope.repository);
+			if (!verdict.ok) throw new Error(verdict.message);
+			ciLines = verdict.lines;
+		}
 		const suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
@@ -158,9 +194,9 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
-		const notes = [...landNotes(suiteResult), ...(reviewEvidence?.notes ?? [])];
+		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? [])];
 		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

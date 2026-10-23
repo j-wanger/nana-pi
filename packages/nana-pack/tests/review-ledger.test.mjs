@@ -155,9 +155,9 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	// req: R-624
 	check("outside git without --tree → refused", nr.status === 1 && /run from the reviewed tree or pass --tree/.test(nr.stderr), nr.stderr);
 	const wk = spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--retries", "1", "--out", path.join(outs, "wp.md"), "--", "-p", "x"], { cwd: A.d, env: env(), encoding: "utf8", timeout: 30000 });
-	// req: R-732
+	// req: R-2603
 	check("pi-worker runs a worker under the watchdog (exit 0, output written)", wk.status === 0 && /VERDICT/.test(fs.readFileSync(path.join(outs, "wp.md"), "utf8")), wk.stderr);
-	// req: R-732
+	// req: R-2603
 	check("pi-worker touched no ledger file", !fs.existsSync(agent), fs.existsSync(agent) ? fs.readdirSync(agent).join(",") : "");
 	const captureRoot = path.join(tmp, "watchdog-captures");
 	fs.mkdirSync(captureRoot);
@@ -173,7 +173,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const wki = spawnSync(process.execPath, [PI_WORKER, "--item", "x", "--out", out(), "--", "-p", "x"], { cwd: A.d, env: env(), encoding: "utf8" });
 	// req: R-733
 	check("pi-worker refuses review options (--item)", wki.status === 1 && /records nothing/.test(wki.stderr), wki.stderr);
-	// req: R-732
+	// req: R-2603
 	check("pi-worker source never imports the ledger API", !/admit|complete|review-ledger\.rounds/.test(fs.readFileSync(PI_WORKER, "utf8").replace(/^\/\/.*$/gm, "")));
 }
 

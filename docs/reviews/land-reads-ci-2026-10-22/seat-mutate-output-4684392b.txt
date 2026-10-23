@@ -1,0 +1,39 @@
+seat-mutate: lane land-reads-ci, tip 4684392b15e8b3d09b29c439d3baf1d03842f284, table 14709b987afb7234eee8393f786000f0922fc1ed6ffb21aca4f94ad2d08800b3, merge-base b5b5f8c242b943ec0ad4d12777d7aa3cfdff388b, 19 pairs in 5 shards (4+4+4+4+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T01:30:03.239Z
+DECLARED (plan) p1 to p17 follow the must-meet's wrong-code list in order
+DECLARED (seat) p8 reads a failed gh call as a passing run list, the shape of 'CI does not apply' that still lands
+DECLARED (seat) p18 and p19 cover Amendment 1 (colour off, --repo in the re-run remedy), added after build 2
+[1/5] seat-mutate: lane land-reads-ci, shard 1/5, tip 4684392b15e8b3d09b29c439d3baf1d03842f284, merge-base b5b5f8c242b943ec0ad4d12777d7aa3cfdff388b, 4 pairs, darwin, node v22.22.2, 2026-10-23T01:30:04.321Z
+[1/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 66 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane land-reads-ci, shard 2/5, tip 4684392b15e8b3d09b29c439d3baf1d03842f284, merge-base b5b5f8c242b943ec0ad4d12777d7aa3cfdff388b, 4 pairs, darwin, node v22.22.2, 2026-10-23T01:30:08.354Z
+[2/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 66 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane land-reads-ci, shard 3/5, tip 4684392b15e8b3d09b29c439d3baf1d03842f284, merge-base b5b5f8c242b943ec0ad4d12777d7aa3cfdff388b, 4 pairs, darwin, node v22.22.2, 2026-10-23T01:30:12.455Z
+[3/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 66 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane land-reads-ci, shard 4/5, tip 4684392b15e8b3d09b29c439d3baf1d03842f284, merge-base b5b5f8c242b943ec0ad4d12777d7aa3cfdff388b, 4 pairs, darwin, node v22.22.2, 2026-10-23T01:30:16.571Z
+[4/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 66 PASS, 0 FAIL, )
+[4/5] RESULT: 4/4 red (2 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane land-reads-ci, shard 5/5, tip 4684392b15e8b3d09b29c439d3baf1d03842f284, merge-base b5b5f8c242b943ec0ad4d12777d7aa3cfdff388b, 3 pairs, darwin, node v22.22.2, 2026-10-23T01:30:20.508Z
+[5/5] BASELINE ok   packages/nana-pack/tests/land.test.mjs (exit 0, 66 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED p1 only the first run returned is judged — 1/1 named: /^R-2586: /; UNNAMED red: [land.test.mjs] R-2588: the newest run of each workflow at its latest attempt decides, and the land names it refused: CI at 9…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 any green run passes — 1/1 named: /^R-2586: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the newest run is the lowest run_number — 1/1 named: /^R-2588: /; UNNAMED red: [land.test.mjs] R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite revi…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p4 jobs read for the run's attempts — 1/1 named: /^R-2588: /; UNNAMED red: [land.test.mjs] R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite The … | [land.test.mjs] R-2590: a repository or tip without GitHub CI skips the CI read and notes why Expected values to be strictly … | [land.test.mjs] R-2591: the CI read asks github.com for the full tip SHA in origin's repository Expected values to be strictl…; 4 FAIL total (1 file changed, 2 insertions(+))
+RED p5 completed with neutral, skipped or null passes — 1/1 named: /^R-2586: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 the conclusion judged without the status — 1/1 named: /^R-2587: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 an empty run list passes — 1/1 named: /^R-2587: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 a failed gh call read as passing — 1/1 named: /^R-2589: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p9 the CI read after the suite — 1/1 named: /^R-2586: /; UNNAMED red: [land.test.mjs] suite-time main branch switch refuses before merge The input did not match the regular expression /branch mai… | [land.test.mjs] suite-time source revision change refuses before merge The input did not match the regular expression /source… | [land.test.mjs] suite-time main divergence refuses before merge The input did not match the regular expression /HEAD.*capture… | [land.test.mjs] main advancing during suite refuses before merge The input did not match the regular expression /HEAD.*captur… | [land.test.mjs] R-2587: a tip with no CI run, or with a newest run still queued or running, is refused before the suite Expec… | [land.test.mjs] R-2588: the newest run of each workflow at its latest attempt decides, and the land names it The expression e… | [land.test.mjs] R-2589: a CI read that cannot complete refuses before the suite and names the cause Expected values to be str…; 8 FAIL total (1 file changed, 1 insertion(+))
+RED p10 the eight-digit tip asked for — 1/1 named: /^R-2591: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 --hostname dropped — 1/1 named: /^R-2591: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 scope read from main instead of the tip — 1/1 named: /^R-2590: /; UNNAMED red: [land.test.mjs] R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite [nan… | [land.test.mjs] R-2587: a tip with no CI run, or with a newest run still queued or running, is refused before the suite [nana… | [land.test.mjs] R-2588: the newest run of each workflow at its latest attempt decides, and the land names it The input did no… | [land.test.mjs] R-2589: a CI read that cannot complete refuses before the suite and names the cause [nana-land] note: CI not … | [land.test.mjs] R-2591: the CI read asks github.com for the full tip SHA in origin's repository Expected values to be strictl…; 6 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p13 the host check matches a substring — 1/1 named: /^R-2590: /; 1 FAIL total (1 file changed, 3 insertions(+), 2 deletions(-))
+RED p14 any file under .github/workflows, nested ones included, counts — 1/1 named: /^R-2590: /; 1 FAIL total (2 files changed, 2 insertions(+), 2 deletions(-))
+RED p15 every origin-read failure read as no origin — 1/1 named: /^R-2589: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED p16 runs grouped by name, not workflow_id — 1/1 named: /^R-2586: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p17 the default runner passes no timeout — 1/1 named: /^R-2589: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p18 gh keeps the seat's forced colour — 1/1 named: /^R-2591: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p19 the re-run remedy without its repository — 1/1 named: /^R-2586: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 19/19 red (14 exactly their named titles, 0 with a named title green, 5 with an unnamed red), 0 survived, across 5 shards

@@ -429,7 +429,7 @@ A bounded read validates only the bytes it reads. Before decoding it trims a tra
 Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
 Outcome: A developer can accept a bounded change with understandable review evidence and a controlled integration step.
 Kind: product
-Deliverables: R-1400, R-1008, R-1560, R-977
+Deliverables: R-1400, R-1008, R-1560, R-977, R-2597
 Made by: R-1400 · manual: the owner runs nana-roster set by hand to change this machine's roster
 Read by: R-1400 · code: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/bin/nana-roster.mjs
 Read by: R-1400 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs
@@ -441,15 +441,17 @@ Read by: R-1560 · person: the seat reads it when it runs the command
 Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs
 Read by: R-977 · person: the seat reads the success report and pushes main by hand, as the 2026-10-11 ruling says
 Read by: R-977 · code: .github/workflows/ci.yml
+Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs
+Read by: R-2597 · code: packages/nana-pack/bin/build-report.mjs, packages/nana-pack/bin/pi-worker.mjs
 
 ## FEAT-006 · Launch builders with execution limits
-Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
+Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits, and keep one record of each build; semantic change scope is a separate proposed feature.
 Status: active
 Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R-1892, R-1893, R-2584
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-732 | pi-worker shall run a worker under the same watchdog while importing no ledger module, recording nothing and touching no ledger file. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker runs a worker under the watchdog (exit 0, output written)`, `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker source never imports the ledger API`, `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker touched no ledger file` |
+| R-732 | pi-worker shall run a worker under the same watchdog while importing no ledger module, recording nothing and touching no ledger file. | retired | R-2603 narrows it to the review ledger; lane builds keep build records, R-2596. |
 | R-733 | pi-worker shall refuse review options before running anything. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker refuses review options (--item)` |
 | R-734 | A worker shall succeed when pi exits 0 with non-empty output, with no review shape required. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::a worker reply with NO review token succeeds (exit 0, output written)` |
 | R-735 | A worker shall not be retried by default. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::a failing worker is NOT retried by default (1 attempt, exit 1)` |
@@ -460,6 +462,14 @@ Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R
 | R-2582 | The builder preamble shall state once, on its own line, that a builder reads every file its brief's Precedent section names before designing, follows its pattern, and reports each departure with its reason. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure` |
 | R-2583 | The builder preamble shall state once, on its own line, that the known bugs following the brief are context, that a builder fixes only those its brief names, and that it reports each one its change touches. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2583: the builder preamble frames the attached known bugs as context to report, not to fix` |
 | R-2585 | WHEN brief-check runs on a brief and a worktree, it shall print the refusal or the launch line pi-worker prints for that brief and worktree, and exit 1 or 0 to match, without starting pi. | implemented | `packages/nana-pack/tests/brief-check.test.mjs::R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing` |
+| R-2596 | WHEN pi-worker lane mode has taken the worktree lock, it shall append, before starting pi, one start record to `nana/build-records.jsonl` under the lane's git common directory holding a new build id, the lane, the brief path, the brief's feature, HEAD's full commit id, the start time, its pid, the lock path, the lane size, the builder slot and its provider, model and thinking, the worktree path, the session folder pi will write to and the output path. | implemented | `packages/nana-pack/tests/build-records.test.mjs::R-2596: a lane build appends one start record under the clone's git folder before pi starts` |
+| R-2597 | WHEN a lane build ends by success, failure, the wall-clock ceiling or a SIGINT, SIGTERM or SIGHUP stop, pi-worker shall append one end record carrying the start record's build id, the end time, the duration in milliseconds, attempts, its exit code, the outcome `ok`, `failed`, `ceiling` or `stopped` with the signal, and HEAD's full commit id. | implemented | `packages/nana-pack/tests/build-records.test.mjs::R-2597: a lane build that succeeds, fails, reaches the ceiling or is stopped appends one end record naming its start` |
+| R-2598 | WHEN pi-worker appends an end record, it shall add the field-wise sum of every pi-ai Usage in the build's session files, or a null cost with a reason naming the session folder when no such file is found or one cannot be read within the cap. | implemented | `packages/nana-pack/tests/build-records.test.mjs::R-2598: the end record sums every usage pi wrote in the build's session file, or names why the cost is unknown` |
+| R-2599 | IF the build ledger cannot be appended, THEN pi-worker shall print one stderr line starting `pi-worker: build record:` naming the path and the error, and start pi and exit with the same code as with a writable ledger. | implemented | `packages/nana-pack/tests/build-records.test.mjs::R-2599: an unwritable build ledger leaves the build's launch and exit code unchanged and names why in one line` |
+| R-2600 | WHEN the build report runs on a repository, it shall print one line per build in start order, one line per lane counting its builds by outcome with summed minutes, tokens and cost, and a total line counting builds, lanes, lanes with two or more builds and unreadable ledger lines. | implemented | `packages/nana-pack/tests/build-report.test.mjs::R-2600: the build report prints each build, one line per lane and a total counting lanes with two or more builds` |
+| R-2601 | WHEN the build report reads a start record with no end record, it shall list that build as `no end`, with minutes and cost summed from its session files when they are found. | implemented | `packages/nana-pack/tests/build-report.test.mjs::R-2601: the build report lists a start with no end as no end, with its session cost` |
+| R-2602 | WHEN pi-worker appends an end record, it shall print, after its SUCCESS, FAILED or aborted line, one stderr line starting `pi-worker: build record:` with this build's outcome, exit code, minutes and cost followed by the lane line the build report prints for this lane. | implemented | `packages/nana-pack/tests/build-records.test.mjs::R-2602: the last stderr line names this build's outcome, minutes and cost and its lane's builds so far` |
+| R-2603 | pi-worker shall run a worker under the same watchdog while importing no review-round module and touching no review-ledger file. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker runs a worker under the watchdog (exit 0, output written)`, `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker touched no ledger file`, `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker source never imports the ledger API` |
 | R-2616 | WHEN a list item of the other marker kind, indented no more than the first entry, follows a plain `Precedent:` label's list with no blank line between, pi-worker shall end the Precedent section before that item. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2616: a numbered step list straight after a plain Precedent list is not read as entries` |
 | R-2617 | WHEN a line holds only `**Precedent:**` or `**Precedent**:`, pi-worker shall read the list under it as the Precedent section. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2617: a bold Precedent label line starts the Precedent section` |
 | R-2618 | IF a lane brief holds no Precedent section, THEN pi-worker shall refuse it naming both ways to start one: a Precedent heading, or a line holding only `Precedent:`. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2618: a brief with no Precedent section is told the label stands on a line of its own` |
@@ -511,7 +521,7 @@ Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R
 ## FEAT-007 · Review a specific revision independently
 Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
 Status: active
-Also applies: R-137, R-732, R-1125
+Also applies: R-137, R-2603, R-1125
 
 ### SUB-006 · Identify and freeze the review target
 Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
@@ -719,6 +729,13 @@ Also applies: R-705, R-708, R-717, R-969, R-992, R-1008
 | R-981 | The pack README and AGENTS.md shall document the land helper's clean-checkout, verified-review, suite-before-merge, revalidation, ff-only, containment, and separate safe-cleanup pattern. | implemented | `packages/nana-pack/tests/land.test.mjs::README and AGENTS describe the land helper` |
 | R-1109 | nana-pi's `AGENTS.md` shall carry, outside the shared marker region, a land-checklist step that runs `packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land` for any lane touching `packages/nana-setup/` or a hook. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::AGENTS.md carries the macOS install check outside the shared region` |
 | R-588 | WHEN a land merge succeeds, the land merge command shall print the main checkout's post-merge release status, a release-status failure leaving its exit code and success output unchanged. | implemented | `packages/nana-pack/tests/land.test.mjs::successful merge prints post-merge release status and divergence`, `packages/nana-pack/tests/land.test.mjs::release status failure after merge keeps success code and output`, `packages/nana-pack/tests/land.test.mjs::successful merge without copier reports only the origin release clause` |
+| R-2586 | IF CI applies to a land and the newest run of any workflow for the source tip has completed with a conclusion other than success, THEN nana-land shall refuse before running the suite, naming that run's workflow, id, attempt and conclusion. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite` |
+| R-2587 | IF CI applies to a land and no workflow run exists for the source tip, or the newest run of any workflow is not completed, THEN nana-land shall refuse before running the suite, naming the tip when no run exists and otherwise each unfinished run's id and status. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2587: a tip with no CI run, or with a newest run still queued or running, is refused before the suite` |
+| R-2588 | WHEN CI applies to a land and the newest run of every workflow for the source tip, by run number, has completed with success, nana-land shall run the suite and, on landing, print one `ci:` line per workflow naming its run id, attempt and event. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2588: the newest run of each workflow at its latest attempt decides, and the land names it` |
+| R-2589 | IF nana-land cannot read the origin remote, or CI applies and gh cannot start, exits non-zero, times out, or prints anything other than a workflow-run list, THEN nana-land shall refuse before running the suite, naming the cause. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2589: a CI read that cannot complete refuses before the suite and names the cause` |
+| R-2590 | IF the main checkout has no origin remote, an origin that is not a github.com repository URL, or a source tip that tracks no `.yml` or `.yaml` file in `.github/workflows`, THEN nana-land shall skip the CI read without calling gh and print one land note naming why. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2590: a repository or tip without GitHub CI skips the CI read and notes why` |
+| R-2591 | WHEN CI applies to a land, nana-land shall ask gh, from the main checkout and with gh's colour output forced off, for github.com's one page of workflow runs of origin's owner and repository whose head SHA is the source tip's full SHA. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2591: the CI read asks github.com for the full tip SHA in origin's repository` |
+| R-2592 | The pack README's land paragraph and the shared working pattern's Land checklist shall each state that nana-land refuses a land until the newest CI run of each workflow for the tip has passed, where origin is on github.com and the tip tracks a workflow. | implemented | `packages/nana-pack/tests/land.test.mjs::R-2592: the pack README and the shared Land checklist say a land waits for the tip's CI` |
 
 # CAP-03 · Control trust and tool actions
 Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
@@ -967,7 +984,7 @@ Read by: R-341 · person: the owner reads the real home's rows when running doct
 Made by: R-1070 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs
 Made by: R-1070 · manual: the seat runs the install check locally on macOS before a setup or hook lane's land, as AGENTS.md says
 Read by: R-1070 · code: .github/workflows/ci.yml
-Read by: R-1070 · rule: AGENTS.md tells the seat to check the local run before nana-land, which reads no install-check result
+Read by: R-1070 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/lib/land-ci.mjs
 Made by: R-596 · CI: .github/workflows/ci.yml, scripts/template-release.mjs
 Read by: R-596 · code: packages/nana-pack/lib/release-status.mjs, packages/nana-pack/bin/nana-land.mjs, packages/nana-setup/lib/doctor.mjs
 Read by: R-596 · rule: the scaffold and adopt skills tell an agent to run copier copy or copier update, which render from the newest tag

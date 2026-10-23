@@ -1,24 +1,26 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/bin/pi-worker.mjs
- * @purpose Run a pi worker under a liveness watchdog, with an optional fail-closed linked-worktree lane mode.
+ * @purpose Run a pi worker under a liveness watchdog, with optional linked-worktree lane checks and build records.
  * @inputs argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane
- *  mode the brief, worktree HEAD, feature known bugs, and this machine's user-scope roster
- * @outputs worker output written to --out, SUCCESS / FAILED diagnostics, and in lane mode the
- *  checked precedent/known-bug line plus the resolved builder/source line on stderr before pi starts
- * @effects disk (writes output), process (spawns and may kill the pi child process group)
+ *  mode the brief, worktree HEAD, feature known bugs, machine roster, git common folder, and pi sessions
+ * @outputs worker output, result diagnostics, and lane-mode start/end records plus a final lane line
+ * @effects disk (writes output and clone-shared build records), process (spawns and may kill the pi child process group)
  * @errors exit 1 on bad args, invalid lane, refused brief precedent, invalid or disallowed
- *  --lane-size, refused roster, failed worker, or exceeded lane ceiling
+ *  --lane-size, refused roster, failed worker, output failure, or exceeded lane ceiling; record failures only report
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import { LANE_DEFAULTS, LANE_MAX_SECS, CLAUDE_CODE_RUNTIME, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
+import { appendBuildRecord, buildBriefPath, buildRecordsPath, buildSessionDir, collectBuildUsage, readBuildLedger, renderLaneLine } from '../lib/build-records.mjs';
+import { BUILD_LEDGER_READ_MAX_BYTES, BUILD_RECORD_LINE_PREFIX, BUILD_RECORD_SCHEMA, REPORT_COST_DIGITS, REPORT_MILLISECONDS_PER_MINUTE, WORKER_TAG } from '../lib/build-records-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
@@ -69,7 +71,9 @@ function trusted(worktree) {
 
 let childEnv = { NANA_ROLE: 'worker' };
 let maxArg;
-let laneRoot, laneGitDir, briefPath, preambleFile, laneLock, knownBugPath;
+let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, knownBugPath;
+let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature;
+let buildStart = null, buildStartKept = false, buildEnd = null, buildEndKept = false;
 let precedentLine = '';
 let validateLaneAttempt = () => null;
 // Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
@@ -108,6 +112,7 @@ if (laneMode) {
 	if (!briefCheck.ok) laneFailure(briefCheck.reason);
 	precedentLine = briefCheck.line;
 	knownBugPath = briefCheck.knownBugPath ? fsReal(briefCheck.knownBugPath) : undefined;
+	selectedFeature = briefCheck.feature;
 	if (separator >= 0 && all.slice(separator + 1).length) laneFailure('caller pi arguments are refused in lane mode');
 	const rosterResult = resolveRoster(piAgentDir());
 	if (!rosterResult.ok) laneFailure(`roster refused: ${rosterResult.file}: ${rosterResult.problem}`);
@@ -135,7 +140,8 @@ if (laneMode) {
 	process.stderr.write(`${precedentLine}\n`);
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
-	laneRoot = cwd; laneGitDir = dirs[0];
+	laneRoot = cwd; laneGitDir = dirs[0]; laneCommonDir = dirs[1];
+	selectedBuilder = builder; selectedLaneSize = laneSize; selectedSlot = builderLabel === LARGER_BUILDER_LABEL ? 'largerBuilder' : 'builder';
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
 	preambleFile = path.join(preambleDir, 'preamble.md');
 	writeFileSync(preambleFile, preamble);
@@ -163,6 +169,90 @@ if (laneMode) {
 // R-1125: win32 resolves a lane's paths by native real path, which keeps an 8.3 or differently
 // cased form the way git itself sees it; POSIX keeps the JS implementation, as landed.
 function fsReal(p) { return process.platform === 'win32' ? realpathSync.native(p) : realpathSync(p); }
+function errorText(error) { return `${error?.code ? `${error.code}: ` : ''}${error?.message ?? String(error)}`; }
+function workerExit(result) {
+	if (result.signal) return { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[result.signal] ?? 1;
+	return result.ok ? 0 : 1;
+}
+function keepBuildStart(outPath) {
+	try {
+	const startedAt = new Date().toISOString();
+	let tip;
+	try { tip = git('rev-parse', 'HEAD'); } catch { tip = null; }
+	buildStart = {
+		v: BUILD_RECORD_SCHEMA,
+		kind: 'start',
+		build: randomUUID(),
+		lane,
+		brief: buildBriefPath(briefPath, laneRoot),
+		feature: selectedFeature,
+		tip,
+		startedAt,
+		pid: process.pid,
+		lock: laneLock,
+		laneSize: selectedLaneSize,
+		slot: selectedSlot,
+		provider: selectedBuilder.provider,
+		model: selectedBuilder.model,
+		thinking: selectedBuilder.thinking,
+		cwd: process.cwd(),
+		sessionDir: buildSessionDir(process.cwd()),
+		out: path.resolve(process.cwd(), outPath),
+	};
+	const kept = appendBuildRecord(laneCommonDir, buildStart);
+	buildStartKept = kept.ok;
+	if (!kept.ok) process.stderr.write(`${BUILD_RECORD_LINE_PREFIX} not kept: ${kept.file}: ${errorText(kept.error)}\n`);
+	} catch (error) {
+		buildStartKept = false;
+		process.stderr.write(`${BUILD_RECORD_LINE_PREFIX} not kept: ${buildRecordsPath(laneCommonDir)}: ${errorText(error)}\n`);
+	}
+}
+function keepBuildEnd(result, outputError) {
+	try {
+	const endedAt = new Date().toISOString();
+	const exit = outputError ? 1 : workerExit(result);
+	const outcome = outputError ? 'failed' : result.signal ? 'stopped' : result.ceiling ? 'ceiling' : result.ok ? 'ok' : 'failed';
+	let tip = null, tipError = null;
+	try { tip = git('rev-parse', 'HEAD'); } catch (error) { tipError = errorText(error); }
+	const found = collectBuildUsage(buildStart);
+	buildEnd = {
+		v: BUILD_RECORD_SCHEMA,
+		kind: 'end',
+		build: buildStart.build,
+		endedAt,
+		durationMs: Date.parse(endedAt) - Date.parse(buildStart.startedAt),
+		attempts: Number(result.attempt) || 1,
+		exit,
+		outcome,
+		signal: result.signal ?? null,
+		tip,
+		tipError,
+		usage: found.usage,
+		cost: found.cost,
+		costReason: found.costReason,
+		sessions: found.sessions,
+		sessionBadLines: found.sessionBadLines,
+		outputError: outputError ? errorText(outputError) : null,
+	};
+	const kept = appendBuildRecord(laneCommonDir, buildEnd);
+	buildEndKept = kept.ok;
+	if (!kept.ok) process.stderr.write(`${BUILD_RECORD_LINE_PREFIX} not kept: ${kept.file}: ${errorText(kept.error)}\n`);
+	} catch (error) {
+		buildEndKept = false;
+		process.stderr.write(`${BUILD_RECORD_LINE_PREFIX} not kept: ${buildRecordsPath(laneCommonDir)}: ${errorText(error)}\n`);
+	}
+}
+function buildEndLine() {
+	let laneLine;
+	try {
+		laneLine = renderLaneLine(readBuildLedger(buildRecordsPath(laneCommonDir), { maxBytes: BUILD_LEDGER_READ_MAX_BYTES }).records, lane);
+	} catch (error) {
+		laneLine = error?.code === 'ERR_TOO_LARGE' ? `lane line unavailable: ledger over ${BUILD_LEDGER_READ_MAX_BYTES} bytes` : `lane line unavailable: ${errorText(error)}`;
+	}
+	const mins = Math.floor(buildEnd.durationMs / REPORT_MILLISECONDS_PER_MINUTE);
+	const cost = buildEnd.cost === null ? `cost unknown: ${buildEnd.costReason}` : `$${buildEnd.cost.toFixed(REPORT_COST_DIGITS)}`;
+	return `${BUILD_RECORD_LINE_PREFIX} ${buildEnd.outcome}, exit ${buildEnd.exit}, ${mins} min, ${cost}; ${laneLine}`;
+}
 
 const w = parseWatchdogArgv(argv, { defaultRetries: 0 });
 if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); process.stderr.write(w.error === 'usage' ? (laneMode || own.some((arg) => LANE_ONLY_FLAGS.includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }
@@ -174,22 +264,35 @@ if (reviewFlag) {
 }
 if (w.retriesExplicit && !laneMode) process.stderr.write(RETRIES_NOTICE('pi-worker', w.retries));
 if (w.retries > 0 && !laneMode) process.stderr.write(`pi-worker: --retries ${w.retries} — a re-attempt REPEATS any file mutations the failed attempt already made\n`);
-if (laneMode) acquireLaneLock(laneGitDir);
+if (laneMode) {
+	acquireLaneLock(laneGitDir);
+	keepBuildStart(w.outPath);
+}
 let r;
 try {
 	if (laneMode) {
 		const preambleDir = path.dirname(preambleFile);
-		try { r = await runWatchdog('pi-worker', { ...w, maxSecs: maxArg, childEnv, validateAttempt: validateLaneAttempt }); }
+		try { r = await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, validateAttempt: validateLaneAttempt }); }
 		finally { rmSync(preambleDir, { recursive: true, force: true }); }
 	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
 } catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }
-try { if (r.text.trim()) writeFileSync(w.outPath, r.text); }
-finally { if (laneLock) { releaseLaneLock(laneLock); laneLock = null; } }
-if (r.signal) { process.stderr.write(`[pi-worker] aborted by ${r.signal}\n`); process.exit({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1); }
-process.stderr.write(r.ok
+let outputError = null;
+try {
+	if (r.text.trim()) writeFileSync(w.outPath, r.text);
+} catch (error) {
+	outputError = error;
+} finally {
+	if (buildStartKept) keepBuildEnd(r, outputError);
+	if (laneLock) { releaseLaneLock(laneLock); laneLock = null; }
+}
+const exit = outputError ? 1 : workerExit(r);
+if (r.signal) process.stderr.write(`[pi-worker] aborted by ${r.signal}\n`);
+else if (outputError) process.stderr.write(`[pi-worker] FAILED: cannot write ${w.outPath}: ${errorText(outputError)}\n`);
+else process.stderr.write(r.ok
 	? `[pi-worker] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath})\n`
 	: r.ceiling ? `[pi-worker] FAILED: wall-clock ceiling ${maxArg}s reached\n` : `[pi-worker] FAILED after ${w.retries + 1} attempt(s) (endpoint likely in a bad stretch)\n`);
-process.exit(r.ok ? 0 : 1);
+if (buildEndKept) process.stderr.write(`${buildEndLine()}\n`);
+process.exit(exit);
 
 function acquireLaneLock(gitDir) {
 	laneLock = path.join(gitDir, 'nana-lane.lock');
