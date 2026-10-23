@@ -1,0 +1,9 @@
+# CI suite (windows-latest), run 39992937760 job 120549032208, tip a3293dc4: the worker-claude file's new lines and the suite summary
+PASS R-2691: in lane mode each review option exits 1 with the review-option line before the brief or the user Claude settings are read or any temp file is written
+SKIP R-2692 SIGTERM and closed-stderr subcases — POSIX pipe and signal delivery only
+PASS R-2692: a finished build, a held lock, a bad stall option, an unwritable output, the ceiling and, off Windows, SIGTERM and a closed stderr each leave the temp folder empty
+SKIP R-2693: startup signal window — POSIX signal delivery only
+SKIP R-2693: off Windows, SIGINT, SIGTERM or SIGHUP sent once the temp files exist and before the builder starts stops a Claude or pi build with the stop exit code and abort line and leaves no temp file and no lane lock — []
+PASS seal: a Claude Code builder uses default permission mode, project and local settings, a carried settings file, no MCP servers, tools Read,Grep,Glob,Bash,Edit,Write, a prompt file, no stall stop, auto-memory off and the builder Bash limit
+PASS  packages/nana-pack/tests/worker-claude.test.mjs                 13 pass, 4 skip  30.9s
+218 files: 200 PASS, 0 FAIL, 18 SKIP, 0 WARN · checks: 7352 pass, 0 fail, 127 skip · 882.5s
