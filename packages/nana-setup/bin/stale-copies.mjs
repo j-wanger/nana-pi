@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-setup/bin/stale-copies.mjs
- * @purpose Report unhealthy Claude Code hook links, rules, skills and hook settings for a home with a nana-setup adoption-hook install record.
- * @inputs the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
- * @outputs one stale-copy notice on stdout, including blocked skill paths to move, or no output when no install is recorded or every applicable item is current.
+ * @purpose Report an outdated session project's working section and unhealthy installed Claude Code hooks, rules, skills or settings.
+ * @inputs argv (`--cwd <dir>`), the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
+ * @outputs an optional project-stale line before one optional installed-copy notice, including blocked skill paths to move.
  * @effects disk (reads installed and source files; runs install's skill step in dry-run mode), process (writes stdout).
  * @errors unexpected failures reach the launcher, which emits the unavailable marker.
  */
@@ -12,10 +12,14 @@ import * as path from "node:path";
 import { skillLinkState } from "../lib/doctor.mjs";
 import { hookLinkRows, hookSettingsRows } from "../lib/hook-health.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
-import { hasAdoptionInstallRecord, linkOk, staleNotice } from "../lib/stale-copies.mjs";
+import { hasAdoptionInstallRecord, linkOk, projectStaleLine, staleNotice } from "../lib/stale-copies.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, linkedSkillFolder, ruleSource, stepSkills } from "../lib/steps.mjs";
 
 const layout = resolveLayout();
+const cwdIndex = process.argv.indexOf("--cwd");
+const sessionDir = cwdIndex >= 0 ? process.argv[cwdIndex + 1] : undefined;
+const projectNotice = projectStaleLine(sessionDir);
+if (projectNotice) process.stdout.write(`${projectNotice}\n`);
 
 function existingPath(candidate) {
 	try {
