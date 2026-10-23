@@ -265,14 +265,17 @@ fs.mkdirSync(COMMON, { recursive: true }); fs.writeFileSync(path.dirname(LEDGER)
 const blockedPass = runWorker();
 const blockedFail = runWorker({ env: { BR_MODE: "fail" } });
 const blockedLines = [blockedPass, blockedFail].map((result) => result.stderr.split(/\r?\n/).filter((line) => line.startsWith(BUILD_RECORD_LINE_PREFIX)));
-const startFailureOk = blockedPass.status === 0 && blockedFail.status === 1 && blockedLines.every((found) => found.length === 1 && found[0].includes(LEDGER) && /EEXIST|ENOTDIR/.test(found[0])) && fs.existsSync(SPAWNED);
+const realLedger = path.join(fs.realpathSync.native(COMMON), ...BUILD_RECORDS_SUBPATH.split("/"));
+const ledgerPathMatches = (line) => line.includes(LEDGER) || line.includes(realLedger);
+const startError = process.platform === "win32" ? /EEXIST|ENOTDIR|ENOENT/ : /EEXIST|ENOTDIR/;
+const startFailureOk = blockedPass.status === 0 && blockedFail.status === 1 && blockedLines.every((found) => found.length === 1 && ledgerPathMatches(found[0]) && startError.test(found[0])) && fs.existsSync(SPAWNED);
 fs.rmSync(path.dirname(LEDGER), { force: true });
 const writable = runWorker();
 const writableOut = fs.readFileSync(path.join(TD, `out-${outNumber}.md`), "utf8");
 resetRecords();
 const endBlocked = runWorker({ env: { BR_SWAP_LEDGER: "1" } });
 const endBlockedLines = endBlocked.stderr.split(/\r?\n/).filter((line) => line.startsWith(BUILD_RECORD_LINE_PREFIX));
-const endFailureOk = endBlocked.status === writable.status && endBlockedLines.length === 1 && endBlockedLines[0].includes("not kept") && endBlockedLines[0].includes(LEDGER) && endBlockedLines[0].includes("EISDIR") && fs.readFileSync(path.join(TD, `out-${outNumber}.md`), "utf8") === writableOut;
+const endFailureOk = endBlocked.status === writable.status && endBlockedLines.length === 1 && endBlockedLines[0].includes("not kept") && ledgerPathMatches(endBlockedLines[0]) && endBlockedLines[0].includes("EISDIR") && fs.readFileSync(path.join(TD, `out-${outNumber}.md`), "utf8") === writableOut;
 // req: R-2599
 check("R-2599: an unwritable build ledger leaves the build's launch and exit code unchanged and names why in one line", startFailureOk && endFailureOk, JSON.stringify({ blockedPass: blockedPass.stderr, blockedFail: blockedFail.stderr, writable: writable.status, endBlocked: endBlocked.stderr }));
 
