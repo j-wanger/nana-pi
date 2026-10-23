@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane ci-timing-records (ordinary), written by the seat 2026-10-22 after build 1, on the
-// shared runner, at tip 56def663. They are the must-meet's fifteen pairs in its order. Run from the worktree root on
-// macOS:   SEAT_MUTATE_OUT=<file> node docs/reviews/ci-timing-records-2026-10-22/seat-mutate.mjs
+// shared runner, at tip 56def663, re-run at 8c72ab36 after builds 2 and 3. They are the must-meet's fifteen pairs in its
+// order, plus p16 for the seat's demo finding F2. Run from the worktree root on macOS:   SEAT_MUTATE_OUT=<file> node docs/reviews/ci-timing-records-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
 
 const CI = ".github/workflows/ci.yml";
@@ -29,6 +29,7 @@ const SORT = "printed.sort((left, right) => idCompare(left.run.id, right.run.id)
 const DECLARED = [
 	"(plan) p1 to p15 follow the must-meet's wrong-code list in order",
 	"(seat) p8 keeps each run's newest attempt per leg after the sort; p13 drops the start-time half of the left-no-record test",
+	"(seat) p16 is the seat's demo finding F2: the download names the artifact id where gh reads a run id",
 ];
 
 const PAIRS = [
@@ -78,6 +79,9 @@ const PAIRS = [
 	{ n: "p15", name: "only gh status 1 treated as failure", edits: [
 		one(LIB, "if (result?.status !== 0) {", "if (result?.status === 1) {"),
 	], tests: [T_REC], expectRed: [R_2638] },
+	{ n: "p16", name: "the artifact id passed as the download's run id", edits: [
+		one(LIB, "[\"run\", \"download\", String(run.id), \"--repo\",", "[\"run\", \"download\", String(artifact.id), \"--repo\","),
+	], tests: [T_REC], expectRed: [R_2634] },
 ];
 
-process.exitCode = await runMutations({ lane: "ci-timing-records", self: import.meta.url, tip: "56def663", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "ci-timing-records", self: import.meta.url, tip: "8c72ab36", declared: DECLARED, pairs: PAIRS });
