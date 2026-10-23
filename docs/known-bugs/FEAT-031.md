@@ -93,3 +93,5 @@
 - CI records (ci-timing-records, seat demo): artifacts' creation times and the cross-attempt artifact listing were measured once, on run 39901143352: after a Linux-leg re-run both Linux records printed and no copied leg was called missing.
 - CI records (ci-timing-records, plan): CI records never enter the local store or the runtime map.
 - CI records (ci-timing-records, seat): the test reads the fixture repository from the remote named `origin` by a literal, not the config's remote name.
+- CI records (ci-timing-records, final review): when gh hits its time limit, the line reads "gh could not start", though gh started and timed out; the leg or run is still named and the command still exits 1.
+- CI records (ci-timing-records, final review): when a run's artifact listing fails, that run gets one line and its legs get none, as the plan asks.

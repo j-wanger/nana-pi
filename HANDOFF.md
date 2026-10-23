@@ -51,7 +51,7 @@
 ## Landed (one line each; the narrative is in `docs/sessions/`)
 
 - 2026-09-18 to 2026-10-22: one line each, moved verbatim to the October session archive (`docs/sessions/2026-10.md`). The seat moved them on 2026-10-21, 2026-10-22 and 2026-10-23.
-- 2026-10-22: each CI suite leg now keeps its suite record as a run artifact, named by leg and attempt. A new command prints each record's totals and slowest files for a commit's CI runs. It names every leg that left no record and why, and it tells a re-run's copied legs apart from missing ones. On this lane's own run it printed all three legs, then both Linux attempts after a re-run. All 16 of the seat's wrong versions of the code turn a check red.
+- 2026-10-23: each CI suite leg now keeps its suite record as a run artifact, named by leg and attempt. A new command prints each record's totals and slowest files for a commit's CI runs. It names every leg that left no record and why, and it tells a re-run's copied legs apart from missing ones. On this lane's own run it printed all three legs, then both Linux attempts after a re-run. All 16 of the seat's wrong versions of the code turn a check red.
 
 ## Known bugs
 
