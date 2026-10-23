@@ -1,6 +1,6 @@
 # Review — park-deliverables, confirmation round 2, 2026-10-23 (the final reviewer)
 
-Feature: FEAT-028 · Track deliverables as maintained features
+Feature: FEAT-028 · Maintain requirement identity and trace links
 
 Class: ordinary. Threat model as round 1 (`review-brief.md`).
 
