@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Seat wrong-code pairs for lane claude-code-builder-parity (gate), written by the seat 2026-10-23 after build 1, on the
-// shared runner, at tip ef39406b. They are the must-meet's 34 pairs in its order, less p12 (Windows only); pair 3 is three runs (3a to 3c).
+// shared runner; re-run at tip f8bdd255 after build 2. They are the must-meet's 34 pairs in its order, less p12 (Windows only); pair 3 is three runs (3a to 3c).
 // The lane changes pi-watchdog, which the runner does not import, so the lane's runner judges them. Run from the
 // worktree root on macOS:   SEAT_MUTATE_OUT=<file> node docs/reviews/claude-code-builder-parity-2026-10-22/seat-mutate.mjs
 import { runMutations } from "../../../packages/nana-pack/lib/mutation-runner.mjs";
@@ -40,7 +40,7 @@ const JSON_REASON = "reason = `not valid JSON${place ? ` at line ${place.line}, 
 const DECLARED = [
 	"(plan) p1 to p34 follow the must-meet's wrong-code list in order; p3 is three runs, one per dropped flag",
 	"(seat) p10 drops the brief refusal outright: the check runs before the roster is read, so no one-line build skips it for a Claude entry alone",
-	"(seat) p12 (launch.options not spread into spawn, expecting R-2650) runs only on the Windows leg, so it is not in this macOS table; the seat ran it on a scratch Windows CI branch (seat-win-pairs-ef39406b.txt)",
+	"(seat) p12 (launch.options not spread into spawn, expecting R-2650) runs only on the Windows leg, so it is not in this macOS table; the seat runs it, with build 2's two Windows pairs w1 (pi-worker leaves a cmd.exe Claude launch detached) and w2 (the watchdog ignores a launch's detached option), on a scratch Windows CI branch (seat-win-pairs-f8bdd255.txt)",
 	"(seat) p16 expects R-1124's existing worker-lane check, a pi lane launch through the default launcher",
 ];
 
@@ -154,4 +154,4 @@ const PAIRS = [
 	], tests: [T_WC], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "claude-code-builder-parity", self: import.meta.url, tip: "ef39406b", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "claude-code-builder-parity", self: import.meta.url, tip: "f8bdd255", declared: DECLARED, pairs: PAIRS });
