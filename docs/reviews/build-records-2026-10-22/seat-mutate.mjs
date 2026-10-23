@@ -89,4 +89,4 @@ const PAIRS = [
 	], tests: [T], expectRed: [R_2602] },
 ];
 
-process.exitCode = await runMutations({ lane: "build-records", self: import.meta.url, tip: "cb2d3f0a", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "build-records", self: import.meta.url, tip: "2a459ac9", declared: DECLARED, pairs: PAIRS });

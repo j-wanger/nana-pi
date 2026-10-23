@@ -1,0 +1,41 @@
+seat-mutate: lane build-records, tip 2a459ac90484144685cfc8172354650d5aef3c73, table 4b22bbf6a5e765c546f79fc0b55dd2bdadc55b495412776cd6be096911cf7bfa, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 19 pairs in 5 shards (4+4+4+4+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-23T00:09:32.964Z
+DECLARED (plan) p1 to p19 follow the must-meet's wrong-code list in order
+DECLARED (seat) p13 keeps only the real-path half of the planned pair, as the header says
+[1/5] seat-mutate: lane build-records, shard 1/5, tip 2a459ac90484144685cfc8172354650d5aef3c73, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-23T00:09:34.305Z
+[1/5] BASELINE ok   packages/nana-pack/tests/build-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane build-records, shard 2/5, tip 2a459ac90484144685cfc8172354650d5aef3c73, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-23T00:09:38.326Z
+[2/5] BASELINE ok   packages/nana-pack/tests/build-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane build-records, shard 3/5, tip 2a459ac90484144685cfc8172354650d5aef3c73, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-23T00:09:42.200Z
+[3/5] BASELINE ok   packages/nana-pack/tests/build-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[3/5] RESULT: 3/4 red (1 exactly their named titles, 4 with a named title green, 1 with an unnamed red), 1 survived [p13]
+[4/5] seat-mutate: lane build-records, shard 4/5, tip 2a459ac90484144685cfc8172354650d5aef3c73, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 4 pairs, darwin, node v22.22.2, 2026-10-23T00:09:46.242Z
+[4/5] BASELINE ok   packages/nana-pack/tests/build-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[4/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane build-records, shard 5/5, tip 2a459ac90484144685cfc8172354650d5aef3c73, merge-base 61ac64f3e1c5feefef86cedb880e766b9506659c, 3 pairs, darwin, node v22.22.2, 2026-10-23T00:09:50.556Z
+[5/5] BASELINE ok   packages/nana-pack/tests/build-records.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (1 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+RED p1 the start record written only at the end, after pi ran — 1/1 named: /^R-2596: /; UNNAMED red: [build-records.test.mjs] R-2597: a lane build that succeeds, fails, reaches the ceiling or is stopped appends one end record naming it… | [build-records.test.mjs] R-2598: the end record sums every usage pi wrote in the build's session file, or names why the cost is unknow… | [build-records.test.mjs] R-2602: the last stderr line names this build's outcome, minutes and cost and its lane's builds so far {"stde…; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p2 the start record written before the lock — 1/1 named: /^R-2596: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p3 the ledger under the pi agent folder instead of the common folder — (no named case); named but NOT REACHED: /^R-2596: /; UNNAMED red: [build-report.test.mjs] R-2600: the build report prints each build, one line per lane and a total counting lanes with two or more bui… | [build-report.test.mjs] R-2601: the build report lists a start with no end as no end, with its session cost {"observed":"total | 0 bu…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH build-records.test.mjs THREW (later checks never ran)
+RED p4 HEAD's short id instead of the full id — 1/1 named: /^R-2596: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p5 pid recorded as process.ppid — 1/1 named: /^R-2596: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p6 slot always builder — 1/1 named: /^R-2596: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p7 an end record only on success — 1/1 named: /^R-2597: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p8 the end record without the build id, paired by lane — (no named case); named but NOT REACHED: /^R-2597: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH build-records.test.mjs THREW (later checks never ran)
+RED p9 usage summed from assistant messages only — 1/1 named: /^R-2598: /; UNNAMED red: [build-records.test.mjs] R-2602: the last stderr line names this build's outcome, minutes and cost and its lane's builds so far {"stde…; 2 FAIL total (1 file changed, 1 insertion(+), 2 deletions(-))
+RED p10 cost recomputed from tokens — 1/1 named: /^R-2598: /; UNNAMED red: [build-records.test.mjs] R-2602: the last stderr line names this build's outcome, minutes and cost and its lane's builds so far {"stde…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p11 a missing session recorded as cost 0 — 1/1 named: /^R-2598: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p12 sessions matched without the start-time filter — 1/1 named: /^R-2598: /; UNNAMED red: [build-records.test.mjs] R-2602: the last stderr line names this build's outcome, minutes and cost and its lane's builds so far {"stde…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN p13 the session folder encoded from the real-path cwd — SURVIVED
+RED p14 PI_CODING_AGENT_SESSION_DIR used without pi's normalization — 1/1 named: /^R-2598: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p15 a failed start append stops the build — (no named case); named but NOT REACHED: /^R-2599: /; 0 FAIL total (1 file changed, 1 insertion(+)); CRASH build-records.test.mjs THREW (later checks never ran)
+RED p16 the report counting end lines as builds — 1/1 named: /^R-2600: /; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RED p17 the report stopping at a torn line — 1/1 named: /^R-2600: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p18 an unpaired start counted as ok — 1/1 named: /^R-2601: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED p19 the lane line rendered before this build's end record is appended — 1/1 named: /^R-2602: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 18/19 red (11 exactly their named titles, 6 with a named title green, 5 with an unnamed red), 1 survived [p13], across 5 shards
