@@ -1,0 +1,26 @@
+# CI install-check (windows-latest), run 39968608128 job 120464977524, tip 72157ec1: the job's result lines
+node: v22.23.4
+pi: C:\npm\prefix\pi.cmd
+node: C:\hostedtoolcache\windows\node\22.23.4\x64\node.exe
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi powershell gate
+PASS pi-review (cmd)
+PASS pi-review (sh)
+PASS hook set
+PASS hook shared memory
+PASS hook roster notice
+PASS hook knowledge pull
+PASS hook verifier pipe (PowerShell)
+PASS hook verifier pipe (Bash)
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker (cmd)
+PASS pi-worker (sh)
+PASS readme checklist
