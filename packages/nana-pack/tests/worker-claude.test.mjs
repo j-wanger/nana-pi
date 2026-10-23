@@ -41,6 +41,10 @@ const WORKER = path.join(PACK, "bin", "pi-worker.mjs");
 const BRIEF_CHECK = path.join(PACK, "bin", "brief-check.mjs");
 const PREAMBLE = path.join(PACK, "prompts", "builder-preamble.md");
 const CASE_LIMIT_MS = 20_000;
+const BLOCKING_READ_SETTLE_MS = 500; // Chosen to let the selected start-up read begin after the precedent line.
+const BLOCKING_READ_END_MS = 2_000; // Chosen to bound a lost SIGTERM well below the per-case watchdog.
+const BLOCKING_HELPER_HANG_MS = 30_000; // Chosen to outlast both the bounded signal wait and the per-case watchdog.
+const BLOCKING_HELPER_STOP_MS = 1_000; // Chosen to bound orphan cleanup after a FIFO is released or a helper is killed.
 const TEMP = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "worker-claude-")));
 const REPO = path.join(TEMP, "repo");
 const LANE = path.join(TEMP, "lane");
@@ -545,6 +549,131 @@ const expectedSignalExit = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 };
 check("R-2693: off Windows, SIGINT, SIGTERM or SIGHUP sent once the temp files exist and before the builder starts stops a Claude or pi build with the stop exit code and abort line and leaves no temp file and no lane lock",
 	process.platform === "win32" || (startupSignalObservations.length === 4 && startupSignalObservations.every((item) => item.hasTempFile && !item.startedBeforeSignal && item.ended.code === expectedSignalExit[item.signal] && item.abort && item.empty && !item.lock)),
 	JSON.stringify(startupSignalObservations), process.platform === "win32");
+
+const r2694StartedAt = performance.now();
+let blockingReadObservations = [];
+if (process.platform !== "win32") {
+	const makeFifo = (fifo) => {
+		fs.rmSync(fifo, { force: true });
+		const made = spawnSync("mkfifo", [fifo], { encoding: "utf8", timeout: CASE_LIMIT_MS });
+		if (made.status !== 0) throw new Error(`mkfifo ${fifo} failed: ${made.stderr}`);
+	};
+	const unblockFifo = (fifo) => {
+		let helperReader;
+		let writer;
+		try {
+			try { writer = fs.openSync(fifo, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK); }
+			catch (error) {
+				if (error?.code !== "ENXIO") throw error;
+				helperReader = fs.openSync(fifo, fs.constants.O_RDONLY | fs.constants.O_NONBLOCK);
+				writer = fs.openSync(fifo, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK);
+			}
+			try { fs.writeFileSync(writer, "{}\n"); } catch (error) { if (error?.code !== "EPIPE") throw error; }
+		} finally {
+			if (writer !== undefined) fs.closeSync(writer);
+			if (helperReader !== undefined) fs.closeSync(helperReader);
+			fs.rmSync(fifo, { force: true });
+		}
+	};
+	const pidAlive = (pid) => {
+		try { process.kill(pid, 0); return true; } catch { return false; }
+	};
+	const stopHelper = async (pidFile) => {
+		if (!fs.existsSync(pidFile)) return;
+		const pid = Number(fs.readFileSync(pidFile, "utf8"));
+		if (Number.isSafeInteger(pid) && pid > 0 && pidAlive(pid)) {
+			try { process.kill(pid, "SIGKILL"); } catch {}
+			const deadline = Date.now() + BLOCKING_HELPER_STOP_MS;
+			while (pidAlive(pid) && Date.now() < deadline) await delay(5);
+		}
+		fs.rmSync(pidFile, { force: true });
+	};
+	const closeWithin = (closed) => new Promise((resolve) => {
+		const timer = setTimeout(() => resolve({ code: null, signal: "TIMEOUT" }), BLOCKING_READ_END_MS);
+		closed.then((ended) => { clearTimeout(timer); resolve(ended); });
+	});
+	const trustFifo = path.join(AGENT, "trust.json");
+	const trustPid = path.join(TEMP, "blocking-trust.pid");
+	const trustPreload = path.join(TEMP, "blocking-trust.cjs");
+	fs.writeFileSync(trustPreload, `const fs = require("node:fs");\nconst { syncBuiltinESMExports } = require("node:module");\nconst originalOpen = fs.openSync;\nfs.openSync = (file, flags, ...rest) => {\n\tif (file === process.env.WC_BLOCKING_TRUST_FIFO) {\n\t\tfs.writeFileSync(process.env.WC_BLOCKING_HELPER_PID, String(process.pid));\n\t\tflags &= ~fs.constants.O_NONBLOCK;\n\t}\n\treturn originalOpen(file, flags, ...rest);\n};\nsyncBuiltinESMExports();\n`);
+	const settingsFifo = homeSettings;
+	const gitShimDir = path.join(TEMP, "blocking-git-bin");
+	const gitPid = path.join(TEMP, "blocking-git.pid");
+	const realGit = (process.env.PATH ?? "").split(path.delimiter).map((folder) => path.join(folder, "git")).find((file) => {
+		try { fs.accessSync(file, fs.constants.X_OK); return true; } catch { return false; }
+	});
+	if (!realGit) throw new Error("git executable not found on PATH");
+	fs.mkdirSync(gitShimDir, { recursive: true });
+	fs.writeFileSync(path.join(gitShimDir, "git"), `#!${process.execPath}\nconst fs = require("node:fs");\nconst { spawnSync } = require("node:child_process");\nconst args = process.argv.slice(2);\nif (args.length === 2 && args[0] === "rev-parse" && args[1] === "HEAD") {\n\tfs.writeFileSync(process.env.WC_BLOCKING_HELPER_PID, String(process.pid));\n\tsetTimeout(() => {}, ${BLOCKING_HELPER_HANG_MS});\n} else {\n\tconst result = spawnSync(${JSON.stringify(realGit)}, args, { stdio: "inherit" });\n\tif (result.error) throw result.error;\n\tif (result.signal) process.kill(process.pid, result.signal);\n\telse process.exit(result.status ?? 1);\n}\n`, { mode: 0o755 });
+	const cases = [
+		{
+			name: "trust check",
+			prepare: () => {
+				makeFifo(trustFifo);
+				return {
+					env: { WC_BLOCKING_TRUST_FIFO: trustFifo, WC_BLOCKING_HELPER_PID: trustPid, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require=${trustPreload}`.trim() },
+				blocked: () => fs.existsSync(trustPid),
+				cleanup: async () => { unblockFifo(trustFifo); await stopHelper(trustPid); },
+				};
+			},
+		},
+		{
+			name: "Claude settings read",
+			prepare: () => {
+				fs.rmSync(settingsFifo, { recursive: true, force: true });
+				makeFifo(settingsFifo);
+				return {
+					env: { CLAUDE_CONFIG_DIR: userSettingsDir },
+					blocked: (run) => run.child.exitCode === null && run.child.signalCode === null,
+					cleanup: async () => { unblockFifo(settingsFifo); },
+				};
+			},
+		},
+		{
+			name: "HEAD read",
+			prepare: () => ({
+				env: { PATH: `${gitShimDir}${path.delimiter}${BIN}${path.delimiter}${process.env.PATH ?? ""}`, WC_BLOCKING_HELPER_PID: gitPid },
+				blocked: () => fs.existsSync(gitPid),
+				cleanup: async () => { await stopHelper(gitPid); },
+			}),
+		},
+	];
+	for (const item of cases) {
+		removeArtifacts(); fs.rmSync(LOCK, { force: true });
+		const root = caseTemp(`blocking-${item.name.toLowerCase().replaceAll(" ", "-")}`);
+		const fixture = item.prepare();
+		const run = startWorker({ extra: ["--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { ...fixture.env, WC_SLEEP_MS: "10000" }) });
+		const precedent = await waitFor(() => run.stderr().includes("pi-worker: precedent:"), run.child);
+		if (precedent) await delay(BLOCKING_READ_SETTLE_MS);
+		const blocked = precedent && fixture.blocked(run);
+		if (precedent && run.child.exitCode === null && run.child.signalCode === null) run.child.kill("SIGTERM");
+		const ended = await closeWithin(run.closed);
+		if (ended.signal === "TIMEOUT") {
+			try { run.child.kill("SIGKILL"); } catch {}
+			await run.closed;
+		}
+		blockingReadObservations.push({
+			name: item.name,
+			precedent,
+			blocked,
+			ended,
+			empty: tempEmpty(root),
+			lock: fs.existsSync(LOCK),
+			calls: readRows(RECORD).length,
+			fakeClaude: fs.existsSync(PID_FILE),
+			stderr: run.stderr(),
+		});
+		await fixture.cleanup();
+		stopFixtureBuilder();
+		fs.rmSync(LOCK, { force: true });
+	}
+	fs.writeFileSync(homeSettings, JSON.stringify({ env: {} }));
+} else console.log("SKIP R-2694: blocking start-up reads — POSIX signal delivery and FIFO only");
+// req: R-2694
+check("R-2694: off Windows, SIGTERM sent to pi-worker while its trust check, Claude settings read or HEAD read hangs ends it before any temp file or lane lock exists",
+	process.platform === "win32" || (blockingReadObservations.length === 3 && blockingReadObservations.every((item) => item.precedent && item.blocked && item.ended.code === null && item.ended.signal === "SIGTERM" && item.empty && !item.lock && item.calls === 0 && !item.fakeClaude)),
+	JSON.stringify(blockingReadObservations), process.platform === "win32");
+console.log(`note: R-2694 elapsed ${Math.round(performance.now() - r2694StartedAt)} ms`);
 
 const literalCarryNames = [
 	"HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "CLAUDE_CODE_PROXY_RESOLVES_HOSTS", "CLAUDE_CODE_PROXY_AUTH_HELPER_TTL_MS", "CLAUDE_CODE_ENABLE_PROXY_AUTH_HELPER",

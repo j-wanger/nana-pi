@@ -86,7 +86,7 @@ let childEnv = { NANA_ROLE: 'worker' };
 let maxArg;
 let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, knownBugPath;
 let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaunch;
-let buildStart = null, buildStartKept = false, buildEnd = null, buildEndKept = false;
+let buildStartTip = null, buildStart = null, buildStartKept = false, buildEnd = null, buildEndKept = false;
 let precedentLine = '';
 let validateLaneAttempt = () => null;
 // Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
@@ -152,6 +152,14 @@ if (laneMode) {
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	laneRoot = cwd; laneGitDir = dirs[0]; laneCommonDir = dirs[1];
 	selectedBuilder = builder; selectedLaneSize = laneSize; selectedSlot = builderLabel === LARGER_BUILDER_LABEL ? 'largerBuilder' : 'builder';
+	const worktreeTrusted = trusted(cwd);
+	const sealed = isClaudeBuilder ? {
+		NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
+		BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
+		BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
+	} : null;
+	const carry = sealed ? readClaudeBuilderSettings(sealed) : null;
+	try { buildStartTip = git('rev-parse', 'HEAD'); } catch { buildStartTip = null; }
 	for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => {});
 	process.stderr.on('error', () => {});
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
@@ -165,12 +173,7 @@ if (laneMode) {
 		if (knownBugPath) promptParts.push(Buffer.from('\n\n'), readFileSync(knownBugPath));
 		writeFileSync(promptFile, Buffer.concat(promptParts));
 		const settingsFile = path.join(preambleDir, CLAUDE_BUILDER_SETTINGS_FILE);
-		const sealed = {
-			NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
-			BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-			BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-		};
-		const carry = writeClaudeBuilderSettings(settingsFile, sealed);
+		writeClaudeBuilderSettings(settingsFile, carry);
 		process.stderr.write(`${carry.line}\n`);
 		builderArgs = [
 			CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, builder.model,
@@ -198,7 +201,7 @@ if (laneMode) {
 	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...builderArgs);
 	else argv.push('--', ...builderArgs);
 	maxArg = maxSecs;
-	if (!trusted(cwd)) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\n`);
+	if (!worktreeTrusted) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\n`);
 	function validateLane() {
 		try {
 			const nowCwd = fsReal(process.cwd());
@@ -216,7 +219,7 @@ if (laneMode) {
 // R-1125: win32 resolves a lane's paths by native real path, which keeps an 8.3 or differently
 // cased form the way git itself sees it; POSIX keeps the JS implementation, as landed.
 function fsReal(p) { return process.platform === 'win32' ? realpathSync.native(p) : realpathSync(p); }
-function writeClaudeBuilderSettings(settingsFile, sealed) {
+function readClaudeBuilderSettings(sealed) {
 	const configured = process.env.CLAUDE_CONFIG_DIR;
 	const source = path.join(configured !== undefined && configured !== '' ? configured : path.join(homedir(), '.claude'), 'settings.json');
 	let parsed;
@@ -251,14 +254,16 @@ function writeClaudeBuilderSettings(settingsFile, sealed) {
 		}
 	}
 	settings.env = { ...(settings.env ?? {}), ...sealed };
-	writeFileSync(settingsFile, JSON.stringify(settings), { mode: 0o600 });
 	let detail;
 	if (reason) detail = `none; ${reason}`;
 	else {
 		const names = [...carriedKeys.sort(), ...(carriedEnvNames.length ? [`env ${carriedEnvNames.sort().join(', ')}`] : [])];
 		detail = names.length ? names.join(', ') : 'none';
 	}
-	return { line: `pi-worker: claude settings carry: ${detail}; source: ${source}` };
+	return { settings, line: `pi-worker: claude settings carry: ${detail}; source: ${source}` };
+}
+function writeClaudeBuilderSettings(settingsFile, carry) {
+	writeFileSync(settingsFile, JSON.stringify(carry.settings), { mode: 0o600 });
 }
 function errorText(error) { return `${error?.code ? `${error.code}: ` : ''}${error?.message ?? String(error)}`; }
 function workerExit(result) {
@@ -268,8 +273,6 @@ function workerExit(result) {
 function keepBuildStart(outPath) {
 	try {
 	const startedAt = new Date().toISOString();
-	let tip;
-	try { tip = git('rev-parse', 'HEAD'); } catch { tip = null; }
 	buildStart = {
 		v: BUILD_RECORD_SCHEMA,
 		kind: 'start',
@@ -277,7 +280,7 @@ function keepBuildStart(outPath) {
 		lane,
 		brief: buildBriefPath(briefPath, laneRoot),
 		feature: selectedFeature,
-		tip,
+		tip: buildStartTip,
 		startedAt,
 		pid: process.pid,
 		lock: laneLock,
