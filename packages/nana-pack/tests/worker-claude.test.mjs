@@ -91,6 +91,7 @@ fs.writeFileSync(path.join(REPO, "docs", "known-bugs", "unplaced.md"), "# Unplac
 git(REPO, "add", "seed", "docs/known-bugs/FEAT-006.md", "docs/known-bugs/unplaced.md");
 git(REPO, "commit", "-qm", "seed");
 git(REPO, "worktree", "add", "-q", "-b", "feat/alpha", LANE);
+const BUG_BYTES = fs.readFileSync(path.join(LANE, "docs", "known-bugs", "FEAT-006.md"));
 fs.writeFileSync(path.join(AGENT, "nana-pack.json"), JSON.stringify({ roster }));
 const GIT_DIR = real(path.resolve(LANE, git(LANE, "rev-parse", "--git-dir")));
 const COMMON_DIR = real(path.resolve(LANE, git(LANE, "rev-parse", "--git-common-dir")));
@@ -149,7 +150,12 @@ const selectedBriefLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.
 const expectedPrompt = (briefBytes, withBugs, launchedCwd = LANE) => {
 	const worktree = process.platform === "win32" ? fs.realpathSync.native(launchedCwd) : fs.realpathSync(launchedCwd);
 	const preamble = fs.readFileSync(PREAMBLE, "utf8").replaceAll("{{WORKTREE}}", worktree).replaceAll("{{BRANCH}}", "feat/alpha");
-	return Buffer.concat([Buffer.from(preamble), Buffer.from("\n\n"), Buffer.from(briefBytes), ...(withBugs ? [Buffer.from("\n\n"), Buffer.from(BUG_TEXT)] : [])]);
+	return Buffer.concat([Buffer.from(preamble), Buffer.from("\n\n"), Buffer.from(briefBytes), ...(withBugs ? [Buffer.from("\n\n"), BUG_BYTES] : [])]);
+};
+const countBytes = (haystack, needle) => {
+	let count = 0;
+	for (let at = 0; (at = haystack.indexOf(needle, at)) >= 0; at += needle.length) count++;
+	return count;
 };
 const sealedEnv = () => ({
 	NANA_ROLE: "worker",
@@ -193,13 +199,14 @@ const promptCopy = fs.existsSync(PROMPT_COPY) ? fs.readFileSync(PROMPT_COPY) : B
 const promptChecks = {
 	status: promptRun.status === 0,
 	call: Boolean(promptCall),
-	bytes: Boolean(promptCall) && Buffer.compare(promptCopy, expectedPrompt(promptBrief, true, promptCall.cwd)) === 0,
+	fixtureBug: BUG_BYTES.includes(Buffer.from("- fixture bug")),
+	bytes: Boolean(promptCall) && typeof promptCall.cwd === "string" && Buffer.compare(promptCopy, expectedPrompt(promptBrief, true, promptCall.cwd)) === 0,
 	rendered: !promptCopy.toString("utf8").includes("{{"),
 	briefAfterPreamble: promptCopy.indexOf(promptBrief) > 0,
-	bugsAfterBrief: promptCopy.indexOf(Buffer.from(BUG_TEXT)) > promptCopy.indexOf(promptBrief),
-	bugsOnce: promptCopy.toString("utf8").split(BUG_TEXT).length - 1 === 1,
-	outsideWorktree: Boolean(promptCall) && !path.relative(real(LANE), promptCall.prompt).split(path.sep).every((part) => part !== ".."),
-	removed: Boolean(promptCall) && !fs.existsSync(promptCall.prompt),
+	bugsAfterBrief: promptCopy.indexOf(BUG_BYTES) > promptCopy.indexOf(promptBrief),
+	bugsOnce: countBytes(promptCopy, BUG_BYTES) === 1,
+	outsideWorktree: typeof promptCall?.prompt === "string" && typeof promptCall.cwd === "string" && !path.relative(real(LANE), promptCall.prompt).split(path.sep).every((part) => part !== ".."),
+	removed: typeof promptCall?.prompt === "string" && !fs.existsSync(promptCall.prompt),
 };
 const noFeatureBrief = Buffer.from("No feature line here.\r\n\r\nPrecedent:\r\n- seed\t");
 writeBrief(noFeatureBrief); removeArtifacts();
@@ -210,10 +217,10 @@ const cleanStatus = git(LANE, "status", "--porcelain");
 const noFeatureChecks = {
 	status: noFeatureRun.status === 0,
 	call: Boolean(noFeatureCall),
-	bytes: Boolean(noFeatureCall) && Buffer.compare(noFeatureCopy, expectedPrompt(noFeatureBrief, false, noFeatureCall.cwd)) === 0,
-	noFeatureBugs: !noFeatureCopy.toString("utf8").includes(BUG_TEXT),
+	bytes: Boolean(noFeatureCall) && typeof noFeatureCall.cwd === "string" && Buffer.compare(noFeatureCopy, expectedPrompt(noFeatureBrief, false, noFeatureCall.cwd)) === 0,
+	noFeatureBugs: noFeatureCopy.indexOf(BUG_BYTES) < 0 && !noFeatureCopy.toString("utf8").includes(BUG_TEXT),
 	noUnplacedBugs: !noFeatureCopy.toString("utf8").includes("Unplaced fixture"),
-	removed: Boolean(noFeatureCall) && !fs.existsSync(noFeatureCall.prompt),
+	removed: typeof noFeatureCall?.prompt === "string" && !fs.existsSync(noFeatureCall.prompt),
 	clean: cleanStatus === "",
 };
 // req: R-2647
