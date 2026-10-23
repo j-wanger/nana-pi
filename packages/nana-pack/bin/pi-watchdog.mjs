@@ -1,15 +1,12 @@
 /**
  * @module packages/nana-pack/bin/pi-watchdog.mjs
- * @purpose Start pi (on win32 through its npm Node entry) under a CPU-liveness watchdog that kills
- *  and retries attempts whose CPU time stays flat and cleans up child trees on termination signals.
- * @inputs the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after
- *  it, the child's CPU time from `ps` or the PowerShell TotalProcessorTime tick read, the caller's
- *  accept(text) predicate, and, on win32, PATH, PATHEXT and pi's npm package's `package.json`
+ * @purpose Start pi, or an injected command launch, under a CPU-liveness watchdog that kills and retries flat attempts and cleans up child trees on signals.
+ * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, and Windows PATH, PATHEXT and pi package metadata
  * @outputs {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null,
  *  per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the
  *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
- * @effects process (spawns pi detached per attempt with NANA_HANDOFF=off — by name, its located
- *  `.exe`/`.com`, or node with its entry on win32 — kills its process tree on a stall or signal,
+ * @effects process (spawns pi detached, or an injected launch with its requested detached option,
+ *  per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal,
  *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
  *  stderr; on win32 a PATH lookup, a `package.json` read and the entry's stat)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
@@ -161,7 +158,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // SIGKILL the child's whole PROCESS GROUP (not just the pi pid): a stalled pi may hold the
 // bad socket in a grandchild that would otherwise orphan and accumulate across retries —
-// exactly the failure mode this tool exists for. `detached:true` makes pi a group leader.
+// exactly the failure mode this tool exists for. `detached:true` makes POSIX children group leaders;
+// Windows uses taskkill on the pid and needs no detached process group.
 function killGroup(child, signal = 'SIGKILL') {
   if (process.platform === 'win32') {
     try { execSync(`taskkill /T /F /PID ${child.pid}`, { stdio: 'ignore' }); } catch { /* tree already gone */ }
@@ -173,12 +171,14 @@ function killGroup(child, signal = 'SIGKILL') {
 
 const nonEmpty = () => true;
 
-async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpty, childEnv = {}, maxSecs }, attempt, onChild, interrupted, signalWait, startedAt) {
+async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, startedAt) {
+  const { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpty, childEnv = {}, maxSecs } = opts;
   const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
   const args = [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
-  const launch = piLaunch(args, { cwd });
+  const launcher = opts.launch ?? piLaunch;
+  const launch = launcher(args, { cwd });
   if (launch.refused) {
     // Nothing started: close and remove the capture dir, and report it as a failed attempt, the
     // same way today's spawn ENOENT is — a refusal is retried, named, every time (residual, not a
@@ -190,7 +190,7 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
   }
   // NANA_HANDOFF=off: a watchdog child is a NON-WRITER — it neither picks up nor writes the
   // nana handoff (L3; the role comes from this explicit marker, never the tool list).
-  const child = spawn(launch.command, launch.args, { cwd, stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv } });
+  const child = spawn(launch.command, launch.args, { ...launch.options, cwd, stdio: ['ignore', fd, fd], detached: launch.options?.detached ?? true, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv } });
 
   let spawnErr = null;
   onChild(child);

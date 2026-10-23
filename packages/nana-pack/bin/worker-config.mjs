@@ -1,11 +1,9 @@
 /**
  * @module packages/nana-pack/bin/worker-config.mjs
- * @purpose Define the sealed launcher values: the lane ceiling, Windows CPU tick scale, default builder and roster, and pi's npm package identity.
+ * @purpose Define sealed worker, watchdog, roster, Claude Code builder, reviewer-child and pi-package launch values.
  * @inputs none
- * @outputs LANE_MAX_SECS, WIN_CPU_TICKS_PER_SECOND, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS,
- *  CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, LANE_SIZE_SLOTS,
- *  LARGER_BUILDER_LABEL, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, REVIEWER_CHILD_ENV, NPM_DIRS,
- *  PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN
+ * @outputs Lane/watchdog limits, default builder and roster values, Claude Code builder flags, files, tools, carry allowlists and env,
+ *  roster slot/runtime tokens, reviewer child env, Windows npm-layout values, and pi package identity.
  * @effects none
  * @errors none
  */
@@ -51,6 +49,40 @@ export const THINKING_LEVELS = Object.freeze(['off', 'minimal', 'low', 'medium',
 export const LANE_SIZE_SLOTS = Object.freeze({ small: 'builder', larger: 'largerBuilder' });
 // contract: R-1124 — the builder line's label when a lane starts the larger-lane builder.
 export const LARGER_BUILDER_LABEL = 'builder (larger lanes)';
+
+// contract: Claude Code 2.1.299 `claude --help`, read 2026-10-22 (R-2646, R-2655).
+export const CLAUDE_TOOLS_FLAG = '--tools';
+export const CLAUDE_STRICT_MCP_FLAG = '--strict-mcp-config';
+export const CLAUDE_PERMISSION_MODE_FLAG = '--permission-mode';
+export const CLAUDE_SETTING_SOURCES_FLAG = '--setting-sources';
+export const CLAUDE_SETTINGS_FLAG = '--settings';
+// contract, measured 2026-10-22: named by Claude Code's `--bare` text though absent from `--help` (R-2646).
+export const CLAUDE_APPEND_PROMPT_FILE_FLAG = '--append-system-prompt-file';
+// chosen 2026-10-22: pi's sealed builder tools mapped one-to-one, without Agent, web or notebook tools (R-2646).
+export const CLAUDE_BUILDER_TOOLS = 'Read,Grep,Glob,Bash,Edit,Write';
+// measured 2026-10-22: default mode permits builder commands without auto-mode classification (R-2646).
+export const CLAUDE_BUILDER_PERMISSION_MODE = 'default';
+// measured 2026-10-22: project and local keep project CLAUDE.md while dropping user rules and hooks (R-2646).
+export const CLAUDE_BUILDER_SETTING_SOURCES = 'project,local';
+// measured 2026-10-22: a native Claude process can stay flat during a healthy or hung request (R-2651).
+export const CLAUDE_BUILDER_STALL_SECS = Infinity;
+// measured 2026-10-22: isolates the builder from Claude Code auto-memory (R-2654).
+export const CLAUDE_BUILDER_CHILD_ENV = Object.freeze({ CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' });
+// chosen 2026-10-22: one hour covers a measured 455.9-second suite plus one queued suite; the lane ceiling remains authoritative (R-2654).
+export const CLAUDE_BUILDER_BASH_LIMIT_MS = 3_600_000;
+// chosen: both files sit beside the rendered preamble in the lane launcher's existing temporary folder.
+export const CLAUDE_BUILDER_PROMPT_FILE = 'builder-prompt.md';
+export const CLAUDE_BUILDER_SETTINGS_FILE = 'builder-settings.json';
+// measured 2026-10-22/23: these helpers work only when carried into flag settings (R-2655).
+export const CLAUDE_CARRY_KEYS = Object.freeze(['apiKeyHelper', 'awsCredentialExport', 'proxyAuthHelper']);
+// contract: Claude Code 2.1.299's connection-and-identity set, read 2026-10-23; proxy, CA, base URL and key names measured (R-2655).
+export const CLAUDE_CARRY_ENV_NAMES = Object.freeze([
+  'HTTPS_PROXY', 'HTTP_PROXY', 'NO_PROXY', 'ALL_PROXY', 'CLAUDE_CODE_PROXY_RESOLVES_HOSTS',
+  'CLAUDE_CODE_PROXY_AUTH_HELPER_TTL_MS', 'CLAUDE_CODE_ENABLE_PROXY_AUTH_HELPER', 'NODE_EXTRA_CA_CERTS',
+  'CLAUDE_CODE_CERT_STORE', 'CLAUDE_CODE_CLIENT_CERT', 'CLAUDE_CODE_CLIENT_KEY',
+  'CLAUDE_CODE_CLIENT_KEY_PASSPHRASE', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_CUSTOM_HEADERS',
+]);
 
 // provenance: R-1120 — roles: the owner, 2026-10-06; provider and model ids: the seat's. The builder
 // slot reads LANE_DEFAULTS by name so the two definitions cannot drift; this Mac runs no pi scout

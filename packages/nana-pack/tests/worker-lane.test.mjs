@@ -522,31 +522,6 @@ check("lane size small starts pi with the builder even when largerBuilder is set
 	wSmallLines.length === 1 && wSmallLines[0].startsWith("pi-worker: builder:") && !wSmallLines[0].includes("(larger lanes)"),
 	wSmallRun.stderr);
 
-fs.rmSync(piSpawnMarker, { force: true });
-const w3 = (() => {
-	const results = [];
-	const refusalOk = (stderr) => stderr.includes("roster.largerBuilder") && /starts pi entries only/.test(stderr) &&
-		/subagent from a Claude Code seat/.test(stderr) && /put a pi entry in largerBuilder/.test(stderr);
-	const w3Dir = freshAgentDir("lane-size-larger-claude");
-	writeRoster(w3Dir, { ...sampleRoster(), largerBuilder: { runtime: "claude-code", model: "sonnet" } });
-	const w3Run = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w3Dir });
-	results.push(["no pre-existing lock", w3Run.status === 1 && refusalOk(w3Run.stderr) && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath)]);
-	// A lock already held by another run must be left untouched: the refusal fires before any
-	// lock attempt, so a mutation that moves it after the lock would instead surface the
-	// lock-exists refusal (and release the pre-existing lock as its own cleanup) — pair 53.
-	fs.rmSync(piSpawnMarker, { force: true });
-	fs.writeFileSync(laneLockPath, "424242\n");
-	const w3PreLockDir = freshAgentDir("lane-size-larger-claude-prelock");
-	writeRoster(w3PreLockDir, { ...sampleRoster(), largerBuilder: { runtime: "claude-code", model: "sonnet" } });
-	const w3PreLockRun = run(lane, ["--lane", "alpha", "--brief", brief, "--lane-size", "larger"], { PI_CODING_AGENT_DIR: w3PreLockDir });
-	const preLockUntouched = fs.existsSync(laneLockPath) && fs.readFileSync(laneLockPath, "utf8") === "424242\n";
-	results.push(["pre-existing lock left untouched, same refusal", w3PreLockRun.status === 1 && refusalOk(w3PreLockRun.stderr) && !/worktree lock/.test(w3PreLockRun.stderr) && preLockUntouched && !fs.existsSync(piSpawnMarker)]);
-	fs.rmSync(laneLockPath, { force: true });
-	return { pass: results.every(([, p]) => p), results };
-})();
-// req: R-1191
-check("lane size larger refuses a Claude Code larger-lane builder before lock or spawn, naming roster.largerBuilder and both ways out as the user's choice", w3.pass, JSON.stringify(w3.results));
-
 // req: R-960
 check("lane size with a missing or unknown value refuses before pi spawn", (() => {
 	const cases = [
