@@ -9,7 +9,7 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail, installLabel? } rows, including a safe place and error-kind repair
+ * @outputs an array of { status, label, detail, installLabel? } rows, including linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
@@ -31,7 +31,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -402,10 +402,16 @@ export function diagnose(layout, opts = {}) {
 			: st.detail;
 		add(st.ok ? OK : FAIL, `skill ${name}`, detail);
 	}
+	const legacyByHand = (names, linked, itemRoot) => {
+		const folder = codeSpan(linked) ?? linked;
+		const items = names.map((name) => codeSpan(path.join(itemRoot, name)) ?? path.join(itemRoot, name));
+		return `${names.join(", ")} present — install will not back these up through the linked folder ${folder}; move ${items.join(", ")} out of the way by hand`;
+	};
 	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.claudeHome, name)));
-	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", legacyFlags.length ? `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags` : "none present");
+	const flagsRefused = legacyFlags.length && !directoryAncestorsAreSafe(layout.claudeHome, layout.claudeHome, true);
+	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", !legacyFlags.length ? "none present" : flagsRefused ? legacyByHand(legacyFlags, layout.claudeHome, layout.claudeHome) : `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags`);
 	const legacyScaffolders = ["py-init", "ts-init", "nana-init"].filter((name) => lstatSafe(path.join(layout.skillsDir, name)));
-	add(legacyScaffolders.length ? WARN : OK, "legacy scaffolders", legacyScaffolders.length ? `${legacyScaffolders.join(", ")} present — run nana-setup install to back up recognized nana-dev-kit copies` : "none present");
+	add(legacyScaffolders.length ? WARN : OK, "legacy scaffolders", !legacyScaffolders.length ? "none present" : linkedFolder ? legacyByHand(legacyScaffolders, linkedFolder, layout.skillsDir) : `${legacyScaffolders.join(", ")} present — run nana-setup install to back up recognized nana-dev-kit copies`);
 
 	let settings = null;
 	let parseError = null;
