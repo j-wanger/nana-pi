@@ -27,9 +27,8 @@
 - Product report stage view (ledger-stages, final review): a product capability with no deliverables line shows an empty deliverables list, not none or a gap.
 - Product report stage view (ledger-stages, final review): a deliverable's consumers include retired and proposed features that share it. Coverage counts only active and frozen ones, so an owner may read a retired consumer as live.
 - Product report stage view (ledger-stages, final review): the stage-order check renders a past ledger through git, so like the stamp check it needs full history.
-- Product view (report-deliverables, plan): 32 of 39 deliverables show "no artifact named": printed output, machine-local stores, another project's files, a release tag, main. Suite records carry their own time but name no artifact here. A release tag carries a date too.
+- Product view (report-deliverables, plan; report-at-land): 32 of 41 deliverables show no age. They are parked rows, hand-made rows, lines made fresh at each run, terminal and CI outputs, and pi's own stores. A release tag carries a date too.
 - Product view (report-deliverables, plan): per-lane records name no artifact, because a review folder would read as fresh after every lane.
-- Product view (report-deliverables, plan): git ignores the report page, so the report's own age does not show.
 - Product view (report-deliverables, plan): the last change can be a sweep, a merge, a rename or a revert. The subject shows which; the report does not guess the last real make.
 - Product view (report-deliverables, plan): a maker line names one study's files. A newer study in a new folder does not refresh it until someone edits the line.
 - Product view (report-deliverables, plan): the runtime map's age is this clone's data. Another worktree's land moves it, and a Windows land does not measure.
@@ -41,3 +40,16 @@
 - Artifact age (report-deliverables, final review): every report build walks the whole history once, even for one named artifact. Passing the path to git would shrink the walk but changes which merge side it follows.
 - Not-passed rule (audit re-check, 2026-10-22): the artifact audit asked that one failing run not mark a requirement failed until a second run confirms it; no lane built that.
 - Product view (park-deliverables, plan): a parked deliverable keeps both code marks and shows its park line as a claim; the view has no parked mark.
+- Product report at land (report-at-land, plan): the owner's copy changes only when the seat publishes the land-written page. No code can update it.
+- Product report at land (report-at-land, attack): nana-land can refuse a land after its suite passed. The page then names a tip that never landed, until the next land. The seat checks the page's commit against main before it publishes.
+- Product report at land (report-at-land, plan): only the locked suite writes the page. A land run with another suite command, a hand measure and CI write none.
+- Product report at land (report-at-land, plan): if the report module fails to load, the land prints a note, but no test pins that path.
+- Product report at land (report-at-land, attack): inner test runs stay off the real page only because the test runner clears every nana variable. A test file run alone with a land tip set would write it.
+- Product report at land (report-at-land, attack): the page adds about 1 to 2.6 seconds to each land on macOS. Nobody has measured it on Windows.
+- Product report at land (report-at-land, attack): the report build has no time limit of its own. A hung git call would hang the land.
+- Product report at land (report-at-land, attack): the page says the working tree is dirty whenever the lane worktree holds untracked files, which nana-land accepts.
+- Store ages (report-at-land, plan): ages come from this clone's stores, so another clone's page differs.
+- Store ages (report-at-land, plan): the age skips a newer record whose tip HEAD does not contain. A lane's recent run does not show on main's page.
+- Store ages (report-at-land, plan): a build that is still running shows nothing until it ends.
+- Store ages (report-at-land, plan): a store age shows when the maker last ran. It does not show that the record is complete or that a reader read it.
+- Product view (report-at-land, plan): R-1012's same-output rule now also needs the suite and build stores unchanged. A land or a build between two report runs changes the page.
