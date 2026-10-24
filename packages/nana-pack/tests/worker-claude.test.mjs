@@ -177,14 +177,30 @@ const tempEnv = (root, extra = {}) => ({ TMPDIR: root, TEMP: root, TMP: root, ..
 const tempEmpty = (root) => fs.readdirSync(root).length === 0;
 const hardKillTempNamesCheck = () => {
 	const root = caseTemp("R-2803");
-	const nested = path.join(root, "folder"); fs.mkdirSync(nested);
-	fs.writeFileSync(path.join(root, "z-file"), "z"); fs.writeFileSync(path.join(nested, "child"), "child");
+	const entries = [
+		["zulu-folder", "folder"],
+		["beta-file", "file"],
+		["omega-folder", "folder"],
+		["alpha-file", "file"],
+		["middle-folder", "folder"],
+	];
+	for (const [name, kind] of entries) {
+		const entry = path.join(root, name);
+		if (kind === "folder") fs.mkdirSync(entry);
+		else fs.writeFileSync(entry, name);
+	}
 	const occupied = hardKillTempNames(root);
-	fs.rmSync(nested, { recursive: true }); fs.rmSync(path.join(root, "z-file"));
+	for (const [name] of entries) fs.rmSync(path.join(root, name), { recursive: true });
+	const policyName = "__PSScriptPolicyTest_lvnwlq0m.dy0.ps1";
+	fs.writeFileSync(path.join(root, policyName), "policy test");
+	const policyOnly = hardKillTempNames(root);
+	fs.rmSync(path.join(root, policyName));
 	const empty = hardKillTempNames(root);
 	fs.rmSync(root, { recursive: true });
 	const missing = hardKillTempNames(root);
-	return JSON.stringify(occupied) === JSON.stringify(["folder", "z-file"]) && empty.length === 0 && missing.length === 0;
+	const expected = ["alpha-file", "beta-file", "middle-folder", "omega-folder", "zulu-folder"];
+	return JSON.stringify(occupied) === JSON.stringify(expected) &&
+		JSON.stringify(policyOnly) === JSON.stringify([policyName]) && empty.length === 0 && missing.length === 0;
 };
 // req: R-2803
 check("R-2803: the hard-kill temp check names every entry left in a case temp folder and calls it empty only when none is left", hardKillTempNamesCheck());
