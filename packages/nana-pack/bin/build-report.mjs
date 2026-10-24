@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/bin/build-report.mjs
- * @purpose Print clone-shared build records as build, lane, and total lines.
- * @inputs argv (--repo <path>, --lane <name>), repository identity from repoKeyOf, and the bounded build ledger.
- * @outputs One stdout line per build, one per selected lane, and one total line; runBuildReport for bounded tests.
+ * @purpose Print clone-shared build and land records as attempt, lane, and total lines.
+ * @inputs argv (--repo <path>, --lane <name>), repository identity from repoKeyOf, and bounded build and land ledgers.
+ * @outputs Build lines followed by land attempt, lane, total, or unavailable lines; runBuildReport for bounded tests.
  * @effects process (git repository lookup), disk (bounded ledger and matching session reads)
- * @errors Return/exit 1 on invalid arguments, a non-repository --repo, or an unreadable/over-cap ledger.
+ * @errors Return/exit 1 on invalid arguments, a non-repository --repo, or an unreadable/over-cap build ledger; land-ledger failures report with exit 0.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 
 import { buildRecordsPath, buildReportLines, readBuildLedger } from "../lib/build-records.mjs";
 import { BUILD_LEDGER_READ_MAX_BYTES } from "../lib/build-records-config.mjs";
+import { landRecordsPath, landReportLines, readLandLedger } from "../lib/land-records.mjs";
+import { LAND_LEDGER_READ_MAX_BYTES } from "../lib/land-records-config.mjs";
 import { repoKeyOf } from "./review-round.mjs";
 
 /** Run the report with injectable writers and ledger cap; return the process status. */
@@ -21,6 +23,7 @@ export function runBuildReport(args, {
 	stdout = process.stdout,
 	stderr = process.stderr,
 	ledgerReadMaxBytes = BUILD_LEDGER_READ_MAX_BYTES,
+	landLedgerReadMaxBytes = LAND_LEDGER_READ_MAX_BYTES,
 } = {}) {
 	let repoPath = cwd;
 	let lane = null;
@@ -42,15 +45,23 @@ export function runBuildReport(args, {
 		stderr.write(`build-report: --repo is not a git repository: ${repoPath}\n`);
 		return 1;
 	}
+	let buildLines;
 	try {
 		const ledger = readBuildLedger(buildRecordsPath(common), { maxBytes: ledgerReadMaxBytes });
-		const report = buildReportLines(ledger.records, { badLines: ledger.badLines, lane });
-		stdout.write(`${report.lines.join("\n")}\n`);
-		return 0;
+		buildLines = buildReportLines(ledger.records, { badLines: ledger.badLines, lane }).lines;
 	} catch (error) {
 		stderr.write(`build-report: ${error.message}\n`);
 		return 1;
 	}
+	const lines = [...buildLines];
+	try {
+		const ledger = readLandLedger(landRecordsPath(common), { maxBytes: landLedgerReadMaxBytes });
+		if (ledger.records.length || ledger.badLines) lines.push(...landReportLines(ledger.records, { badLines: ledger.badLines, lane }).lines);
+	} catch (error) {
+		lines.push(`land records unavailable: ${error.message}`);
+	}
+	stdout.write(`${lines.join("\n")}\n`);
+	return 0;
 }
 
 function isMain() {

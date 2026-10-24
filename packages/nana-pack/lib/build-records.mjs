@@ -12,6 +12,7 @@ import * as path from "node:path";
 import { piAgentDir, piNormalizePath } from "./agent-dir.mjs";
 import { readBounded } from "./bounded-read.mjs";
 import { addUsage, costTotal, emptyUsage, totalTokens } from "./pi-usage.mjs";
+import { appendLedgerRecord, minutes, pairRecordViews, plural, readRecordLedger } from "./record-ledger.mjs";
 import {
 	BUILD_LEDGER_READ_MAX_BYTES,
 	BUILD_OUTCOMES,
@@ -25,7 +26,6 @@ import {
 	BUILD_USAGE_ENTRY_TYPES,
 	BUILD_USAGE_MESSAGE_ROLES,
 	REPORT_COST_DIGITS,
-	REPORT_MILLISECONDS_PER_MINUTE,
 	WORKER_ATTEMPT_INFIX,
 	WORKER_TAG,
 } from "./build-records-config.mjs";
@@ -59,14 +59,7 @@ export function buildBriefPath(briefPath, worktreeRoot) {
 
 /** Append exactly one JSON line. This function never throws. */
 export function appendBuildRecord(commonDir, record, { fsApi = fs } = {}) {
-	const file = buildRecordsPath(commonDir);
-	try {
-		if (!fsApi.existsSync(path.dirname(file))) fsApi.mkdirSync(path.dirname(file), { recursive: true });
-		fsApi.appendFileSync(file, `${JSON.stringify(record)}\n`);
-		return { ok: true, file };
-	} catch (error) {
-		return { ok: false, file, error };
-	}
+	return appendLedgerRecord(buildRecordsPath(commonDir), record, { fsApi });
 }
 
 /** Assemble one end record from a start and its already-decided outcome, revision and usage facts. */
@@ -104,33 +97,7 @@ export function buildEndRecord(start, {
 
 /** Read current-schema start/end records while skipping and counting every unreadable line. */
 export function readBuildLedger(file, { maxBytes = BUILD_LEDGER_READ_MAX_BYTES } = {}) {
-	let bytes;
-	try { bytes = readBounded(file, maxBytes); }
-	catch (error) {
-		if (error?.code === "ENOENT") return { records: [], badLines: 0, file };
-		if (error?.code === "ERR_TOO_LARGE") {
-			const bounded = new Error(`ledger over ${maxBytes} bytes: ${file}`);
-			bounded.code = "ERR_TOO_LARGE";
-			bounded.file = file;
-			bounded.cap = maxBytes;
-			throw bounded;
-		}
-		throw error;
-	}
-	const records = [];
-	let badLines = 0;
-	for (const raw of bytes.toString("utf8").split(/\r\n|\r|\n/)) {
-		const line = raw.trim();
-		if (!line) continue;
-		let record;
-		try { record = JSON.parse(line); } catch { badLines++; continue; }
-		if (!record || typeof record !== "object" || record.v !== BUILD_RECORD_SCHEMA || !KINDS.has(record.kind) || typeof record.build !== "string" || !record.build) {
-			badLines++;
-			continue;
-		}
-		records.push(record);
-	}
-	return { records, badLines, file };
+	return readRecordLedger(file, { maxBytes, accepts: (record) => record && typeof record === "object" && record.v === BUILD_RECORD_SCHEMA && KINDS.has(record.kind) && typeof record.build === "string" && record.build });
 }
 
 function stampTime(name) {
@@ -239,20 +206,8 @@ export function collectBuildUsage(start, {
 }
 
 function buildViews(records, ledgerBadLines = 0) {
-	const starts = [];
-	const byBuild = new Map();
-	let badLines = ledgerBadLines;
-	for (const record of records) {
-		if (record.kind === "start") {
-			if (byBuild.has(record.build)) { badLines++; continue; }
-			const view = { start: record, end: null };
-			starts.push(view); byBuild.set(record.build, view);
-		} else {
-			const view = byBuild.get(record.build);
-			if (!view || view.end) { badLines++; continue; }
-			view.end = record;
-		}
-	}
+	const paired = pairRecordViews(records, (record) => record.build, ledgerBadLines);
+	const starts = paired.views;
 	for (let index = 0; index < starts.length; index++) {
 		const view = starts[index];
 		if (view.end) {
@@ -274,12 +229,10 @@ function buildViews(records, ledgerBadLines = 0) {
 		view.costReason = found.costReason;
 		view.sessions = found.sessions;
 	}
-	return { builds: starts, badLines };
+	return { builds: starts, badLines: paired.badLines };
 }
 
-const minutes = (durationMs) => durationMs === null || durationMs === undefined ? null : Math.floor(Math.max(0, Number(durationMs) || 0) / REPORT_MILLISECONDS_PER_MINUTE);
 const money = (value) => `$${Number(value).toFixed(REPORT_COST_DIGITS)}`;
-const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 const usageTokens = (view) => totalTokens(view.usage);
 
 /** Render one build line. */

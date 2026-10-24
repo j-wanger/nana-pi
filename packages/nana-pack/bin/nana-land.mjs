@@ -2,12 +2,13 @@
 /**
  * @module packages/nana-pack/bin/nana-land.mjs
  * @purpose Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
- * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, lock, release-status, and CI-record readers.
- * @outputs Named argument and gh-runner helpers plus command results or CLI records naming reviews, CI runs, retained records, slow files, and release status.
- * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, CI-record storage, and worktree cleanup).
+ * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, clock, lock, release-status, and CI-record readers.
+ * @outputs Named helpers and command results naming reviews, CI runs, retained records, slow files, release status, and the land-record attempt.
+ * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, land/CI record storage, and worktree cleanup).
  * @errors Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
  */
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -19,7 +20,10 @@ import { ciScope, githubRepoOf, judgeRuns } from "../lib/land-ci.mjs";
 import { keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
+import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
+import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
 
+const LANE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const ghEnvironment = (environment) => {
@@ -74,7 +78,7 @@ export function parseLandArgs(args) {
 	}
 	if (!options.main) throw new Error("--main is required");
 	if (mode === "merge" && (!options.tree || !options.suite)) throw new Error("merge requires --tree and --suite");
-	if (mode === "cleanup" && (!options.lane || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(options.lane))) throw new Error("cleanup needs a safe lane name");
+	if (mode === "cleanup" && (!options.lane || !LANE_NAME_PATTERN.test(options.lane))) throw new Error("cleanup needs a safe lane name");
 	if (mode === "merge" && !options.reviewed.length) throw new Error("merge requires --reviewed");
 	return options;
 }
@@ -88,11 +92,11 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault(), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords }) {
+function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault(), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, now = () => new Date(), lifecycle }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
-		if (repo !== repoKeyOf(main)) throw new Error("--tree and --main must share one git repository");
+		if (repo !== (lifecycle.mainRepoKey ?? repoKeyOf(main))) throw new Error("--tree and --main must share one git repository");
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
@@ -144,6 +148,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
+		lifecycle.stage = "ci";
 		const remoteNames = git(runGit, main, "remote");
 		const hasOrigin = remoteNames.split(/\r?\n/).map((name) => name.trim()).includes(CI_REMOTE);
 		const originUrl = hasOrigin ? git(runGit, main, "remote", "get-url", CI_REMOTE) : "";
@@ -153,8 +158,11 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		let ciLines = [];
 		let ciNote = null;
 		let ciReadPassed = false;
-		if (!scope.applies) ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
-		else {
+		if (!scope.applies) {
+			lifecycle.ci = "skipped";
+			ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
+		} else {
+			lifecycle.ci = "refused";
 			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
 			const args = ["api", "--hostname", CI_HOST, `${apiPath}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`];
 			const env = ghEnvironment(process.env);
@@ -170,10 +178,17 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			if (!verdict.ok) throw new Error(verdict.message);
 			ciLines = verdict.lines;
 			ciReadPassed = true;
+			lifecycle.ci = "passed";
+			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
 		}
+		lifecycle.stage = "suite";
+		const suiteStarted = now();
 		const suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
+		const suiteEnded = now();
+		lifecycle.suiteMs = suiteEnded.getTime() - suiteStarted.getTime();
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
+		lifecycle.stage = "merge";
 		let reviewEvidence;
 		lockReviews(home, ({ rounds, reservations }) => {
 			const repoRounds = rounds.filter((r) => r.repo === repo);
@@ -226,12 +241,92 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 
+const landRecordErrorText = (error) => `${error?.code ? `${error.code}: ` : ""}${error?.message ?? String(error)}`;
+const withLandRecordLine = (text, line) => `${text}${text && !text.endsWith("\n") ? "\n" : ""}${line}\n`;
+
+/** Run a merge with a best-effort start/end record lifecycle that never changes its verdict or earlier output. */
+export function runLand(options) {
+	const now = options.now ?? (() => new Date());
+	const lifecycle = { stage: "preflight", ci: "not reached", ciWaitMs: null, suiteMs: null };
+	let common = null;
+	let start = null;
+	let startKept = false;
+	let recordFailure = null;
+	try {
+		const resolvedMain = path.resolve(options.main);
+		const resolvedTree = path.resolve(options.tree);
+		lifecycle.mainRepoKey = repoKeyOf(resolvedMain);
+		common = lifecycle.mainRepoKey.replace(/^git:/, "");
+		const startedAt = now().toISOString();
+		let lane = null;
+		let tip = null;
+		try {
+			const branch = git(options.runGit ?? gitDefault, resolvedTree, "branch", "--show-current");
+			const match = /^feat\/(.+)$/.exec(branch);
+			lane = match && LANE_NAME_PATTERN.test(match[1]) ? match[1] : null;
+		} catch { lane = null; }
+		try { tip = git(options.runGit ?? gitDefault, resolvedTree, "rev-parse", "HEAD^{commit}"); }
+		catch { tip = null; }
+		start = { v: LAND_RECORD_SCHEMA, kind: "start", attempt: randomUUID(), startedAt, lane, tip };
+		const kept = appendLandRecord(common, start);
+		startKept = kept.ok;
+		if (!kept.ok) recordFailure = { file: kept.file, error: kept.error };
+	} catch (error) {
+		if (common) recordFailure = { file: landRecordsPath(common), error };
+	}
+
+	const result = runLandCore({ ...options, now, lifecycle });
+	if (!common) return result;
+	if (!startKept) {
+		const detail = recordFailure ?? { file: landRecordsPath(common), error: new Error("start record was not kept") };
+		return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${detail.file}: ${landRecordErrorText(detail.error)}`) };
+	}
+
+	let end;
+	try {
+		const endedAt = now().toISOString();
+		const firstLine = String(result.text ?? "").split(/\r?\n/).find(Boolean) ?? "unknown refusal";
+		const reason = result.code === 0 ? null : firstLine.replace(/^refused:\s*/, "").slice(0, LAND_REASON_MAX_CHARS);
+		end = {
+			v: LAND_RECORD_SCHEMA,
+			kind: "end",
+			attempt: start.attempt,
+			endedAt,
+			durationMs: Date.parse(endedAt) - Date.parse(start.startedAt),
+			outcome: result.code === 0 ? "landed" : "refused",
+			stage: result.code === 0 ? null : lifecycle.stage,
+			reason,
+			ci: lifecycle.ci,
+			ciWaitMs: lifecycle.ci === "passed" ? lifecycle.ciWaitMs : null,
+			suiteMs: lifecycle.suiteMs,
+		};
+		const kept = appendLandRecord(common, end);
+		if (!kept.ok) {
+			return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${kept.file}: ${landRecordErrorText(kept.error)}`) };
+		}
+	} catch (error) {
+		return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${landRecordsPath(common)}: ${landRecordErrorText(error)}`) };
+	}
+
+	let laneLine;
+	if (start.lane === null) laneLine = "no lane";
+	else {
+		try {
+			const ledger = readLandLedger(landRecordsPath(common), { maxBytes: options.landLedgerReadMaxBytes ?? LAND_LEDGER_READ_MAX_BYTES });
+			laneLine = renderLandLaneLine(ledger.records, start.lane);
+		} catch (error) {
+			laneLine = `lane line unavailable: ${error?.code === "ERR_TOO_LARGE" ? error.message : landRecordErrorText(error)}`;
+		}
+	}
+	return { ...result, text: withLandRecordLine(result.text, renderLandRecordLine(end, laneLine)) };
+}
+
 /** Safely remove a landed lane worktree and its feat branch; refuses force and dirty trees. */
 export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 	try {
 		main = path.resolve(main);
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
-		if (typeof lane !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(lane)) throw new Error("cleanup needs a safe lane name");
+		if (typeof lane !== "string" || !LANE_NAME_PATTERN.test(lane)) throw new Error("cleanup needs a safe lane name");
 		const branch = `feat/${lane}`;
 		const exists = runGit(main, ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`]);
 		if (exists.error || exists.status !== 0) throw new Error(`branch ${branch} does not exist`);

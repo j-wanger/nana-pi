@@ -76,5 +76,6 @@ export function judgeRuns(stdout, tip, repository) {
 		const details = bad.map((run) => `${run.name} run ${run.id} attempt ${run.run_attempt} is ${stateOf(run)}; ${remedyOf(run, repository)}`);
 		return { ok: false, message: `CI at ${String(tip).slice(0, TIP_DIGITS)}: ${details.join("; ")}` };
 	}
-	return { ok: true, lines: [...newest.values()].map((run) => `ci: ${run.name} run ${run.id} attempt ${run.run_attempt} (${run.event}) success at ${String(tip).slice(0, TIP_DIGITS)}`) };
+	const runs = [...newest.values()];
+	return { ok: true, runs, lines: runs.map((run) => `ci: ${run.name} run ${run.id} attempt ${run.run_attempt} (${run.event}) success at ${String(tip).slice(0, TIP_DIGITS)}`) };
 }

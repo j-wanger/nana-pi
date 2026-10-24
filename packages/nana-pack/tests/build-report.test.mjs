@@ -13,6 +13,8 @@ import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { BUILD_RECORD_SCHEMA, BUILD_RECORDS_SUBPATH } from "../lib/build-records-config.mjs";
+import { LAND_RECORD_SCHEMA, LAND_RECORDS_SUBPATH } from "../lib/land-records-config.mjs";
+import { runBuildReport } from "../bin/build-report.mjs";
 import * as workerConfig from "../bin/worker-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPiRoot } from "./pi-install.mjs";
@@ -40,6 +42,7 @@ git(REPO, "worktree", "add", "-q", "-b", "feat/report-linked", LINKED);
 const COMMON = path.resolve(REPO, git(REPO, "rev-parse", "--git-common-dir"));
 const LINKED_GIT_DIR = path.resolve(LINKED, git(LINKED, "rev-parse", "--git-dir"));
 const LEDGER = path.join(COMMON, ...BUILD_RECORDS_SUBPATH.split("/"));
+const LAND_LEDGER = path.join(COMMON, ...LAND_RECORDS_SUBPATH.split("/"));
 const usage = (tokens, cost) => ({ input: tokens, output: 0, cacheRead: 0, cacheWrite: 0, cacheWrite1h: 0, reasoning: 0, totalTokens: tokens, cost: { input: cost, output: 0, cacheRead: 0, cacheWrite: 0, total: cost } });
 const start = (build, lane, at, sessionDir = SESSION_DIR) => ({ v: BUILD_RECORD_SCHEMA, kind: "start", build, lane, brief: "brief.md", feature: "FEAT-006", tip: "a".repeat(40), startedAt: at, pid: 1, lock: "lock", laneSize: "small", slot: "builder", provider: "p", model: "m", thinking: null, cwd: REPO, sessionDir, out: "out.md" });
 const end = (build, at, durationMs, outcome, exit, u, cost = u?.cost?.total ?? null) => ({ v: BUILD_RECORD_SCHEMA, kind: "end", build, endedAt: at, durationMs, attempts: 1, exit, outcome, signal: null, tip: "b".repeat(40), usage: u, cost, costReason: cost === null ? "not priced" : null, sessions: [], sessionBadLines: 0, outputError: null });
@@ -83,6 +86,48 @@ const capped = spawnSync(process.execPath, [capRunner, REPO], { encoding: "utf8"
 // req: R-2600
 check("R-2600: the build report prints each build, one line per lane and a total counting lanes with two or more builds", fromMain.status === 0 && fromMain.stdout === expected && fromLinked.status === 0 && fromLinked.stdout === expected && alphaOnly.status === 0 && alphaOnly.stdout === betaExpected && notRepo.status === 1 && notRepo.stderr === `build-report: --repo is not a git repository: ${NOGIT}\n` && capped.status === 1 && capped.stdout === "" && capped.stderr.includes("ledger over 8 bytes"), JSON.stringify({ main: fromMain, linked: fromLinked, beta: alphaOnly, notRepo, capped }));
 
+const landStart = (attempt, lane, startedAt, tip) => ({ v: LAND_RECORD_SCHEMA, kind: "start", attempt, startedAt, lane, tip });
+const landEnd = (attempt, endedAt, durationMs, outcome, stage, reason, ci, ciWaitMs, suiteMs) => ({ v: LAND_RECORD_SCHEMA, kind: "end", attempt, endedAt, durationMs, outcome, stage, reason, ci, ciWaitMs, suiteMs });
+const landRows = [
+	landStart("alpha-ci", "alpha", "2026-10-24T09:00:00.000Z", "1".repeat(40)),
+	landEnd("alpha-ci", "2026-10-24T09:01:01.000Z", 61_000, "refused", "ci", "queued run", "refused", null, null),
+	landStart("alpha-suite", "alpha", "2026-10-24T09:02:00.000Z", "2".repeat(40)),
+	landEnd("alpha-suite", "2026-10-24T09:04:01.000Z", 121_000, "refused", "suite", "suite failed (exit 1)", "passed", 180_000, 59_000),
+	landStart("alpha-landed", "alpha", "2026-10-24T09:05:00.000Z", "3".repeat(40)),
+	landEnd("alpha-landed", "2026-10-24T09:05:59.000Z", 59_000, "landed", null, null, "passed", 240_000, 30_000),
+	landStart("beta-open", "beta", "2026-10-24T09:06:00.000Z", "4".repeat(40)),
+	landStart("no-lane", null, "2026-10-24T09:07:00.000Z", "5".repeat(40)),
+	landEnd("no-lane", "2026-10-24T09:08:00.000Z", 60_000, "landed", null, null, "skipped", null, 60_000),
+];
+fs.mkdirSync(path.dirname(LAND_LEDGER), { recursive: true });
+const landValid = landRows.map((row, index) => `${JSON.stringify(row)}${index % 2 ? " \t" : ""}`);
+fs.writeFileSync(LAND_LEDGER, `${landValid.slice(0, 4).join("\r\n")}\r\n{torn\r\n${JSON.stringify({ v: 2, kind: "start", attempt: "old" })}\n${JSON.stringify({ v: LAND_RECORD_SCHEMA, kind: "end", attempt: "orphan", outcome: "landed" })}\n${landValid.slice(4).join("\n")}`); // no final newline
+const landMain = run(REPO);
+const landLinked = run(LINKED);
+const landBeta = run(LINKED, ["--lane", "beta"]);
+const landExpected = expected + [
+	"land 2026-10-24T09:00:00.000Z | lane alpha | refused | stage ci | reason queued run | 1 min total | suite - | CI wait - | tip 11111111",
+	"land 2026-10-24T09:02:00.000Z | lane alpha | refused | stage suite | reason suite failed (exit 1) | 2 min total | suite 0 min | CI wait 3 min | tip 22222222",
+	"land 2026-10-24T09:05:00.000Z | lane alpha | landed | stage - | reason - | 0 min total | suite 0 min | CI wait 4 min | tip 33333333",
+	"land 2026-10-24T09:06:00.000Z | lane beta | no end | stage - | reason - | total - | suite - | CI wait - | tip 44444444",
+	"land 2026-10-24T09:07:00.000Z | lane - | landed | stage - | reason - | 1 min total | suite 1 min | CI wait - | tip 55555555",
+	"land lane alpha | 3 attempts | 1 landed, 2 refused | 4 min total | 1 min suite | last landed CI wait 4 min",
+	"land lane beta | 1 attempt | 1 no end | 0 min total | 0 min suite | last landed CI wait -",
+	"land total | 5 attempts | 2 lanes | 1 lane with 2+ attempts | refusals: 1 ci, 1 suite | 3 unreadable lines",
+].join("\n") + "\n";
+const landBetaExpected = betaExpected + [
+	"land 2026-10-24T09:06:00.000Z | lane beta | no end | stage - | reason - | total - | suite - | CI wait - | tip 44444444",
+	"land lane beta | 1 attempt | 1 no end | 0 min total | 0 min suite | last landed CI wait -",
+	"land total | 1 attempt | 1 lane | 0 lanes with 2+ attempts | refusals: none | 3 unreadable lines",
+].join("\n") + "\n";
+const capOut = { text: "", write(value) { this.text += value; } };
+const capErr = { text: "", write(value) { this.text += value; } };
+const landCappedStatus = runBuildReport(["--repo", REPO], { cwd: REPO, stdout: capOut, stderr: capErr, landLedgerReadMaxBytes: 8 });
+const landUnavailable = `land records unavailable: ledger over 8 bytes: ${LAND_LEDGER}\n`;
+// req: R-2815
+check("R-2815: the build report prints each land attempt, one land line per lane and a land total, the same from any checkout", landMain.status === 0 && landMain.stdout === landExpected && landLinked.status === 0 && landLinked.stdout === landExpected && landBeta.status === 0 && landBeta.stdout === landBetaExpected && landCappedStatus === 0 && capOut.text === expected + landUnavailable && capErr.text === "", JSON.stringify({ main: landMain, linked: landLinked, beta: landBeta, capped: { status: landCappedStatus, stdout: capOut.text, stderr: capErr.text }, expected: landExpected }));
+
+fs.rmSync(LAND_LEDGER, { force: true });
 const noEndSession = path.join(TD, "no-end-sessions"); fs.mkdirSync(noEndSession);
 const sessionRows = [
 	{ type: "session", version: 3, id: "s1", timestamp: "2026-10-22T11:00:30.000Z", cwd: REPO },
