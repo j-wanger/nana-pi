@@ -108,14 +108,21 @@ function writeRuntimeFile(root, data) {
 }
 function productLedger(artifacts) {
   const rows = artifacts.map((_, index) => `R-${8500 + index}`);
-  const maker = (artifact) => artifact === "runtime-map" ? "land: scripts/runtime-measure.mjs"
-    : artifact === "suite-runs" ? "suite: scripts/test-locked.mjs"
-      : artifact === "build-records" ? "build: packages/nana-pack/lib/build-records.mjs"
-        : "build: REQUIREMENTS.md";
+  const stores = new Map([
+    ["runtime-map", { name: "runtime map", location: "<git common dir>/nana/runtime-map.json", maker: "land: scripts/runtime-measure.mjs" }],
+    ["suite-runs", { name: "suite run records", location: "<git common dir>/nana/suite-runs", maker: "suite: packages/nana-pack/lib/suite-records.mjs" }],
+    ["build-records", { name: "build records", location: "<git common dir>/nana/build-records.jsonl", maker: "build: packages/nana-pack/lib/build-records.mjs" }],
+  ]);
+  const registry = artifacts.flatMap((artifact, index) => {
+    const store = stores.get(artifact);
+    return store ? [`Artifact: A-${String(index + 1).padStart(3, "0")} · ${store.name} · clone store: ${store.location} · ${store.maker}`] : [];
+  });
+  const maker = (artifact) => stores.get(artifact)?.maker ?? "build: REQUIREMENTS.md";
+  const thirdPart = (artifact, index) => stores.has(artifact) ? `A-${String(index + 1).padStart(3, "0")}` : artifact;
   return [
     "# CAP-85 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", `Deliverables: ${rows.join(", ")}`,
-    ...artifacts.flatMap((artifact, index) => [`Made by: ${rows[index]} · ${maker(artifact)} · ${artifact}`, `Read by: ${rows[index]} · code: REQUIREMENTS.md`]), "",
-    "## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", "", table(rows.map((id) => [id, "implemented"])).trimEnd(),
+    ...artifacts.flatMap((artifact, index) => [`Made by: ${rows[index]} · ${maker(artifact)} · ${thirdPart(artifact, index)}`, `Read by: ${rows[index]} · code: REQUIREMENTS.md`]), "",
+    "## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", ...registry, "", table(rows.map((id) => [id, "implemented"])).trimEnd(),
   ].join("\n");
 }
 function historyFixture(name, artifacts, date = "2026-01-01T00:00:00Z", parent = temp) {
@@ -165,8 +172,11 @@ async function renderedProduct(repo, name, gitRunner) {
 function renderedClaims(view) {
   return view.nodes.filter((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims").flatMap((node) => node.children.map((item) => item.textContent));
 }
-function onlyClaimAge(view) {
-  return renderedClaims(view)[0] ?? "";
+function renderedArtifactLines(view) {
+  return view.nodes.filter((node) => node.attrs?.class === "deliverable-artifact").map((node) => node.textContent);
+}
+function onlyArtifactAge(view) {
+  return renderedArtifactLines(view)[0] ?? "";
 }
 // The one helper every new check renders through (must-meet.md, report-test-details-2026-10-19):
 // pull the renderer source and the report-data JSON from the HTML generateReport wrote, evaluate
@@ -1204,7 +1214,7 @@ try {
   await withinCaseLimit("R-2542", async () => {
     const notMadeByCode = "not made by code";
     const notReadByCode = "not read by code";
-    const noArtifactNamed = "no artifact named";
+    const noArtifactNamed = "artifact not written down";
     const ledger = [
       "# CAP-50 · Product stage", "Purpose: produce deliverables.", "Outcome: deliverables are visible.", "Kind: product", "Deliverables: R-5000, R-5001, R-5002, R-5003, R-5004, R-5005, R-5006, R-5007, R-5008",
       "Made by: R-5000 · session start: REQUIREMENTS.md · REQUIREMENTS.md\t", "Read by: R-5000 · code: REQUIREMENTS.md  ",
@@ -1324,6 +1334,140 @@ try {
       comparisons.length === 4 && comparisons.every((entry) => entry.ok) && calls.length === 1 && calls[0].options.maxBuffer === MAX_GIT_BUFFER && failureLines.at(-1) === exactFailure && deliverablesModule.DELIVERABLE_PATHS_NOT_CHECKED === exactFailure,
       JSON.stringify({ comparisons, calls: calls.map((call) => ({ args: call.args, maxBuffer: call.options.maxBuffer })), failureLines, exactFailure }));
   });
+  await withinCaseLimit("R-2790", async () => {
+    const ledger = [
+      "# CAP-90 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-9000, R-9001, R-9002, R-9003, R-9004, R-9005",
+      "Made by: R-9000 · build: REQUIREMENTS.md · A-002, A-001", "Made by: R-9000 · build: REQUIREMENTS.md · built from: A-003, A-001", "Made by: R-9000 · build: REQUIREMENTS.md · built from: A-003", "Read by: R-9000 · code: REQUIREMENTS.md",
+      "Made by: R-9001 · build: REQUIREMENTS.md · built from: A-003", "Read by: R-9001 · code: REQUIREMENTS.md",
+      "Made by: R-9002 · manual: owner", "Read by: R-9002 · person: owner",
+      "Made by: R-9003 · build: REQUIREMENTS.md · docs/plain.txt", "Read by: R-9003 · code: REQUIREMENTS.md",
+      "Made by: R-9004 · build: REQUIREMENTS.md · A-999", "Read by: R-9004 · code: REQUIREMENTS.md",
+      "Made by: R-9005 · build: REQUIREMENTS.md · A-001", "Made by: R-9005 · build: REQUIREMENTS.md · built from: A-003", "Read by: R-9005 · code: REQUIREMENTS.md", "",
+      "## FEAT-090 · Artifact report", "Purpose: report artifacts.", "Status: active",
+      "Artifact: A-001 · tracked output · tracked: tracked.txt · build: REQUIREMENTS.md",
+      "Artifact: A-002 · home output · user-home store: ~/home-output · build: REQUIREMENTS.md",
+      "Artifact: A-003 · source input · tracked: source.txt · build: REQUIREMENTS.md", "",
+      table([["R-9000", "implemented"], ["R-9001", "implemented"], ["R-9002", "implemented"], ["R-9003", "implemented"], ["R-9004", "implemented"], ["R-9005", "implemented"]]).trimEnd(),
+    ].join("\n");
+    const repo = treeFixture("named-artifact-blocks", ledger);
+    commitAt(repo, "make artifacts", "2026-10-01T00:00:00Z", { "tracked.txt": "tracked\n", "source.txt": "source\n", "docs/plain.txt": "plain\n" });
+    commitAt(repo, "artifact head", "2026-10-02T00:00:00Z", { "head.txt": "head\n" });
+    const product = (await renderedProduct(repo, "named-artifact-blocks")).view;
+    const card = capabilityCard(product, "CAP-90");
+    const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
+    const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
+    const lines = (id) => (byId[id]?.children ?? []).filter((node) => node.attrs?.class === "deliverable-artifact").map((node) => node.textContent);
+    const r9000 = lines("R-9000");
+    const r9005 = lines("R-9005");
+    const r9000BuiltFrom = r9000[2] ?? "";
+    // req: R-2790
+    check("R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no artifact is written down",
+      r9000.length === 3 && r9000[0].startsWith("artifact A-001 · tracked output · last changed") && r9000[1] === "artifact A-002 · home output · age not measured: user-home store" && r9000BuiltFrom.startsWith("built from A-003 · source input · last changed") && (r9000BuiltFrom.match(/A-003/g) ?? []).length === 1 && !r9000BuiltFrom.includes("A-001") &&
+      lines("R-9001")[0]?.startsWith("output only, built from A-003 · source input · last changed") && JSON.stringify(lines("R-9002")) === JSON.stringify(["artifact not written down"]) && lines("R-9003")[0]?.startsWith("artifact docs/plain.txt · last changed") && JSON.stringify(lines("R-9004")) === JSON.stringify(["artifact A-999 · no live entry"]) && r9005.length === 2 && r9005[0].startsWith("artifact A-001 · tracked output · last changed") && r9005[1].startsWith("built from A-003 · source input · last changed") && renderedClaims(product).every((line) => !/last changed|age not measured|age unknown|newest record|measured at tip/.test(line)),
+      JSON.stringify(Object.fromEntries(Object.keys(byId).map((id) => [id, lines(id)]))));
+  });
+  await withinCaseLimit("R-2791", async () => {
+    const previous = Object.fromEntries(["HOME", "USERPROFILE", "PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR"].map((key) => [key, process.env[key]]));
+    const isolated = path.join(temp, "unageable-environment");
+    fs.mkdirSync(isolated, { recursive: true });
+    for (const key of Object.keys(previous)) process.env[key] = isolated;
+    try {
+      const ledger = [
+        "# CAP-91 · External artifact stage", "Purpose: name external artifacts.", "Outcome: external artifacts are visible.", "Kind: product", "Deliverables: R-9100, R-9101, R-9102, R-9103, R-9104, R-9105",
+        "Made by: R-9100 · build: scripts/product-report.mjs · A-001", "Read by: R-9100 · code: REQUIREMENTS.md",
+        "Made by: R-9101 · build: scripts/product-report.mjs · A-002", "Read by: R-9101 · code: REQUIREMENTS.md",
+        "Made by: R-9102 · build: scripts/product-report.mjs · A-003", "Read by: R-9102 · code: REQUIREMENTS.md",
+        "Made by: R-9103 · CI: .github/workflows/ci.yml · A-004", "Read by: R-9103 · code: REQUIREMENTS.md",
+        "Made by: R-9104 · land: scripts/product-report.mjs · A-005", "Read by: R-9104 · code: REQUIREMENTS.md",
+        "Made by: R-9105 · land: scripts/product-report.mjs · A-006", "Read by: R-9105 · code: REQUIREMENTS.md", "",
+        "## FEAT-091 · External artifacts", "Purpose: register external artifacts.", "Status: active",
+        "Artifact: A-001 · home state · user-home store: ~/state.json · build: scripts/product-report.mjs",
+        "Artifact: A-002 · other output · other project: <project>/out.json · build: scripts/product-report.mjs",
+        "Artifact: A-003 · release ref · git ref: refs/tags/release- · build: scripts/product-report.mjs",
+        "Artifact: A-004 · CI result · CI record: ci: .github/workflows/ci.yml#suite · CI: .github/workflows/ci.yml",
+        "Artifact: A-005 · land page · clone store: <git common dir>/nana/product-report.html · land: scripts/product-report.mjs",
+        "Artifact: A-006 · mismatched suite · clone store: <git common dir>/nana/suite-runs · land: scripts/product-report.mjs", "",
+        table([["R-9100", "implemented"], ["R-9101", "implemented"], ["R-9102", "implemented"], ["R-9103", "implemented"], ["R-9104", "implemented"], ["R-9105", "implemented"]]).trimEnd(),
+      ].join("\n");
+      const repo = treeFixture("unageable-artifacts", ledger);
+      const old = repo.git(["rev-parse", "HEAD"]).stdout.trim();
+      commitAt(repo, "tracked writers", "2026-10-02T00:00:00Z", { "scripts/product-report.mjs": "export {};\n", ".github/workflows/ci.yml": "name: ci\n" });
+      const tip = repo.git(["rev-parse", "HEAD"]).stdout.trim();
+      suiteRecord(repo, tip, "2026-10-02T00:00:00.000Z");
+      const homeFile = path.join(isolated, "state.json");
+      const landFile = path.join(commonDirOf(repo), "nana/product-report.html");
+      fs.mkdirSync(path.dirname(landFile), { recursive: true });
+      fs.writeFileSync(homeFile, "old\n"); fs.writeFileSync(landFile, "old\n");
+      const oldTime = new Date("2001-01-01T00:00:00Z"); fs.utimesSync(homeFile, oldTime, oldTime); fs.utimesSync(landFile, oldTime, oldTime);
+      const first = path.join(temp, "unageable-first.html"); const second = path.join(temp, "unageable-second.html");
+      await generateReport({ root: repo.root, out: first });
+      fs.writeFileSync(homeFile, "new\n"); fs.writeFileSync(landFile, "new\n");
+      const newTime = new Date("2020-01-01T00:00:00Z"); fs.utimesSync(homeFile, newTime, newTime); fs.utimesSync(landFile, newTime, newTime);
+      repo.git(["tag", "release-old", old]);
+      await generateReport({ root: repo.root, out: second });
+      const lines = renderedArtifactLines(renderHtmlAt(fs.readFileSync(second, "utf8"), "#product"));
+      // req: R-2791
+      check("R-2791: an unageable entry shows age not measured with its class, and the page is the same whatever the stores and refs hold",
+        productReportModule.AGE_NOT_MEASURED_PREFIX === "age not measured: " && fs.readFileSync(first).equals(fs.readFileSync(second)) && ["user-home store", "other project", "git ref", "CI record"].every((className) => lines.some((line) => line.endsWith(`age not measured: ${className}`))) && lines.filter((line) => /A-005|A-006/.test(line)).every((line) => line.endsWith("age not measured: clone store") && !line.includes("newest record at tip")),
+        JSON.stringify(lines));
+    } finally {
+      for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+    }
+  });
+  await withinCaseLimit("R-2792", async () => {
+    const ledger = [
+      "# CAP-92 · Tracked artifact stage", "Purpose: name tracked artifacts.", "Outcome: tracked artifacts are visible.", "Kind: product", "Deliverables: R-9200, R-9201, R-9202",
+      "Made by: R-9200 · build: REQUIREMENTS.md · A-001", "Read by: R-9200 · code: REQUIREMENTS.md",
+      "Made by: R-9201 · build: REQUIREMENTS.md · A-002", "Read by: R-9201 · code: REQUIREMENTS.md",
+      "Made by: R-9202 · build: REQUIREMENTS.md · A-003", "Read by: R-9202 · code: REQUIREMENTS.md", "",
+      "## FEAT-092 · Tracked artifacts", "Purpose: register tracked artifacts.", "Status: active",
+      "Artifact: A-001 · one file · tracked: single.txt · build: REQUIREMENTS.md",
+      "Artifact: A-002 · one folder · tracked: folder/ · build: REQUIREMENTS.md",
+      "Artifact: A-003 · one segment glob · tracked: docs/reviews/*/x.txt · build: REQUIREMENTS.md", "",
+      table([["R-9200", "implemented"], ["R-9201", "implemented"], ["R-9202", "implemented"]]).trimEnd(),
+    ].join("\n");
+    const repo = treeFixture("tracked-artifact-ages", ledger);
+    const single = commitAt(repo, "single file", "2026-10-01T00:00:00Z", { "single.txt": "one\n" });
+    const folder = commitAt(repo, "folder file", "2026-10-02T00:00:00Z", { "folder/a.txt": "one\n" });
+    const matched = commitAt(repo, "glob file", "2026-10-03T00:00:00Z", { "docs/reviews/a/x.txt": "one\n" });
+    commitAt(repo, "nested nonmatch", "2026-10-04T00:00:00Z", { "docs/reviews/a/b/x.txt": "nested\n" });
+    commitAt(repo, "tracked head", "2026-10-05T00:00:00Z", { "head.txt": "head\n" });
+    const lines = renderedArtifactLines((await renderedProduct(repo, "tracked-artifact-ages")).view);
+    const plain = historyFixture("plain-glob-is-not-pattern", ["docs/*.md"]);
+    commitAt(plain, "matching-looking file", "2026-10-02T00:00:00Z", { "docs/a.md": "a\n" });
+    const plainLine = onlyArtifactAge((await renderedProduct(plain, "plain-glob-is-not-pattern")).view);
+    // req: R-2792
+    check("R-2792: a tracked entry shows the age of the last commit that changed a file it matches",
+      lines.some((line) => line.includes(`A-001 · one file · last changed`) && line.includes(single.slice(0, 8))) && lines.some((line) => line.includes(`A-002 · one folder · last changed`) && line.includes(folder.slice(0, 8))) && lines.some((line) => line.includes(`A-003 · one segment glob · last changed`) && line.includes(matched.slice(0, 8))) && plainLine === "artifact docs/*.md · age unknown: not tracked at HEAD",
+      JSON.stringify({ lines, plainLine }));
+  });
+  await withinCaseLimit("R-2794", async () => {
+    const ledger = [
+      "# CAP-94 · Product", "Purpose: make output.", "Outcome: output exists.", "Kind: product", "Deliverables: R-9400", "Made by: R-9400 · build: REQUIREMENTS.md · A-001", "Read by: R-9400 · code: REQUIREMENTS.md", "",
+      "## FEAT-940 · Home", "Purpose: own output.", "Status: active", "Artifact: A-001 · output · tracked: REQUIREMENTS.md · build: REQUIREMENTS.md", "", table([["R-9400", "implemented"]]).trimEnd(), "",
+      "## FEAT-941 · Supporting active", "Purpose: support output.", "Status: active", "Artifact: A-002 · support · user-home store: ~/support · manual: owner", "Artifact: A-003 · retired support · retired: A-002", "", table([["R-9401", "implemented"]]).trimEnd(), "",
+      "## FEAT-942 · Supporting frozen", "Purpose: freeze support.", "Status: frozen (fixture)", "", table([["R-9402", "implemented"]]).trimEnd(), "",
+      "## FEAT-943 · Proposed", "Purpose: propose support.", "Status: proposed", "",
+      "# CAP-95 · Constraint", "Purpose: constrain output.", "Outcome: output stays safe.", "Kind: constraint", "Binds: CAP-94", "",
+      "## FEAT-950 · Constraint feature", "Purpose: check output.", "Status: active", "Artifact: A-004 · constraint evidence · tracked: REQUIREMENTS.md · manual: owner", "", table([["R-9500", "implemented"]]).trimEnd(), "",
+      "# CAP-96 · Kindless", "Purpose: keep legacy.", "Outcome: legacy stays.", "", "## FEAT-960 · Legacy", "Purpose: own legacy.", "Status: active", "", table([["R-9600", "implemented"]]).trimEnd(), "",
+      "# CAP-97 · Retired", "Purpose: keep history.", "Outcome: history stays.", "Kind: product", "Retired: CAP-94", "",
+    ].join("\n");
+    const repo = treeFixture("feature-artifact-lists", ledger);
+    const product = (await renderedProduct(repo, "feature-artifact-lists")).view;
+    const productCard = capabilityCard(product, "CAP-94"); const constraintCard = capabilityCard(product, "CAP-95");
+    const kindlessCard = capabilityCard(product, "CAP-96"); const retiredCard = capabilityCard(product, "CAP-97");
+    const noRegistryLedger = ["# CAP-98 · Product", "Purpose: make output.", "Outcome: output exists.", "Kind: product", "", "## FEAT-980 · Empty", "Purpose: support output.", "Status: active", "", table([["R-9800", "implemented"]]).trimEnd()].join("\n");
+    const noRegistry = treeFixture("feature-list-no-registry", noRegistryLedger);
+    const noRegistryCard = capabilityCard((await renderedProduct(noRegistry, "feature-list-no-registry")).view, "CAP-98");
+    const listText = (card) => card?.children.find((node) => node.attrs?.class === "capability-artifacts")?.textContent ?? "";
+    const productList = listText(productCard); const constraintList = listText(constraintCard); const noRegistryList = listText(noRegistryCard);
+    const newListNodes = product.nodes.filter((node) => node.attrs?.class === "capability-artifacts");
+    // req: R-2794
+    check("R-2794: each capability card lists its features with no deliverable and their artifacts, never as a deliverable note",
+      productCard?.textContent.includes("Features with no deliverable:") && productList.includes("FEAT-941 · Supporting active: A-002 · support") && productList.includes("FEAT-942 · Supporting frozen: makes no registered artifact") && !productList.includes("FEAT-940 · Home:") && !productList.includes("A-003") && !productList.includes("FEAT-943") && constraintCard?.textContent.includes("Artifacts of this constraint's features:") && constraintList.includes("FEAT-950 · Constraint feature: A-004 · constraint evidence") && !kindlessCard?.textContent.includes("Features with no deliverable:") && !retiredCard?.textContent.includes("Features with no deliverable:") && noRegistryList.includes("FEAT-980 · Empty: no artifact registry") && newListNodes.length > 0 && newListNodes.every((node) => !node.textContent.startsWith("deliverable note:")),
+      JSON.stringify({ productList, constraintList, kindless: kindlessCard?.textContent, retired: retiredCard?.textContent, noRegistryList }));
+  });
   await withinCaseLimit("R-2544", async () => {
     const lastChanged = "last changed";
     const ageUnknown = "age unknown: ";
@@ -1331,7 +1475,7 @@ try {
     const shallowClone = "shallow clone";
     const historyFailure = "git could not read the history";
     const failures = [];
-    const expectClaim = (label, view, predicate) => { const claims = renderedClaims(view); if (!predicate(claims)) failures.push({ label, claims }); };
+    const expectClaim = (label, view, predicate) => { const artifacts = renderedArtifactLines(view); if (!predicate(artifacts)) failures.push({ label, artifacts }); };
 
     const core = historyFixture("artifact-core", ["artifact.txt"]);
     commitAt(core, "make artifact", "2026-01-02T00:00:00Z", { "artifact.txt": "one\n" });
@@ -1443,8 +1587,8 @@ try {
       else if (typeof data === "string") { const file = writeRuntimeFile(repo.root, { schema: 1 }); fs.writeFileSync(file, data); }
       else writeRuntimeFile(repo.root, data);
       const rendered = await renderedProduct(repo, `runtime-${label}`, runner);
-      const claims = renderedClaims(rendered.view);
-      if (!predicate(claims, rendered)) failures.push({ label, claims });
+      const artifacts = renderedArtifactLines(rendered.view);
+      if (!predicate(artifacts, rendered)) failures.push({ label, artifacts });
     };
     const runtime = historyFixture("runtime-main", ["runtime-map"]);
     const tip = commitAt(runtime, "measured tip", "2026-11-01T00:00:00Z", { "tip.txt": "tip\n" });
@@ -1520,16 +1664,16 @@ try {
     suiteRecord(core.repo, core.side, "2026-11-05T00:00:00.000Z", "2026-11-05T00:00:00.000Z");
     const suiteDir = path.dirname(suiteRecord(core.repo, core.side, "not-a-time", "2026-11-06T00:00:00.000Z"));
     fs.writeFileSync(path.join(suiteDir, "99999999T999999999Z_other.json"), JSON.stringify({ schema: RECORD_SCHEMA + 1, tip: core.a, recordedAt: "2026-11-06T00:00:00.000Z" }));
-    const coreAge = onlyClaimAge((await renderedProduct(core.repo, "suite-record-age")).view);
+    const coreAge = onlyArtifactAge((await renderedProduct(core.repo, "suite-record-age")).view);
     if (!coreAge.includes(`${recordAtTip} ${core.a.slice(0, 8)} on 2026-11-01T00:00:00.000Z, 2 commits and 3 days before HEAD`)) failures.push(["record and side branch", coreAge]);
 
     const none = makeHistory("suite-record-none", "suite-runs");
-    const noneAge = onlyClaimAge((await renderedProduct(none.repo, "suite-record-none")).view);
+    const noneAge = onlyArtifactAge((await renderedProduct(none.repo, "suite-record-none")).view);
     if (!noneAge.includes(`age unknown: ${noReadable}`)) failures.push(["no readable", noneAge]);
 
     const outside = makeHistory("suite-record-outside", "suite-runs");
     suiteRecord(outside.repo, outside.side, "2026-11-05T00:00:00.000Z");
-    const outsideAge = onlyClaimAge((await renderedProduct(outside.repo, "suite-record-outside")).view);
+    const outsideAge = onlyArtifactAge((await renderedProduct(outside.repo, "suite-record-outside")).view);
     if (!outsideAge.includes(`age unknown: ${noHistory}`)) failures.push(["no history", outsideAge]);
 
     const shallowSource = makeHistory("suite-record-shallow-source", "suite-runs");
@@ -1537,7 +1681,7 @@ try {
     const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.repo.root).href, shallowRoot], { encoding: "utf8" });
     const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
     suiteRecord(shallow, shallowSource.a, "2026-11-01T00:00:00.000Z");
-    const shallowAge = onlyClaimAge((await renderedProduct(shallow, "suite-record-shallow")).view);
+    const shallowAge = onlyArtifactAge((await renderedProduct(shallow, "suite-record-shallow")).view);
     if (clone.status !== 0 || !shallowAge.includes("age unknown: shallow clone")) failures.push(["shallow", shallowAge, clone.stderr]);
 
     // req: R-2744
@@ -1567,29 +1711,29 @@ try {
 
     const core = makeHistory("build-record-age");
     writeBuildLedger(core.repo, ["not json", end("a", core.a, "2026-11-01T00:00:00.000Z"), start("running"), end("no-tip", null, "2026-11-06T00:00:00.000Z"), end("side", core.side, "2026-11-05T00:00:00.000Z")]);
-    const coreAge = onlyClaimAge((await renderedProduct(core.repo, "build-record-age")).view);
+    const coreAge = onlyArtifactAge((await renderedProduct(core.repo, "build-record-age")).view);
     if (!coreAge.includes(`${recordAtTip} ${core.a.slice(0, 8)} on 2026-11-01T00:00:00.000Z, 2 commits and 3 days before HEAD`)) failures.push(["record, start, tipless and side", coreAge]);
 
     const none = makeHistory("build-record-none");
-    const noneAge = onlyClaimAge((await renderedProduct(none.repo, "build-record-none")).view);
+    const noneAge = onlyArtifactAge((await renderedProduct(none.repo, "build-record-none")).view);
     if (!noneAge.includes(`age unknown: ${noReadable}`)) failures.push(["no ledger", noneAge]);
     writeBuildLedger(none.repo, [start("running-only")]);
-    const startAge = onlyClaimAge((await renderedProduct(none.repo, "build-record-start-only")).view);
+    const startAge = onlyArtifactAge((await renderedProduct(none.repo, "build-record-start-only")).view);
     if (!startAge.includes(`age unknown: ${noReadable}`)) failures.push(["start only", startAge]);
     writeBuildLedger(none.repo, [end("tipless-only", null, "2026-11-06T00:00:00.000Z")]);
-    const tiplessAge = onlyClaimAge((await renderedProduct(none.repo, "build-record-tipless-only")).view);
+    const tiplessAge = onlyArtifactAge((await renderedProduct(none.repo, "build-record-tipless-only")).view);
     if (!tiplessAge.includes(`age unknown: ${noReadable}`)) failures.push(["tipless only", tiplessAge]);
 
     const outside = makeHistory("build-record-outside");
     writeBuildLedger(outside.repo, [end("side", outside.side, "2026-11-05T00:00:00.000Z")]);
-    const outsideAge = onlyClaimAge((await renderedProduct(outside.repo, "build-record-outside")).view);
+    const outsideAge = onlyArtifactAge((await renderedProduct(outside.repo, "build-record-outside")).view);
     if (!outsideAge.includes(`age unknown: ${noHistory}`)) failures.push(["no history", outsideAge]);
 
     const blocked = makeHistory("build-record-unreadable");
     const blockedFile = buildRecordsPath(commonDirOf(blocked.repo));
     fs.mkdirSync(blockedFile, { recursive: true });
     const blockedRendered = await renderedProduct(blocked.repo, "build-record-unreadable");
-    const blockedAge = onlyClaimAge(blockedRendered.view);
+    const blockedAge = onlyArtifactAge(blockedRendered.view);
     if (!fs.existsSync(blockedRendered.out) || !blockedAge.includes(`age unknown: ${unreadable}`)) failures.push(["unreadable", blockedAge]);
 
     const shallowSource = makeHistory("build-record-shallow-source");
@@ -1597,7 +1741,7 @@ try {
     const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.repo.root).href, shallowRoot], { encoding: "utf8" });
     const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
     writeBuildLedger(shallow, [end("a", shallowSource.a, "2026-11-01T00:00:00.000Z")]);
-    const shallowAge = onlyClaimAge((await renderedProduct(shallow, "build-record-shallow")).view);
+    const shallowAge = onlyArtifactAge((await renderedProduct(shallow, "build-record-shallow")).view);
     if (clone.status !== 0 || !shallowAge.includes("age unknown: shallow clone")) failures.push(["shallow", shallowAge, clone.stderr]);
 
     // req: R-2745

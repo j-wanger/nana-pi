@@ -53,7 +53,11 @@
 - Store ages (report-at-land, plan): a build that is still running shows nothing until it ends.
 - Store ages (report-at-land, plan): a store age shows when the maker last ran. It does not show that the record is complete or that a reader read it.
 - Product view (report-at-land, plan): R-1012's same-output rule now also needs the suite and build stores unchanged. A land or a build between two report runs changes the page.
-- Store ages (report-at-land, final review): the page shows a store's age even when the claim's maker or writer path does not match the map. The deliverables check notes it, but the age still looks authoritative.
-- Store ages (report-at-land, final review): for suite-runs, "no readable record" covers both no store yet and a store that cannot be read.
+- Artifact ages (report-at-land, final review; report-names-artifacts): the page shows an entry's age even when the claim naming it has the wrong run or writers. The checker notes the claim, but the age still looks authoritative.
+- Store ages (report-at-land, final review): for the suite run records, "no readable record" covers both no store yet and a store that cannot be read.
 - Store ages (report-at-land, final review): once the build ledger grows past 32 MiB, its age always says the ledger cannot be read. It is 28 KB today.
 - Report at land (artifact audit, 2026-10-24): the suite writes the report page when it passes, before nana-land's final review re-check. So a refused land can leave a page for a tip that never landed.
+- Artifact ages (report-names-artifacts, plan): home, other-project, git-ref and CI artifacts never show an age. When a writer stops, the page shows no change; nothing has written the handoff store since 2026-09-28.
+- Artifact ages (report-names-artifacts, plan): the land page entry shows "age not measured: clone store".
+- Artifact ages (report-names-artifacts, plan): the runtime map's age follows NANA_RUNTIME_MAP_FILE when it is set, not its registered location.
+- Artifact ages (report-names-artifacts, plan): the CI run records store is a fourth clone store. Once registered, it will show "age not measured: clone store".

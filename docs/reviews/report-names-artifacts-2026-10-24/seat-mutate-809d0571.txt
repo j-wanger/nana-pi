@@ -1,0 +1,56 @@
+seat-mutate: lane report-names-artifacts, tip 809d05712d58cdc9e5e1990e34cd058e8bf6f54a, table 997b53e4fa205c1135d62aca1c52fce67a607e022279149dba4ac57fe0a8a3f5, merge-base 0943299b2024b8ca798803ef70682053eee95fef, 29 pairs in 5 shards (6+6+6+6+5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-24T17:34:38.662Z
+DECLARED (seat) pairs 1 to 8 follow R-2790's red cases and the renamed R-2542 literal; 9 to 12 R-2791's; 13 to 16 R-2792's; 17 to 22 R-2793's, one a ledger edit and one a store-constant change; 23 to 28 R-2794's; 29 the old store names as plain paths (R-2536)
+DECLARED (seat) declared non-pairs: 'a reader of tag dates changes the page' (no tag reader exists to break; the R-2791 test adds a tag between its two runs), 'the registry is parsed once per ledger' (a speed rule with no behaviour to pin), and 'ages move off the claim lines' (R-2790's test asserts no claim line carries an age; the build removed the age field from claims, so no one-line mutation restores it)
+[1/5] seat-mutate: lane report-names-artifacts, shard 1/5, tip 809d05712d58cdc9e5e1990e34cd058e8bf6f54a, merge-base 0943299b2024b8ca798803ef70682053eee95fef, 6 pairs, darwin, node v22.22.2, 2026-10-24T17:34:39.578Z
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 88 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[1/5] RESULT: 6/6 red (5 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane report-names-artifacts, shard 2/5, tip 809d05712d58cdc9e5e1990e34cd058e8bf6f54a, merge-base 0943299b2024b8ca798803ef70682053eee95fef, 6 pairs, darwin, node v22.22.2, 2026-10-24T17:34:43.621Z
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 88 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[2/5] RESULT: 5/6 red (4 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 1 survived [2]
+[3/5] seat-mutate: lane report-names-artifacts, shard 3/5, tip 809d05712d58cdc9e5e1990e34cd058e8bf6f54a, merge-base 0943299b2024b8ca798803ef70682053eee95fef, 6 pairs, darwin, node v22.22.2, 2026-10-24T17:34:47.641Z
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 88 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[3/5] RESULT: 6/6 red (4 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane report-names-artifacts, shard 4/5, tip 809d05712d58cdc9e5e1990e34cd058e8bf6f54a, merge-base 0943299b2024b8ca798803ef70682053eee95fef, 6 pairs, darwin, node v22.22.2, 2026-10-24T17:34:51.766Z
+[4/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 88 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[4/5] BASELINE MISSING title for pair 29: /^R-2536: / is not a PASS line in packages/nana-pack/tests/requirements-deliverables.test.mjs
+[4/5] seat-mutate: baseline not green — refusing to judge mutations
+[4/5] RESULT: 0/0 red (0 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: shard exited 2
+[5/5] seat-mutate: lane report-names-artifacts, shard 5/5, tip 809d05712d58cdc9e5e1990e34cd058e8bf6f54a, merge-base 0943299b2024b8ca798803ef70682053eee95fef, 5 pairs, darwin, node v22.22.2, 2026-10-24T17:34:55.726Z
+[5/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 88 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 13 PASS, 0 FAIL, )
+[5/5] RESULT: 5/5 red (3 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+RED 1 a deliverable that names an entry hides its built-from line — 1/1 named: /^R-2790: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN 2 an ID repeated across claims is listed twice — SURVIVED
+RED 3 a two-entry claim shows one artifact line — 1/1 named: /^R-2790: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+MISSING 4 every named entry shows the first entry's age — shard 4/5 printed no line for it
+RED 5 a claim naming an unknown ID stops the page — (no named case); named but NOT REACHED: /^R-2790: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH product-report.test.mjs THREW (later checks never ran)
+RED 6 a built-from list shows as named artifacts — 1/1 named: /^R-2790: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 an output-only deliverable loses its output-only prefix — 1/1 named: /^R-2790: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 the not-written-down note keeps the old wording — 1/1 named: /^R-2542: /; UNNAMED red: [product-report.test.mjs] R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+MISSING 9 a clone store at a table location earns its age whatever its run and writer — shard 4/5 printed no line for it
+RED 10 a home store is aged like a tracked path — 1/1 named: /^R-2791: /; UNNAMED red: [product-report.test.mjs] R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 an unageable entry shows what its home file holds — 1/1 named: /^R-2791: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 an unageable entry drops its class from the reason — 1/1 named: /^R-2791: /; UNNAMED red: [product-report.test.mjs] R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 a tracked glob is never matched as a glob — 1/1 named: /^R-2792: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+MISSING 14 a tracked glob matches across path segments by prefix — shard 4/5 printed no line for it
+RED 15 a plain-path third part is read as a glob — 1/1 named: /^R-2792: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 a single-file tracked entry matches nothing — 1/1 named: /^R-2792: /; UNNAMED red: [product-report.test.mjs] R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no… | [product-report.test.mjs] R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 the checker gives no note for a clone store at a table location under another run or writer — 1/1 named: /^R-2793: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the binding ignores run and writer — 2/2 named: /^R-2793: / | /^R-2791: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+MISSING 19 the binding accepts any writer list that starts with the table's writer — shard 4/5 printed no line for it
+RED 20 the suite store's subpath changes and the ledger keeps the old location — 1/1 named: /^R-2793: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 A-033 moves off its table key — 1/1 named: /^R-2793: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 the page keeps a reader at a location the table lacks — 1/1 named: /^R-2793: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 frozen features drop out of the card lists — 1/1 named: /^R-2794: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+MISSING 24 a feature that is home to a deliverable is listed as having none — shard 4/5 printed no line for it
+RED 25 a retired entry is listed under its feature — 1/1 named: /^R-2794: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 26 a ledger with no registry says makes no registered artifact — 1/1 named: /^R-2794: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 27 a constraint card shows no artifact list — 1/1 named: /^R-2794: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 28 a kindless card shows the product list — 1/1 named: /^R-2794: /; UNNAMED red: [product-report.test.mjs] R-2450: the Product view orders product, then kindless, then constraint capabilities, in document order withi…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+MISSING 29 the old store names stay exempt from the path check in a ledger with no registry — shard 4/5 printed no line for it
+RESULT: 22/23 red (16 exactly their named titles, 2 with a named title green, 5 with an unnamed red), 1 survived [2], 6 MISSING, across 5 shards

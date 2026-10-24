@@ -2,8 +2,8 @@
 /**
  * @module scripts/deliverables.mjs
  * @purpose Parse and check product-capability deliverable claims and the feature artifact registry, then produce their shared checker lines.
- * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact shapes, or an injected git runner.
- * @outputs Registry entries by A-ID, per-row claims, code predicates, resolved artifact names, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
+ * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact and age-table shapes, or an injected git runner.
+ * @outputs Registry entries by A-ID, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
@@ -31,14 +31,18 @@ export const REASON_REQUIRED = Object.freeze(["manual", "rule", "person"]);
 export const PATH_REQUIRED = Object.freeze([...MAKER_RUNS.filter((run) => run !== "manual"), "code", "prompt"]);
 // Chosen: the requirements ledger's heading separator.
 export const PART_SEPARATOR = " · ";
-// Contract: lane B's machine-local artifact name.
-export const RUNTIME_MAP_ARTIFACT = "runtime-map";
-// Contract (R-2743): each machine-local artifact is exempt only under its own maker and writer.
-export const MACHINE_LOCAL_ARTIFACTS = Object.freeze({
-  [RUNTIME_MAP_ARTIFACT]: Object.freeze({ maker: "land", writer: "scripts/runtime-measure.mjs" }),
-  "suite-runs": Object.freeze({ maker: "suite", writer: "scripts/test-locked.mjs" }),
-  "build-records": Object.freeze({ maker: "build", writer: "packages/nana-pack/lib/build-records.mjs" }),
+// Contract (report-names-artifacts must-meet, R-2793): the three clone stores whose records have deterministic readers, keyed from their owning modules' sealed subpaths.
+export const ARTIFACT_AGE_TABLE = Object.freeze({
+  [`<git common dir>/${DATA_SUBPATH}`]: Object.freeze({ run: "land", writer: "scripts/runtime-measure.mjs" }),
+  [`<git common dir>/${STORE_SUBPATH}`]: Object.freeze({ run: "suite", writer: "packages/nana-pack/lib/suite-records.mjs" }),
+  [`<git common dir>/${BUILD_RECORDS_SUBPATH}`]: Object.freeze({ run: "build", writer: "packages/nana-pack/lib/build-records.mjs" }),
 });
+// Contract (report-names-artifacts must-meet, R-2793): only the exact class, run and one-writer binding earns a clone-store age reader.
+export function artifactAgeTableKey(entry) {
+  if (!entry?.live || entry.className !== "clone store") return null;
+  const binding = ARTIFACT_AGE_TABLE[entry.location];
+  return binding && entry.run === binding.run && entry.writers.length === 1 && entry.writers[0] === binding.writer ? entry.location : null;
+}
 // Contract (R-2543): shared verbatim by the checker and Product view when HEAD paths cannot be read.
 export const DELIVERABLE_PATHS_NOT_CHECKED = "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree";
 // Contract (artifact-registry must-meet, R-2781): the owner's 2026-10-24 artifact classes.
@@ -216,24 +220,10 @@ function registryReference(value) {
   if (!direct && !built) return null;
   return { kind: direct ? "artifact" : "built from", ids: (direct ?? built).split(/,\s*/) };
 }
-const REGISTRY_STORE_NAMES = Object.freeze([
-  Object.freeze({ name: RUNTIME_MAP_ARTIFACT, location: `<git common dir>/${DATA_SUBPATH}`, run: "land", entryWriter: "scripts/runtime-measure.mjs", claimWriter: "scripts/runtime-measure.mjs" }),
-  Object.freeze({ name: "suite-runs", location: `<git common dir>/${STORE_SUBPATH}`, run: "suite", entryWriter: "packages/nana-pack/lib/suite-records.mjs", claimWriter: "scripts/test-locked.mjs" }),
-  Object.freeze({ name: "build-records", location: `<git common dir>/${BUILD_RECORDS_SUBPATH}`, run: "build", entryWriter: "packages/nana-pack/lib/build-records.mjs", claimWriter: "packages/nana-pack/lib/build-records.mjs" }),
-]);
-function resolvedArtifact(entry, run, codePaths) {
-  if (!entry?.live || entry.className === "tracked" && hasGlob(entry.location)) return null;
-  if (entry.className !== "clone store") return entry.location;
-  const store = REGISTRY_STORE_NAMES.find((candidate) => candidate.location === entry.location);
-  if (!store || entry.run !== store.run || entry.writers.length !== 1 || entry.writers[0] !== store.entryWriter || run !== store.run || !codePaths.includes(store.claimWriter)) return entry.location;
-  return store.name;
-}
-
 /** The listing capability's own claims by deliverable row, preserving their document order. */
-export function deliverableClaims(parsed, capability) {
+export function deliverableClaims(parsed, capability, registry = artifactRegistry(parsed, null)) {
   const listed = deliverableIds(capability);
   const claims = new Map(listed.map((row) => [row, []]));
-  const registry = artifactRegistry(parsed, null);
   for (const field of ownFieldLines(parsed, capability, DELIVERABLE_LABELS)) {
     const row = ROW_AT_START.exec(field.body)?.[1];
     if (!row || !claims.has(row)) continue;
@@ -251,10 +241,7 @@ export function deliverableClaims(parsed, capability) {
     const readByCode = field.label === "Read by" && parts.length === 2 && READER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
     const thirdPart = field.label === "Made by" && parts.length === 3 && parts[2].trim() ? parts[2].trim() : null;
     const reference = thirdPart ? registryReference(thirdPart) : null;
-    const codePaths = detail.split(",").map((value) => value.trim()).filter(Boolean);
-    const first = reference?.kind === "artifact" ? registry.byId.get(reference.ids[0]) : null;
-    const artifact = first ? resolvedArtifact(first, kind, codePaths) : (thirdPart && !reference ? thirdPart : null);
-    claims.get(row).push({ row, label: field.label, text: claimText, artifact, thirdPart, registryIds: reference?.ids ?? [], registryKind: reference?.kind ?? null, madeByCode, readByCode });
+    claims.get(row).push({ row, label: field.label, text: claimText, artifact: thirdPart && !reference ? thirdPart : null, thirdPart, registryIds: reference?.ids ?? [], registryKind: reference?.kind ?? null, madeByCode, readByCode });
   }
   return claims;
 }
@@ -277,6 +264,11 @@ export function isMadeAndReadByCode(claims) {
 export function checkDeliverables(parsed, trackedPaths = null) {
   const registry = artifactRegistry(parsed, trackedPaths);
   const notes = [...registry.notes];
+  for (const entry of registry.entries) {
+    if (entry.live && entry.className === "clone store" && Object.hasOwn(ARTIFACT_AGE_TABLE, entry.location) && artifactAgeTableKey(entry) === null) {
+      notes.push(artifactNote(entry, "is at an age table location but does not match its run and one writer"));
+    }
+  }
   const pathsToCheck = [];
   let checkedDeliverables = 0;
   let fieldLineCount = registry.fieldLineCount;
@@ -303,7 +295,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     checkedDeliverables += listed.length;
     const listedSet = new Set(listed);
     const seen = new Map(listed.map((row) => [row, new Set()]));
-    const claimsByRow = deliverableClaims(parsed, capability);
+    const claimsByRow = deliverableClaims(parsed, capability, registry);
     const parkedRows = new Set();
     const staleParkRows = new Set();
 
@@ -401,8 +393,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
           } else if (registry.fieldLineCount > 0) {
             notes.push(note(`${row} artifact third part "${thirdPart}" on line ${field.line} is neither a registry reference nor a built-from list`));
           } else {
-            const local = MACHINE_LOCAL_ARTIFACTS[thirdPart];
-            if (!local || local.maker !== run || !codePaths.includes(local.writer)) addPath(row, thirdPart, field.line, "artifact");
+            addPath(row, thirdPart, field.line, "artifact");
           }
         }
         continue;

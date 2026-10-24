@@ -2,8 +2,8 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime-map data, suite records, and the build ledger.
- * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, marks and artifact and store ages, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
+ * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, feature artifact lists, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
@@ -13,7 +13,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { deliverableClaims, deliverableCodeState, deliverableReport, MACHINE_LOCAL_ARTIFACTS, RUNTIME_MAP_ARTIFACT } from "./deliverables.mjs";
+import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactRegistry, deliverableClaims, deliverableCodeState, deliverableReport } from "./deliverables.mjs";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
@@ -24,6 +24,7 @@ import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
 import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 import { gitCommonDir, readSuiteRecords } from "../packages/nana-pack/lib/suite-records.mjs";
 import { buildRecordsPath, readBuildLedger } from "../packages/nana-pack/lib/build-records.mjs";
+import { globMatch } from "../apps/bench/lib/checkers.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEMPLATE = path.join(path.dirname(fileURLToPath(import.meta.url)), "product-report/template.html");
@@ -42,7 +43,9 @@ const RAIL_ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
 // Contract (R-2542): exact Product-view deliverable marks and unnamed-artifact note.
 export const NOT_MADE_BY_CODE = "not made by code";
 export const NOT_READ_BY_CODE = "not read by code";
-export const NO_ARTIFACT_NAMED = "no artifact named";
+export const NO_ARTIFACT_NAMED = "artifact not written down";
+// Contract (R-2791): the exact reason prefix for artifact classes intentionally excluded from age measurement.
+export const AGE_NOT_MEASURED_PREFIX = "age not measured: ";
 // Contract (R-2544, R-2545): exact Product-view age labels and reasons.
 export const LAST_CHANGED_PREFIX = "last changed";
 export const MEASURED_AT_TIP_PREFIX = "measured at tip";
@@ -209,7 +212,8 @@ function formatRecordAge(record, commits, headEpoch) {
 }
 
 const STORE_READERS_BY_WRITER = Object.freeze({
-  "scripts/test-locked.mjs": ({ root, runGit }) => ({ records: readSuiteRecords({ root, runGit }).map((record) => ({ tip: record.tip, time: record.recordedAt })) }),
+  "scripts/runtime-measure.mjs": () => ({ runtime: true }),
+  "packages/nana-pack/lib/suite-records.mjs": ({ root, runGit }) => ({ records: readSuiteRecords({ root, runGit }).map((record) => ({ tip: record.tip, time: record.recordedAt })) }),
   "packages/nana-pack/lib/build-records.mjs": ({ commonDir }) => {
     try {
       const ledger = readBuildLedger(buildRecordsPath(commonDir));
@@ -218,16 +222,29 @@ const STORE_READERS_BY_WRITER = Object.freeze({
   },
 });
 
-function recordStoreEntries(artifact, { root, commonDir, runGit }) {
-  const writer = MACHINE_LOCAL_ARTIFACTS[artifact]?.writer;
-  return STORE_READERS_BY_WRITER[writer]?.({ root, commonDir, runGit }) ?? { records: [] };
+// Contract (R-2793): the page has exactly one reader key for each sealed age-table key.
+export const STORE_READERS_BY_KEY = Object.freeze(Object.fromEntries(Object.entries(ARTIFACT_AGE_TABLE).map(([key, binding]) => [key, STORE_READERS_BY_WRITER[binding.writer]])));
+const RUNTIME_AGE_KEY = Object.keys(ARTIFACT_AGE_TABLE).find((key) => ARTIFACT_AGE_TABLE[key].writer === "scripts/runtime-measure.mjs");
+
+function recordStoreEntries(key, { root, commonDir, runGit }) {
+  return STORE_READERS_BY_KEY[key]?.({ root, commonDir, runGit }) ?? { records: [] };
 }
 
 function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason }) {
   const ages = new Map();
   if (!artifacts.length) return ages;
   const run = (args, options) => gitResult(gitRunner, root, args, options);
-  const historyUnknown = () => { for (const artifact of artifacts) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON)); };
+  const ageable = [];
+  for (const artifact of artifacts) {
+    if (artifact.className === "tracked") ageable.push(artifact);
+    else if (artifact.className === "clone store") {
+      const tableKey = artifactAgeTableKey(artifact);
+      if (tableKey) ageable.push({ ...artifact, tableKey });
+      else ages.set(artifact.key, `${AGE_NOT_MEASURED_PREFIX}${artifact.className}`);
+    } else ages.set(artifact.key, `${AGE_NOT_MEASURED_PREFIX}${artifact.className}`);
+  }
+  if (!ageable.length) return ages;
+  const historyUnknown = () => { for (const artifact of ageable) ages.set(artifact.key, unknownAge(GIT_HISTORY_FAILURE_REASON)); };
   let shallowResult;
   try { shallowResult = run(["rev-parse", "--is-shallow-repository"]); } catch { shallowResult = null; }
   if (!shallowResult || shallowResult.status !== 0) { historyUnknown(); return ages; }
@@ -237,83 +254,86 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
   const headEpoch = Number(String(headResult?.stdout ?? "").trim());
   if (!headResult || headResult.status !== 0 || !Number.isFinite(headEpoch)) { historyUnknown(); return ages; }
 
-  const regular = artifacts.filter((artifact) => !Object.hasOwn(MACHINE_LOCAL_ARTIFACTS, artifact));
-  if (regular.length) {
+  const trackedArtifacts = ageable.filter((artifact) => artifact.className === "tracked");
+  const matches = (artifact, file) => {
+    const location = artifact.location.endsWith("/") ? artifact.location.slice(0, -1) : artifact.location;
+    if (!artifact.plain && /[*?]/.test(location)) return globMatch(location, file);
+    return file === location || file.startsWith(`${location}/`);
+  };
+  if (trackedArtifacts.length) {
     if (trackedPaths === null) {
-      for (const artifact of regular) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
+      for (const artifact of trackedArtifacts) ages.set(artifact.key, unknownAge(GIT_HISTORY_FAILURE_REASON));
     } else if (shallow) {
-      for (const artifact of regular) ages.set(artifact, unknownAge(SHALLOW_CLONE_REASON));
+      for (const artifact of trackedArtifacts) ages.set(artifact.key, unknownAge(SHALLOW_CLONE_REASON));
     } else {
       let walk;
-      try {
-        walk = run(["log", ...ARTIFACT_WALK_FLAGS, "--format=NANA_AGE_RECORD%x00%H%x00%P%x00%ct%x00%s%x00", "--"]);
-      } catch { walk = null; }
+      try { walk = run(["log", ...ARTIFACT_WALK_FLAGS, "--format=NANA_AGE_RECORD%x00%H%x00%P%x00%ct%x00%s%x00", "--"]); }
+      catch { walk = null; }
       if (!walk || walk.status !== 0 || walk.error) {
-        for (const artifact of regular) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
+        for (const artifact of trackedArtifacts) ages.set(artifact.key, unknownAge(GIT_HISTORY_FAILURE_REASON));
       } else {
         const records = parseHistory(walk.stdout);
-        const tracked = new Set(trackedPaths);
-        for (const artifact of regular) {
-          const folder = artifact.endsWith("/") ? artifact.slice(0, -1) : artifact;
-          const isTracked = tracked.has(folder) || [...tracked].some((file) => file.startsWith(`${folder}/`));
-          if (!isTracked) { ages.set(artifact, unknownAge(NOT_TRACKED_AT_HEAD)); continue; }
-          const record = records.find((entry) => entry.files.some((file) => file === folder || file.startsWith(`${folder}/`)));
-          if (!record || !Number.isFinite(record.epoch)) { ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON)); continue; }
+        for (const artifact of trackedArtifacts) {
+          if (!trackedPaths.some((file) => matches(artifact, file))) { ages.set(artifact.key, unknownAge(NOT_TRACKED_AT_HEAD)); continue; }
+          const record = records.find((entry) => entry.files.some((file) => matches(artifact, file)));
+          if (!record || !Number.isFinite(record.epoch)) { ages.set(artifact.key, unknownAge(GIT_HISTORY_FAILURE_REASON)); continue; }
           let count;
           try { count = run(["rev-list", "--count", `${record.hash}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
-          ages.set(artifact, count?.status === 0 && Number.isInteger(commits) ? formatArtifactAge(record, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+          ages.set(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatArtifactAge(record, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
   }
 
-  const recordArtifacts = artifacts.filter((artifact) => artifact !== RUNTIME_MAP_ARTIFACT && Object.hasOwn(MACHINE_LOCAL_ARTIFACTS, artifact));
+  const cloneArtifacts = ageable.filter((artifact) => artifact.className === "clone store");
+  const runtimeArtifacts = cloneArtifacts.filter((artifact) => artifact.tableKey === RUNTIME_AGE_KEY);
+  const recordArtifacts = cloneArtifacts.filter((artifact) => !runtimeArtifacts.includes(artifact));
   if (recordArtifacts.length) {
     if (shallow) {
-      for (const artifact of recordArtifacts) ages.set(artifact, unknownAge(SHALLOW_CLONE_REASON));
+      for (const artifact of recordArtifacts) ages.set(artifact.key, unknownAge(SHALLOW_CLONE_REASON));
     } else {
       let historyResult;
       try { historyResult = run(["rev-list", "HEAD"]); } catch { historyResult = null; }
       if (!historyResult || historyResult.status !== 0 || historyResult.error) {
-        for (const artifact of recordArtifacts) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
+        for (const artifact of recordArtifacts) ages.set(artifact.key, unknownAge(GIT_HISTORY_FAILURE_REASON));
       } else {
         const history = new Set(String(historyResult.stdout ?? "").trim().split(/\r?\n/).filter(Boolean));
         const runGit = (cwd, args) => gitResult(gitRunner, cwd, args);
         let commonDir = null;
         try { commonDir = gitCommonDir(root, { runGit }); } catch { /* each reader reports its own bounded absence below */ }
         for (const artifact of recordArtifacts) {
-          const loaded = recordStoreEntries(artifact, { root, commonDir, runGit });
-          if (loaded.problem) { ages.set(artifact, unknownAge(loaded.problem)); continue; }
+          const loaded = recordStoreEntries(artifact.tableKey, { root, commonDir, runGit });
+          if (loaded.problem) { ages.set(artifact.key, unknownAge(loaded.problem)); continue; }
           const readable = loaded.records.filter((record) => typeof record.tip === "string" && record.tip && typeof record.time === "string" && Number.isFinite(Date.parse(record.time)));
-          if (!readable.length) { ages.set(artifact, unknownAge(NO_READABLE_RECORD)); continue; }
+          if (!readable.length) { ages.set(artifact.key, unknownAge(NO_READABLE_RECORD)); continue; }
           const newest = readable.find((record) => history.has(record.tip));
-          if (!newest) { ages.set(artifact, unknownAge(NO_RECORD_IN_HISTORY)); continue; }
+          if (!newest) { ages.set(artifact.key, unknownAge(NO_RECORD_IN_HISTORY)); continue; }
           let count;
           try { count = run(["rev-list", "--count", `${newest.tip}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
-          ages.set(artifact, count?.status === 0 && Number.isInteger(commits) ? formatRecordAge(newest, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+          ages.set(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRecordAge(newest, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
   }
 
-  if (artifacts.includes(RUNTIME_MAP_ARTIFACT)) {
-    if (!runtimeData) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(runtimeReason));
-    else if (typeof runtimeData.tip !== "string" || !runtimeData.tip || typeof runtimeData.measuredAt !== "string" || !runtimeData.measuredAt) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(RUNTIME_NO_TIP_OR_TIME));
+  for (const artifact of runtimeArtifacts) {
+    if (!runtimeData) ages.set(artifact.key, unknownAge(runtimeReason));
+    else if (typeof runtimeData.tip !== "string" || !runtimeData.tip || typeof runtimeData.measuredAt !== "string" || !runtimeData.measuredAt) ages.set(artifact.key, unknownAge(RUNTIME_NO_TIP_OR_TIME));
     else {
       const measured = new Date(runtimeData.measuredAt);
-      if (!Number.isFinite(measured.getTime())) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(RUNTIME_TIME_INVALID));
-      else if (shallow) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(SHALLOW_CLONE_REASON));
+      if (!Number.isFinite(measured.getTime())) ages.set(artifact.key, unknownAge(RUNTIME_TIME_INVALID));
+      else if (shallow) ages.set(artifact.key, unknownAge(SHALLOW_CLONE_REASON));
       else {
         let ancestor;
         try { ancestor = run(["merge-base", "--is-ancestor", runtimeData.tip, "HEAD"]); } catch { ancestor = null; }
-        if (!ancestor || ancestor.status !== 0) ages.set(RUNTIME_MAP_ARTIFACT, unknownAge(`tip ${runtimeData.tip.slice(0, TIP_DIGITS)}${TIP_NOT_IN_HISTORY_SUFFIX}`));
+        if (!ancestor || ancestor.status !== 0) ages.set(artifact.key, unknownAge(`tip ${runtimeData.tip.slice(0, TIP_DIGITS)}${TIP_NOT_IN_HISTORY_SUFFIX}`));
         else {
           let count;
           try { count = run(["rev-list", "--count", `${runtimeData.tip}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
-          ages.set(RUNTIME_MAP_ARTIFACT, count?.status === 0 && Number.isInteger(commits) ? formatRuntimeAge(runtimeData, commits, headEpoch, measured) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+          ages.set(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRuntimeAge(runtimeData, commits, headEpoch, measured) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
@@ -406,16 +426,21 @@ export function renderInto(document, model, { hash = "" } = {}) {
         featureLink(item, deliverable.home.id, `${deliverable.home.id} · ${deliverable.home.label}`);
         if (deliverable.claims.length) {
           const claims = el("ul", undefined, item); cls(claims, "deliverable-claims");
-          for (const claim of deliverable.claims) { const line = el("li", undefined, claims); text(line, `${claim.label}: ${claim.text}${claim.age ? ` · ${claim.age}` : ""}`); }
+          for (const claim of deliverable.claims) { const line = el("li", undefined, claims); text(line, `${claim.label}: ${claim.text}`); }
         }
         for (const mark of deliverable.marks) paragraph(item, "", mark, "deliverable-mark");
-        if (deliverable.artifactNote) paragraph(item, "", deliverable.artifactNote, "deliverable-artifact");
+        for (const artifactLine of deliverable.artifactLines) paragraph(item, "", artifactLine, "deliverable-artifact");
       }
     }
     if (!cap.retired && cap.kind === "constraint") {
       paragraph(card, "Binds", "");
       const list = el("ul", undefined, card);
       for (const bound of cap.binds) { const item = el("li", undefined, list); cls(item, `bound${bound.gap ? " gap" : ""}`); text(item, `${bound.id} · ${bound.label} · ${bound.gap ? "gap" : bound.rows.join(", ")}`); }
+    }
+    if (cap.artifactFeatures) {
+      paragraph(card, cap.artifactFeatures.label, "");
+      const list = el("ul", undefined, card); cls(list, "capability-artifacts");
+      for (const value of cap.artifactFeatures.items) { const item = el("li", undefined, list); text(item, value); }
     }
     if (cap.retired) paragraph(card, "Retired", `replaced by ${cap.successors.map((item) => `${item.id} · ${item.label}`).join(", ")}`);
     for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } }
@@ -637,9 +662,19 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const assessments = new Map(storedFeatures.map((assessment) => [assessment.id, assessment]));
   const capabilityHeadings = parsed.headings.filter((heading) => heading.id.startsWith("CAP-"));
   const capabilityById = new Map(capabilityHeadings.map((capability) => [capability.id, capability]));
-  const claimsByCapability = new Map(capabilityHeadings.map((capability) => [capability, deliverableClaims(parsed, capability)]));
-  const artifacts = [...new Set([...claimsByCapability.values()].flatMap((claims) => [...claims.values()].flatMap((rowClaims) => rowClaims.map((claim) => claim.artifact).filter(Boolean))))];
-  const ages = artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason });
+  const registry = artifactRegistry(parsed, null);
+  const claimsByCapability = new Map(capabilityHeadings.map((capability) => [capability, deliverableClaims(parsed, capability, registry)]));
+  const artifactDescriptors = new Map();
+  for (const claims of claimsByCapability.values()) {
+    for (const rowClaims of claims.values()) for (const claim of rowClaims) {
+      for (const id of claim.registryIds) {
+        const entry = registry.byId.get(id);
+        if (entry?.live) artifactDescriptors.set(`registry:${id}`, { ...entry, key: `registry:${id}` });
+      }
+      if (claim.artifact) artifactDescriptors.set(`path:${claim.artifact}`, { key: `path:${claim.artifact}`, className: "tracked", location: claim.artifact, plain: true });
+    }
+  }
+  const ages = artifactAges({ artifacts: [...artifactDescriptors.values()], root, gitRunner, trackedPaths, runtimeData, runtimeReason });
   const fieldValues = (capability, field) => (capability.capabilityFields?.[field] ?? []).flatMap(({ value }) => field === "Kind" ? [value] : value.split(/,\s*/));
   const featureHeadings = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-"));
   const featureCapability = (feature) => { for (let heading = feature.parent; heading; heading = heading.parent) if (heading.id.startsWith("CAP-")) return heading; return null; };
@@ -668,10 +703,41 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
     const capability = featureCapability(feature);
     const kind = fieldValues(capability, "Kind")[0] ?? null;
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, assessmentState, assessment, differences, counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, assessmentState, assessment, differences, counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
   });
   const capabilityLabel = (id) => ({ id, label: capabilityById.get(id)?.label ?? id });
   const featureLabel = (feature) => ({ id: feature.id, label: feature.label });
+  const orderedIds = (claims, kind) => {
+    const seen = new Set(); const ids = [];
+    for (const claim of claims) if (claim.label === "Made by" && claim.registryKind === kind) {
+      for (const id of [...claim.registryIds].sort()) if (!seen.has(id)) { seen.add(id); ids.push(id); }
+    }
+    return ids;
+  };
+  const artifactLinesFor = (claims) => {
+    const directIds = orderedIds(claims, "artifact");
+    const directSet = new Set(directIds);
+    const builtIds = orderedIds(claims, "built from").filter((id) => !directSet.has(id));
+    const lines = directIds.map((id) => {
+      const entry = registry.byId.get(id);
+      return entry?.live ? `artifact ${id} · ${entry.name} · ${ages.get(`registry:${id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` : `artifact ${id} · no live entry`;
+    });
+    if (builtIds.length) {
+      const parts = builtIds.map((id) => {
+        const entry = registry.byId.get(id);
+        return entry?.live ? `${id} · ${entry.name} · ${ages.get(`registry:${id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` : `${id} · no live entry`;
+      });
+      lines.push(`${directIds.length ? "" : "output only, "}built from ${parts.join(", ")}`);
+    }
+    for (const claim of claims) if (claim.label === "Made by" && claim.artifact) lines.push(`artifact ${claim.artifact} · ${ages.get(`path:${claim.artifact}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}`);
+    return lines.length ? lines : [NO_ARTIFACT_NAMED];
+  };
+  const liveFeature = (feature) => feature.status === "active" || feature.status.startsWith("frozen (");
+  const featureArtifactItem = (feature) => {
+    const entries = registry.entries.filter((entry) => entry.live && entry.featureId === feature.id);
+    const detail = registry.fieldLineCount === 0 ? "no artifact registry" : entries.length ? entries.map((entry) => `${entry.id} · ${entry.name}`).join(", ") : "makes no registered artifact";
+    return `${feature.id} · ${feature.label}: ${detail}`;
+  };
   const capabilities = capabilityHeadings.map((capability) => {
     const kind = fieldValues(capability, "Kind")[0] ?? null;
     const retired = fieldValues(capability, "Retired").length > 0;
@@ -685,8 +751,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       const rowClaims = claimsByRow.get(id) ?? [];
       const codeState = deliverableCodeState(rowClaims);
       const marks = [...(!codeState.madeByCode ? [NOT_MADE_BY_CODE] : []), ...(!codeState.readByCode ? [NOT_READ_BY_CODE] : [])];
-      const artifactNote = rowClaims.some((claim) => claim.artifact) ? null : NO_ARTIFACT_NAMED;
-      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), claims: rowClaims.map(({ label, text, artifact }) => ({ label, text, age: artifact ? ages.get(artifact) ?? unknownAge(GIT_HISTORY_FAILURE_REASON) : null })), marks, artifactNote };
+      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), claims: rowClaims.map(({ label, text }) => ({ label, text })), marks, artifactLines: artifactLinesFor(rowClaims) };
     });
     const constraintRows = rows.filter((row) => descendants(parsed, capability).includes(row.heading));
     const binds = fieldValues(capability, "Binds").map((id) => {
@@ -695,7 +760,14 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       const coveringRows = constraintRows.filter((row) => row.status === "implemented" && receivingFeatures.some((feature) => feature.alsoApplies.includes(row.id))).map((row) => row.id);
       return { ...capabilityLabel(id), rows: coveringRows, gap: coveringRows.length === 0 };
     });
-    return { id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, kind, retired, successors: fieldValues(capability, "Retired").map(capabilityLabel), needs: fieldValues(capability, "Needs").map(capabilityLabel), deliverables, binds, features: capabilityFeatures.map((feature) => feature.id) };
+    let artifactFeatures = null;
+    if (!retired && kind === "product") {
+      const deliverableSet = new Set(fieldValues(capability, "Deliverables"));
+      artifactFeatures = { label: "Features with no deliverable", items: features.filter((feature) => feature.capability.id === capability.id && liveFeature(feature) && !feature.ownRowIds.some((id) => deliverableSet.has(id))).map(featureArtifactItem) };
+    } else if (!retired && kind === "constraint") {
+      artifactFeatures = { label: "Artifacts of this constraint's features", items: features.filter((feature) => feature.capability.id === capability.id && liveFeature(feature)).map(featureArtifactItem) };
+    }
+    return { id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, kind, retired, successors: fieldValues(capability, "Retired").map(capabilityLabel), needs: fieldValues(capability, "Needs").map(capabilityLabel), deliverables, binds, artifactFeatures, features: capabilityFeatures.map((feature) => feature.id) };
   }).sort((left, right) => {
     const group = (capability) => capability.retired ? 3 : capability.kind === "product" ? 0 : capability.kind === null ? 1 : 2;
     return group(left) - group(right);

@@ -76,7 +76,6 @@
 - Deliverable lines (park-honestly, final review): R-2730's git call does not use the test file's clean environment. A suite started from inside a git hook would inherit the hook's git variables and list the wrong index.
 - Artifact registry (artifact-registry, plan): the checker reads home, other-project, git-ref and CI locations for shape and writer only. A stale location in those classes passes.
 - Artifact registry (artifact-registry, plan): a regroup's owner page does not show artifact entries, and a split sends all of a feature's entries to one successor.
-- Artifact registry (artifact-registry, plan): until the page lane lands, the page shows one artifact per claim. Home, other-project, ref and CI entries read "age unknown: not tracked at HEAD".
-- Artifact registry (artifact-registry, plan): until the page lane lands, a glob entry resolves to no artifact, so its claim shows "no artifact named".
 - Artifact registry (artifact-registry, plan): four Claude-folder entries name ~/.claude, but the code follows CLAUDE_CONFIG_DIR when it is set.
+- Artifact registry (artifact-registry, final review): no fixture test pins the note for a plain-path third part beside a registry. Only R-2784's repository test reads it, so seat pair 19 survives.
 - Artifact registry (artifact-registry, plan): feature Reads lines wait for the feature-line lane. A deliverable's Read by paths stay the only record of who reads an artifact.
