@@ -125,6 +125,39 @@ function productLedger(artifacts) {
     "## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", ...registry, "", table(rows.map((id) => [id, "implemented"])).trimEnd(),
   ].join("\n");
 }
+function artifactFlowLedger() {
+  return [
+    "# CAP-10 · Earlier readers", "Purpose: read later artifacts.", "Outcome: later artifacts are consumed.", "Kind: product", "",
+    "## FEAT-100 · First reader", "Purpose: read several artifacts.", "Status: active", "Reads: A-001 · REQUIREMENTS.md", "Reads: A-002 · HANDOFF.md", "Reads: A-004 · REQUIREMENTS.md", "Reads: A-010 · HANDOFF.md", "Reads: A-011 · REQUIREMENTS.md", "Reads: A-999 · REQUIREMENTS.md\t", "", table([["R-1000", "implemented"]]).trimEnd(), "",
+    "## FEAT-101 · Second reader", "Purpose: share a capability read.", "Status: active", "Reads: A-001 · HANDOFF.md", "", table([["R-1001", "implemented"]]).trimEnd(), "",
+    "# CAP-11 · Other readers", "Purpose: read artifacts elsewhere.", "Outcome: another capability consumes artifacts.", "Kind: product", "",
+    "## FEAT-110 · Third reader", "Purpose: read one artifact.", "Status: active", "Reads: A-001 · REQUIREMENTS.md", "", table([["R-1100", "implemented"]]).trimEnd(), "",
+    "# CAP-12 · Makers", "Purpose: make registered artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-1200, R-1201, R-1202, R-1203, R-1204, R-1205, R-1206",
+    "Made by: R-1200 · build: REQUIREMENTS.md · A-001", "Read by: R-1200 · code: REQUIREMENTS.md",
+    "Made by: R-1201 · manual: fixture input · built from: A-002", "Read by: R-1201 · code: REQUIREMENTS.md",
+    "Made by: R-1202 · manual: retired fixture · A-004", "Read by: R-1202 · code: REQUIREMENTS.md",
+    "Made by: R-1203 · manual: fixture input · built from: A-005", "Read by: R-1203 · person: fixture person",
+    "Made by: R-1204 · manual: fixture output · A-006", "Read by: R-1204 · code: REQUIREMENTS.md",
+    "Made by: R-1205 · manual: fixture input · built from: A-007", "Read by: R-1205 · prompt: HANDOFF.md",
+    "Made by: R-1206 · manual: fixture input · built from: A-009", "Read by: R-1206 · rule: fixture rule", "",
+    "## FEAT-120 · Maker feature", "Purpose: register most artifacts.", "Status: active",
+    "Artifact: A-001 · automatic output · tracked: REQUIREMENTS.md · build: REQUIREMENTS.md",
+    "Artifact: A-002 · manual source · other project: <project>/source.txt · manual: another tool writes it",
+    "Artifact: A-004 · retired output · retired: replaced by A-001",
+    "Artifact: A-005 · person source · user-home store: ~/person.txt · manual: a person writes it",
+    "Artifact: A-006 · code source · other project: <project>/code.txt · manual: a hand-run command writes it",
+    "Artifact: A-007 · prompt source · user-home store: ~/prompt.txt · manual: an editor writes it",
+    "Artifact: A-008 · orphan record · tracked: HANDOFF.md · manual: a person maintains it",
+    "Artifact: A-009 · rule source · other project: <project>/rule.txt · manual: a person writes it",
+    "Artifact: A-010 · read-only output · tracked: REQUIREMENTS.md · build: REQUIREMENTS.md",
+    "Artifact: A-011 · manual read-only source · other project: <project>/read-only.txt · manual: another tool writes it",
+    "Reads: A-003 · REQUIREMENTS.md  ", "", table([["R-1200", "implemented"], ["R-1201", "implemented"], ["R-1202", "implemented"], ["R-1203", "implemented"], ["R-1204", "implemented"], ["R-1205", "implemented"], ["R-1206", "implemented"]]).trimEnd(), "",
+    "## FEAT-121 · Internal maker", "Purpose: make an internally read artifact.", "Status: active", "Artifact: A-003 · internal output · tracked: HANDOFF.md · build: REQUIREMENTS.md", "", table([["R-1210", "implemented"]]).trimEnd(),
+  ].join("\r\n");
+}
+function noArtifactRegistryLedger() {
+  return ["# CAP-13 · Empty product", "Purpose: hold no artifacts.", "Outcome: no artifact is registered.", "Kind: product", "", "## FEAT-130 · Empty feature", "Purpose: register nothing.", "Status: active", "", table([["R-1300", "implemented"]]).trimEnd()].join("\n");
+}
 function historyFixture(name, artifacts, date = "2026-01-01T00:00:00Z", parent = temp) {
   const root = path.join(parent, name);
   fs.mkdirSync(root, { recursive: true });
@@ -1467,6 +1500,83 @@ try {
     check("R-2794: each capability card lists its features with no deliverable and their artifacts, never as a deliverable note",
       productCard?.textContent.includes("Features with no deliverable:") && productList.includes("FEAT-941 · Supporting active: A-002 · support") && productList.includes("FEAT-942 · Supporting frozen: makes no registered artifact") && !productList.includes("FEAT-940 · Home:") && !productList.includes("A-003") && !productList.includes("FEAT-943") && constraintCard?.textContent.includes("Artifacts of this constraint's features:") && constraintList.includes("FEAT-950 · Constraint feature: A-004 · constraint evidence") && !kindlessCard?.textContent.includes("Features with no deliverable:") && !retiredCard?.textContent.includes("Features with no deliverable:") && noRegistryList.includes("FEAT-980 · Empty: no artifact registry") && newListNodes.length > 0 && newListNodes.every((node) => !node.textContent.startsWith("deliverable note:")),
       JSON.stringify({ productList, constraintList, kindless: kindlessCard?.textContent, retired: retiredCard?.textContent, noRegistryList }));
+  });
+  await withinCaseLimit("R-2799", async () => {
+    const repo = treeFixture("artifact-flow-cards", artifactFlowLedger());
+    const out = path.join(temp, "artifact-flow-cards.html");
+    await generateReport({ root: repo.root, out });
+    const html = fs.readFileSync(out, "utf8");
+    const artifacts = renderHtmlAt(html, "#artifacts");
+    const product = renderHtmlAt(html, "#product");
+    const cards = artifacts.root.children.filter((node) => node.attrs?.class === "artifact-entry-card");
+    const headings = cards.map((card) => card.children.find((node) => node.tag === "h3")?.textContent);
+    const card = (id) => cards.find((item) => item.children.some((node) => node.tag === "h3" && node.textContent.startsWith(`${id} · `)));
+    const a1 = card("A-001");
+    const a2 = card("A-002");
+    const a8 = card("A-008");
+    const a1ProductAge = renderedArtifactLines(product).find((line) => line.startsWith("artifact A-001 · automatic output · "))?.slice("artifact A-001 · automatic output · ".length);
+    const a1CardAge = a1?.children.find((node) => node.textContent.startsWith("Age: "))?.textContent.slice("Age: ".length);
+    const noRegistry = treeFixture("artifact-flow-no-registry", noArtifactRegistryLedger());
+    const noRegistryOut = path.join(temp, "artifact-flow-no-registry.html");
+    await generateReport({ root: noRegistry.root, out: noRegistryOut });
+    const emptyArtifacts = renderHtmlAt(fs.readFileSync(noRegistryOut, "utf8"), "#artifacts");
+    const navLabels = artifacts.root.children.find((node) => node.tag === "nav")?.children.map((node) => node.textContent) ?? [];
+    const emptyText = emptyArtifacts.nodes.map((node) => node.textContent ?? node.text ?? "").join(" ");
+    // req: R-2799
+    check("R-2799: the artifacts view shows a card per live entry with its class, location, age, maker, reading features and deliverables",
+      JSON.stringify(headings) === JSON.stringify(["A-001 · automatic output", "A-002 · manual source", "A-003 · internal output", "A-005 · person source", "A-006 · code source", "A-007 · prompt source", "A-008 · orphan record", "A-009 · rule source", "A-010 · read-only output", "A-011 · manual read-only source"]) &&
+      !card("A-004") && a1?.textContent.includes("Class: tracked: REQUIREMENTS.md") && a1?.textContent.includes("Made in: FEAT-120 · Maker feature · build: REQUIREMENTS.md") && ["FEAT-100", "FEAT-101", "FEAT-110"].every((id) => a1?.textContent.includes(`Read in: ${id} ·`)) && a1?.textContent.includes("Deliverable: R-1200 · names it") && a2?.textContent.includes("Deliverable: R-1201 · built from it") && a8?.textContent.includes("Age: last changed") && a1CardAge === a1ProductAge && JSON.stringify(navLabels.slice(0, 3)) === JSON.stringify(["Decisions", "Product", "Artifacts"]) && emptyText.includes("no artifact registry") && !emptyArtifacts.nodes.some((node) => node.attrs?.class === "artifact-entry-card"),
+      JSON.stringify({ headings, a1: a1?.textContent, a2: a2?.textContent, a8: a8?.textContent, a1CardAge, a1ProductAge, navLabels, emptyText }));
+  });
+  await withinCaseLimit("R-2800", async () => {
+    const repo = treeFixture("artifact-flow-lines", artifactFlowLedger());
+    const out = path.join(temp, "artifact-flow-lines.html");
+    await generateReport({ root: repo.root, out });
+    const artifacts = renderHtmlAt(fs.readFileSync(out, "utf8"), "#artifacts");
+    const headings = artifacts.nodes.filter((node) => node.attrs?.class === "artifact-flow-pair").map((node) => node.textContent);
+    const lines = artifacts.nodes.filter((node) => node.attrs?.class === "artifact-flow-line").map((node) => node.textContent);
+    const cli = spawnSync(process.execPath, [path.join(ROOT, "scripts/requirements-tree.mjs"), "--root", repo.root], { cwd: ROOT, encoding: "utf8", timeout: CASE_LIMIT_MS });
+    // req: R-2800
+    check("R-2800: the flow lists one line per cross-capability read with its run, and a read toward an earlier capability adds no mark and no tree problem",
+      JSON.stringify(headings) === JSON.stringify(["CAP-12 · Makers → CAP-10 · Earlier readers", "CAP-12 · Makers → CAP-11 · Other readers"]) &&
+      lines.includes("build · A-001 · automatic output · FEAT-120 → FEAT-100, FEAT-101") && lines.includes("manual · A-002 · manual source · FEAT-120 → FEAT-100") && lines.includes("build · A-001 · automatic output · FEAT-120 → FEAT-110") && lines.filter((line) => line.includes("A-001")).length === 2 && !lines.some((line) => /A-003|A-004|A-999|stage order|against/.test(line)) && cli.status === 0 && cli.stderr === "",
+      JSON.stringify({ headings, lines, status: cli.status, stderr: cli.stderr, stdout: cli.stdout }));
+  });
+  await withinCaseLimit("R-2801", async () => {
+    const repo = treeFixture("artifact-flow-lists", artifactFlowLedger());
+    const out = path.join(temp, "artifact-flow-lists.html");
+    await generateReport({ root: repo.root, out });
+    const artifacts = renderHtmlAt(fs.readFileSync(out, "utf8"), "#artifacts");
+    const first = artifacts.nodes.find((node) => node.attrs?.class === "artifact-list-unread");
+    const second = artifacts.nodes.find((node) => node.attrs?.class === "artifact-list-manual");
+    const firstItems = first?.children.map((node) => node.textContent) ?? [];
+    const secondItems = second?.children.map((node) => node.textContent) ?? [];
+    const artifactText = artifacts.nodes.map((node) => node.textContent ?? node.text ?? "").join(" ");
+    // req: R-2801
+    check("R-2801: the artifacts view lists the artifacts no other feature reads and the ones code reads but no nana run makes",
+      artifactText.includes("Artifacts no other feature reads and no deliverable names") && artifactText.includes("Its maker or a person may still read it.") && JSON.stringify(firstItems) === JSON.stringify(["A-008 · orphan record"]) &&
+      artifactText.includes("Read by code, made by no nana run") && JSON.stringify(secondItems) === JSON.stringify(["A-002 · manual source · other project · manual: another tool writes it", "A-006 · code source · other project · manual: a hand-run command writes it", "A-007 · prompt source · user-home store · manual: an editor writes it", "A-011 · manual read-only source · other project · manual: another tool writes it"]) && !secondItems.some((item) => /A-001|A-005|A-009/.test(item)) && secondItems.every((item) => item.includes("manual: ")),
+      JSON.stringify({ firstItems, secondItems, artifactText }));
+  });
+  await withinCaseLimit("R-2802", async () => {
+    const repo = treeFixture("artifact-flow-feature-detail", artifactFlowLedger());
+    const out = path.join(temp, "artifact-flow-feature-detail.html");
+    await generateReport({ root: repo.root, out });
+    const html = fs.readFileSync(out, "utf8");
+    const maker = renderHtmlAt(html, "#FEAT-120");
+    const reader = renderHtmlAt(html, "#FEAT-100");
+    const makerLines = maker.nodes.filter((node) => node.attrs?.class === "feature-artifact-line").map((node) => node.textContent);
+    const readerLines = reader.nodes.filter((node) => node.attrs?.class === "feature-artifact-line").map((node) => node.textContent);
+    const noRegistry = treeFixture("artifact-flow-detail-no-registry", noArtifactRegistryLedger());
+    const noRegistryOut = path.join(temp, "artifact-flow-detail-no-registry.html");
+    await generateReport({ root: noRegistry.root, out: noRegistryOut });
+    const empty = renderHtmlAt(fs.readFileSync(noRegistryOut, "utf8"), "#FEAT-130");
+    const emptyLines = empty.nodes.filter((node) => node.attrs?.class === "feature-artifact-line").map((node) => node.textContent);
+    // req: R-2802
+    check("R-2802: each feature's detail shows the artifacts it registers and the ones it reads with their makers",
+      makerLines[0]?.startsWith("Registers: A-001 · automatic output, A-002 · manual source") && !makerLines[0]?.includes("A-004") && makerLines[1] === "Reads: A-003 · internal output · made in FEAT-121" &&
+      readerLines[0] === "Registers: none" && readerLines[1]?.includes("A-001 · automatic output · made in FEAT-120") && readerLines[1]?.includes("A-002 · manual source · made in FEAT-120") && readerLines[1]?.includes("A-004 · no live entry") && readerLines[1]?.includes("A-999 · no live entry") && JSON.stringify(emptyLines) === JSON.stringify(["Registers: no artifact registry", "Reads: no artifact registry"]),
+      JSON.stringify({ makerLines, readerLines, emptyLines }));
   });
   await withinCaseLimit("R-2544", async () => {
     const lastChanged = "last changed";

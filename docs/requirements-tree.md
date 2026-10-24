@@ -274,7 +274,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Artifacts: A-029
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
-  Parent: — · Rows: 432 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, R-2450–R-2454, R-2460, R-2480–R-2486, R-2511–R-2516, R-2518–R-2555, R-2631–R-2635, R-2637–R-2643, R-2656–R-2659, R-2661, R-2663, R-2666–R-2670, R-2730, R-2740–R-2745, R-2753, R-2780–R-2787, R-2790–R-2798, G-001–G-022
+  Parent: — · Rows: 436 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, R-2450–R-2454, R-2460, R-2480–R-2486, R-2511–R-2516, R-2518–R-2555, R-2631–R-2635, R-2637–R-2643, R-2656–R-2659, R-2661, R-2663, R-2666–R-2670, R-2730, R-2740–R-2745, R-2753, R-2780–R-2787, R-2790–R-2802, G-001–G-022
   Kind: product
   Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239, R-2547, R-2632
   - **FEAT-028 · Maintain requirement identity and trace links**
@@ -322,7 +322,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on the owner, from the repo at any commit from its first build on.
     Status: active
     Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
-    Parent: CAP-07 · Rows: 59 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454, R-2542–R-2545, R-2642, R-2740–R-2745, R-2790–R-2794
+    Parent: CAP-07 · Rows: 63 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454, R-2542–R-2545, R-2642, R-2740–R-2745, R-2790–R-2794, R-2799–R-2802
     Artifacts: A-045, A-073
     Reads: A-003, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**

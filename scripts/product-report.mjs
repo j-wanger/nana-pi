@@ -3,7 +3,7 @@
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
  * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
- * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, feature artifact lists, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, an Artifacts flow, lists and entry cards, feature artifact detail lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
@@ -13,7 +13,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactRegistry, deliverableClaims, deliverableCodeState, deliverableReport } from "./deliverables.mjs";
+import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactReads, artifactRegistry, deliverableClaims, deliverableCodeState, deliverableReport } from "./deliverables.mjs";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
@@ -355,7 +355,7 @@ function featureStamp(parsed, feature, commit) {
 
 export function renderInto(document, model, { hash = "" } = {}) {
   const root = document.getElementById("report");
-  const views = { "": "decisions", "#decisions": "decisions", "#product": "product", "#features": "features", "#shared": "shared", "#issues": "issues", "#requirements": "requirements" };
+  const views = { "": "decisions", "#decisions": "decisions", "#product": "product", "#artifacts": "artifacts", "#features": "features", "#shared": "shared", "#issues": "issues", "#requirements": "requirements" };
   const view = Object.prototype.hasOwnProperty.call(views, hash) ? views[hash] : Object.prototype.hasOwnProperty.call(Object.fromEntries(model.features.map((feature) => [`#${feature.id}`, feature])), hash) ? "detail" : "decisions";
   const feature = view === "detail" ? model.features.find((item) => `#${item.id}` === hash) : null;
   const el = (tag, value, parent) => { const node = document.createElement(tag); if (value !== undefined) node.appendChild(document.createTextNode(String(value ?? ""))); if (parent) parent.appendChild(node); return node; };
@@ -368,6 +368,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
   const paragraph = (parent, label, value, className) => { const p = el("p", undefined, parent); if (className) cls(p, className); if (label) text(p, `${label}: `); text(p, value); return p; };
   const textList = (parent, label, values) => { paragraph(parent, label, ""); const list = el("ul", undefined, parent); for (const value of values) { const item = el("li", undefined, list); text(item, value); } return list; };
   const featureLink = (parent, id, label = id) => { const a = el("a", label, parent); a.setAttribute("href", `#${id}`); return a; };
+  const renderSegments = (parent, segments) => { for (const segment of segments ?? []) { if (segment.feature) featureLink(parent, segment.feature.id, segment.feature.label); else text(parent, segment.text); } return parent; };
   const countBar = (parent, item) => {
     const wrap = el("div", undefined, parent); cls(wrap, "counts"); const bar = el("div", undefined, wrap); cls(bar, "status-bar"); bar.setAttribute("role", "img"); bar.setAttribute("aria-label", "Requirement status counts");
     for (const status of ["implemented", "untested", "planned", "violated", "retired"]) { const amount = item.counts?.[status] ?? 0; const segment = el("span", undefined, bar); cls(segment, `status-segment status-${status}`); segment.setAttribute("style", `flex-grow:${amount}`); segment.setAttribute("aria-hidden", "true"); }
@@ -397,10 +398,10 @@ export function renderInto(document, model, { hash = "" } = {}) {
     return card;
   };
   root.replaceChildren();
-  const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ decisions: "Decisions", product: "Product", features: "Features", shared: "Shared", issues: "Issues", requirements: "Requirements" })[view];
+  const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ decisions: "Decisions", product: "Product", artifacts: "Artifacts", features: "Features", shared: "Shared", issues: "Issues", requirements: "Requirements" })[view];
   el("h1", "Nana pi product ledger", root); paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
   const nav = el("nav", undefined, root); cls(nav, "tabs");
-  for (const [label, target, key] of [["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Features", "#features", "features"], ["Shared", "#shared", "shared"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
+  for (const [label, target, key] of [["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Artifacts", "#artifacts", "artifacts"], ["Features", "#features", "features"], ["Shared", "#shared", "shared"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
   const viewHeading = el("h2", title, root);
   if (view === "decisions") {
     for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
@@ -446,10 +447,30 @@ export function renderInto(document, model, { hash = "" } = {}) {
     for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } }
     }
   }
+  if (view === "artifacts") {
+    if (!model.artifacts?.hasRegistry) paragraph(root, "", model.artifacts?.emptyText);
+    else {
+      for (const group of model.artifacts.flowGroups) {
+        const heading = el("h3", group.heading, root); cls(heading, "artifact-flow-pair");
+        const list = el("ul", undefined, root);
+        for (const flow of group.lines) { const item = el("li", undefined, list); cls(item, "artifact-flow-line"); renderSegments(item, flow.segments); }
+      }
+      for (const listModel of model.artifacts.lists) {
+        el("h3", listModel.heading, root);
+        if (listModel.note) paragraph(root, "", listModel.note);
+        const list = el("ul", undefined, root); cls(list, listModel.className);
+        for (const value of listModel.items) { const item = el("li", undefined, list); text(item, value); }
+      }
+      for (const entry of model.artifacts.cards) {
+        const card = el("article", undefined, root); cls(card, "artifact-entry-card"); el("h3", entry.heading, card);
+        for (const line of entry.lines) { const p = el("p", undefined, card); renderSegments(p, line.segments); }
+      }
+    }
+  }
   if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
     const status = el("span", feature.status, viewHeading); cls(status, "feature-status");
-    paragraph(root, "Purpose", feature.purpose); paragraph(root, "Capability", `${feature.capability.id} · ${feature.capability.label}${feature.capability.kind ? ` · ${feature.capability.kind}` : ""}`); const badge = el("p", feature.assessmentState === "current" ? "current — matches the stamped ledger, not rechecked against later decisions" : feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
+    paragraph(root, "Purpose", feature.purpose); paragraph(root, "Capability", `${feature.capability.id} · ${feature.capability.label}${feature.capability.kind ? ` · ${feature.capability.kind}` : ""}`); for (const line of feature.artifactLines ?? []) { const p = el("p", undefined, root); cls(p, "feature-artifact-line"); renderSegments(p, line.segments); } const badge = el("p", feature.assessmentState === "current" ? "current — matches the stamped ledger, not rechecked against later decisions" : feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
     if (feature.assessment) {
       const assessment = feature.assessment; paragraph(root, "What it does", assessment.what_it_does);
       paragraph(root, "Maturity", `${assessment.maturity} — ${assessment.maturity_reason}`);
@@ -663,8 +684,9 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const capabilityHeadings = parsed.headings.filter((heading) => heading.id.startsWith("CAP-"));
   const capabilityById = new Map(capabilityHeadings.map((capability) => [capability.id, capability]));
   const registry = artifactRegistry(parsed, null);
+  const reads = artifactReads(parsed, null, registry);
   const claimsByCapability = new Map(capabilityHeadings.map((capability) => [capability, deliverableClaims(parsed, capability, registry)]));
-  const artifactDescriptors = new Map();
+  const artifactDescriptors = new Map(registry.entries.filter((entry) => entry.live).map((entry) => [`registry:${entry.id}`, { ...entry, key: `registry:${entry.id}` }]));
   for (const claims of claimsByCapability.values()) {
     for (const rowClaims of claims.values()) for (const claim of rowClaims) {
       for (const id of claim.registryIds) {
@@ -677,7 +699,27 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const ages = artifactAges({ artifacts: [...artifactDescriptors.values()], root, gitRunner, trackedPaths, runtimeData, runtimeReason });
   const fieldValues = (capability, field) => (capability.capabilityFields?.[field] ?? []).flatMap(({ value }) => field === "Kind" ? [value] : value.split(/,\s*/));
   const featureHeadings = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-"));
+  const featureHeadingById = new Map(featureHeadings.map((feature) => [feature.id, feature]));
   const featureCapability = (feature) => { for (let heading = feature.parent; heading; heading = heading.parent) if (heading.id.startsWith("CAP-")) return heading; return null; };
+  const featureSegment = (id, label = id) => ({ feature: { id, label } });
+  const featureArtifactLines = (feature) => {
+    if (registry.fieldLineCount === 0) return [{ segments: [{ text: "Registers: no artifact registry" }] }, { segments: [{ text: "Reads: no artifact registry" }] }];
+    const registered = registry.entries.filter((entry) => entry.live && entry.featureId === feature.id).sort((left, right) => left.id.localeCompare(right.id));
+    const registerText = registered.length ? registered.map((entry) => `${entry.id} · ${entry.name}`).join(", ") : "none";
+    const readEntries = reads.byFeature.get(feature.id) ?? [];
+    const readSegments = [{ text: "Reads: " }];
+    if (!readEntries.length) readSegments.push({ text: "none" });
+    else readEntries.forEach((item, index) => {
+      if (index) readSegments.push({ text: ", " });
+      const entry = registry.byId.get(item.id);
+      if (!entry?.live) readSegments.push({ text: `${item.id} · no live entry` });
+      else {
+        readSegments.push({ text: `${item.id} · ${entry.name} · made in ` });
+        readSegments.push(featureSegment(entry.featureId));
+      }
+    });
+    return [{ segments: [{ text: `Registers: ${registerText}` }] }, { segments: readSegments }];
+  };
   const features = featureHeadings.map((feature) => {
     const ownHeadings = descendants(parsed, feature);
     const ownRows = rows.filter((row) => ownHeadings.includes(row.heading));
@@ -703,7 +745,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
     const capability = featureCapability(feature);
     const kind = fieldValues(capability, "Kind")[0] ?? null;
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, assessmentState, assessment, differences, counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, artifactLines: featureArtifactLines(feature), assessmentState, assessment, differences, counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
   });
   const capabilityLabel = (id) => ({ id, label: capabilityById.get(id)?.label ?? id });
   const featureLabel = (feature) => ({ id: feature.id, label: feature.label });
@@ -772,6 +814,87 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const group = (capability) => capability.retired ? 3 : capability.kind === "product" ? 0 : capability.kind === null ? 1 : 2;
     return group(left) - group(right);
   });
+  const deliverableReferences = new Map();
+  for (const claimsByRow of claimsByCapability.values()) for (const [rowId, rowClaims] of claimsByRow) {
+    const readByCode = deliverableCodeState(rowClaims).readByCode;
+    for (const claim of rowClaims) {
+      if (claim.label !== "Made by" || !claim.registryKind) continue;
+      for (const id of claim.registryIds) {
+        if (!deliverableReferences.has(id)) deliverableReferences.set(id, new Map());
+        const byRow = deliverableReferences.get(id);
+        const existing = byRow.get(rowId);
+        const kind = claim.registryKind === "artifact" ? "names it" : "built from it";
+        if (!existing || kind === "names it") byRow.set(rowId, { rowId, kind, readByCode });
+      }
+    }
+  }
+  const referencesFor = (id) => [...(deliverableReferences.get(id)?.values() ?? [])];
+  let artifacts;
+  if (registry.fieldLineCount === 0) {
+    artifacts = { hasRegistry: false, emptyText: "no artifact registry", flowGroups: [], lists: [], cards: [] };
+  } else {
+    const liveEntries = registry.entries.filter((entry) => entry.live).sort((left, right) => left.id.localeCompare(right.id));
+    const capabilityOrder = new Map(capabilities.map((capability, index) => [capability.id, index]));
+    const featureOrder = new Map(featureHeadings.map((feature, index) => [feature.id, index]));
+    const flowEntries = [];
+    for (const entry of liveEntries) {
+      const byReaderCapability = new Map();
+      for (const read of reads.reads.filter((item) => item.id === entry.id && item.capabilityId !== entry.capabilityId)) {
+        if (!byReaderCapability.has(read.capabilityId)) byReaderCapability.set(read.capabilityId, new Set());
+        byReaderCapability.get(read.capabilityId).add(read.featureId);
+      }
+      for (const [readerCapabilityId, readerFeatureIds] of byReaderCapability) {
+        flowEntries.push({ entry, makerCapabilityId: entry.capabilityId, readerCapabilityId, readerFeatureIds: [...readerFeatureIds].sort((left, right) => featureOrder.get(left) - featureOrder.get(right)) });
+      }
+    }
+    flowEntries.sort((left, right) => (capabilityOrder.get(left.makerCapabilityId) ?? Infinity) - (capabilityOrder.get(right.makerCapabilityId) ?? Infinity) || (capabilityOrder.get(left.readerCapabilityId) ?? Infinity) - (capabilityOrder.get(right.readerCapabilityId) ?? Infinity) || left.entry.id.localeCompare(right.entry.id));
+    const flowGroups = [];
+    for (const flow of flowEntries) {
+      const key = `${flow.makerCapabilityId}\0${flow.readerCapabilityId}`;
+      let group = flowGroups.find((candidate) => candidate.key === key);
+      if (!group) {
+        const makerCapability = capabilityById.get(flow.makerCapabilityId);
+        const readerCapability = capabilityById.get(flow.readerCapabilityId);
+        group = { key, heading: `${makerCapability.id} · ${makerCapability.label} → ${readerCapability.id} · ${readerCapability.label}`, lines: [] };
+        flowGroups.push(group);
+      }
+      const segments = [{ text: `${flow.entry.run} · ${flow.entry.id} · ${flow.entry.name} · ` }, featureSegment(flow.entry.featureId), { text: " → " }];
+      flow.readerFeatureIds.forEach((id, index) => { if (index) segments.push({ text: ", " }); segments.push(featureSegment(id)); });
+      group.lines.push({ segments });
+    }
+    const readIds = new Set(reads.reads.map((read) => read.id));
+    const unreferenced = liveEntries.filter((entry) => !readIds.has(entry.id) && referencesFor(entry.id).length === 0).map((entry) => `${entry.id} · ${entry.name}`);
+    const manualCodeReads = liveEntries.filter((entry) => entry.run === "manual" && (readIds.has(entry.id) || referencesFor(entry.id).some((reference) => reference.readByCode))).map((entry) => `${entry.id} · ${entry.name} · ${entry.className} · manual: ${entry.reason}`);
+    const cards = liveEntries.map((entry) => {
+      const maker = featureHeadingById.get(entry.featureId);
+      const makerDetail = entry.run === "manual" ? entry.reason : entry.writers.join(", ");
+      const lines = [
+        { segments: [{ text: `Class: ${entry.className}: ${entry.location}` }] },
+        { segments: [{ text: `Age: ${ages.get(`registry:${entry.id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` }] },
+        { segments: [{ text: "Made in: " }, featureSegment(entry.featureId, `${entry.featureId} · ${maker.label}`), { text: ` · ${entry.run}: ${makerDetail}` }] },
+      ];
+      const entryReads = reads.reads.filter((read) => read.id === entry.id);
+      if (!entryReads.length) lines.push({ segments: [{ text: "Read in: none" }] });
+      else for (const read of entryReads) {
+        const reader = featureHeadingById.get(read.featureId);
+        lines.push({ segments: [{ text: "Read in: " }, featureSegment(read.featureId, `${read.featureId} · ${reader.label}`), { text: ` · ${read.readers.join(", ")}` }] });
+      }
+      const entryReferences = referencesFor(entry.id);
+      if (!entryReferences.length) lines.push({ segments: [{ text: "Deliverable: none" }] });
+      else for (const reference of entryReferences) lines.push({ segments: [{ text: `Deliverable: ${reference.rowId} · ${reference.kind}` }] });
+      return { heading: `${entry.id} · ${entry.name}`, lines };
+    });
+    artifacts = {
+      hasRegistry: true,
+      emptyText: null,
+      flowGroups: flowGroups.map(({ heading, lines }) => ({ heading, lines })),
+      lists: [
+        { heading: "Artifacts no other feature reads and no deliverable names", note: "Its maker or a person may still read it.", className: "artifact-list-unread", items: unreferenced },
+        { heading: "Read by code, made by no nana run", note: null, className: "artifact-list-manual", items: manualCodeReads },
+      ],
+      cards,
+    };
+  }
   const violated = rows.filter((row) => row.status === "violated");
   // R-1650..R-1655: implemented rows this clone's last measured run did not pass, in ledger order
   // and without duplicates (rows is the ledger's own flat, already-deduplicated row list).
@@ -779,7 +902,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
   // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
   const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
-  const model = { commit, date, clean: !dirty, deliverableLines, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 

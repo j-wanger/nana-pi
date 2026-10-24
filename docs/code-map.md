@@ -664,7 +664,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
 - **inputs** — REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
-- **outputs** — A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, feature artifact lists, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+- **outputs** — A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, an Artifacts flow, lists and entry cards, feature artifact detail lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/test-locked.mjs`
