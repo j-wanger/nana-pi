@@ -105,6 +105,7 @@ Read by: R-217 · prompt: packages/nana-knowledge/bin/nana-knowledge.ts
 Read by: R-217 · prompt: packages/nana-knowledge/extensions/nana-knowledge.ts
 Made by: R-749 · manual: the writing rule tells each report's writer to run nana-writing --report on its text before sending
 Read by: R-749 · rule: the writing rule tells the writer to fix each finding or say why it stays; no code reads or keeps the summary line
+Parked: R-749 · since 2026-10-23: the owner parked it for now; the suite checks HANDOFF's live sections through the library, not this summary line, and no run checks a report sent in a session; a lane that runs the check on the seat's reports deletes this line
 
 ## FEAT-001 · Keep goals and priorities in view
 Purpose: Provide the governing project objective and preserve its precedence over background context.
@@ -434,6 +435,7 @@ Made by: R-1400 · manual: the owner runs nana-roster set by hand to change this
 Read by: R-1400 · code: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/bin/nana-roster.mjs
 Read by: R-1400 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs
 Read by: R-1400 · rule: the working pattern tells the seat to take the reviewer and land models from the roster; pi-review does not read those slots
+Parked: R-1400 · since 2026-10-23: the roster is the owner's choice of models, so no run should write it, and code already reads it; an owner decision that lets a run set the roster deletes this line
 Made by: R-1008 · review: packages/nana-pack/bin/pi-review.mjs, packages/nana-pack/bin/review-ledger.mjs, packages/nana-pack/bin/review-round.mjs
 Read by: R-1008 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/review-round.mjs, packages/nana-pack/bin/review-timeline.mjs
 Made by: R-1560 · manual: someone runs review-timeline by hand; no brief, land step or hook calls it
@@ -441,7 +443,7 @@ Read by: R-1560 · person: the seat reads it when it runs the command
 Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs
 Read by: R-977 · person: the seat reads the success report and pushes main by hand, as the 2026-10-11 ruling says
 Read by: R-977 · code: .github/workflows/ci.yml
-Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs
+Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs · build-records
 Read by: R-2597 · code: packages/nana-pack/bin/build-report.mjs, packages/nana-pack/bin/pi-worker.mjs
 
 ## FEAT-006 · Launch builders with execution limits
@@ -993,6 +995,7 @@ Purpose: Install the toolkit, adopt projects, diagnose its environment and manag
 Outcome: A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.
 Kind: product
 Deliverables: R-301, R-327, R-1150, R-341, R-1070, R-596
+Made by: R-301 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs
 Made by: R-301 · manual: the owner runs nana-setup install by hand; the symlinks carry edits to an existing hook or rule, but nothing links a new or renamed one
 Read by: R-301 · code: packages/nana-setup/claude/hooks/nana-adoption.mjs, packages/nana-setup/bin/stale-copies.mjs, packages/nana-setup/lib/stale-copies.mjs, packages/nana-setup/lib/hook-health.mjs
 Made by: R-327 · manual: someone runs nana-setup project by hand once per project
@@ -1000,6 +1003,8 @@ Read by: R-327 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
 Read by: R-327 · prompt: packages/nana-pack/extensions/nana-objective.ts
 Read by: R-327 · code: packages/nana-pack/lib/adoption.mjs
 Read by: R-327 · prompt: packages/nana-pack/extensions/nana-frontier-summary.ts
+Parked: R-327 · since 2026-10-23: the seeds are written once, when the owner adopts a project, and the session-start frontier block reads them; nothing reseeds them; a run that reseeds projects deletes this line
+Made by: R-1150 · CI: .github/workflows/ci.yml, scripts/template-release.mjs, scripts/template-acceptance.mjs
 Made by: R-1150 · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand
 Read by: R-1150 · code: templates/python/template/tests/conftest.py, templates/typescript/template/tests/requirements-trace.ts
 Read by: R-1150 · rule: the requirements skill tells agents to run nana-pi's tree checker on the project by hand; no rendered project wires it in
@@ -2001,19 +2006,22 @@ Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs
 Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes
 Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says
 Read by: R-1460 · rule: AGENTS.md tells the seat to carry its output in the review brief and the land report; pi-review and nana-land neither run nor check it
-Made by: R-1014 · manual: someone runs npm run report and republishes the page by hand
-Read by: R-1014 · person: the owner reads the published page; no hook, check or session-start line reads the report or shows its age
+Made by: R-1014 · land: scripts/test-locked.mjs, scripts/product-report.mjs
+Made by: R-1014 · manual: the seat publishes the land-written page to the owner's copy by hand; no code can update that copy
+Read by: R-1014 · person: the owner reads the copy the seat publishes; no code reads the page
+Parked: R-1014 · since 2026-10-23: only a Claude session can publish the owner's copy, and no code reads or acts on the page; a session-start line that reads the land page deletes this line
 Made by: R-1272 · land: packages/nana-pack/bin/nana-land.mjs, scripts/test-locked.mjs, scripts/runtime-measure.mjs · runtime-map
 Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section
 Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module
-Read by: R-1272 · code: scripts/product-report.mjs
+Read by: R-1272 · code: scripts/code-map.mjs
 Made by: R-616 · suite: scripts/test.mjs
 Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs
 Read by: R-616 · code: packages/nana-pack/bin/nana-land.mjs, .github/workflows/ci.yml
 Read by: R-616 · person: whoever reads the terminal sees the per-file lines and totals; R-2547 keeps local seconds and R-2632 keeps CI seconds
 Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says
 Read by: R-1239 · person: the seat reads the record's result line after each run; no code reads the record, and no rule names it for the reviewer
-Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs
+Parked: R-1239 · since 2026-10-23: the record is the seat's own wrong-code check, which the seat writes and runs by hand, required in install, hook and gate lanes; a run that makes it and code that reads it delete this line
+Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs · suite-runs
 Read by: R-2547 · code: scripts/test-locked.mjs, packages/nana-pack/lib/suite-records.mjs
 Made by: R-2632 · CI: .github/workflows/ci.yml, scripts/test.mjs
 Read by: R-2632 · person: the seat runs scripts/ci-records.mjs by hand; no land step, hook or CI step runs it
@@ -2060,6 +2068,7 @@ Also applies: G-013, G-014, G-015
 | R-2640 | IF a `Parked:` line lacks the separator or has a third part, names a row its capability does not list, lacks `since` and a YYYY-MM-DD date before a colon, has no reason after that colon, or sits outside a live `Kind: product` capability, THEN the deliverable check shall report one note naming the row or the line in place of parking the row. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2640: an unreadable or misplaced Parked line gets one note and parks nothing` |
 | R-2641 | WHEN a deliverable with a readable `Parked:` line is one the count line counts as made and read by code, the deliverable check shall report one note naming the row and its first `Parked:` line, counting the row as made and read by code, not parked. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line` |
 | R-2643 | WHEN a row's `Parked:` lines differ between the base and the tip, the tree movement report shall list one entry for that row naming `Parked lines changed`. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2643: the movement report lists a row whose Parked line was added, removed or reworded` |
+| R-2730 | WHEN the suite runs, it shall fail on any deliverable note that the deliverable check reports for this repository's REQUIREMENTS.md against the repository's tracked files and its untracked files that git does not ignore. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files` |
 | R-1157 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157: --root checks another project's ledger, names its problems and writes no outline`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: a row outside its feature exits 1 naming it`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: --root <dir> --write exits 2 with usage` |
 | R-1158 | The tree checker shall report the same problems, at the same line numbers, for a ledger with CRLF line endings as for the same ledger with LF line endings. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` |
 | R-1159 | WHEN the tree checker reads a REQUIREMENTS.md that holds requirement rows but no capability or feature heading, it shall report one problem, which names the row count, says the ledger has no requirements tree yet and points to the requirements skill for the next step, in place of one problem per row. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with rows and no tree gets one line naming the row count and the next step`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it`, `packages/nana-pack/tests/product-report.test.mjs::a ledger with rows and no tree is refused with one problem line, not one per row` |
@@ -2497,7 +2506,7 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-1012 | WHEN the working tree, the origin remote and the runtime data are unchanged between them, two runs of the report command at the same commit shall write byte-identical product reports. | implemented | `packages/nana-pack/tests/product-report.test.mjs::same commit and tree produce byte-identical reports` |
+| R-1012 | WHEN the working tree, the origin remote, the runtime data, the suite records and the build records are unchanged between them, two runs of the report command at the same commit shall write byte-identical product reports. | implemented | `packages/nana-pack/tests/product-report.test.mjs::same commit and tree produce byte-identical reports` |
 | R-1510 | The product report shall show, under each requirement row, each test its evidence cites in this repository as its own item carrying the test's title and its file path as separate text. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-1510: each cited test is its own item with title and file as separate text, for TypeScript and Python citations, and external or prose citations are not listed` |
 | R-1511 | The product report shall link each cited test's file, opening in a new tab, to that file's GitHub page at the report's commit only when the repository's origin remote is a GitHub repository. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-1511: cited test files link in a new tab to their GitHub page at the report's commit for each GitHub origin spelling, and nothing links otherwise` |
 | R-1512 | WHERE the runtime data holds a cited test's file, the product report shall show beside that test the file's recorded label, PASS, FAIL or SKIP, worded as its file's result in the last measured run. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-1512: a cited test shows its file's recorded PASS, FAIL or SKIP worded as the file's result, read from the clone's runtime data in a checkout and a linked worktree` |
@@ -2545,6 +2554,12 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 | R-2642 | WHEN a live product capability lists a deliverable that carries a `Parked:` line, the product report's Product view shall list that line among the deliverable's claims in ledger order. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2642: the Product view lists a deliverable's Parked line among its claims in ledger order` |
 | R-2544 | WHEN a `Made by:` claim names an artifact path, the product report shall show beside it the commits from the last commit that changed that path to HEAD, counted as `git rev-list --count` counts them, and the whole days between their committer times, with that commit's first 8 characters and subject, or say why the age is unknown. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown` |
 | R-2545 | WHEN a `Made by:` claim names `runtime-map`, the product report shall show beside it the tip, the UTC measurement time and any uncommitted-file count the runtime data records, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or say why it cannot. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot` |
+| R-2740 | WHEN a locked run is a land (no filters, no hand-measure variable, a land tip naming HEAD) and its deciding exit code is 0, the locked suite shall write the product report for HEAD to `nana/product-report.html` under the git common directory after storing its suite record and any runtime data, and print one land note naming that page and HEAD's first 8 characters. | implemented | `packages/nana-pack/tests/runtime-land.test.mjs::R-2740: a passing land writes the product report for HEAD under the git common directory after its suite record and runtime data, and names it in one land note` |
+| R-2741 | WHEN a locked run is filtered, has no land tip, has a land tip that does not name HEAD, is a hand measure, or has a non-zero deciding exit code, the locked suite shall leave an earlier product report page byte for byte and print no product report note. | implemented | `packages/nana-pack/tests/runtime-land.test.mjs::R-2741: filtered, tipless, wrong-tip, hand-measure and failing runs leave the earlier product report byte for byte and print no product report note` |
+| R-2742 | IF a land's product report refuses or its page cannot be written, THEN the locked suite shall print one land note starting `product report not written:` with its reason on that one line and exit with the suite's own exit code. | implemented | `packages/nana-pack/tests/runtime-land.test.mjs::R-2742: a land whose product report refuses or cannot be written prints one product report note on one line and keeps the suite's exit code` |
+| R-2743 | WHEN a `Made by:` claim names an artifact in the machine-local artifact map, the deliverable check shall report no not-tracked note for it only when the claim's maker kind and one of its code paths match that artifact's map entry, and one note naming the row and the artifact otherwise. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2743: a machine-local artifact passes only under its own maker kind and writer path, and any other untracked artifact still gets a note` |
+| R-2744 | WHEN a `Made by:` claim names `suite-runs`, the product report shall show beside it the tip and UTC time of the newest readable suite record whose tip is in HEAD's history, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or a reason the reader can tell apart. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2744: suite-runs shows the newest suite record in HEAD's history with its tip, time, commits and days to HEAD, or says why it cannot` |
+| R-2745 | WHEN a `Made by:` claim names `build-records`, the product report shall show beside it the tip and UTC end time of the newest readable build end record whose tip is in HEAD's history, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or a reason the reader can tell apart. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2745: build-records shows the newest ended build in HEAD's history with its tip, end time, commits and days to HEAD, or says why it cannot` |
 
 # CAP-08 · Evaluate agent choices with credible evidence
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
@@ -2553,16 +2568,22 @@ Kind: product
 Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
 Made by: R-509 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · apps/bench/studies/tool-profiles-2026-09-08/schedule.json
 Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs
+Parked: R-509 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
 Made by: R-532 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
 Read by: R-532 · person: a person opens a run's raw folder to audit it; no code reads it
+Parked: R-532 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
 Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · apps/bench/studies/tool-profiles-2026-09-08/results.jsonl
 Read by: R-507 · code: apps/bench/aggregate.mjs, apps/bench/lib/plan.mjs
+Parked: R-507 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
 Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand · apps/bench/studies/tool-profiles-2026-09-08/summary.md
 Read by: R-535 · person: the owner reads the summary and verdict files to decide; no code reads them
+Parked: R-535 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
 Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand · apps/bench/studies/catch-ledger-2026-09-28/rows.jsonl
 Read by: R-536 · person: the study write-up was read once for its decision; no code or rule reads it now
+Parked: R-536 · since 2026-10-23: no study is open; a person runs the catch-ledger extraction by hand when a review question needs it, and while extraction calls no model, its only code readers, the label and match steps, call judge models; the next catch-ledger study deletes this line
 Made by: R-694 · manual: the seat runs the writing-trial extractor by hand and writes its result into after.md · docs/reviews/writing-trial-2026-10-04/after.md
 Read by: R-694 · person: the owner read its output to decide on the writing rule; nothing reads it since
+Parked: R-694 · since 2026-10-23: the writing trial closed when the owner adopted the writing rule on 2026-10-21, and nothing has read the extract since; a new writing trial deletes this line
 
 ## FEAT-034 · Define reproducible comparisons
 Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.

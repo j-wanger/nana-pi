@@ -634,7 +634,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Parse product-capability deliverable claims and produce the shared checker lines for their code coverage and HEAD-tracked paths.
 - **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, or an injected git runner.
-- **outputs** — Per-row claims, code predicates, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
+- **outputs** — Per-row claims, code predicates, machine-local artifact names, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
@@ -663,12 +663,12 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/product-report.mjs`
 
 - **purpose** — Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
-- **inputs** — REQUIREMENTS.md, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and runtime-map data.
-- **outputs** — A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, marks and artifact ages, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
-- **effects** — disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
+- **inputs** — REQUIREMENTS.md, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime-map data, suite records, and the build ledger.
+- **outputs** — A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, marks and artifact and store ages, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+- **effects** — disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
-- **callers** — `packages/nana-pack/tests/product-report.test.mjs`
-- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/test-locked.mjs`
+- **callees** — `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/readme-check.mjs`
 
@@ -782,13 +782,13 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/test-locked.mjs`
 
-- **purpose** — Serialize full suites, retain whole-run records, and measure eligible land or hand runs inside the same machine lock.
+- **purpose** — Serialize full suites, retain whole-run records, measure eligible land or hand runs, and write a passing land's product report inside the same machine lock.
 - **inputs** — Filter arguments, land and record metadata, suite lock and command overrides, and injectable platform and write boundaries.
-- **outputs** — The deciding suite exit code plus record problems and prefixed land notes for skipped measures, reruns, and write failures.
-- **effects** — disk (lock, record and coverage folders, suite records, runtime data), process (spawns git and suite commands, lists and signals the suite process tree).
+- **outputs** — The deciding suite exit code plus record problems and prefixed land notes for skipped measures, reruns, report writes, and write failures.
+- **effects** — disk (lock, record and coverage folders, suite records, runtime data, product report), process (spawns git and suite commands, lists and signals the suite process tree).
 - **errors** — Suite failures remain nonzero; record or runtime write failures after a passing suite become notes without changing its verdict.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `scripts/runtime-measure.mjs`
+- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`
 
 ### `scripts/test.mjs`
 
@@ -1381,7 +1381,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Build ledger, session matching, usage selection, and report constants.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`
+- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/build-records.mjs`
@@ -1391,7 +1391,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — End records, best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
 - **effects** — disk (record append and bounded ledger/session reads)
 - **errors** — Append operations return named failures; bounded ledger reads throw ERR_TOO_LARGE or filesystem errors.
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/build-records.test.mjs`
+- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `scripts/product-report.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `packages/nana-pack/lib/ci-records.mjs`
@@ -1841,17 +1841,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Record environment, schema, store, retention, comparison, local and CI line, artifact, workflow, job, paging, command, and imported land constants.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/ci-workflow.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/ci-records.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/ci-workflow.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/ci-records.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`
 
 ### `packages/nana-pack/lib/suite-records.mjs`
 
 - **purpose** — Resolve, retain, read, compare, and summarize full-suite run records shared by a clone's worktrees.
 - **inputs** — A repository root, record file or run record, with injectable filesystem, git runner, clock, process id, and retention cap.
-- **outputs** — A validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, or closing record lines.
+- **outputs** — A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, or closing record lines.
 - **effects** — disk (git-common-dir suite record files), process (git queries through the injected runner).
 - **errors** — Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
-- **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/test-locked.mjs`
+- **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/product-report.mjs`, `scripts/test-locked.mjs`
 - **callees** — `packages/nana-pack/lib/suite-records-config.mjs`
 
 ### `packages/nana-pack/lib/test-runner-config.mjs`
@@ -2702,7 +2702,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixture repositories); process (git commands).
 - **errors** — failed assertions set a nonzero test exit.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/pwsh-oracle.mjs`
 
@@ -2932,7 +2932,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (spawns fixture suites and sends stop signals), disk (temporary repositories, locks, coverage, and data files).
 - **errors** — A failed assertion, process timeout, or unexpected child exit fails the named case.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`
+- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`
 
 ### `packages/nana-pack/tests/runtime-map.test.mjs`
 

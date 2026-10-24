@@ -12,7 +12,6 @@
 - Review findings cut (handoff-cap-surrogate plan): a review finding is cut raw at its length cap. That text goes to the review ledger, not a prompt.
 - Handoff values (handoff-cap-surrogate plan): the stale pointer's length cap and the one-day constant carry no note of their source, as the coding standards ask.
 - Handoff cut checks (handoff-cap-surrogate): the independent check ran on the first build only. It held over 11 probes, including pi's own loader and a real session's cut. The second build changed only one test, so nobody re-ran the check. The seat's pairs and that check ran on macOS only.
-- Frontier checks (frontier-first, plan): the live sections hold about 1,900 words, most of them in the Open asks. The word budget stays over until the owner answers or parks asks.
 - Frontier checks (frontier-first, plan): nothing runs the checker at a land or in CI. The suite's R-2473 check is the one automatic pin, and only for this repo's file; other projects' files are checked by no suite.
 - Frontier checks (frontier-first, plan): only the three live names count. The shared seed's Open heading is not Open for the owner, which predates this lane and also applies to the open-tag check.
 - Frontier checks (frontier-first, plan): no test covers the byte count on a file with Windows line endings. The design counts each earlier line's carriage return.
@@ -22,7 +21,6 @@
 - Provenance label (frontier-first final review): the dropped ask held three known limits. A broken trust.json link gets no diagnosis; writability and staleness are only pre-checks; the Claude hook resolves a relative override against its own folder. The label itself no longer fires in the owner's five repos.
 - Frontier checks (frontier-first final review): the read window's exact edge is not pinned. Three wrong versions keep the 51 checks green: >= for >, the end line's newline counted, and the trailing empty element counted as a line.
 - Frontier checks (frontier-first final review): pi splits lines on the newline only. On a file with Windows line endings, pi's line includes its carriage return. The checker stops before it and can read one byte under pi at the exact edge.
-- Known bugs (known-bugs, plan): the word-budget finding stays. HANDOFF's live sections hold about 2,570 words against 1,200, most of them in the Open asks.
 - Known bugs (known-bugs, plan): the move placed each line by its lane, so a line about another feature stays under its lane's feature. 51 lines sit in the unplaced file.
 - Known bugs (known-bugs, plan): about 117 lines carry no lane tag. Nothing checks the line format, or that each entry is one line.
 - Known bugs (known-bugs, plan): nothing proves a seat files a new finding, or files it in the right feature.
@@ -50,3 +48,4 @@
 - Frontier block (session-start-frontier, independent check): a bold lead holding U+2028 or U+2029 does not match the bold pattern, so that title prints with its `**` marks, still on one clean line.
 - Frontier block (session-start-frontier, land review): a read or decode failure returns the unavailable block before `--max` applies, so a folder named HANDOFF.md beside a long objective can exceed the frontier's share of the hook budget.
 - Frontier block (session-start-frontier, final review): an ask with bold around the tag only (`- **[blocking, since …]** text`) renders as `[blocking, since …] **** text`; the title pattern needs the title inside the bold, and the fallback strips only the tag.
+- Frontier checks (park-honestly, plan): HANDOFF's word budget stays a seat check, not a suite gate. Only 10 of 152 versions since 2026-10-06 met it, so the seat trims at each notes step.
