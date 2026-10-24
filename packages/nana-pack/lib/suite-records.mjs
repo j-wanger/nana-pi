@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/suite-records.mjs
  * @purpose Resolve, retain, read, compare, and summarize full-suite run records shared by a clone's worktrees.
  * @inputs A repository root, record file or run record, with injectable filesystem, git runner, clock, process id, and retention cap.
- * @outputs A validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, or closing record lines.
+ * @outputs A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, or closing record lines.
  * @effects disk (git-common-dir suite record files), process (git queries through the injected runner).
  * @errors Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
  */
@@ -33,11 +33,15 @@ function gitText(root, args, runGit) {
 	return String(result.stdout ?? "").trim();
 }
 
-/** Resolve the clone-shared suite store without assuming whether git returns a relative path. */
-export function suiteRecordsDir(root, { runGit = defaultGit } = {}) {
+/** Resolve a clone's shared git directory without assuming whether git returns a relative path. */
+export function gitCommonDir(root, { runGit = defaultGit } = {}) {
 	const common = gitText(root, ["rev-parse", "--git-common-dir"], runGit);
-	const commonDir = path.isAbsolute(common) ? common : path.resolve(root, common);
-	return path.join(commonDir, ...STORE_SUBPATH.split("/"));
+	return path.isAbsolute(common) ? common : path.resolve(root, common);
+}
+
+/** Resolve the clone-shared suite store. */
+export function suiteRecordsDir(root, { runGit = defaultGit } = {}) {
+	return path.join(gitCommonDir(root, { runGit }), ...STORE_SUBPATH.split("/"));
 }
 
 /** Read the git facts stamped onto an unfiltered run after its suite process has ended. */

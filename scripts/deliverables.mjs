@@ -3,7 +3,7 @@
  * @module scripts/deliverables.mjs
  * @purpose Parse product-capability deliverable claims and produce the shared checker lines for their code coverage and HEAD-tracked paths.
  * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, or an injected git runner.
- * @outputs Per-row claims, code predicates, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
+ * @outputs Per-row claims, code predicates, machine-local artifact names, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
@@ -29,6 +29,12 @@ export const PATH_REQUIRED = Object.freeze([...MAKER_RUNS.filter((run) => run !=
 export const PART_SEPARATOR = " · ";
 // Contract: lane B's machine-local artifact name.
 export const RUNTIME_MAP_ARTIFACT = "runtime-map";
+// Contract (R-2743): each machine-local artifact is exempt only under its own maker and writer.
+export const MACHINE_LOCAL_ARTIFACTS = Object.freeze({
+  [RUNTIME_MAP_ARTIFACT]: Object.freeze({ maker: "land", writer: "scripts/runtime-measure.mjs" }),
+  "suite-runs": Object.freeze({ maker: "suite", writer: "scripts/test-locked.mjs" }),
+  "build-records": Object.freeze({ maker: "build", writer: "packages/nana-pack/lib/build-records.mjs" }),
+});
 // Contract (R-2543): shared verbatim by the checker and Product view when HEAD paths cannot be read.
 export const DELIVERABLE_PATHS_NOT_CHECKED = "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree";
 
@@ -127,7 +133,6 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   const addPath = (row, path, line, kind) => {
     const value = path.trim();
     if (!value) return;
-    if (kind === "artifact" && value === RUNTIME_MAP_ARTIFACT) return;
     pathsToCheck.push({ row, path: value, line, kind });
   };
 
@@ -212,14 +217,19 @@ export function checkDeliverables(parsed, trackedPaths = null) {
           notes.push(note(`${row} Made by: line ${field.line} has unknown maker run "${run || "(empty)"}"`));
           continue;
         }
+        const codePaths = detail.split(",").map((value) => value.trim()).filter(Boolean);
         if (REASON_SET.has(run)) {
           if (!detail) notes.push(note(`${row} Made by: line ${field.line} needs a reason`));
         } else if (!detail) {
           notes.push(note(`${row} Made by: line ${field.line} needs a code path`));
         } else {
-          for (const path of detail.split(",")) addPath(row, path, field.line, "code path");
+          for (const path of codePaths) addPath(row, path, field.line, "code path");
         }
-        if (parts.length === 3) addPath(row, parts[2], field.line, "artifact");
+        if (parts.length === 3) {
+          const artifact = parts[2].trim();
+          const local = MACHINE_LOCAL_ARTIFACTS[artifact];
+          if (!local || local.maker !== run || !codePaths.includes(local.writer)) addPath(row, artifact, field.line, "artifact");
+        }
         continue;
       }
 

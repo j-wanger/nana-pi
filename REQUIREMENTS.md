@@ -441,7 +441,7 @@ Read by: R-1560 · person: the seat reads it when it runs the command
 Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs
 Read by: R-977 · person: the seat reads the success report and pushes main by hand, as the 2026-10-11 ruling says
 Read by: R-977 · code: .github/workflows/ci.yml
-Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs
+Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs · build-records
 Read by: R-2597 · code: packages/nana-pack/bin/build-report.mjs, packages/nana-pack/bin/pi-worker.mjs
 
 ## FEAT-006 · Launch builders with execution limits
@@ -1992,8 +1992,10 @@ Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs
 Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes
 Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says
 Read by: R-1460 · rule: AGENTS.md tells the seat to carry its output in the review brief and the land report; pi-review and nana-land neither run nor check it
-Made by: R-1014 · manual: someone runs npm run report and republishes the page by hand
-Read by: R-1014 · person: the owner reads the published page; no hook, check or session-start line reads the report or shows its age
+Made by: R-1014 · land: scripts/test-locked.mjs, scripts/product-report.mjs
+Made by: R-1014 · manual: the seat publishes the land-written page to the owner's copy by hand; no code can update that copy
+Read by: R-1014 · person: the owner reads the copy the seat publishes; no code reads the page
+Parked: R-1014 · since 2026-10-23: only a Claude session can publish the owner's copy, and no code reads or acts on the page; a session-start line that reads the land page deletes this line
 Made by: R-1272 · land: packages/nana-pack/bin/nana-land.mjs, scripts/test-locked.mjs, scripts/runtime-measure.mjs · runtime-map
 Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section
 Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module
@@ -2004,7 +2006,7 @@ Read by: R-616 · code: packages/nana-pack/bin/nana-land.mjs, .github/workflows/
 Read by: R-616 · person: whoever reads the terminal sees the per-file lines and totals; R-2547 keeps local seconds and R-2632 keeps CI seconds
 Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says
 Read by: R-1239 · person: the seat reads the record's result line after each run; no code reads the record, and no rule names it for the reviewer
-Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs
+Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs · suite-runs
 Read by: R-2547 · code: scripts/test-locked.mjs, packages/nana-pack/lib/suite-records.mjs
 Made by: R-2632 · CI: .github/workflows/ci.yml, scripts/test.mjs
 Read by: R-2632 · person: the seat runs scripts/ci-records.mjs by hand; no land step, hook or CI step runs it
@@ -2488,7 +2490,7 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-1012 | WHEN the working tree, the origin remote and the runtime data are unchanged between them, two runs of the report command at the same commit shall write byte-identical product reports. | implemented | `packages/nana-pack/tests/product-report.test.mjs::same commit and tree produce byte-identical reports` |
+| R-1012 | WHEN the working tree, the origin remote, the runtime data, the suite records and the build records are unchanged between them, two runs of the report command at the same commit shall write byte-identical product reports. | implemented | `packages/nana-pack/tests/product-report.test.mjs::same commit and tree produce byte-identical reports` |
 | R-1510 | The product report shall show, under each requirement row, each test its evidence cites in this repository as its own item carrying the test's title and its file path as separate text. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-1510: each cited test is its own item with title and file as separate text, for TypeScript and Python citations, and external or prose citations are not listed` |
 | R-1511 | The product report shall link each cited test's file, opening in a new tab, to that file's GitHub page at the report's commit only when the repository's origin remote is a GitHub repository. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-1511: cited test files link in a new tab to their GitHub page at the report's commit for each GitHub origin spelling, and nothing links otherwise` |
 | R-1512 | WHERE the runtime data holds a cited test's file, the product report shall show beside that test the file's recorded label, PASS, FAIL or SKIP, worded as its file's result in the last measured run. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-1512: a cited test shows its file's recorded PASS, FAIL or SKIP worded as the file's result, read from the clone's runtime data in a checkout and a linked worktree` |
@@ -2536,6 +2538,12 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 | R-2642 | WHEN a live product capability lists a deliverable that carries a `Parked:` line, the product report's Product view shall list that line among the deliverable's claims in ledger order. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2642: the Product view lists a deliverable's Parked line among its claims in ledger order` |
 | R-2544 | WHEN a `Made by:` claim names an artifact path, the product report shall show beside it the commits from the last commit that changed that path to HEAD, counted as `git rev-list --count` counts them, and the whole days between their committer times, with that commit's first 8 characters and subject, or say why the age is unknown. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown` |
 | R-2545 | WHEN a `Made by:` claim names `runtime-map`, the product report shall show beside it the tip, the UTC measurement time and any uncommitted-file count the runtime data records, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or say why it cannot. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot` |
+| R-2740 | WHEN a locked run is a land (no filters, no hand-measure variable, a land tip naming HEAD) and its deciding exit code is 0, the locked suite shall write the product report for HEAD to `nana/product-report.html` under the git common directory after storing its suite record and any runtime data, and print one land note naming that page and HEAD's first 8 characters. | implemented | `packages/nana-pack/tests/runtime-land.test.mjs::R-2740: a passing land writes the product report for HEAD under the git common directory after its suite record and runtime data, and names it in one land note` |
+| R-2741 | WHEN a locked run is filtered, has no land tip, has a land tip that does not name HEAD, is a hand measure, or has a non-zero deciding exit code, the locked suite shall leave an earlier product report page byte for byte and print no product report note. | implemented | `packages/nana-pack/tests/runtime-land.test.mjs::R-2741: filtered, tipless, wrong-tip, hand-measure and failing runs leave the earlier product report byte for byte and print no product report note` |
+| R-2742 | IF a land's product report refuses or its page cannot be written, THEN the locked suite shall print one land note starting `product report not written:` with its reason on that one line and exit with the suite's own exit code. | implemented | `packages/nana-pack/tests/runtime-land.test.mjs::R-2742: a land whose product report refuses or cannot be written prints one product report note on one line and keeps the suite's exit code` |
+| R-2743 | WHEN a `Made by:` claim names an artifact in the machine-local artifact map, the deliverable check shall report no not-tracked note for it only when the claim's maker kind and one of its code paths match that artifact's map entry, and one note naming the row and the artifact otherwise. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2743: a machine-local artifact passes only under its own maker kind and writer path, and any other untracked artifact still gets a note` |
+| R-2744 | WHEN a `Made by:` claim names `suite-runs`, the product report shall show beside it the tip and UTC time of the newest readable suite record whose tip is in HEAD's history, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or a reason the reader can tell apart. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2744: suite-runs shows the newest suite record in HEAD's history with its tip, time, commits and days to HEAD, or says why it cannot` |
+| R-2745 | WHEN a `Made by:` claim names `build-records`, the product report shall show beside it the tip and UTC end time of the newest readable build end record whose tip is in HEAD's history, with the commits from that tip to HEAD and the whole days from that time to HEAD's commit time, or a reason the reader can tell apart. | implemented | `packages/nana-pack/tests/product-report.test.mjs::R-2745: build-records shows the newest ended build in HEAD's history with its tip, end time, commits and days to HEAD, or says why it cannot` |
 
 # CAP-08 · Evaluate agent choices with credible evidence
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.

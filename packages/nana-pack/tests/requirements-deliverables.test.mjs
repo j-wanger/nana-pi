@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { parseLedger } from "../../../scripts/requirements-tree.mjs";
+import * as deliverablesModule from "../../../scripts/deliverables.mjs";
 import {
   DELIVERABLE_FIELD_LABELS,
   MAKER_RUNS,
@@ -73,6 +74,7 @@ mkdirSync(join(project, "readers", "nested"), { recursive: true });
 mkdirSync(join(project, "docs"), { recursive: true });
 mkdirSync(join(project, "src"), { recursive: true });
 writeFileSync(join(project, "scripts", "make.mjs"), "export const make = true;\n");
+writeFileSync(join(project, "scripts", "runtime-measure.mjs"), "export const measure = true;\n");
 writeFileSync(join(project, "readers", "nested", "read.mjs"), "export const read = true;\n");
 writeFileSync(join(project, "docs", "artifact.md"), "artifact\n");
 writeFileSync(join(project, "src", "é.mjs"), "export const unicode = true;\n");
@@ -82,7 +84,7 @@ const pathLedger = tree([
   "Made by: R-001 · build: readers",
   "Made by: R-001 · review: src/é.mjs",
   "Made by: R-001 · land: scripts/make.mjs · docs/artifact.md",
-  `Made by: R-001 · extension: scripts/make.mjs · ${RUNTIME_MAP_ARTIFACT}`,
+  `Made by: R-001 · land: scripts/runtime-measure.mjs · ${RUNTIME_MAP_ARTIFACT}`,
   "Made by: R-001 · suite: missing.mjs",
   "Made by: R-001 · build: ignored.tmp",
   "Made by: R-001 · hook: staged.mjs",
@@ -235,9 +237,39 @@ for (const [label, lines, firstLine] of [
 // req: R-2641
 check("R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line", staleParkFailures.length === 0, staleParkFailures.join("\n"));
 
-const repositoryLedger = readFileSync(fileURLToPath(new URL("../../../REQUIREMENTS.md", import.meta.url)), "utf8");
+const repositoryPath = fileURLToPath(new URL("../../../REQUIREMENTS.md", import.meta.url));
+const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const repositoryLedger = readFileSync(repositoryPath, "utf8");
 const repositoryParsed = parseLedger(repositoryLedger);
 const repositoryFields = deliverableFieldLinesByRow(repositoryParsed);
+
+const expectedMachineLocalArtifacts = {
+  "runtime-map": { maker: "land", writer: "scripts/runtime-measure.mjs" },
+  "suite-runs": { maker: "suite", writer: "scripts/test-locked.mjs" },
+  "build-records": { maker: "build", writer: "packages/nana-pack/lib/build-records.mjs" },
+};
+const repositoryTracked = git(repositoryRoot, "ls-files", "-z").stdout.split("\0").filter(Boolean);
+const repositoryMachineNotes = checkDeliverables(repositoryParsed, repositoryTracked).notes.filter((entry) => /artifact "(?:runtime-map|suite-runs|build-records)"/.test(entry));
+const machineCases = [
+  ["suite-runs", "Made by: R-001 · CI: scripts/test-locked.mjs · suite-runs"],
+  ["build-records", "Made by: R-001 · manual: a person made it · build-records"],
+  ["runtime-map", "Made by: R-001 · land: scripts/make.mjs · runtime-map"],
+  ["not-a-real-store", "Made by: R-001 · build: packages/nana-pack/lib/build-records.mjs · not-a-real-store"],
+].map(([artifact, maker]) => {
+  const text = tree(`${maker}\nRead by: R-001 · code: scripts/make.mjs`);
+  const tracked = ["scripts/make.mjs", "scripts/test-locked.mjs", "packages/nana-pack/lib/build-records.mjs"];
+  return [artifact, checkDeliverables(parseLedger(text), tracked).notes.filter((entry) => entry.includes("is not tracked at HEAD"))];
+});
+const machineMap = deliverablesModule.MACHINE_LOCAL_ARTIFACTS;
+const machineMapPinned = machineMap && Object.isFrozen(machineMap)
+  && Object.values(machineMap).every(Object.isFrozen)
+  && JSON.stringify(machineMap) === JSON.stringify(expectedMachineLocalArtifacts)
+  && RUNTIME_MAP_ARTIFACT === "runtime-map";
+// req: R-2743
+check("R-2743: a machine-local artifact passes only under its own maker kind and writer path, and any other untracked artifact still gets a note",
+  repositoryMachineNotes.length === 0 && machineMapPinned
+    && machineCases.every(([artifact, notes]) => notes.length === 1 && notes[0].includes("R-001") && notes[0].includes(`artifact \"${artifact}\"`)),
+  JSON.stringify({ repositoryMachineNotes, machineMap, machineCases }));
 const repositoryGaps = [];
 for (const capability of repositoryParsed.headings.filter((heading) => heading.id.startsWith("CAP-"))) {
   const fields = capability.capabilityFields ?? {};

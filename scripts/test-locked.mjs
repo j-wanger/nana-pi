@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * @module scripts/test-locked.mjs
- * @purpose Serialize full suites, retain whole-run records, and measure eligible land or hand runs inside the same machine lock.
+ * @purpose Serialize full suites, retain whole-run records, measure eligible land or hand runs, and write a passing land's product report inside the same machine lock.
  * @inputs Filter arguments, land and record metadata, suite lock and command overrides, and injectable platform and write boundaries.
- * @outputs The deciding suite exit code plus record problems and prefixed land notes for skipped measures, reruns, and write failures.
- * @effects disk (lock, record and coverage folders, suite records, runtime data), process (spawns git and suite commands, lists and signals the suite process tree).
+ * @outputs The deciding suite exit code plus record problems and prefixed land notes for skipped measures, reruns, report writes, and write failures.
+ * @effects disk (lock, record and coverage folders, suite records, runtime data, product report), process (spawns git and suite commands, lists and signals the suite process tree).
  * @errors Suite failures remain nonzero; record or runtime write failures after a passing suite become notes without changing its verdict.
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 import { COVERAGE_ENV, COVERAGE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
-import { readRunRecord, readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
+import { gitCommonDir, readRunRecord, readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
 import {
 	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
@@ -178,17 +178,39 @@ function headOf(cwd) {
 	return result.status === 0 ? result.stdout.trim() : null;
 }
 
+/** Whether suite metadata identifies an unfiltered, non-hand land of the named HEAD. */
+export function isLandRun({ filters = [], env = process.env, head } = {}) {
+	const landTip = env[LAND_TIP_ENV];
+	return filters.length === 0 && env[HAND_MEASURE_ENV] === undefined && typeof landTip === "string" && landTip.length > 0 && landTip === head;
+}
+
+async function writeLandReport({ filters, env, cwd, decidingCode }) {
+	if (decidingCode !== 0) return;
+	const head = headOf(cwd);
+	if (!isLandRun({ filters, env, head })) return;
+	try {
+		const { generateReport, LAND_REPORT_SUBPATH } = await import("./product-report.mjs");
+		const out = path.join(gitCommonDir(cwd), ...LAND_REPORT_SUBPATH.split("/"));
+		const written = await generateReport({ root: cwd, out });
+		note(`product report: wrote ${written} for ${head.slice(0, 8)}`);
+	} catch (error) {
+		const reason = String(error?.message ?? "unknown error").replace(/\r\n?|\n/g, "; ");
+		note(`product report not written: ${reason}`);
+	}
+}
+
 function finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root, env, recordedAt }) {
 	try {
 		const source = runnerRecord ?? readRunRecord(recordFile);
 		const facts = suiteGitFacts(root);
 		const landTip = env[LAND_TIP_ENV] ?? null;
-		const trigger = env[HAND_MEASURE_ENV] !== undefined ? "measure" : landTip === facts.tip ? "land" : "run";
+		const land = isLandRun({ env, head: facts.tip });
+		const trigger = env[HAND_MEASURE_ENV] !== undefined ? "measure" : land ? "land" : "run";
 		const timestamp = new Date(recordedAt).toISOString();
 		const record = { ...source, ...facts, schema: RECORD_SCHEMA, trigger, exitCode: suiteCode, landTip, recordedAt: timestamp };
 		const earlier = readSuiteRecords({ root });
 		storeSuiteRecord(record, { root, now: () => new Date(timestamp) });
-		const prefix = landTip === facts.tip ? `${LAND_NOTE_PREFIX} ` : "";
+		const prefix = land ? `${LAND_NOTE_PREFIX} ` : "";
 		for (const line of suiteRecordLines(record, { root, records: earlier, now: timestamp })) console.log(`${prefix}${line}`);
 	} catch (error) {
 		recordProblem(error?.message ?? "record could not be stored");
@@ -234,6 +256,8 @@ export async function runLocked({
 			const code = await runCommand(filters, plainEnv, cwd);
 			if (stopping && termination) await termination;
 			if (!stopping) finishRecord(code);
+			if (!stopping) await writeLandReport({ filters, env, cwd, decidingCode: code });
+			if (stopping && termination) await termination;
 			return stopping ? (signalExitCode ?? 1) : code;
 		}
 		const head = tip ? headOf(cwd) : null;
@@ -293,13 +317,17 @@ export async function runLocked({
 				...coverageRecord.files.map((entry) => ({ ...entry, coverage: true })),
 				...plainFiles,
 			] });
-			return finalCode;
+			await writeLandReport({ filters, env, cwd, decidingCode: finalCode });
+			if (stopping && termination) await termination;
+			return stopping ? (signalExitCode ?? 1) : finalCode;
 		}
 		cleanupCoverage();
 		if (writeProblem) note(writeProblem);
 		if (coverageRecordError) recordProblem(coverageRecordError.message);
 		else finishRecord(coverageCode, coverageRecord);
-		return coverageCode;
+		await writeLandReport({ filters, env, cwd, decidingCode: coverageCode });
+		if (stopping && termination) await termination;
+		return stopping ? (signalExitCode ?? 1) : coverageCode;
 	} catch (error) {
 		console.error(`[test-locked] ${error.message}`);
 		return 1;
