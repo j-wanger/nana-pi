@@ -2,18 +2,18 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and runtime-map data.
- * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, marks and artifact ages, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
- * @effects disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
+ * @inputs REQUIREMENTS.md, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime-map data, suite records, and the build ledger.
+ * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, marks and artifact and store ages, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { deliverableClaims, deliverableCodeState, deliverableReport, RUNTIME_MAP_ARTIFACT } from "./deliverables.mjs";
+import { deliverableClaims, deliverableCodeState, deliverableReport, MACHINE_LOCAL_ARTIFACTS, RUNTIME_MAP_ARTIFACT } from "./deliverables.mjs";
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
@@ -22,10 +22,14 @@ import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { GITHUB_REMOTE } from "../packages/nana-pack/lib/land-ci.mjs";
 import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
 import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
+import { gitCommonDir, readSuiteRecords } from "../packages/nana-pack/lib/suite-records.mjs";
+import { buildRecordsPath, readBuildLedger } from "../packages/nana-pack/lib/build-records.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEMPLATE = path.join(path.dirname(fileURLToPath(import.meta.url)), "product-report/template.html");
-const DEFAULT_OUT = "docs/product-report/out/nana-pi-product-ledger.html";
+export const DEFAULT_OUT = "docs/product-report/out/nana-pi-product-ledger.html";
+// chosen (R-2740): beside the other clone-shared machine-local stores.
+export const LAND_REPORT_SUBPATH = "nana/product-report.html";
 const normalise = (text) => text.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(new RegExp(`[${WHITESPACE}]+$`, "gu"), "")).join("\n");
 const validDate = (value) => {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -49,6 +53,11 @@ export const GIT_HISTORY_FAILURE_REASON = "git could not read the history";
 export const RUNTIME_NO_TIP_OR_TIME = "the runtime data records no tip or time";
 export const RUNTIME_TIME_INVALID = "the runtime data's time does not parse";
 export const TIP_NOT_IN_HISTORY_SUFFIX = " is not in HEAD's history";
+// Contract (R-2744, R-2745): exact clone-shared record age labels and reasons.
+export const RECORD_AT_TIP_PREFIX = "newest record at tip";
+export const NO_READABLE_RECORD = "no readable record";
+export const NO_RECORD_IN_HISTORY = "no record names a commit in HEAD's history";
+export const BUILD_LEDGER_UNREADABLE = "the build ledger cannot be read";
 // Unit: elapsed epoch seconds in one whole day.
 export const SECONDS_PER_DAY = 24 * 60 * 60;
 export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
@@ -194,6 +203,26 @@ function formatRuntimeAge(data, commits, headEpoch, measured) {
   return `${MEASURED_AT_TIP_PREFIX} ${data.tip.slice(0, TIP_DIGITS)} on ${measured.toISOString()}${dirty}, ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, measured.getTime() / 1000), "day")} before HEAD`;
 }
 
+function formatRecordAge(record, commits, headEpoch) {
+  const recorded = new Date(record.time);
+  return `${RECORD_AT_TIP_PREFIX} ${record.tip.slice(0, TIP_DIGITS)} on ${recorded.toISOString()}, ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, recorded.getTime() / 1000), "day")} before HEAD`;
+}
+
+const STORE_READERS_BY_WRITER = Object.freeze({
+  "scripts/test-locked.mjs": ({ root, runGit }) => ({ records: readSuiteRecords({ root, runGit }).map((record) => ({ tip: record.tip, time: record.recordedAt })) }),
+  "packages/nana-pack/lib/build-records.mjs": ({ commonDir }) => {
+    try {
+      const ledger = readBuildLedger(buildRecordsPath(commonDir));
+      return { records: [...ledger.records].reverse().filter((record) => record.kind === "end").map((record) => ({ tip: record.tip, time: record.endedAt })) };
+    } catch { return { records: [], problem: BUILD_LEDGER_UNREADABLE }; }
+  },
+});
+
+function recordStoreEntries(artifact, { root, commonDir, runGit }) {
+  const writer = MACHINE_LOCAL_ARTIFACTS[artifact]?.writer;
+  return STORE_READERS_BY_WRITER[writer]?.({ root, commonDir, runGit }) ?? { records: [] };
+}
+
 function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason }) {
   const ages = new Map();
   if (!artifacts.length) return ages;
@@ -208,7 +237,7 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
   const headEpoch = Number(String(headResult?.stdout ?? "").trim());
   if (!headResult || headResult.status !== 0 || !Number.isFinite(headEpoch)) { historyUnknown(); return ages; }
 
-  const regular = artifacts.filter((artifact) => artifact !== RUNTIME_MAP_ARTIFACT);
+  const regular = artifacts.filter((artifact) => !Object.hasOwn(MACHINE_LOCAL_ARTIFACTS, artifact));
   if (regular.length) {
     if (trackedPaths === null) {
       for (const artifact of regular) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
@@ -234,6 +263,36 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
           try { count = run(["rev-list", "--count", `${record.hash}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
           ages.set(artifact, count?.status === 0 && Number.isInteger(commits) ? formatArtifactAge(record, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+        }
+      }
+    }
+  }
+
+  const recordArtifacts = artifacts.filter((artifact) => artifact !== RUNTIME_MAP_ARTIFACT && Object.hasOwn(MACHINE_LOCAL_ARTIFACTS, artifact));
+  if (recordArtifacts.length) {
+    if (shallow) {
+      for (const artifact of recordArtifacts) ages.set(artifact, unknownAge(SHALLOW_CLONE_REASON));
+    } else {
+      let historyResult;
+      try { historyResult = run(["rev-list", "HEAD"]); } catch { historyResult = null; }
+      if (!historyResult || historyResult.status !== 0 || historyResult.error) {
+        for (const artifact of recordArtifacts) ages.set(artifact, unknownAge(GIT_HISTORY_FAILURE_REASON));
+      } else {
+        const history = new Set(String(historyResult.stdout ?? "").trim().split(/\r?\n/).filter(Boolean));
+        const runGit = (cwd, args) => gitResult(gitRunner, cwd, args);
+        let commonDir = null;
+        try { commonDir = gitCommonDir(root, { runGit }); } catch { /* each reader reports its own bounded absence below */ }
+        for (const artifact of recordArtifacts) {
+          const loaded = recordStoreEntries(artifact, { root, commonDir, runGit });
+          if (loaded.problem) { ages.set(artifact, unknownAge(loaded.problem)); continue; }
+          const readable = loaded.records.filter((record) => typeof record.tip === "string" && record.tip && typeof record.time === "string" && Number.isFinite(Date.parse(record.time)));
+          if (!readable.length) { ages.set(artifact, unknownAge(NO_READABLE_RECORD)); continue; }
+          const newest = readable.find((record) => history.has(record.tip));
+          if (!newest) { ages.set(artifact, unknownAge(NO_RECORD_IN_HISTORY)); continue; }
+          let count;
+          try { count = run(["rev-list", "--count", `${newest.tip}..HEAD`]); } catch { count = null; }
+          const commits = Number(String(count?.stdout ?? "").trim());
+          ages.set(artifact, count?.status === 0 && Number.isInteger(commits) ? formatRecordAge(newest, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
@@ -695,7 +754,14 @@ export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitR
   const html = template.replace("__REPORT_DATA__", () => payload).replace("__RENDERER__", () => String(renderInto));
   const target = path.isAbsolute(out) ? out : path.resolve(root, out);
   await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, html, "utf8");
+  const temporary = path.join(path.dirname(target), `.${path.basename(target)}.tmp-${process.pid}-${randomUUID()}`);
+  try {
+    await writeFile(temporary, html, { encoding: "utf8", flag: "wx" });
+    await rename(temporary, target);
+  } catch (error) {
+    try { await rm(temporary, { force: true }); } catch {}
+    throw error;
+  }
   return target;
 }
 

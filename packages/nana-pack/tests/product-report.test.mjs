@@ -21,6 +21,10 @@ import { MAX_GIT_BUFFER } from "../../../scripts/requirements-moved.mjs";
 import { OPEN_SECTION_NAME, OPEN_SECTION_PREFIX } from "../lib/frontier-config.mjs";
 import { splitOpenSection } from "../lib/handoff-asks.mjs";
 import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
+import { storeSuiteRecord } from "../lib/suite-records.mjs";
+import { RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
+import { buildRecordsPath } from "../lib/build-records.mjs";
+import { BUILD_RECORD_SCHEMA } from "../lib/build-records-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const temp = tmpDir(path.join(os.tmpdir(), "product-report-"));
@@ -104,9 +108,13 @@ function writeRuntimeFile(root, data) {
 }
 function productLedger(artifacts) {
   const rows = artifacts.map((_, index) => `R-${8500 + index}`);
+  const maker = (artifact) => artifact === "runtime-map" ? "land: scripts/runtime-measure.mjs"
+    : artifact === "suite-runs" ? "suite: scripts/test-locked.mjs"
+      : artifact === "build-records" ? "build: packages/nana-pack/lib/build-records.mjs"
+        : "build: REQUIREMENTS.md";
   return [
     "# CAP-85 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", `Deliverables: ${rows.join(", ")}`,
-    ...artifacts.flatMap((artifact, index) => [`Made by: ${rows[index]} · build: REQUIREMENTS.md · ${artifact}`, `Read by: ${rows[index]} · code: REQUIREMENTS.md`]), "",
+    ...artifacts.flatMap((artifact, index) => [`Made by: ${rows[index]} · ${maker(artifact)} · ${artifact}`, `Read by: ${rows[index]} · code: REQUIREMENTS.md`]), "",
     "## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", "", table(rows.map((id) => [id, "implemented"])).trimEnd(),
   ].join("\n");
 }
@@ -136,6 +144,19 @@ function commitAt(repo, message, date, files, { messageFile = false } = {}) {
   } else repo.git(["commit", "-qm", message], { env });
   return repo.git(["rev-parse", "HEAD"]).stdout.trim();
 }
+function commonDirOf(repo) {
+  return path.resolve(repo.root, repo.git(["rev-parse", "--git-common-dir"]).stdout.trim());
+}
+function suiteRecord(repo, tip, recordedAt, stamp = recordedAt) {
+  return storeSuiteRecord({ schema: RECORD_SCHEMA, tip, recordedAt }, { root: repo.root, now: () => new Date(stamp) });
+}
+function writeBuildLedger(repo, records) {
+  const file = buildRecordsPath(commonDirOf(repo));
+  fs.rmSync(file, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, records.map((record) => typeof record === "string" ? record : JSON.stringify(record)).join("\n") + (records.length ? "\n" : ""));
+  return file;
+}
 async function renderedProduct(repo, name, gitRunner) {
   const out = path.join(temp, `${name}.html`);
   await generateReport({ root: repo.root, out, ...(gitRunner ? { gitRunner } : {}) });
@@ -143,6 +164,9 @@ async function renderedProduct(repo, name, gitRunner) {
 }
 function renderedClaims(view) {
   return view.nodes.filter((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims").flatMap((node) => node.children.map((item) => item.textContent));
+}
+function onlyClaimAge(view) {
+  return renderedClaims(view)[0] ?? "";
 }
 // The one helper every new check renders through (must-meet.md, report-test-details-2026-10-19):
 // pull the renderer source and the report-data JSON from the HTML generateReport wrote, evaluate
@@ -1474,6 +1498,112 @@ try {
     check("R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot",
       failures.length === 0 && productReportModule.MEASURED_AT_TIP_PREFIX === measuredAtTip && productReportModule.AGE_UNKNOWN_PREFIX === ageUnknown && productReportModule.RUNTIME_NO_TIP_OR_TIME === noTipOrTime && productReportModule.RUNTIME_TIME_INVALID === badTime,
       JSON.stringify({ failures, exports: [productReportModule.MEASURED_AT_TIP_PREFIX, productReportModule.AGE_UNKNOWN_PREFIX, productReportModule.RUNTIME_NO_TIP_OR_TIME, productReportModule.RUNTIME_TIME_INVALID] }));
+  });
+  await withinCaseLimit("R-2744", async () => {
+    const failures = [];
+    const recordAtTip = "newest record at tip";
+    const noReadable = "no readable record";
+    const noHistory = "no record names a commit in HEAD's history";
+    const makeHistory = (name, artifact) => {
+      const repo = historyFixture(name, [artifact], "2026-10-30T00:00:00Z");
+      const a = commitAt(repo, "record A", "2026-11-01T00:00:00Z", { "a.txt": "a\n" });
+      commitAt(repo, "record B", "2026-11-03T00:00:00Z", { "b.txt": "b\n" });
+      const branch = repo.git(["branch", "--show-current"]).stdout.trim();
+      repo.git(["checkout", "-qb", `${name}-side`]);
+      const side = commitAt(repo, "side record", "2026-11-05T00:00:00Z", { "side.txt": "side\n" });
+      repo.git(["checkout", "-q", branch]);
+      commitAt(repo, "record HEAD", "2026-11-04T00:00:00Z", { "head.txt": "head\n" });
+      return { repo, a, side };
+    };
+    const core = makeHistory("suite-record-age", "suite-runs");
+    suiteRecord(core.repo, core.a, "2026-11-01T00:00:00.000Z", "2026-11-01T00:00:00.000Z");
+    suiteRecord(core.repo, core.side, "2026-11-05T00:00:00.000Z", "2026-11-05T00:00:00.000Z");
+    const suiteDir = path.dirname(suiteRecord(core.repo, core.side, "not-a-time", "2026-11-06T00:00:00.000Z"));
+    fs.writeFileSync(path.join(suiteDir, "99999999T999999999Z_other.json"), JSON.stringify({ schema: RECORD_SCHEMA + 1, tip: core.a, recordedAt: "2026-11-06T00:00:00.000Z" }));
+    const coreAge = onlyClaimAge((await renderedProduct(core.repo, "suite-record-age")).view);
+    if (!coreAge.includes(`${recordAtTip} ${core.a.slice(0, 8)} on 2026-11-01T00:00:00.000Z, 2 commits and 3 days before HEAD`)) failures.push(["record and side branch", coreAge]);
+
+    const none = makeHistory("suite-record-none", "suite-runs");
+    const noneAge = onlyClaimAge((await renderedProduct(none.repo, "suite-record-none")).view);
+    if (!noneAge.includes(`age unknown: ${noReadable}`)) failures.push(["no readable", noneAge]);
+
+    const outside = makeHistory("suite-record-outside", "suite-runs");
+    suiteRecord(outside.repo, outside.side, "2026-11-05T00:00:00.000Z");
+    const outsideAge = onlyClaimAge((await renderedProduct(outside.repo, "suite-record-outside")).view);
+    if (!outsideAge.includes(`age unknown: ${noHistory}`)) failures.push(["no history", outsideAge]);
+
+    const shallowSource = makeHistory("suite-record-shallow-source", "suite-runs");
+    const shallowRoot = path.join(temp, "suite-record-shallow");
+    const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.repo.root).href, shallowRoot], { encoding: "utf8" });
+    const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
+    suiteRecord(shallow, shallowSource.a, "2026-11-01T00:00:00.000Z");
+    const shallowAge = onlyClaimAge((await renderedProduct(shallow, "suite-record-shallow")).view);
+    if (clone.status !== 0 || !shallowAge.includes("age unknown: shallow clone")) failures.push(["shallow", shallowAge, clone.stderr]);
+
+    // req: R-2744
+    check("R-2744: suite-runs shows the newest suite record in HEAD's history with its tip, time, commits and days to HEAD, or says why it cannot",
+      failures.length === 0 && productReportModule.RECORD_AT_TIP_PREFIX === recordAtTip && productReportModule.NO_READABLE_RECORD === noReadable && productReportModule.NO_RECORD_IN_HISTORY === noHistory,
+      JSON.stringify({ failures, exports: [productReportModule.RECORD_AT_TIP_PREFIX, productReportModule.NO_READABLE_RECORD, productReportModule.NO_RECORD_IN_HISTORY] }));
+  });
+  await withinCaseLimit("R-2745", async () => {
+    const failures = [];
+    const recordAtTip = "newest record at tip";
+    const noReadable = "no readable record";
+    const noHistory = "no record names a commit in HEAD's history";
+    const unreadable = "the build ledger cannot be read";
+    const makeHistory = (name) => {
+      const repo = historyFixture(name, ["build-records"], "2026-10-30T00:00:00Z");
+      const a = commitAt(repo, "build A", "2026-11-01T00:00:00Z", { "a.txt": "a\n" });
+      commitAt(repo, "build B", "2026-11-03T00:00:00Z", { "b.txt": "b\n" });
+      const branch = repo.git(["branch", "--show-current"]).stdout.trim();
+      repo.git(["checkout", "-qb", `${name}-side`]);
+      const side = commitAt(repo, "side build", "2026-11-05T00:00:00Z", { "side.txt": "side\n" });
+      repo.git(["checkout", "-q", branch]);
+      commitAt(repo, "build HEAD", "2026-11-04T00:00:00Z", { "head.txt": "head\n" });
+      return { repo, a, side };
+    };
+    const end = (build, tip, endedAt) => ({ v: BUILD_RECORD_SCHEMA, kind: "end", build, tip, endedAt });
+    const start = (build) => ({ v: BUILD_RECORD_SCHEMA, kind: "start", build, startedAt: "2026-11-06T00:00:00.000Z" });
+
+    const core = makeHistory("build-record-age");
+    writeBuildLedger(core.repo, ["not json", end("a", core.a, "2026-11-01T00:00:00.000Z"), start("running"), end("no-tip", null, "2026-11-06T00:00:00.000Z"), end("side", core.side, "2026-11-05T00:00:00.000Z")]);
+    const coreAge = onlyClaimAge((await renderedProduct(core.repo, "build-record-age")).view);
+    if (!coreAge.includes(`${recordAtTip} ${core.a.slice(0, 8)} on 2026-11-01T00:00:00.000Z, 2 commits and 3 days before HEAD`)) failures.push(["record, start, tipless and side", coreAge]);
+
+    const none = makeHistory("build-record-none");
+    const noneAge = onlyClaimAge((await renderedProduct(none.repo, "build-record-none")).view);
+    if (!noneAge.includes(`age unknown: ${noReadable}`)) failures.push(["no ledger", noneAge]);
+    writeBuildLedger(none.repo, [start("running-only")]);
+    const startAge = onlyClaimAge((await renderedProduct(none.repo, "build-record-start-only")).view);
+    if (!startAge.includes(`age unknown: ${noReadable}`)) failures.push(["start only", startAge]);
+    writeBuildLedger(none.repo, [end("tipless-only", null, "2026-11-06T00:00:00.000Z")]);
+    const tiplessAge = onlyClaimAge((await renderedProduct(none.repo, "build-record-tipless-only")).view);
+    if (!tiplessAge.includes(`age unknown: ${noReadable}`)) failures.push(["tipless only", tiplessAge]);
+
+    const outside = makeHistory("build-record-outside");
+    writeBuildLedger(outside.repo, [end("side", outside.side, "2026-11-05T00:00:00.000Z")]);
+    const outsideAge = onlyClaimAge((await renderedProduct(outside.repo, "build-record-outside")).view);
+    if (!outsideAge.includes(`age unknown: ${noHistory}`)) failures.push(["no history", outsideAge]);
+
+    const blocked = makeHistory("build-record-unreadable");
+    const blockedFile = buildRecordsPath(commonDirOf(blocked.repo));
+    fs.mkdirSync(blockedFile, { recursive: true });
+    const blockedRendered = await renderedProduct(blocked.repo, "build-record-unreadable");
+    const blockedAge = onlyClaimAge(blockedRendered.view);
+    if (!fs.existsSync(blockedRendered.out) || !blockedAge.includes(`age unknown: ${unreadable}`)) failures.push(["unreadable", blockedAge]);
+
+    const shallowSource = makeHistory("build-record-shallow-source");
+    const shallowRoot = path.join(temp, "build-record-shallow");
+    const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.repo.root).href, shallowRoot], { encoding: "utf8" });
+    const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
+    writeBuildLedger(shallow, [end("a", shallowSource.a, "2026-11-01T00:00:00.000Z")]);
+    const shallowAge = onlyClaimAge((await renderedProduct(shallow, "build-record-shallow")).view);
+    if (clone.status !== 0 || !shallowAge.includes("age unknown: shallow clone")) failures.push(["shallow", shallowAge, clone.stderr]);
+
+    // req: R-2745
+    check("R-2745: build-records shows the newest ended build in HEAD's history with its tip, end time, commits and days to HEAD, or says why it cannot",
+      failures.length === 0 && productReportModule.RECORD_AT_TIP_PREFIX === recordAtTip && productReportModule.NO_READABLE_RECORD === noReadable && productReportModule.NO_RECORD_IN_HISTORY === noHistory && productReportModule.BUILD_LEDGER_UNREADABLE === unreadable,
+      JSON.stringify({ failures, exports: [productReportModule.RECORD_AT_TIP_PREFIX, productReportModule.NO_READABLE_RECORD, productReportModule.NO_RECORD_IN_HISTORY, productReportModule.BUILD_LEDGER_UNREADABLE] }));
   });
   {
     const ledger = [
