@@ -7,6 +7,19 @@
  * @errors suppresses absent-process and launcher errors
  */
 import { spawnSync } from "node:child_process";
+import * as path from "node:path";
+
+/** Find this lane's real watcher processes on Windows, excluding the PowerShell query process. */
+export function windowsLaneWatchers(root, { runner = spawnSync, timeout = 10_000 } = {}) {
+	const token = path.basename(root).replaceAll("'", "''");
+	const command = `$queryPid = $PID; Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $queryPid -and $_.Name -ieq 'node.exe' -and $_.CommandLine -like '*lane-watcher-child.mjs*' -and $_.CommandLine -like '*${token}*' } | ForEach-Object { "$($_.ProcessId)|$($_.ParentProcessId)|$($_.CommandLine)" }`;
+	const result = runner("powershell", ["-NoProfile", "-Command", command], { encoding: "utf8", windowsHide: true, timeout });
+	if (result.status !== 0) return [];
+	return result.stdout.split(/\r?\n/).filter(Boolean).map((line) => {
+		const [pid, ppid, ...commandLine] = line.split("|");
+		return { pid: Number(pid), ppid: Number(ppid), line: commandLine.join("|") };
+	});
+}
 
 /** Best-effort hard stop for a test worker and its Windows descendants. */
 export function killWorkerTree(child, { platform = process.platform, runner = spawnSync } = {}) {

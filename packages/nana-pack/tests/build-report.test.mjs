@@ -17,7 +17,7 @@ import * as workerConfig from "../bin/worker-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPiRoot } from "./pi-install.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import { killWorkerTree } from "./process-tree-helper.mjs";
+import { killWorkerTree, windowsLaneWatchers } from "./process-tree-helper.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPORT = path.join(ROOT, "bin", "build-report.mjs");
@@ -145,10 +145,7 @@ async function waitForPidExit(pid) {
 	return !pidAlive(pid);
 }
 const watcherLines = () => {
-	if (process.platform === "win32") {
-		const result = spawnSync("powershell", ["-NoProfile", "-Command", `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*lane-watcher-child.mjs*' -and $_.CommandLine -like '*${TD.replaceAll("'", "''")}*' } | ForEach-Object { $_.CommandLine }`], { encoding: "utf8", windowsHide: true, timeout: 10_000 });
-		return result.status === 0 ? result.stdout.split(/\r?\n/).filter(Boolean) : [];
-	}
+	if (process.platform === "win32") return windowsLaneWatchers(TD).map((watcher) => watcher.line);
 	const result = spawnSync("ps", ["-A", "-ww", "-o", "args="], { encoding: "utf8", timeout: 10_000 });
 	return result.status === 0 ? result.stdout.split("\n").filter((line) => line.includes("lane-watcher-child.mjs") && line.includes(TD)) : [];
 };

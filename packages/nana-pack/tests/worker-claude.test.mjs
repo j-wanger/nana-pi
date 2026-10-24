@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from "../lib/claude-review-config.mjs";
 import { killTree } from "../../../scripts/runtime-measure.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import { killWorkerTree } from "./process-tree-helper.mjs";
+import { killWorkerTree, windowsLaneWatchers } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const config = await import("../bin/worker-config.mjs");
@@ -205,11 +205,7 @@ const waitUntil = async (predicate, limit = CASE_LIMIT_MS) => {
 	return predicate();
 };
 const watchersFor = (root) => {
-	if (process.platform === "win32") {
-		const escaped = root.replaceAll("'", "''");
-		const result = spawnSync("powershell", ["-NoProfile", "-Command", `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*lane-watcher-child.mjs*' -and $_.CommandLine -like '*${escaped}*' } | ForEach-Object { \"$($_.ProcessId)|$($_.ParentProcessId)|$($_.CommandLine)\" }`], { encoding: "utf8", windowsHide: true, timeout: CASE_LIMIT_MS });
-		return result.status === 0 ? result.stdout.split(/\r?\n/).filter(Boolean).map((line) => ({ pid: Number(line.split("|", 1)[0]), line })) : [];
-	}
+	if (process.platform === "win32") return windowsLaneWatchers(root, { timeout: CASE_LIMIT_MS });
 	const result = spawnSync("ps", ["-A", "-ww", "-o", "pid=,ppid=,args="], { encoding: "utf8", timeout: CASE_LIMIT_MS });
 	return result.status === 0 ? result.stdout.split("\n").filter((line) => line.includes("lane-watcher-child.mjs") && line.includes(root)).map((line) => {
 		const match = /^\s*(\d+)\s+(\d+)\s+/.exec(line);
