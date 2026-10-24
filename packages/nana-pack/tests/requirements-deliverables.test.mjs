@@ -377,6 +377,11 @@ const mismatchLedger = registryTree(
   "Made by: R-001 · land: scripts/product-report.mjs · A-001\nRead by: R-001 · person: owner",
 );
 const mismatchNotes = checkDeliverables(parseLedger(mismatchLedger), ["scripts/product-report.mjs"]).notes;
+const multipleWriterSuiteLedger = registryTree(
+  `Artifact: A-002 · shared suite records · clone store: <git common dir>/${STORE_SUBPATH} · suite: packages/nana-pack/lib/suite-records.mjs, scripts/test-locked.mjs`,
+);
+const multipleWriterSuiteEntry = artifactRegistry(parseLedger(multipleWriterSuiteLedger), ["packages/nana-pack/lib/suite-records.mjs", "scripts/test-locked.mjs"]).byId.get("A-002");
+const multipleWriterSuiteNotes = checkDeliverables(parseLedger(multipleWriterSuiteLedger), ["packages/nana-pack/lib/suite-records.mjs", "scripts/test-locked.mjs"]).notes;
 const repositoryRegistry = artifactRegistry(repositoryParsed, git(repositoryRoot, "ls-files", "-z").stdout.split("\0").filter(Boolean));
 const repositoryBindings = ["A-006", "A-032", "A-033"].map((id) => {
   const entry = repositoryRegistry.byId.get(id);
@@ -389,9 +394,11 @@ const ageTablePinned = ageTable && Object.isFrozen(ageTable) && Object.values(ag
 // req: R-2793
 check("R-2793: a clone-store entry is bound to the age table's run and writer, and the table keys come from the store constants",
   ageTablePinned && mismatchNotes.some((entry) => entry.includes("A-001") && entry.includes("age table"))
+    && multipleWriterSuiteNotes.some((entry) => entry.includes("A-002") && entry.includes("age table"))
+    && deliverablesModule.artifactAgeTableKey?.(multipleWriterSuiteEntry) === null
     && repositoryBindings.every(([, entry, key]) => key === entry.location && expectedKeys.includes(key))
     && JSON.stringify(readerKeys) === JSON.stringify(expectedKeys),
-  JSON.stringify({ ageTable, mismatchNotes, repositoryBindings, readerKeys, expectedKeys }));
+  JSON.stringify({ ageTable, mismatchNotes, multipleWriterSuiteNotes, multipleWriterSuiteKey: deliverablesModule.artifactAgeTableKey?.(multipleWriterSuiteEntry), repositoryBindings, readerKeys, expectedKeys }));
 const repositoryArtifactClaimFailures = [];
 for (const claims of [...repositoryParsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => deliverableClaims(repositoryParsed, capability).values()).flatMap((values) => [...values])]) {
   const parked = claims.some((claim) => claim.label === PARKED_LABEL);
