@@ -1,0 +1,142 @@
+tree movement 6ea795e..f6fd3aa: 6 rows in 1 features, 33 artifact change(s), 100 read change(s)
+FEAT-028 · Maintain requirement identity and trace links
+  R-2538 text changed
+  R-2787 text changed
+  R-2795 new (implemented)
+  R-2796 new (implemented)
+  R-2797 new (implemented)
+  R-2798 new (implemented)
+artifacts:
+  A-049 new under FEAT-001
+  A-050 new under FEAT-001
+  A-051 new under FEAT-002
+  A-052 new under FEAT-003
+  A-053 new under FEAT-003
+  A-054 new under FEAT-004
+  A-055 new under FEAT-004
+  A-056 new under FEAT-007
+  A-057 new under FEAT-007
+  A-058 new under FEAT-007
+  A-059 new under FEAT-008
+  A-060 new under FEAT-013
+  A-061 new under FEAT-013
+  A-062 new under FEAT-013
+  A-063 new under FEAT-013
+  A-064 new under FEAT-013
+  A-065 new under FEAT-013
+  A-066 new under FEAT-013
+  A-067 new under FEAT-014
+  A-068 new under FEAT-014
+  A-069 new under FEAT-014
+  A-070 new under FEAT-014
+  A-071 new under FEAT-024
+  A-072 new under FEAT-033
+  A-073 new under FEAT-039
+  A-074 new under FEAT-034
+  A-075 new under FEAT-037
+  A-076 new under FEAT-038
+  A-077 new under FEAT-038
+  A-078 new under FEAT-038
+  A-079 new under FEAT-006
+  A-080 new under FEAT-006
+  A-081 new under FEAT-013
+  FEAT-001 A-010 readers none → packages/nana-pack/lib/objective.ts
+  FEAT-001 A-011 readers none → packages/nana-pack/lib/config.ts
+  FEAT-001 A-014 readers none → packages/nana-pack/lib/objective.ts
+  FEAT-002 A-011 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-handoff.ts
+  FEAT-002 A-030 readers none → scripts/known-bugs.mjs
+  FEAT-002 A-046 readers none → packages/nana-pack/lib/frontier-summary.mjs
+  FEAT-002 A-069 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-handoff.ts
+  FEAT-003 A-055 readers none → packages/nana-knowledge/lib/build.ts
+  FEAT-003 A-062 readers none → packages/nana-setup/claude/hooks/nana-shared-memory.mjs
+  FEAT-004 A-004 readers none → packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib/query.ts
+  FEAT-005 A-011 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-writing.ts
+  FEAT-006 A-010 readers none → packages/nana-pack/lib/objective.ts, packages/nana-pack/bin/pi-worker.mjs
+  FEAT-006 A-011 readers none → packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/bin/pi-worker.mjs
+  FEAT-006 A-023 readers none → packages/nana-pack/lib/build-records.mjs
+  FEAT-006 A-051 readers none → packages/nana-pack/lib/brief-precedent.mjs, packages/nana-pack/bin/pi-worker.mjs
+  FEAT-006 A-061 readers none → packages/nana-pack/bin/pi-worker.mjs
+  FEAT-007 A-011 readers none → packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/bin/claude-review.mjs
+  FEAT-008 A-007 readers none → packages/nana-pack/bin/review-round.mjs, packages/nana-pack/bin/nana-land.mjs
+  FEAT-008 A-021 readers none → packages/nana-pack/lib/release-status.mjs
+  FEAT-008 A-034 readers none → packages/nana-pack/lib/ci-records.mjs, packages/nana-pack/lib/land-ci-records.mjs
+  FEAT-009 A-069 readers none → packages/nana-pack/lib/config.ts
+  FEAT-010 A-011 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-gate.ts
+  FEAT-010 A-069 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-gate.ts
+  FEAT-011 A-011 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-gate.ts
+  FEAT-011 A-069 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-gate.ts
+  FEAT-013 A-004 readers none → packages/nana-setup/lib/steps.mjs
+  FEAT-013 A-005 readers none → packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops.mjs
+  FEAT-013 A-036 readers none → packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops.mjs
+  FEAT-013 A-037 readers none → packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops.mjs
+  FEAT-013 A-049 readers none → packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops.mjs
+  FEAT-013 A-080 readers none → packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops.mjs
+  FEAT-014 A-002 readers none → packages/nana-pack/lib/adoption.mjs, packages/nana-pack/extensions/nana-handoff.ts
+  FEAT-014 A-003 readers none → packages/nana-pack/lib/adoption.mjs
+  FEAT-014 A-004 readers none → packages/nana-setup/lib/project.mjs
+  FEAT-014 A-011 readers none → packages/nana-pack/lib/adoption.mjs, packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/project.mjs
+  FEAT-014 A-025 readers none → packages/nana-pack/lib/adoption.mjs, packages/nana-pack/bin/nana-adoption.mjs, packages/nana-pack/extensions/nana-handoff.ts
+  FEAT-014 A-038 readers none → templates/python/template/REQUIREMENTS-general.md.jinja, templates/typescript/template/REQUIREMENTS-general.md.jinja
+  FEAT-015 A-001 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-004 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-006 readers none → packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-007 readers none → packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-009 readers none → packages/nana-pack/lib/release-status.mjs, packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-010 readers none → packages/nana-pack/lib/objective.ts, packages/nana-setup/lib/doctor.mjs, packages/nana-setup/lib/project.mjs
+  FEAT-015 A-011 readers none → packages/nana-setup/lib/doctor.mjs, packages/nana-pack/lib/adoption.mjs, packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-012 readers none → packages/nana-setup/lib/hook-health.mjs, packages/nana-setup/lib/doctor.mjs, packages/nana-setup/bin/stale-copies.mjs
+  FEAT-015 A-013 readers none → packages/nana-setup/lib/stale-copies.mjs, packages/nana-setup/lib/doctor.mjs, packages/nana-setup/bin/stale-copies.mjs
+  FEAT-015 A-016 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-021 readers none → packages/nana-pack/lib/release-status.mjs, packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-025 readers none → packages/nana-setup/lib/install-check.mjs, packages/nana-pack/lib/adoption.mjs, packages/nana-pack/bin/nana-adoption.mjs
+  FEAT-015 A-053 readers none → packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-054 readers none → packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-058 readers none → packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-060 readers none → packages/nana-setup/lib/doctor.mjs, packages/nana-setup/bin/stale-copies.mjs
+  FEAT-015 A-061 readers none → packages/nana-setup/lib/doctor.mjs, packages/nana-setup/lib/stale-copies.mjs, packages/nana-setup/bin/stale-copies.mjs, packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-062 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-063 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-064 readers none → packages/nana-setup/lib/doctor.mjs, packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/install-check.mjs
+  FEAT-015 A-065 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-066 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-069 readers none → packages/nana-setup/lib/doctor.mjs, packages/nana-setup/lib/project.mjs
+  FEAT-015 A-071 readers none → packages/nana-setup/lib/doctor.mjs
+  FEAT-015 A-079 readers none → packages/nana-setup/lib/install-check.mjs
+  FEAT-017 A-010 readers none → packages/nana-pack/lib/objective.ts, packages/nana-setup/lib/doctor.mjs
+  FEAT-018 A-001 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-018 A-011 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-018 A-012 readers none → packages/nana-setup/lib/uninstall.mjs, packages/nana-setup/lib/steps.mjs
+  FEAT-018 A-013 readers none → packages/nana-setup/lib/uninstall.mjs, packages/nana-setup/lib/fsops.mjs, packages/nana-setup/lib/steps.mjs
+  FEAT-018 A-016 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-018 A-050 readers none → packages/nana-setup/lib/uninstall.mjs, packages/nana-setup/lib/fsops.mjs, packages/nana-setup/lib/steps.mjs
+  FEAT-018 A-060 readers none → packages/nana-setup/lib/uninstall.mjs, packages/nana-setup/lib/fsops.mjs, packages/nana-setup/lib/steps.mjs
+  FEAT-018 A-061 readers none → packages/nana-setup/lib/uninstall.mjs, packages/nana-setup/lib/steps.mjs
+  FEAT-018 A-062 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-018 A-063 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-018 A-065 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-018 A-066 readers none → packages/nana-setup/lib/uninstall.mjs
+  FEAT-019 A-009 readers none → packages/nana-pack/lib/release-status.mjs
+  FEAT-019 A-022 readers none → .github/workflows/ci.yml
+  FEAT-023 A-011 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/extensions/nana-notify.ts, packages/nana-pack/extensions/nana-roster-notice.ts, packages/nana-setup/claude/hooks/nana-roster-notice.mjs
+  FEAT-023 A-069 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-notify.ts
+  FEAT-024 A-011 readers none → apps/desk/server.mjs
+  FEAT-024 A-064 readers none → apps/desk/server.mjs
+  FEAT-024 A-069 readers none → apps/desk/server.mjs
+  FEAT-026 A-023 readers none → apps/desk/apps.mjs, packages/nana-stage/lib/blocks.mjs
+  FEAT-028 A-015 readers none → scripts/requirements-tree.mjs, scripts/requirements-lift.mjs, scripts/requirements-regroup.mjs, scripts/requirements-moved.mjs
+  FEAT-028 A-038 readers none → scripts/requirements-lift.mjs
+  FEAT-029 A-009 readers none → scripts/code-map.mjs
+  FEAT-029 A-030 readers none → scripts/requirement-rows.mjs
+  FEAT-030 A-011 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-post-edit.ts
+  FEAT-030 A-069 readers none → packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-post-edit.ts
+  FEAT-031 A-009 readers none → packages/nana-pack/lib/suite-records.mjs
+  FEAT-032 A-003 readers none → scripts/product-report.mjs
+  FEAT-033 A-024 readers none → scripts/readme-check.mjs, templates/typescript/template/scripts/readme-check.mjs
+  FEAT-039 A-003 readers none → scripts/product-report.mjs
+  FEAT-039 A-006 readers none → scripts/product-report.mjs, packages/nana-pack/lib/build-records.mjs
+  FEAT-039 A-030 readers none → scripts/product-report.mjs
+  FEAT-039 A-032 readers none → scripts/product-report.mjs
+  FEAT-039 A-033 readers none → scripts/product-report.mjs, packages/nana-pack/lib/suite-records.mjs
+  FEAT-034 A-042 readers none → apps/bench/lib/plan.mjs, apps/bench/run.mjs
+  FEAT-035 A-042 readers none → apps/bench/aggregate.mjs
+  FEAT-036 A-042 readers none → apps/bench/run.mjs, apps/bench/lib/plan.mjs
