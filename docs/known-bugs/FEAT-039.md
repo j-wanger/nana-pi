@@ -53,3 +53,6 @@
 - Store ages (report-at-land, plan): a build that is still running shows nothing until it ends.
 - Store ages (report-at-land, plan): a store age shows when the maker last ran. It does not show that the record is complete or that a reader read it.
 - Product view (report-at-land, plan): R-1012's same-output rule now also needs the suite and build stores unchanged. A land or a build between two report runs changes the page.
+- Store ages (report-at-land, final review): the page shows a store's age even when the claim's maker or writer path does not match the map. The deliverables check notes it, but the age still looks authoritative.
+- Store ages (report-at-land, final review): for suite-runs, "no readable record" covers both no store yet and a store that cannot be read.
+- Store ages (report-at-land, final review): once the build ledger grows past 32 MiB, its age always says the ledger cannot be read. It is 28 KB today.

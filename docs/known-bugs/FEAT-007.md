@@ -105,3 +105,4 @@
 - Verdict reading (ci-timing-records, round 1): an Opus review opened with a bold "Verdict: LAND." line above its exact last-line `VERDICT: LAND`; the ledger read the round as unread (first-line conflict) and nana-land refuses that revision, so the round was lost and the lane took a new commit and a confirmation round.
 - Claude review launcher (claude-code-builder-parity, plan): claude-review's reviewer gets none of the Claude Code builder's switches (default permission mode, project and local settings with the carried settings file, no MCP servers, auto-memory off).
 - Review runner (lane-temp-cleanup, attack): pi-review crashes on an uncaught write error when its standard-error pipe closes mid-review, as pi-worker did before lane-temp-cleanup. Fixing it is a review-tool lane.
+- Pid liveness (hard-kill-watcher, plan): review-round keeps its own private pid-liveness copy; the shared `pidAlive` now lives in process-tree.mjs.
