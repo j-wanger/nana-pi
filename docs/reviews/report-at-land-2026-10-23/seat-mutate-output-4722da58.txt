@@ -1,0 +1,61 @@
+seat-mutate: lane report-at-land, tip 4722da586a8aebe91db5af63552aa54cb198de96, table 5e91d651fe09e4b6cc20bd06ba8c6b339685b070ab9ff3ce8c9aa6c43ccc445b, merge-base c273b4de0c804520bb167373ff6a07664a801b59, 25 pairs in 5 shards (5+5+5+5+5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-24T01:46:28.442Z
+DECLARED (plan) pairs 1 to 19 follow plan-draft.md's list; 21, 22, 23 and 25 are the must-meet's; pair 20 and every pair naming R-2746 or product-report's own age drop with M2
+DECLARED (plan) pair 24, a plain writeFile with no rename, is a declared non-pair: no honest test can interrupt a write between its bytes
+DECLARED (seat) pairs 6, 7 and 21 each drop one clause from the shared predicate isLandRun, which the page guard and the suite record's trigger both call (M1); pair 8 instead replaces the page guard with the prototype's tip-equals-HEAD test
+DECLARED (seat) pair 3 edits the lifted gitCommonDir in suite-records.mjs (S6), which the page path, the suite store and the build-records age all use; pair 22 edits only the page path line
+DECLARED (seat) pair 9: the whole-run-fail branch returns before any write call, so only R-2741's always-fail case can catch an ignored exit code
+DECLARED (seat) pair 19: R-2745's unreadable-ledger case renders through generateReport with no catch around it, so the wrong version ends product-report.test.mjs inside that case before its check line prints
+DECLARED (seat) N3, the stop-flag re-check after the report build, is a declared non-pair: the report module is imported, not injected, so no honest test can land a signal inside the build
+DECLARED (seat) N6's temporary-file removal after a failed rename is a declared non-pair: no must-meet row covers a leftover temporary file, and R-2742's folder case checks only the note and the exit code
+DECLARED (seat) the draft's load-failure path (a report module that fails to import) is a declared non-pair: it is a listed known limit with no test
+[1/5] seat-mutate: lane report-at-land, shard 1/5, tip 4722da586a8aebe91db5af63552aa54cb198de96, merge-base c273b4de0c804520bb167373ff6a07664a801b59, 5 pairs, darwin, node v22.22.2, 2026-10-24T01:46:29.685Z
+[1/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 84 PASS, 0 FAIL, )
+[1/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane report-at-land, shard 2/5, tip 4722da586a8aebe91db5af63552aa54cb198de96, merge-base c273b4de0c804520bb167373ff6a07664a801b59, 5 pairs, darwin, node v22.22.2, 2026-10-24T01:46:33.533Z
+[2/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 84 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane report-at-land, shard 3/5, tip 4722da586a8aebe91db5af63552aa54cb198de96, merge-base c273b4de0c804520bb167373ff6a07664a801b59, 5 pairs, darwin, node v22.22.2, 2026-10-24T01:46:37.547Z
+[3/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 84 PASS, 0 FAIL, )
+[3/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane report-at-land, shard 4/5, tip 4722da586a8aebe91db5af63552aa54cb198de96, merge-base c273b4de0c804520bb167373ff6a07664a801b59, 5 pairs, darwin, node v22.22.2, 2026-10-24T01:46:41.546Z
+[4/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 84 PASS, 0 FAIL, )
+[4/5] BASELINE FAIL packages/nana-pack/tests/suite-records.test.mjs (exit 1, 9 PASS, 1 FAIL, )
+[4/5] BASELINE RETRY ok   packages/nana-pack/tests/suite-records.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[4/5] RESULT: 4/5 red (3 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 1 survived [S1]
+[5/5] seat-mutate: lane report-at-land, shard 5/5, tip 4722da586a8aebe91db5af63552aa54cb198de96, merge-base c273b4de0c804520bb167373ff6a07664a801b59, 5 pairs, darwin, node v22.22.2, 2026-10-24T01:46:45.622Z
+[5/5] BASELINE ok   packages/nana-pack/tests/runtime-land.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 84 PASS, 0 FAIL, )
+[5/5] RESULT: 5/5 red (4 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+RED 1 the measured pass writes the page before finishRecord — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the page is written right after the coverage run, before the map write — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 the common-directory helper asks git for --git-dir — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 the Windows branch does not write — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 5 the coverage-fail, plain-rerun-pass path does not write — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 6 the land predicate drops the no-filter clause, so a filtered run writes — 1/1 named: /^R-2741: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 the land predicate drops the HEAD check, so a wrong tip on the Windows branch writes — 1/1 named: /^R-2741: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 the page guard is the prototype's tip-equals-HEAD test, so a hand measure writes — 1/1 named: /^R-2741: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 the write ignores the deciding exit code, so a failing run writes — 1/1 named: /^R-2741: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 10 the report error is not caught, so the outer catch returns 1 — 1/1 named: /^R-2742: /; UNNAMED red: [runtime-land.test.mjs] a passing land suite writes runtime data naming the land tip and the time it measured AssertionError [ERR_ASS… | [runtime-land.test.mjs] a land failing under coverage keeps its data and reruns only the failed files AssertionError [ERR_ASSERTION]:… | [runtime-land.test.mjs] a passing land suite whose runtime data cannot be written exits 0, keeps the earlier data and names why Asser… | [runtime-land.test.mjs] on Windows a land suite runs once without coverage and says the runtime map was not measured AssertionError […; 5 FAIL total (1 file changed, 1 insertion(+), 4 deletions(-))
+RED 11 the raw multi-line error is printed as is — 1/1 named: /^R-2742: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 the two product report notes lack the [nana-land] prefix — 2/2 named: /^R-2740: / | /^R-2742: /; also (declared): /^R-2741: /; 3 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED 13 only runtime-map is exempt, as on main — 1/1 named: /^R-2743: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 every untracked artifact is exempt — 1/1 named: /^R-2743: /; also (declared): /^a maker or reader path not tracked at HEAD gets one note naming the row and t…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 the newest record is taken whether or not HEAD contains it — 2/2 named: /^R-2744: / | /^R-2745: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 record days count to now instead of HEAD's commit time — 2/2 named: /^R-2744: / | /^R-2745: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 the store ages skip the shallow-clone check — 2/2 named: /^R-2744: / | /^R-2745: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the build age takes the last ledger line whatever its kind or tip — 1/1 named: /^R-2745: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 an unreadable build ledger throws and stops the page — (no named case); named but NOT REACHED: /^R-2745: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH product-report.test.mjs THREW (later checks never ran)
+RED 21 the land predicate drops the hand-measure clause — 1/1 named: /^R-2741: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 the page path is joined under the working directory's .git — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 the map exempts every name in it whatever the maker — 1/1 named: /^R-2743: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 25 the suite-runs reader keeps only the newest record by time, not the newest in HEAD's history — 1/1 named: /^R-2744: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN S1 the suite record's trigger and prefix go back to the inline tip test instead of isLandRun — SURVIVED
+RED S2 the Windows branch writes the page before finishRecord — 1/1 named: /^R-2740: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 24/25 red (22 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 1 survived [S1], across 5 shards

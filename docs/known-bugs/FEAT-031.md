@@ -105,3 +105,5 @@
 - Mutation runner (lane-temp-cleanup plan): the mutation runner's child environment keeps `CLAUDE_CONFIG_DIR`, unlike the suite runner. The two test files that start a Claude build now clear it themselves.
 - build-report test (lane-temp-cleanup plan): its hard-kill case leaves one lane temp folder and one capture folder in the caller's temp folder on each direct run. The suite runner's per-file temp folder contains them.
 - Locked suite (pi-version-support, CI): "handled signals wait for suite termination before releasing the lock" failed once on CI's macOS suite leg at 291f8a14; the lane touched no runner code, and the check passed locally and on the other legs.
+- Suite records (report-at-land, plan): the store keeps 300 records, about 5 to 6 days at the 2026-10-22 pace, not the 9 days its comment says. When no record in HEAD's history remains, the report says so.
+- Suite records (report-at-land, seat pairs): no test pins that the suite record's land prefix comes from the shared land test. A version that compares only the land tip with HEAD changes nothing but the prefix on a hand measure's record lines.

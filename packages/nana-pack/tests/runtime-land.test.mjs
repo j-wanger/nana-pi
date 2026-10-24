@@ -32,6 +32,7 @@ import {
 	UNMEASURED_PLATFORMS,
 } from "../lib/land-config.mjs";
 import { handMeasure } from "../../../scripts/runtime-measure.mjs";
+import * as productReportModule from "../../../scripts/product-report.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -39,7 +40,9 @@ const TEST_LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
 const TEST_LOCKED_URL = pathToFileURL(TEST_LOCKED).href;
 const RUNTIME_MEASURE_URL = pathToFileURL(RUNTIME_MEASURE).href;
+const SUITE_RECORDS_CONFIG_URL = pathToFileURL(path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs")).href;
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-land-test-")));
+const LAND_REPORT_SUBPATH = productReportModule.LAND_REPORT_SUBPATH ?? "nana/product-report.html";
 const CASE_LIMIT_MS = 30_000;
 const MEASURED_PLATFORM = "linux";
 let failures = 0;
@@ -76,11 +79,30 @@ function fixture(name) {
 	return root;
 }
 
+function installReportFixture(root) {
+	fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
+	fs.writeFileSync(path.join(root, "scripts", "runtime-measure.mjs"), "export const runtime = true;\n");
+	fs.writeFileSync(path.join(root, "scripts", "test-locked.mjs"), "export const suite = true;\n");
+	fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), [
+		"# CAP-85 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-8500, R-8501",
+		"Made by: R-8500 · land: scripts/runtime-measure.mjs · runtime-map", "Read by: R-8500 · code: REQUIREMENTS.md",
+		"Made by: R-8501 · suite: scripts/test-locked.mjs · suite-runs", "Read by: R-8501 · code: REQUIREMENTS.md", "",
+		"## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", "",
+		"| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+		"| R-8500 | The runtime artifact shall exist. | untested | — |", "| R-8501 | The suite artifact shall exist. | untested | — |", "",
+	].join("\n"));
+	fs.writeFileSync(path.join(root, "HANDOFF.md"), "# Handoff\n\n## Open for the owner\n");
+	git(root, "add", "REQUIREMENTS.md", "HANDOFF.md", "scripts");
+	git(root, "commit", "-m", "report fixture");
+	return root;
+}
+
 const FAKE_SUITE = path.join(TD, "fake-suite.mjs");
 fs.writeFileSync(FAKE_SUITE, [
 	'import * as fs from "node:fs";',
 	'import * as path from "node:path";',
 	`const coverage = process.env.${COVERAGE_ENV} ?? null;`,
+	`import { RECORD_FILE_ENV, RECORD_SCHEMA } from ${JSON.stringify(SUITE_RECORDS_CONFIG_URL)};`,
 	'const args = process.argv.slice(2);',
 	'const mode = process.env.NANA_FAKE_MODE ?? "pass";',
 	'fs.appendFileSync(process.env.NANA_FAKE_LOG, JSON.stringify({ coverage, args, mode }) + "\\n");',
@@ -90,12 +112,13 @@ fs.writeFileSync(FAKE_SUITE, [
 	'  if (mode === "sleep") { setTimeout(() => {}, 120000); } else {',
 	'    const failing = mode === "coverage-fail" || mode === "always-fail" || mode === "whole-run-fail";',
 	'    const records = [{ path: "fixture/a.test.mjs", label: "PASS", seconds: 1 }, { path: "fixture/b.test.mjs", label: failing ? "FAIL" : "PASS", seconds: 2 }];',
+	'    if (process.env[RECORD_FILE_ENV]) fs.writeFileSync(process.env[RECORD_FILE_ENV], JSON.stringify({ schema: RECORD_SCHEMA, files: records, unnamedFailures: [], exitCode: failing ? 1 : 0, wallSeconds: 3, jobs: 1, platform: process.platform, coverage: true }));',
 	'    records.forEach((record, index) => { const dir = path.join(coverage, String(index).padStart(4, "0")); fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, ' + JSON.stringify(RECORD_FILE) + '), JSON.stringify(record)); fs.writeFileSync(path.join(dir, "coverage-1.json"), JSON.stringify({ result: [] })); });',
 	'    const failures = failing ? (mode === "whole-run-fail" ? 2 : 1) : 0;',
 	'    if (mode !== "no-completion") fs.writeFileSync(path.join(coverage, ' + JSON.stringify(COMPLETION_FILE) + '), JSON.stringify({ files: mode === "count-mismatch" ? 9 : records.length, failures }));',
 	'    process.exit(failing ? 1 : 0);',
 	'  }',
-	'} else { process.exit(mode === "always-fail" || mode === "no-tip-fail" ? 7 : 0); }',
+	'} else { const exitCode = mode === "always-fail" || mode === "no-tip-fail" ? 7 : 0; if (process.env[RECORD_FILE_ENV]) fs.writeFileSync(process.env[RECORD_FILE_ENV], JSON.stringify({ schema: RECORD_SCHEMA, files: [{ path: args[0] || "fixture/plain.test.mjs", label: exitCode ? "FAIL" : "PASS", seconds: 1 }], unnamedFailures: [], exitCode, wallSeconds: 1, jobs: 1, platform: process.platform, coverage: false })); process.exit(exitCode); }',
 	'',
 ].join("\n"));
 
@@ -165,13 +188,15 @@ function starts(logFile) {
 	return fs.readFileSync(logFile, "utf8").split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 }
 
-function runCase(name, { args = [], tip = "head", mode = "pass", options = {}, initial = oldData(name) } = {}) {
-	const root = fixture(name);
-	const dataFile = path.join(TD, `${name}-data.json`);
+function runCase(name, { args = [], tip = "head", mode = "pass", options = {}, initial = oldData(name), root: suppliedRoot, useCommonData = false } = {}) {
+	const root = suppliedRoot ?? fixture(name);
+	const commonDir = path.resolve(root, git(root, "rev-parse", "--git-common-dir"));
+	const dataFile = useCommonData ? path.join(commonDir, "nana", "runtime-map.json") : path.join(TD, `${name}-data.json`);
 	const logFile = path.join(TD, `${name}-starts.jsonl`);
 	const lockDir = path.join(TD, `${name}-lock`);
 	const tempRoot = path.join(TD, `${name}-tmp`);
 	fs.mkdirSync(tempRoot, { recursive: true });
+	fs.mkdirSync(path.dirname(dataFile), { recursive: true });
 	fs.writeFileSync(dataFile, initial);
 	const env = {
 		...process.env,
@@ -187,7 +212,26 @@ function runCase(name, { args = [], tip = "head", mode = "pass", options = {}, i
 	else if (tip != null) env[LAND_TIP_ENV] = tip;
 	else delete env[LAND_TIP_ENV];
 	const result = spawnSync(process.execPath, [LOCKED_WRAPPER, ...args], { cwd: root, env, encoding: "utf8", timeout: CASE_LIMIT_MS - 1000 });
-	return { root, dataFile, logFile, lockDir, tempRoot, initial, result, starts: starts(logFile), env };
+	return { root, commonDir, dataFile, logFile, lockDir, tempRoot, initial, result, starts: starts(logFile), env };
+}
+
+function reportPath(c) {
+	return path.join(c.commonDir, ...LAND_REPORT_SUBPATH.split("/"));
+}
+
+function pageModel(file) {
+	const html = fs.readFileSync(file, "utf8");
+	const data = html.match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/)?.[1];
+	if (!data) throw new Error(`report data missing from ${file}`);
+	return JSON.parse(data);
+}
+
+function ageFor(model, row) {
+	return model.capabilities.flatMap((capability) => capability.deliverables).find((deliverable) => deliverable.id === row)?.claims.find((claim) => claim.age)?.age ?? "";
+}
+
+function productReportNotes(result) {
+	return String(result.stdout ?? "").split(/\r?\n/).filter((line) => line.startsWith(`${LAND_NOTE_PREFIX} product report`));
 }
 
 await check("land runtime tunables retain their reviewed values", () => {
@@ -200,6 +244,120 @@ await check("land runtime tunables retain their reviewed values", () => {
 	assert.equal(DIRTY_COUNT_ENV, "NANA_RUNTIME_DIRTY");
 	assert.equal(COVERAGE_OWNER_FILE, "owner.pid");
 	assert.equal(HAND_MEASURE_ENV, "NANA_RUNTIME_HAND_MEASURE");
+});
+
+// req: R-2740
+await check("R-2740: a passing land writes the product report for HEAD under the git common directory after its suite record and runtime data, and names it in one land note", () => {
+	assert.equal(productReportModule.LAND_REPORT_SUBPATH, "nana/product-report.html");
+	const cases = [];
+	for (const [name, mode, options] of [
+		["report-measured-pass", "pass", {}],
+		["report-rerun-pass", "coverage-fail", {}],
+		["report-windows-pass", "pass", { platform: "win32" }],
+		["report-map-refused", "pass", { writeFailure: true }],
+	]) {
+		const root = installReportFixture(fixture(name));
+		cases.push([name, runCase(name, { root, mode, options, useCommonData: true })]);
+	}
+	const main = installReportFixture(fixture("report-linked-main"));
+	const linked = path.join(TD, "report-linked-worktree");
+	git(main, "worktree", "add", "-q", "-b", "report-linked-lane", linked);
+	cases.push(["report-linked", runCase("report-linked", { root: linked, useCommonData: true })]);
+	for (const [name, c] of cases) {
+		assert.equal(c.result.status, 0, `${name}: ${c.result.stdout}\n${c.result.stderr}`);
+		const page = reportPath(c);
+		assert.equal(fs.existsSync(page), true, name);
+		const head = git(c.root, "rev-parse", "HEAD");
+		const model = pageModel(page);
+		assert.equal(model.commit, head, name);
+		assert.match(ageFor(model, "R-8501"), new RegExp(`^newest record at tip ${head.slice(0, TIP_DIGITS)} .*\\b0 commits?\\b`), name);
+		if (name === "report-measured-pass" || name === "report-rerun-pass") assert.match(ageFor(model, "R-8500"), new RegExp(`^measured at tip ${head.slice(0, TIP_DIGITS)} .*\\b0 commits?\\b`), name);
+		const notes = productReportNotes(c.result);
+		assert.equal(notes.length, 1, `${name}: ${c.result.stdout}`);
+		assert.ok(notes[0].includes(fs.realpathSync.native(page)), `${name}: ${notes[0]}`);
+		assert.ok(notes[0].endsWith(`for ${head.slice(0, TIP_DIGITS)}`), `${name}: ${notes[0]}`);
+	}
+	const linkedCase = cases.find(([name]) => name === "report-linked")[1];
+	const privateGitDir = path.resolve(linkedCase.root, git(linkedCase.root, "rev-parse", "--git-dir"));
+	assert.equal(reportPath(linkedCase).startsWith(privateGitDir), false);
+});
+
+// req: R-2741
+await check("R-2741: filtered, tipless, wrong-tip, hand-measure and failing runs leave the earlier product report byte for byte and print no product report note", () => {
+	const seeded = Buffer.from("earlier product report\r\nwith trailing space \t");
+	const cases = [];
+	const runSeeded = (name, options) => {
+		const root = installReportFixture(fixture(name));
+		const commonDir = path.resolve(root, git(root, "rev-parse", "--git-common-dir"));
+		const page = path.join(commonDir, ...LAND_REPORT_SUBPATH.split("/"));
+		fs.mkdirSync(path.dirname(page), { recursive: true }); fs.writeFileSync(page, seeded);
+		const c = runCase(name, { root, ...options }); cases.push([name, c, page]); return c;
+	};
+	runSeeded("report-filtered", { args: ["--jobs=2"] });
+	runSeeded("report-filtered-windows", { args: ["--jobs=2"], options: { platform: "win32" } });
+	runSeeded("report-tipless", { tip: null });
+	runSeeded("report-wrong-tip", { tip: "0".repeat(40) });
+	runSeeded("report-wrong-tip-windows", { tip: "0".repeat(40), options: { platform: "win32" } });
+	runSeeded("report-always-fail", { mode: "always-fail" });
+	runSeeded("report-whole-run-fail", { mode: "whole-run-fail" });
+
+	const handRoot = installReportFixture(fixture("report-hand-measure"));
+	const handCommon = path.resolve(handRoot, git(handRoot, "rev-parse", "--git-common-dir"));
+	const handPage = path.join(handCommon, ...LAND_REPORT_SUBPATH.split("/"));
+	fs.mkdirSync(path.dirname(handPage), { recursive: true }); fs.writeFileSync(handPage, seeded);
+	const handEnv = { ...process.env, NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, FAKE_SUITE]), NANA_SUITE_LOCK_DIR: path.join(TD, "report-hand-lock"), NANA_RUNTIME_MAP_FILE: path.join(TD, "report-hand-map.json"), NANA_FAKE_LOG: path.join(TD, "report-hand-log.jsonl"), NANA_FAKE_MODE: "pass", NANA_HAND_TEST_LOCKED: LOCKED_WRAPPER, NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot: path.join(TD, "report-hand-tmp"), platform: MEASURED_PLATFORM }) };
+	delete handEnv[LAND_TIP_ENV];
+	const handResult = spawnSync(process.execPath, [HAND_WRAPPER], { cwd: handRoot, env: handEnv, encoding: "utf8", timeout: CASE_LIMIT_MS - 1000 });
+	cases.push(["report-hand-measure", { result: handResult }, handPage]);
+
+	for (const [name, c, page] of cases) {
+		assert.deepEqual(fs.readFileSync(page), seeded, name);
+		assert.equal(productReportNotes(c.result).length, 0, `${name}: ${c.result.stdout}`);
+	}
+	const controlRoot = installReportFixture(fixture("report-positive-control"));
+	const controlCommon = path.resolve(controlRoot, git(controlRoot, "rev-parse", "--git-common-dir"));
+	const controlPage = path.join(controlCommon, ...LAND_REPORT_SUBPATH.split("/"));
+	fs.mkdirSync(path.dirname(controlPage), { recursive: true }); fs.writeFileSync(controlPage, seeded);
+	const control = runCase("report-positive-control", { root: controlRoot });
+	assert.equal(control.result.status, 0, control.result.stderr);
+	assert.notDeepEqual(fs.readFileSync(controlPage), seeded);
+	assert.equal(productReportNotes(control.result).length, 1, control.result.stdout);
+});
+
+// req: R-2742
+await check("R-2742: a land whose product report refuses or cannot be written prints one product report note on one line and keeps the suite's exit code", () => {
+	const seeded = Buffer.from("earlier page without final newline");
+	const refusalCases = [];
+	const noLedgerRoot = fixture("report-no-ledger");
+	const noLedgerCommon = path.resolve(noLedgerRoot, git(noLedgerRoot, "rev-parse", "--git-common-dir"));
+	const noLedgerPage = path.join(noLedgerCommon, ...LAND_REPORT_SUBPATH.split("/"));
+	fs.mkdirSync(path.dirname(noLedgerPage), { recursive: true }); fs.writeFileSync(noLedgerPage, seeded);
+	refusalCases.push(["no ledger", runCase("report-no-ledger", { root: noLedgerRoot }), noLedgerPage]);
+
+	const badTreeRoot = installReportFixture(fixture("report-bad-tree"));
+	fs.appendFileSync(path.join(badTreeRoot, "REQUIREMENTS.md"), "\n| R-9999 | malformed row | implemented | — |\n| R-9998 | another malformed row | implemented | — |\n");
+	const badTreeCommon = path.resolve(badTreeRoot, git(badTreeRoot, "rev-parse", "--git-common-dir"));
+	const badTreePage = path.join(badTreeCommon, ...LAND_REPORT_SUBPATH.split("/"));
+	fs.mkdirSync(path.dirname(badTreePage), { recursive: true }); fs.writeFileSync(badTreePage, seeded);
+	refusalCases.push(["tree problems", runCase("report-bad-tree", { root: badTreeRoot }), badTreePage]);
+
+	const folderRoot = installReportFixture(fixture("report-page-folder"));
+	const folderCommon = path.resolve(folderRoot, git(folderRoot, "rev-parse", "--git-common-dir"));
+	const folderPage = path.join(folderCommon, ...LAND_REPORT_SUBPATH.split("/"));
+	fs.mkdirSync(folderPage, { recursive: true });
+	refusalCases.push(["page folder", runCase("report-page-folder", { root: folderRoot }), null]);
+
+	for (const [name, c, earlierPage] of refusalCases) {
+		assert.equal(c.result.status, 0, `${name}: ${c.result.stdout}\n${c.result.stderr}`);
+		const notes = productReportNotes(c.result);
+		assert.equal(notes.length, 1, `${name}: ${c.result.stdout}`);
+		assert.ok(notes[0].startsWith(`${LAND_NOTE_PREFIX} product report not written: `), notes[0]);
+		assert.equal(/[\r\n]/.test(notes[0]), false, notes[0]);
+		if (name === "no ledger") assert.match(notes[0], /REQUIREMENTS\.md/);
+		if (name === "tree problems") assert.match(notes[0], /requirements tree checker problems.*R-9999.*R-9998/);
+		if (name === "page folder") assert.match(notes[0], /EISDIR|EPERM|ENOTEMPTY/);
+		if (earlierPage) assert.deepEqual(fs.readFileSync(earlierPage), seeded, name);
+	}
 });
 
 // req: R-2523
@@ -234,7 +392,7 @@ await check("a passing land suite whose runtime data cannot be written exits 0, 
 		const c = runCase(name, { mode, options });
 		assert.equal(c.result.status, 0, `${c.result.stdout}\n${c.result.stderr}`);
 		assert.equal(fs.readFileSync(c.dataFile, "utf8"), c.initial);
-		const notes = c.result.stdout.split(/\r?\n/).filter((line) => line.startsWith(LAND_NOTE_PREFIX));
+		const notes = c.result.stdout.split(/\r?\n/).filter((line) => line.startsWith(LAND_NOTE_PREFIX) && line.includes("runtime map"));
 		assert.equal(notes.length, 1, c.result.stdout); assert.match(notes[0], /runtime map.*(completion|count|write|refusal)/i);
 	}
 });
