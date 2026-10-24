@@ -56,3 +56,4 @@
 - Store ages (report-at-land, final review): the page shows a store's age even when the claim's maker or writer path does not match the map. The deliverables check notes it, but the age still looks authoritative.
 - Store ages (report-at-land, final review): for suite-runs, "no readable record" covers both no store yet and a store that cannot be read.
 - Store ages (report-at-land, final review): once the build ledger grows past 32 MiB, its age always says the ledger cannot be read. It is 28 KB today.
+- Report at land (artifact audit, 2026-10-24): the suite writes the report page when it passes, before nana-land's final review re-check. So a refused land can leave a page for a tip that never landed.

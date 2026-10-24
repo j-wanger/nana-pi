@@ -40,3 +40,4 @@
 - Objective producer (objective-hook-win, plan): the producer pays Node's TypeScript stripping on every start, about half its time on macOS.
 - Objective producer (objective-hook-win, plan): with pi resolvable from a folder above the checkout, the producer loads all of pi before it exits. It then took 463 to 758 ms on macOS, against 84 to 91 ms. CI and the seat's machine do not resolve pi; a gate lane owns the early import.
 - Objective producer (objective-hook-win, plan): objective-golden's comment still says the hook has a 10 s child timeout. It is cosmetic.
+- Objective pickups (artifact audit, 2026-10-24): the Claude seat's session-start objective block is never journaled as a pickup, though R-019 says each pickup is.

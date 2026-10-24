@@ -114,3 +114,4 @@
 - Hard-kill watcher (hard-kill-watcher, independent check): a `stopped` end record can name a builder that still runs: when the lock stays because a builder may run, and when the pid record is missing. The pack README does not say so.
 - Hard-kill watcher (hard-kill-watcher, independent check): the start-time read reuses the watcher's git timeout, so retuning one retunes the other.
 - Hard-kill watcher (hard-kill-watcher, independent check): the builder's captured output now sits inside the lane folder, so deleting only that folder loses it (inferred).
+- Hard-kill watcher (bench-study-scratch CI, 2026-10-24): R-2722's live-owner case failed once on the Windows suite leg, with the temp folder not yet empty. Main's run and two lane runs passed; likely a removal timing flake (inferred).
