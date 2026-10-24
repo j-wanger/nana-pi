@@ -49,3 +49,4 @@
 - Frontier block (session-start-frontier, land review): a read or decode failure returns the unavailable block before `--max` applies, so a folder named HANDOFF.md beside a long objective can exceed the frontier's share of the hook budget.
 - Frontier block (session-start-frontier, final review): an ask with bold around the tag only (`- **[blocking, since …]** text`) renders as `[blocking, since …] **** text`; the title pattern needs the title inside the bold, and the fallback strips only the tag.
 - Frontier checks (park-honestly, plan): HANDOFF's word budget stays a seat check, not a suite gate. Only 10 of 152 versions since 2026-10-06 met it, so the seat trims at each notes step.
+- Handoff store (artifact audit, 2026-10-24): nothing has written the store since 2026-09-28, and session start logs it missing. Only a pi session's compaction writes it, and builder sessions skip it (inferred).

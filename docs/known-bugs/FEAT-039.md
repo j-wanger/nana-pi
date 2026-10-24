@@ -53,3 +53,4 @@
 - Store ages (report-at-land, plan): a build that is still running shows nothing until it ends.
 - Store ages (report-at-land, plan): a store age shows when the maker last ran. It does not show that the record is complete or that a reader read it.
 - Product view (report-at-land, plan): R-1012's same-output rule now also needs the suite and build stores unchanged. A land or a build between two report runs changes the page.
+- Report at land (artifact audit, 2026-10-24): the suite writes the report page when it passes, before nana-land checks the reviews. So a refused land can leave a page for a tip that never landed.
