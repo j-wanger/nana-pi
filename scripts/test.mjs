@@ -13,7 +13,7 @@
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
  *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
  *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
- *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record
+ *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record with the default per-file limit
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
@@ -621,6 +621,7 @@ if (suiteRecordFile) {
 			unnamedFailures,
 			exitCode: finalExitCode,
 			wallSeconds: Number(((Date.now() - started) / 1000).toFixed(1)),
+			fileTimeoutMs: TIMEOUT_MS,
 			jobs,
 			platform: process.platform,
 			coverage: coverageDir !== null,

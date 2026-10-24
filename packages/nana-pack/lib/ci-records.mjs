@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/ci-records.mjs
  * @purpose Read CI suite-record artifacts for one revision without changing repository state.
  * @inputs A revision, repository root, injected git and gh runners, filesystem, temporary root, clock-independent GitHub responses, and output sink.
- * @outputs A process code, record count, and bounded CI totals, slowest-file, missing-input, cleanup, and closing lines.
+ * @outputs A process code, record count, parsed records, and bounded CI totals, slowest-file, missing-input, cleanup, and closing lines.
  * @effects disk (temporary artifact downloads), process (git and injected gh calls), network (through the injected gh runner).
  * @errors Every unavailable revision, origin, gh response, run listing, artifact, record, leg, or cleanup becomes a named line; no readable record returns code 1.
  */
@@ -101,21 +101,21 @@ export function readCiRecords(argv = [], {
 	writeLine = console.log,
 } = {}) {
 	const line = (text) => writeLine(`${CI_RECORD_LINE_PREFIX} ${text}`);
-	if (argv.length > 1) { line("usage: ci-records.mjs [<rev>]"); return { code: 1, records: 0 }; }
+	if (argv.length > 1) { line("usage: ci-records.mjs [<rev>]"); return { code: 1, records: 0, parsed: [] }; }
 	const revision = argv[0] ?? "HEAD";
 	const resolved = gitValue(runGit, cwd, ["rev-parse", "--verify", "--quiet", `${revision}^{commit}`]);
-	if (!resolved.ok || !resolved.value) { line(`revision ${revision} does not resolve to a commit${resolved.reason ? `: ${resolved.reason}` : ""}`); return { code: 1, records: 0 }; }
+	if (!resolved.ok || !resolved.value) { line(`revision ${revision} does not resolve to a commit${resolved.reason ? `: ${resolved.reason}` : ""}`); return { code: 1, records: 0, parsed: [] }; }
 	const sha = resolved.value;
 	const remote = gitValue(runGit, cwd, ["remote", "get-url", CI_REMOTE]);
-	if (!remote.ok) { line(`origin cannot be read: ${remote.reason}`); return { code: 1, records: 0 }; }
+	if (!remote.ok) { line(`origin cannot be read: ${remote.reason}`); return { code: 1, records: 0, parsed: [] }; }
 	const repository = githubRepoOf(remote.value);
-	if (!repository) { line("origin is not a github.com repository URL"); return { code: 1, records: 0 }; }
-	if (typeof runGh !== "function") { line("gh runner is unavailable"); return { code: 1, records: 0 }; }
+	if (!repository) { line("origin is not a github.com repository URL"); return { code: 1, records: 0, parsed: [] }; }
+	if (typeof runGh !== "function") { line("gh runner is unavailable"); return { code: 1, records: 0, parsed: [] }; }
 	const base = `repos/${repository.owner}/${repository.repo}`;
 	const runsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs?head_sha=${sha}&per_page=${GH_PAGE_SIZE}`], "workflow_runs");
-	if (!runsResult.ok) { line(runsResult.reason); return { code: 1, records: 0 }; }
+	if (!runsResult.ok) { line(runsResult.reason); return { code: 1, records: 0, parsed: [] }; }
 	const runs = runsResult.values.filter((run) => run?.path === CI_WORKFLOW_RUN_PATH).sort((left, right) => idCompare(left.id, right.id));
-	if (!runs.length) { line(`no CI run for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0 }; }
+	if (!runs.length) { line(`no CI run for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [] }; }
 
 	let downloadRoot = null;
 	const printed = [];
@@ -133,7 +133,7 @@ export function readCiRecords(argv = [], {
 				.filter(({ value, identity }) => identity && value?.expired !== true);
 			for (const { value: artifact, identity } of artifacts) {
 				const folder = path.join(downloadRoot, `${run.id}-${artifact.id}`);
-				const downloaded = ghResult(runGh, cwd, ["run", "download", String(run.id), "--repo", `${repository.owner}/${repository.repo}`, "--name", artifact.name, "--dir", folder]);
+				const downloaded = ghResult(runGh, cwd, ["run", "download", String(run.id), "--repo", `${CI_HOST}/${repository.owner}/${repository.repo}`, "--name", artifact.name, "--dir", folder]);
 				if (!downloaded.ok) {
 					problems.push(`artifact ${artifact.name} from run ${run.id}: download failed: ${downloaded.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`);
 					continue;
@@ -175,7 +175,7 @@ export function readCiRecords(argv = [], {
 	printed.sort((left, right) => idCompare(left.run.id, right.run.id) || left.leg.localeCompare(right.leg) || left.attempt - right.attempt);
 	for (const item of printed) { writeLine(totalsText(item)); writeLine(slowestText(item)); }
 	for (const problem of problems) line(problem);
-	if (!printed.length) { line(`no readable record for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0 }; }
+	if (!printed.length) { line(`no readable record for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [] }; }
 	line(`${printed.length} records from ${runs.length} CI runs at ${sha.slice(0, TIP_DIGITS)}; seconds are hosted-runner seconds under each record's job count`);
-	return { code: 0, records: printed.length };
+	return { code: 0, records: printed.length, parsed: printed };
 }

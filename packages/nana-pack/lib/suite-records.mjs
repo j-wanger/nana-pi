@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/suite-records.mjs
  * @purpose Resolve, retain, read, compare, and summarize full-suite run records shared by a clone's worktrees.
- * @inputs A repository root, record file or run record, with injectable filesystem, git runner, clock, process id, and retention cap.
- * @outputs A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, or closing record lines.
+ * @inputs A repository root, store folder, record file or run record, with injectable filesystem, git runner, clock, process id, and retention cap.
+ * @outputs A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final or slow files, counts, number text, or closing record lines.
  * @effects disk (git-common-dir suite record files), process (git queries through the injected runner).
  * @errors Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
  */
@@ -15,6 +15,7 @@ import {
 	RECORD_LINE_PREFIX,
 	RECORD_SCHEMA,
 	SLOWER_LIST_MAX,
+	SLOWEST_LIST_MAX,
 	SLOWER_MIN_RATIO,
 	SLOWER_MIN_SECONDS,
 	STORE_SUBPATH,
@@ -39,9 +40,9 @@ export function gitCommonDir(root, { runGit = defaultGit } = {}) {
 	return path.isAbsolute(common) ? common : path.resolve(root, common);
 }
 
-/** Resolve the clone-shared suite store. */
-export function suiteRecordsDir(root, { runGit = defaultGit } = {}) {
-	return path.join(gitCommonDir(root, { runGit }), ...STORE_SUBPATH.split("/"));
+/** Resolve the clone-shared suite store, or another store folder under the same common directory. */
+export function suiteRecordsDir(root, { runGit = defaultGit, subpath = STORE_SUBPATH } = {}) {
+	return path.join(gitCommonDir(root, { runGit }), ...subpath.split("/"));
 }
 
 /** Read the git facts stamped onto an unfiltered run after its suite process has ended. */
@@ -83,10 +84,11 @@ export function storeSuiteRecord(record, {
 	now = () => new Date(),
 	pid = process.pid,
 	keep = SUITE_RECORDS_KEEP,
+	subpath = STORE_SUBPATH,
 } = {}) {
 	if (!root) throw new Error("suite record root is required");
 	if (!/^[0-9a-f]{40,64}$/i.test(record?.tip ?? "")) throw new Error("suite record tip is not a full commit id");
-	const dir = suiteRecordsDir(root, { runGit });
+	const dir = suiteRecordsDir(root, { runGit, subpath });
 	fsApi.mkdirSync(dir, { recursive: true });
 	const name = `${suiteRecordStamp(now())}_${record.tip}_${pid}.json`;
 	const target = path.join(dir, name);
@@ -115,9 +117,9 @@ function dateFromRecordName(name) {
 }
 
 /** Read newest-first current-schema records; malformed, unreadable, temp, and other-schema files disappear. */
-export function readSuiteRecords({ root, fsApi = fs, runGit = defaultGit } = {}) {
+export function readSuiteRecords({ root, fsApi = fs, runGit = defaultGit, subpath = STORE_SUBPATH } = {}) {
 	let dir;
-	try { dir = suiteRecordsDir(root, { runGit }); }
+	try { dir = suiteRecordsDir(root, { runGit, subpath }); }
 	catch { return []; }
 	let names;
 	try { names = fsApi.readdirSync(dir).filter((name) => name.endsWith(".json")).sort().reverse(); }
@@ -179,7 +181,7 @@ export function readRunRecord(recordFile, { fsApi = fs } = {}) {
 	return record;
 }
 
-function numberText(value) {
+export function numberText(value) {
 	return Number.isInteger(value) ? String(value) : Number(value.toFixed(2)).toString();
 }
 
@@ -191,6 +193,16 @@ export function finalFiles(record) {
 		byPath.set(file.path, entries);
 	}
 	return [...byPath.values()].map((entries) => entries.filter((entry) => entry.coverage === false).at(-1) ?? entries.at(-1));
+}
+
+/** Return the capped slowest final non-SKIP files at or above a record-relative share. */
+export function slowFiles(record, share) {
+	const limitSeconds = Number(record?.fileTimeoutMs) / 1000;
+	if (!(limitSeconds > 0) || !(share > 0)) return [];
+	return finalFiles(record)
+		.filter((file) => file.label !== "SKIP" && Number(file.seconds) >= share * limitSeconds)
+		.sort((left, right) => Number(right.seconds) - Number(left.seconds) || String(left.path).localeCompare(String(right.path)))
+		.slice(0, SLOWEST_LIST_MAX);
 }
 
 /** Count final PASS, FAIL and SKIP labels, including failures without a file. */

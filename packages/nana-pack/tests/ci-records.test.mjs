@@ -38,7 +38,7 @@ const CASE_LIMIT_MS = 30_000;
 const ORIGIN_URL = execFileSync("git", ["remote", "get-url", "origin"], { cwd: REPO, encoding: "utf8" }).trim();
 const GITHUB_REPO = githubRepoOf(ORIGIN_URL);
 assert(GITHUB_REPO, "checkout origin must name a github.com repository");
-const REPOSITORY = `${GITHUB_REPO.owner}/${GITHUB_REPO.repo}`;
+const REPOSITORY = `github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}`;
 const SHA = spawnSync("git", ["rev-parse", "HEAD"], { cwd: REPO, encoding: "utf8" }).stdout.trim();
 const SHORT_SHA = SHA.slice(0, 9);
 let failures = 0;
@@ -245,6 +245,10 @@ check("R-2634: ci-records prints one totals line per record artifact of each CI 
 		assert(lines[3].includes("push") && lines[4].includes("wall 21s at 4 jobs"));
 		assert(!result.out.includes("run 30") && !result.out.includes("expired") && !result.out.includes("unrelated"));
 	}
+	const stateFile = writeState(state); const calls = []; const runner = fakeRunner(stateFile);
+	const direct = readCiRecords(["HEAD"], { cwd: REPO, tempRoot: path.join(TD, "host-qualified"), writeLine: () => {}, runGh: (cwd, args, options) => { calls.push(args); return runner(cwd, args, options); } });
+	assert.equal(direct.code, 0); const download = calls.find((args) => args[0] === "run" && args[1] === "download");
+	assert.equal(download?.[download.indexOf("--repo") + 1], REPOSITORY);
 });
 
 // req: R-2635

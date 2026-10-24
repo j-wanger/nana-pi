@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/suite-records-config.mjs
  * @purpose Declare the suite-record store's contract values and tunables with their provenance.
  * @inputs Land-time environment names, note prefix, and main ref from land-config.mjs.
- * @outputs Record environment, schema, store, retention, comparison, local and CI line, artifact, workflow, job, paging, command, and imported land constants.
+ * @outputs Record environment, schema, local and CI stores, retention, comparison, slow-file share, line, artifact, workflow, job, paging, command, and imported land constants.
  * @effects none
  * @errors none
  */
@@ -19,8 +19,17 @@ export const RECORD_SCHEMA = 1;
 // contract (R-2547); chosen: sit beside the runtime map in the git common directory.
 export const STORE_SUBPATH = "nana/suite-runs";
 
+// contract (design D4, R-2751): keep hosted records beside, never inside, the local baseline store.
+export const CI_STORE_SUBPATH = "nana/ci-runs";
+
 // chosen (R-2547, audit 2026-10-22): about nine days at roughly 270 full runs per eight days and about 5 MB.
 export const SUITE_RECORDS_KEEP = 300;
+
+// chosen (R-2752, measurements 2026-10-23): about 100 days at 40 records a day, past GitHub's 90-day retention.
+export const CI_RECORDS_KEEP = 4_000;
+
+// chosen (R-2754, measurements 2026-10-23): a file at half its limit survives the measured 1.73-times worst spike below the limit.
+export const CI_SLOW_SHARE = 0.5;
 
 // chosen (R-2551, runtime-map-live measurements 2026-10-22): above the measured 4.1-second largest per-file swing.
 export const SLOWER_MIN_SECONDS = 10;
