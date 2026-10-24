@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/build-records.mjs
- * @purpose Append and read clone-shared build records, match pi sessions, sum Usage, and render build-report lines.
- * @inputs Git common folders, build records, session folders, bounded files, and optional read-limit injections.
- * @outputs Best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
+ * @purpose Assemble, append and read clone-shared build records, match pi sessions, sum Usage, and render build-report lines.
+ * @inputs Git common folders, build records and end facts, session folders, bounded files, and optional read-limit injections.
+ * @outputs End records, best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
  * @effects disk (record append and bounded ledger/session reads)
  * @errors Append operations return named failures; bounded ledger reads throw ERR_TOO_LARGE or filesystem errors.
  */
@@ -67,6 +67,39 @@ export function appendBuildRecord(commonDir, record, { fsApi = fs } = {}) {
 	} catch (error) {
 		return { ok: false, file, error };
 	}
+}
+
+/** Assemble one end record from a start and its already-decided outcome, revision and usage facts. */
+export function buildEndRecord(start, {
+	endedAt = new Date().toISOString(),
+	attempts = 1,
+	exit = null,
+	outcome,
+	signal = null,
+	tip = null,
+	tipError = null,
+	found = collectBuildUsage(start),
+	outputError = null,
+} = {}) {
+	return {
+		v: BUILD_RECORD_SCHEMA,
+		kind: "end",
+		build: start.build,
+		endedAt,
+		durationMs: Date.parse(endedAt) - Date.parse(start.startedAt),
+		attempts: Number(attempts) || 1,
+		exit,
+		outcome,
+		signal,
+		tip,
+		tipError,
+		usage: found.usage,
+		cost: found.cost,
+		costReason: found.costReason,
+		sessions: found.sessions,
+		sessionBadLines: found.sessionBadLines,
+		outputError,
+	};
 }
 
 /** Read current-schema start/end records while skipping and counting every unreadable line. */
