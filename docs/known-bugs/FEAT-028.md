@@ -78,4 +78,8 @@
 - Artifact registry (artifact-registry, plan): a regroup's owner page does not show artifact entries, and a split sends all of a feature's entries to one successor.
 - Artifact registry (artifact-registry, plan): four Claude-folder entries name ~/.claude, but the code follows CLAUDE_CONFIG_DIR when it is set.
 - Artifact registry (artifact-registry, final review): no fixture test pins the note for a plain-path third part beside a registry. Only R-2784's repository test reads it, so seat pair 19 survives.
-- Artifact registry (artifact-registry, plan): feature Reads lines wait for the feature-line lane. A deliverable's Read by paths stay the only record of who reads an artifact.
+- Feature reads (feature-artifact-lines, plan): the checker ties only built-from lists to a feature's reads. A tracked reader path that no longer opens the artifact passes.
+- Feature reads (feature-artifact-lines, plan): a regroup's owner page does not show reads, and a split sends all of a feature's reads to one successor.
+- Feature reads (feature-artifact-lines, plan): a lift that merges two features can leave a repeated or self-read Reads line; the check notes it.
+- Feature reads (feature-artifact-lines, plan): the Reads lines cover the reads the derive and the verifier found, not a sweep of the whole repository. Product-report runs on other projects, the regroup page, the knowledge build's crawl and this repository's own AGENTS.md, CLAUDE.md and project pack config have no line.
+- Feature reads (feature-artifact-lines, plan): a deliverable's Read by paths and its feature's Reads lines overlap. The flow lane draws only the Reads lines.

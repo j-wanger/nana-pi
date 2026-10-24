@@ -92,4 +92,4 @@ const PAIRS = [
 	{ n: "25", name: "the lift refuses carried Reads lines as field prose", edits: [one(LIFT, LIFT_LABELS, "if (!/^(Purpose|Outcome|Status|Reads):/.test(bareLines[i])) continue;")], tests: [T_CAPK], expectRed: [R_2787] },
 ];
 
-process.exitCode = await runMutations({ lane: "feature-artifact-lines", self: import.meta.url, tip: "c8a228bb", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "feature-artifact-lines", self: import.meta.url, tip: "3d0bdccc", declared: DECLARED, pairs: PAIRS });

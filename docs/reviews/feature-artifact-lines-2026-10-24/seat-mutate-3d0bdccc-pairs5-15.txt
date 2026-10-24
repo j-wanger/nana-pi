@@ -1,0 +1,13 @@
+seat-mutate: lane feature-artifact-lines, tip 3d0bdcccd3a6095ced2c7b2e40731371417440da, table 72f1355e794e84250c8abc28a2773efcc0bb910abeef63da9e5a658f98b14f5a, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 2 pairs in 2 shards (1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-24T20:16:26.462Z
+DECLARED (seat) pairs 1 to 12 follow R-2795's red cases and the reads-are-not-registry rule; 13 to 19 R-2798's, one a ledger edit; 20 and 21 R-2796's; 22 to 24 R-2797's; 25 the lift (R-2787)
+DECLARED (seat) after build 1 at c8a228bb: 23 of 25 red; pairs 5 (a read of a retired entry) and 15 (a built-from entry read only in another feature) survived, both must-meet red cases with no case, and went to build 2
+DECLARED (seat) declared non-pairs: 'the 0943299b outline changes' (the outline renderer is shared, so any change to it that alters an old outline also alters today's; R-2796's history check covers it with pairs 20 and 21's renderer), and 'reads keep the page unchanged' (lane 2's page reads only the registry; no reads code reaches product-report.mjs)
+[1/2] seat-mutate: lane feature-artifact-lines, shard 1/2, tip 3d0bdcccd3a6095ced2c7b2e40731371417440da, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 1 pairs, darwin, node v22.22.2, 2026-10-24T20:16:27.668Z
+[1/2] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[1/2] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/2] seat-mutate: lane feature-artifact-lines, shard 2/2, tip 3d0bdcccd3a6095ced2c7b2e40731371417440da, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 1 pairs, darwin, node v22.22.2, 2026-10-24T20:16:31.426Z
+[2/2] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[2/2] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 5 a Reads line naming a retired entry passes — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 a built-from entry read in any feature passes — 1/1 named: /^R-2798: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 2 shards

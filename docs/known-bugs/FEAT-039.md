@@ -60,4 +60,6 @@
 - Artifact ages (report-names-artifacts, plan): home, other-project, git-ref and CI artifacts never show an age. When a writer stops, the page shows no change; nothing has written the handoff store since 2026-09-28.
 - Artifact ages (report-names-artifacts, plan): the land page entry shows "age not measured: clone store".
 - Artifact ages (report-names-artifacts, plan): the runtime map's age follows NANA_RUNTIME_MAP_FILE when it is set, not its registered location.
-- Artifact ages (report-names-artifacts, plan): the CI run records store is a fourth clone store. Once registered, it will show "age not measured: clone store".
+- Artifact ages (report-names-artifacts, plan; feature-artifact-lines): the CI run records store, A-059, is a fourth clone store. It shows "age not measured: clone store".
+- Artifact ages (report-names-artifacts, final review): one R-2791 check filters the land page and mismatched-store lines and checks every match. It passes if those lines vanish. Seat pair 9 is red, so the risk is small.
+- Artifact block (report-names-artifacts, final review): IDs sort as text within a claim, so A-1000 would sort before A-999. Every ID has three digits today.
