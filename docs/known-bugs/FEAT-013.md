@@ -199,3 +199,4 @@
 - pi versions (pi-version-support): the floor legs' README rehearsal installs the ceiling, not the floor. The setup README's floor command is pinned to CI by a check, and nothing runs it.
 - pi versions (pi-version-support): the desk passed its unit tests on pi 1.4.0 only; no browser test and no service restart ran there. The desk stays frozen.
 - pi versions (pi-version-support): each CI run now has three macOS jobs, so two lanes pushing at once may queue against GitHub's macOS job limit (inferred, not measured).
+- Windows knowledge hook (hard-kill-watcher, CI): R-1713's background rebuild check failed once on the Windows suite leg at 7d03134b, on timing. The next run passed, and the lane does not touch the hook.

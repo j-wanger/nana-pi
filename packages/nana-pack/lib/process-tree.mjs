@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/process-tree.mjs
- * @purpose Provide the shared waiting and no-wait process-tree kill policy.
- * @inputs a positive pid, signal, platform, optional fallback and injected kill/run/start seams
- * @outputs killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
+ * @purpose Provide shared process liveness and waiting and no-wait process-tree kill policy.
+ * @inputs a pid, signal, platform, optional fallback and injected kill/run/start seams
+ * @outputs pidAlive, killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
  * @effects process (signals a process group or starts taskkill)
  * @errors never throws
  */
@@ -16,6 +16,13 @@ export const TASKKILL_ARGS = Object.freeze(["/T", "/F", "/PID"]);
 export const DEFAULT_KILL_SIGNAL = "SIGKILL";
 
 const validPid = (pid) => Number.isSafeInteger(pid) && pid > 1;
+
+/** Whether a pid names a live or inaccessible process; invalid and absent pids are false. */
+export function pidAlive(pid, { kill = process.kill } = {}) {
+	if (!Number.isInteger(pid) || pid <= 0) return false;
+	try { kill(pid, 0); return true; }
+	catch (error) { return error?.code === "EPERM"; }
+}
 const useFallback = (fallback, signal) => {
 	if (typeof fallback !== "function") return;
 	try { fallback(signal); } catch { /* best effort */ }

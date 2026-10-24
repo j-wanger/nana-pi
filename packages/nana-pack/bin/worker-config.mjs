@@ -1,14 +1,28 @@
 /**
  * @module packages/nana-pack/bin/worker-config.mjs
- * @purpose Define sealed worker, watchdog, roster, Claude Code builder, reviewer-child and pi-package launch values.
+ * @purpose Define sealed worker, watchdog, lane-watcher, roster, Claude Code builder, reviewer-child and pi-package launch values.
  * @inputs none
- * @outputs Lane/watchdog limits, default builder and roster values, Claude Code builder flags, files, tools, carry allowlists and env,
+ * @outputs Lane/watchdog and lane-watcher limits and files, default builder and roster values, Claude Code builder flags, tools, carry allowlists and env,
  *  roster slot/runtime tokens, reviewer child env, Windows npm-layout values, and pi package identity.
  * @effects none
  * @errors none
  */
 // chosen 28,800 seconds: eight hours covers the measured 20,495-second longest builder round (hardening program, 2026-10-07).
 export const LANE_MAX_SECS = 28_800;
+// chosen 2026-10-23: matches the detached install relay's poll; measured hard-kill cleanup ended within 305 ms.
+export const LANE_WATCHER_POLL_MS = 200;
+// chosen 2026-10-23: real builder stop time was not measured; two seconds is conservative over the fake builder's measured 30 ms.
+export const LANE_WATCHER_STOP_WAIT_MS = 2_000;
+// chosen 2026-10-23: copies R-2666's transient Windows temp-removal policy for handles closing after a tree stop.
+export const LANE_WATCHER_REMOVE_RETRIES = 5;
+// chosen 2026-10-23: copies R-2666's transient Windows temp-removal delay.
+export const LANE_WATCHER_REMOVE_RETRY_MS = 100;
+// chosen 2026-10-23: the builder identity record sits beside the lane preamble and capture folder.
+export const LANE_BUILDER_PID_FILE = "builder.pid";
+// chosen 2026-10-23: ps lstart reports whole seconds, so allow one second around the identity record mtime.
+export const LANE_WATCHER_START_TOLERANCE_MS = 1_000;
+// chosen 2026-10-23: a stuck repository lookup must not hold a lane lock; two seconds covers a local HEAD read.
+export const LANE_WATCHER_GIT_TIMEOUT_MS = 2_000;
 // contract: .NET TimeSpan.TicksPerSecond, 100-nanosecond ticks (R-1891)
 export const WIN_CPU_TICKS_PER_SECOND = 10_000_000;
 // the owner's roster ruling, 2026-10-06; since the roster lane (2026-10-13) a machine's roster lives in the user-scope nana-pack.json (R-1120-R-1122), and LANE_DEFAULTS is the default builder only.

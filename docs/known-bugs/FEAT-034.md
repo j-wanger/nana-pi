@@ -4,3 +4,4 @@
 - Bench study evidence (bench-study-scratch, plan): until this lane, a suite test deleted the shipped tool-profiles study's code-bugfix evidence in any checkout that ran it. On this machine that folder is gone, and 12 recorded results still point into it (the seat infers the suite deleted it).
 - Bench study evidence (bench-study-scratch, plan): a test that again removes a shipped study's evidence would still pass where that folder is absent. That is CI, and this machine today.
 - Bench study evidence (bench-study-scratch, plan): someone running the bench or the catch-ledger script on a shipped study during the suite can change its listing. The listing check then fails.
+- Bench study evidence (bench-study-scratch, final review): with the shipped study back as the study folder, the listing check never runs. The diff read throws first, so the run check and the thrown error catch it instead.

@@ -13,9 +13,11 @@ import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { BUILD_RECORD_SCHEMA, BUILD_RECORDS_SUBPATH } from "../lib/build-records-config.mjs";
+import * as workerConfig from "../bin/worker-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPiRoot } from "./pi-install.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
+import { killWorkerTree, windowsLaneWatchers } from "./process-tree-helper.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPORT = path.join(ROOT, "bin", "build-report.mjs");
@@ -24,7 +26,7 @@ const REPO = path.join(TD, "repo");
 const LINKED = path.join(TD, "linked");
 const NOGIT = path.join(TD, "not-repo");
 const SESSION_DIR = path.join(TD, "sessions");
-const HARD_KILL_WAIT_MS = 2000; // chosen: allows process tables and Windows handles to settle after the worker tree is killed.
+const HARD_KILL_WAIT_MS = (workerConfig.LANE_WATCHER_POLL_MS ?? 200) + (workerConfig.LANE_WATCHER_STOP_WAIT_MS ?? 2_000) + (workerConfig.LANE_WATCHER_REMOVE_RETRIES ?? 5) * (workerConfig.LANE_WATCHER_REMOVE_RETRY_MS ?? 100) + 5_000; // test-only CI margin around the product cleanup waits.
 const TEMP_REMOVE_MAX_RETRIES = 5; // chosen: gives transient Windows folder handles several chances to close.
 const TEMP_REMOVE_RETRY_DELAY_MS = 100; // chosen: bounds cleanup retries to half a second before reporting the failure.
 const git = (cwd, ...args) => {
@@ -51,6 +53,10 @@ fs.mkdirSync(path.dirname(LEDGER), { recursive: true });
 const validLines = rows.map((row, index) => `${JSON.stringify(row)}${index % 2 ? " \t" : ""}`);
 fs.writeFileSync(LEDGER, `${validLines.slice(0, 3).join("\r\n")}\r\n{torn\r\n${JSON.stringify({ v: 2, kind: "start", build: "old" })}\n${JSON.stringify({ v: 1, kind: "end", build: "orphan", outcome: "ok" })}\n${validLines.slice(3).join("\n")}`); // no final newline
 const run = (cwd, args = []) => spawnSync(process.execPath, [REPORT, ...args], { cwd, encoding: "utf8", timeout: 10_000 });
+const readRows = (file) => {
+	try { return fs.readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean).map(JSON.parse); }
+	catch { return []; }
+};
 let failures = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) failures++; };
 const fromMain = run(REPO);
@@ -100,14 +106,9 @@ const noEndExpected = [
 	"total | 3 builds | 2 lanes | 1 lane with 2+ builds | 2 min | 64 tokens | $0.06 | 2 unpriced | 0 unreadable lines",
 ].join("\n") + "\n";
 const baseNoEndOk = noEnd.status === 0 && noEnd.stdout === noEndExpected && noEnd.stdout.indexOf("build n1") < noEnd.stdout.indexOf("build n2") && noEnd.stdout.includes("2 min | 64 tokens | $0.06");
+// req: R-2601
+check("R-2601: the build report lists a start with no end as no end, with its session cost", baseNoEndOk, JSON.stringify({ observed: noEnd.stdout, expected: noEndExpected, stderr: noEnd.stderr }));
 
-function killWorkerTree(child, { platform = process.platform, runner = spawnSync } = {}) {
-	if (!child?.pid) return;
-	try {
-		if (platform === "win32") runner("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
-		else child.kill("SIGKILL");
-	} catch { /* the tree already ended or the kill command could not start */ }
-}
 const killCases = [
 	() => killWorkerTree({ pid: 42 }, { platform: "win32", runner: () => ({ status: 255 }) }),
 	() => killWorkerTree({ pid: 42 }, { platform: "win32", runner: () => ({ status: 128 }) }),
@@ -143,11 +144,29 @@ async function waitForPidExit(pid) {
 	while (pidAlive(pid) && Date.now() < deadline) await sleep(20);
 	return !pidAlive(pid);
 }
+const watcherLines = () => {
+	if (process.platform === "win32") return windowsLaneWatchers(TD).map((watcher) => watcher.line);
+	const result = spawnSync("ps", ["-A", "-ww", "-o", "args="], { encoding: "utf8", timeout: 10_000 });
+	return result.status === 0 ? result.stdout.split("\n").filter((line) => line.includes("lane-watcher-child.mjs") && line.includes(TD)) : [];
+};
+const waitUntil = async (predicate, limit) => {
+	const deadline = Date.now() + limit;
+	while (!predicate() && Date.now() < deadline) await sleep(20);
+	return predicate();
+};
 const hardDeadline = Date.now() + 10_000;
-while (!(fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0) && hardChild.exitCode === null && Date.now() < hardDeadline) await new Promise((resolve) => setTimeout(resolve, 25));
-let hardStarted = fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0;
+while (!(fs.existsSync(hardPid) && fs.existsSync(LEDGER) && fs.statSync(LEDGER).size > 0) && hardChild.exitCode === null && Date.now() < hardDeadline) await sleep(25);
+const hardStart = readRows(LEDGER).find((row) => row.kind === "start" && row.lane === "report-linked");
+const watcherReady = await waitUntil(() => {
+	const lines = watcherLines();
+	return lines.filter((line) => line.includes("--watch")).length === 1 && lines.every((line) => !line.includes("--hop"));
+}, 5_000);
+let hardStarted = fs.existsSync(hardPid) && Boolean(hardStart);
 if (hardStarted) killWorkerTree(hardChild);
-const hardClose = await Promise.race([hardClosePromise, new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 10_000))]);
+await sleep(0);
+const hardClose = await Promise.race([hardClosePromise, sleep(10_000).then(() => ({ timeout: true }))]);
+const endArrived = hardStart ? await waitUntil(() => readRows(LEDGER).some((row) => row.kind === "end" && row.build === hardStart.build), HARD_KILL_WAIT_MS) : false;
+const watcherGone = await waitUntil(() => watcherLines().length === 0, HARD_KILL_WAIT_MS);
 if (hardStarted) {
 	const fakePiPid = Number(fs.readFileSync(hardPid, "utf8"));
 	if (process.platform !== "win32") { try { process.kill(fakePiPid, "SIGTERM"); } catch {} }
@@ -155,10 +174,12 @@ if (hardStarted) {
 }
 const hardReport = run(LINKED, ["--lane", "report-linked"]);
 fs.rmSync(path.join(LINKED_GIT_DIR, "nana-lane.lock"), { force: true });
+const hardRows = readRows(LEDGER);
+const hardEnds = hardStart ? hardRows.filter((row) => row.kind === "end" && row.build === hardStart.build) : [];
 const hardLedger = fs.existsSync(LEDGER) ? fs.readFileSync(LEDGER, "utf8") : "missing";
-const hardOk = hardStarted && !hardClose.timeout && hardReport.status === 0 && /build .* \| lane report-linked \| no end \| exit -/.test(hardReport.stdout) && hardReport.stdout.includes("128 tokens | $0.13");
-// req: R-2601
-check("R-2601: the build report lists a start with no end as no end, with its session cost", baseNoEndOk && hardOk, JSON.stringify({ observed: noEnd.stdout, expected: noEndExpected, stderr: noEnd.stderr, hardClose, hardReport, hardLedger }));
+const hardOk = hardStarted && watcherReady && !hardClose.timeout && endArrived && watcherGone && hardEnds.length === 1 && hardEnds[0].outcome === "stopped" && hardEnds[0].exit === null && hardEnds[0].signal === null && hardReport.status === 0 && /build .* \| lane report-linked \| stopped \| exit -/.test(hardReport.stdout) && hardReport.stdout.includes("128 tokens | $0.13");
+// req: R-2725
+check("R-2725: a hard-killed lane build gets one end record from its watcher and the report lists it as stopped, exit -, with its session cost", hardOk, JSON.stringify({ hardClose, watcherReady, endArrived, watcherGone, hardEnds, hardReport, hardLedger }));
 
 try {
 	fs.rmSync(TD, { recursive: true, force: true, maxRetries: TEMP_REMOVE_MAX_RETRIES, retryDelay: TEMP_REMOVE_RETRY_DELAY_MS });
