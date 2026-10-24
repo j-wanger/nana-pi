@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane hard-kill-watcher (gate), written by the seat 2026-10-23 after build 1, at tip 0233a934.
-// They are the draft's pairs 1 to 14 (13 split into its two variants) and the must-meet's 16 to 22; pair 15 is declared.
+// Seat wrong-code pairs for lane hard-kill-watcher (gate), written by the seat 2026-10-23 after build 1 and re-run after build 2, at tip 65b43672.
+// They are the draft's pairs 1 to 14 (13 split into its two variants) and the must-meet's 16 to 22; pair 15 is declared; pair 23 came after build 2.
 // Each pair was checked against must-meet.md's wording and the code at the tip; the builder's own table
 // (packages/nana-pack/tests/seat-mutate-hard-kill-watcher.mjs) was the starting point. Run from the lane worktree root,
 // with CLAUDE_CONFIG_DIR unset (the mutation runner does not scrub it) and a scratch TMPDIR:
@@ -53,7 +53,7 @@ const DECLARED = [
 	"(seat) pair 14 names R-2651 (its builder runs 3 s) and R-2728; R-2646 is only alsoRed, because its builder exits at once, so its red is a race between the watcher's start and the build's end",
 	"(seat) pair 16 ignores both stop-wait results and keeps the win32 cmd test; pair 17 moves both pi-worker's writer and the watcher's reader to the shared temp root (the writer alone is pair 9's effect)",
 	"(seat) pair 19 releases only a lock whose owner is a dead process other than the worker, so only R-2722's dead subcase can catch it (the builder's version also removed a live owner's lock)",
-	"(seat, not a pair) no must-meet pair removes R-2727's win32 cmd clause; a scratch run at 0233a934 with `builder.launch !== \"cmd\" &&` removed kept R-2727 PASS, because the test's injected waitForExit returns false for both cases",
+	"(seat) pair 23, added after build 2 (65b43672) widened R-2727's check: removing the win32 cmd clause now turns R-2727 red; at 0233a934 it stayed PASS, because the injected waitForExit returned false for both cases",
 ];
 
 const PAIRS = [
@@ -127,13 +127,16 @@ const PAIRS = [
 	{ n: "22", name: "no start-time check before the signal", edits: [
 		one(LW, IDENTITY, "const identitySafe = true;"),
 	], tests: [T_WC], expectRed: [R_2726] },
+	{ n: "23", name: "the win32 cmd.exe launch no longer keeps the lock", edits: [
+		one(LW, "mayRelease = builder.launch !== \"cmd\" && await waitForExit(builder.pid);", "mayRelease = await waitForExit(builder.pid);"),
+	], tests: [T_LW], expectRed: [R_2727] },
 ];
 
 process.exitCode = await runMutations({
 	lane: "hard-kill-watcher",
 	branch: "feat/hard-kill-watcher",
 	self: import.meta.url,
-	tip: "0233a934",
+	tip: "65b43672",
 	declared: DECLARED,
 	pairs: PAIRS,
 });
