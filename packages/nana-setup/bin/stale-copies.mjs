@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-setup/bin/stale-copies.mjs
- * @purpose Report an outdated session project's working section and unhealthy installed Claude Code hooks, rules, skills or settings.
+ * @purpose Report an adopted session project's failing file rows and unhealthy installed Claude Code hooks, rules, skills or settings.
  * @inputs argv (`--cwd <dir>`), the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
  * @outputs an optional project-stale line before one optional installed-copy notice, including blocked skill paths to move.
  * @effects disk (reads installed and source files; runs install's skill step in dry-run mode), process (writes stdout).

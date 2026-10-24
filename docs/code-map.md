@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 422 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 423 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1296,10 +1296,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/extensions/nana-rulings.ts`
 
-- **purpose** — Append nana's standing rulings plus stale-install and stale-project guidance to every session's system prompt.
+- **purpose** — Append nana's standing rulings plus stale-install and adopted-project file-row guidance to every session's system prompt.
 - **inputs** — pi `session_start` and `before_agent_start` events; session cwd; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
 - **outputs** — rulings text or its unavailable marker in RULINGS_SECTION, plus independent stale-install and project-stale sections when applicable.
-- **effects** — disk (bounded-reads the installed rulings and project AGENTS.md, and compares shipped sources)
+- **effects** — disk (bounded-reads installed rulings and project text, inspects project file rows, and compares shipped sources)
 - **errors** — none — the handler swallows everything; an unusable file injects the marker rather than throwing, hanging, or exhausting memory
 - **callers** — `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
@@ -3136,7 +3136,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/bin/stale-copies.mjs`
 
-- **purpose** — Report an outdated session project's working section and unhealthy installed Claude Code hooks, rules, skills or settings.
+- **purpose** — Report an adopted session project's failing file rows and unhealthy installed Claude Code hooks, rules, skills or settings.
 - **inputs** — argv (`--cwd <dir>`), the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
 - **outputs** — an optional project-stale line before one optional installed-copy notice, including blocked skill paths to move.
 - **effects** — disk (reads installed and source files; runs install's skill step in dry-run mode), process (writes stdout).
@@ -3374,15 +3374,25 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/project-key.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`
 - **callees** — —
 
+### `packages/nana-setup/lib/project-rows.mjs`
+
+- **purpose** — Decide the project check's file-state rows from the project's files alone.
+- **inputs** — a project directory, date, text reader, Node filesystem and path APIs, and the canonical working region.
+- **outputs** — lstat(), seedEntry(), today(), projectFileRows(), CLAUDE_IMPORT and PLACEHOLDER_RE.
+- **effects** — disk (lstats entries, lists the sessions directory, resolves links and reads through the supplied text reader).
+- **errors** — AGENTS.md read errors propagate; CLAUDE.md read errors become a failing row.
+- **callers** — `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
+- **callees** — `packages/nana-setup/lib/working-region.mjs`
+
 ### `packages/nana-setup/lib/project.mjs`
 
-- **purpose** — Seed and check per-project nana files while refreshing only the explicitly marked shared instructions region.
+- **purpose** — Seed projects and combine shared file-state rows with readiness checks while refreshing only the marked working region.
 - **inputs** — the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader; NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS
-- **outputs** — setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`, every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also re-exports SHARED_DIR, WORKING_BEGIN and WORKING_END; exports today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, CLAUDE_IMPORT, BUILD_LOCK_MARK, REFRESH_DEADLINE_MS and REFRESH_KILL_GRACE_MS
+- **outputs** — setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`, every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also re-exports SHARED_DIR, WORKING_BEGIN, WORKING_END, today() and CLAUDE_IMPORT; exports fillSeed(), monthHeader(), agentsStub(), PACK_STARTER, BUILD_LOCK_MARK, REFRESH_DEADLINE_MS and REFRESH_KILL_GRACE_MS
 - **effects** — disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a parent-side deadline — SIGTERM then SIGKILL after the grace)
 - **errors** — SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a path that is not a git repository root; everything else is a row — SKIPPED for an odd seed entry or folder path, a nested-repo `git init`, a failed `git init`, a missing index, a held build lock, a build failure or the refresh deadline
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
-- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/rename-retry.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/working-region.mjs`
+- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/rename-retry.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-rows.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/working-region.mjs`
 
 ### `packages/nana-setup/lib/readme-rehearsal.mjs`
 
@@ -3456,13 +3466,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/stale-copies.mjs`
 
-- **purpose** — Compare installed files and project working sections with this checkout and render their stale-copy notices.
+- **purpose** — Compare installed copies and report an adopted session project's failing file rows with their safe remedies.
 - **inputs** — installed and source paths, stale doctor labels, optional blocked skill paths, a session folder and environment, the active platform and package root, and the active Claude settings entry that records nana-setup's adoption-hook install.
 - **outputs** — LAUNCHER_ROLES, linkOk(), hasAdoptionInstallRecord(), staleNotice(labels, movePaths) and projectStaleLine(sessionDir, options).
-- **effects** — disk (lstat, realpath and bounded byte reads).
+- **effects** — disk (lstat, realpath, directory listing and bounded byte reads).
 - **errors** — comparison or settings-read failures return false or an empty project line; notice rendering is total.
 - **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
-- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/lib/working-region.mjs`
+- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-rows.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/lib/working-region.mjs`
 
 ### `packages/nana-setup/lib/state-manifest.mjs`
 
@@ -3531,7 +3541,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — WORKING_BEGIN, WORKING_END, WORKING_FILE, markerLines(), readSharedWorking() and regionVerdict().
 - **effects** — disk (reads the shared working-section file).
 - **errors** — readSharedWorking propagates filesystem errors; markerLines and regionVerdict are pure and total for strings.
-- **callers** — `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
+- **callers** — `packages/nana-setup/lib/project-rows.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/stale-copies.mjs`
 - **callees** — `packages/nana-setup/lib/paths.mjs`
 
 ### `packages/nana-setup/tests/agent-dir-consumers.test.mjs`
@@ -3896,7 +3906,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/project-stale.test.mjs`
 
-- **purpose** — Pin the shared project-working-region drift notice in the Claude Code and pi session-start seats.
+- **purpose** — Pin the shared adopted-project file-row notice in the Claude Code and pi session-start seats.
 - **inputs** — the real adoption hook and stale-copy producer, nana-rulings, project helpers, shared working text, and temporary repositories.
 - **outputs** — PASS/FAIL/SKIP lines and a summary; a nonzero exit when a contract case fails.
 - **effects** — disk (OS temporary fixtures only), process (spawns hook CLIs and temporarily patches child_process and NANA_ROLE).
