@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane land-ci-timings (land tool), written for the seat 2026-10-23 after build 1 and re-run after build 2, at tip ffca3487.
+// Seat wrong-code pairs for lane land-ci-timings (land tool), written for the seat 2026-10-23 after build 1 and re-run after build 2 and after the seat's merge of main, at tip cc86c4c2.
 // They are the draft's pairs 1 to 18 (plan-draft.md) and the attack's 19 to 30 (plan-attack.md), as must-meet.md adjusts
 // them: no Made-by line or ci-runs artifact name, the store name through storeSuiteRecord's pid option, pair 7 fully
 // caught (S3) and pair 25 caught by the spy in R-2752 (S4). Four seat pairs (S1 to S4) probe code points no listed pair
@@ -75,7 +75,7 @@ const READ_FAILURE = "\t\telse if (result.code !== 0 || result.records === 0) fa
 const ONE_NOTE = "\t\tif (failures.length) notes.push(`${LAND_NOTE_PREFIX} note: CI records ${failures.join(\"; \")}`);\n";
 
 // packages/nana-pack/lib/suite-records.mjs
-const DIR_JOIN = "return path.join(commonDir, ...subpath.split(\"/\"));";
+const DIR_JOIN = "return path.join(gitCommonDir(root, { runGit }), ...subpath.split(\"/\"));";
 const PRUNE_ORDER = "\t\t.filter((entry) => entry.endsWith(\".json\"))\n\t\t.sort()\n\t\t.reverse();\n";
 const SLOW_LIMIT = "const limitSeconds = Number(record?.fileTimeoutMs) / 1000;";
 const SLOW_FILTER = "file.label !== \"SKIP\" && Number(file.seconds) >= share * limitSeconds";
@@ -124,7 +124,7 @@ const PAIRS = [
 		one(LCR, STORE_CALL, STORE_CALL.replace("subpath: CI_STORE_SUBPATH, ", "")),
 	], tests: [T_LCR], expectRed: [R_2751], alsoRed: [R_2755] },
 	{ n: "5b", name: "suiteRecordsDir ignores the subpath, so every store is suite-runs", edits: [
-		one(SR, DIR_JOIN, "return path.join(commonDir, ...STORE_SUBPATH.split(\"/\"));"),
+		one(SR, DIR_JOIN, "return path.join(gitCommonDir(root, { runGit }), ...STORE_SUBPATH.split(\"/\"));"),
 	], tests: [T_LCR], expectRed: [R_2751] },
 	{ n: "6a", name: "the stored record lacks the artifact time", edits: [
 		one(LCR, RECORDED_AT, ""),
@@ -246,4 +246,4 @@ const PAIRS = [
 	], tests: [T_LCR], expectRed: [R_2750] },
 ];
 
-process.exitCode = await runMutations({ lane: "land-ci-timings", self: import.meta.url, tip: "ffca3487", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "land-ci-timings", self: import.meta.url, tip: "cc86c4c2", declared: DECLARED, pairs: PAIRS });
