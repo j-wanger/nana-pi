@@ -15,7 +15,7 @@ import * as nanaLand from "../bin/nana-land.mjs";
 import { keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, LAND_NOTE_PREFIX } from "../lib/land-config.mjs";
 import { CI_ARTIFACT_PREFIX, CI_RECORDS_KEEP, CI_SLOW_SHARE, CI_STORE_SUBPATH, RECORD_SCHEMA, SLOWEST_LIST_MAX } from "../lib/suite-records-config.mjs";
-import { readSuiteRecords, storeSuiteRecord, suiteRecordStamp, suiteRecordsDir } from "../lib/suite-records.mjs";
+import { readSuiteRecords, suiteRecordStamp, suiteRecordsDir } from "../lib/suite-records.mjs";
 import { withReviewLedgerLock } from "../bin/review-round.mjs";
 import { ciFixture, ensureCiReview, git, gitRunner, runList, workflowRun } from "./land-fixtures.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -141,9 +141,10 @@ check("R-2752: the ci-runs store keeps only the newest CI_RECORDS_KEEP records",
 	let received; const out = land(defaultState(), { keepLandCiRecords: (options) => { received = options; return { lines: [], notes: [], records: 0 }; } });
 	assert.equal(out.code, 0, out.text); assert.equal(received.keep, CI_RECORDS_KEEP); assert.equal(received.budgetMs, CI_RECORDS_BUDGET_MS); assert.equal(received.share, CI_SLOW_SHARE);
 	const fixture = ciFixture("retention"); const times = ["2026-10-23T03:00:00Z", "2026-10-23T01:00:00Z", "2026-10-23T02:00:00Z"];
-	for (const [index, now] of times.entries()) storeSuiteRecord({ ...record(), tip: fixture.tip }, { root: fixture.main, subpath: CI_STORE_SUBPATH, keep: 2, now: () => new Date(now), pid: index });
+	const state = stateOf(times.map((createdAt, index) => ({ leg: ["macos-latest", "ubuntu-latest", "windows-latest"][index], attempt: 1, createdAt, value: record() })));
+	const kept = keepLandCiRecords({ main: fixture.main, tip: fixture.tip, runGh: ghRunner(state), keep: 2 }); assert.equal(kept.kept, 3, JSON.stringify(kept));
 	const names = fs.readdirSync(suiteRecordsDir(fixture.main, { subpath: CI_STORE_SUBPATH })).filter((name) => name.endsWith(".json")).sort();
-	assert.deepEqual(names.map((name) => name.split("_")[0]), times.filter((_, index) => index !== 1).map(suiteRecordStamp).sort());
+	assert.deepEqual(names.map((name) => name.split("_")[0]), times.filter((_, index) => index !== 1).map(suiteRecordStamp).sort()); assert.equal(names.length, 2);
 });
 
 // req: R-2754
@@ -186,6 +187,11 @@ check("R-2755: a CI-record failure after the merge is one land note and the land
 	assertLandedWithOneRecordsNote(land(defaultState(), { keepLandCiRecords: () => { throw new Error("injected keeper throw"); } }), /failed.*injected keeper throw/i);
 	assertLandedWithOneRecordsNote(land(defaultState(), { keepLandCiRecords: () => ({}) }), /failed.*malformed/i);
 	{
+		const malformed = Object.create(null);
+		const out = land(defaultState(), { keepLandCiRecords: () => ({ lines: [malformed], notes: [], records: 0 }) });
+		assert.equal(out.code, 0, out.text); assert.equal(ciNotes(out.text).length, 1, out.text);
+	}
+	{
 		const state = stateOf([
 			{ leg: "macos-latest", attempt: 1, createdAt: "2026-10-23T01:00:00Z", value: record() },
 			{ leg: "ubuntu-latest", attempt: 1, createdAt: "not a date", value: record({ platform: "linux" }) },
@@ -200,15 +206,15 @@ check("R-2755: a CI-record failure after the merge is one land note and the land
 check("R-2756: the CI-record read starts no gh call past its budget and gives each call a whole-millisecond limit within the time left", () => {
 	const fixture = ciFixture("budget"); const budget = CI_READ_TIMEOUT_MS * 2;
 	const exercise = (step) => {
-		let time = 0; const limits = []; const state = defaultState(); const base = ghRunner(state);
-		const result = keepLandCiRecords({ main: fixture.main, tip: fixture.tip, budgetMs: budget, now: () => time, runGh: (cwd, args, options) => { limits.push(options.timeoutMs); const answer = base(cwd, args, options); time += step; return answer; } });
-		assert(limits.every((value) => Number.isInteger(value) && value >= 1 && value <= CI_READ_TIMEOUT_MS)); return { limits, result };
+		let time = 0; const limits = [], remainders = []; const state = defaultState(); const base = ghRunner(state);
+		const result = keepLandCiRecords({ main: fixture.main, tip: fixture.tip, budgetMs: budget, now: () => time, runGh: (cwd, args, options) => { remainders.push(budget - time); limits.push(options.timeoutMs); const answer = base(cwd, args, options); time += step; return answer; } });
+		assert(limits.every((value, index) => Number.isInteger(value) && value >= 1 && value <= CI_READ_TIMEOUT_MS && value <= remainders[index])); return { limits, result };
 	};
 	const stepped = exercise(25_000); assert.deepEqual(stepped.limits, [CI_READ_TIMEOUT_MS, CI_READ_TIMEOUT_MS, budget - 50_000]); assert.equal(ciNotes(stepped.result.notes.join("\n")).length, 1); assert.match(stepped.result.notes.join("\n"), /budget/i);
 	const equal = exercise(budget / 2); assert.equal(equal.limits.length, 2); assert.equal(ciNotes(equal.result.notes.join("\n")).length, 1);
-	const fractional = exercise(budget - 1.5); assert.deepEqual(fractional.limits, [CI_READ_TIMEOUT_MS, 2]);
+	const fractional = exercise(budget - 1.5); assert.deepEqual(fractional.limits, [CI_READ_TIMEOUT_MS, 1]);
 	const fast = exercise(100); assert.equal(fast.result.notes.filter((line) => line.includes("budget")).length, 0);
-	const empty = tmpDir(path.join(os.tmpdir(), "land-gh-empty-")); let answer; assert.doesNotThrow(() => { answer = nanaLand.ghDefault()(fixture.main, ["--version"], { env: { PATH: empty }, timeoutMs: 1500.5 }); }); assert.equal(answer?.error?.code, "ERR_OUT_OF_RANGE");
+	const empty = tmpDir(path.join(os.tmpdir(), "land-gh-empty-")); let answer; assert.doesNotThrow(() => { answer = nanaLand.ghDefault()(fixture.main, ["--version"], { env: { PATH: empty }, timeoutMs: 0 }); }); assert.equal(answer?.error?.code, "ERR_OUT_OF_RANGE"); assert.equal(answer?.error?.message, "gh timeout must be a positive whole number of milliseconds"); assert.equal(answer?.status, null);
 });
 
 // req: R-2751

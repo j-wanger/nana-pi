@@ -49,7 +49,7 @@ export function keepLandCiRecords({
 			if (startedAt === null) startedAt = moment;
 			const remaining = budgetMs - (moment - startedAt);
 			if (!(remaining >= 1)) { budgetStopped = true; return timeoutResult(budgetMs); }
-			const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.ceil(remaining));
+			const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.floor(remaining));
 			return runGh(cwd, args, { ...options, timeoutMs });
 		};
 		const result = readRecords([tip], { cwd: main, runGh: budgetedGh, writeLine: (line) => lines.push(line) });

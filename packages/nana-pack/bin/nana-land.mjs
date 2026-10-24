@@ -217,7 +217,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 					share: CI_SLOW_SHARE,
 				});
 				if (!result || !Array.isArray(result.lines) || !Array.isArray(result.notes)) throw new Error("CI-record keeper returned a malformed result");
-				recordLines = [...result.lines]; recordNotes = [...result.notes];
+				recordLines = result.lines.map(String); recordNotes = result.notes.map(String);
 			} catch (error) { recordNotes = [`${LAND_NOTE_PREFIX} note: CI records failed: ${error?.message ?? "unknown error"}`]; }
 		}
 		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? []), ...recordNotes];
