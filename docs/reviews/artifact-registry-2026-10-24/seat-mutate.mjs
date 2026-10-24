@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane artifact-registry (ordinary), written by the seat 2026-10-24 after build 1, at tip af5dc49f.
+// Seat wrong-code pairs for lane artifact-registry (ordinary), written by the seat 2026-10-24 after build 1 at af5dc49f, re-run after build 2 and a main merge at abf8a1c2.
 // They follow the must-meet rows' red cases (R-2780 to R-2787), the binding, the shim, the gate and the no-plain-path rule.
 // Run from the lane worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/artifact-registry-2026-10-24/seat-mutate.mjs
@@ -70,6 +70,7 @@ const DECLARED = [
 	"(seat) pairs 1 to 8 follow R-2780 and R-2781's red cases; 9 to 13 R-2782's; 14 to 18 R-2783's (the binding and the built-from rule); 19 to 21 R-2784's, two of them ledger edits; 22 and 23 R-2785's; 24 to 26 R-2786's; 27 R-2787's",
 	"(seat) S1 drops the shim's claim-writer clause; it is the lane-1 bridge that keeps today's R-2743 exactness on the page, so a survivor means no test pins the bridge",
 	"(seat) S2 empties the gate's registry count, R-2538's every-mode rule for a ledger whose only field lines are registry lines",
+	"(seat) after build 1: pair 5 is equivalent (an unknown class still gets one note, through the shape check); pair 19 is the mechanism behind R-2784, whose repository test reads every claim on its own (pair 20 red), so no row needs the checker note; pairs 15 and S1 were gaps closed by build 2",
 	"(seat) the backslash clause of the tracked shape is a declared non-pair: writing its anchor through this table's string escapes is error-prone, and R-2781's other shape cases cover the shape function",
 ];
 
@@ -108,4 +109,4 @@ const PAIRS = [
 	{ n: "S2", name: "the gate counts no registry lines, so a registry-only ledger prints nothing", edits: [one(DL, GATE, "let fieldLineCount = 0;")], tests: [T_TREE, T_DEL], expectRed: [R_2538] },
 ];
 
-process.exitCode = await runMutations({ lane: "artifact-registry", self: import.meta.url, tip: "af5dc49f", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "artifact-registry", self: import.meta.url, tip: "abf8a1c2", declared: DECLARED, pairs: PAIRS });
