@@ -1,0 +1,51 @@
+seat-mutate: lane feature-artifact-lines, tip c8a228bbfae7e8a0c4bd85a7398640322c4ffad4, table 72f1355e794e84250c8abc28a2773efcc0bb910abeef63da9e5a658f98b14f5a, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 25 pairs in 5 shards (5+5+5+5+5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-24T20:04:31.484Z
+DECLARED (seat) pairs 1 to 12 follow R-2795's red cases and the reads-are-not-registry rule; 13 to 19 R-2798's, one a ledger edit; 20 and 21 R-2796's; 22 to 24 R-2797's; 25 the lift (R-2787)
+DECLARED (seat) declared non-pairs: 'the 0943299b outline changes' (the outline renderer is shared, so any change to it that alters an old outline also alters today's; R-2796's history check covers it with pairs 20 and 21's renderer), and 'reads keep the page unchanged' (lane 2's page reads only the registry; no reads code reaches product-report.mjs)
+[1/5] seat-mutate: lane feature-artifact-lines, shard 1/5, tip c8a228bbfae7e8a0c4bd85a7398640322c4ffad4, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 5 pairs, darwin, node v22.22.2, 2026-10-24T20:04:32.339Z
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 98 PASS, 0 FAIL, )
+[1/5] RESULT: 5/5 red (4 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane feature-artifact-lines, shard 2/5, tip c8a228bbfae7e8a0c4bd85a7398640322c4ffad4, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 5 pairs, darwin, node v22.22.2, 2026-10-24T20:04:36.340Z
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[2/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane feature-artifact-lines, shard 3/5, tip c8a228bbfae7e8a0c4bd85a7398640322c4ffad4, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 5 pairs, darwin, node v22.22.2, 2026-10-24T20:04:40.572Z
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[3/5] RESULT: 5/5 red (4 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane feature-artifact-lines, shard 4/5, tip c8a228bbfae7e8a0c4bd85a7398640322c4ffad4, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 5 pairs, darwin, node v22.22.2, 2026-10-24T20:04:44.517Z
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 98 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/requirements-moved.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[4/5] RESULT: 5/5 red (3 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane feature-artifact-lines, shard 5/5, tip c8a228bbfae7e8a0c4bd85a7398640322c4ffad4, merge-base 6ea795eb76d03f5b3e3542cf8ef814f9a0c9a0be, 5 pairs, darwin, node v22.22.2, 2026-10-24T20:04:48.563Z
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-deliverables.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 98 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/requirements-cap-kinds.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[5/5] RESULT: 3/5 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 2 survived [5, 15]
+RED 1 a Reads line outside a feature span gets no note — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 a Reads line with a bad ID or an empty reader is well formed — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 a second Reads line for one ID in one span gets no note — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 a Reads line naming an unknown ID gets no note — 1/1 named: /^R-2795: /; also (declared): /^R-2730: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN 5 a Reads line naming a retired entry passes — SURVIVED
+RED 6 a feature reading its own entry passes — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 a Reads line in a retired feature's span passes — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 an untracked or folder reader passes — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 Reads lines under a kindless capability are read and noted — 1/1 named: /^R-2795: /; UNNAMED red: [requirements-tree.test.mjs] R-2796: the outline lists each feature's read artifact IDs, the field check catches a dropped line, and the h…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 a ledger whose only path is a reader never reads the HEAD tree — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 a ledger whose only field line is a Reads line prints nothing — 1/1 named: /^the tree checker prints deliverable notes in every mode/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 a Reads line switches on the registry's plain-path rule — 1/1 named: /^R-2795: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 a built-from entry neither registered nor read at home gets no note — 1/1 named: /^R-2798: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 a built-from entry registered in the home feature gets a note — 1/1 named: /^R-2798: /; also (declared): /^R-2730: /; UNNAMED red: [requirements-deliverables.test.mjs] R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entrie…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN 15 a built-from entry read in any feature passes — SURVIVED
+RED 16 a subgroup-homed row takes the subgroup as its home — 1/1 named: /^R-2798: /; UNNAMED red: [requirements-deliverables.test.mjs] R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files deliverable…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 two claims naming one missing entry give two notes — 1/1 named: /^R-2798: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED 18 a direct reference to another feature's entry gets a tie note — 1/1 named: /^R-2798: /; UNNAMED red: [requirements-deliverables.test.mjs] R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files deliverable…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 the repository ledger drops FEAT-001's read of the trust store — 1/1 named: /^R-2730: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 20 the outline drops each feature's Reads line — 1/1 named: /^R-2796: /; UNNAMED red: [requirements-tree.test.mjs] R-291: committed outline equals a fresh render committed outline differs from renderOutline; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 the outline field check ignores a dropped Reads line — 1/1 named: /^R-2796: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 the movement report ignores a reader path change — 1/1 named: /^R-2797: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 a reads-only change prints tree movement: none — 1/1 named: /^R-2797: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 24 the summary leaves out the read change count — 1/1 named: /^R-2797: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 25 the lift refuses carried Reads lines as field prose — 1/1 named: /^R-2787: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 23/25 red (18 exactly their named titles, 0 with a named title green, 5 with an unnamed red), 2 survived [5, 15], across 5 shards
