@@ -198,6 +198,12 @@ for (const text of [
   const report = parsedReads(text);
   if (report.notes.length !== 0 || report.reads.length !== 1) readsFailures.push(`line endings: ${report.notes.join(" | ")}`);
 }
+const retiredEntryLedger = readsLedger().replace(
+  "## FEAT-002 · Reader",
+  "## FEAT-003 · Retired entry\nPurpose: retired entry\nStatus: retired (FEAT-004)\nArtifact: A-002 · retired output · retired: replaced by A-003\n\n## FEAT-002 · Reader",
+).replace("Reads: A-001 · scripts/read.mjs", "Reads: A-002 · scripts/read.mjs");
+const retiredEntryNotes = parsedReads(retiredEntryLedger).notes;
+if (retiredEntryNotes.length !== 1 || !retiredEntryNotes[0].includes("A-002") || !retiredEntryNotes[0].includes("no live entry")) readsFailures.push(`retired entry: ${retiredEntryNotes.join(" | ")}`);
 for (const [label, options, fragment] of [
   ["parts", { reads: "Reads: A-001" }, "malformed"],
   ["id", { reads: "Reads: R-001 · scripts/read.mjs" }, "malformed"],
@@ -222,7 +228,7 @@ if (deliverablesModule.READS_LABEL !== "Reads") readsFailures.push(`sealed Reads
 // req: R-2795
 check("R-2795: a reads line names a live entry read by tracked files, and a malformed, unknown, own, repeated or misplaced line or an untracked reader gets one note", readsFailures.length === 0, readsFailures.join("\n"));
 
-const builtFromLedger = ({ builtId = "A-002", reads = "", ownId = "A-001", subgroup = false, duplicateClaim = false, direct = false, parked = false } = {}) => `# CAP-01 · Product
+const builtFromLedger = ({ builtId = "A-002", reads = "", otherReads = "", ownId = "A-001", subgroup = false, duplicateClaim = false, direct = false, parked = false } = {}) => `# CAP-01 · Product
 Purpose: product
 Outcome: artifact exists
 Kind: product
@@ -243,14 +249,14 @@ ${reads}${subgroup ? "### SUB-001 · Rows\nPurpose: rows\n" : ""}
 Purpose: other
 Status: active
 Artifact: A-002 · other · user-home store: ~/other · manual: owner
-`;
+${otherReads}`;
 const builtFromFailures = [];
 const builtFromNotes = (options) => checkDeliverables(parseLedger(builtFromLedger(options)), []).notes.filter((entry) => entry.includes("built-from entry"));
 for (const [label, options, count] of [
   ["foreign missing", { parked: true }, 1],
   ["home entry", { builtId: "A-001" }, 0],
   ["read at home", { reads: "Reads: A-002 · scripts/read.mjs\n" }, 0],
-  ["read elsewhere", { reads: "", builtId: "A-002" }, 1],
+  ["read elsewhere", { reads: "", otherReads: "Reads: A-002 · scripts/other-read.mjs\n", builtId: "A-002" }, 1],
   ["subgroup home", { builtId: "A-001", subgroup: true }, 0],
   ["duplicate claims", { duplicateClaim: true }, 1],
   ["direct reference", { direct: true }, 0],
