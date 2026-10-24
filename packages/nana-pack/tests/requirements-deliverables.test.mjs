@@ -252,5 +252,21 @@ for (const capability of repositoryParsed.headings.filter((heading) => heading.i
 // req: R-2539
 check("every deliverable in this repository's ledger has a Made by and a Read by line", repositoryGaps.length === 0, repositoryGaps.join("\n"));
 
+const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const repositoryGitRunner = (_args, _options) => spawnSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
+  cwd: repositoryRoot,
+  encoding: "buffer",
+  maxBuffer: LIMIT * 1024,
+});
+const malformedParkLedger = tree("Made by: R-001 · manual: owner\nRead by: R-001 · person: owner\nParked: R-001 - since 2026-10-23: held");
+const malformedParkLines = deliverableReportLines(parseLedger(malformedParkLedger), repositoryRoot, repositoryGitRunner);
+const repositoryReportLines = deliverableReportLines(repositoryParsed, repositoryRoot, repositoryGitRunner);
+// req: R-2730
+check("R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files",
+  /^deliverables: \d+ of \d+ made and read by code/.test(repositoryReportLines[0] ?? "")
+    && !repositoryReportLines.some((line) => line.startsWith("deliverable note:"))
+    && malformedParkLines.filter((line) => line.startsWith("deliverable note:") && line.includes("cannot read Parked:")).length === 1,
+  `${repositoryReportLines.join("\n")}\ncontrol: ${malformedParkLines.join("\n")}`);
+
 console.log(fails ? `${fails} check(s) failed` : "all checks passed");
 process.exit(fails ? 1 : 0);
