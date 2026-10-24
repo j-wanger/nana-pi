@@ -73,3 +73,4 @@
 - Deliverable lines (park-honestly, plan): both code readers of the build records print what they read for a person. The land result's code reader, CI, reads main only after the seat pushes by hand. Both rows still count (inferred).
 - Deliverable lines (park-honestly, plan): eighteen of the 41 listed deliverables have park lines, so the count line's ratio covers 23 rows.
 - Deliverable lines (park-honestly, seat): the deliverable test's header names only temporary repositories as inputs. R-2539 and R-2730 also read this repository's ledger and git file list.
+- Deliverable lines (park-honestly, final review): R-2730's git call does not use the test file's clean environment. A suite started from inside a git hook would inherit the hook's git variables and list the wrong index.

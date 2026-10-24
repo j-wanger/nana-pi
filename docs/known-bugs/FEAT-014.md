@@ -61,3 +61,4 @@
 - Project drift line (project-drift-notice, final review): the Claude producer writes the project line before its installed-copy check; if that later check throws, the hook launcher drops the producer's stdout for the unavailable marker, so that session loses the project line.
 - Project drift line (project-drift-notice, land review): the no-path guard checks the project root but not this checkout's own path, so a toolkit checkout whose path holds `$` gives a command whose executable path expands in POSIX shells and PowerShell.
 - Project drift check (win-flake-hardening, plan): R-2628's check failed once on a Windows pull-request leg on 2026-10-23 (run 39904357481) and passed on re-run; not yet diagnosed.
+- Deliverable lines (park-honestly, final review): R-1150's CI maker, the release job, runs only on a push to main, never on a pull request run. Pull requests still run the render test in the suite; R-596 has the same gap.
