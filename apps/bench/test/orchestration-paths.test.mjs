@@ -843,7 +843,7 @@ try {
 		const evidenceFilesExist = await Promise.all(["stream.jsonl", "stderr.txt", "argv.txt", "workspace.diff"].map((name) => fs.stat(path.join(outDir, rec.evidence, name)).then((s) => s.isFile()).catch(() => false)));
 		// req: R-2770
 		check("R-2770: the shipped-study case runs in a scratch study folder and its evidence files exist there",
-			rec.evidence === "raw/code-bugfix/research/rep0" && evidenceFilesExist.every(Boolean), `${rec.evidence}`);
+			rec.evidence === path.join("raw", "code-bugfix", "research", "rep0") && evidenceFilesExist.every(Boolean), `${rec.evidence}`);
 		// req: R-2771
 		check("R-2771: evidence the shipped-study case did not create survives it byte for byte",
 			(await fs.readFile(standIn).then((bytes) => bytes.equals(standInBytes)).catch(() => false)));
