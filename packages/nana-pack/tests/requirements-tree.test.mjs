@@ -256,15 +256,51 @@ const artifactOutline = renderOutline(artifactOutlineParsed);
 const artifactParent = "    Parent: CAP-01 · Rows: 1 · IDs: R-001";
 const artifactLine = "    Artifacts: A-001, A-002";
 const kindlessArtifactOutline = renderOutline(parseLedger(artifactOutlineLedger.replace("Kind: product\n", "")));
-const artifactHistory = ["c4332ecb", "4b3846ec", "5548d4c2"].map((revision) => {
+const historicalOutlineUnchanged = (revision) => {
   const oldLedger = spawnSync("git", ["show", `${revision}:REQUIREMENTS.md`], { cwd: fileURLToPath(root), encoding: "utf8" });
   const oldOutline = spawnSync("git", ["show", `${revision}:docs/requirements-tree.md`], { cwd: fileURLToPath(root), encoding: "utf8" });
   return oldLedger.status === 0 && oldOutline.status === 0 && renderOutline(parseLedger(oldLedger.stdout)) === oldOutline.stdout;
-});
+};
+const artifactHistory = ["c4332ecb", "4b3846ec", "5548d4c2"].map(historicalOutlineUnchanged);
 const artifactDropped = checkOutlineFields(artifactOutline.replace(`${artifactLine}\n`, ""), artifactOutlineParsed);
 const artifactAltered = checkOutlineFields(artifactOutline.replace(artifactLine, "    Artifacts: A-001"), artifactOutlineParsed);
 // req: R-2785
 check("R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged", artifactOutline.includes(`${artifactParent}\n${artifactLine}\n`) && artifactDropped.some((problem) => problem.includes("FEAT-001") && problem.includes("Artifacts:")) && artifactAltered.some((problem) => problem.includes("FEAT-001") && problem.includes("Artifacts:")) && !kindlessArtifactOutline.includes("Artifacts:") && artifactHistory.every(Boolean), `${artifactOutline}\ndropped=${artifactDropped.join("; ")}\naltered=${artifactAltered.join("; ")}\nhistory=${artifactHistory.join(",")}`);
+
+const readsOutlineLedger = `# CAP-01 · Product
+Purpose: product
+Outcome: artifact
+Kind: product
+
+## FEAT-001 · Maker
+Purpose: maker
+Status: active
+Artifact: A-001 · first · tracked: docs/first.md · manual: owner
+
+## FEAT-002 · Reader with output
+Purpose: reader
+Status: active
+Artifact: A-002 · second · tracked: docs/second.md · manual: owner
+Reads: A-001 · scripts/read.mjs
+Reads: broken
+Reads: A-001 · scripts/other.mjs
+
+## FEAT-003 · Reader only
+Purpose: reader only
+Status: active
+Reads: A-001 · scripts/read.mjs
+`;
+const readsOutlineParsed = parseLedger(readsOutlineLedger);
+const readsOutline = renderOutline(readsOutlineParsed);
+const readsWithArtifact = "    Parent: CAP-01 · Rows: 0 · IDs: —\n    Artifacts: A-002\n    Reads: A-001";
+const readsWithoutArtifact = "    Parent: CAP-01 · Rows: 0 · IDs: —\n    Reads: A-001";
+const readsLine = "    Reads: A-001";
+const readsDropped = checkOutlineFields(readsOutline.replace(`${readsLine}\n`, ""), readsOutlineParsed);
+const readsAltered = checkOutlineFields(readsOutline.replace(readsLine, "    Reads: A-999"), readsOutlineParsed);
+const kindlessReadsOutline = renderOutline(parseLedger(readsOutlineLedger.replace("Kind: product\n", "")));
+const readsHistory = ["c4332ecb", "4b3846ec", "5548d4c2", "0943299b"].map(historicalOutlineUnchanged);
+// req: R-2796
+check("R-2796: the outline lists each feature's read artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged", readsOutline.includes(readsWithArtifact) && readsOutline.includes(readsWithoutArtifact) && readsOutline.split("\n").filter((line) => line === readsLine).length === 2 && readsDropped.some((problem) => problem.includes("FEAT-002") && problem.includes("Reads:")) && readsAltered.some((problem) => problem.includes("FEAT-002") && problem.includes("Reads:")) && !kindlessReadsOutline.includes("Reads:") && readsHistory.every(Boolean), `${readsOutline}\ndropped=${readsDropped.join("; ")}\naltered=${readsAltered.join("; ")}\nhistory=${readsHistory.join(",")}`);
 
 for (const [field, mutate] of [
   ["ID", (s) => s.replace("FEAT-001", "FEAT-002")],
@@ -455,10 +491,17 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const registryWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const registryCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const registryOutput = (result) => result.status === 0 && lines(result.stdout)[0] === "requirements tree: 0 problems; rows 1; features 1" && lines(result.stdout).filter((line) => line.includes("malformed Artifact:")).length === 1;
+
+  const readsOnly = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nReads: A-999 · scripts/read.mjs\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), readsOnly);
+  const readsRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const readsWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const readsCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const readsOutput = (result) => result.status === 0 && lines(result.stdout)[0] === "requirements tree: 0 problems; rows 1; features 1" && lines(result.stdout).filter((line) => line.includes("Reads: A-999") && line.includes("no live entry")).length === 1;
   // req: R-2538
   check("the tree checker prints deliverable notes in every mode and keeps its exit status and outline",
-    goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryWrite) && registryOutput(registryCheck),
-    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nregistry only: ${registryRoot.status}/${registryWrite.status}/${registryCheck.status}: ${registryRoot.stdout} ${registryWrite.stdout} ${registryCheck.stdout} ${registryCheck.stderr}`);
+    goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryWrite) && registryOutput(registryCheck) && readsOutput(readsRoot) && readsOutput(readsWrite) && readsOutput(readsCheck),
+    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nregistry only: ${registryRoot.status}/${registryWrite.status}/${registryCheck.status}: ${registryRoot.stdout} ${registryWrite.stdout} ${registryCheck.stdout} ${registryCheck.stderr}\nreads only: ${readsRoot.status}/${readsWrite.status}/${readsCheck.status}: ${readsRoot.stdout} ${readsWrite.stdout} ${readsCheck.stdout} ${readsCheck.stderr}`);
 
   const countTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · code: scripts/read.mjs\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n";
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), countTree);

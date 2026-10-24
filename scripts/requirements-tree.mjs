@@ -3,14 +3,14 @@
  * @module scripts/requirements-tree.mjs
  * @purpose Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline.
  * @inputs REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md plus the ledger folder's HEAD tree through the shared deliverable reporter.
- * @outputs Parsed headings and tables, structural problem lists, rendered outline Markdown, and shared deliverable report lines.
+ * @outputs Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
  * @effects disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
  * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
  */
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { artifactRegistry, checkDeliverables, deliverableReportLines } from "./deliverables.mjs";
+import { artifactReads, artifactRegistry, checkDeliverables, deliverableReportLines } from "./deliverables.mjs";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -380,8 +380,10 @@ function outlineFields(parsed, h) {
 }
 export function renderOutline(parsed) {
   const out = ["# Requirements tree", "", "Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are shown.", ""];
+  const registry = artifactRegistry(parsed, null);
+  const featureReads = artifactReads(parsed, null, registry);
   const artifactsByFeature = new Map();
-  for (const entry of artifactRegistry(parsed, null).entries) {
+  for (const entry of registry.entries) {
     if (!entry.live) continue;
     if (!artifactsByFeature.has(entry.featureId)) artifactsByFeature.set(entry.featureId, []);
     artifactsByFeature.get(entry.featureId).push(entry.id);
@@ -396,6 +398,7 @@ export function renderOutline(parsed) {
     }
     out.push(`${prefix}  Parent: ${parent} · Rows: ${rows} · IDs: ${ids}`);
     if (h.id.startsWith("FEAT-") && artifactsByFeature.has(h.id)) out.push(`${prefix}  Artifacts: ${artifactsByFeature.get(h.id).join(", ")}`);
+    if (h.id.startsWith("FEAT-") && featureReads.byFeature.has(h.id)) out.push(`${prefix}  Reads: ${featureReads.byFeature.get(h.id).map((entry) => entry.id).join(", ")}`);
     if (h.id.startsWith("CAP-")) {
       for (const label of CAPABILITY_FIELD_LABELS) {
         const entries = capabilityEntries(h, label);
@@ -445,8 +448,10 @@ export function expandRowIds(text) {
 export function checkOutlineFields(outline, parsed) {
   const problems = [];
   const lines = outline.split("\n");
+  const registry = artifactRegistry(parsed, null);
+  const featureReads = artifactReads(parsed, null, registry);
   const artifactsByFeature = new Map();
-  for (const entry of artifactRegistry(parsed, null).entries) {
+  for (const entry of registry.entries) {
     if (!entry.live) continue;
     if (!artifactsByFeature.has(entry.featureId)) artifactsByFeature.set(entry.featureId, []);
     artifactsByFeature.get(entry.featureId).push(entry.id);
@@ -498,9 +503,17 @@ export function checkOutlineFields(outline, parsed) {
     if (!actualDetail.includes(`Rows: ${rows.length} ·`)) problems.push(`${h.id}: outline field row count is missing or altered`);
     if (!actualDetail.endsWith(`IDs: ${compress(rows)}`)) problems.push(`${h.id}: outline field row IDs are missing or altered`);
     if (actualDetail !== expectedDetail && !problems.some((problem) => problem.startsWith(`${h.id}: outline field`))) problems.push(`${h.id}: outline field metadata is altered`);
-    if (h.id.startsWith("FEAT-") && artifactsByFeature.has(h.id)) {
-      const expectedArtifacts = `${prefix}  Artifacts: ${artifactsByFeature.get(h.id).join(", ")}`;
-      if (lines[titleIndex + detailOffset + 1] !== expectedArtifacts) problems.push(`${h.id}: outline Artifacts: is missing or altered`);
+    if (h.id.startsWith("FEAT-")) {
+      let featureFieldOffset = detailOffset + 1;
+      if (artifactsByFeature.has(h.id)) {
+        const expectedArtifacts = `${prefix}  Artifacts: ${artifactsByFeature.get(h.id).join(", ")}`;
+        if (lines[titleIndex + featureFieldOffset] !== expectedArtifacts) problems.push(`${h.id}: outline Artifacts: is missing or altered`);
+        featureFieldOffset++;
+      }
+      if (featureReads.byFeature.has(h.id)) {
+        const expectedReads = `${prefix}  Reads: ${featureReads.byFeature.get(h.id).map((entry) => entry.id).join(", ")}`;
+        if (lines[titleIndex + featureFieldOffset] !== expectedReads) problems.push(`${h.id}: outline Reads: is missing or altered`);
+      }
     }
     if (h.id.startsWith("CAP-")) {
       let fieldOffset = detailOffset + 1;

@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/requirements-moved.test.mjs
- * @purpose Pin the tree movement report's row grouping, merge-base diffing, capability changes and shared-row annotations.
+ * @purpose Pin the tree movement report's row grouping, merge-base diffing, capability, artifact and feature-read changes, and shared-row annotations.
  * @inputs scripts/requirements-moved.mjs, direct ledger texts and a fixture git repository built under the OS temp directory.
  * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
  * @effects disk (creates a scratch git repository under the OS temp directory; never touches the repository this test runs in), process (spawns node and git as children)
@@ -327,6 +327,42 @@ const artifactExpected = [
 ];
 // req: R-2786
 check("R-2786: the movement report names every artifact entry change, a writer change included, and is unchanged when no entry changed", artifactMovementOutput.startsWith("tree movement base..head: 0 rows in 0 features, 8 artifact change(s)") && artifactMovementOutput.includes("\nartifacts:\n") && artifactExpected.every((line) => artifactMovementOutput.includes(`  ${line}`)) && !artifactMovementOutput.includes("tree movement: none") && treeMovement({ baseText: artifactMovementBase, headText: artifactMovementBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", artifactMovementOutput);
+
+const readsMovementLedger = (reads, { kind = true, ending = "\n" } = {}) => `# CAP-01 · Product
+Purpose: product
+Outcome: artifacts
+${kind ? "Kind: product\n" : ""}
+## FEAT-001 · Maker
+Purpose: maker
+Status: active
+Artifact: A-001 · first · user-home store: ~/first · manual: owner
+Artifact: A-002 · second · user-home store: ~/second · manual: owner
+
+## FEAT-002 · Reader
+Purpose: reader
+Status: active
+${reads}${ending}`;
+const readsMovementBase = readsMovementLedger("Reads: A-001 · scripts/a.mjs, scripts/b.mjs\nReads: A-002 · scripts/c.mjs");
+const readsMovementHead = readsMovementLedger("Reads: A-001 · scripts/b.mjs, scripts/a.mjs");
+const readsMovementOutput = treeMovement({ baseText: readsMovementBase, headText: readsMovementHead, baseRevLabel: "base", headRevLabel: "head" });
+const readsExpected = [
+  "FEAT-002 A-001 readers scripts/a.mjs, scripts/b.mjs → scripts/b.mjs, scripts/a.mjs",
+  "FEAT-002 A-002 readers scripts/c.mjs → none",
+];
+const variedReadsOutput = treeMovement({
+  baseText: readsMovementBase.replaceAll("\n", "\r\n"),
+  headText: readsMovementHead.replace("Reads: A-001 · scripts/b.mjs, scripts/a.mjs", "Reads: A-001 · scripts/b.mjs, scripts/a.mjs\t").replace(/\n$/, ""),
+  baseRevLabel: "base",
+  headRevLabel: "head",
+});
+const kindlessReadsOutput = treeMovement({
+  baseText: readsMovementLedger("Reads: A-001 · scripts/a.mjs", { kind: false }),
+  headText: readsMovementLedger("Reads: A-001 · scripts/b.mjs", { kind: false }),
+  baseRevLabel: "base",
+  headRevLabel: "head",
+});
+// req: R-2797
+check("R-2797: the movement report names every change to a feature's reads and is unchanged when no reads line changed", readsMovementOutput.startsWith("tree movement base..head: 0 rows in 0 features, 2 read change(s)") && readsMovementOutput.includes("\nartifacts:\n") && readsExpected.every((line) => readsMovementOutput.includes(`  ${line}`)) && !readsMovementOutput.includes("tree movement: none") && variedReadsOutput === readsMovementOutput && kindlessReadsOutput === "tree movement: none" && treeMovement({ baseText: readsMovementBase, headText: readsMovementBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", `normal:\n${readsMovementOutput}\nvaried:\n${variedReadsOutput}\nkindless:\n${kindlessReadsOutput}`);
 
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all checks passed");

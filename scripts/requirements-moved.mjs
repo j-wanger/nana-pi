@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/requirements-moved.mjs
- * @purpose Report requirement-row, artifact-registry, capability-placement and capability-field changes since a revision's merge base with HEAD.
+ * @purpose Report requirement-row, artifact-registry, feature-read, capability-placement and capability-field changes since a revision's merge base with HEAD.
  * @inputs argv (--root <dir> --base <rev>); REQUIREMENTS.md as committed at HEAD and at the merge base of <rev> and HEAD, read through git.
- * @outputs One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry change, on stdout; a named refusal on stderr.
+ * @outputs One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry or feature-read change, on stdout; a named refusal on stderr.
  * @effects process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
  * @errors exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
  */
@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { artifactRegistry, deliverableFieldLinesByRow } from "./deliverables.mjs";
+import { artifactReads, artifactRegistry, deliverableFieldLinesByRow } from "./deliverables.mjs";
 import { CAPABILITY_FIELD_LABELS, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 
 // Chosen: 64 MiB, the same size requirements-lift.mjs's blob reader (gitBuf) uses for a
@@ -145,8 +145,12 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
   const headFeatureCaps = featureCapabilities(headParsed);
   const baseCaps = capabilitySnapshot(baseParsed);
   const headCaps = capabilitySnapshot(headParsed);
-  const baseArtifacts = artifactRegistry(baseParsed, null).byId;
-  const headArtifacts = artifactRegistry(headParsed, null).byId;
+  const baseRegistry = artifactRegistry(baseParsed, null);
+  const headRegistry = artifactRegistry(headParsed, null);
+  const baseArtifacts = baseRegistry.byId;
+  const headArtifacts = headRegistry.byId;
+  const baseReads = artifactReads(baseParsed, null, baseRegistry);
+  const headReads = artifactReads(headParsed, null, headRegistry);
 
   const ids = new Set([...baseRows.keys(), ...headRows.keys()]);
   const groups = new Map();
@@ -219,6 +223,22 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     if (parts.length) artifactChanges.push(`${id} ${parts.join("; ")}`);
   }
 
+  const readChanges = [];
+  const baseReadMap = new Map();
+  const headReadMap = new Map();
+  for (const [featureId, entries] of baseReads.byFeature) for (const entry of entries) baseReadMap.set(`${featureId}\0${entry.id}`, entry);
+  for (const [featureId, entries] of headReads.byFeature) for (const entry of entries) headReadMap.set(`${featureId}\0${entry.id}`, entry);
+  const readKeys = [...headReadMap.keys(), ...[...baseReadMap.keys()].filter((key) => !headReadMap.has(key))];
+  for (const key of readKeys) {
+    const before = baseReadMap.get(key);
+    const after = headReadMap.get(key);
+    if (JSON.stringify(before?.readers ?? null) === JSON.stringify(after?.readers ?? null)) continue;
+    const [featureId, id] = key.split("\0");
+    const beforeText = before ? before.readers.join(", ") : "none";
+    const afterText = after ? after.readers.join(", ") : "none";
+    readChanges.push(`${featureId} ${id} readers ${beforeText} → ${afterText}`);
+  }
+
   let rowCount = 0;
   const lines = [];
   for (const key of orderedKeys) {
@@ -227,14 +247,15 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     const label = key === null ? "(no feature)" : `${key} · ${headLabels.get(key) ?? baseLabels.get(key) ?? ""}`;
     lines.push(label, ...rows);
   }
-  if (rowCount === 0 && capabilityChanges.length === 0 && artifactChanges.length === 0) return "tree movement: none";
+  if (rowCount === 0 && capabilityChanges.length === 0 && artifactChanges.length === 0 && readChanges.length === 0) return "tree movement: none";
   const suffixes = [];
   if (capabilityChanges.length) suffixes.push(`${capabilityChanges.length} capability change(s)`);
   if (artifactChanges.length) suffixes.push(`${artifactChanges.length} artifact change(s)`);
+  if (readChanges.length) suffixes.push(`${readChanges.length} read change(s)`);
   const suffix = suffixes.length ? `, ${suffixes.join(", ")}` : "";
   const output = [`tree movement ${baseRevLabel}..${headRevLabel}: ${rowCount} rows in ${orderedKeys.length} features${suffix}`, ...lines];
   if (capabilityChanges.length) output.push("capabilities:", ...capabilityChanges.map((change) => `  ${change}`));
-  if (artifactChanges.length) output.push("artifacts:", ...artifactChanges.map((change) => `  ${change}`));
+  if (artifactChanges.length || readChanges.length) output.push("artifacts:", ...artifactChanges.map((change) => `  ${change}`), ...readChanges.map((change) => `  ${change}`));
   return output.join("\n");
 }
 

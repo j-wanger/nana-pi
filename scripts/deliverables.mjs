@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/deliverables.mjs
- * @purpose Parse and check product-capability deliverable claims and the feature artifact registry, then produce their shared checker lines.
- * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact and age-table shapes, or an injected git runner.
- * @outputs Registry entries by A-ID, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
+ * @purpose Parse and check product-capability deliverable claims, the feature artifact registry and cross-feature artifact reads, then produce their shared checker lines.
+ * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
+ * @outputs Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
@@ -63,7 +63,11 @@ const MAKER_SET = new Set(MAKER_RUNS);
 const READER_SET = new Set(READER_KINDS);
 const REASON_SET = new Set(REASON_REQUIRED);
 const DELIVERABLE_LABELS = new Set([...DELIVERABLE_FIELD_LABELS, PARKED_LABEL]);
+// Contract (feature-artifact-lines must-meet, R-2795): the feature-reader field label.
+export const READS_LABEL = "Reads";
+// Contract (artifact-registry must-meet, R-2780): the feature-registry field labels.
 const ARTIFACT_LABELS = new Set(["Artifact"]);
+const READS_LABEL_SET = new Set([READS_LABEL]);
 const ROW_AT_START = /^(R-(?:[0-9]{3}|[1-9][0-9]{3}))\b/;
 const PARKED_DATE = new RegExp(`^${PARKED_SINCE}\\s+(\\d{4}-\\d{2}-\\d{2})$`);
 
@@ -198,6 +202,50 @@ export function artifactRegistry(parsed, trackedPaths = null) {
   return { entries, byId, notes, fieldLineCount, needsTrackedPaths };
 }
 
+/** Parse and check every Reads: line under a kinded capability, grouped by reader feature. */
+export function artifactReads(parsed, trackedPaths = null, registry = artifactRegistry(parsed, trackedPaths)) {
+  const reads = [];
+  const byFeature = new Map();
+  const notes = [];
+  const tracked = Array.isArray(trackedPaths) ? new Set(trackedPaths) : null;
+  let fieldLineCount = 0;
+  for (const heading of parsed.headings) {
+    const capability = capabilityOf(heading);
+    if (!capability || !capabilityKind(capability)) continue;
+    const fields = ownFieldLines(parsed, heading, READS_LABEL_SET);
+    fieldLineCount += fields.length;
+    for (const field of fields) {
+      if (!heading.id?.startsWith("FEAT-")) {
+        notes.push(note(`line ${field.line}: ${READS_LABEL}: line is outside a feature span`));
+        continue;
+      }
+      const parts = field.body.split(PART_SEPARATOR).map((part) => part.trim());
+      const id = parts[0] ?? "";
+      const readerParts = parts.length === 2 ? parts[1].split(",").map((value) => value.trim()) : [];
+      if (parts.length !== 2 || !ARTIFACT_ID_PATTERN.test(id) || readerParts.length === 0 || readerParts.some((value) => !value)) {
+        notes.push(note(`line ${field.line}: malformed ${READS_LABEL}: line`));
+        continue;
+      }
+      const entry = { id, readers: readerParts, line: field.line, text: field.rawText, featureId: heading.id, capabilityId: capability.id };
+      reads.push(entry);
+      if (!byFeature.has(heading.id)) byFeature.set(heading.id, []);
+      const featureReads = byFeature.get(heading.id);
+      if (featureReads.some((value) => value.id === id)) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} appears more than once in ${heading.id}`));
+      else featureReads.push(entry);
+      const artifact = registry.byId.get(id);
+      if (!artifact?.live) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} has no live entry`));
+      else if (artifact.featureId === heading.id) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} is registered in the same feature ${heading.id}`));
+      if (/^(?:proposed|retired\b)/.test(heading.status ?? "")) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} is in a proposed or retired feature span`));
+      if (tracked) {
+        for (const reader of readerParts) {
+          if (hasGlob(reader) || reader.endsWith("/") || !tracked.has(reader)) notes.push(note(`line ${field.line}: ${READS_LABEL}: reader path "${reader}" is not a tracked file at HEAD`));
+        }
+      }
+    }
+  }
+  return { reads, byFeature, notes, fieldLineCount, needsTrackedPaths: reads.length > 0 };
+}
+
 /** Row ID -> its exact maker, reader and park field lines in capability spans, in document order. */
 export function deliverableFieldLinesByRow(parsed) {
   const result = new Map();
@@ -263,7 +311,8 @@ export function isMadeAndReadByCode(claims) {
 /** Check deliverable fields. Pass null for trackedPaths to collect path claims without deciding them. */
 export function checkDeliverables(parsed, trackedPaths = null) {
   const registry = artifactRegistry(parsed, trackedPaths);
-  const notes = [...registry.notes];
+  const featureReads = artifactReads(parsed, trackedPaths, registry);
+  const notes = [...registry.notes, ...featureReads.notes];
   for (const entry of registry.entries) {
     if (entry.live && entry.className === "clone store" && Object.hasOwn(ARTIFACT_AGE_TABLE, entry.location) && artifactAgeTableKey(entry) === null) {
       notes.push(artifactNote(entry, "is at an age table location but does not match its run and one writer"));
@@ -271,8 +320,13 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   }
   const pathsToCheck = [];
   let checkedDeliverables = 0;
-  let fieldLineCount = registry.fieldLineCount;
+  let fieldLineCount = registry.fieldLineCount + featureReads.fieldLineCount;
   let deliverableFieldLineCount = 0;
+  const rowHomeFeature = new Map();
+  for (const table of parsed.tables) {
+    const home = featureOf(table.heading);
+    if (home) for (const row of table.rows) rowHomeFeature.set(row, home.id);
+  }
   let madeAndReadByCode = 0;
   let parkedDeliverables = 0;
 
@@ -426,6 +480,20 @@ export function checkDeliverables(parsed, trackedPaths = null) {
         if (!parkedRows.has(row) && !rowClaims.some((claim) => claim.label === "Made by" && claim.registryIds.length > 0)) notes.push(note(`${row} has no artifact registry reference or built-from list on a Made by: line`));
       }
     }
+    for (const row of listed) {
+      const homeFeatureId = rowHomeFeature.get(row) ?? null;
+      if (!homeFeatureId) continue;
+      const registeredAtHome = new Set(registry.entries.filter((entry) => entry.live && entry.featureId === homeFeatureId).map((entry) => entry.id));
+      const readAtHome = new Set((featureReads.byFeature.get(homeFeatureId) ?? []).map((entry) => entry.id));
+      const missing = new Set();
+      for (const claim of claimsByRow.get(row) ?? []) {
+        if (claim.registryKind !== "built from") continue;
+        for (const id of claim.registryIds) {
+          if (registry.byId.get(id)?.live && !registeredAtHome.has(id) && !readAtHome.has(id)) missing.add(id);
+        }
+      }
+      for (const id of missing) notes.push(note(`${row} built-from entry ${id} is neither registered nor read in home feature ${homeFeatureId}`));
+    }
     madeAndReadByCode += listed.filter((row) => isMadeAndReadByCode(claimsByRow.get(row) ?? [])).length;
     parkedDeliverables += parkedRows.size;
     for (const row of listed) {
@@ -442,7 +510,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     }
   }
 
-  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, deliverableFieldLineCount, artifactsRequireTracked: registry.needsTrackedPaths, artifacts: registry.byId, madeAndReadByCode, parkedDeliverables };
+  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, deliverableFieldLineCount, artifactsRequireTracked: registry.needsTrackedPaths || featureReads.needsTrackedPaths, artifacts: registry.byId, reads: featureReads.byFeature, madeAndReadByCode, parkedDeliverables };
 }
 
 /** Return the exact deliverable lines plus the HEAD paths used to derive them. */

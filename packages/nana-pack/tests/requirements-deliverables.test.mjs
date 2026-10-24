@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/requirements-deliverables.test.mjs
- * @purpose Pin the deliverable maker and reader grammar, reason notes, and HEAD-tree path checks.
+ * @purpose Pin deliverable claims, artifact registry entries, cross-feature reads, built-from ties and HEAD-tree path checks.
  * @inputs scripts/deliverables.mjs, scripts/requirements-tree.mjs, and temporary git repositories.
  * @outputs PASS/FAIL lines and a non-zero exit when a deliverable contract fails.
  * @effects disk (creates fixtures under the OS temp directory), process (runs git and the tree checker)
@@ -166,6 +166,100 @@ for (const [label, writerPaths, expectedMissing] of [
 }
 // req: R-2783
 check("R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note", bindingFailures.length === 0, bindingFailures.join("\n"));
+
+const readsLedger = ({ reads = "Reads: A-001 · scripts/read.mjs", kind = "product", status = "active", placement = "reader", ending = "\n" } = {}) => `# CAP-01 · Product
+Purpose: product
+Outcome: artifact exists
+${kind ? `Kind: ${kind}\n` : ""}${placement === "capability" ? `${reads}\n` : ""}
+## FEAT-001 · Maker
+Purpose: maker
+Status: active
+Artifact: A-001 · output · user-home store: ~/output · manual: owner
+${placement === "maker" ? `${reads}\n` : ""}
+## FEAT-002 · Reader
+Purpose: reader
+Status: ${status}
+${placement === "reader" ? `${reads}\n` : ""}${placement === "subgroup" ? `### SUB-001 · Subgroup\nPurpose: subgroup\n${reads}\n` : ""}| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-001 | The reader shall work. | untested | — |${ending}`;
+const readsFailures = [];
+const parsedReads = (text, tracked = ["scripts/read.mjs", "scripts/other.mjs"]) => deliverablesModule.artifactReads?.(parseLedger(text), tracked) ?? { notes: ["missing artifactReads export"], reads: [], byFeature: new Map(), fieldLineCount: 0, needsTrackedPaths: false };
+const expectReadsNote = (label, options, fragment) => {
+  const report = parsedReads(readsLedger(options));
+  if (report.notes.length !== 1 || !report.notes[0].includes(fragment)) readsFailures.push(`${label}: ${report.notes.join(" | ")}`);
+};
+const validReads = parsedReads(readsLedger({ reads: "Reads: A-001 · scripts/read.mjs, scripts/other.mjs" }));
+if (validReads.notes.length || validReads.reads.length !== 1 || validReads.reads[0]?.id !== "A-001" || validReads.byFeature.get("FEAT-002")?.[0]?.readers.join(",") !== "scripts/read.mjs,scripts/other.mjs") readsFailures.push(`valid: ${JSON.stringify(validReads)}`);
+for (const text of [
+  readsLedger({ reads: "Reads: A-001 · scripts/read.mjs  \t" }),
+  readsLedger().replaceAll("\n", "\r\n"),
+  readsLedger({ ending: "" }),
+]) {
+  const report = parsedReads(text);
+  if (report.notes.length !== 0 || report.reads.length !== 1) readsFailures.push(`line endings: ${report.notes.join(" | ")}`);
+}
+for (const [label, options, fragment] of [
+  ["parts", { reads: "Reads: A-001" }, "malformed"],
+  ["id", { reads: "Reads: R-001 · scripts/read.mjs" }, "malformed"],
+  ["empty reader", { reads: "Reads: A-001 · scripts/read.mjs, " }, "malformed"],
+  ["unknown", { reads: "Reads: A-999 · scripts/read.mjs" }, "no live entry"],
+  ["own", { placement: "maker" }, "same feature"],
+  ["repeated", { reads: "Reads: A-001 · scripts/read.mjs\nReads: A-001 · scripts/other.mjs" }, "more than once"],
+  ["untracked", { reads: "Reads: A-001 · scripts/missing.mjs" }, "not a tracked file"],
+  ["folder", { reads: "Reads: A-001 · scripts/" }, "not a tracked file"],
+  ["retired", { status: "retired (FEAT-003)" }, "proposed or retired"],
+  ["capability", { placement: "capability" }, "outside a feature span"],
+  ["subgroup", { placement: "subgroup" }, "outside a feature span"],
+]) expectReadsNote(label, options, fragment);
+const kindlessReads = parsedReads(readsLedger({ kind: "" }), []);
+if (kindlessReads.notes.length || kindlessReads.reads.length || kindlessReads.fieldLineCount !== 0) readsFailures.push(`kindless: ${kindlessReads.notes.join(" | ")}`);
+const reportOnlyReads = deliverableReportLines(parseLedger(readsLedger({ reads: "Reads: A-001 · scripts/missing.mjs" })), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) }));
+if (reportOnlyReads.filter((line) => line.includes("scripts/missing.mjs") && line.includes("not a tracked file")).length !== 1) readsFailures.push(`shared report: ${reportOnlyReads.join(" | ")}`);
+const readsOnlySwitch = registryTree("", "Made by: R-001 · manual: owner · docs/x.md\nRead by: R-001 · person: owner").replace("Status: active\n", "Status: active\nReads: A-999 · scripts/read.mjs\n");
+const readsOnlyNotes = checkDeliverables(parseLedger(readsOnlySwitch), ["docs/x.md", "scripts/read.mjs"]).notes;
+if (readsOnlyNotes.some((entry) => entry.includes("neither a registry reference")) || !readsOnlyNotes.some((entry) => entry.includes("A-999") && entry.includes("no live entry"))) readsFailures.push(`registry switching: ${readsOnlyNotes.join(" | ")}`);
+if (deliverablesModule.READS_LABEL !== "Reads") readsFailures.push(`sealed Reads label differs: ${String(deliverablesModule.READS_LABEL)}`);
+// req: R-2795
+check("R-2795: a reads line names a live entry read by tracked files, and a malformed, unknown, own, repeated or misplaced line or an untracked reader gets one note", readsFailures.length === 0, readsFailures.join("\n"));
+
+const builtFromLedger = ({ builtId = "A-002", reads = "", ownId = "A-001", subgroup = false, duplicateClaim = false, direct = false, parked = false } = {}) => `# CAP-01 · Product
+Purpose: product
+Outcome: artifact exists
+Kind: product
+Deliverables: R-001
+Made by: R-001 · manual: owner · ${direct ? builtId : `built from: ${builtId}`}
+${duplicateClaim ? `Made by: R-001 · manual: owner · built from: ${builtId}\n` : ""}Read by: R-001 · person: owner
+${parked ? "Parked: R-001 · since 2026-10-24: held\n" : ""}
+## FEAT-001 · Home
+Purpose: home
+Status: active
+Artifact: A-001 · home · user-home store: ~/home · manual: owner
+${reads}${subgroup ? "### SUB-001 · Rows\nPurpose: rows\n" : ""}
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-001 | The deliverable shall exist. | untested | — |
+
+## FEAT-002 · Other
+Purpose: other
+Status: active
+Artifact: A-002 · other · user-home store: ~/other · manual: owner
+`;
+const builtFromFailures = [];
+const builtFromNotes = (options) => checkDeliverables(parseLedger(builtFromLedger(options)), []).notes.filter((entry) => entry.includes("built-from entry"));
+for (const [label, options, count] of [
+  ["foreign missing", { parked: true }, 1],
+  ["home entry", { builtId: "A-001" }, 0],
+  ["read at home", { reads: "Reads: A-002 · scripts/read.mjs\n" }, 0],
+  ["read elsewhere", { reads: "", builtId: "A-002" }, 1],
+  ["subgroup home", { builtId: "A-001", subgroup: true }, 0],
+  ["duplicate claims", { duplicateClaim: true }, 1],
+  ["direct reference", { direct: true }, 0],
+]) {
+  const notes = builtFromNotes(options);
+  if (notes.length !== count || notes.some((entry) => !entry.includes("R-001") || !entry.includes(options.builtId ?? "A-002") || !entry.includes("FEAT-001"))) builtFromFailures.push(`${label}: ${notes.join(" | ")}`);
+}
+// req: R-2798
+check("R-2798: each built-from entry is registered or read in the deliverable's home feature", builtFromFailures.length === 0, builtFromFailures.join("\n"));
 
 const reasonCases = [
   ["Made by: R-001 · manual", "Read by: R-001 · person: owner", "Made by:"],
@@ -431,16 +525,20 @@ const repositoryGitRunner = (_args, _options) => spawnSync("git", ["ls-files", "
   encoding: "buffer",
   maxBuffer: LIMIT * 1024,
 });
-const registryControlLedger = registryTree("Artifact: A-001 · broken", "Made by: R-001 · manual: owner · A-999\nRead by: R-001 · person: owner");
-const registryControlLines = deliverableReportLines(parseLedger(registryControlLedger), repositoryRoot, repositoryGitRunner);
+const registryControlLedger = registryTree("Artifact: A-001 · broken\nReads: A-999 · scripts/x.mjs", "Made by: R-001 · manual: owner · A-999\nRead by: R-001 · person: owner");
+const registryControlGitRunner = (args, options) => {
+  const result = repositoryGitRunner(args, options);
+  return result.status === 0 ? { ...result, stdout: Buffer.concat([result.stdout, Buffer.from("scripts/x.mjs\0")]) } : result;
+};
+const registryControlLines = deliverableReportLines(parseLedger(registryControlLedger), repositoryRoot, registryControlGitRunner);
 const repositoryReportLines = deliverableReportLines(repositoryParsed, repositoryRoot, repositoryGitRunner);
 // req: R-2730
 check("R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files",
   /^deliverables: \d+ of \d+ made and read by code/.test(repositoryReportLines[0] ?? "")
     && !repositoryReportLines.some((line) => line.startsWith("deliverable note:"))
-    && registryControlLines.filter((line) => line.startsWith("deliverable note:")).length === 2
+    && registryControlLines.filter((line) => line.startsWith("deliverable note:")).length === 3
     && registryControlLines.some((line) => line.includes("malformed Artifact:"))
-    && registryControlLines.some((line) => line.includes("A-999")),
+    && registryControlLines.filter((line) => line.includes("A-999")).length === 2,
   `${repositoryReportLines.join("\n")}\ncontrol: ${registryControlLines.join("\n")}`);
 
 console.log(fails ? `${fails} check(s) failed` : "all checks passed");

@@ -632,9 +632,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/deliverables.mjs`
 
-- **purpose** — Parse and check product-capability deliverable claims and the feature artifact registry, then produce their shared checker lines.
-- **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact and age-table shapes, or an injected git runner.
-- **outputs** — Registry entries by A-ID, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
+- **purpose** — Parse and check product-capability deliverable claims, the feature artifact registry and cross-feature artifact reads, then produce their shared checker lines.
+- **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
+- **outputs** — Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
@@ -712,9 +712,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/requirements-moved.mjs`
 
-- **purpose** — Report requirement-row, artifact-registry, capability-placement and capability-field changes since a revision's merge base with HEAD.
+- **purpose** — Report requirement-row, artifact-registry, feature-read, capability-placement and capability-field changes since a revision's merge base with HEAD.
 - **inputs** — argv (--root <dir> --base <rev>); REQUIREMENTS.md as committed at HEAD and at the merge base of <rev> and HEAD, read through git.
-- **outputs** — One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry change, on stdout; a named refusal on stderr.
+- **outputs** — One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry or feature-read change, on stdout; a named refusal on stderr.
 - **effects** — process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
 - **errors** — exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
@@ -744,7 +744,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline.
 - **inputs** — REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md plus the ledger folder's HEAD tree through the shared deliverable reporter.
-- **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown, and shared deliverable report lines.
+- **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
@@ -2806,7 +2806,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/requirements-deliverables.test.mjs`
 
-- **purpose** — Pin the deliverable maker and reader grammar, reason notes, and HEAD-tree path checks.
+- **purpose** — Pin deliverable claims, artifact registry entries, cross-feature reads, built-from ties and HEAD-tree path checks.
 - **inputs** — scripts/deliverables.mjs, scripts/requirements-tree.mjs, and temporary git repositories.
 - **outputs** — PASS/FAIL lines and a non-zero exit when a deliverable contract fails.
 - **effects** — disk (creates fixtures under the OS temp directory), process (runs git and the tree checker)
@@ -2826,7 +2826,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/requirements-moved.test.mjs`
 
-- **purpose** — Pin the tree movement report's row grouping, merge-base diffing, capability changes and shared-row annotations.
+- **purpose** — Pin the tree movement report's row grouping, merge-base diffing, capability, artifact and feature-read changes, and shared-row annotations.
 - **inputs** — scripts/requirements-moved.mjs, direct ledger texts and a fixture git repository built under the OS temp directory.
 - **outputs** — PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
 - **effects** — disk (creates a scratch git repository under the OS temp directory; never touches the repository this test runs in), process (spawns node and git as children)

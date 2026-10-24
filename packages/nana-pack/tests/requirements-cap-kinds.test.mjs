@@ -91,24 +91,27 @@ check("R-2440: a ledger carrying every capability field lifts with a clean proof
 
 const artifactLiftFailures = [];
 for (const options of [{}, { crlf: true }, { finalNewline: false }]) {
-  const artifactLine = "Artifact: A-001 · output · tracked: docs/output.md · manual: owner\t";
+  const fieldLines = [
+    "Artifact: A-001 · output · tracked: docs/output.md · manual: owner\t",
+    "Reads: A-002 · scripts/read.mjs  \t",
+  ];
   const input = fixtureLedger(ledger([
-    { id: "CAP-01", fields: ["Kind: product"], features: [{ id: "FEAT-001", fields: [artifactLine], rows: [row("R-001")] }] },
-    { id: "CAP-02", fields: ["Kind: product"], features: [{ id: "FEAT-002", rows: [row("R-002")] }] },
+    { id: "CAP-01", fields: ["Kind: product"], features: [{ id: "FEAT-001", fields: fieldLines, rows: [row("R-001")] }] },
+    { id: "CAP-02", fields: ["Kind: product"], features: [{ id: "FEAT-002", fields: ["Artifact: A-002 · input · tracked: docs/input.md · manual: owner"], rows: [row("R-002")] }] },
   ]), options);
   const dry = spawnSync(process.execPath, [LIFT, "--root", input.dir], { cwd: REPO_ROOT, encoding: "utf8", timeout: 120_000 });
   const identity = buildIdentityMapping(input.text);
   const movedFeature = identity.tree[0].features.shift();
   identity.tree[1].features.push(movedFeature);
   const moved = applyMapping(input.text, identity, loadSeed(REPO_ROOT));
-  const bytes = (text) => text.split(/(?<=\n)/).find((line) => line.replace(/\r?\n$/, "") === artifactLine);
+  const bytes = (text, fieldLine) => text.split(/(?<=\n)/).find((line) => line.replace(/\r?\n$/, "") === fieldLine);
   const featureStart = moved.indexOf("## FEAT-001 ·");
   const nextFeature = moved.indexOf("## FEAT-002 ·", featureStart + 1);
-  const underMovedFeature = featureStart >= 0 && (nextFeature < 0 || moved.slice(featureStart, nextFeature).includes(artifactLine));
-  if (dry.status !== 0 || !/lift proof: .*tree check 0 problems/.test(dry.stdout) || bytes(moved) !== bytes(input.text) || !underMovedFeature) artifactLiftFailures.push(`${JSON.stringify(options)} status=${dry.status} stdout=${dry.stdout} stderr=${dry.stderr}`);
+  const underMovedFeature = featureStart >= 0 && (nextFeature < 0 || fieldLines.every((fieldLine) => moved.slice(featureStart, nextFeature).includes(fieldLine)));
+  if (dry.status !== 0 || !/lift proof: .*tree check 0 problems/.test(dry.stdout) || fieldLines.some((fieldLine) => bytes(moved, fieldLine) !== bytes(input.text, fieldLine)) || !underMovedFeature) artifactLiftFailures.push(`${JSON.stringify(options)} status=${dry.status} stdout=${dry.stdout} stderr=${dry.stderr}`);
 }
 // req: R-2787
-check("R-2787: the lift keeps every artifact line under its feature, with no mapping and when a mapping moves the feature", artifactLiftFailures.length === 0, artifactLiftFailures.join("\n"));
+check("R-2787: the lift keeps every Artifact: and Reads: line under its feature, with no mapping and when a mapping moves the feature", artifactLiftFailures.length === 0, artifactLiftFailures.join("\n"));
 
 const kindGood = fixtureLedger(ledger([
   { id: "CAP-01", fields: ["Kind: product   \t"], features: [{ id: "FEAT-001", rows: [row("R-001")] }] },
