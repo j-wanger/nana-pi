@@ -27,3 +27,18 @@
 - Land reads CI (land-reads-ci, final and land reviews): an https origin with a trailing slash (`https://github.com/o/r/`) fails the strict pattern, so the land skips CI with its note.
 - Land reads CI (land-reads-ci, land review): the re-run remedy names `--repo owner/repo` without the host, so with GH_HOST set elsewhere gh targets that host; `--repo github.com/owner/repo` would fix it.
 - Land reads CI (land-reads-ci, final review): the `.yaml` workflow extension branch has no test.
+- CI records at land (land-ci-timings, plan): a land keeps only the tip's runs that exist at land time, normally its pull-request run. The push run on main after the land is never kept.
+- CI records at land (land-ci-timings, plan): retention is by count. 4,000 records last about 100 days at the measured mean rate, and about 23 days at the 10-19 and 10-20 burst rate.
+- CI records at land (land-ci-timings, independent check): records average 20.3 KB, so a full store comes to about 81 MB in the clone's git folder. A normal land keeps about 3 records, which likely stretches retention (inferred).
+- CI records at land (land-ci-timings, plan): one record is one hosted-runner sample under four jobs. A slow-file note can fire on a slow runner and not on a fast one.
+- CI records at land (land-ci-timings, plan): a record without a per-file limit is not judged and prints no note. Only records made before this lane lack it.
+- CI records at land (land-ci-timings, plan): the slow-file note is advice: nothing refuses, edits or files a bug. The seat counts it as a code reader by R-2547's precedent (inferred).
+- CI records at land (land-ci-timings, plan): the read adds about 3 to 9 seconds after the merge, 7.0 seconds in a real land. It adds at most the 60-second budget plus one cleanup.
+- CI records at land (land-ci-timings, plan): no code reads the ci-runs store's history yet. Listing the store as its own deliverable is a later lane.
+- CI records at land (land-ci-timings, plan): a scaffolded GitHub project whose workflow uploads no record gets one `CI records not read` note on every land.
+- CI records at land (land-ci-timings, plan): the local runner's 300-second limit is not judged at the land.
+- CI records at land (land-ci-timings, plan): a partial download failure prints the reader's lines and no note. When every download fails, the note says only that no record was readable.
+- CI records at land (land-ci-timings, independent check): a timed-out gh call still reads "gh could not start" in the note. The note leaves the budget unnamed when the stopped call was the read's last.
+- CI records at land (land-ci-timings, independent check): the step's local git calls have no time limit, like nana-land's other git calls.
+- CI records at land (land-ci-timings, plan): ci-records.mjs keeps its own copy of the number formatter.
+- CI records at land (land-ci-timings, plan): on Windows, a rename over an open record file becomes one `not kept` note.
