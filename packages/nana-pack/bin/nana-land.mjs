@@ -2,9 +2,9 @@
 /**
  * @module packages/nana-pack/bin/nana-land.mjs
  * @purpose Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
- * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, lock, and release-status runners.
- * @outputs Named argument and gh-runner helpers plus command results or CLI records naming reviews, CI runs, and release status.
- * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge and worktree cleanup).
+ * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, lock, release-status, and CI-record readers.
+ * @outputs Named argument and gh-runner helpers plus command results or CLI records naming reviews, CI runs, retained records, slow files, and release status.
+ * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, CI-record storage, and worktree cleanup).
  * @errors Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
  */
 import { spawnSync } from "node:child_process";
@@ -16,7 +16,9 @@ import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } fr
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
 import { ciScope, githubRepoOf, judgeRuns } from "../lib/land-ci.mjs";
-import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { keepLandCiRecords } from "../lib/land-ci-records.mjs";
+import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
@@ -28,7 +30,14 @@ const ghEnvironment = (environment) => {
 };
 /** Build the default gh runner with bounded time and output. */
 export function ghDefault({ timeoutMs = CI_READ_TIMEOUT_MS, maxBuffer = CHILD_OUTPUT_MAX_BYTES } = {}) {
-	return (cwd, args, { env = process.env } = {}) => ({ ...spawnSync("gh", args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", timeout: timeoutMs, maxBuffer }), nanaTimeoutMs: timeoutMs });
+	return (cwd, args, { env = process.env, timeoutMs: callTimeoutMs = timeoutMs } = {}) => {
+		if (!Number.isInteger(callTimeoutMs) || callTimeoutMs < 1) {
+			const error = Object.assign(new RangeError("gh timeout must be a positive whole number of milliseconds"), { code: "ERR_OUT_OF_RANGE" });
+			return { status: null, signal: null, stdout: "", stderr: "", error, nanaTimeoutMs: callTimeoutMs };
+		}
+		try { return { ...spawnSync("gh", args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", timeout: callTimeoutMs, maxBuffer }), nanaTimeoutMs: callTimeoutMs }; }
+		catch (error) { return { status: null, signal: null, stdout: "", stderr: "", error, nanaTimeoutMs: callTimeoutMs }; }
+	};
 }
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
 const landNotes = (result) => [result.stdout ?? "", result.stderr ?? ""]
@@ -79,7 +88,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault(), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus }) {
+export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault(), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
@@ -143,6 +152,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		const scope = ciScope({ remoteNames, originUrl, workflowPaths });
 		let ciLines = [];
 		let ciNote = null;
+		let ciReadPassed = false;
 		if (!scope.applies) ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
 		else {
 			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
@@ -159,6 +169,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			const verdict = judgeRuns(response.stdout, tip, scope.repository);
 			if (!verdict.ok) throw new Error(verdict.message);
 			ciLines = verdict.lines;
+			ciReadPassed = true;
 		}
 		const suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
@@ -194,9 +205,24 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
-		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? [])];
+		let recordLines = [], recordNotes = [];
+		if (ciReadPassed) {
+			try {
+				const result = keepCiRecords({
+					main,
+					tip,
+					runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env: ghEnvironment(process.env) }),
+					budgetMs: CI_RECORDS_BUDGET_MS,
+					keep: CI_RECORDS_KEEP,
+					share: CI_SLOW_SHARE,
+				});
+				if (!result || !Array.isArray(result.lines) || !Array.isArray(result.notes)) throw new Error("CI-record keeper returned a malformed result");
+				recordLines = [...result.lines]; recordNotes = [...result.notes];
+			} catch (error) { recordNotes = [`${LAND_NOTE_PREFIX} note: CI records failed: ${error?.message ?? "unknown error"}`]; }
+		}
+		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? []), ...recordNotes];
 		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

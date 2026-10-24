@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/land-config.mjs
  * @purpose Declare land-time process, CI, and runtime-map contract values with their provenance.
  * @inputs none
- * @outputs Process bounds, CI scope and verdict values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
+ * @outputs Process bounds, CI scope, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
  * @effects none
  * @errors none
  */
@@ -25,6 +25,9 @@ export const CI_RUNS_PAGE_SIZE = 100;
 
 // chosen 2026-10-22 (R-2589): about 60 times the measured 0.47-second runs call.
 export const CI_READ_TIMEOUT_MS = 30_000;
+
+// chosen (R-2756, measurements 2026-10-23): about seven times the slowest measured two-run record read.
+export const CI_RECORDS_BUDGET_MS = 60_000;
 
 // contract (R-2586, R-2587): GitHub's passing workflow-run vocabulary.
 export const CI_DONE_STATUS = "completed";

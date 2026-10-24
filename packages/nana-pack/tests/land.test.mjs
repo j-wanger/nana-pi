@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { ciFixture, commit, ensureCiReview, executeCi, git, gitRunner, recordReview, repo, reviewTip, runList, tree, workflowRun } from "./land-fixtures.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import * as nanaLand from "../bin/nana-land.mjs";
 const { parseLandArgs, runLand: executeLand, runCleanup } = nanaLand;
@@ -31,20 +32,6 @@ let failures = 0;
 const check = (title, fn) => {
 	try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); }
 };
-const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-const repo = (root, name) => {
-	const dir = path.join(root, name); mkdirSync(dir, { recursive: true });
-	git(dir, "init", "-b", "main"); git(dir, "config", "user.email", "land@test"); git(dir, "config", "user.name", "Land Test");
-	git(dir, "config", "core.autocrlf", "false"); // W7c: a checked-out byte pins, whatever the host's own config is
-	writeFileSync(path.join(dir, "base.txt"), "base\n"); git(dir, "add", "base.txt"); git(dir, "commit", "-m", "base"); return dir;
-};
-const commit = (dir, file, data, message) => { writeFileSync(path.join(dir, file), data); git(dir, "add", file); git(dir, "commit", "-m", message); return git(dir, "rev-parse", "HEAD"); };
-const tree = (dir, branch) => { git(dir, "worktree", "add", "-b", branch, path.join(path.dirname(dir), branch)); return path.join(path.dirname(dir), branch); };
-const recordReview = (feature, home, item, verdict = "LAND") => {
-	const admission = admit(["--item", item, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
-	assert.equal(admission.ok, true, admission.message);
-	return complete(admission.res, `VERDICT: ${verdict}`, { home });
-};
 const tallyRows = (home) => readFileSync(ledgerPaths(home).tally, "utf8").trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);
 const writeTallyRows = (home, rows) => writeFileSync(ledgerPaths(home).tally, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
 const recordTextReview = (feature, home, item, text) => {
@@ -53,12 +40,6 @@ const recordTextReview = (feature, home, item, text) => {
 	const completed = complete(admission.res, text, { home, text });
 	assert.equal(completed.ok, true, completed.message);
 	return tallyRows(home).at(-1);
-};
-const reviewTip = (feature, home, item = "item") => {
-	const revision = git(feature, "rev-parse", "HEAD");
-	const result = recordReview(feature, home, item);
-	assert.equal(result.ok, true, result.message);
-	return revision;
 };
 const runLand = (safe) => {
 	if ((!safe.reviewed || safe.reviewed.length === 0) && safe.tree && safe.main) {
@@ -70,33 +51,6 @@ const runLand = (safe) => {
 		safe.reviewed = [`${revision}=item`];
 	}
 	return executeLand(safe);
-};
-const gitRunner = (cwd, args) => {
-	try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
-	catch (error) { return { status: error.status ?? 1, signal: error.signal ?? null, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "", error: error.code === "ENOENT" ? error : undefined }; }
-};
-const workflowRun = (overrides = {}) => ({ workflow_id: 1, name: "ci", id: 101, run_number: 1, run_attempt: 1, event: "pull_request", status: "completed", conclusion: "success", ...overrides });
-const runList = (runs) => JSON.stringify({ total_count: runs.length, workflow_runs: runs });
-const ciFixture = (name, { origin = "https://github.com/example/fixture.git", workflowOnMain = false, workflowOnTip = true, workflowPath = ".github/workflows/ci.yml" } = {}) => {
-	const root = tmpDir(path.join(os.tmpdir(), `land-ci-${name}-`)); const main = repo(root, "main");
-	if (workflowOnMain) { mkdirSync(path.join(main, ".github", "workflows"), { recursive: true }); commit(main, workflowPath, "name: ci\n", "main workflow"); }
-	if (origin !== null) git(main, "remote", "add", "origin", origin);
-	const feature = tree(main, "integration");
-	if (workflowOnTip && !workflowOnMain) { mkdirSync(path.join(feature, path.dirname(workflowPath)), { recursive: true }); commit(feature, workflowPath, "name: ci\n", "tip workflow"); }
-	else if (!workflowOnTip && workflowOnMain) { git(feature, "rm", workflowPath); git(feature, "commit", "-m", "remove workflow"); }
-	else if (workflowOnMain) commit(feature, "next.txt", "next\n", "tip");
-	else if (!workflowOnTip) commit(feature, "next.txt", "next\n", "tip");
-	return { root, main, feature, tip: git(feature, "rev-parse", "HEAD"), home: path.join(root, "home"), reviewed: null };
-};
-const ensureCiReview = (fixture) => {
-	if (!fixture.reviewed) { mkdirSync(path.join(fixture.home, ".pi", "agent"), { recursive: true }); fixture.reviewed = [`${reviewTip(fixture.feature, fixture.home)}=item`]; }
-};
-const executeCi = (fixture, runs, { runGh, runGit = gitRunner, runCommand, events = [] } = {}) => {
-	ensureCiReview(fixture); let suiteRan = false;
-	const gh = runGh ?? ((cwd, args, options) => { events.push({ kind: "gh", cwd, args, options }); return { status: 0, stdout: runList(runs), stderr: "" }; });
-	const suite = runCommand ?? (() => { suiteRan = true; events.push({ kind: "suite" }); return { status: 0, stdout: "", stderr: "" }; });
-	const result = executeLand({ tree: fixture.feature, main: fixture.main, suite: "injected", reviewed: fixture.reviewed, home: fixture.home, runGit, runGh: gh, runCommand: suite, readReleaseStatus: () => ({ line: "ready" }) });
-	return { ...result, suiteRan, events };
 };
 const assertCiRefused = (fixture, runs, expected, options = {}) => {
 	const before = git(fixture.main, "rev-parse", "HEAD"); const out = executeCi(fixture, runs, options);
@@ -612,7 +566,8 @@ check("R-2588: the newest run of each workflow at its latest attempt decides, an
 		const fixture = ciFixture(`green-${name}`); const events = []; const out = executeCi(fixture, runs, { events });
 		assert.equal(out.code, 0, out.text); assert.equal(out.suiteRan, true); for (const pattern of patterns) assert.match(out.text, pattern);
 		assert.equal((out.text.match(/^ci: /gm) ?? []).length, patterns.length); assert(events.findIndex((event) => event.kind === "gh") < events.findIndex((event) => event.kind === "suite"));
-		assert.equal(events.filter((event) => event.kind === "gh").length, 1); assert.equal(events.filter((event) => event.kind === "gh").some((event) => event.args.some((arg) => /\/jobs|\/attempts\//.test(arg))), false);
+		const beforeSuite = events.slice(0, events.findIndex((event) => event.kind === "suite"));
+		assert.equal(beforeSuite.filter((event) => event.kind === "gh").length, 1); assert.equal(beforeSuite.filter((event) => event.kind === "gh").some((event) => event.args.some((arg) => /\/jobs|\/attempts\//.test(arg))), false);
 	}
 });
 
@@ -682,7 +637,10 @@ check("R-2590: a repository or tip without GitHub CI skips the CI read and notes
 	const lineEndings = ciFixture("remote-lines"); let ghCallsForLines = 0;
 	const lineOut = executeCi(lineEndings, [], { runGit: (cwd, args) => args.join(" ") === "remote" ? { status: 0, stdout: "upstream \t\r\nbackup", stderr: "" } : gitRunner(cwd, args), runGh: () => { ghCallsForLines++; throw new Error("gh must not run"); } });
 	assert.equal(lineOut.code, 0, lineOut.text); assert.equal(ghCallsForLines, 0); assert.match(lineOut.text, /CI not read: no origin remote/);
-	const tipOnly = ciFixture("tip-only"); let ghCalls = 0; const out = executeCi(tipOnly, [workflowRun()], { runGh: () => { ghCalls++; return { status: 0, stdout: runList([workflowRun()]), stderr: "" }; } });
+	const tipOnly = ciFixture("tip-only"); let ghCalls = 0; let suiteStarted = false; const out = executeCi(tipOnly, [workflowRun()], {
+		runGh: () => { if (!suiteStarted) ghCalls++; return { status: 0, stdout: runList([workflowRun()]), stderr: "" }; },
+		runCommand: () => { suiteStarted = true; return { status: 0, stdout: "", stderr: "" }; },
+	});
 	assert.equal(out.code, 0, out.text); assert.equal(ghCalls, 1);
 });
 
@@ -694,7 +652,7 @@ check("R-2591: the CI read asks github.com for the full tip SHA in origin's repo
 		process.env.GH_HOST = "example.invalid"; process.env.GH_REPO = "wrong/other"; process.env.CLICOLOR_FORCE = "1"; process.env.GH_FORCE_TTY = "1";
 		for (const [index, origin] of origins.entries()) {
 			const fixture = ciFixture(`request-${index}`, { origin }); const calls = []; const out = executeCi(fixture, [workflowRun()], { runGh: (cwd, args, options) => { calls.push({ cwd, args, options }); return { status: 0, stdout: runList([workflowRun()]), stderr: "" }; } });
-			assert.equal(out.code, 0, out.text); assert.equal(calls.length, 1); assert.equal(calls[0].cwd, path.resolve(fixture.main));
+			assert.equal(out.code, 0, out.text); assert.equal(calls[0].cwd, path.resolve(fixture.main));
 			assert.deepEqual(calls[0].args, ["api", "--hostname", landConfig.CI_HOST, `repos/example/fixture/actions/runs?head_sha=${fixture.tip}&per_page=${landConfig.CI_RUNS_PAGE_SIZE}`]);
 			const expectedEnv = { ...process.env, CLICOLOR_FORCE: "0" }; for (const key of Object.keys(expectedEnv)) if (key.toUpperCase() === "GH_FORCE_TTY") delete expectedEnv[key];
 			assert.deepEqual(calls[0].options.env, expectedEnv); assert.notEqual(calls[0].options.env, process.env);
@@ -707,11 +665,11 @@ check("R-2591: the CI read asks github.com for the full tip SHA in origin's repo
 	}
 	if (process.platform !== "win32") {
 		const fixture = ciFixture("fake-gh-child"); ensureCiReview(fixture); const fakeBin = path.join(fixture.root, "fake-bin"); mkdirSync(fakeBin); const record = path.join(fixture.root, "gh-record.txt"); const fake = path.join(fakeBin, "gh");
-		writeFileSync(fake, `#!/bin/sh\nprintf '%s\\n' "$PWD" "$@" > ${JSON.stringify(record)}\nif { [ -n "$CLICOLOR_FORCE" ] && [ "$CLICOLOR_FORCE" != "0" ]; } || [ -n "$GH_FORCE_TTY" ]; then\n\tprintf '\\033[32m%s\\033[0m\\n' '${runList([workflowRun()])}'\nelse\n\tprintf '%s\\n' '${runList([workflowRun()])}'\nfi\n`); chmodSync(fake, 0o755);
+		writeFileSync(fake, `#!/bin/sh\nprintf '%s\\n' "$PWD" "$@" >> ${JSON.stringify(record)}\nprintf '%s\\n' '--call--' >> ${JSON.stringify(record)}\nif { [ -n "$CLICOLOR_FORCE" ] && [ "$CLICOLOR_FORCE" != "0" ]; } || [ -n "$GH_FORCE_TTY" ]; then\n\tprintf '\\033[32m%s\\033[0m\\n' '${runList([workflowRun()])}'\nelse\n\tprintf '%s\\n' '${runList([workflowRun()])}'\nfi\n`); chmodSync(fake, 0o755);
 		const gitPath = execFileSync("which", ["git"], { encoding: "utf8" }).trim(); const env = { ...process.env, HOME: fixture.home, USERPROFILE: fixture.home, PATH: `${fakeBin}${path.delimiter}${path.dirname(gitPath)}`, HTTPS_PROXY: "http://127.0.0.1:9", CLICOLOR_FORCE: "1", GH_FORCE_TTY: "1" };
 		const suite = `${JSON.stringify(process.execPath)} -e ${JSON.stringify("process.exit(0)")}`;
 		const child = spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-land.mjs", import.meta.url)), "merge", "--tree", fixture.feature, "--main", fixture.main, "--suite", suite, "--reviewed", fixture.reviewed[0]], { cwd: fixture.feature, env, encoding: "utf8", timeout: 30000 });
-		assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`); const lines = readFileSync(record, "utf8").trim().split("\n"); assert.equal(realpathSync(lines[0]), realpathSync(fixture.main)); assert.deepEqual(lines.slice(1), ["api", "--hostname", landConfig.CI_HOST, `repos/example/fixture/actions/runs?head_sha=${fixture.tip}&per_page=${landConfig.CI_RUNS_PAGE_SIZE}`]);
+		assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`); const lines = readFileSync(record, "utf8").trim().split("\n"); const firstEnd = lines.indexOf("--call--"); assert.equal(realpathSync(lines[0]), realpathSync(fixture.main)); assert.deepEqual(lines.slice(1, firstEnd), ["api", "--hostname", landConfig.CI_HOST, `repos/example/fixture/actions/runs?head_sha=${fixture.tip}&per_page=${landConfig.CI_RUNS_PAGE_SIZE}`]);
 	}
 });
 
