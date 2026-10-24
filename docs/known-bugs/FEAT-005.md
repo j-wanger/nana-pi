@@ -14,3 +14,4 @@
 - HANDOFF writing check (writing-adoption, final review): the test copies nana-frontier's section matching and boundaries. If the frontier's matching changes, the copy drifts, though the found-once check then fails loudly. One exported slicer would remove the copy.
 - HANDOFF writing check (writing-adoption, land review): the checker toggles on every fence marker. A four-backtick block that holds a triple-backtick example makes it skip the prose after the block. Align its fence parsing with the slicer's.
 - Writing checker (writing-adoption, final review): no wrong-code pair turns the checker back to a plain file, mode 100644. The install test asserts the mode, and main failed it, so only the pairs record has the gap.
+- Writing check (park-honestly, plan): the summary line has a park line. The writing rule alone enforces the owner's 2026-10-21 ruling that every report runs the check. No run checks a report before the writer sends it.
