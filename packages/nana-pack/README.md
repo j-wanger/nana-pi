@@ -27,7 +27,7 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
-The Product view lists each deliverable's written maker and reader claims, marks whether code makes and reads it, and shows a named artifact's git age or why no age is available. The `runtime-map` artifact shows its recorded tip, UTC measurement time, uncommitted-file count, and commits and whole days to HEAD instead of the maker file's git age.
+The Product view lists each deliverable's written maker and reader claims, marks whether code makes and reads it, and gives every deliverable an artifact block naming registered outputs and inputs with their class-specific ages. Product cards also name active or frozen features with no deliverable and their artifacts; constraint cards name their features' artifacts. `age not measured` is a class rule by design, while `age unknown` means an attempted age measurement failed.
 
 Ten extensions giving pi the hook coverage we require (Claude Code parity classes):
 

@@ -14,6 +14,10 @@ import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { parseLedger } from "../../../scripts/requirements-tree.mjs";
 import * as deliverablesModule from "../../../scripts/deliverables.mjs";
+import * as productReportModule from "../../../scripts/product-report.mjs";
+import { DATA_SUBPATH } from "../lib/runtime-map-config.mjs";
+import { STORE_SUBPATH } from "../lib/suite-records-config.mjs";
+import { BUILD_RECORDS_SUBPATH } from "../lib/build-records-config.mjs";
 import {
   DELIVERABLE_FIELD_LABELS,
   MAKER_RUNS,
@@ -23,7 +27,6 @@ import {
   PATH_REQUIRED,
   READER_KINDS,
   REASON_REQUIRED,
-  RUNTIME_MAP_ARTIFACT,
   ARTIFACT_CLASSES,
   ARTIFACT_ID_PATTERN,
   ARTIFACT_LOCATION_SHAPES,
@@ -150,7 +153,6 @@ for (const [label, maker, wanted, unwanted] of [
   const report = checkDeliverables(parseLedger(text), bindingTracked);
   if (wanted && (report.notes.length !== 1 || !report.notes[0].includes(wanted))) bindingFailures.push(`${label}: ${report.notes.join(" | ")}`);
   if (!wanted && report.notes.some((entry) => !unwanted || entry.includes(unwanted))) bindingFailures.push(`${label}: ${report.notes.join(" | ")}`);
-  if (label === "valid home" && deliverableClaims(parseLedger(text), parseLedger(text).headings[0]).get("R-001")?.find((claim) => claim.label === "Made by")?.artifact !== "~/.pi/agent/handoffs/") bindingFailures.push("valid home did not resolve to its location");
 }
 const multipleWriterEntry = "Artifact: A-034 · shared output · clone store: <git common dir>/nana/shared · suite: scripts/make.mjs, scripts/also-make.mjs";
 for (const [label, writerPaths, expectedMissing] of [
@@ -161,16 +163,6 @@ for (const [label, writerPaths, expectedMissing] of [
   const notes = checkDeliverables(parseLedger(text), ["scripts/make.mjs", "scripts/also-make.mjs"]).notes;
   if (expectedMissing && (notes.length !== 1 || !notes[0].includes(expectedMissing))) bindingFailures.push(`${label}: ${notes.join(" | ")}`);
   if (!expectedMissing && notes.length) bindingFailures.push(`${label}: ${notes.join(" | ")}`);
-}
-const suiteStoreEntry = "Artifact: A-035 · suite records · clone store: <git common dir>/nana/suite-runs · suite: packages/nana-pack/lib/suite-records.mjs";
-for (const [label, writerPaths, expected] of [
-  ["entry writer only", "packages/nana-pack/lib/suite-records.mjs", "<git common dir>/nana/suite-runs"],
-  ["entry and claim writers", "packages/nana-pack/lib/suite-records.mjs, scripts/test-locked.mjs", "suite-runs"],
-]) {
-  const text = registryTree(suiteStoreEntry, `Made by: R-001 · suite: ${writerPaths} · A-035\nRead by: R-001 · person: owner`);
-  const capability = parseLedger(text).headings[0];
-  const resolved = deliverableClaims(parseLedger(text), capability).get("R-001")?.find((claim) => claim.label === "Made by")?.artifact;
-  if (resolved !== expected) bindingFailures.push(`${label} resolves to ${resolved}, expected ${expected}`);
 }
 // req: R-2783
 check("R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note", bindingFailures.length === 0, bindingFailures.join("\n"));
@@ -215,7 +207,7 @@ const pathLedger = tree([
   "Made by: R-001 · build: readers",
   "Made by: R-001 · review: src/é.mjs",
   "Made by: R-001 · land: scripts/make.mjs · docs/artifact.md",
-  `Made by: R-001 · land: scripts/runtime-measure.mjs · ${RUNTIME_MAP_ARTIFACT}`,
+  "Made by: R-001 · land: scripts/runtime-measure.mjs · runtime-map",
   "Made by: R-001 · suite: missing.mjs",
   "Made by: R-001 · build: ignored.tmp",
   "Made by: R-001 · hook: staged.mjs",
@@ -239,8 +231,8 @@ const staged = git(repo, "add", "project/staged.mjs");
 if (staged.status !== 0) setupFailure += staged.stderr;
 const pathRun = run(scratch, process.execPath, [CLI, "--root", project]);
 const pathNotes = (pathRun.stdout ?? "").split(/\r?\n/).filter((line) => line.includes("is not tracked at HEAD"));
-const missingPaths = ["missing.mjs", "ignored.tmp", "staged.mjs", "scripts\\make.mjs", "missing-two.mjs", "docs/missing-artifact.md", "missing-reader.mjs"];
-const passingPaths = ["scripts/make.mjs", "readers", "src/é.mjs", "docs/artifact.md", RUNTIME_MAP_ARTIFACT];
+const missingPaths = ["runtime-map", "missing.mjs", "ignored.tmp", "staged.mjs", "scripts\\make.mjs", "missing-two.mjs", "docs/missing-artifact.md", "missing-reader.mjs"];
+const passingPaths = ["scripts/make.mjs", "readers", "src/é.mjs", "docs/artifact.md"];
 
 const noGit = join(scratch, "not-git");
 mkdirSync(noGit, { recursive: true });
@@ -289,7 +281,7 @@ const tunablesPinned = JSON.stringify(DELIVERABLE_FIELD_LABELS) === JSON.stringi
   && JSON.stringify(READER_KINDS) === JSON.stringify(["code", "prompt", "person", "rule"])
   && JSON.stringify(REASON_REQUIRED) === JSON.stringify(["manual", "rule", "person"])
   && JSON.stringify(PATH_REQUIRED) === JSON.stringify(["session start", "suite", "land", "review", "build", "CI", "hook", "extension", "code", "prompt"])
-  && PART_SEPARATOR === " · " && RUNTIME_MAP_ARTIFACT === "runtime-map";
+  && PART_SEPARATOR === " · ";
 if (!tunablesPinned) grammarFailures.push("sealed deliverable tunables differ");
 // req: R-2537
 check("a missing or unreadable line, or an automatic claim with no code path, gets one note naming it", grammarFailures.length === 0, grammarFailures.join("\n"));
@@ -374,33 +366,32 @@ const repositoryLedger = readFileSync(repositoryPath, "utf8");
 const repositoryParsed = parseLedger(repositoryLedger);
 const repositoryFields = deliverableFieldLinesByRow(repositoryParsed);
 
-const expectedMachineLocalArtifacts = {
-  "runtime-map": { maker: "land", writer: "scripts/runtime-measure.mjs" },
-  "suite-runs": { maker: "suite", writer: "scripts/test-locked.mjs" },
-  "build-records": { maker: "build", writer: "packages/nana-pack/lib/build-records.mjs" },
+const expectedAgeTable = {
+  [`<git common dir>/${DATA_SUBPATH}`]: { run: "land", writer: "scripts/runtime-measure.mjs" },
+  [`<git common dir>/${STORE_SUBPATH}`]: { run: "suite", writer: "packages/nana-pack/lib/suite-records.mjs" },
+  [`<git common dir>/${BUILD_RECORDS_SUBPATH}`]: { run: "build", writer: "packages/nana-pack/lib/build-records.mjs" },
 };
-const repositoryTracked = git(repositoryRoot, "ls-files", "-z").stdout.split("\0").filter(Boolean);
-const repositoryMachineNotes = checkDeliverables(repositoryParsed, repositoryTracked).notes.filter((entry) => /artifact "(?:runtime-map|suite-runs|build-records)"/.test(entry));
-const machineCases = [
-  ["suite-runs", "Made by: R-001 · CI: scripts/test-locked.mjs · suite-runs"],
-  ["build-records", "Made by: R-001 · manual: a person made it · build-records"],
-  ["runtime-map", "Made by: R-001 · land: scripts/make.mjs · runtime-map"],
-  ["not-a-real-store", "Made by: R-001 · build: packages/nana-pack/lib/build-records.mjs · not-a-real-store"],
-].map(([artifact, maker]) => {
-  const text = tree(`${maker}\nRead by: R-001 · code: scripts/make.mjs`);
-  const tracked = ["scripts/make.mjs", "scripts/test-locked.mjs", "packages/nana-pack/lib/build-records.mjs"];
-  return [artifact, checkDeliverables(parseLedger(text), tracked).notes.filter((entry) => entry.includes("is not tracked at HEAD"))];
+const ageTable = deliverablesModule.ARTIFACT_AGE_TABLE;
+const mismatchLedger = registryTree(
+  `Artifact: A-001 · wrong suite · clone store: <git common dir>/${STORE_SUBPATH} · land: scripts/product-report.mjs`,
+  "Made by: R-001 · land: scripts/product-report.mjs · A-001\nRead by: R-001 · person: owner",
+);
+const mismatchNotes = checkDeliverables(parseLedger(mismatchLedger), ["scripts/product-report.mjs"]).notes;
+const repositoryRegistry = artifactRegistry(repositoryParsed, git(repositoryRoot, "ls-files", "-z").stdout.split("\0").filter(Boolean));
+const repositoryBindings = ["A-006", "A-032", "A-033"].map((id) => {
+  const entry = repositoryRegistry.byId.get(id);
+  return [id, entry, deliverablesModule.artifactAgeTableKey?.(entry)];
 });
-const machineMap = deliverablesModule.MACHINE_LOCAL_ARTIFACTS;
-const machineMapPinned = machineMap && Object.isFrozen(machineMap)
-  && Object.values(machineMap).every(Object.isFrozen)
-  && JSON.stringify(machineMap) === JSON.stringify(expectedMachineLocalArtifacts)
-  && RUNTIME_MAP_ARTIFACT === "runtime-map";
-// req: R-2743
-check("R-2743: a machine-local artifact passes only under its own maker kind and writer path, and any other untracked artifact still gets a note",
-  repositoryMachineNotes.length === 0 && machineMapPinned
-    && machineCases.every(([artifact, notes]) => notes.length === 1 && notes[0].includes("R-001") && notes[0].includes(`artifact \"${artifact}\"`)),
-  JSON.stringify({ repositoryMachineNotes, machineMap, machineCases }));
+const expectedKeys = Object.keys(expectedAgeTable).sort();
+const readerKeys = Object.keys(productReportModule.STORE_READERS_BY_KEY ?? {}).sort();
+const ageTablePinned = ageTable && Object.isFrozen(ageTable) && Object.values(ageTable).every(Object.isFrozen)
+  && JSON.stringify(ageTable) === JSON.stringify(expectedAgeTable);
+// req: R-2793
+check("R-2793: a clone-store entry is bound to the age table's run and writer, and the table keys come from the store constants",
+  ageTablePinned && mismatchNotes.some((entry) => entry.includes("A-001") && entry.includes("age table"))
+    && repositoryBindings.every(([, entry, key]) => key === entry.location && expectedKeys.includes(key))
+    && JSON.stringify(readerKeys) === JSON.stringify(expectedKeys),
+  JSON.stringify({ ageTable, mismatchNotes, repositoryBindings, readerKeys, expectedKeys }));
 const repositoryArtifactClaimFailures = [];
 for (const claims of [...repositoryParsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => deliverableClaims(repositoryParsed, capability).values()).flatMap((values) => [...values])]) {
   const parked = claims.some((claim) => claim.label === PARKED_LABEL);

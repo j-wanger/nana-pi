@@ -85,9 +85,11 @@ function installReportFixture(root) {
 	fs.writeFileSync(path.join(root, "scripts", "test-locked.mjs"), "export const suite = true;\n");
 	fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), [
 		"# CAP-85 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-8500, R-8501",
-		"Made by: R-8500 · land: scripts/runtime-measure.mjs · runtime-map", "Read by: R-8500 · code: REQUIREMENTS.md",
-		"Made by: R-8501 · suite: scripts/test-locked.mjs · suite-runs", "Read by: R-8501 · code: REQUIREMENTS.md", "",
-		"## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", "",
+		"Made by: R-8500 · land: scripts/runtime-measure.mjs · A-001", "Read by: R-8500 · code: REQUIREMENTS.md",
+		"Made by: R-8501 · suite: packages/nana-pack/lib/suite-records.mjs · A-002", "Read by: R-8501 · code: REQUIREMENTS.md", "",
+		"## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active",
+		"Artifact: A-001 · runtime map · clone store: <git common dir>/nana/runtime-map.json · land: scripts/runtime-measure.mjs",
+		"Artifact: A-002 · suite run records · clone store: <git common dir>/nana/suite-runs · suite: packages/nana-pack/lib/suite-records.mjs", "",
 		"| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
 		"| R-8500 | The runtime artifact shall exist. | untested | — |", "| R-8501 | The suite artifact shall exist. | untested | — |", "",
 	].join("\n"));
@@ -227,7 +229,8 @@ function pageModel(file) {
 }
 
 function ageFor(model, row) {
-	return model.capabilities.flatMap((capability) => capability.deliverables).find((deliverable) => deliverable.id === row)?.claims.find((claim) => claim.age)?.age ?? "";
+	const line = model.capabilities.flatMap((capability) => capability.deliverables).find((deliverable) => deliverable.id === row)?.artifactLines[0] ?? "";
+	return /(?:newest record at tip|measured at tip|last changed|age (?:unknown|not measured):).*$/u.exec(line)?.[0] ?? "";
 }
 
 function productReportNotes(result) {
