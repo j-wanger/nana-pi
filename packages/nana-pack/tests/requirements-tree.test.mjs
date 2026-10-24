@@ -250,6 +250,22 @@ const original = renderOutline(parsedSample);
 // req: R-291
 check("R-291 fixture: independent field check catches a broken renderer dropping status", checkOutlineFields(renderOutline(parsedSample).replace("  Status: active\n", ""), parsedSample).some((p) => p.includes("status")), checkOutlineFields(original, parsedSample).join("; "));
 check("R-291 fixture: independent field check rejects missing shared index data", checkOutlineFields(original.replace("| ID | Home | Also applies to | Count |", "| ID | Home | Count |"), parsedSample).some((p) => p.includes("index")), checkOutlineFields(original, parsedSample).join("; "));
+const artifactOutlineLedger = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nArtifact: A-001 · first · tracked: docs/first.md · manual: owner\nArtifact: A-002 · second · user-home store: ~/second · manual: owner\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
+const artifactOutlineParsed = parseLedger(artifactOutlineLedger);
+const artifactOutline = renderOutline(artifactOutlineParsed);
+const artifactParent = "    Parent: CAP-01 · Rows: 1 · IDs: R-001";
+const artifactLine = "    Artifacts: A-001, A-002";
+const kindlessArtifactOutline = renderOutline(parseLedger(artifactOutlineLedger.replace("Kind: product\n", "")));
+const artifactHistory = ["c4332ecb", "4b3846ec", "5548d4c2"].map((revision) => {
+  const oldLedger = spawnSync("git", ["show", `${revision}:REQUIREMENTS.md`], { cwd: fileURLToPath(root), encoding: "utf8" });
+  const oldOutline = spawnSync("git", ["show", `${revision}:docs/requirements-tree.md`], { cwd: fileURLToPath(root), encoding: "utf8" });
+  return oldLedger.status === 0 && oldOutline.status === 0 && renderOutline(parseLedger(oldLedger.stdout)) === oldOutline.stdout;
+});
+const artifactDropped = checkOutlineFields(artifactOutline.replace(`${artifactLine}\n`, ""), artifactOutlineParsed);
+const artifactAltered = checkOutlineFields(artifactOutline.replace(artifactLine, "    Artifacts: A-001"), artifactOutlineParsed);
+// req: R-2785
+check("R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged", artifactOutline.includes(`${artifactParent}\n${artifactLine}\n`) && artifactDropped.some((problem) => problem.includes("FEAT-001") && problem.includes("Artifacts:")) && artifactAltered.some((problem) => problem.includes("FEAT-001") && problem.includes("Artifacts:")) && !kindlessArtifactOutline.includes("Artifacts:") && artifactHistory.every(Boolean), `${artifactOutline}\ndropped=${artifactDropped.join("; ")}\naltered=${artifactAltered.join("; ")}\nhistory=${artifactHistory.join(",")}`);
+
 for (const [field, mutate] of [
   ["ID", (s) => s.replace("FEAT-001", "FEAT-002")],
   ["label", (s) => s.replace("FEAT-001 · B", "FEAT-001 · Changed")],
@@ -403,14 +419,18 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const docsDir = join(modesRoot, "docs");
   const traceTemplateDir = join(modesRoot, "templates", "typescript", "template", "tests");
   const packLibDir = join(modesRoot, "packages", "nana-pack", "lib");
+  const benchLibDir = join(modesRoot, "apps", "bench", "lib");
   mkdirSync(scriptsDir, { recursive: true });
   mkdirSync(docsDir, { recursive: true });
   mkdirSync(traceTemplateDir, { recursive: true });
   mkdirSync(packLibDir, { recursive: true });
+  mkdirSync(benchLibDir, { recursive: true });
   for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "requirements-moved.mjs", "deliverables.mjs"])
     copyFileSync(fileURLToPath(new URL(`../../../scripts/${name}`, import.meta.url)), join(scriptsDir, name));
-  for (const name of ["brief-precedent.mjs", "brief-config.mjs", "frontier-config.mjs", "known-bugs-config.mjs", "markdown-list-sections.mjs"])
+  for (const name of ["brief-precedent.mjs", "brief-config.mjs", "frontier-config.mjs", "known-bugs-config.mjs", "markdown-list-sections.mjs", "runtime-map-config.mjs", "suite-records-config.mjs", "build-records-config.mjs", "land-config.mjs"])
     copyFileSync(fileURLToPath(new URL(`../lib/${name}`, import.meta.url)), join(packLibDir, name));
+  for (const name of ["checkers.mjs", "fixture.mjs"])
+    copyFileSync(fileURLToPath(new URL(`../../../apps/bench/lib/${name}`, import.meta.url)), join(benchLibDir, name));
   copyFileSync(fileURLToPath(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url)), join(traceTemplateDir, "requirements-trace.ts"));
   const copiedCli = join(scriptsDir, "requirements-tree.mjs");
   const deliverableTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\nDeliverables: R-001\nMade by: R-001 · manual\nRead by: R-001 · person:\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
@@ -429,15 +449,16 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree.replace("Purpose: feature\n", ""));
   const problemMode = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
 
-  const noDeliverables = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
-  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), noDeliverables);
-  const noDeliverablesRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
-  const noDeliverablesWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
-  const noDeliverablesCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const registryOnly = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nArtifact: broken\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
+  writeFileSync(join(modesRoot, "REQUIREMENTS.md"), registryOnly);
+  const registryRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const registryWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const registryCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  const registryOutput = (result) => result.status === 0 && lines(result.stdout)[0] === "requirements tree: 0 problems; rows 1; features 1" && lines(result.stdout).filter((line) => line.includes("malformed Artifact:")).length === 1;
   // req: R-2538
   check("the tree checker prints deliverable notes in every mode and keeps its exit status and outline",
-    goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && noDeliverablesRoot.status === 0 && noDeliverablesRoot.stdout === "requirements tree: 0 problems; rows 1; features 1\n" && noDeliverablesWrite.status === 0 && noDeliverablesWrite.stdout === "" && noDeliverablesCheck.status === 0 && noDeliverablesCheck.stdout === "",
-    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nno deliverables: ${noDeliverablesRoot.status}/${noDeliverablesWrite.status}/${noDeliverablesCheck.status}: ${noDeliverablesRoot.stdout} ${noDeliverablesWrite.stdout} ${noDeliverablesCheck.stdout} ${noDeliverablesCheck.stderr}`);
+    goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryWrite) && registryOutput(registryCheck),
+    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nregistry only: ${registryRoot.status}/${registryWrite.status}/${registryCheck.status}: ${registryRoot.stdout} ${registryWrite.stdout} ${registryCheck.stdout} ${registryCheck.stderr}`);
 
   const countTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · code: scripts/read.mjs\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n";
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), countTree);

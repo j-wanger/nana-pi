@@ -10,7 +10,7 @@ Trace: `npm test` fails when a status disagrees with the suite. A test declares 
 
 ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 and R-628 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed. Continuation blocks declared up front for the EARS-form split (design-ruling.md, ears-form-2026-10-04, §2): R-756 to R-879 the pack's continuation after R-755 (R-756 and R-757 consumed batch 0; R-858 and R-859 consumed 2026-10-05 audit fixes A/B; R-860 to R-864 consumed 2026-10-05 for the code-map generator the templates ship, the code-map generator feature (old section 13c) (R-863 and R-864 retired before landing; ids never reused) — rest unused until a later batch) · R-880 to R-909 the knowledge pull's continuation · R-910 to R-919 the runner's continuation · R-920 to R-939 the installer's continuation, after R-399 · R-940 to R-959 the desk's continuation, after R-499 (R-943 and R-944 consumed 2026-10-05) · G-013 to G-022 (the EARS form check and the Part G split) consumed batch 0 · R-620 to R-699 the hardening program's block (2026-10-06, `docs/hardening-plan-2026-10-06.md`), allocated per lane: R-620–R-629 review ledger · R-630–R-639 gate · R-640–R-649 session start · R-650–R-654 installer overflow · R-655–R-659 docs · R-660–R-699 later tranches; the installer also uses its free R-392 to R-399, the runner R-916 to R-919 and the desk R-945 to R-949 (tranche 1 consumed, 2026-10-07: R-620–R-625, R-630–R-647, R-650–R-659, R-392–R-399, R-916, R-945–R-949; R-626–R-629 unused; tranche 2 allocations: R-660–R-669 retire, R-670–R-679 trust, R-680–R-689 instructions, R-690–R-699 trial, R-865–R-872 pack, R-873–R-879 frontier, R-917–R-919 and R-950–R-952 and R-898–R-899 tests; tranche 2 landed 2026-10-07) · R-960 to R-999 the hardening program's second block (tranche 3 onward, 2026-10-07), allocated per lane: R-960–R-966 launcher · R-967–R-974 review · R-975–R-981 land helper · R-982–R-985 pipe guard · R-986–R-989 the 2.8/2.9 carry · R-990–R-999 later tranches (tranche 3 consumed, 2026-10-08: R-960–R-994 — R-990/R-991 the carry, R-992 the review lane's reader clause, R-993/R-994 the TypeScript syntax check; R-995–R-999 unused) · R-578 to R-599, R-626 to R-629 and R-686 re-declared for tranche 4 (2026-10-08; never assigned before) and consumed: R-578–R-583 Part G, R-584–R-588 release status, R-589–R-592 entry points, R-593–R-597 acceptance and release, R-598/R-599/R-629 skill claims, R-626–R-628 the suite lock, R-686 the CI checkout · R-995 to R-999, R-950 to R-959, R-900 to R-909, R-804, R-871, R-872 and R-687 to R-689 re-declared for tranche 5 (2026-10-08; never assigned before) and consumed except R-689: R-995/R-996 support, R-997–R-999 and R-950–R-953 doctor, R-954–R-959 state manifest, R-900–R-907 uninstall, R-908, R-909, R-804, R-871, R-872, R-687, R-688 Node hooks; R-373–R-375 stay unused · tranche 6 (2026-10-09) re-declared R-239–R-241, R-601, R-648, R-649, R-689 and R-699 (never assigned before): R-239/R-240 knowledge (R-241 reserved for a randomized pull arm), R-601/R-648 the test runner, R-689 the desk RPC contract test, R-649 the map's candidate rows, R-699 desk usage events; R-285 and R-286 consumed 2026-10-09 (the owner's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-294 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-295–R-299 stay the reserve (tranche 6 consumed, 2026-10-09: R-239, R-240, R-601, R-648, R-649, R-689, R-699; R-241 stays reserved)
 
-R-287–R-294 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-295–R-299 stay unused; from 2026-10-10 new rows take four-digit IDs in order from R-1000 (R-1000 and R-1001: the four-digit grammar), and a row's home is its feature heading, not its number.
+R-287–R-294 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-295–R-299 stay unused; from 2026-10-10 new rows take four-digit IDs in order from R-1000 (R-1000 and R-1001: the four-digit grammar), and a row's home is its feature heading, not its number. Artifact IDs use the separate A-001 to A-999 space, are allocated in order, and are never renumbered or reused.
 
 New behaviour in this repo: requirement diff, then tagged tests, then code.
 
@@ -24,7 +24,8 @@ A capability may carry five optional lines in any order in its own span. `Kind:`
 `product` or `constraint`; `Deliverables:` lists row IDs, `Needs:` and `Binds:` list capability
 IDs, and `Retired:` lists successor capability IDs. A product capability may repeat `Made by:`
 and `Read by:` lines for its deliverables, and the tree checker reports gaps in those lines as notes.
-The generated outline shows every field the checker reads after that capability's Parent line.
+A feature under a kinded capability may carry `Artifact: A-nnn · <name> · <class>: <location> · <run>: <writer or reason>` lines after its lifecycle lines and before any subgroup. The six classes are `tracked`, `clone store`, `user-home store`, `other project`, `git ref` and `CI record`; a retired entry keeps its ID with `retired: <reason or successor>` in place of class and run. A `Made by:` third part names one or more A-IDs directly, or says `built from:` before them.
+The generated outline shows every field the checker reads after that capability's Parent line and each feature's artifact IDs after its Parent line.
 Every row lives in exactly one table, its home: under one feature, or under one subgroup when its
 feature is subdivided. A feature that also depends on rows homed elsewhere names them on its
 `Also applies:` line. A row named there is shared, and a change to it has a wide blast radius.
@@ -41,6 +42,8 @@ merging, freezing, unfreezing or retiring a capability, feature or subgroup; mov
 another home; and adding or removing a share. The seat proposes these changes, and the change
 declaration lists them; the next increment adds a field for them to the lane brief. A builder adds
 or changes rows only in the feature its brief names.
+
+Artifact entries and feature artifact lines are added like rows by a builder within the feature its brief names. The movement report shows every entry change to the reviewer, the owner sees entries on the product page, and the owner may overrule them.
 
 A feature's life. Its `Status:` reads `proposed` (agreed, no rows yet), `active`,
 `frozen (<reason>)` or `retired (<successor or reason>)`. A frozen feature takes no discretionary
@@ -60,8 +63,8 @@ same change. A split keeps the original ID for the first clause; a merge retires
 with "superseded by <survivor>" in their Evidence.
 
 What checks it. The suite checks the shape: R-287 to R-294 (homes, purposes, IDs, nesting, the
-outline, shares, statuses, empty proposed and retired features) and R-2440 to R-2447 (capability
-kinds, fields, lift preservation, outline rendering and movement reporting). Review alone checks the rest:
+outline, shares, statuses, empty proposed and retired features), R-2440 to R-2447 (capability
+kinds, fields, lift preservation, outline rendering and movement reporting), and R-2780 to R-2787 (artifact registry parsing, classes, binding, claim coverage, outline, movement and lift preservation). Review alone checks the rest:
 who decided, that the declaration lists every tree change, that a shared row's change names every
 lister, and that frozen features took no discretionary change.
 
@@ -85,22 +88,22 @@ Purpose: Keep the agent aligned with the project and carry useful knowledge betw
 Outcome: A developer can start or resume work with the relevant goal, decisions, history and knowledge available.
 Kind: product
 Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
-Made by: R-001 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-objective.mjs
-Made by: R-001 · extension: packages/nana-pack/extensions/nana-objective.ts, packages/nana-pack/lib/objective.ts
+Made by: R-001 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-objective.mjs · built from: A-001, A-010, A-014
+Made by: R-001 · extension: packages/nana-pack/extensions/nana-objective.ts, packages/nana-pack/lib/objective.ts · built from: A-001, A-010, A-014
 Read by: R-001 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
 Read by: R-001 · prompt: packages/nana-pack/extensions/nana-objective.ts
-Made by: R-108 · extension: packages/nana-pack/extensions/nana-handoff.ts, packages/nana-pack/lib/adoption.mjs
+Made by: R-108 · extension: packages/nana-pack/extensions/nana-handoff.ts · A-002
 Read by: R-108 · prompt: packages/nana-pack/extensions/nana-handoff.ts
 Read by: R-108 · code: packages/nana-pack/lib/adoption.mjs
-Made by: R-873 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-frontier-summary.mjs
-Made by: R-873 · extension: packages/nana-pack/extensions/nana-frontier-summary.ts, packages/nana-pack/lib/frontier-summary.mjs
+Made by: R-873 · session start: packages/nana-setup/claude/hooks/nana-objective.mjs, packages/nana-pack/bin/nana-frontier-summary.mjs · built from: A-003, A-046
+Made by: R-873 · extension: packages/nana-pack/extensions/nana-frontier-summary.ts, packages/nana-pack/lib/frontier-summary.mjs · built from: A-003, A-046
 Read by: R-873 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
 Read by: R-873 · prompt: packages/nana-pack/extensions/nana-frontier-summary.ts
-Made by: R-201 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib/build.ts
+Made by: R-201 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib/build.ts, packages/nana-knowledge/lib/db.ts · A-004
 Made by: R-201 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts
 Read by: R-201 · code: packages/nana-knowledge/lib/query.ts, packages/nana-knowledge/lib/hook.ts
-Made by: R-217 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts
-Made by: R-217 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts
+Made by: R-217 · hook: packages/nana-knowledge/bin/nana-knowledge.ts, packages/nana-knowledge/lib/hook.ts · built from: A-004
+Made by: R-217 · extension: packages/nana-knowledge/extensions/nana-knowledge.ts · built from: A-004
 Read by: R-217 · prompt: packages/nana-knowledge/bin/nana-knowledge.ts
 Read by: R-217 · prompt: packages/nana-knowledge/extensions/nana-knowledge.ts
 Made by: R-749 · manual: the writing rule tells each report's writer to run nana-writing --report on its text before sending
@@ -111,6 +114,7 @@ Parked: R-749 · since 2026-10-23: the owner parked it for now; the suite checks
 Purpose: Provide the governing project objective and preserve its precedence over background context.
 Status: active
 Also applies: R-021, R-022, R-122, R-191, R-634, R-687, R-781, R-819
+Artifact: A-001 · user objective file · user-home store: <pi agent dir>/nana-objective.md · manual: the owner writes the program objective by hand; nana-setup install, run by hand, seeds a missing copy
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -161,6 +165,8 @@ Also applies: R-021, R-022, R-122, R-191, R-634, R-687, R-781, R-819
 Purpose: Carry compaction summaries and a clear handoff frontier into later work without presenting past agent output as authority.
 Status: active
 Also applies: R-079, R-139, R-185, R-634, R-641, R-781
+Artifact: A-002 · compaction handoff store · user-home store: ~/.pi/agent/handoffs/ · extension: packages/nana-pack/extensions/nana-handoff.ts
+Artifact: A-003 · handoff frontier · tracked: HANDOFF.md · manual: the seat edits it by hand in each lane's reviewed change
 
 ### SUB-001 · Write and identify a compaction summary
 Purpose: Find the correct store, write the summary atomically and report its origin and any write failure.
@@ -278,6 +284,7 @@ Purpose: Inspect the HANDOFF frontier for oversized or stale entries and preserv
 Purpose: Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.
 Status: active
 Also applies: R-310
+Artifact: A-004 · knowledge index · user-home store: ~/.pi/agent/nana-knowledge/index.db · hook: packages/nana-knowledge/lib/build.ts, packages/nana-knowledge/lib/db.ts
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -393,6 +400,7 @@ Also applies: R-285, R-286, R-973, R-974
 Purpose: Deliver the preferred writing guidance and check report readability and structure.
 Status: active
 Also applies: R-641
+Artifact: A-005 · writing rule · tracked: packages/nana-pack/rules/nana-writing.md · manual: the owner's adopted rule, edited by hand in reviewed lanes
 Note (moved from old §13a on 2026-10-09):
 G-001 and G-002 govern the tunables in `packages/nana-pack/lib/writing-config.mjs`; cited in that module's header, not duplicated here.
 Note (moved from old §13b on 2026-10-09):
@@ -431,25 +439,26 @@ Purpose: Give builders, reviewers and the integration step separate responsibili
 Outcome: A developer can accept a bounded change with understandable review evidence and a controlled integration step.
 Kind: product
 Deliverables: R-1400, R-1008, R-1560, R-977, R-2597
-Made by: R-1400 · manual: the owner runs nana-roster set by hand to change this machine's roster
-Read by: R-1400 · code: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/bin/nana-roster.mjs
+Made by: R-1400 · manual: the owner runs nana-roster set by hand to change this machine's roster · A-011
+Read by: R-1400 · code: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/bin/claude-review.mjs, packages/nana-pack/extensions/nana-roster-notice.ts
 Read by: R-1400 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs
 Read by: R-1400 · rule: the working pattern tells the seat to take the reviewer and land models from the roster; pi-review does not read those slots
 Parked: R-1400 · since 2026-10-23: the roster is the owner's choice of models, so no run should write it, and code already reads it; an owner decision that lets a run set the roster deletes this line
-Made by: R-1008 · review: packages/nana-pack/bin/pi-review.mjs, packages/nana-pack/bin/review-ledger.mjs, packages/nana-pack/bin/review-round.mjs
+Made by: R-1008 · review: packages/nana-pack/bin/pi-review.mjs, packages/nana-pack/bin/review-ledger.mjs, packages/nana-pack/bin/review-round.mjs · A-007, A-008
 Read by: R-1008 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/review-round.mjs, packages/nana-pack/bin/review-timeline.mjs
-Made by: R-1560 · manual: someone runs review-timeline by hand; no brief, land step or hook calls it
+Made by: R-1560 · manual: someone runs review-timeline by hand; no brief, land step or hook calls it · built from: A-007, A-008
 Read by: R-1560 · person: the seat reads it when it runs the command
-Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs
+Made by: R-977 · land: packages/nana-pack/bin/nana-land.mjs · A-009
 Read by: R-977 · person: the seat reads the success report and pushes main by hand, as the 2026-10-11 ruling says
 Read by: R-977 · code: .github/workflows/ci.yml
-Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs · build-records
-Read by: R-2597 · code: packages/nana-pack/bin/build-report.mjs, packages/nana-pack/bin/pi-worker.mjs
+Made by: R-2597 · build: packages/nana-pack/bin/pi-worker.mjs, packages/nana-pack/lib/build-records.mjs · A-006
+Read by: R-2597 · code: packages/nana-pack/bin/build-report.mjs, packages/nana-pack/bin/pi-worker.mjs, scripts/product-report.mjs
 
 ## FEAT-006 · Launch builders with execution limits
 Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits, and keep one record of each build; semantic change scope is a separate proposed feature.
 Status: active
 Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R-1892, R-1893, R-2584, R-2652
+Artifact: A-006 · build records · clone store: <git common dir>/nana/build-records.jsonl · build: packages/nana-pack/lib/build-records.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -549,6 +558,8 @@ Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R
 Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
 Status: active
 Also applies: R-137, R-2603, R-1125
+Artifact: A-007 · review round tally · user-home store: ~/.pi/agent/review-ledger.rounds.jsonl · review: packages/nana-pack/bin/review-round.mjs
+Artifact: A-008 · kept review texts · user-home store: ~/.pi/agent/review-ledger.texts/ · review: packages/nana-pack/bin/review-round.mjs
 
 ### SUB-006 · Identify and freeze the review target
 Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
@@ -736,6 +747,7 @@ Purpose: Preserve the tally and log contracts, refuse unsafe output destinations
 Purpose: Check merge prerequisites, integrate only changes every reviewer accepted, and remove only safe completed worktrees.
 Status: active
 Also applies: R-705, R-708, R-717, R-969, R-992, R-1008
+Artifact: A-009 · main branch · git ref: refs/heads/main · land: packages/nana-pack/bin/nana-land.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -781,6 +793,7 @@ Binds: CAP-01, CAP-02, CAP-04, CAP-05, CAP-07
 Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
 Status: active
 Also applies: R-069, R-190
+Artifact: A-010 · project trust store · user-home store: <pi agent dir>/trust.json · manual: the owner runs nana-setup trust or pi's /trust by hand; pi's own trust module writes the file
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1001,10 +1014,10 @@ Purpose: Install the toolkit, adopt projects, diagnose its environment and manag
 Outcome: A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.
 Kind: product
 Deliverables: R-301, R-327, R-1150, R-341, R-1070, R-596
-Made by: R-301 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs
-Made by: R-301 · manual: the owner runs nana-setup install by hand; the symlinks carry edits to an existing hook or rule, but nothing links a new or renamed one
+Made by: R-301 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs · A-022
+Made by: R-301 · manual: the owner runs nana-setup install by hand; the symlinks carry edits to an existing hook or rule, but nothing links a new or renamed one · A-012, A-013
 Read by: R-301 · code: packages/nana-setup/claude/hooks/nana-adoption.mjs, packages/nana-setup/bin/stale-copies.mjs, packages/nana-setup/lib/stale-copies.mjs, packages/nana-setup/lib/hook-health.mjs
-Made by: R-327 · manual: someone runs nana-setup project by hand once per project
+Made by: R-327 · manual: someone runs nana-setup project by hand once per project · A-014, A-046, A-047
 Read by: R-327 · prompt: packages/nana-setup/claude/hooks/nana-objective.mjs
 Read by: R-327 · prompt: packages/nana-pack/extensions/nana-objective.ts
 Read by: R-327 · code: packages/nana-pack/lib/adoption.mjs
@@ -1012,19 +1025,19 @@ Read by: R-327 · prompt: packages/nana-pack/extensions/nana-frontier-summary.ts
 Read by: R-327 · prompt: packages/nana-setup/bin/stale-copies.mjs
 Read by: R-327 · prompt: packages/nana-pack/extensions/nana-rulings.ts
 Parked: R-327 · since 2026-10-23: the seeds are written once, when the owner adopts a project, and the session-start frontier block reads them; nothing reseeds them; a run that reseeds projects deletes this line
-Made by: R-1150 · CI: .github/workflows/ci.yml, scripts/template-release.mjs, scripts/template-acceptance.mjs
-Made by: R-1150 · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand
+Made by: R-1150 · CI: .github/workflows/ci.yml, scripts/template-release.mjs, scripts/template-acceptance.mjs · A-021
+Made by: R-1150 · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand · A-015
 Read by: R-1150 · code: templates/python/template/tests/conftest.py, templates/typescript/template/tests/requirements-trace.ts
 Read by: R-1150 · rule: the requirements skill tells agents to run nana-pi's tree checker on the project by hand; no rendered project wires it in
-Made by: R-341 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs, packages/nana-setup/lib/install-check.mjs
-Made by: R-341 · manual: the owner runs nana-setup doctor by hand on the real home; no run checks the real home
+Made by: R-341 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs, packages/nana-setup/lib/install-check.mjs · A-022
+Made by: R-341 · manual: the owner runs nana-setup doctor by hand on the real home; no run checks the real home · built from: A-001, A-004, A-009, A-010, A-011, A-012, A-013, A-016, A-021
 Read by: R-341 · code: packages/nana-setup/lib/install-check.mjs
 Read by: R-341 · person: the owner reads the real home's rows when running doctor; the output is not kept
-Made by: R-1070 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs
-Made by: R-1070 · manual: the seat runs the install check locally on macOS before a setup or hook lane's land, as AGENTS.md says
+Made by: R-1070 · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs · A-022
+Made by: R-1070 · manual: the seat runs the install check locally on macOS before a setup or hook lane's land, as AGENTS.md says · A-048
 Read by: R-1070 · code: .github/workflows/ci.yml
 Read by: R-1070 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/lib/land-ci.mjs
-Made by: R-596 · CI: .github/workflows/ci.yml, scripts/template-release.mjs
+Made by: R-596 · CI: .github/workflows/ci.yml, scripts/template-release.mjs · A-021
 Read by: R-596 · code: packages/nana-pack/lib/release-status.mjs, packages/nana-pack/bin/nana-land.mjs, packages/nana-setup/lib/doctor.mjs
 Read by: R-596 · rule: the scaffold and adopt skills tell an agent to run copier copy or copier update, which render from the newest tag
 
@@ -1032,6 +1045,9 @@ Read by: R-596 · rule: the scaffold and adopt skills tell an agent to run copie
 Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
 Status: active
 Also applies: R-004
+Artifact: A-011 · user pack config · user-home store: <pi agent dir>/nana-pack.json · manual: the owner edits it by hand or in the desk's settings form, runs nana-roster set, or runs nana-setup install, which seeds a missing copy, all by hand
+Artifact: A-012 · Claude hook links · user-home store: ~/.claude/hooks/ · manual: the owner runs nana-setup install by hand
+Artifact: A-013 · Claude rule links · user-home store: ~/.claude/rules/ · manual: the owner runs nana-setup install by hand
 
 ### SUB-011 · Select the active runtime and home
 Purpose: Resolve the intended executable and agent locations and provide the matching fresh-machine setup instructions.
@@ -1278,6 +1294,10 @@ Purpose: Wire supported Windows integrations in their platform form, skip unsupp
 Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
 Status: active
 Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740, R-1000, R-1001
+Artifact: A-014 · project objective seed · other project: <project>/OBJECTIVE.md · manual: someone seeds it by hand with nana-setup project, a copier template or the adopt-structure skill, and the owner ratifies its DRAFT lines
+Artifact: A-015 · rendered project ledger · other project: <project>/REQUIREMENTS.md · manual: an agent renders a project with copier through the scaffold or adopt skill, by hand
+Artifact: A-046 · project handoff seed · other project: <project>/HANDOFF.md · manual: someone seeds it by hand with nana-setup project, a copier template or the adopt-structure skill
+Artifact: A-047 · project session log seeds · other project: <project>/docs/sessions/ · manual: someone seeds it by hand with nana-setup project, a copier template or the adopt-structure skill
 
 ### SUB-016 · Recognize projects that need adoption
 Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
@@ -1432,6 +1452,8 @@ Purpose: Report structural readiness and require the owner's objective and curre
 Purpose: Report what is installed, configured or unhealthy with concrete repair guidance and accurate active-source attribution.
 Status: active
 Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-985, R-2023, R-2024
+Artifact: A-022 · install-check job result · CI record: ci: .github/workflows/ci.yml#install-check · CI: .github/workflows/ci.yml, packages/nana-setup/bin/install-check.mjs
+Artifact: A-048 · local install-check records · tracked: docs/reviews/*/install-check-*.txt · manual: the seat runs the install check locally on macOS before a setup or hook lane's land and commits its output to the lane's review folder
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1604,6 +1626,8 @@ Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-9
 Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
 Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-199
+Artifact: A-016 · desk launch agent · user-home store: ~/Library/LaunchAgents/com.nana.pi-desk.plist · manual: the owner runs nana-setup install --desk by hand on macOS
+Artifact: A-017 · desk log · user-home store: <pi agent dir>/desk.log · manual: desk frozen since 2026-10-10; launchd appends the desk server's output while the service runs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1634,6 +1658,7 @@ Also applies: R-199
 ## FEAT-017 · Inspect durable state and follow restoration steps
 Purpose: Inspect the durable-state manifest, export the documented state and follow its archive and restoration guidance.
 Status: active
+Artifact: A-018 · durable state archive · user-home store: ~/nana-state.tgz · manual: the owner makes it by hand with tar from nana-setup state --paths, as the nana-setup README says
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1648,6 +1673,8 @@ Status: active
 Purpose: Migrate retired artifacts and remove only resources nana owns while preserving foreign or edited state.
 Status: active
 Also applies: R-378, R-663
+Artifact: A-019 · win32 copy record · user-home store: ~/.claude/nana-setup-copies.json · manual: the owner runs nana-setup install by hand on Windows
+Artifact: A-020 · retired Claude artifact backups · user-home store: ~/.claude/backups/ · manual: the owner runs nana-setup install by hand, which moves retired artifacts from the Claude folder here; retired ~/.agents artifacts go to ~/.agents/backups/ instead
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1688,6 +1715,7 @@ Also applies: R-378, R-663
 ## FEAT-019 · Release usable templates and report support
 Purpose: Verify template combinations, identify delivered versions and publish accurate release and support information.
 Status: active
+Artifact: A-021 · release tags · git ref: refs/tags/ · CI: scripts/template-release.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1728,20 +1756,20 @@ Purpose: Let the developer understand ongoing and historical work and interact w
 Outcome: A developer can see what agents are doing, inspect their changes and direct the intended session without losing context.
 Kind: product
 Deliverables: R-406, R-422, R-159, R-1194, R-457
-Made by: R-406 · manual: desk frozen since 2026-10-10
+Made by: R-406 · manual: desk frozen since 2026-10-10 · built from: A-023
 Read by: R-406 · person: desk frozen since 2026-10-10
 Parked: R-406 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
 Made by: R-422 · manual: desk frozen since 2026-10-10
 Read by: R-422 · person: desk frozen since 2026-10-10
 Parked: R-422 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
-Made by: R-159 · extension: packages/nana-pack/extensions/nana-lifecycle.ts, packages/nana-pack/lib/config.ts
+Made by: R-159 · extension: packages/nana-pack/extensions/nana-lifecycle.ts, packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-handoff.ts, packages/nana-pack/extensions/nana-gate.ts · A-025
 Read by: R-159 · prompt: packages/nana-setup/claude/hooks/nana-adoption.mjs
 Read by: R-159 · person: no code reads any other event; a person opens the journal to see them
-Made by: R-1194 · session start: packages/nana-setup/claude/hooks/nana-roster-notice.mjs, packages/nana-pack/lib/roster-notice.mjs
-Made by: R-1194 · extension: packages/nana-pack/extensions/nana-roster-notice.ts, packages/nana-pack/lib/roster-notice.mjs
+Made by: R-1194 · session start: packages/nana-setup/claude/hooks/nana-roster-notice.mjs, packages/nana-pack/lib/roster-notice.mjs · built from: A-011
+Made by: R-1194 · extension: packages/nana-pack/extensions/nana-roster-notice.ts, packages/nana-pack/lib/roster-notice.mjs · built from: A-011
 Read by: R-1194 · prompt: packages/nana-setup/claude/hooks/nana-roster-notice.mjs
 Read by: R-1194 · person: Claude Code shows it as a user message at session start, and the pi TUI shows it as a widget
-Made by: R-457 · manual: desk frozen since 2026-10-10
+Made by: R-457 · manual: desk frozen since 2026-10-10 · A-011
 Read by: R-457 · person: desk frozen since 2026-10-10
 Parked: R-457 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
 
@@ -1749,6 +1777,7 @@ Parked: R-457 · since 2026-10-22: the owner froze desk work on 2026-10-10 until
 Purpose: Read, title, navigate and display session history while retaining correct branch identity.
 Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-401, R-458, R-459
+Artifact: A-023 · pi session store · user-home store: <pi agent dir>/sessions/ · manual: pi itself writes every session; nana adds entries only through the desk, frozen since 2026-10-10, where nana-stage.ts appends block entries and patched tool results in app sessions and apps/desk/server.mjs appends renames
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1771,6 +1800,7 @@ Also applies: R-401, R-458, R-459
 Purpose: Select a working directory, runtime resources, tools and trust options before launching the appropriate child.
 Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-404, R-459, R-944
+Artifact: A-024 · desk runtime matrix · tracked: apps/desk/README.md · manual: desk frozen since 2026-10-10; edited by hand
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1824,6 +1854,7 @@ Also applies: R-426, R-458, R-459
 Purpose: Show working-tree changes, readable activity and bounded output, and notify the developer when attention is needed.
 Status: active
 Also applies: R-458, R-484, R-781, R-810
+Artifact: A-025 · nana journal · user-home store: <pi agent dir>/nana-journal.jsonl · extension: packages/nana-pack/lib/config.ts, packages/nana-pack/extensions/nana-gate.ts, packages/nana-pack/extensions/nana-handoff.ts
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1898,19 +1929,19 @@ Purpose: Give tools a consistent presentation contract and connect apps without 
 Outcome: A developer can use focused app surfaces and inspect tool output whose producer and session history remain attributable.
 Kind: product
 Deliverables: R-260, R-256, R-257, R-437, R-264
-Made by: R-260 · manual: desk frozen since 2026-10-10
+Made by: R-260 · manual: desk frozen since 2026-10-10 · A-023
 Read by: R-260 · person: desk frozen since 2026-10-10
 Parked: R-260 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
-Made by: R-256 · manual: desk frozen since 2026-10-10
+Made by: R-256 · manual: desk frozen since 2026-10-10 · A-023
 Read by: R-256 · person: desk frozen since 2026-10-10
 Parked: R-256 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
-Made by: R-257 · manual: desk frozen since 2026-10-10
+Made by: R-257 · manual: desk frozen since 2026-10-10 · A-023
 Read by: R-257 · person: desk frozen since 2026-10-10
 Parked: R-257 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
-Made by: R-437 · manual: desk frozen since 2026-10-10
+Made by: R-437 · manual: desk frozen since 2026-10-10 · A-028
 Read by: R-437 · person: desk frozen since 2026-10-10
 Parked: R-437 · since 2026-10-22: the owner froze desk work on 2026-10-10 until the owner reopens it; reopening the desk deletes this line
-Made by: R-264 · manual: desk frozen since 2026-10-10
+Made by: R-264 · manual: desk frozen since 2026-10-10 · built from: A-023
 Read by: R-264 · person: desk frozen since 2026-10-10
 Parked: R-264 · since 2026-10-22: the stage runs only in app sessions the desk starts, and the owner froze desk work on 2026-10-10; reopening the desk deletes this line
 
@@ -1952,6 +1983,7 @@ Also applies: R-256
 Purpose: Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.
 Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-283, R-284
+Artifact: A-028 · stage keys · user-home store: ~/.pi/agent/nana-desk/stage-keys/ · manual: desk frozen since 2026-10-10; apps/desk/stage-keys.mjs writes it while the desk runs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1984,6 +2016,7 @@ Also applies: R-283, R-284
 Purpose: Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.
 Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-461
+Artifact: A-029 · app session pointer · user-home store: ~/.pi/agent/apps/ · manual: desk frozen since 2026-10-10; apps/desk/apps.mjs rewrites the manifest's session field while the desk runs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2015,35 +2048,37 @@ Purpose: Make requirements, code structure, checks and engineering rules inspect
 Outcome: A developer can see which promises a change affects and what evidence supports its behavior and engineering quality.
 Kind: product
 Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-1239, R-2547, R-2632
-Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does · docs/requirements-tree.md
+Made by: R-291 · manual: a builder runs npm run req:tree after each ledger edit; the suite fails on a stale copy until someone does · A-031
 Read by: R-291 · code: packages/nana-pack/tests/requirements-tree.test.mjs
 Read by: R-291 · person: agents and reviewers read the outline and its diff to see tree changes, as REQUIREMENTS.md describes
-Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says
+Made by: R-1460 · manual: the seat runs scripts/requirements-moved.mjs by hand before the final review and the land, as AGENTS.md says · built from: A-030
 Read by: R-1460 · rule: AGENTS.md tells the seat to carry its output in the review brief and the land report; pi-review and nana-land neither run nor check it
-Made by: R-1014 · land: scripts/test-locked.mjs, scripts/product-report.mjs
-Made by: R-1014 · manual: the seat publishes the land-written page to the owner's copy by hand; no code can update that copy
+Made by: R-1014 · land: scripts/test-locked.mjs, scripts/product-report.mjs · A-045
+Made by: R-1014 · manual: the seat publishes the land-written page to the owner's copy by hand; no code can update that copy · built from: A-045
 Read by: R-1014 · person: the owner reads the copy the seat publishes; no code reads the page
 Parked: R-1014 · since 2026-10-23: only a Claude session can publish the owner's copy, and no code reads or acts on the page; a session-start line that reads the land page deletes this line
-Made by: R-1272 · land: packages/nana-pack/bin/nana-land.mjs, scripts/test-locked.mjs, scripts/runtime-measure.mjs · runtime-map
-Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section
+Made by: R-1272 · land: packages/nana-pack/bin/nana-land.mjs, scripts/test-locked.mjs, scripts/runtime-measure.mjs · A-032
+Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section · built from: A-032
 Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module
-Read by: R-1272 · code: scripts/code-map.mjs
+Read by: R-1272 · code: scripts/code-map.mjs, scripts/product-report.mjs
 Made by: R-616 · suite: scripts/test.mjs
-Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs
+Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs · A-034
 Read by: R-616 · code: packages/nana-pack/bin/nana-land.mjs, .github/workflows/ci.yml
 Read by: R-616 · person: whoever reads the terminal sees the per-file lines and totals; R-2547 keeps local seconds and R-2632 keeps CI seconds
-Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says
+Made by: R-1239 · manual: the seat runs the lane's mutation table by hand in install, hook or gate lanes, as the seat guide says · A-035
 Read by: R-1239 · person: the seat reads the record's result line after each run; no code reads the record, and no rule names it for the reviewer
 Parked: R-1239 · since 2026-10-23: the record is the seat's own wrong-code check, which the seat writes and runs by hand, required in install, hook and gate lanes; a run that makes it and code that reads it delete this line
-Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs · suite-runs
-Read by: R-2547 · code: scripts/test-locked.mjs, packages/nana-pack/lib/suite-records.mjs
-Made by: R-2632 · CI: .github/workflows/ci.yml, scripts/test.mjs
+Made by: R-2547 · suite: scripts/test-locked.mjs, scripts/test.mjs, packages/nana-pack/lib/suite-records.mjs · A-033
+Read by: R-2547 · code: scripts/test-locked.mjs, packages/nana-pack/lib/suite-records.mjs, scripts/product-report.mjs
+Made by: R-2632 · CI: .github/workflows/ci.yml, scripts/test.mjs · A-034
 Read by: R-2632 · code: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/lib/land-ci-records.mjs
 
 ## FEAT-028 · Maintain requirement identity and trace links
 Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
 Status: active
 Also applies: G-013, G-014, G-015
+Artifact: A-030 · requirements ledger · tracked: REQUIREMENTS.md · manual: builders and the seat edit it by hand, and run the lift's --write by hand
+Artifact: A-031 · tree outline · tracked: docs/requirements-tree.md · manual: a builder runs npm run req:tree by hand after each ledger edit
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2072,9 +2107,9 @@ Also applies: G-013, G-014, G-015
 | R-2447 | WHEN a feature present at both revisions sits under a different capability at HEAD, or a capability present at both carries a different Kind, Needs, Binds, Deliverables or Retired value compared as parsed lists, or a capability exists at only one revision, the tree movement command shall print a capability section naming each, even when no row changed, leaving its output byte for byte as today's when none of these occurs. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2447: a capability move or capability field change prints a capability section, and none leaves the output unchanged` |
 | R-2460 | Every capability in this repository's REQUIREMENTS.md that has no `Retired:` line shall carry a `Kind:` line, and each such `Kind: product` capability a `Deliverables:` line. | implemented | `packages/nana-pack/tests/requirements-cap-kinds.test.mjs::R-2460: every live capability in this repository's ledger has a kind, and every product capability lists deliverables` |
 | R-2535 | WHEN a deliverable of a live `Kind: product` capability has a `Made by:` line whose run is `manual`, or a `Read by:` line whose reader is `rule` or `person`, with no reason after the colon, the deliverable check shall report one note naming the row and the line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::a manual maker or a rule or person reader with no reason gets one note naming the row` |
-| R-2536 | WHEN a code path, a reader path or an artifact on a `Made by:` or `Read by:` line is not tracked in the ledger folder's HEAD tree, the deliverable check shall report one note naming the row and the path. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::a maker or reader path not tracked at HEAD gets one note naming the row and the path` |
+| R-2536 | WHEN a code path, a reader path or an artifact third part that is neither a registry reference nor a built-from list on a `Made by:` or `Read by:` line is not tracked in the ledger folder's HEAD tree, the deliverable check shall report one note naming the row and the path. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::a maker or reader path not tracked at HEAD gets one note naming the row and the path` |
 | R-2537 | IF a listed deliverable has no readable `Made by:` or `Read by:` line, or a line names an unlisted row, an unknown run or reader, lacks the separator, claims an automatic run or a code or prompt reader with no code path, or sits on a constraint or kindless capability, THEN the deliverable check shall report one note naming the row or the line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::a missing or unreadable line, or an automatic claim with no code path, gets one note naming it` |
-| R-2538 | WHEN the tree has no problem, the tree checker shall print each deliverable note on its own stdout line after its summary in every mode, with the exit status and outline it gives without the lines. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker prints deliverable notes in every mode and keeps its exit status and outline` |
+| R-2538 | WHEN the tree has no problem, the tree checker shall print each deliverable note on its own stdout line after its summary in every mode, including for a ledger whose only field lines are registry lines, with the exit status and outline it gives without the lines. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker prints deliverable notes in every mode and keeps its exit status and outline` |
 | R-2539 | Every deliverable of a live `Kind: product` capability in this repository's REQUIREMENTS.md shall carry at least one `Made by:` line and one `Read by:` line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::every deliverable in this repository's ledger has a Made by and a Read by line` |
 | R-2540 | WHEN a row's `Made by:` or `Read by:` lines differ between the base and the tip, the tree movement report shall list one changed-lines entry for that row. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::the movement report lists a row whose Made by or Read by lines changed` |
 | R-2541 | WHEN the tree has deliverable lines and no problem, the tree checker shall print, in every mode, one line counting the deliverables made by an automatic run and read by code or a prompt, out of all listed deliverables, less those a `Parked:` line holds back (R-2639). | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::the tree checker counts the deliverables made and read by code in every mode` |
@@ -2082,7 +2117,15 @@ Also applies: G-013, G-014, G-015
 | R-2640 | IF a `Parked:` line lacks the separator or has a third part, names a row its capability does not list, lacks `since` and a YYYY-MM-DD date before a colon, has no reason after that colon, or sits outside a live `Kind: product` capability, THEN the deliverable check shall report one note naming the row or the line in place of parking the row. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2640: an unreadable or misplaced Parked line gets one note and parks nothing` |
 | R-2641 | WHEN a deliverable with a readable `Parked:` line is one the count line counts as made and read by code, the deliverable check shall report one note naming the row and its first `Parked:` line, counting the row as made and read by code, not parked. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line` |
 | R-2643 | WHEN a row's `Parked:` lines differ between the base and the tip, the tree movement report shall list one entry for that row naming `Parked lines changed`. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2643: the movement report lists a row whose Parked line was added, removed or reworded` |
-| R-2730 | WHEN the suite runs, it shall fail on any deliverable note that the deliverable check reports for this repository's REQUIREMENTS.md against the repository's tracked files and its untracked files that git does not ignore. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files` |
+| R-2730 | WHEN the suite runs, it shall fail on any deliverable note, including an artifact registry note, that the deliverable check reports for this repository's REQUIREMENTS.md against the repository's tracked files and its untracked files that git does not ignore. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files` |
+| R-2780 | WHEN a feature span under a kinded capability holds an `Artifact:` line, the deliverable check shall read it by its A-ID, reporting one note for a reused ID, a malformed line, an `Artifact:` line in a capability or subgroup span under a kinded capability, or a live entry in a proposed or retired feature's span, and none for any `Artifact:` line under a kindless capability. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2780: an artifact line is read by its ID, and a reused ID, a malformed or misplaced line, or a live entry in a proposed or retired feature gets one note` |
+| R-2781 | IF an entry's class is not in the sealed list, or its location lacks that class's shape, THEN the check shall report one note naming the entry. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2781: an unknown class or a location of the wrong shape for its class gets one note` |
+| R-2782 | WHEN a tracked entry matches no file at HEAD, an automatic entry names a writer that is not a tracked file, a manual entry has no reason, or two live entries share a class and an exact location, the check shall report one note naming the entry and the path. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2782: a tracked entry matching nothing, an untracked or non-file writer, a reasonless manual entry, or a second entry at the same location gets one note` |
+| R-2783 | WHEN a `Made by:` third part names `A-nnn[, …]` or `built from: A-nnn[, …]`, the check shall report one note for each ID with no live entry, additionally for each directly named entry whose run differs from the claim's run or one of whose writers is missing from the claim's code paths, and no not-tracked note for a valid reference. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note` |
+| R-2784 | This repository's ledger shall keep no plain path in a `Made by:` third part and give every listed deliverable that no `Parked:` line holds a registry reference or a `built from:` list on a `Made by:` line. | implemented | `packages/nana-pack/tests/requirements-deliverables.test.mjs::R-2784: this repository's ledger names every unparked deliverable's artifact or what it is built from, and keeps no plain-path artifact` |
+| R-2785 | WHEN a feature span under a kinded capability holds entries, the outline shall list their IDs on one `Artifacts:` line after its Parent line, have the outline field check report a dropped or altered `Artifacts:` line, and preserve the committed outlines for c4332ecb, 4b3846ec and 5548d4c2. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged` |
+| R-2786 | WHEN an entry is new, removed, newly retired, under another feature, or has a changed class, location, run or writer, the movement command shall print an artifacts section naming each and a summary that counts the artifact changes, never "tree movement: none", while keeping today's output byte for byte when no entry changed. | implemented | `packages/nana-pack/tests/requirements-moved.test.mjs::R-2786: the movement report names every artifact entry change, a writer change included, and is unchanged when no entry changed` |
+| R-2787 | WHEN an accepted ledger carries `Artifact:` lines, the lift shall exit 0 on its no-mapping dry run with a clean proof and keep each line byte for byte under its feature both without a mapping and when a mapping moves that feature to another capability. | implemented | `packages/nana-pack/tests/requirements-cap-kinds.test.mjs::R-2787: the lift keeps every artifact line under its feature, with no mapping and when a mapping moves the feature` |
 | R-1157 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157: --root checks another project's ledger, names its problems and writes no outline`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: a row outside its feature exits 1 naming it`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1157 fixture: --root <dir> --write exits 2 with usage` |
 | R-1158 | The tree checker shall report the same problems, at the same line numbers, for a ledger with CRLF line endings as for the same ledger with LF line endings. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` |
 | R-1159 | WHEN the tree checker reads a REQUIREMENTS.md that holds requirement rows but no capability or feature heading, it shall report one problem, which names the row count, says the ledger has no requirements tree yet and points to the requirements skill for the next step, in place of one problem per row. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with rows and no tree gets one line naming the row count and the next step`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line`, `packages/nana-pack/tests/requirements-tree.test.mjs::R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it`, `packages/nana-pack/tests/product-report.test.mjs::a ledger with rows and no tree is refused with one problem line, not one per row` |
@@ -2133,6 +2176,7 @@ Also applies: G-013, G-014, G-015
 Purpose: Maintain a generated module map and find candidate affected requirements through source and test relationships.
 Status: active
 Also applies: G-004, G-007, G-008, G-009, G-010, G-011, G-019
+Artifact: A-032 · runtime map · clone store: <git common dir>/nana/runtime-map.json · land: scripts/runtime-measure.mjs
 Note (moved from old §13c on 2026-10-09):
 Not a nana-pack module: the generator both project templates ship
 (`templates/typescript/template/scripts/code-map.mjs`, `templates/python/template/scripts/code_map.py`),
@@ -2298,6 +2342,9 @@ Also applies: R-079, R-186, R-781
 ## FEAT-031 · Run checks reliably and without contaminating work
 Purpose: Execute the test suite with appropriate collection, isolation, liveness, output and environmental controls.
 Status: active
+Artifact: A-033 · suite run records · clone store: <git common dir>/nana/suite-runs · suite: packages/nana-pack/lib/suite-records.mjs
+Artifact: A-034 · CI suite records · CI record: ci: .github/workflows/ci.yml#suite-record-${{ matrix.os }}-${{ github.run_attempt }} · CI: .github/workflows/ci.yml, scripts/test.mjs
+Artifact: A-035 · mutation records · tracked: docs/reviews/*/seat-mutate*output*.txt · manual: the seat runs the lane's mutation table by hand and commits its record
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2432,6 +2479,7 @@ Status: active
 Purpose: Check documentation and skill commands against the interfaces and files they claim to describe.
 Status: active
 Also applies: G-012, G-021, G-022
+Artifact: A-036 · requirements skill · tracked: packages/nana-pack/skills/requirements/SKILL.md · manual: edited by hand in reviewed lanes
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2464,6 +2512,8 @@ Also applies: G-012, G-021, G-022
 Purpose: Keep shared configuration and module-boundary policies in one place and link their applicability to project features.
 Status: active
 Also applies: R-756, R-2660, R-2662
+Artifact: A-037 · standards rule · tracked: packages/nana-setup/claude/rules/nana-standards.md · manual: edited by hand in reviewed lanes
+Artifact: A-038 · shared general rows · tracked: templates/_shared/requirements-general.md · manual: edited by hand in reviewed lanes
 Note (moved from old §Part G on 2026-10-09):
 These rows are the same in every nana project and are **never renumbered or edited
 per project** — nana-pi is not copier-tracked; its cells mirror the shared file under
@@ -2518,6 +2568,7 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on the owner, from the repo at any commit from its first build on.
 Status: active
 Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
+Artifact: A-045 · land product report · clone store: <git common dir>/nana/product-report.html · land: scripts/product-report.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2581,28 +2632,29 @@ Purpose: Run controlled studies and interpret results without confusing missing 
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
 Kind: product
 Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
-Made by: R-509 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · apps/bench/studies/tool-profiles-2026-09-08/schedule.json
+Made by: R-509 · manual: someone starts a paid study, or a free dry run, with node apps/bench/run.mjs by hand · A-039
 Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs
 Parked: R-509 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
 Made by: R-532 · manual: someone starts a paid study with node apps/bench/run.mjs by hand
-Read by: R-532 · person: a person opens a run's raw folder to audit it; no code reads it
+Read by: R-532 · person: a person opens a run's raw folder to audit it; the only code reader is a suite test that reads stub evidence it wrote under raw/code-bugfix and then deletes that folder
 Parked: R-532 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
-Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · apps/bench/studies/tool-profiles-2026-09-08/results.jsonl
+Made by: R-507 · manual: someone starts a paid study with node apps/bench/run.mjs by hand · A-042
 Read by: R-507 · code: apps/bench/aggregate.mjs, apps/bench/lib/plan.mjs
 Parked: R-507 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
-Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand · apps/bench/studies/tool-profiles-2026-09-08/summary.md
+Made by: R-535 · manual: someone runs node apps/bench/aggregate.mjs on a study by hand · A-040
 Read by: R-535 · person: the owner reads the summary and verdict files to decide; no code reads them
 Parked: R-535 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
-Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand · apps/bench/studies/catch-ledger-2026-09-28/rows.jsonl
-Read by: R-536 · person: the study write-up was read once for its decision; no code or rule reads it now
-Parked: R-536 · since 2026-10-23: no study is open; a person runs the catch-ledger extraction by hand when a review question needs it, and while extraction calls no model, its only code readers, the label and match steps, call judge models; the next catch-ledger study deletes this line
-Made by: R-694 · manual: the seat runs the writing-trial extractor by hand and writes its result into after.md · docs/reviews/writing-trial-2026-10-04/after.md
+Made by: R-536 · manual: someone runs node apps/bench/catch-ledger.mjs by hand · A-043
+Read by: R-536 · code: apps/bench/test/catch-ledger.test.mjs
+Parked: R-536 · since 2026-10-23: no study is open; a person runs the catch-ledger extraction by hand when a review question needs it, and the suite's reproduction check reruns every step from the committed caches with no model call; the next catch-ledger study deletes this line
+Made by: R-694 · manual: the seat runs the writing-trial extractor by hand and writes its result into after.md · A-044
 Read by: R-694 · person: the owner read its output to decide on the writing rule; nothing reads it since
 Parked: R-694 · since 2026-10-23: the writing trial closed when the owner adopted the writing rule on 2026-10-21, and nothing has read the extract since; a new writing trial deletes this line
 
 ## FEAT-034 · Define reproducible comparisons
 Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
 Status: active
+Artifact: A-039 · study schedule · tracked: apps/bench/studies/tool-profiles-2026-09-08/schedule.json · manual: someone runs node apps/bench/run.mjs by hand, paid or as a free dry run
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2628,6 +2680,7 @@ Status: active
 ## FEAT-035 · Account for cost and uncertainty
 Purpose: Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.
 Status: active
+Artifact: A-040 · study summary · tracked: apps/bench/studies/tool-profiles-2026-09-08/summary.md · manual: someone runs node apps/bench/aggregate.mjs on a study by hand
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2646,6 +2699,7 @@ Status: active
 ## FEAT-036 · Bound study execution and paid work
 Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
 Status: active
+Artifact: A-041 · probe ledger · tracked: apps/bench/studies/tool-profiles-2026-09-08/ledger.jsonl · manual: someone starts a paid study with node apps/bench/run.mjs by hand
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2674,6 +2728,7 @@ Status: active
 ## FEAT-037 · Grade behavior with trustworthy checks
 Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
 Status: active
+Artifact: A-042 · study results · tracked: apps/bench/studies/tool-profiles-2026-09-08/results.jsonl · manual: someone starts a paid study with node apps/bench/run.mjs by hand
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -2705,6 +2760,8 @@ Status: active
 ## FEAT-038 · Interpret workflow experiments and their limits
 Purpose: Analyze review and writing evidence, require stated controls and avoid changing practice beyond what the evidence supports.
 Status: active
+Artifact: A-043 · catch-ledger rows · tracked: apps/bench/studies/catch-ledger-2026-09-28/rows.jsonl · manual: someone runs node apps/bench/catch-ledger.mjs extract by hand
+Artifact: A-044 · writing-trial extract · tracked: docs/reviews/writing-trial-2026-10-04/after.md · manual: the seat ran the writing-trial extractor by hand and wrote its result into this file
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|

@@ -272,5 +272,61 @@ check("R-2643: the movement report lists a row whose Parked line was added, remo
   parkEntryIsSeparate(parkedMovement) && parkEntryIsSeparate(unparkedMovement) && parkEntryIsSeparate(rewordedMovement) && treeMovement({ baseText: parkedHead, headText: parkedHead, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none",
   `added:\n${parkedMovement}\nremoved:\n${unparkedMovement}\nreworded:\n${rewordedMovement}`);
 
+const artifactMovementBase = `# CAP-01 · Product
+Purpose: product
+Kind: product
+
+## FEAT-001 · Alpha
+Purpose: alpha
+Status: active
+Artifact: A-001 · writer · tracked: docs/a.md · suite: scripts/a.mjs
+Artifact: A-002 · removed · tracked: docs/b.md · manual: owner
+Artifact: A-003 · retired later · tracked: docs/c.md · manual: owner
+Artifact: A-004 · moved · tracked: docs/d.md · manual: owner
+Artifact: A-005 · class · tracked: docs/e.md · manual: owner
+Artifact: A-006 · location · tracked: docs/f.md · manual: owner
+Artifact: A-007 · run · tracked: docs/g.md · suite: scripts/a.mjs
+
+${TABLE}| R-001 | Row one. | untested | — |
+
+## FEAT-002 · Beta
+Purpose: beta
+Status: active
+`;
+const artifactMovementHead = `# CAP-01 · Product
+Purpose: product
+Kind: product
+
+## FEAT-001 · Alpha
+Purpose: alpha
+Status: active
+Artifact: A-001 · writer · tracked: docs/a.md · suite: scripts/b.mjs
+Artifact: A-003 · retired later · retired: superseded
+Artifact: A-005 · class · user-home store: ~/e.md · manual: owner
+Artifact: A-006 · location · tracked: docs/changed.md · manual: owner
+Artifact: A-007 · run · tracked: docs/g.md · build: scripts/a.mjs
+Artifact: A-008 · new · tracked: docs/h.md · manual: owner
+
+${TABLE}| R-001 | Row one. | untested | — |
+
+## FEAT-002 · Beta
+Purpose: beta
+Status: active
+Artifact: A-004 · moved · tracked: docs/d.md · manual: owner
+`;
+const artifactMovementOutput = treeMovement({ baseText: artifactMovementBase, headText: artifactMovementHead, baseRevLabel: "base", headRevLabel: "head" });
+const artifactExpected = [
+  "A-001 writer changed",
+  "A-002 removed",
+  "A-003 newly retired",
+  "A-004 moved FEAT-001 → FEAT-002",
+  "A-005 class tracked → user-home store",
+  "A-006 location docs/f.md → docs/changed.md",
+  "A-007 run suite → build",
+  "A-008 new under FEAT-001",
+];
+// req: R-2786
+check("R-2786: the movement report names every artifact entry change, a writer change included, and is unchanged when no entry changed", artifactMovementOutput.startsWith("tree movement base..head: 0 rows in 0 features, 8 artifact change(s)") && artifactMovementOutput.includes("\nartifacts:\n") && artifactExpected.every((line) => artifactMovementOutput.includes(`  ${line}`)) && !artifactMovementOutput.includes("tree movement: none") && treeMovement({ baseText: artifactMovementBase, headText: artifactMovementBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", artifactMovementOutput);
+
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all checks passed");

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/requirements-moved.mjs
- * @purpose Report requirement-row changes by feature and capability placement or field changes since a revision's merge base with HEAD.
+ * @purpose Report requirement-row, artifact-registry, capability-placement and capability-field changes since a revision's merge base with HEAD.
  * @inputs argv (--root <dir> --base <rev>); REQUIREMENTS.md as committed at HEAD and at the merge base of <rev> and HEAD, read through git.
- * @outputs One summary line, affected feature blocks including parked-line changes, and, when capability placement or fields changed, a capabilities section with one line per change, on stdout; a named refusal on stderr.
+ * @outputs One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry change, on stdout; a named refusal on stderr.
  * @effects process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
  * @errors exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
  */
@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { deliverableFieldLinesByRow } from "./deliverables.mjs";
+import { artifactRegistry, deliverableFieldLinesByRow } from "./deliverables.mjs";
 import { CAPABILITY_FIELD_LABELS, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 
 // Chosen: 64 MiB, the same size requirements-lift.mjs's blob reader (gitBuf) uses for a
@@ -145,6 +145,8 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
   const headFeatureCaps = featureCapabilities(headParsed);
   const baseCaps = capabilitySnapshot(baseParsed);
   const headCaps = capabilitySnapshot(headParsed);
+  const baseArtifacts = artifactRegistry(baseParsed, null).byId;
+  const headArtifacts = artifactRegistry(headParsed, null).byId;
 
   const ids = new Set([...baseRows.keys(), ...headRows.keys()]);
   const groups = new Map();
@@ -199,6 +201,24 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
   for (const capability of baseCaps.values()) if (!headCaps.has(capability.id)) capabilityChanges.push(`${capability.id} · ${capability.label}: removed`);
   for (const capability of headCaps.values()) if (!baseCaps.has(capability.id)) capabilityChanges.push(`${capability.id} · ${capability.label}: new`);
 
+  const artifactChanges = [];
+  const artifactIds = new Set([...baseArtifacts.keys(), ...headArtifacts.keys()]);
+  for (const id of [...artifactIds].sort((a, b) => Number(a.slice(2)) - Number(b.slice(2)))) {
+    const before = baseArtifacts.get(id);
+    const after = headArtifacts.get(id);
+    if (!before && after) { artifactChanges.push(`${id} new under ${after.featureId}`); continue; }
+    if (before && !after) { artifactChanges.push(`${id} removed`); continue; }
+    const parts = [];
+    if (before.live && !after.live) parts.push("newly retired");
+    else if (!before.live && after.live) parts.push("restored from retired");
+    if (before.featureId !== after.featureId) parts.push(`moved ${before.featureId} → ${after.featureId}`);
+    if (before.className !== after.className && before.live && after.live) parts.push(`class ${before.className} → ${after.className}`);
+    if (before.location !== after.location && before.live && after.live) parts.push(`location ${before.location} → ${after.location}`);
+    if (before.run !== after.run && before.live && after.live) parts.push(`run ${before.run} → ${after.run}`);
+    if (JSON.stringify(before.writers) !== JSON.stringify(after.writers) && before.live && after.live) parts.push("writer changed");
+    if (parts.length) artifactChanges.push(`${id} ${parts.join("; ")}`);
+  }
+
   let rowCount = 0;
   const lines = [];
   for (const key of orderedKeys) {
@@ -207,10 +227,14 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     const label = key === null ? "(no feature)" : `${key} · ${headLabels.get(key) ?? baseLabels.get(key) ?? ""}`;
     lines.push(label, ...rows);
   }
-  if (rowCount === 0 && capabilityChanges.length === 0) return "tree movement: none";
-  const suffix = capabilityChanges.length ? `, ${capabilityChanges.length} capability change(s)` : "";
+  if (rowCount === 0 && capabilityChanges.length === 0 && artifactChanges.length === 0) return "tree movement: none";
+  const suffixes = [];
+  if (capabilityChanges.length) suffixes.push(`${capabilityChanges.length} capability change(s)`);
+  if (artifactChanges.length) suffixes.push(`${artifactChanges.length} artifact change(s)`);
+  const suffix = suffixes.length ? `, ${suffixes.join(", ")}` : "";
   const output = [`tree movement ${baseRevLabel}..${headRevLabel}: ${rowCount} rows in ${orderedKeys.length} features${suffix}`, ...lines];
   if (capabilityChanges.length) output.push("capabilities:", ...capabilityChanges.map((change) => `  ${change}`));
+  if (artifactChanges.length) output.push("artifacts:", ...artifactChanges.map((change) => `  ${change}`));
   return output.join("\n");
 }
 

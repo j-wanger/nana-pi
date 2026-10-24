@@ -10,7 +10,7 @@
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkDeliverables, deliverableReportLines } from "./deliverables.mjs";
+import { artifactRegistry, checkDeliverables, deliverableReportLines } from "./deliverables.mjs";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -380,6 +380,12 @@ function outlineFields(parsed, h) {
 }
 export function renderOutline(parsed) {
   const out = ["# Requirements tree", "", "Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are shown.", ""];
+  const artifactsByFeature = new Map();
+  for (const entry of artifactRegistry(parsed, null).entries) {
+    if (!entry.live) continue;
+    if (!artifactsByFeature.has(entry.featureId)) artifactsByFeature.set(entry.featureId, []);
+    artifactsByFeature.get(entry.featureId).push(entry.id);
+  }
   for (const h of parsed.headings) {
     const { prefix, parent, rows, ids } = outlineFields(parsed, h);
     out.push(`${prefix}- **${h.id} · ${h.label}**`);
@@ -389,6 +395,7 @@ export function renderOutline(parsed) {
       out.push(`${prefix}  Also applies: ${h.alsoApplies.join(", ") || "—"}`);
     }
     out.push(`${prefix}  Parent: ${parent} · Rows: ${rows} · IDs: ${ids}`);
+    if (h.id.startsWith("FEAT-") && artifactsByFeature.has(h.id)) out.push(`${prefix}  Artifacts: ${artifactsByFeature.get(h.id).join(", ")}`);
     if (h.id.startsWith("CAP-")) {
       for (const label of CAPABILITY_FIELD_LABELS) {
         const entries = capabilityEntries(h, label);
@@ -438,6 +445,12 @@ export function expandRowIds(text) {
 export function checkOutlineFields(outline, parsed) {
   const problems = [];
   const lines = outline.split("\n");
+  const artifactsByFeature = new Map();
+  for (const entry of artifactRegistry(parsed, null).entries) {
+    if (!entry.live) continue;
+    if (!artifactsByFeature.has(entry.featureId)) artifactsByFeature.set(entry.featureId, []);
+    artifactsByFeature.get(entry.featureId).push(entry.id);
+  }
   const compress = (ids) => {
     const groups = new Map();
     for (const id of ids) {
@@ -485,6 +498,10 @@ export function checkOutlineFields(outline, parsed) {
     if (!actualDetail.includes(`Rows: ${rows.length} ·`)) problems.push(`${h.id}: outline field row count is missing or altered`);
     if (!actualDetail.endsWith(`IDs: ${compress(rows)}`)) problems.push(`${h.id}: outline field row IDs are missing or altered`);
     if (actualDetail !== expectedDetail && !problems.some((problem) => problem.startsWith(`${h.id}: outline field`))) problems.push(`${h.id}: outline field metadata is altered`);
+    if (h.id.startsWith("FEAT-") && artifactsByFeature.has(h.id)) {
+      const expectedArtifacts = `${prefix}  Artifacts: ${artifactsByFeature.get(h.id).join(", ")}`;
+      if (lines[titleIndex + detailOffset + 1] !== expectedArtifacts) problems.push(`${h.id}: outline Artifacts: is missing or altered`);
+    }
     if (h.id.startsWith("CAP-")) {
       let fieldOffset = detailOffset + 1;
       for (const label of CAPABILITY_FIELD_LABELS) {

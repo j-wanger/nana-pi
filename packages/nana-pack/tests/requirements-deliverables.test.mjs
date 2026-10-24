@@ -24,7 +24,12 @@ import {
   READER_KINDS,
   REASON_REQUIRED,
   RUNTIME_MAP_ARTIFACT,
+  ARTIFACT_CLASSES,
+  ARTIFACT_ID_PATTERN,
+  ARTIFACT_LOCATION_SHAPES,
+  artifactRegistry,
   checkDeliverables,
+  deliverableClaims,
   deliverableFieldLinesByRow,
   deliverableReportLines,
 } from "../../../scripts/deliverables.mjs";
@@ -43,6 +48,112 @@ const run = (cwd, command, args) => spawnSync(command, args, { cwd, encoding: "u
 const git = (cwd, ...args) => run(cwd, "git", ["-c", "user.name=test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", ...args]);
 const notesFor = (text, tracked = ["scripts/make.mjs", "docs/x.md"]) => checkDeliverables(parseLedger(text), tracked).notes;
 const tree = (capabilityLines, featureLines = "", ending = "\n") => `# CAP-01 · Product\nPurpose: product\nOutcome: artifact exists\nKind: product\nDeliverables: R-001\n${capabilityLines}\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n${featureLines}\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |${ending}`;
+
+const registryTree = (artifactLines, claimLines = "Made by: R-001 · manual: owner\nRead by: R-001 · person: owner", { kind = "product", status = "active", subgroup = "", ending = "\n" } = {}) => `# CAP-01 · Product
+Purpose: product
+Outcome: artifact exists
+Kind: ${kind}
+Deliverables: R-001
+${claimLines}
+
+## FEAT-001 · Feature
+Purpose: feature
+Status: ${status}
+${artifactLines}
+${subgroup}| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-001 | The artifact shall exist. | untested | — |${ending}`;
+
+const artifactPlacementFailures = [];
+const validArtifact = "Artifact: A-001 · output · tracked: docs/x.md · manual: owner";
+const validRegistry = artifactRegistry(parseLedger(registryTree(validArtifact)), ["docs/x.md"]);
+if (validRegistry.byId.get("A-001")?.name !== "output" || validRegistry.notes.length !== 0) artifactPlacementFailures.push(`valid: ${validRegistry.notes.join(" | ")}`);
+for (const [label, text, fragment] of [
+  ["reused", registryTree(`${validArtifact}\nArtifact: A-001 · other · tracked: docs/y.md · manual: owner`), "reused"],
+  ["malformed", registryTree("Artifact: A-002 · broken"), "malformed"],
+  ["capability", registryTree(validArtifact).replace(`${validArtifact}\n`, "").replace("Deliverables: R-001\n", `Deliverables: R-001\n${validArtifact}\n`), "feature span"],
+  ["subgroup", registryTree("", undefined, { subgroup: `### SUB-001 · Sub\nPurpose: sub\n${validArtifact}\n` }), "feature span"],
+  ["proposed", registryTree(validArtifact, undefined, { status: "proposed" }), "proposed or retired"],
+  ["retired", registryTree(validArtifact, undefined, { status: "retired (FEAT-002)" }), "proposed or retired"],
+]) {
+  const report = artifactRegistry(parseLedger(text), ["docs/x.md", "docs/y.md"]);
+  if (report.notes.length !== 1 || !report.notes[0].includes(fragment)) artifactPlacementFailures.push(`${label}: ${report.notes.join(" | ")}`);
+}
+const kindlessRegistry = artifactRegistry(parseLedger(registryTree("Artifact: broken", undefined, { kind: "" }).replace("Kind: \n", "")), []);
+if (kindlessRegistry.notes.length !== 0 || kindlessRegistry.byId.size !== 0) artifactPlacementFailures.push(`kindless: ${kindlessRegistry.notes.join(" | ")}`);
+for (const text of [registryTree(`${validArtifact}  \t`), registryTree(validArtifact).replaceAll("\n", "\r\n"), registryTree(validArtifact, undefined, { ending: "" })]) {
+  const report = artifactRegistry(parseLedger(text), ["docs/x.md"]);
+  if (report.notes.length !== 0 || !report.byId.has("A-001")) artifactPlacementFailures.push(`line endings: ${report.notes.join(" | ")}`);
+}
+// req: R-2780
+check("R-2780: an artifact line is read by its ID, and a reused ID, a malformed or misplaced line, or a live entry in a proposed or retired feature gets one note", artifactPlacementFailures.length === 0, artifactPlacementFailures.join("\n"));
+
+const artifactShapeFailures = [];
+for (const [label, line] of [
+  ["unknown", "Artifact: A-001 · output · mystery: docs/x.md · manual: owner"],
+  ["home", "Artifact: A-001 · output · user-home store: docs/x.md · manual: owner"],
+  ["CI", "Artifact: A-001 · output · CI record: docs/new.md · manual: owner"],
+  ["ref", "Artifact: A-001 · output · git ref: docs/x · manual: owner"],
+  ["backslash", "Artifact: A-001 · output · tracked: docs\\x.md · manual: owner"],
+  ["first wildcard", "Artifact: A-001 · output · tracked: */x.md · manual: owner"],
+]) {
+  const report = artifactRegistry(parseLedger(registryTree(line)), ["docs/x.md"]);
+  if (report.notes.length !== 1 || !report.notes[0].includes("A-001")) artifactShapeFailures.push(`${label}: ${report.notes.join(" | ")}`);
+}
+const shapesPinned = Object.isFrozen(ARTIFACT_CLASSES)
+  && JSON.stringify(ARTIFACT_CLASSES) === JSON.stringify(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record"])
+  && ARTIFACT_ID_PATTERN.source === "^A-(?:00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$"
+  && Object.isFrozen(ARTIFACT_LOCATION_SHAPES)
+  && JSON.stringify(ARTIFACT_LOCATION_SHAPES) === JSON.stringify({
+    tracked: "repo-relative tracked path, folder or single-segment-* glob",
+    "clone store": "<git common dir>/<path>",
+    "user-home store": "~/<path> or <pi agent dir>/<path>",
+    "other project": "<project>/<path>",
+    "git ref": "refs/heads/<name> or refs/tags/<prefix>",
+    "CI record": "ci: .github/workflows/<workflow>.yml#<name-without-slash>",
+  });
+if (!shapesPinned) artifactShapeFailures.push("sealed artifact classes, ID pattern or location shapes differ");
+// req: R-2781
+check("R-2781: an unknown class or a location of the wrong shape for its class gets one note", artifactShapeFailures.length === 0, artifactShapeFailures.join("\n"));
+
+const artifactValidityFailures = [];
+for (const [label, lines, tracked, fragment] of [
+  ["missing tracked", "Artifact: A-001 · output · tracked: docs/new.md · manual: owner", ["docs/x.md"], "docs/new.md"],
+  ["untracked writer", "Artifact: A-001 · output · user-home store: ~/output · suite: scripts/new.mjs", ["scripts/make.mjs"], "scripts/new.mjs"],
+  ["folder writer", "Artifact: A-001 · output · user-home store: ~/output · suite: scripts", ["scripts/make.mjs"], "scripts"],
+  ["reasonless", "Artifact: A-001 · output · user-home store: ~/output · manual:", [], "reason"],
+  ["duplicate location", "Artifact: A-001 · first · user-home store: ~/output · manual: owner\nArtifact: A-002 · second · user-home store: ~/output · manual: owner", [], "A-002"],
+  ["single-segment glob", "Artifact: A-001 · output · tracked: docs/reviews/*/x.txt · manual: owner", ["docs/reviews/a/b/x.txt"], "docs/reviews/*/x.txt"],
+]) {
+  const report = artifactRegistry(parseLedger(registryTree(lines)), tracked);
+  if (report.notes.length !== 1 || !report.notes[0].includes(fragment)) artifactValidityFailures.push(`${label}: ${report.notes.join(" | ")}`);
+}
+// req: R-2782
+check("R-2782: a tracked entry matching nothing, an untracked or non-file writer, a reasonless manual entry, or a second entry at the same location gets one note", artifactValidityFailures.length === 0, artifactValidityFailures.join("\n"));
+
+const bindingFailures = [];
+const bindingEntries = [
+  "Artifact: A-001 · manual input · user-home store: ~/input · manual: owner",
+  "Artifact: A-002 · handoff · user-home store: ~/.pi/agent/handoffs/ · extension: packages/nana-pack/extensions/nana-handoff.ts",
+  "Artifact: A-033 · suite records · clone store: <git common dir>/nana/suite-runs · suite: packages/nana-pack/lib/suite-records.mjs",
+].join("\n");
+const bindingTracked = ["packages/nana-pack/extensions/nana-handoff.ts", "packages/nana-pack/lib/suite-records.mjs", "scripts/test.mjs"];
+for (const [label, maker, wanted, unwanted] of [
+  ["run mismatch", "Made by: R-001 · manual: owner · A-002", "run", null],
+  ["missing writer", "Made by: R-001 · suite: scripts/test.mjs · A-033", "packages/nana-pack/lib/suite-records.mjs", null],
+  ["built from ignores binding", "Made by: R-001 · session start: scripts/test.mjs · built from: A-001", null, "deliverable note:"],
+  ["missing reference", "Made by: R-001 · manual: owner · A-999", "A-999", null],
+  ["missing built from", "Made by: R-001 · manual: owner · built from: A-999", "A-999", null],
+  ["valid home", "Made by: R-001 · extension: packages/nana-pack/extensions/nana-handoff.ts · A-002", null, "not tracked at HEAD"],
+]) {
+  const text = registryTree(bindingEntries, `${maker}\nRead by: R-001 · person: owner`);
+  const report = checkDeliverables(parseLedger(text), bindingTracked);
+  if (wanted && (report.notes.length !== 1 || !report.notes[0].includes(wanted))) bindingFailures.push(`${label}: ${report.notes.join(" | ")}`);
+  if (!wanted && report.notes.some((entry) => !unwanted || entry.includes(unwanted))) bindingFailures.push(`${label}: ${report.notes.join(" | ")}`);
+  if (label === "valid home" && deliverableClaims(parseLedger(text), parseLedger(text).headings[0]).get("R-001")?.find((claim) => claim.label === "Made by")?.artifact !== "~/.pi/agent/handoffs/") bindingFailures.push("valid home did not resolve to its location");
+}
+// req: R-2783
+check("R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note", bindingFailures.length === 0, bindingFailures.join("\n"));
 
 const reasonCases = [
   ["Made by: R-001 · manual", "Read by: R-001 · person: owner", "Made by:"],
@@ -270,6 +381,19 @@ check("R-2743: a machine-local artifact passes only under its own maker kind and
   repositoryMachineNotes.length === 0 && machineMapPinned
     && machineCases.every(([artifact, notes]) => notes.length === 1 && notes[0].includes("R-001") && notes[0].includes(`artifact \"${artifact}\"`)),
   JSON.stringify({ repositoryMachineNotes, machineMap, machineCases }));
+const repositoryArtifactClaimFailures = [];
+for (const claims of [...repositoryParsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => deliverableClaims(repositoryParsed, capability).values()).flatMap((values) => [...values])]) {
+  const parked = claims.some((claim) => claim.label === PARKED_LABEL);
+  const makers = claims.filter((claim) => claim.label === "Made by");
+  for (const maker of makers) {
+    const third = maker.thirdPart;
+    if (third && !/^A-[0-9]{3}(?:,\s*A-[0-9]{3})*$/.test(third) && !/^built from:\s*A-[0-9]{3}(?:,\s*A-[0-9]{3})*$/.test(third)) repositoryArtifactClaimFailures.push(`${maker.row}: plain third part ${third}`);
+  }
+  if (!parked && !makers.some((maker) => maker.registryIds?.length)) repositoryArtifactClaimFailures.push(`${makers[0]?.row ?? "unknown"}: no registry reference`);
+}
+// req: R-2784
+check("R-2784: this repository's ledger names every unparked deliverable's artifact or what it is built from, and keeps no plain-path artifact", repositoryArtifactClaimFailures.length === 0, repositoryArtifactClaimFailures.join("\n"));
+
 const repositoryGaps = [];
 for (const capability of repositoryParsed.headings.filter((heading) => heading.id.startsWith("CAP-"))) {
   const fields = capability.capabilityFields ?? {};
@@ -289,15 +413,17 @@ const repositoryGitRunner = (_args, _options) => spawnSync("git", ["ls-files", "
   encoding: "buffer",
   maxBuffer: LIMIT * 1024,
 });
-const malformedParkLedger = tree("Made by: R-001 · manual: owner\nRead by: R-001 · person: owner\nParked: R-001 - since 2026-10-23: held");
-const malformedParkLines = deliverableReportLines(parseLedger(malformedParkLedger), repositoryRoot, repositoryGitRunner);
+const registryControlLedger = registryTree("Artifact: A-001 · broken", "Made by: R-001 · manual: owner · A-999\nRead by: R-001 · person: owner");
+const registryControlLines = deliverableReportLines(parseLedger(registryControlLedger), repositoryRoot, repositoryGitRunner);
 const repositoryReportLines = deliverableReportLines(repositoryParsed, repositoryRoot, repositoryGitRunner);
 // req: R-2730
 check("R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files",
   /^deliverables: \d+ of \d+ made and read by code/.test(repositoryReportLines[0] ?? "")
     && !repositoryReportLines.some((line) => line.startsWith("deliverable note:"))
-    && malformedParkLines.filter((line) => line.startsWith("deliverable note:") && line.includes("cannot read Parked:")).length === 1,
-  `${repositoryReportLines.join("\n")}\ncontrol: ${malformedParkLines.join("\n")}`);
+    && registryControlLines.filter((line) => line.startsWith("deliverable note:")).length === 2
+    && registryControlLines.some((line) => line.includes("malformed Artifact:"))
+    && registryControlLines.some((line) => line.includes("A-999")),
+  `${repositoryReportLines.join("\n")}\ncontrol: ${registryControlLines.join("\n")}`);
 
 console.log(fails ? `${fails} check(s) failed` : "all checks passed");
 process.exit(fails ? 1 : 0);

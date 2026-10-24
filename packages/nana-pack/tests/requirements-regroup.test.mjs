@@ -211,7 +211,9 @@ function mirrorScripts() {
     "scripts/requirements-regroup.mjs", "scripts/requirements-lift.mjs", "scripts/requirements-lift-proof.mjs",
     "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/requirements-moved.mjs", "scripts/deliverables.mjs",
     "packages/nana-pack/lib/brief-precedent.mjs", "packages/nana-pack/lib/brief-config.mjs",
+    "packages/nana-pack/lib/build-records-config.mjs", "packages/nana-pack/lib/runtime-map-config.mjs", "packages/nana-pack/lib/suite-records-config.mjs", "packages/nana-pack/lib/land-config.mjs",
     "packages/nana-pack/lib/frontier-config.mjs", "packages/nana-pack/lib/known-bugs-config.mjs", "packages/nana-pack/lib/markdown-list-sections.mjs",
+    "apps/bench/lib/checkers.mjs", "apps/bench/lib/fixture.mjs",
     "templates/typescript/template/tests/requirements-trace.ts",
   ];
   for (const rel of files) { const dest = join(mirror, rel); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, readFileSync(join(REPO_ROOT, rel))); }

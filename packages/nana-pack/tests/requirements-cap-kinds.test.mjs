@@ -89,6 +89,27 @@ const fieldsKept = [...expectedFieldOwners].every(([id, expected]) => {
 // req: R-2440
 check("R-2440: a ledger carrying every capability field lifts with a clean proof and keeps each field line under its capability", liftRun.status === 0 && /lift proof: .*tree check 0 problems/.test(liftRun.stdout) && checkTree(liftInput).problems.length === 0 && fieldsKept, `status=${liftRun.status}\nstdout=${liftRun.stdout}\nstderr=${liftRun.stderr}\nproblems=${checkTree(liftInput).problems.join("; ")}`);
 
+const artifactLiftFailures = [];
+for (const options of [{}, { crlf: true }, { finalNewline: false }]) {
+  const artifactLine = "Artifact: A-001 · output · tracked: docs/output.md · manual: owner\t";
+  const input = fixtureLedger(ledger([
+    { id: "CAP-01", fields: ["Kind: product"], features: [{ id: "FEAT-001", fields: [artifactLine], rows: [row("R-001")] }] },
+    { id: "CAP-02", fields: ["Kind: product"], features: [{ id: "FEAT-002", rows: [row("R-002")] }] },
+  ]), options);
+  const dry = spawnSync(process.execPath, [LIFT, "--root", input.dir], { cwd: REPO_ROOT, encoding: "utf8", timeout: 120_000 });
+  const identity = buildIdentityMapping(input.text);
+  const movedFeature = identity.tree[0].features.shift();
+  identity.tree[1].features.push(movedFeature);
+  const moved = applyMapping(input.text, identity, loadSeed(REPO_ROOT));
+  const bytes = (text) => text.split(/(?<=\n)/).find((line) => line.replace(/\r?\n$/, "") === artifactLine);
+  const featureStart = moved.indexOf("## FEAT-001 ·");
+  const nextFeature = moved.indexOf("## FEAT-002 ·", featureStart + 1);
+  const underMovedFeature = featureStart >= 0 && (nextFeature < 0 || moved.slice(featureStart, nextFeature).includes(artifactLine));
+  if (dry.status !== 0 || !/lift proof: .*tree check 0 problems/.test(dry.stdout) || bytes(moved) !== bytes(input.text) || !underMovedFeature) artifactLiftFailures.push(`${JSON.stringify(options)} status=${dry.status} stdout=${dry.stdout} stderr=${dry.stderr}`);
+}
+// req: R-2787
+check("R-2787: the lift keeps every artifact line under its feature, with no mapping and when a mapping moves the feature", artifactLiftFailures.length === 0, artifactLiftFailures.join("\n"));
+
 const kindGood = fixtureLedger(ledger([
   { id: "CAP-01", fields: ["Kind: product   \t"], features: [{ id: "FEAT-001", rows: [row("R-001")] }] },
   { id: "CAP-02", fields: ["Kind: constraint", "Binds: CAP-01"], features: [{ id: "FEAT-002", rows: [row("R-002")] }] },
