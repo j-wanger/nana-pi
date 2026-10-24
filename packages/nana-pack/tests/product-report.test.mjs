@@ -1359,9 +1359,10 @@ try {
     const lines = (id) => (byId[id]?.children ?? []).filter((node) => node.attrs?.class === "deliverable-artifact").map((node) => node.textContent);
     const r9000 = lines("R-9000");
     const r9005 = lines("R-9005");
+    const r9000BuiltFrom = r9000[2] ?? "";
     // req: R-2790
     check("R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no artifact is written down",
-      r9000.length === 3 && r9000[0].startsWith("artifact A-001 · tracked output · last changed") && r9000[1] === "artifact A-002 · home output · age not measured: user-home store" && r9000[2].startsWith("built from A-003 · source input · last changed") &&
+      r9000.length === 3 && r9000[0].startsWith("artifact A-001 · tracked output · last changed") && r9000[1] === "artifact A-002 · home output · age not measured: user-home store" && r9000BuiltFrom.startsWith("built from A-003 · source input · last changed") && (r9000BuiltFrom.match(/A-003/g) ?? []).length === 1 && !r9000BuiltFrom.includes("A-001") &&
       lines("R-9001")[0]?.startsWith("output only, built from A-003 · source input · last changed") && JSON.stringify(lines("R-9002")) === JSON.stringify(["artifact not written down"]) && lines("R-9003")[0]?.startsWith("artifact docs/plain.txt · last changed") && JSON.stringify(lines("R-9004")) === JSON.stringify(["artifact A-999 · no live entry"]) && r9005.length === 2 && r9005[0].startsWith("artifact A-001 · tracked output · last changed") && r9005[1].startsWith("built from A-003 · source input · last changed") && renderedClaims(product).every((line) => !/last changed|age not measured|age unknown|newest record|measured at tip/.test(line)),
       JSON.stringify(Object.fromEntries(Object.keys(byId).map((id) => [id, lines(id)]))));
   });
