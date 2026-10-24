@@ -66,4 +66,6 @@
 - Artifacts view (artifact-flow, plan): the page cannot say an artifact is unread, because a feature's reads of its own artifacts are not written down.
 - Artifacts view (artifact-flow, plan): a deliverable's Read by paths are not drawn as flow; only feature Reads lines are.
 - Artifacts view (artifact-flow, plan): no flow line carries a stage-order mark until a ledger carries Needs lines.
-- Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git call, about 30 more process starts per page here.
+- Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git count. The ages share one log walk, so the cost stays below 30 process starts.
+- Artifacts view (artifact-flow, final review): a Reads line the checker flags still draws its line and keeps the entry off the first list. This ledger has none.
+- Artifacts view (artifact-flow, final review): an entry with an empty run renders as " · A-nnn · …"; the checker already flags it.
