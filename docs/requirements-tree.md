@@ -272,14 +272,14 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-07 · Rows: 54 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454, R-2542–R-2545, R-2642, R-2740–R-2745
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 94 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517
+  Parent: — · Rows: 97 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772
   Kind: product
   Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 18 · IDs: R-501, R-502, R-508–R-514, R-532–R-534, R-551–R-554, R-573, R-1095
+    Parent: CAP-08 · Rows: 21 · IDs: R-501, R-502, R-508–R-514, R-532–R-534, R-551–R-554, R-573, R-1095, R-2770–R-2772
   - **FEAT-035 · Account for cost and uncertainty**
     Purpose: Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.
     Status: active

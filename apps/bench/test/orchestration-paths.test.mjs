@@ -59,6 +59,18 @@ const freshStudyDir = async (name) => {
 	await fs.mkdir(d, { recursive: true });
 	return d;
 };
+const listTree = async (dir, base = dir) => {
+	const entries = [];
+	for (const name of (await fs.readdir(dir)).sort()) {
+		const full = path.join(dir, name);
+		const stat = await fs.stat(full);
+		entries.push({ path: path.relative(base, full), size: stat.size, mtimeMs: stat.mtimeMs, directory: stat.isDirectory() });
+		if (stat.isDirectory()) entries.push(...await listTree(full, base));
+	}
+	return entries;
+};
+const shippedStudiesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../studies");
+const shippedStudiesBefore = await listTree(shippedStudiesDir);
 const readJsonl = async (p) => (await fs.readFile(p, "utf8")).trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const waitFor = async (pred, ms = 4000) => {
 	const deadline = Date.now() + ms;
@@ -799,7 +811,16 @@ try {
 		const studyDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../studies/tool-profiles-2026-09-08");
 		const { study: realStudy, tasks: realTasks } = await import("../run.mjs").then((m) => m.loadStudy(studyDir));
 		const t7 = realTasks.find((t) => t.id === "code-bugfix");
-		const outDir = await freshStudyDir("real-fixture-run");
+		const outDir = await freshStudyDir("scratch-shipped-fixture");
+		const standIn = path.join(outDir, "raw", "code-bugfix", "other-profile", "rep0", "stream.jsonl");
+		const standInBytes = Buffer.from("stand-in evidence must survive\n");
+		await fs.mkdir(path.dirname(standIn), { recursive: true });
+		await fs.writeFile(standIn, standInBytes);
+		const absoluteStudy = {
+			...realStudy,
+			fixture: { ...realStudy.fixture, dir: path.resolve(studyDir, realStudy.fixture.dir) },
+			sidecarExtension: path.resolve(studyDir, realStudy.sidecarExtension),
+		};
 		// A stub child that applies the honest one-line fix, then prints a normal stream.
 		const bin = await stub(
 			"real-fixture-child.mjs",
@@ -810,7 +831,7 @@ try {
 				"process.exit(0);\n",
 		);
 		const rec = await executeRun({
-			study: { ...realStudy, fixture: realStudy.fixture }, studyDir, task: t7, profile: extProfile(bin), rep: 0, block: "code-bugfix|0",
+			study: absoluteStudy, studyDir: outDir, task: t7, profile: extProfile(bin), rep: 0, block: "code-bugfix|0",
 			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp",
 			// evidence goes to a scratch dir, so running the tests never writes into the shipped study
 			opts: { dryRun: false, keep: false, agentDir: null, pricer: null, resultsPath: path.join(outDir, "results.jsonl") },
@@ -819,17 +840,26 @@ try {
 		check("shipped c7 through executeRun: the honest one-line fix is graded ok", rec.state === "ok" && rec.ok === true, `${rec.state} ${rec.error ?? ""} ${rec.check?.detail?.slice(0, 200) ?? ""}`);
 		check("shipped c7: …by the trusted evaluator, all 13 probes", /13\/13 behaviour probes passed/.test(rec.check.detail), rec.check.detail.slice(0, 200));
 		check("shipped c7: …with the existing suite still green and one file changed", /suite:ok/.test(rec.check.detail) && rec.changedFiles === 1, `${rec.changedFiles}`);
+		const evidenceFilesExist = await Promise.all(["stream.jsonl", "stderr.txt", "argv.txt", "workspace.diff"].map((name) => fs.stat(path.join(outDir, rec.evidence, name)).then((s) => s.isFile()).catch(() => false)));
+		// req: R-2770
+		check("R-2770: the shipped-study case runs in a scratch study folder and its evidence files exist there",
+			rec.evidence === "raw/code-bugfix/research/rep0" && evidenceFilesExist.every(Boolean), `${rec.evidence}`);
+		// req: R-2771
+		check("R-2771: evidence the shipped-study case did not create survives it byte for byte",
+			(await fs.readFile(standIn).then((bytes) => bytes.equals(standInBytes)).catch(() => false)));
 		// THE EVIDENCE A REVIEWER READS. A correct c7 fix reverts the planted mutation, so the workspace
 		// ends up byte-identical to the pristine fixture — and the diff against that fixture was EMPTY
 		// (header, no hunks) for every successful run. Rep 0's checklist says "inspect both edit diffs";
 		// this is the assertion that there is something to inspect.
-		const c7diff = await fs.readFile(path.join(studyDir, rec.evidence, "workspace.diff"), "utf8");
+		const c7diff = await fs.readFile(path.join(outDir, rec.evidence, "workspace.diff"), "utf8");
 		// req: R-533
 		check("shipped c7: the workspace diff SHOWS the fix rather than being empty", /-\s*return Number\.isInteger\(n\) \? String\(n\) : String\(parseFloat\(n\.toFixed\(1\)\)\);/.test(c7diff) && /\+\s*return Number\.isInteger\(n\) \? String\(n\) : String\(parseFloat\(n\.toFixed\(2\)\)\);/.test(c7diff), c7diff.split("\n").filter((l) => /^[-+]/.test(l)).slice(0, 4).join(" | ").slice(0, 200));
-		await fs.rm(path.join(studyDir, "raw", "code-bugfix"), { recursive: true, force: true });
 	}
 
 	check("EVERY orchestration path was driven: nothing is left registered", inflightKeys().length === 0, inflightKeys().join(","));
+	// req: R-2772
+	check("R-2772: the orchestration tests leave every shipped study folder's listing unchanged",
+		JSON.stringify(await listTree(shippedStudiesDir)) === JSON.stringify(shippedStudiesBefore));
 } finally {
 	await fs.rm(root, { recursive: true, force: true });
 }
