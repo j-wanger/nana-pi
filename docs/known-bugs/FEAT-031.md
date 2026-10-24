@@ -105,3 +105,4 @@
 - Suite records (report-at-land, plan): the store keeps 300 records, about 5 to 6 days at the 2026-10-22 pace, not the 9 days its comment says. When no record in HEAD's history remains, the report says so.
 - Suite records (report-at-land, seat pairs): no test pins that the suite record's land prefix comes from the shared land test. A version that compares only the land tip with HEAD changes nothing but the prefix on a hand measure's record lines.
 - Product report at land (report-at-land, final review): a stop signal during the report build releases the lock while the build finishes. The rename is atomic and the exit code stays the signal's, but another suite can start before this run returns.
+- Test runner (bench-study-scratch CI, 2026-10-24): R-2546's run-record check failed once on the Windows suite leg at 822286b5. Main's run passed at the same code (a Windows first-try flake, inferred).
