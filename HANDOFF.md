@@ -12,7 +12,7 @@
 
 1. **Current priority: the artifact work (the owner, 2026-10-23).** Each artifact comes from an existing run, is read by code, and shows its age. The owner's Windows run and checklist passed that day.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The page lane, which names artifacts and their ages, is next. The feature-line and flow lanes follow it.
+3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The feature-line lane, which records which features read each artifact, is next. The flow lane follows it.
 4. **Queue after that.** The artifact lanes come first. On 2026-10-24 the owner added an artifact list with its own numbers, artifacts named on the page, and feature artifact lines. Then a settings file with a byte-order mark, the audit's seat calls and the review-timeline diagram. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
 5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five causes on 2026-10-23. Nobody knows yet whether the install relay's new kill ends its Windows failures.
 6. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
@@ -50,7 +50,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-24: each artifact nana keeps now has its own number in the product ledger, under the feature that makes it. 29 of 41 deliverables name their artifact.
+- 2026-10-24: the product page names each deliverable's artifact and its age, or says why it shows none. Each capability card lists its features with no deliverable.
 
 ## Known bugs
 

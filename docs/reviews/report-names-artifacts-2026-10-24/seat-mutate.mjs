@@ -90,4 +90,4 @@ const PAIRS = [
 	{ n: "29", name: "the old store names stay exempt from the path check in a ledger with no registry", edits: [one(DL, PLAIN_PATH, 'if (!["runtime-map", "suite-runs", "build-records"].includes(thirdPart)) addPath(row, thirdPart, field.line, "artifact");')], tests: [T_DEL], expectRed: [R_2536] },
 ];
 
-process.exitCode = await runMutations({ lane: "report-names-artifacts", self: import.meta.url, tip: "dd038e0b", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "report-names-artifacts", self: import.meta.url, tip: "cfbb2aa5", declared: DECLARED, pairs: PAIRS });
