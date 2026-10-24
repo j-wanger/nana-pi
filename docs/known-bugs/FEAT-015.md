@@ -167,3 +167,6 @@
 - pi dependencies row (pi-version-support): a pre-release or checkout-built pi gives `·` rather than a judgement.
 - pi dependencies row (pi-version-support): the ✗ names only the ceiling install command; a user who must stay on the floor finds its command in the setup README.
 - pi dependencies row (pi-version-support, independent check): where the row gives `·` (pnpm, Volta, pi's own installer, a wrapper script), the install check now fails its doctor item, which passed on main. CI, this Mac and the owner's second machine all use npm installs.
+- pi dependencies row (pi-version-support, final review): the row assumes pi versions every package in its scope in step with pi. A package on its own higher version line would show a false ✗. No current release does this.
+- pi dependencies row (pi-version-support, final review): the walk also looks in folders Node never searches, such as a package folder nested inside another. npm's layout has none, so the result is the same.
+- Install check (pi-version-support, CI): the Windows ceiling leg's README rehearsal exited -4077 (connection reset) once at the lane's tip. Every other line passed, and the re-run passed.

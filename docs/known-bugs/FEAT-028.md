@@ -61,9 +61,15 @@
 - Deliverable lines (park-deliverables, plan): lowercase `parked:`, `**Parked:**`, `- Parked:`, or a park line under a feature heading or inside a code fence is prose and gets no note; the row stays counted.
 - Deliverable lines (park-deliverables, plan): a park takes its row out of the count's total, so the ratio rises with no work done. The suffix and the movement report are the only signals.
 - Deliverable lines (park-deliverables, plan): the desk and stage maker and reader lines still say "desk frozen since 2026-10-10" instead of naming the run that makes each deliverable.
-- Deliverable lines (park-deliverables, seat): R-694's writing trial closed on 2026-10-21, yet R-694 stays a listed deliverable that code does not make and read.
 - Movement report (park-deliverables, attack): the AGENTS.md command runs the main checkout's script, so a lane that adds the first park lines shows none of them there.
 - Movement report (park-deliverables, seat): `rowSnapshot` splits maker, reader and park lines with inline label patterns instead of the deliverable label constants, so retuning a label needs a second code edit.
 - Deliverable lines (park-deliverables, final review): R-2641 says the stale note names the row's first `Parked:` line; the code names the first readable one, so a broken park line above a good one gets its own note and the stale note names the second.
 - Deliverable lines (park-deliverables, final review): the park branch checks its row with an inline pattern that repeats the existing row-shape pattern.
 - Deliverable lines (park-deliverables, round 2 review): its Landed line, now in the October session archive, quotes `14 of 31 made and read by code, 8 parked`; at its land the checker printed `16 of 32`, because other lanes added deliverables. The line is a dated record.
+- Deliverable lines (park-honestly, plan): R-2730 reads the index and the untracked files git does not ignore. A reader path deleted from disk but still staged passes. A checkout without git gets the "paths not checked" note and fails.
+- Deliverable lines (park-honestly, plan): R-2730 makes a deliverable note fail the suite. A later lane whose ledger lines draw a note fails until it fixes them.
+- Deliverable lines (park-honestly, plan): a park line under a feature heading or inside a code fence is prose. It draws no note, so R-2730 stays green while its row stays open.
+- Deliverable lines (park-honestly, plan): the checker proves only that a named reader path is tracked. A script that only renders a page for a person passes as a code reader. The seat's reader audit was a one-time grep.
+- Deliverable lines (park-honestly, plan): both code readers of the build records print what they read for a person. The land result's code reader, CI, reads main only after the seat pushes by hand. Both rows still count (inferred).
+- Deliverable lines (park-honestly, plan): eighteen of the 41 listed deliverables have park lines, so the count line's ratio covers 23 rows.
+- Deliverable lines (park-honestly, seat): the deliverable test's header names only temporary repositories as inputs. R-2539 and R-2730 also read this repository's ledger and git file list.

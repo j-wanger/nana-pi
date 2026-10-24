@@ -12,7 +12,7 @@
 
 1. **Current priority: the artifact work (the owner, 2026-10-23).** Each artifact comes from an existing run, is read by code, and shows its age. The owner's Windows run and checklist passed that day.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The hard-kill cleanup watcher is building. Two artifact lanes are in planning: honest parking, and the report written at each land.
+3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The hard-kill cleanup watcher is building. The report written at each land is building too. The land keeping CI timings is in planning.
 4. **Queue after that.** The artifact lanes come first, including nana-land printing and keeping the CI timing records (the owner, 2026-10-23). Then a settings file with a byte-order mark, the audit's seat calls and the review-timeline diagram. Seat work: republish the product report after each artifact lane lands.
 5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five causes on 2026-10-23. Nobody knows yet whether the install relay's new kill ends its Windows failures.
 6. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
@@ -50,7 +50,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-23: nana supports pi 1.0.3 through 1.4.0. CI tests both ends on macOS and Windows, and doctor flags a pi whose own packages are newer than pi.
+- 2026-10-23: the owner parked ten deliverables that no existing run makes, each with its reason. CI is now named as the maker of two more, and the suite fails on any deliverable warning.
 
 ## Known bugs
 
