@@ -44,11 +44,10 @@
 - Template Biome (biome-pin, final review): if the adopt render fails, R-2559 fails too, repeating the render failure without hiding it.
 - Template Biome (biome-pin, final review): the seat pair script cuts each FAIL line at 140 characters, so b4's line in the output file ends mid-sentence.
 - Template Biome (biome-pin, final review): the TypeScript template's `^5.9.0` and `^22.0.0` ranges carry the same open-range risk as ruff, though they are less likely to break a lint gate.
-- Project drift line (project-drift-notice): only the AGENTS.md marker region is compared; the frontier seeds are not.
 - Project drift line (project-drift-notice): the compare uses the checkout the hook or extension runs from, and the node form names that checkout's command, so the fix writes the section that was compared.
 - Project drift line (project-drift-notice): linked worktrees and submodules get no line; the fix belongs in the main checkout, then a merge.
 - Project drift line (project-drift-notice): a nana-pi checkout gets no line; R-859 governs it.
-- Project drift line (project-drift-notice): there is no line where `nana-setup project` would not refresh the region. That covers no markers, a malformed or fence-only pair, a symlink, an unreadable or invalid UTF-8 file, a file over 1 MiB, and a dismissed root. `project --check` still reports these. Of 13 home-level checkouts here, 4 are adopted with a bare unmarked copy.
+- Project drift line (project-drift-notice; project-check-line): the line leaves out the working section where `nana-setup project` would not refresh it. That covers no markers, a malformed or fence-only pair, an unreadable or invalid UTF-8 file, and a file over 1 MiB. `project --check` still reports these.
 - Project drift line (project-drift-notice): the named fix also seeds any absent frontier file and month log, replaces a CLAUDE.md placeholder, writes `.pi/nana-pack.json` and starts a knowledge build.
 - Project drift line (project-drift-notice): a copier project compares against main's section, not its template tag. Its documented copier update does not clear the line, and the named fix writes unreleased text that a later update may conflict with.
 - Project drift line (project-drift-notice): a root holding `"`, `$`, a backtick or `%` gets the no-path form, which names a bare `nana-setup` resolved through PATH; that may be another checkout than the one that compared (independent check).
@@ -60,5 +59,20 @@
 - Project drift line (project-drift-notice, independent check): the role guard is an exact, case-sensitive match, so `Worker`, `REVIEWER` and ` worker` get the line, as the knowledge hook's compare does. Every launcher sets lowercase values.
 - Project drift line (project-drift-notice, final review): the Claude producer writes the project line before its installed-copy check; if that later check throws, the hook launcher drops the producer's stdout for the unavailable marker, so that session loses the project line.
 - Project drift line (project-drift-notice, land review): the no-path guard checks the project root but not this checkout's own path, so a toolkit checkout whose path holds `$` gives a command whose executable path expands in POSIX shells and PowerShell.
-- Project drift check (win-flake-hardening, plan): R-2628's check failed once on a Windows pull-request leg on 2026-10-23 (run 39904357481) and passed on re-run; not yet diagnosed.
+- Project drift check (win-flake-hardening, plan): R-2628's check failed once on a Windows pull-request leg on 2026-10-23 (run 39904357481) and passed on re-run; not yet diagnosed. R-2628 is retired, and R-2762 now runs its fixtures.
 - Deliverable lines (park-honestly, final review): R-1150's CI maker, the release job, runs only on a push to main, never on a pull request run. Pull requests still run the render test in the suite; R-596 has the same gap.
+- Project check line (project-check-line, plan): the line leaves out rows that need user config, git or TypeScript. They are the pack config, post-edit commands, project trust and the git row, which `project --check` still reports.
+- Project check line (project-check-line, plan): the unmarked or malformed region warning is not named. Five adopted projects here read `!` and still get no working-section updates.
+- Project check line (project-check-line, plan): the gate ignores a user-scope rename of the objective file. A renamed objective file with no markers gives no line.
+- Project check line (project-check-line, plan): a repository that ships its own OBJECTIVE.md or a nana marker line is treated as adopted.
+- Project check line (project-check-line, plan): the line names rows, not their details. The check gives each by-hand step.
+- Project check line (project-check-line, plan): `project --check` prints a symlink target raw, so a target holding a newline breaks its one-row-per-line shape (measured).
+- Project check line (project-check-line, plan): two names remain for one thing: the check's working region and the line's working section.
+- Project check line (project-check-line, plan): a fresh scaffold or adoption gets a line naming the month log at its first session. It clears once `nana-setup project` runs.
+- Project check line (project-check-line, plan): invalid UTF-8 inside the working region makes the check mark it ✗ by hand, while the line stays silent.
+- Project check line (project-check-line, plan): a read-only AGENTS.md with a drifted region is named as a `project` fix that `project` then skips.
+- Project check line (project-check-line, plan): a project that omits a seed on purpose gets the line at every session. Only the dismissal marker silences it, and that also drops adoption.
+- Project check line (project-check-line, independent check): the rows now follow links on the producer path. A link into a hung mount can stall the Claude seat to its 2,500 ms limit, and pi's session start has no limit (inferred).
+- Project check line (project-check-line, independent check): a root with an OBJECTIVE.md folder and a mode-000 AGENTS.md is sent to the check. That check crashes on the unreadable file before printing any row.
+- Project check line (project-check-line, independent check): the nana-setup README's session-start paragraph no longer names the working-section line, which still prints.
+- Project check line (project-check-line, seat pairs): no project test pins the check's row order; only the line's test catches a reorder. Only R-2762's mode-000 case pins the check's AGENTS.md read error.
