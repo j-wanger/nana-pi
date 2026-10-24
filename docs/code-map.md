@@ -2708,7 +2708,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — End a spawned test worker's process tree without making cleanup failures escape the test.
 - **inputs** — a child process and optional platform and synchronous runner
-- **outputs** — none
+- **outputs** — sorted names left in a hard-kill case temp folder; kill helpers return none
 - **effects** — process (signals the child or starts taskkill)
 - **errors** — suppresses absent-process and launcher errors
 - **callers** — `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`

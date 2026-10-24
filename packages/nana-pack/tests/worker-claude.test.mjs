@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from "../lib/claude-review-config.mjs";
 import { killTree } from "../../../scripts/runtime-measure.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import { killWorkerTree, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
+import { hardKillTempNames, killWorkerTree, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const config = await import("../bin/worker-config.mjs");
@@ -175,6 +175,19 @@ const runWorker = ({ brief = BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_M
 const caseTemp = (name) => tmpDir(path.join(TEMP, `${name}-`));
 const tempEnv = (root, extra = {}) => ({ TMPDIR: root, TEMP: root, TMP: root, ...extra });
 const tempEmpty = (root) => fs.readdirSync(root).length === 0;
+const hardKillTempNamesCheck = () => {
+	const root = caseTemp("R-2803");
+	const nested = path.join(root, "folder"); fs.mkdirSync(nested);
+	fs.writeFileSync(path.join(root, "z-file"), "z"); fs.writeFileSync(path.join(nested, "child"), "child");
+	const occupied = hardKillTempNames(root);
+	fs.rmSync(nested, { recursive: true }); fs.rmSync(path.join(root, "z-file"));
+	const empty = hardKillTempNames(root);
+	fs.rmSync(root, { recursive: true });
+	const missing = hardKillTempNames(root);
+	return JSON.stringify(occupied) === JSON.stringify(["folder", "z-file"]) && empty.length === 0 && missing.length === 0;
+};
+// req: R-2803
+check("R-2803: the hard-kill temp check names every entry left in a case temp folder and calls it empty only when none is left", hardKillTempNamesCheck());
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const startWorker = ({ brief = BRIEF, extra = [], env = {} } = {}) => {
 	const child = spawn(process.execPath, workerArgs(brief, extra), { cwd: LANE, env: baseEnv(env), stdio: ["ignore", "ignore", "pipe"] });
@@ -732,7 +745,7 @@ const hardCase = async ({ name, laneSize = "larger", wrapped = false, tree = fal
 	const root = caseTemp(`hard-${name}`);
 	const pidFile = path.join(TEMP, `hard-${name}.pid`);
 	fs.rmSync(pidFile, { force: true }); fs.rmSync(`${pidFile}.grand`, { force: true });
-	const extra = ["--lane-size", laneSize, "--max-secs", "30", "--stall-secs", "10"];
+	const extra = ["--poll", "60", "--lane-size", laneSize, "--max-secs", "30", "--stall-secs", "10"];
 	const env = tempEnv(root, laneSize === "small" ? { WC_PID_FILE: pidFile, WC_PI_SLEEP_SECS: "30" } : { WC_PID_FILE: pidFile, WC_GRANDCHILD: "1", WC_SLEEP_MS: "30000" });
 	const run = wrapped
 		? startWrappedWorker({ args: workerArgs(BRIEF, extra), env })
@@ -748,7 +761,8 @@ const hardCase = async ({ name, laneSize = "larger", wrapped = false, tree = fal
 	const watcherGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
 	await Promise.race([closed, delay(2_000)]);
 	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
-	const observation = { name, started, ready, watcherGone, empty: tempEmpty(root), lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null };
+	const remaining = hardKillTempNames(root);
+	const observation = { name, started, ready, watcherGone, remaining, empty: remaining.length === 0, lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null };
 	cleanProcess(builderPid, true); cleanProcess(child.pid, wrapped); stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
 	fs.rmSync(root, { recursive: true, force: true });
 	return observation;
@@ -780,13 +794,14 @@ for (const owner of ["live", "dead"]) {
 	if (owner === "dead") {
 		const dead = spawn(process.execPath, ["-e", ""], { stdio: "ignore" }); ownerPid = dead.pid; await closeOf(dead);
 	}
-	const run = startWorker({ extra: ["--max-secs", "30", "--stall-secs", "10"], env: tempEnv(root, { WC_PID_FILE: pidFile, WC_SLEEP_MS: "30000" }) });
+	const run = startWorker({ extra: ["--poll", "60", "--max-secs", "30", "--stall-secs", "10"], env: tempEnv(root, { WC_PID_FILE: pidFile, WC_SLEEP_MS: "30000" }) });
 	const started = await waitUntil(() => fs.existsSync(pidFile), 8_000);
 	const ready = await watcherReady(root);
 	if (started) fs.writeFileSync(LOCK, `${ownerPid}\n`);
 	killWorkerTree(run.child); await delay(0);
 	const gone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
-	foreignLockObservations.push({ owner, started, ready, gone, empty: tempEmpty(root), lock: fs.existsSync(LOCK) ? fs.readFileSync(LOCK, "utf8") : null, expected: `${ownerPid}\n` });
+	const remaining = hardKillTempNames(root);
+	foreignLockObservations.push({ owner, started, ready, gone, remaining, empty: remaining.length === 0, lock: fs.existsSync(LOCK) ? fs.readFileSync(LOCK, "utf8") : null, expected: `${ownerPid}\n` });
 	cleanProcess(fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
 }
 // req: R-2722
@@ -867,7 +882,7 @@ let r2728 = {};
 	const root = caseTemp("two-lanes");
 	const alphaPid = path.join(TEMP, "two-alpha.pid"), betaPid = path.join(TEMP, "two-beta.pid");
 	const laneSize = process.platform === "win32" ? "small" : "larger";
-	const argsFor = (name, briefFile) => [WORKER, "--poll", "0.2", "--stall-secs", "10", "--out", path.join(TEMP, `${name}.out`), "--lane", name, "--brief", briefFile, "--lane-size", laneSize, "--max-secs", "30"];
+	const argsFor = (name, briefFile) => [WORKER, "--poll", name === "alpha" ? "60" : "0.2", "--stall-secs", "10", "--out", path.join(TEMP, `${name}.out`), "--lane", name, "--brief", briefFile, "--lane-size", laneSize, "--max-secs", "30"];
 	const envFor = (pidFile, ms) => baseEnv(tempEnv(root, laneSize === "small" ? { WC_PID_FILE: pidFile, WC_PI_SLEEP_SECS: String(Math.ceil(ms / 1000)) } : { WC_PID_FILE: pidFile, WC_SLEEP_MS: String(ms) }));
 	const alpha = spawn(process.execPath, argsFor("alpha", BRIEF), { cwd: LANE, env: envFor(alphaPid, 30_000), stdio: "ignore" });
 	const alphaClose = closeOf(alpha);
@@ -882,7 +897,8 @@ let r2728 = {};
 	const betaIntact = pidAlive(betaChild.pid) && pidAlive(betaBuilder) && fs.existsSync(betaLock) && watchersFor(root).some((item) => watcherWorkerPid(item.line) === betaChild.pid);
 	await Promise.race([betaClose, delay(CASE_LIMIT_MS)]); await alphaClose;
 	const allGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
-	r2728 = { started, ready, alphaGone, betaIntact, allGone, empty: tempEmpty(root), alphaLock: fs.existsSync(LOCK), betaLock: fs.existsSync(betaLock) };
+	const remaining = hardKillTempNames(root);
+	r2728 = { started, ready, alphaGone, betaIntact, allGone, remaining, empty: remaining.length === 0, alphaLock: fs.existsSync(LOCK), betaLock: fs.existsSync(betaLock) };
 	cleanProcess(betaBuilder, true); cleanProcess(alpha.pid, true); cleanProcess(betaChild.pid, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
 }
 // req: R-2728
