@@ -94,23 +94,23 @@
 - Lane temp files (lane-temp-cleanup, attack): a Windows console close ends pi-worker about 10 s later, and the CPU sampler can hold a signal longer, so cleanup may not run. SIGQUIT and SIGBREAK have no listener and leave the folder.
 - Lane temp files (lane-temp-cleanup, attack): a signal queued in the start-up window is never dispatched when the builder launch is refused; pi-worker then exits 1 as a failed attempt, and cleanup still runs.
 - Lane temp files (lane-temp-cleanup): build-records' test clears `CLAUDE_CONFIG_DIR`, but nothing pins it.
-Hard-kill watcher (hard-kill-watcher, plan): on Windows the watcher ends no builder. A forced kill of pi-worker alone, without `/T`, leaves the builder running and may release the lock while it runs.
-Hard-kill watcher (hard-kill-watcher, plan): on Windows a builder behind `cmd.exe`, or any builder after a kill without `/T`, keeps the lock until someone removes it by hand, as on main.
-Hard-kill watcher (hard-kill-watcher, plan): `taskkill /T` can follow a dead parent's reused pid to the watcher, and a job that forbids breakaway takes the watcher with it.
-Hard-kill watcher (hard-kill-watcher, plan): a kill while the one-shot hop lives leaves the key file, the folder and the lock. The window is tens of milliseconds on macOS and longer on Windows (inferred).
-Hard-kill watcher (hard-kill-watcher, plan): a kill between the temp folder's creation and the hop's start leaves one empty folder, with no key file and no lock.
-Hard-kill watcher (hard-kill-watcher, plan): a kill between the builder's spawn and its pid record means the watcher releases the lock without a builder check.
-Hard-kill watcher (hard-kill-watcher, plan): the watcher refuses to signal a leader that started after the record. A reused pid whose start time it reads as not later, within one second, can still be signalled.
-Hard-kill watcher (hard-kill-watcher, plan): a reused pi-worker pid delays cleanup until that process ends. Windows reuses pids sooner than macOS (inferred).
-Hard-kill watcher (hard-kill-watcher, plan): where nothing reaps a zombie pi-worker, the watcher reads it as alive and waits. A container whose first process has no init may never reap it (inferred).
-Hard-kill watcher (hard-kill-watcher, plan): the watcher's end record says `stopped` even when the builder had finished and pi-worker died writing its own end (inferred from code).
-Hard-kill watcher (hard-kill-watcher, plan): a command the builder's tools run in its own process group survives the watcher, as it survives every stop on main.
-Hard-kill watcher (hard-kill-watcher, plan): each running build carries one more node process, about 40 MB resident on macOS.
-Hard-kill watcher (hard-kill-watcher, plan): if the watcher itself is killed, main's leftovers return. The watcher writes no diagnostics, so a failed removal leaves only the files.
-Hard-kill watcher (hard-kill-watcher, plan): only macOS ran the probes. CI's Windows leg is the only check of the Windows paths, and no real pi or Claude builder ran under a hard kill.
-Hard-kill watcher (hard-kill-watcher, independent check): if the builder's pid record cannot be read, because someone deleted the lane folder or the file, the watcher releases the lock without a builder check. A relaunch can then run a second builder in one worktree.
-Hard-kill watcher (hard-kill-watcher, independent check): when the recorded builder is dead, the watcher still ends its process group. A stranger leading a group under the freed pid could lose a member; the kernel does not reuse a pid while its group exists.
-Hard-kill watcher (hard-kill-watcher, independent check): the one-second start-time tolerance never helps a real builder on macOS, because the start time rounds down. It only widens the reuse window toward two seconds, so its stated reason is wrong.
-Hard-kill watcher (hard-kill-watcher, independent check): a `stopped` end record can name a builder that still runs: when the lock stays because a builder may run, and when the pid record is missing. The pack README does not say so.
-Hard-kill watcher (hard-kill-watcher, independent check): the start-time read reuses the watcher's git timeout, so retuning one retunes the other.
-Hard-kill watcher (hard-kill-watcher, independent check): the builder's captured output now sits inside the lane folder, so deleting only that folder loses it (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan): on Windows the watcher ends no builder. A forced kill of pi-worker alone, without `/T`, leaves the builder running and may release the lock while it runs.
+- Hard-kill watcher (hard-kill-watcher, plan): on Windows a builder behind `cmd.exe`, or any builder after a kill without `/T`, keeps the lock until someone removes it by hand, as on main.
+- Hard-kill watcher (hard-kill-watcher, plan): `taskkill /T` can follow a dead parent's reused pid to the watcher, and a job that forbids breakaway takes the watcher with it.
+- Hard-kill watcher (hard-kill-watcher, plan): a kill while the one-shot hop lives leaves the key file, the folder and the lock. The window is tens of milliseconds on macOS and longer on Windows (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan; land review): pi-worker takes the lane lock before it makes the temp folder and starts the watcher. A kill in that window leaves a stale lock, and perhaps an empty folder, to remove by hand.
+- Hard-kill watcher (hard-kill-watcher, plan): a kill between the builder's spawn and its pid record means the watcher releases the lock without a builder check.
+- Hard-kill watcher (hard-kill-watcher, plan): the watcher refuses to signal a leader that started after the record. A reused pid whose start time it reads as not later, within one second, can still be signalled.
+- Hard-kill watcher (hard-kill-watcher, plan): a reused pi-worker pid delays cleanup until that process ends. Windows reuses pids sooner than macOS (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan): where nothing reaps a zombie pi-worker, the watcher reads it as alive and waits. A container whose first process has no init may never reap it (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan): the watcher's end record says `stopped` even when the builder had finished and pi-worker died writing its own end (inferred from code).
+- Hard-kill watcher (hard-kill-watcher, plan): a command the builder's tools run in its own process group survives the watcher, as it survives every stop on main.
+- Hard-kill watcher (hard-kill-watcher, plan): each running build carries one more node process, about 40 MB resident on macOS.
+- Hard-kill watcher (hard-kill-watcher, plan): if the watcher itself is killed, main's leftovers return. The watcher writes no diagnostics, so a failed removal leaves only the files.
+- Hard-kill watcher (hard-kill-watcher, plan): only macOS ran the probes. CI's Windows leg is the only check of the Windows paths, and no real pi or Claude builder ran under a hard kill.
+- Hard-kill watcher (hard-kill-watcher, independent check): if the builder's pid record cannot be read, because someone deleted the lane folder or the file, the watcher releases the lock without a builder check. A relaunch can then run a second builder in one worktree.
+- Hard-kill watcher (hard-kill-watcher, independent check): when the recorded builder is dead, the watcher still ends its process group. A stranger leading a group under the freed pid could lose a member; the kernel does not reuse a pid while its group exists.
+- Hard-kill watcher (hard-kill-watcher, independent check): the one-second start-time tolerance never helps a real builder on macOS, because the start time rounds down. It only widens the reuse window toward two seconds, so its stated reason is wrong.
+- Hard-kill watcher (hard-kill-watcher, independent check): a `stopped` end record can name a builder that still runs: when the lock stays because a builder may run, and when the pid record is missing. The pack README does not say so.
+- Hard-kill watcher (hard-kill-watcher, independent check): the start-time read reuses the watcher's git timeout, so retuning one retunes the other.
+- Hard-kill watcher (hard-kill-watcher, independent check): the builder's captured output now sits inside the lane folder, so deleting only that folder loses it (inferred).

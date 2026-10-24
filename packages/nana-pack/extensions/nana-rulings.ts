@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/extensions/nana-rulings.ts
- * @purpose Append nana's standing rulings plus stale-install and stale-project guidance to every session's system prompt.
+ * @purpose Append nana's standing rulings plus stale-install and adopted-project file-row guidance to every session's system prompt.
  * @inputs pi `session_start` and `before_agent_start` events; session cwd; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
  * @outputs rulings text or its unavailable marker in RULINGS_SECTION, plus independent stale-install and project-stale sections when applicable.
- * @effects disk (bounded-reads the installed rulings and project AGENTS.md, and compares shipped sources)
+ * @effects disk (bounded-reads installed rulings and project text, inspects project file rows, and compares shipped sources)
  * @errors none — the handler swallows everything; an unusable file injects the marker rather
  *  than throwing, hanging, or exhausting memory
  */

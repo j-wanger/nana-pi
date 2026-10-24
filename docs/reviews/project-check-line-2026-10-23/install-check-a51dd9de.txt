@@ -1,0 +1,20 @@
+pi: ~/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: <node prefix>/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi-review
+PASS hook set
+PASS hook shared memory
+PASS hook roster notice
+PASS hook verifier pipe (Bash)
+PASS hook knowledge pull
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
