@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane report-names-artifacts (ordinary), written by the seat 2026-10-24 after build 1 at 809d0571, re-run after build 2.
+// Seat wrong-code pairs for lane report-names-artifacts (ordinary), written by the seat 2026-10-24 after build 1 at 809d0571, re-run after builds 2 and 3.
 // They follow the must-meet rows' red cases (R-2790 to R-2794), the renamed R-2542 note and the old store names as plain paths.
 // Run from the lane worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/report-names-artifacts-2026-10-24/seat-mutate.mjs
@@ -54,6 +54,7 @@ const A033 = "Artifact: A-033 · suite run records · clone store: <git common d
 const DECLARED = [
 	"(seat) pairs 1 to 8 follow R-2790's red cases and the renamed R-2542 literal; 9 to 12 R-2791's; 13 to 16 R-2792's; 17 to 22 R-2793's, one a ledger edit and one a store-constant change; 23 to 28 R-2794's; 29 the old store names as plain paths (R-2536)",
 	"(seat) after build 1 at 809d0571: pair 2 survived (the R-2790 test read only the start of the built-from line, so a repeated ID passed) and went to build 2; shard 4 never judged its six pairs because pair 29 named R-2536 by its row ID, while its test title carries no ID (seat slip, fixed here); pair 5 is red by a crash, which is the red case itself",
+	"(seat) after build 2 at dd038e0b: 28 of 29 red; pair 19 survived (no case puts a two-writer entry at a table location, so R-2793's 'exactly one writer' clause was unpinned) and went to build 3",
 	"(seat) declared non-pairs: 'a reader of tag dates changes the page' (no tag reader exists to break; the R-2791 test adds a tag between its two runs), 'the registry is parsed once per ledger' (a speed rule with no behaviour to pin), and 'ages move off the claim lines' (R-2790's test asserts no claim line carries an age; the build removed the age field from claims, so no one-line mutation restores it)",
 ];
 
@@ -89,4 +90,4 @@ const PAIRS = [
 	{ n: "29", name: "the old store names stay exempt from the path check in a ledger with no registry", edits: [one(DL, PLAIN_PATH, 'if (!["runtime-map", "suite-runs", "build-records"].includes(thirdPart)) addPath(row, thirdPart, field.line, "artifact");')], tests: [T_DEL], expectRed: [R_2536] },
 ];
 
-process.exitCode = await runMutations({ lane: "report-names-artifacts", self: import.meta.url, tip: "809d0571", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "report-names-artifacts", self: import.meta.url, tip: "dd038e0b", declared: DECLARED, pairs: PAIRS });
