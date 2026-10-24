@@ -9,6 +9,12 @@
 import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 
+/** Read the worker pid from the watcher command line. */
+export function watcherWorkerPid(line) {
+	const match = /\\?"workerPid\\?":(\d+)/.exec(line);
+	return match ? Number(match[1]) : null;
+}
+
 /** Find this lane's real watcher processes on Windows, excluding the PowerShell query process. */
 export function windowsLaneWatchers(root, { runner = spawnSync, timeout = 10_000 } = {}) {
 	const token = path.basename(root).replaceAll("'", "''");
