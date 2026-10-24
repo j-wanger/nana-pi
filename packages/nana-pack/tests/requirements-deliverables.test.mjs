@@ -152,6 +152,26 @@ for (const [label, maker, wanted, unwanted] of [
   if (!wanted && report.notes.some((entry) => !unwanted || entry.includes(unwanted))) bindingFailures.push(`${label}: ${report.notes.join(" | ")}`);
   if (label === "valid home" && deliverableClaims(parseLedger(text), parseLedger(text).headings[0]).get("R-001")?.find((claim) => claim.label === "Made by")?.artifact !== "~/.pi/agent/handoffs/") bindingFailures.push("valid home did not resolve to its location");
 }
+const multipleWriterEntry = "Artifact: A-034 · shared output · clone store: <git common dir>/nana/shared · suite: scripts/make.mjs, scripts/also-make.mjs";
+for (const [label, writerPaths, expectedMissing] of [
+  ["one of two writers", "scripts/make.mjs", "scripts/also-make.mjs"],
+  ["both writers", "scripts/make.mjs, scripts/also-make.mjs", null],
+]) {
+  const text = registryTree(multipleWriterEntry, `Made by: R-001 · suite: ${writerPaths} · A-034\nRead by: R-001 · person: owner`);
+  const notes = checkDeliverables(parseLedger(text), ["scripts/make.mjs", "scripts/also-make.mjs"]).notes;
+  if (expectedMissing && (notes.length !== 1 || !notes[0].includes(expectedMissing))) bindingFailures.push(`${label}: ${notes.join(" | ")}`);
+  if (!expectedMissing && notes.length) bindingFailures.push(`${label}: ${notes.join(" | ")}`);
+}
+const suiteStoreEntry = "Artifact: A-035 · suite records · clone store: <git common dir>/nana/suite-runs · suite: packages/nana-pack/lib/suite-records.mjs";
+for (const [label, writerPaths, expected] of [
+  ["entry writer only", "packages/nana-pack/lib/suite-records.mjs", "<git common dir>/nana/suite-runs"],
+  ["entry and claim writers", "packages/nana-pack/lib/suite-records.mjs, scripts/test-locked.mjs", "suite-runs"],
+]) {
+  const text = registryTree(suiteStoreEntry, `Made by: R-001 · suite: ${writerPaths} · A-035\nRead by: R-001 · person: owner`);
+  const capability = parseLedger(text).headings[0];
+  const resolved = deliverableClaims(parseLedger(text), capability).get("R-001")?.find((claim) => claim.label === "Made by")?.artifact;
+  if (resolved !== expected) bindingFailures.push(`${label} resolves to ${resolved}, expected ${expected}`);
+}
 // req: R-2783
 check("R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note", bindingFailures.length === 0, bindingFailures.join("\n"));
 
