@@ -1,14 +1,14 @@
 /**
  * @module packages/nana-pack/bin/pi-watchdog.mjs
  * @purpose Start pi, or an injected command launch, under a CPU-liveness watchdog that kills and retries flat attempts and cleans up child trees on signals.
- * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, and Windows PATH, PATHEXT and pi package metadata
+ * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root and spawn callback, and Windows PATH, PATHEXT and pi package metadata
  * @outputs {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null,
  *  per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the
  *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
  * @effects process (spawns pi detached, or an injected launch with its requested detached option,
  *  per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal,
  *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
- *  stderr; on win32 a PATH lookup, a `package.json` read and the entry's stat)
+ *  stderr under the optional capture root; on win32 a PATH lookup, a `package.json` read and the entry's stat)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
  *  --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the
  *  partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
@@ -170,7 +170,7 @@ const nonEmpty = () => true;
 
 async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, startedAt) {
   const { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpty, childEnv = {}, maxSecs } = opts;
-  const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
+  const tmp = join(mkdtempSync(join(opts.captureRoot ?? tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
   const args = [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
@@ -191,6 +191,7 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
 
   let spawnErr = null;
   onChild(child);
+  try { opts.onSpawn?.(child); } catch { /* a missing identity record leaves conservative hard-kill behaviour */ }
   // `ended` is settled by the child's own 'exit' or 'error' event, registered before the poll
   // loop starts — so a poll never misses it, unlike a 'close' listener added only after a wake
   // (R-1393/R-1395: that listener could attach AFTER 'close' already fired for a signal-killed

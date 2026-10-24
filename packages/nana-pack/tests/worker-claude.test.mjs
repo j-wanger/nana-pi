@@ -13,6 +13,9 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from "../lib/claude-review-config.mjs";
+import { killTree } from "../../../scripts/runtime-measure.mjs";
+import { writeFakePi } from "./fake-pi.mjs";
+import { killWorkerTree, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const config = await import("../bin/worker-config.mjs");
@@ -33,6 +36,11 @@ const {
 	CLAUDE_SETTING_SOURCES_FLAG,
 	CLAUDE_STRICT_MCP_FLAG,
 	CLAUDE_TOOLS_FLAG,
+	LANE_BUILDER_PID_FILE,
+	LANE_WATCHER_POLL_MS,
+	LANE_WATCHER_REMOVE_RETRIES,
+	LANE_WATCHER_REMOVE_RETRY_MS,
+	LANE_WATCHER_STOP_WAIT_MS,
 } = config;
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -113,6 +121,11 @@ const settings = after("--settings");
 if (prompt && process.env.WC_PROMPT_COPY) fs.copyFileSync(prompt, process.env.WC_PROMPT_COPY);
 if (settings && process.env.WC_SETTINGS_COPY) fs.copyFileSync(settings, process.env.WC_SETTINGS_COPY);
 if (process.env.WC_PID_FILE) fs.writeFileSync(process.env.WC_PID_FILE, String(process.pid));
+if (process.env.WC_GRANDCHILD) {
+	const grand = require("node:child_process").spawn(process.execPath, ["-e", "setInterval(()=>{},100000)"], { stdio: "ignore" });
+	if (process.env.WC_PID_FILE) fs.writeFileSync(process.env.WC_PID_FILE + ".grand", String(grand.pid));
+	process.on("SIGTERM", () => {});
+}
 const record = { argv: args, cwd: process.cwd(), prompt, settings, settingsMode: settings ? fs.statSync(settings).mode : null, lock: process.env.WC_LOCK ? fs.existsSync(process.env.WC_LOCK) : false, env: Object.fromEntries(["NANA_ROLE","NANA_WORKTREE_ROOT","NANA_HANDOFF","CLAUDE_CODE_DISABLE_AUTO_MEMORY","BASH_DEFAULT_TIMEOUT_MS","BASH_MAX_TIMEOUT_MS","CLAUDE_CONFIG_DIR"].map((name) => [name, process.env[name] ?? null])) };
 if (process.env.WC_RECORD) fs.appendFileSync(process.env.WC_RECORD, JSON.stringify(record) + "\\n");
 setTimeout(() => { process.stdout.write("fake Claude builder report\\n"); }, Number(process.env.WC_SLEEP_MS ?? "0"));
@@ -121,10 +134,10 @@ const fakeScript = path.join(BIN, "fake-claude.cjs");
 fs.writeFileSync(fakeScript, FAKE_BODY);
 if (process.platform === "win32") {
 	fs.writeFileSync(path.join(BIN, "claude.cmd"), `@echo off\r\n"${process.execPath}" "${fakeScript}" %*\r\n`);
-	fs.writeFileSync(path.join(BIN, "pi.cmd"), `@echo off\r\necho spawned>"${PI_MARKER}"\r\necho fake pi\r\n`);
+	writeFakePi(BIN, `const fs=require("node:fs"); if(process.env.WC_PI_SLEEP_SECS){fs.writeFileSync(process.env.WC_PID_FILE,String(process.pid));setTimeout(()=>process.stdout.write("fake pi\\n"),Number(process.env.WC_PI_SLEEP_SECS)*1000)}else{fs.writeFileSync(${JSON.stringify(PI_MARKER)},"spawned\\n");process.stdout.write("fake pi\\n")}`);
 } else {
 	fs.writeFileSync(path.join(BIN, "claude"), `#!${process.execPath}\nrequire(${JSON.stringify(fakeScript)});\n`, { mode: 0o755 });
-	fs.writeFileSync(path.join(BIN, "pi"), `#!/bin/sh\nprintf 'spawned\\n' > "${PI_MARKER}"\nprintf 'fake pi\\n'\n`, { mode: 0o755 });
+	fs.writeFileSync(path.join(BIN, "pi"), `#!/bin/sh\nif [ -n "$WC_PI_SLEEP_SECS" ]; then printf '%s\\n' "$$" > "$WC_PID_FILE"; exec sleep "$WC_PI_SLEEP_SECS"; fi\nprintf 'spawned\\n' > "${PI_MARKER}"\nprintf 'fake pi\\n'\n`, { mode: 0o755 });
 }
 
 const baseEnv = (extra = {}) => {
@@ -185,6 +198,31 @@ const waitFor = async (predicate, child, limit = 5000) => {
 	const deadline = Date.now() + limit;
 	while (!predicate() && child.exitCode === null && child.signalCode === null && Date.now() < deadline) await delay(1);
 	return predicate();
+};
+const waitUntil = async (predicate, limit = CASE_LIMIT_MS) => {
+	const deadline = Date.now() + limit;
+	while (!predicate() && Date.now() < deadline) await delay(10);
+	return predicate();
+};
+const watchersFor = (root) => {
+	if (process.platform === "win32") return windowsLaneWatchers(root, { timeout: CASE_LIMIT_MS });
+	const result = spawnSync("ps", ["-A", "-ww", "-o", "pid=,ppid=,args="], { encoding: "utf8", timeout: CASE_LIMIT_MS });
+	return result.status === 0 ? result.stdout.split("\n").filter((line) => line.includes("lane-watcher-child.mjs") && line.includes(root)).map((line) => {
+		const match = /^\s*(\d+)\s+(\d+)\s+/.exec(line);
+		return { pid: Number(match?.[1]), ppid: Number(match?.[2]), line };
+	}) : [];
+};
+const watcherReady = async (root) => waitUntil(() => {
+	const found = watchersFor(root);
+	return found.filter((item) => item.line.includes("--watch")).length === 1 && found.every((item) => !item.line.includes("--hop"));
+}, 5_000);
+const pidAlive = (pid) => {
+	if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+	try { process.kill(pid, 0); return true; } catch (error) { return error?.code === "EPERM"; }
+};
+const groupAlive = (pid) => {
+	if (process.platform === "win32" || !Number.isSafeInteger(pid)) return false;
+	try { process.kill(-pid, 0); return true; } catch (error) { return error?.code === "EPERM"; }
 };
 const stopFixtureBuilder = () => {
 	if (process.platform === "win32" || !fs.existsSync(PID_FILE)) return;
@@ -674,6 +712,182 @@ check("R-2694: off Windows, SIGTERM sent to pi-worker while its trust check, Cla
 	process.platform === "win32" || (blockingReadObservations.length === 3 && blockingReadObservations.every((item) => item.precedent && item.blocked && item.ended.code === null && item.ended.signal === "SIGTERM" && item.empty && !item.lock && item.calls === 0 && !item.fakeClaude)),
 	JSON.stringify(blockingReadObservations), process.platform === "win32");
 console.log(`note: R-2694 elapsed ${Math.round(performance.now() - r2694StartedAt)} ms`);
+
+const watcherLimit = () => (Number(LANE_WATCHER_POLL_MS) || 200) + (Number(LANE_WATCHER_STOP_WAIT_MS) || 2000) + (Number(LANE_WATCHER_REMOVE_RETRIES) || 5) * (Number(LANE_WATCHER_REMOVE_RETRY_MS) || 100) + 5_000;
+const cleanProcess = (pid, group = false) => {
+	if (!Number.isSafeInteger(pid) || pid <= 0) return;
+	try { process.kill(group && process.platform !== "win32" ? -pid : pid, "SIGKILL"); } catch {}
+};
+const closeOf = (child) => new Promise((resolve) => {
+	if (child.exitCode !== null || child.signalCode !== null) resolve({ code: child.exitCode, signal: child.signalCode });
+	else child.once("close", (code, signal) => resolve({ code, signal }));
+});
+const startWrappedWorker = ({ args, env, leader = false }) => {
+	const script = leader ? "sleep 30 & echo $! > \"$1\"; shift; exec \"$@\"" : "cd \"$1\" && shift && exec \"$@\"";
+	const prefix = leader ? [path.join(TEMP, "worker-sibling.pid")] : [LANE];
+	return spawn("bash", ["-c", script, "hkw", ...prefix, process.execPath, ...args], { cwd: LANE, env: baseEnv(env), stdio: "ignore", detached: true });
+};
+const hardCase = async ({ name, laneSize = "larger", wrapped = false, tree = false }) => {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const root = caseTemp(`hard-${name}`);
+	const pidFile = path.join(TEMP, `hard-${name}.pid`);
+	fs.rmSync(pidFile, { force: true }); fs.rmSync(`${pidFile}.grand`, { force: true });
+	const extra = ["--lane-size", laneSize, "--max-secs", "30", "--stall-secs", "10"];
+	const env = tempEnv(root, laneSize === "small" ? { WC_PID_FILE: pidFile, WC_PI_SLEEP_SECS: "30" } : { WC_PID_FILE: pidFile, WC_GRANDCHILD: "1", WC_SLEEP_MS: "30000" });
+	const run = wrapped
+		? startWrappedWorker({ args: workerArgs(BRIEF, extra), env })
+		: startWorker({ extra, env });
+	const child = wrapped ? run : run.child;
+	const closed = wrapped ? closeOf(child) : run.closed;
+	const started = await waitUntil(() => fs.existsSync(pidFile) && (laneSize === "small" || fs.existsSync(`${pidFile}.grand`)), 8_000);
+	const ready = await watcherReady(root);
+	if (tree) killTree(child.pid);
+	else if (wrapped) cleanProcess(child.pid, true);
+	else killWorkerTree(child);
+	await delay(0);
+	const watcherGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
+	await Promise.race([closed, delay(2_000)]);
+	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
+	const observation = { name, started, ready, watcherGone, empty: tempEmpty(root), lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null };
+	cleanProcess(builderPid, true); cleanProcess(child.pid, wrapped); stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
+	fs.rmSync(root, { recursive: true, force: true });
+	return observation;
+};
+
+let r2720 = [];
+if (process.platform !== "win32") {
+	r2720.push(await hardCase({ name: "alone" }));
+	r2720.push(await hardCase({ name: "group-claude", wrapped: true }));
+	r2720.push(await hardCase({ name: "group-pi", wrapped: true, laneSize: "small" }));
+	r2720.push(await hardCase({ name: "tree", wrapped: true, tree: true }));
+}
+// req: R-2720
+check("R-2720: off Windows, SIGKILL of pi-worker, of its process group or of its parent-pid tree while a Claude or pi builder runs leaves no temp file, no lane lock, no builder process group and no watcher",
+	process.platform === "win32" || (r2720.length === 4 && r2720.every((item) => item.started && item.ready && item.watcherGone && item.empty && !item.lock && item.builderGroup === false)), JSON.stringify(r2720), process.platform === "win32");
+
+let r2721 = { skipped: true };
+if (process.platform === "win32") r2721 = await hardCase({ name: "windows-tree", laneSize: "small" });
+// req: R-2721
+check("R-2721: Windows: taskkill /F /T of pi-worker's tree while a directly launched builder runs leaves no temp file, no lane lock and no watcher",
+	process.platform !== "win32" || (r2721.started && r2721.ready && r2721.watcherGone && r2721.empty && !r2721.lock), JSON.stringify(r2721), process.platform !== "win32");
+
+const foreignLockObservations = [];
+for (const owner of ["live", "dead"]) {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const root = caseTemp(`foreign-${owner}`);
+	const pidFile = path.join(TEMP, `foreign-${owner}.pid`);
+	let ownerPid = process.pid;
+	if (owner === "dead") {
+		const dead = spawn(process.execPath, ["-e", ""], { stdio: "ignore" }); ownerPid = dead.pid; await closeOf(dead);
+	}
+	const run = startWorker({ extra: ["--max-secs", "30", "--stall-secs", "10"], env: tempEnv(root, { WC_PID_FILE: pidFile, WC_SLEEP_MS: "30000" }) });
+	const started = await waitUntil(() => fs.existsSync(pidFile), 8_000);
+	const ready = await watcherReady(root);
+	if (started) fs.writeFileSync(LOCK, `${ownerPid}\n`);
+	killWorkerTree(run.child); await delay(0);
+	const gone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
+	foreignLockObservations.push({ owner, started, ready, gone, empty: tempEmpty(root), lock: fs.existsSync(LOCK) ? fs.readFileSync(LOCK, "utf8") : null, expected: `${ownerPid}\n` });
+	cleanProcess(fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+}
+// req: R-2722
+check("R-2722: a hard kill while the lane lock names another process, live or dead, leaves that lock unchanged, the temp folder empty and no watcher",
+	foreignLockObservations.every((item) => item.started && item.ready && item.gone && item.empty && item.lock === item.expected), JSON.stringify(foreignLockObservations));
+
+let r2723 = { skipped: true };
+if (process.platform !== "win32") {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const root = caseTemp("own-group");
+	const pidFile = path.join(TEMP, "own-group-builder.pid");
+	const siblingFile = path.join(TEMP, "worker-sibling.pid");
+	fs.rmSync(siblingFile, { force: true });
+	const run = startWrappedWorker({ args: workerArgs(BRIEF, ["--max-secs", "30", "--stall-secs", "10"]), env: tempEnv(root, { WC_PID_FILE: pidFile, WC_GRANDCHILD: "1", WC_SLEEP_MS: "30000" }), leader: true });
+	const decoy = spawn(process.execPath, ["-e", "setInterval(()=>{},100000)"], { detached: true, stdio: "ignore" });
+	const started = await waitUntil(() => fs.existsSync(pidFile) && fs.existsSync(`${pidFile}.grand`) && fs.existsSync(siblingFile), 8_000);
+	const ready = await watcherReady(root);
+	cleanProcess(run.pid); await delay(0);
+	const gone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
+	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
+	const siblingPid = fs.existsSync(siblingFile) ? Number(fs.readFileSync(siblingFile, "utf8")) : null;
+	r2723 = { started, ready, gone, empty: tempEmpty(root), lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null, sibling: pidAlive(siblingPid), decoy: pidAlive(decoy.pid) };
+	cleanProcess(run.pid, true); cleanProcess(builderPid, true); cleanProcess(decoy.pid, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+}
+// req: R-2723
+check("R-2723: off Windows, after SIGKILL of pi-worker alone the builder's group is gone while the other members of pi-worker's own process group and an unrelated process keep running",
+	process.platform === "win32" || (r2723.started && r2723.ready && r2723.gone && r2723.empty && !r2723.lock && r2723.builderGroup === false && r2723.sibling && r2723.decoy), JSON.stringify(r2723), process.platform === "win32");
+
+const normalEndObservations = [];
+for (const item of [{ name: "finished", extra: [], env: {} }, { name: "ceiling", extra: ["--max-secs", "1", "--stall-secs", "10"], env: { WC_SLEEP_MS: "10000" } }]) {
+	removeArtifacts(); fs.rmSync(LOCK, { force: true });
+	const root = caseTemp(`watcher-${item.name}`);
+	const before = new Set(readRows(LEDGER).filter((row) => row.kind === "start").map((row) => row.build));
+	const result = runWorker({ extra: item.extra, env: tempEnv(root, item.env) });
+	const starts = readRows(LEDGER).filter((row) => row.kind === "start" && !before.has(row.build));
+	const gone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
+	const ends = starts.length === 1 ? readRows(LEDGER).filter((row) => row.kind === "end" && row.build === starts[0].build) : [];
+	normalEndObservations.push({ name: item.name, status: result.status, gone, starts: starts.length, ends: ends.length, empty: tempEmpty(root) });
+	fs.rmSync(root, { recursive: true, force: true });
+}
+// req: R-2724
+check("R-2724: after a finished build and after the ceiling the watcher exits and the ledger holds that build's one end record",
+	normalEndObservations.length === 2 && normalEndObservations.every((item) => item.gone && item.starts === 1 && item.ends === 1 && item.empty) && normalEndObservations[0].status === 0 && normalEndObservations[1].status === 1,
+	JSON.stringify(normalEndObservations));
+
+let r2726 = {};
+if (process.platform !== "win32") {
+	const watcherChild = path.join(PACK, "lib", "lane-watcher-child.mjs");
+	const root = caseTemp("reused-builder");
+	const folder = path.join(root, "lane"); fs.mkdirSync(folder);
+	const lock = path.join(root, "lane.lock");
+	const dead = spawn(process.execPath, ["-e", ""], { stdio: "ignore" }); const workerPid = dead.pid; await closeOf(dead);
+	const memberFile = path.join(TEMP, "reused-member.pid");
+	const decoy = spawn(process.execPath, ["-e", `const fs=require('node:fs'),{spawn}=require('node:child_process');const c=spawn(process.execPath,['-e','setInterval(()=>{},100000)'],{stdio:'ignore'});fs.writeFileSync(${JSON.stringify(memberFile)},String(c.pid));setInterval(()=>{},100000)`], { detached: true, stdio: "ignore" });
+	const memberReady = await waitUntil(() => fs.existsSync(memberFile), 5_000);
+	const builderFile = path.join(folder, LANE_BUILDER_PID_FILE || "builder.pid");
+	fs.writeFileSync(builderFile, JSON.stringify({ pid: decoy.pid, launch: "direct" }));
+	const old = new Date(Date.now() - 30_000); fs.utimesSync(builderFile, old, old); fs.writeFileSync(lock, `${workerPid}\n`);
+	const spec = { folder, lock, workerPid, build: "none", commonDir: root };
+	const watched = spawn(process.execPath, [watcherChild, "--watch", JSON.stringify(spec)], { cwd: path.parse(process.execPath).root, stdio: "ignore", windowsHide: true });
+	const ended = await Promise.race([closeOf(watched), delay(CASE_LIMIT_MS).then(() => ({ timeout: true }))]);
+	const memberPid = memberReady ? Number(fs.readFileSync(memberFile, "utf8")) : null;
+	r2726 = { ended, folderGone: !fs.existsSync(folder), lock: fs.existsSync(lock) ? fs.readFileSync(lock, "utf8") : null, expected: `${workerPid}\n`, decoy: pidAlive(decoy.pid), member: pidAlive(memberPid) };
+	cleanProcess(decoy.pid, true); fs.rmSync(lock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+}
+// req: R-2726
+check("R-2726: off Windows, a recorded builder pid now held by a process started after the record is not signalled and the lane lock stays",
+	process.platform === "win32" || (!r2726.ended?.timeout && r2726.folderGone && r2726.lock === r2726.expected && r2726.decoy && r2726.member), JSON.stringify(r2726), process.platform === "win32");
+
+let r2728 = {};
+{
+	const beta = path.join(TEMP, "lane-beta");
+	if (!fs.existsSync(beta)) git(REPO, "worktree", "add", "-q", "-b", "feat/beta", beta);
+	const betaBrief = path.join(beta, "brief.md"); fs.writeFileSync(betaBrief, "Feature: FEAT-006 · Beta\n\nPrecedent:\n- seed\n");
+	const betaGit = real(path.resolve(beta, git(beta, "rev-parse", "--git-dir")));
+	const betaLock = path.join(betaGit, "nana-lane.lock");
+	removeArtifacts(); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true });
+	const root = caseTemp("two-lanes");
+	const alphaPid = path.join(TEMP, "two-alpha.pid"), betaPid = path.join(TEMP, "two-beta.pid");
+	const laneSize = process.platform === "win32" ? "small" : "larger";
+	const argsFor = (name, briefFile) => [WORKER, "--poll", "0.2", "--stall-secs", "10", "--out", path.join(TEMP, `${name}.out`), "--lane", name, "--brief", briefFile, "--lane-size", laneSize, "--max-secs", "30"];
+	const envFor = (pidFile, ms) => baseEnv(tempEnv(root, laneSize === "small" ? { WC_PID_FILE: pidFile, WC_PI_SLEEP_SECS: String(Math.ceil(ms / 1000)) } : { WC_PID_FILE: pidFile, WC_SLEEP_MS: String(ms) }));
+	const alpha = spawn(process.execPath, argsFor("alpha", BRIEF), { cwd: LANE, env: envFor(alphaPid, 30_000), stdio: "ignore" });
+	const alphaClose = closeOf(alpha);
+	const alphaStarted = await waitUntil(() => fs.existsSync(alphaPid), 8_000);
+	const betaChild = spawn(process.execPath, argsFor("beta", betaBrief), { cwd: beta, env: envFor(betaPid, process.platform === "win32" ? 15_000 : 3_000), stdio: "ignore" });
+	const betaClose = closeOf(betaChild);
+	const started = alphaStarted && await waitUntil(() => fs.existsSync(betaPid), 8_000);
+	const ready = await waitUntil(() => { const found = watchersFor(root); return found.filter((item) => item.line.includes("--watch")).length === 2 && found.every((item) => !item.line.includes("--hop")); }, 8_000);
+	killWorkerTree(alpha); await delay(0);
+	const alphaGone = await waitUntil(() => !watchersFor(root).some((item) => watcherWorkerPid(item.line) === alpha.pid), watcherLimit());
+	const betaBuilder = fs.existsSync(betaPid) ? Number(fs.readFileSync(betaPid, "utf8")) : null;
+	const betaIntact = pidAlive(betaChild.pid) && pidAlive(betaBuilder) && fs.existsSync(betaLock) && watchersFor(root).some((item) => watcherWorkerPid(item.line) === betaChild.pid);
+	await Promise.race([betaClose, delay(CASE_LIMIT_MS)]); await alphaClose;
+	const allGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
+	r2728 = { started, ready, alphaGone, betaIntact, allGone, empty: tempEmpty(root), alphaLock: fs.existsSync(LOCK), betaLock: fs.existsSync(betaLock) };
+	cleanProcess(betaBuilder, true); cleanProcess(alpha.pid, true); cleanProcess(betaChild.pid, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+}
+// req: R-2728
+check("R-2728: a hard kill of one lane's pi-worker while a second lane builds in the same temp folder leaves the second lane's build, files, lock and watcher untouched",
+	r2728.started && r2728.ready && r2728.alphaGone && r2728.betaIntact && r2728.allGone && r2728.empty && !r2728.alphaLock && !r2728.betaLock, JSON.stringify(r2728));
 
 const literalCarryNames = [
 	"HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "CLAUDE_CODE_PROXY_RESOLVES_HOSTS", "CLAUDE_CODE_PROXY_AUTH_HELPER_TTL_MS", "CLAUDE_CODE_ENABLE_PROXY_AUTH_HELPER",

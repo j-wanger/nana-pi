@@ -76,3 +76,5 @@
 - Project check line (project-check-line, independent check): a root with an OBJECTIVE.md folder and a mode-000 AGENTS.md is sent to the check. That check crashes on the unreadable file before printing any row.
 - Project check line (project-check-line, independent check): the nana-setup README's session-start paragraph no longer names the working-section line, which still prints.
 - Project check line (project-check-line, seat pairs): no project test pins the check's row order; only the line's test catches a reorder. Only R-2762's mode-000 case pins the check's AGENTS.md read error.
+- Project check line (project-check-line, final review): the line's by-hand split is a fixed rule, but the check's comes from a setup dry run. If setup learns or drops a row fix, the two drift, and only the by-hand fixtures link them.
+- Project check line (project-check-line, final review): the line names the resolved real root, while the check names the path as given. On macOS the two differ for temp folders; this is harmless.

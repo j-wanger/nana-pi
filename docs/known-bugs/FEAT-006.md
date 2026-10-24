@@ -49,7 +49,7 @@
 - Build records (build-records): the ledger lives in each clone. Deleting or re-cloning a repository loses its records, and one lane name in two clones keeps two ledgers.
 - Build records (build-records): only lane mode records a build. A plain pi-worker run, a Claude Code subagent builder and a build by hand keep no record.
 - Build records (build-records): a stall is recorded as `failed`; the STALL line on stderr is the only sign of it.
-- Build records (build-records): `no end` covers a build still running, one killed hard and one ended by an exception, and the report cannot tell them apart. After a hard kill, a pi or Claude Code builder may still be working and spending.
+- Build records (build-records; hard-kill-watcher): `no end` now covers a build still running and one ended by an exception. A hard kill gets the watcher's `stopped` end record, unless the watcher itself was killed.
 - Build records (build-records): the cost is pi's list-price figure from its model catalog, not what a subscription bills (inferred).
 - Build records (build-records): pi-worker follows `PI_CODING_AGENT_SESSION_DIR` and pi's default folder only. A `sessionDir` in pi settings leaves the cost unknown, with the folder named.
 - Build records (build-records): a builder's nested pi runs, such as a pi-review it starts or a project's e2e run, write differently named sessions and are not counted.
@@ -86,7 +86,6 @@
 - Claude Code builder (claude-code-builder-parity, smoke): claude 2.1.299 blocks a foreground `sleep N && …` in the builder and suggests Monitor, which is not in the builder tool list, so a brief that needs a long wait must use a command that is not a `sleep` (measured).
 - Watchdog sampler (win-flake-hardening, plan): pi-watchdog's synchronous CPU sampler blocks its own signal handling while it runs; a SIGTERM sent at 15 s was handled at 40.7 s (measured). A gate lane owns the fix.
 - Claude Code builder (claude-code-builder-parity, final review): the watchdog appends `--name pi-worker-a1-…` after the positional instruction and the fake claude accepts any argv, so only the seat's real-claude smoke at ef39406b shows claude accepts it; a claude that rejected a trailing flag would fail at start.
-- Lane temp files (lane-temp-cleanup): a hard kill of pi-worker leaves its temp folder with the carried Claude settings file (mode 0600 in a 0700 folder), the capture folder, the lane lock and a running builder. A pi seat's ordinary stop is such a kill: Esc, a closed terminal, a desk stop or a bash timeout. The owner put a cleanup watcher in the queue on 2026-10-23.
 - Lane temp files (lane-temp-cleanup): Claude Code's task stop sends SIGTERM first, which cleans up. A forced kill on Windows runs no handler and leaves the folder.
 - Lane temp files (lane-temp-cleanup, land review): the trust check, the user Claude settings read and the HEAD read now run before the start-up listeners, so a hang there still ends on SIGTERM. A hang in the temp-folder writes, the lane lock, the build ledger or a Claude Code build's second read of the brief and known-bug file, as on an unavailable worktree mount, still ignores a SIGTERM sent to pi-worker's own process; a group signal stops it.
 - Lane temp files (lane-temp-cleanup): a signal in the start-up window starts the builder and kills it at once, so the build record says stopped with one attempt.
@@ -95,3 +94,23 @@
 - Lane temp files (lane-temp-cleanup, attack): a Windows console close ends pi-worker about 10 s later, and the CPU sampler can hold a signal longer, so cleanup may not run. SIGQUIT and SIGBREAK have no listener and leave the folder.
 - Lane temp files (lane-temp-cleanup, attack): a signal queued in the start-up window is never dispatched when the builder launch is refused; pi-worker then exits 1 as a failed attempt, and cleanup still runs.
 - Lane temp files (lane-temp-cleanup): build-records' test clears `CLAUDE_CONFIG_DIR`, but nothing pins it.
+- Hard-kill watcher (hard-kill-watcher, plan): on Windows the watcher ends no builder. A forced kill of pi-worker alone, without `/T`, leaves the builder running and may release the lock while it runs.
+- Hard-kill watcher (hard-kill-watcher, plan): on Windows a builder behind `cmd.exe`, or any builder after a kill without `/T`, keeps the lock until someone removes it by hand, as on main.
+- Hard-kill watcher (hard-kill-watcher, plan): `taskkill /T` can follow a dead parent's reused pid to the watcher, and a job that forbids breakaway takes the watcher with it.
+- Hard-kill watcher (hard-kill-watcher, plan): a kill while the one-shot hop lives leaves the key file, the folder and the lock. The window is tens of milliseconds on macOS and longer on Windows (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan; land review): pi-worker takes the lane lock before it makes the temp folder and starts the watcher. A kill in that window leaves a stale lock, and perhaps an empty folder, to remove by hand.
+- Hard-kill watcher (hard-kill-watcher, plan): a kill between the builder's spawn and its pid record means the watcher releases the lock without a builder check.
+- Hard-kill watcher (hard-kill-watcher, plan): the watcher refuses to signal a leader that started after the record. A reused pid whose start time it reads as not later, within one second, can still be signalled.
+- Hard-kill watcher (hard-kill-watcher, plan): a reused pi-worker pid delays cleanup until that process ends. Windows reuses pids sooner than macOS (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan): where nothing reaps a zombie pi-worker, the watcher reads it as alive and waits. A container whose first process has no init may never reap it (inferred).
+- Hard-kill watcher (hard-kill-watcher, plan): the watcher's end record says `stopped` even when the builder had finished and pi-worker died writing its own end (inferred from code).
+- Hard-kill watcher (hard-kill-watcher, plan): a command the builder's tools run in its own process group survives the watcher, as it survives every stop on main.
+- Hard-kill watcher (hard-kill-watcher, plan): each running build carries one more node process, about 40 MB resident on macOS.
+- Hard-kill watcher (hard-kill-watcher, plan): if the watcher itself is killed, main's leftovers return. The watcher writes no diagnostics, so a failed removal leaves only the files.
+- Hard-kill watcher (hard-kill-watcher, plan): only macOS ran the probes. CI's Windows leg is the only check of the Windows paths, and no real pi or Claude builder ran under a hard kill.
+- Hard-kill watcher (hard-kill-watcher, independent check): if the builder's pid record cannot be read, because someone deleted the lane folder or the file, the watcher releases the lock without a builder check. A relaunch can then run a second builder in one worktree.
+- Hard-kill watcher (hard-kill-watcher, independent check): when the recorded builder is dead, the watcher still ends its process group. A stranger leading a group under the freed pid could lose a member; the kernel does not reuse a pid while its group exists.
+- Hard-kill watcher (hard-kill-watcher, independent check): the one-second start-time tolerance never helps a real builder on macOS, because the start time rounds down. It only widens the reuse window toward two seconds, so its stated reason is wrong.
+- Hard-kill watcher (hard-kill-watcher, independent check): a `stopped` end record can name a builder that still runs: when the lock stays because a builder may run, and when the pid record is missing. The pack README does not say so.
+- Hard-kill watcher (hard-kill-watcher, independent check): the start-time read reuses the watcher's git timeout, so retuning one retunes the other.
+- Hard-kill watcher (hard-kill-watcher, independent check): the builder's captured output now sits inside the lane folder, so deleting only that folder loses it (inferred).

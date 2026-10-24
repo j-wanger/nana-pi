@@ -19,7 +19,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as readline from "node:readline";
 import { fileURLToPath } from "node:url";
-import { killProcessTree } from "./process-tree.mjs";
+import { killProcessTree, pidAlive } from "./process-tree.mjs";
 import {
 	BASELINE_RETRIES,
 	DRAIN_MS,
@@ -214,11 +214,6 @@ function killPid(pid) {
 	killProcessTree(pid);
 }
 
-function pidIsAlive(pid) {
-	if (!Number.isInteger(pid) || pid <= 0) return false;
-	try { process.kill(pid, 0); return true; } catch (err) { return err.code === "EPERM"; }
-}
-
 const TRANSIENT_LOCK_CODES = new Set(["EPERM", "EACCES", "EBUSY"]);
 const isTransientLockError = (err) => TRANSIENT_LOCK_CODES.has(err?.code);
 
@@ -262,7 +257,7 @@ function judgeWorktreeLock(lockPath, io, now) {
 	try { holder = JSON.parse(observed); } catch { /* age decides whether unreadable content is stale */ }
 	const parsedPid = Number(holder?.pid);
 	const holderPid = Number.isInteger(parsedPid) && parsedPid > 0 ? parsedPid : null;
-	let held = pidIsAlive(parsedPid);
+	let held = pidAlive(parsedPid);
 	if (!holder) {
 		try { held = now() - io.statSync(lockPath).mtimeMs <= WORKTREE_LOCK_UNREADABLE_STALE_MS; } catch (err) {
 			if (err.code === "ENOENT") return { state: "missing" };

@@ -42,3 +42,6 @@
 - CI records at land (land-ci-timings, independent check): the step's local git calls have no time limit, like nana-land's other git calls.
 - CI records at land (land-ci-timings, plan): ci-records.mjs keeps its own copy of the number formatter.
 - CI records at land (land-ci-timings, plan): on Windows, a rename over an open record file becomes one `not kept` note.
+- CI records at land (land-ci-timings, final review): a Windows EBUSY during the prune throws after the store writes the new record. The note then says "not kept" for a record the store kept; no data is lost.
+- CI records at land (land-ci-timings, final review): a leftover temporary file with an artifact's exact name makes its write fail. Each later land then prints one "not kept" note for that artifact.
+- CI records at land (land-ci-timings, land review): the default gh runner's check uses a zero limit, not the fractional limit the plan named. The code refuses a fractional limit today, but no test pins it.
