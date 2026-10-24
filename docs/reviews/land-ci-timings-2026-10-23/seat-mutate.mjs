@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane land-ci-timings (land tool), written for the seat 2026-10-23 after build 1, at tip 14c4c849.
+// Seat wrong-code pairs for lane land-ci-timings (land tool), written for the seat 2026-10-23 after build 1 and re-run after build 2, at tip ffca3487.
 // They are the draft's pairs 1 to 18 (plan-draft.md) and the attack's 19 to 30 (plan-attack.md), as must-meet.md adjusts
 // them: no Made-by line or ci-runs artifact name, the store name through storeSuiteRecord's pid option, pair 7 fully
 // caught (S3) and pair 25 caught by the spy in R-2752 (S4). Four seat pairs (S1 to S4) probe code points no listed pair
@@ -48,7 +48,7 @@ const RECORDS_GATE = "\t\tif (ciReadPassed) {\n";
 const WRAP = "runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env: ghEnvironment(process.env) }),";
 const KEEP_ARG = "\t\t\t\t\tkeep: CI_RECORDS_KEEP,\n";
 const KEEP_CALL = "\t\t\t\tconst result = keepCiRecords({\n\t\t\t\t\tmain,\n\t\t\t\t\ttip,\n\t\t\t\t\t" + WRAP + "\n\t\t\t\t\tbudgetMs: CI_RECORDS_BUDGET_MS,\n" + KEEP_ARG + "\t\t\t\t\tshare: CI_SLOW_SHARE,\n\t\t\t\t});\n";
-const RESULT_CHECK = "\t\t\t\tif (!result || !Array.isArray(result.lines) || !Array.isArray(result.notes)) throw new Error(\"CI-record keeper returned a malformed result\");\n\t\t\t\trecordLines = [...result.lines]; recordNotes = [...result.notes];\n";
+const RESULT_CHECK = "\t\t\t\tif (!result || !Array.isArray(result.lines) || !Array.isArray(result.notes)) throw new Error(\"CI-record keeper returned a malformed result\");\n\t\t\t\trecordLines = result.lines.map(String); recordNotes = result.notes.map(String);\n";
 const NL_CATCH = "\t\t\t} catch (error) { recordNotes = [`${LAND_NOTE_PREFIX} note: CI records failed: ${error?.message ?? \"unknown error\"}`]; }\n";
 const LET_RECORDS = "\t\tlet recordLines = [], recordNotes = [];\n";
 const CI_TEXT = "${ciLines.length ? `${ciLines.join(\"\\n\")}\\n` : \"\"}";
@@ -63,7 +63,7 @@ const movedRead = (anchor, placed) => [
 
 // packages/nana-pack/lib/land-ci-records.mjs
 const BUDGET_CHECK = "\t\t\tif (!(remaining >= 1)) { budgetStopped = true; return timeoutResult(budgetMs); }\n";
-const CALL_LIMIT = "const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.ceil(remaining));";
+const CALL_LIMIT = "const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.floor(remaining));";
 const RECORDED_AT = "\t\t\t\t\trecordedAt,\n";
 const CI_FIELDS = "ci: { run: item.run.id, attempt: item.attempt, leg: item.leg, event: item.run.event, artifact: item.artifact },";
 const STORE_CALL = "storeRecord(stored, { root: main, subpath: CI_STORE_SUBPATH, now: () => created, pid: `${item.run.id}-${item.leg}-${item.attempt}`, keep });";
@@ -217,7 +217,7 @@ const PAIRS = [
 	{ n: "26", name: "the records read sits after the lock but before the post-merge checks, containment and release status", edits: movedRead(POST_MERGE, `\t\t${EARLY}\n${POST_MERGE}`), tests: [T_LCR], expectRed: [R_2750] },
 	{ n: "27", name: "the guard wraps only the call; a malformed result is used outside it", edits: [
 		one(NL, LET_RECORDS, "\t\tlet recordLines = [], recordNotes = [], keptResult = null;\n"),
-		one(NL, RESULT_CHECK + NL_CATCH, "\t\t\t\tkeptResult = result;\n" + NL_CATCH + "\t\t\tif (keptResult) { recordLines = [...keptResult.lines]; recordNotes = [...keptResult.notes]; }\n"),
+		one(NL, RESULT_CHECK + NL_CATCH, "\t\t\t\tkeptResult = result;\n" + NL_CATCH + "\t\t\tif (keptResult) { recordLines = keptResult.lines.map(String); recordNotes = keptResult.notes.map(String); }\n"),
 	], tests: [T_LCR], expectRed: [R_2755] },
 	{ n: "28", name: "a spent budget with code 1 prints two CI records notes", edits: [
 		one(LCR, BUDGET_FAILURE, "\t\tif (budgetStopped) notes.push(`${LAND_NOTE_PREFIX} note: CI records not read: stopped at the ${numberText(budgetMs / 1000)} s budget`);\n"),
@@ -229,6 +229,9 @@ const PAIRS = [
 	{ n: "30", name: "the notes are capped before they are sorted", edits: [
 		one(SR, SLOW_SORT + SLOW_CAP, SLOW_CAP.replace(/;\n$/, "\n") + SLOW_SORT.replace(/\n$/, ";\n")),
 	], tests: [T_LCR], expectRed: [R_2754] },
+	{ n: "31", name: "the call limit rounds the remainder up, so it can exceed the time left (build 2, F4)", edits: [
+		one(LCR, CALL_LIMIT, "const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.ceil(remaining));"),
+	], tests: [T_LCR], expectRed: [R_2756] },
 	{ n: "S1", name: "ghDefault drops only its integer guard, keeping its catch", edits: [
 		one(NL, GH_GUARD, ""),
 	], tests: [T_LCR], expectRed: [R_2756] },
@@ -243,4 +246,4 @@ const PAIRS = [
 	], tests: [T_LCR], expectRed: [R_2750] },
 ];
 
-process.exitCode = await runMutations({ lane: "land-ci-timings", self: import.meta.url, tip: "14c4c849", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "land-ci-timings", self: import.meta.url, tip: "ffca3487", declared: DECLARED, pairs: PAIRS });
