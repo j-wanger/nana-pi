@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane hard-kill-watcher (gate), written by the seat 2026-10-23 after build 1 and re-run after build 2, at tip 65b43672.
+// Seat wrong-code pairs for lane hard-kill-watcher (gate), written by the seat 2026-10-23 after build 1 and re-run after build 2 at 65b43672 and after build 3 at 7d03134b.
 // They are the draft's pairs 1 to 14 (13 split into its two variants) and the must-meet's 16 to 22; pair 15 is declared; pair 23 came after build 2.
 // Each pair was checked against must-meet.md's wording and the code at the tip; the builder's own table
 // (packages/nana-pack/tests/seat-mutate-hard-kill-watcher.mjs) was the starting point. Run from the lane worktree root,
@@ -136,7 +136,7 @@ process.exitCode = await runMutations({
 	lane: "hard-kill-watcher",
 	branch: "feat/hard-kill-watcher",
 	self: import.meta.url,
-	tip: "65b43672",
+	tip: "7d03134b",
 	declared: DECLARED,
 	pairs: PAIRS,
 });
