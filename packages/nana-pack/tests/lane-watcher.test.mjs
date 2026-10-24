@@ -32,8 +32,9 @@ catch (error) { loadError = error; }
 const observations = [];
 if (cleanLane) {
 	for (const item of [
-		{ name: "darwin survivor", platform: "darwin", launch: "direct", alive: true },
-		{ name: "win32 cmd", platform: "win32", launch: "cmd", alive: false },
+		{ name: "darwin survivor", platform: "darwin", launch: "direct", alive: true, waitForExit: false, keepsLock: true },
+		{ name: "win32 cmd gone", platform: "win32", launch: "cmd", alive: false, waitForExit: true, keepsLock: true },
+		{ name: "win32 direct gone", platform: "win32", launch: "direct", alive: false, waitForExit: true, keepsLock: false },
 	]) {
 		const folder = path.join(ROOT, item.name.replaceAll(" ", "-"));
 		const lock = `${folder}.lock`;
@@ -49,7 +50,7 @@ if (cleanLane) {
 				alive: (pid) => pid === 77 && item.alive,
 				processStartedAt: () => new Date(0),
 				killTree: () => { kills++; return true; },
-				waitForExit: async () => false,
+				waitForExit: async () => item.waitForExit,
 			}));
 			observations.push({ name: item.name, folderGone: !fs.existsSync(folder), lock: fs.existsSync(lock) ? fs.readFileSync(lock, "utf8") : null, kills });
 		} catch (error) {
@@ -60,7 +61,7 @@ if (cleanLane) {
 
 // req: R-2727
 check("R-2727: a watcher whose recorded builder still runs after the stop wait, or whose Windows builder ran through cmd.exe, keeps the lane lock and removes the temp files",
-	!loadError && observations.length === 2 && observations.every((item) => item.folderGone && item.lock === "66\n") && observations[0]?.kills === 1 && observations[1]?.kills === 0,
+	!loadError && observations.length === 3 && observations.every((item, index) => item.folderGone && (item.lock === "66\n") === [true, true, false][index]) && observations[0]?.kills === 1 && observations[1]?.kills === 0 && observations[2]?.kills === 0,
 	JSON.stringify({ loadError: loadError?.message, observations }));
 
 console.log(failures ? `${failures} FAILED` : "all passed");
