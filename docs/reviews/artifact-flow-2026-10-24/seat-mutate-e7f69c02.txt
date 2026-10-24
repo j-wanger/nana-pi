@@ -1,0 +1,39 @@
+seat-mutate: lane artifact-flow, tip e7f69c029c0d287e1b16667f5b3024a0d8e2a12d, table d56001447444ecbfe1d5dda487635948ebfff7b97e6632a23a29ad6f687e9e7d, merge-base 26235c794f901f69c66bff76cb6fda97e75ec852, 20 pairs in 5 shards (4+4+4+4+4, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-24T21:29:58.789Z
+DECLARED (seat) pairs 1 to 6 follow R-2799's red cases and its no-registry text; 7 to 10 R-2800's; 11 to 16 R-2801's; 17 to 20 R-2802's
+DECLARED (seat) declared non-pairs: 'a Reads line naming A-999 stops the page, or one naming a retired entry draws a line' for the flow (the flow iterates live entries only, so no one-line mutation reaches a dead ID there; pair 19 covers A-999 in the feature detail), and 'a read toward an earlier capability raises a tree problem' (this lane changes no tree code, and R-2444's own check is untouched)
+[1/5] seat-mutate: lane artifact-flow, shard 1/5, tip e7f69c029c0d287e1b16667f5b3024a0d8e2a12d, merge-base 26235c794f901f69c66bff76cb6fda97e75ec852, 4 pairs, darwin, node v22.22.2, 2026-10-24T21:29:59.875Z
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane artifact-flow, shard 2/5, tip e7f69c029c0d287e1b16667f5b3024a0d8e2a12d, merge-base 26235c794f901f69c66bff76cb6fda97e75ec852, 4 pairs, darwin, node v22.22.2, 2026-10-24T21:30:03.710Z
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane artifact-flow, shard 3/5, tip e7f69c029c0d287e1b16667f5b3024a0d8e2a12d, merge-base 26235c794f901f69c66bff76cb6fda97e75ec852, 4 pairs, darwin, node v22.22.2, 2026-10-24T21:30:07.721Z
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane artifact-flow, shard 4/5, tip e7f69c029c0d287e1b16667f5b3024a0d8e2a12d, merge-base 26235c794f901f69c66bff76cb6fda97e75ec852, 4 pairs, darwin, node v22.22.2, 2026-10-24T21:30:11.740Z
+[4/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[4/5] RESULT: 4/4 red (2 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane artifact-flow, shard 5/5, tip e7f69c029c0d287e1b16667f5b3024a0d8e2a12d, merge-base 26235c794f901f69c66bff76cb6fda97e75ec852, 4 pairs, darwin, node v22.22.2, 2026-10-24T21:30:15.934Z
+[5/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[5/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 a card shows only its first reading feature — 1/1 named: /^R-2799: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 a retired entry gets a card — 1/1 named: /^R-2799: /; UNNAMED red: [product-report.test.mjs] R-2800: the flow lists one line per cross-capability read with its run, and a read toward an earlier capabili…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 a card leaves out deliverables built from the entry — 1/1 named: /^R-2799: /; UNNAMED red: [product-report.test.mjs] R-2801: the artifacts view lists the artifacts no other feature reads and the ones code reads but no nana run…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 a card leaves out deliverables that name the entry — 1/1 named: /^R-2799: /; UNNAMED red: [product-report.test.mjs] R-2801: the artifacts view lists the artifacts no other feature reads and the ones code reads but no nana run…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 an entry no claim names shows no age — 1/1 named: /^R-2799: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 a ledger with no registry shows other text — 1/1 named: /^R-2799: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 a read inside one capability is a flow line — 1/1 named: /^R-2800: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 two reading features under one capability give two lines — 1/1 named: /^R-2800: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 an entry read under two other capabilities gives one line — 1/1 named: /^R-2800: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 a flow line leaves out the entry's run — 1/1 named: /^R-2800: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 an entry a deliverable is built from is in the first list — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 an entry that only a Reads line names is in the first list — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 an automatic entry is in the second list — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 a manual entry a Reads line names is missing from the second list — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 a manual entry named only by a person-read deliverable is in the second list — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 a second-list item shows no manual reason — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 the feature detail leaves out its reads — 1/1 named: /^R-2802: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 a retired entry shows under Registers — 1/1 named: /^R-2802: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 a read of A-999 stops the page — (no named case); named but NOT REACHED: /^R-2802: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH product-report.test.mjs THREW (later checks never ran)
+RED 20 a read of a live entry shows no maker — 1/1 named: /^R-2802: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 20/20 red (16 exactly their named titles, 2 with a named title green, 3 with an unnamed red), 0 survived, across 5 shards

@@ -63,3 +63,7 @@
 - Artifact ages (report-names-artifacts, plan; feature-artifact-lines): the CI run records store, A-059, is a fourth clone store. It shows "age not measured: clone store".
 - Artifact ages (report-names-artifacts, final review): one R-2791 check filters the land page and mismatched-store lines and checks every match. It passes if those lines vanish. Seat pair 9 is red, so the risk is small.
 - Artifact block (report-names-artifacts, final review): IDs sort as text within a claim, so A-1000 would sort before A-999. Every ID has three digits today.
+- Artifacts view (artifact-flow, plan): the page cannot say an artifact is unread, because a feature's reads of its own artifacts are not written down.
+- Artifacts view (artifact-flow, plan): a deliverable's Read by paths are not drawn as flow; only feature Reads lines are.
+- Artifacts view (artifact-flow, plan): no flow line carries a stage-order mark until a ledger carries Needs lines.
+- Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git call, about 30 more process starts per page here.

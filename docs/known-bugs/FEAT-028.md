@@ -83,3 +83,5 @@
 - Feature reads (feature-artifact-lines, plan): a lift that merges two features can leave a repeated or self-read Reads line; the check notes it.
 - Feature reads (feature-artifact-lines, plan): the Reads lines cover the reads the derive and the verifier found, not a sweep of the whole repository. Product-report runs on other projects, the regroup page, the knowledge build's crawl and this repository's own AGENTS.md, CLAUDE.md and project pack config have no line.
 - Feature reads (feature-artifact-lines, plan): a deliverable's Read by paths and its feature's Reads lines overlap. The flow lane draws only the Reads lines.
+- Feature reads (feature-artifact-lines, final review): a repeated Reads line for an ID with no live entry gets two notes. One names the repeat and one the missing entry.
+- Feature reads (feature-artifact-lines, final review): another project may already use "Reads:" as prose in a feature span. Under a kinded capability, that line now gets a malformed note, report-only there.
