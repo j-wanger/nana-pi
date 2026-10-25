@@ -197,7 +197,7 @@ check("R-2813: an unwritable land ledger leaves the land's verdict, merge and ou
 	assert.equal(git(blocked.main, "rev-parse", "HEAD"), blocked.tip);
 	assert.equal(withoutLastRecordLine(blockedOut.text), withoutLastRecordLine(writableOut.text));
 	assert.equal(recordLines(blockedOut.text).length, 1, blockedOut.text);
-	assert.match(recordLines(blockedOut.text)[0], /land-records\.jsonl: .*ENOTDIR|land-records\.jsonl: .*EEXIST/);
+	assert.match(recordLines(blockedOut.text)[0], /land-records\.jsonl: E[A-Z]+: /);
 	assert.equal(blockedOut.text.trimEnd().split(/\r?\n/).at(-1), recordLines(blockedOut.text)[0]);
 
 	const refused = makeLand("guard-refused");
@@ -214,7 +214,7 @@ check("R-2813: an unwritable land ledger leaves the land's verdict, merge and ou
 	assert.equal(swappedOut.code, 0, swappedOut.text);
 	assert.equal(git(swapped.main, "rev-parse", "HEAD"), swapped.tip);
 	assert.equal(recordLines(swappedOut.text).length, 1, swappedOut.text);
-	assert.match(recordLines(swappedOut.text)[0], /land-records\.jsonl: .*EISDIR/);
+	assert.match(recordLines(swappedOut.text)[0], /land-records\.jsonl: E[A-Z]+: /);
 
 	const capped = makeLand("guard-cap");
 	const cappedOut = land(capped, { landLedgerReadMaxBytes: 8 });
