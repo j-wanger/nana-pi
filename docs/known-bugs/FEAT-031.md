@@ -122,3 +122,4 @@
 - Launch limits (launch-limits-identity, final review; here while FEAT-013's file is at its size cap): R-2894's test title says a stopped launch returns the margin before the hang, but the test checks only the constants' sums.
 - Windows test limits (win-test-limits, final review): R-2884's own check leaves out "descendants survived" and "cleanup ended"; R-1701's check still asserts both.
 - Windows test limits (win-test-limits, final review): adoption-reader's run-alone reason names HOOK_PRODUCER_TIMEOUT_MS, which the test file never names; the link runs through the hook it spawns (inferred).
+- Windows flakes (review-movement CI, 2026-10-25): worker-lane's "wall-clock ceiling kills the worker process group" failed once on the Windows suite leg at 53081c82; that lane touched no worker code (a first-try flake, inferred; the first since win-test-limits changed worker-lane's launcher).

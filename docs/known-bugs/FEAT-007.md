@@ -121,3 +121,13 @@
 - Review movement (review-movement, plan): only a macOS run pins the pipe fix; CI's Linux leg writes pipes synchronously, so it cannot catch the old exit line (inferred).
 - Review movement (review-movement, plan): each launch in a tree with a ledger spends about 0.3 s before admission (measured on the seat's Mac).
 - Review movement (review-movement, plan): R-1560's `built from` names A-007 and A-008, while the timeline also reads the audit log, A-056.
+- Keep movement (keep-movement, plan): a force-killed pi-review leaves its movement temp folder behind; startup reclaims review worktrees only (the land reviewer's note on review-movement).
+- Keep movement (keep-movement, plan): the file holds the movement of the last kept tip, so a commit after keep that changes rows makes it stale until the next keep.
+- Keep movement (keep-movement, plan): the file is only as current as the seat's keep step; the land checklist names the step, and nothing enforces it.
+- Keep movement (keep-movement, plan): the movement's base is the local `main`; a lagging `main` includes rows already landed upstream.
+- Keep movement (keep-movement, plan): the file's first line names the commit keep ran at, so the commit that adds the file is one later; `tree movement: none` names no revision.
+- Keep movement (keep-movement, plan): a keep whose movement cannot be computed leaves any earlier `tree-movement.md` in place; only its warning says so.
+- Keep movement (keep-movement, plan): a mistyped item still writes the movement file and exits 0; the count line shows zero review texts.
+- Keep movement (keep-movement, plan): a `--repo` naming a subfolder gets no movement file and no message, since the ledger check reads relative to that folder (the independent check saw it).
+- Keep movement (keep-movement, plan): a failed movement write is pinned only through a read-only file; root on POSIX can write it, so that case skips there.
+- Review movement (review-movement, final review): claude-review computes the prompt's movement before review-ledger admits the review; a commit in that gap pairs one revision's movement with the next revision's review. keep's file computes its own copy, so it does not inherit the gap.
