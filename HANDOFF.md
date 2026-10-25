@@ -52,7 +52,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-25: an artifact can now declare its own-feature, person or runtime readers, or a dated park. The check notes any live artifact with neither.
+- 2026-10-25: the adoption report now reads up to 4 MiB of the journal, so a full week of reports shows. It says when the read stops short.
 
 ## Known bugs
 

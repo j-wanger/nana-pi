@@ -52,4 +52,4 @@ const PAIRS = [
 	{ n: "22", name: "the cut prefix is retuned", edits: [one(CF, "export const ADOPTION_WINDOW_CUT_PREFIX = \"ADOPTION WINDOW CUT:\";", "export const ADOPTION_WINDOW_CUT_PREFIX = \"ADOPTION WINDOW CUT -\";")], tests: [TR, TP], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "adoption-window", self: import.meta.url, tip: "f3927f37", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "adoption-window", self: import.meta.url, tip: "1bf7c6d6", declared: DECLARED, pairs: PAIRS });
