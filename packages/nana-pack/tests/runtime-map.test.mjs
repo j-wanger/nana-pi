@@ -240,11 +240,16 @@ const relationRoot = mkGitFixture("main-relation", {
 	"probe/a.mjs": "export const A = 1;\n",
 	"probe/writer.mjs": "export const W = 1;\n",
 	"probe/reader.mjs": 'import "./writer.mjs";\n',
+	"probe/reader2.mjs": 'import "./writer.mjs";\n',
 	"probe/outside.mjs": "export const O = 1;\n",
+	"probe/writer2.mjs": "export const W2 = 2;\n",
+	"probe/otherreader.mjs": "export const R = 3;\n",
+	"probe/thirdreader.mjs": "export const R3 = 4;\n",
 });
 const artifactLedger = [
-	"# CAP-01 · Fixture", "Kind: product", "Outcome: fixture", "", "## FEAT-001 · Maker", "Purpose: makes artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | fixture | implemented | test |", "Artifact: A-001 · writer data · tracked: probe/writer.mjs · suite: probe/writer.mjs", "",
-	"## FEAT-002 · Reader", "Purpose: reads artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-002 | fixture | implemented | test |", "Reads: A-999 · probe/reader.mjs", "Reads: A-001 · probe/reader.mjs", "Reads: A-001 · probe/outside.mjs", "",
+	"# CAP-01 · Fixture", "Kind: product", "Outcome: fixture", "", "## FEAT-001 · Maker", "Purpose: makes artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | fixture | implemented | test |", "Artifact: A-001 · writer data · tracked: probe/writer.mjs · suite: probe/writer.mjs", "Artifact: A-002 · second data · tracked: probe/writer2.mjs · suite: probe/writer2.mjs", "Artifact: A-003 · retired data · retired: fixture", "",
+	"## FEAT-002 · Reader", "Purpose: reads artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-002 | fixture | implemented | test |", "Reads: A-999 · probe/reader.mjs", "Reads: A-001 · probe/reader.mjs, probe/reader2.mjs, probe/writer.mjs, probe/outside.mjs", "Reads: A-001 · probe/reader.mjs", "Reads: A-002 · probe/otherreader.mjs", "Reads: A-003 · probe/reader.mjs", "",
+	"## FEAT-003 · Another reader", "Purpose: also reads artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-003 | fixture | implemented | test |", "Reads: A-001 · probe/reader.mjs", "Reads: A-002 · probe/thirdreader.mjs", "",
 ].join("\n");
 fs.writeFileSync(path.join(relationRoot, "REQUIREMENTS.md"), artifactLedger);
 const artifactReader = async () => ({
@@ -253,18 +258,25 @@ const artifactReader = async () => ({
 	artifactRegistry: (await import("../../../scripts/deliverables.mjs")).artifactRegistry,
 	artifactReads: (await import("../../../scripts/deliverables.mjs")).artifactReads,
 });
-const artifactFixtureOut = await artifactBlock(relationRoot, ["--impact", path.join(relationRoot, "probe", "writer.mjs"), path.join(relationRoot, "probe", "reader.mjs"), path.join(relationRoot, "probe", "outside.mjs")], { load: artifactReader });
+const artifactFixtureOut = await artifactBlock(relationRoot, ["--impact", path.join(relationRoot, "probe", "writer.mjs"), path.join(relationRoot, "probe", "writer2.mjs"), path.join(relationRoot, "probe", "reader.mjs"), path.join(relationRoot, "probe", "reader2.mjs"), path.join(relationRoot, "probe", "otherreader.mjs"), path.join(relationRoot, "probe", "outside.mjs")], { load: artifactReader });
+const writerReaders = "read by: probe/reader.mjs (FEAT-002, FEAT-003); probe/reader2.mjs (FEAT-002); probe/outside.mjs (FEAT-002)";
+const secondWriterReaders = `read by: probe/otherreader.mjs (FEAT-002) ${ARTIFACT_NO_IMPORT_PATH}; probe/thirdreader.mjs (FEAT-003) ${ARTIFACT_NO_IMPORT_PATH}`;
 // req: R-2820
 check("R-2820: impact lists each artifact a named file writes with every recorded reader and marks readers outside its import radius",
 	artifactFixtureOut.includes("artifacts for probe/writer.mjs (1):")
 		&& artifactFixtureOut.includes("writes A-001 writer data · FEAT-001 · suite")
-		&& artifactFixtureOut.includes("probe/reader.mjs (FEAT-002)")
+		&& artifactFixtureOut.includes(writerReaders)
+		&& artifactFixtureOut.includes("probe/reader2.mjs (FEAT-002)")
 		&& artifactFixtureOut.includes(`probe/outside.mjs (FEAT-002) ${ARTIFACT_NO_IMPORT_PATH}`)
-		&& artifactFixtureOut.includes("read by: —") === false);
+		&& !artifactFixtureOut.includes("probe/writer.mjs (FEAT-002)")
+		&& artifactFixtureOut.includes("artifacts for probe/writer2.mjs (1):")
+		&& artifactFixtureOut.includes(secondWriterReaders));
 // req: R-2821
 check("R-2821: impact lists each artifact a named file reads, stars those whose writer is outside its import radius and marks IDs with no live entry",
-	artifactFixtureOut.includes(`reads (2): A-001, A-999 ${ARTIFACT_NO_LIVE_ENTRY}`)
-		&& artifactFixtureOut.includes(`reads (1): A-001${ARTIFACT_STAR}`));
+	artifactFixtureOut.includes(`reads (3): A-001, A-003 ${ARTIFACT_NO_LIVE_ENTRY}, A-999 ${ARTIFACT_NO_LIVE_ENTRY}`)
+		&& artifactFixtureOut.includes(`reads (1): A-002${ARTIFACT_STAR}`)
+		&& artifactFixtureOut.includes("artifacts for probe/writer.mjs (1):")
+		&& !artifactFixtureOut.split("artifacts for probe/writer.mjs (1):")[1].split("artifacts for probe/writer2.mjs")[0].includes("reads"));
 const missingLedgerRoot = path.join(TD, "missing-ledger");
 fs.mkdirSync(missingLedgerRoot, { recursive: true });
 fs.writeFileSync(path.join(missingLedgerRoot, "code-map.config.json"), JSON.stringify(relationConfig));
