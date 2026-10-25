@@ -31,3 +31,12 @@
 - Runtime map (runtime-map-live, final review r3): a descendant that starts a new process group after the first walk, then loses its parent before the kill step, is never reached. The row promises only what the first signal reached and the root's group.
 - Precedent (audit re-check, 2026-10-22): no tool finds a sibling implementation for a planner; the seat and the adversary search by hand.
 - Runtime map (shared-helpers, plan): runtime-measure's snapshot walk stays its own kill primitive, one of the tree-kill scan's declared exceptions.
+Impact artifacts (impact-artifacts, plan): the block reads only Artifact writer lists and other features' Reads lines. Own-feature readers, deliverable Read by readers, hand-run makers, people and outside tools stay hidden until the ledger reader-lines lane.
+Impact artifacts (impact-artifacts, plan): impact on the runtime measurer omits the impact command, because one feature makes and reads the runtime map.
+Impact artifacts (impact-artifacts, plan): naming an artifact's own file, such as REQUIREMENTS.md, HANDOFF.md or the review standard, lists none of its readers.
+Impact artifacts (impact-artifacts, plan): a shared codec that writes for its callers, such as the record-ledger module, shows no artifact. The ledger names the caller.
+Impact artifacts (impact-artifacts, plan): a file that starts reading or writing a store with no ledger line shows nothing.
+Impact artifacts (impact-artifacts, plan): most `(no import path)` marks are benign: install checks, presence checks, git-owned formats, spawned commands and CI.
+Impact artifacts (impact-artifacts, plan): the block helps only when an agent runs the impact command and reads its output.
+Impact artifacts (impact-artifacts, plan): the parse chain loads a TypeScript module, so the block needs Node's type stripping, Node 22.18 or later. On an older Node it prints the artifact note every time.
+Impact artifacts (impact-artifacts, plan): other projects get nothing, because the templates ship no ledger parse.

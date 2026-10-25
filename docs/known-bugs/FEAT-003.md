@@ -66,3 +66,4 @@
 - Knowledge index (knowledge-index-recover, review): off Windows, a failed rollback or close after a recovery's delete fails that build. The next build recreates the index, so one failed build is the whole cost.
 - Knowledge index (knowledge-index-recover, review): the recovery path passes a rebuild flag it does not need. A later cleanup could drop it.
 - Knowledge index (pi-version-support, CI): one recover check failed once on CI's macOS suite leg at that lane's tip. It checks that a pull over an old page-overwritten index starts a healing build. The re-run passed.
+Windows flakes (land-records CI, 2026-10-24): the sources-file checks R-2370 to R-2372 failed once on a slow Windows runner at d3cf9a0d, in a 1,211 s suite. Every leg passed the same code at 1661558e (a runner flake, inferred).
