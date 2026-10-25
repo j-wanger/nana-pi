@@ -46,6 +46,7 @@ export function stateRows(layout) {
   durable("review ledger tally", "nana-pack", "file", ledger.tally, undefined, modules.pack);
   durable("review ledger audit", "nana-pack", "file", ledger.audit, undefined, modules.pack);
   durable("review ledger rotated", "nana-pack", "file", ledger.rotated, undefined, modules.pack);
+  durable("review ledger texts", "nana-pack", "dir", ledger.texts, undefined, modules.pack);
   seed("pi pack config", layout.piPackConfig, PI_PACK_SEED);
   seed("pi objective", layout.piObjective, PI_OBJECTIVE_SEED);
   durable("pi settings", "nana-setup", "settings-entry", layout.piSettings, "restore from the private state archive", modules.setup);

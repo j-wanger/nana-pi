@@ -632,7 +632,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/deliverables.mjs`
 
-- **purpose** — Parse and check product-capability deliverable claims, the feature artifact registry and cross-feature artifact reads, then produce their shared checker lines.
+- **purpose** — Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines.
 - **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
 - **outputs** — Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
@@ -1181,7 +1181,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
 - **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
 - **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
+- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/rename-retry.mjs`, `packages/nana-pack/lib/verdict-config.mjs`
 
 ### `packages/nana-pack/bin/review-shape.mjs`
@@ -4097,12 +4097,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/tests/restore.test.mjs`
 
 - **purpose** — Exercises the documented state listing and complete restore using isolated temporary homes.
-- **inputs** — setup CLI, state manifest, pi trust API and setup README.
+- **inputs** — setup CLI, state manifest, pi trust API, setup README, and reviewTextPath/reviewTextEvidence.
 - **outputs** — PASS/FAIL checks and process exit status.
 - **effects** — disk (temporary fixture roots only), process (setup CLI and tar).
 - **errors** — Failed checks increment the exit status.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/retired-artifacts.test.mjs`
 
@@ -4237,7 +4237,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/tests/state-manifest.test.mjs`
 
 - **purpose** — Pins the state inventory, layout coverage, ledger parity, and secret classification.
-- **inputs** — state manifest and setup layout APIs.
+- **inputs** — state manifest, setup layout APIs, and nana-pack's ledger path API.
 - **outputs** — PASS/FAIL checks and process exit status.
 - **effects** — disk (temporary fixture for read-only CLI proof).
 - **errors** — Failed checks increment the exit status.

@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { artifactReads, artifactRegistry, deliverableFieldLinesByRow } from "./deliverables.mjs";
+import { artifactConsumers, artifactReads, artifactRegistry, deliverableFieldLinesByRow } from "./deliverables.mjs";
 import { CAPABILITY_FIELD_LABELS, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 
 // Chosen: 64 MiB, the same size requirements-lift.mjs's blob reader (gitBuf) uses for a
@@ -151,6 +151,8 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
   const headArtifacts = headRegistry.byId;
   const baseReads = artifactReads(baseParsed, null, baseRegistry);
   const headReads = artifactReads(headParsed, null, headRegistry);
+  const baseConsumers = artifactConsumers(baseParsed, null, baseRegistry, baseReads);
+  const headConsumers = artifactConsumers(headParsed, null, headRegistry, headReads);
 
   const ids = new Set([...baseRows.keys(), ...headRows.keys()]);
   const groups = new Map();
@@ -239,6 +241,34 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     readChanges.push(`${featureId} ${id} readers ${beforeText} → ${afterText}`);
   }
 
+  const consumerChanges = [];
+  const consumerKey = (line) => [line.featureId, line.id, line.label, line.label === "Read by" ? line.kind : ""].join("\0");
+  const consumerLineGroups = (consumerLines) => {
+    const groups = new Map();
+    for (const line of consumerLines) {
+      const key = consumerKey(line);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(line);
+    }
+    return groups;
+  };
+  const baseConsumerLines = consumerLineGroups(baseConsumers.lines);
+  const headConsumerLines = consumerLineGroups(headConsumers.lines);
+  const consumerKeys = [...headConsumerLines.keys(), ...[...baseConsumerLines.keys()].filter((key) => !headConsumerLines.has(key))];
+  for (const key of consumerKeys) {
+    const beforeLines = baseConsumerLines.get(key) ?? [];
+    const afterLines = headConsumerLines.get(key) ?? [];
+    for (let index = 0; index < Math.max(beforeLines.length, afterLines.length); index++) {
+      const before = beforeLines[index];
+      const after = afterLines[index];
+      if (before?.text === after?.text) continue;
+      const line = after ?? before;
+      const change = before && after ? "changed" : after ? "added" : "removed";
+      if (line.label === "Read by") consumerChanges.push(`${line.featureId} ${line.id} reader ${line.kind || "(unknown)"} ${change}`);
+      else consumerChanges.push(`${line.featureId} ${line.id} park ${line.date ?? "(unknown date)"} ${change}`);
+    }
+  }
+
   let rowCount = 0;
   const lines = [];
   for (const key of orderedKeys) {
@@ -247,15 +277,16 @@ export function treeMovement({ baseText, headText, baseRevLabel, headRevLabel })
     const label = key === null ? "(no feature)" : `${key} · ${headLabels.get(key) ?? baseLabels.get(key) ?? ""}`;
     lines.push(label, ...rows);
   }
-  if (rowCount === 0 && capabilityChanges.length === 0 && artifactChanges.length === 0 && readChanges.length === 0) return "tree movement: none";
+  if (rowCount === 0 && capabilityChanges.length === 0 && artifactChanges.length === 0 && readChanges.length === 0 && consumerChanges.length === 0) return "tree movement: none";
   const suffixes = [];
   if (capabilityChanges.length) suffixes.push(`${capabilityChanges.length} capability change(s)`);
   if (artifactChanges.length) suffixes.push(`${artifactChanges.length} artifact change(s)`);
   if (readChanges.length) suffixes.push(`${readChanges.length} read change(s)`);
+  if (consumerChanges.length) suffixes.push(`${consumerChanges.length} artifact reader/park change(s)`);
   const suffix = suffixes.length ? `, ${suffixes.join(", ")}` : "";
   const output = [`tree movement ${baseRevLabel}..${headRevLabel}: ${rowCount} rows in ${orderedKeys.length} features${suffix}`, ...lines];
   if (capabilityChanges.length) output.push("capabilities:", ...capabilityChanges.map((change) => `  ${change}`));
-  if (artifactChanges.length || readChanges.length) output.push("artifacts:", ...artifactChanges.map((change) => `  ${change}`), ...readChanges.map((change) => `  ${change}`));
+  if (artifactChanges.length || readChanges.length || consumerChanges.length) output.push("artifacts:", ...artifactChanges.map((change) => `  ${change}`), ...readChanges.map((change) => `  ${change}`), ...consumerChanges.map((change) => `  ${change}`));
   return output.join("\n");
 }
 

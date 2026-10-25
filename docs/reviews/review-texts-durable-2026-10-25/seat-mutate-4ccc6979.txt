@@ -1,0 +1,30 @@
+seat-mutate: lane review-texts-durable, tip 4ccc6979b60c06c779c41b678cfbb00c1a3d6535, table 13778c2d4df978389a8afe747e46a1ab6edc36e030715f2da05e8ad216fb8f69, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 7 pairs in 5 shards (2+2+1+1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T05:31:12.526Z
+DECLARED (seat) pairs 1 to 7 follow the must-meet's verify list in order; each names the rows it must turn red
+[1/5] seat-mutate: lane review-texts-durable, shard 1/5, tip 4ccc6979b60c06c779c41b678cfbb00c1a3d6535, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 2 pairs, darwin, node v22.22.2, 2026-10-25T05:31:13.854Z
+[1/5] BASELINE ok   packages/nana-setup/tests/state-manifest.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/restore.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[1/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane review-texts-durable, shard 2/5, tip 4ccc6979b60c06c779c41b678cfbb00c1a3d6535, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 2 pairs, darwin, node v22.22.2, 2026-10-25T05:31:17.545Z
+[2/5] BASELINE ok   packages/nana-setup/tests/state-manifest.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/restore.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[2/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane review-texts-durable, shard 3/5, tip 4ccc6979b60c06c779c41b678cfbb00c1a3d6535, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 1 pairs, darwin, node v22.22.2, 2026-10-25T05:31:21.787Z
+[3/5] BASELINE ok   packages/nana-setup/tests/state-manifest.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/restore.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[3/5] RESULT: 1/1 red (0 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane review-texts-durable, shard 4/5, tip 4ccc6979b60c06c779c41b678cfbb00c1a3d6535, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 1 pairs, darwin, node v22.22.2, 2026-10-25T05:31:25.891Z
+[4/5] BASELINE ok   packages/nana-setup/tests/state-manifest.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-setup/tests/restore.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[4/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane review-texts-durable, shard 5/5, tip 4ccc6979b60c06c779c41b678cfbb00c1a3d6535, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 1 pairs, darwin, node v22.22.2, 2026-10-25T05:31:29.978Z
+[5/5] BASELINE ok   packages/nana-setup/tests/state-manifest.test.mjs (exit 0, 21 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-setup/tests/restore.test.mjs (exit 0, 15 PASS, 0 FAIL, )
+[5/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 an extra ledger path goes unclassified — 1/1 named: /^R-2871: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 2 the texts row is disposable — 2/2 named: /^R-2870: / | /^R-2872: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 the texts row is joined from pi home — 1/1 named: /^R-2871: /; UNNAMED red: [state-manifest.test.mjs] state --paths rejects an external durable store and names it 2 durable store outside home: review ledger text…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 the texts row is an installer-owned generated file — 1/1 named: /^R-2870: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH restore.test.mjs THREW (later checks never ran)
+RED 5 the texts row is deleted — 3/3 named: /^R-2870: / | /^R-2871: / | /^R-2872: /; 3 FAIL total (1 file changed, 1 deletion(-))
+RED 6 the state listing skips the texts store — 1/1 named: /^R-2872: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 7 the texts row loses its source and restore arguments — 1/1 named: /^R-2870: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 7/7 red (6 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived, across 5 shards
