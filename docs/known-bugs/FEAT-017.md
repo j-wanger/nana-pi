@@ -11,3 +11,5 @@
 - Kept review texts (review-texts-durable, plan): the store has no cap. The archive grows about 2 MB a month at today's pace (inferred from three days).
 - Kept review texts (review-texts-durable, plan): build and land records live in each clone's git folder, outside the archive, like unpushed commits.
 - Kept review texts (review-texts-durable, plan): `state --paths` skips a store under a symlinked folder, such as a linked `~/.pi`, with no message. That already drops the tally and the audit.
+- Kept review texts (review-texts-durable, final review): R-2872's check is one compound boolean with no detail. A failure will not say whether the listing, the bytes or the evidence broke.
+- Kept review texts (review-texts-durable, final review): R-2871's title says wherever pi home is, but the ledger's paths follow only the home folder.

@@ -111,3 +111,4 @@
 - Mutation runner (land-records CI, 2026-10-24): R-1960's release-retry case failed once on a slow Windows runner at d3cf9a0d, in a 1,181 s suite. A SIGKILL ended the child before the bounded release finished; the lane touched no runner code.
 - Windows flakes (impact-artifacts CI, 2026-10-25): R-1984 failed once at 56ad9dd1, because doctor's pi executable row read `·` before and `✓` after. The lane touched no setup code (a first-try flake, inferred).
 - Windows flakes (impact-artifacts CI, 2026-10-25): R-2023 failed again at 61671be0, on a timed-out pi process tree. The re-run passed, and a planned lane takes its pid check.
+- Windows flakes (artifact-readers CI, 2026-10-25): R-2546's run-record check failed a fifth time at 9dae642b, in a 1,397 s suite. The lane touched no runner code, and the Windows timing lane takes that limit.
