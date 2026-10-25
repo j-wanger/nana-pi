@@ -405,13 +405,17 @@ const day = 86_400_000;
 }
 {
 	const now = Date.now(), oldTs = new Date(now - 8 * day).toISOString(), root = repo("covered-old-line");
-	const chunks = [JSON.stringify({ ts: oldTs, event: "session_start" }), ...Array(100).fill("not-json"), JSON.stringify({ ts: new Date(now - 3_600_000).toISOString(), event: "directory_unadopted", cwd: root, has: {} })];
+	const undatedLine = JSON.stringify({ event: "handoff_missing" });
+	const nonJsonLine = "not-json";
+	const chunks = [JSON.stringify({ ts: oldTs, event: "session_start" }), JSON.stringify({ ts: new Date(now - 3_600_000).toISOString(), event: "directory_unadopted", cwd: root, has: {} })];
 	const chunksBytes = chunks.reduce((sum, item) => sum + item.length + 1, 0);
-	const undatedCount = Math.floor((CAP - chunksBytes) / 8) + 1;
-	const text = [...Array(undatedCount).fill("undated"), ...chunks].join(NL) + NL;
+	const undatedPairBytes = undatedLine.length + nonJsonLine.length + 2;
+	const undatedCount = Math.floor((CAP - chunksBytes) / undatedPairBytes) + 1;
+	const undatedLines = Array.from({ length: undatedCount }, () => [undatedLine, nonJsonLine]).flat();
+	const text = [...undatedLines, ...chunks].join(NL) + NL;
 	const offset = text.length - CAP;
 	const oldLineBytes = chunks[0].length + 1;
-	check("R-2852 fixture asserts the older dated line is within the read window after undated lines", offset < undatedCount * 8 + oldLineBytes && offset > 0);
+	check("R-2852 fixture asserts the older dated line is within the read window after undated lines", offset < undatedCount * undatedPairBytes + oldLineBytes && offset > 0);
 	fs.writeFileSync(JOURNAL, text);
 	const result = run();
 	// req: R-2852
