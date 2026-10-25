@@ -11,7 +11,7 @@ The task:
 1. In the R-2813 check, the two error assertions name an error code the platform chooses. Make each accept any Node error code after the ledger path, matching `land-records\.jsonl: E[A-Z]+: `, for the `blocked` case and the `swapped` case. Keep every other assertion in the check exactly as it is.
 2. Change no product file, no other test and no row.
 
-Try by hand: make `appendLedgerRecord` throw instead of returning its failure (pair 14's neighbour: an append failure that escapes), see R-2813 turn red, restore; say so in your report. Do not commit the wrong code.
+Try by hand: in nana-land.mjs, drop the error text from the `not kept:` lines (print the path only), see R-2813 turn red under the new pattern, restore; say so in your report. Do not commit the wrong code.
 
 Checks before your one commit: land-records.test.mjs alone; `npm run map:check`; `npm run readme:check`; `node scripts/requirements-trace.mjs`; `node scripts/requirements-tree.mjs --check`; `npm run test:locked`, with its output kept out of the worktree; then `git status --short` must print nothing.
 
