@@ -24,3 +24,4 @@
 - Post-edit output cuts (post-edit-values-named plan): the output cap's cut and the failure output's tail cut can each split a character that takes two units. The model then sees one replacement mark, never a lone half, as the plan records.
 - Post-edit named values (post-edit-values-named plan): some tests still assume today's values. The kill tests' 15-second watchdog breaks at a kill grace above about 14.5 seconds. The failure display check breaks at an output cap under about 5 KB.
 - Post-edit named values (post-edit-values-named plan): the pack README states the 30-second limit, the 2-second kill grace and the 2000-character tail as plain numbers. No check ties them to the settings, so a retune leaves the README wrong.
+- Windows flakes (impact-artifacts CI, 2026-10-25): the taskkill-off-PATH check failed once at 833bedee on a slow runner, in a 1,116 s suite. The lane touched no post-edit code.

@@ -170,3 +170,4 @@
 - pi dependencies row (pi-version-support, final review): the row assumes pi versions every package in its scope in step with pi. A package on its own higher version line would show a false ✗. No current release does this.
 - pi dependencies row (pi-version-support, final review): the walk also looks in folders Node never searches, such as a package folder nested inside another. npm's layout has none, so the result is the same.
 - Install check (pi-version-support, CI): the Windows ceiling leg's README rehearsal exited -4077 (connection reset) once at the lane's tip. Every other line passed, and the re-run passed.
+- Install check (review-texts-durable build, 2026-10-25): inside a builder session, the install check failed twice at pi post-edit with a write error. The seat's run outside pi passed (cause inferred).
