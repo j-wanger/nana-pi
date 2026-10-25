@@ -98,3 +98,7 @@
 - Artifact readers (artifact-readers, plan): the template prose edit cuts a template tag on land, so copier-linked projects show drift.
 - Artifact readers (artifact-readers, plan): projects that carry a registry get the coverage note the first time they run the checker, report-only there.
 - Artifact readers (artifact-readers, plan): the assessment's extra Reads lines for A-038, A-039 and A-050 stay unrecorded.
+- Artifact readers (artifact-readers, final review): the Read by lines of A-067 and A-068 name the stale-copies module, which only checks currency. pi and Claude Code read those files at session start, so runtime lines should name them.
+- Artifact readers (artifact-readers, final review): in a subgroup span, the checker skips a deliverable Read by line with no note. A deliverable park there gets an outside-a-feature note.
+- Artifact readers (artifact-readers, final review): the checker drops a second valid park of the same entry with no note.
+- Artifact readers (artifact-readers, final review): a test-file deliverable code reader gets its note, but its row still counts as code-read in report-only projects.

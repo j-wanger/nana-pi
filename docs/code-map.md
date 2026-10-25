@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 436 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 437 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1067,12 +1067,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/nana-adoption.mjs`
 
 - **purpose** — Print the seat's session-start block of git repositories a session ran in that nobody has adopted.
-- **inputs** — argv (`--cwd <dir>` accepted and unused), the tail of the journal named by lib/adoption.mjs adoptionSettings, and each claimed root's current state on disk
-- **outputs** — `[nana:adoption]` plus the Markdown block on stdout (paths as code spans, at most SHOW rows, then a refused-entry count), an `ADOPTION UNAVAILABLE` line when the journal exists but cannot be read, and nothing when nothing is open
+- **inputs** — argv (`--cwd <dir>` accepted and unused), adoption config, the journal's last configured window bytes named by lib/adoption.mjs adoptionSettings, and each claimed root's current state on disk
+- **outputs** — `[nana:adoption]` plus the Markdown block on stdout (paths as code spans, at most SHOW rows, then a refused-entry count and any window-cut line), an `ADOPTION UNAVAILABLE` line when the journal exists but cannot be read, and nothing when nothing is open
 - **effects** — disk (reads the journal tail, stats each claimed root and its ancestors)
 - **errors** — none — always exits 0; a journal or reader failure prints the ADOPTION UNAVAILABLE line instead of a stack
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`
+- **callees** — `packages/nana-pack/lib/adoption-config.mjs`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-pack/bin/nana-frontier-summary.mjs`
 
@@ -1324,11 +1324,21 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/prompt-sections.mjs`, `packages/nana-pack/lib/writing-config.mjs`
 
+### `packages/nana-pack/lib/adoption-config.mjs`
+
+- **purpose** — Define the adoption reader's bounded window and cut-line contract.
+- **inputs** — none
+- **outputs** — Journal read cap, adoption window and cut-line prefix.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`
+- **callees** — —
+
 ### `packages/nana-pack/lib/adoption.mjs`
 
 - **purpose** — The one adoption predicate — the handoff store's location, whether a repository root has been adopted, and which `directory_unadopted` reports are printable.
 - **inputs** — a directory path, user-scope nana-pack.json in pi's active agent dir, os.homedir(), the tail of the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions, the dismissal marker), and the declared NANA_TEST_TEMP_ROOTS test seam (path-delimited; empty disables skipping)
-- **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per canonical root with a `dropped` count of refused claims
+- **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail and window lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total
 - **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
@@ -2012,7 +2022,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, journal, symlinked repository fixtures), process (sets HOME, spawns the reader CLI and the bash hook)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/adoption-config.mjs`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-config.test.mjs`
 
@@ -3988,7 +3998,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove install, its dry run and doctor bound pi launches and end every process those launches start.
 - **inputs** — steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
-- **outputs** — PASS/FAIL/SKIP lines for eighteen requirement checks and exit 1 when any check fails
+- **outputs** — PASS/FAIL/SKIP lines for twenty-four requirement checks and exit 1 when any check fails
 - **effects** — disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
 - **errors** — a failed or over-time check prints FAIL and makes the file exit nonzero
 - **callers** — —

@@ -947,7 +947,7 @@ project config never contributes to either one, trusted or not.
   `packages/nana-setup/claude/hooks/nana-adoption.mjs` runs `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own), which
   computes the same file: the last 7 days of those lines, re-checked at print time (adopted,
   dismissed, gone or no-longer-a-repo roots drop), newest first, at most 5 then `…and N more`,
-  under `[nana:adoption]` — and nothing at all when there is nothing. Each root prints as data, in
+  under `[nana:adoption]` — and nothing at all when there is nothing. It reads at most the journal's last `JOURNAL_WINDOW_READ_MAX_BYTES`; when that stops short of 7 days, its last line, `ADOPTION WINDOW CUT: ...`, names the cap and oldest time checked. Each root prints as data, in
   a code span (`lib/display.mjs` `codeSpan`: nothing escaped); a claim that is relative, the filesystem root, over 512
   characters, holds a control, line-separator or bidi character or a backtick, or carries a future/unparseable `ts` is never printed —
   only counted (`N entries were not printable`). Counting is the READER's, not end-to-end: the

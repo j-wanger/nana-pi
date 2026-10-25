@@ -12,3 +12,4 @@
 - Notify checks (notify-lifecycle-pins plan): four older approval-prompt checks print into the output they capture. So a failure there prints no failure line. The run still exits non-zero.
 - Notify checks (notify-lifecycle-pins, final review): the notify tests' platform helper restores the real platform as soon as its callback returns a promise. So the fake platform covers only the synchronous start of the handler that runs when the agent settles. This weakens the test, not the product.
 - Lifecycle journal test (lifecycle-compaction-reason, final review): the journal test does not remove its temporary home folder when it exits. That leak predates the lane. The folder stays inside the system temp folder.
+- Desk changes endpoint (knowledge-freeze-notice CI): the event-loop check failed once on the macOS suite leg at 793b0494, worst gap 133 ms over 223 ms. The lane touched no desk code (a runner flake, inferred).

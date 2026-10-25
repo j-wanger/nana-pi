@@ -1,0 +1,47 @@
+seat-mutate: lane adoption-window, tip 1bf7c6d63cc08900ad81edc6732f76f4765179e1, table 7e1e43e14a1599ed1c43e0006c60e31fdf5f5cbc6531ce869c7ad102e12b7a2a, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 22 pairs in 5 shards (5+5+4+4+4, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T16:19:38.064Z
+DECLARED (seat) pairs 1 to 4 follow R-2850's red cases; 5 to 15 R-2851's; 16 to 18 R-2852's; 19 to 22 the seal (TAIL_BYTES retuned to the cap, then each sealed config value)
+DECLARED (seat) pair 8 (coverage and time from the journal's first line) also stands for R-2852's third red case; R-2852's own fixture cannot show it, because its journal's first dated line is the 8-day line, so only R-2851 is named
+DECLARED (seat) declared non-pair: R-2851's 'time from the straddling line' and 'the straddling fragment dated by a pattern read of ts'. readTail drops the read's first segment, so the fragment never reaches windowLines; showing it takes two faults (keep the torn segment in readTail, which also breaks R-146's producer tail, and a pattern read of ts). A pattern read alone changes nothing on these fixtures
+[1/5] seat-mutate: lane adoption-window, shard 1/5, tip 1bf7c6d63cc08900ad81edc6732f76f4765179e1, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:19:39.508Z
+[1/5] BASELINE ok   packages/nana-pack/tests/adoption-reader.test.mjs (exit 0, 56 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/adoption-producer.test.mjs (exit 0, 62 PASS, 0 FAIL, )
+[1/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane adoption-window, shard 2/5, tip 1bf7c6d63cc08900ad81edc6732f76f4765179e1, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:19:43.501Z
+[2/5] BASELINE ok   packages/nana-pack/tests/adoption-reader.test.mjs (exit 0, 56 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/adoption-producer.test.mjs (exit 0, 62 PASS, 0 FAIL, )
+[2/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane adoption-window, shard 3/5, tip 1bf7c6d63cc08900ad81edc6732f76f4765179e1, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 4 pairs, darwin, node v22.22.2, 2026-10-25T16:19:47.155Z
+[3/5] BASELINE ok   packages/nana-pack/tests/adoption-reader.test.mjs (exit 0, 56 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/adoption-producer.test.mjs (exit 0, 62 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane adoption-window, shard 4/5, tip 1bf7c6d63cc08900ad81edc6732f76f4765179e1, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 4 pairs, darwin, node v22.22.2, 2026-10-25T16:19:51.226Z
+[4/5] BASELINE ok   packages/nana-pack/tests/adoption-reader.test.mjs (exit 0, 56 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/adoption-producer.test.mjs (exit 0, 62 PASS, 0 FAIL, )
+[4/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane adoption-window, shard 5/5, tip 1bf7c6d63cc08900ad81edc6732f76f4765179e1, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 4 pairs, darwin, node v22.22.2, 2026-10-25T16:19:55.454Z
+[5/5] BASELINE ok   packages/nana-pack/tests/adoption-reader.test.mjs (exit 0, 56 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/adoption-producer.test.mjs (exit 0, 62 PASS, 0 FAIL, )
+[5/5] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 the window read uses today's 256 KiB tail — 2/2 named: /^R-2850: / | /^R-2851: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the window read stops one byte short of the cap — 1/1 named: /^R-2850: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 coverage is judged by time only, so a read from the first byte prints a cut line — 1/1 named: /^R-2850: /; UNNAMED red: [adoption-reader.test.mjs] c: absent journal → empty stdout, exit 0 {"status":0,"signal":null,"output":[null,"[nana:adoption]\nADOPTION … | [adoption-reader.test.mjs] c: empty journal → empty stdout, exit 0 {"status":0,"signal":null,"output":[null,"[nana:adoption]\nADOPTION W… | [adoption-reader.test.mjs] c: other events only → empty stdout, exit 0 {"status":0,"signal":null,"output":[null,"[nana:adoption]\nADOPTI… | [adoption-reader.test.mjs] c: the hook prints nothing when there is nothing {"status":0,"signal":null,"output":[null,"[nana:adoption]\nA… | [adoption-reader.test.mjs] reader: production temporary root is skipped without override | [adoption-reader.test.mjs] reader: canonical /tmp alias is skipped without override | [adoption-reader.test.mjs] reader: injected temporary parent skips candidate | [adoption-reader.test.mjs] c: a root with a store entry now → nothing | [adoption-reader.test.mjs] c: absent journal (again) → empty stdout {"status":0,"signal":null,"output":[null,"[nana:adoption]\nADOPTION … | [adoption-reader.test.mjs] hostile: forged-name repo alone → only the count line "[nana:adoption]\n1 entry was not printable (a relative… | [adoption-reader.test.mjs] objective: objective.projectFile=GOALS.md → adopted, nothing printed [nana:adoption]; 12 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 a read that fills the cap counts as over the cap — 2/2 named: /^R-2850: / | /^R-2851: /; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 the cut line is silent when nothing is open — 1/1 named: /^R-2851: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 the cut line prints before the block — 1/1 named: /^R-2851: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 the cut line prints twice — 1/1 named: /^R-2851: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 coverage and the oldest time come from the journal's first line — 1/1 named: /^R-2851: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 the oldest time comes from the read's last line — 2/2 named: /^R-2851: / | /^R-2852: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 no dated line leaves Invalid Date in the cut line — 1/1 named: /^R-2851: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 the cut line names the journal's size, not the cap — 1/1 named: /^R-2851: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 the no-dated-line form names TAIL_BYTES, not the cap — 1/1 named: /^R-2851: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 a cut with no dated line throws into ADOPTION UNAVAILABLE — 1/1 named: /^R-2851: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 a cut exits 1 — 1/1 named: /^R-2851: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 the cap is ignored and the whole journal read — 1/1 named: /^R-2851: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 a cut line prints whenever the journal exceeds the cap — 1/1 named: /^R-2852: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 a non-JSON first line ends the coverage scan — 1/1 named: /^R-2852: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 a JSON line with no ts ends the coverage scan — 1/1 named: /^R-2852: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 the producer's tail is retuned to the cap — 1/1 named: /^seal: the adoption reader reads at most 4 MiB/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 20 the read cap is retuned — 1/1 named: /^seal: the adoption reader reads at most 4 MiB/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 the window is retuned — 1/1 named: /^seal: the adoption reader reads at most 4 MiB/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 the cut prefix is retuned — 1/1 named: /^seal: the adoption reader reads at most 4 MiB/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 22/22 red (21 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived, across 5 shards

@@ -6,7 +6,7 @@
  *  the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions,
  *  the dismissal marker), and the declared NANA_TEST_TEMP_ROOTS test seam (path-delimited; empty disables skipping)
  * @outputs the store dir and the per-root store path, the adoption settings (journal path, objective file
- *  name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per
+ *  name), a root's state with its isAdopted verdict, the journal's tail and window lines, and the newest report per
  *  canonical root with a `dropped` count of refused claims
  * @effects disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its
  *  ancestors)
@@ -141,12 +141,12 @@ export const isAdopted = (s) => s.handoff || s.objective || s.dismissed || (s.re
  * journal is [] (nothing written yet); anything else that cannot be read — a directory, a
  * non-regular file, a permission error — THROWS, so "nothing open" never means "could not look".
  */
-export function tailLines(file, bytes = TAIL_BYTES) {
+function readTail(file, bytes) {
 	let fd;
 	try {
 		fd = fs.openSync(file, "r");
 	} catch (e) {
-		if (e?.code === "ENOENT") return [];
+		if (e?.code === "ENOENT") return { lines: [], start: 0 };
 		throw e;
 	}
 	try {
@@ -157,7 +157,7 @@ export function tailLines(file, bytes = TAIL_BYTES) {
 		const n = fs.readSync(fd, buf, 0, buf.length, start);
 		const lines = buf.subarray(0, n).toString("utf8").split("\n");
 		if (start > 0) lines.shift();
-		return lines.filter(Boolean);
+		return { lines: lines.filter(Boolean), start };
 	} finally {
 		try {
 			fs.closeSync(fd);
@@ -165,6 +165,28 @@ export function tailLines(file, bytes = TAIL_BYTES) {
 			/* already closed */
 		}
 	}
+}
+
+export function tailLines(file, bytes = TAIL_BYTES) {
+	return readTail(file, bytes).lines;
+}
+
+/** Read a bounded journal window and report whether its whole lines prove seven-day coverage. */
+export function windowLines(file, sinceMs, maxBytes) {
+	const { lines, start } = readTail(file, maxBytes);
+	let oldest = null;
+	for (const line of lines) {
+		try {
+			const entry = JSON.parse(line);
+			const time = Date.parse(entry?.ts);
+			if (!Number.isNaN(time)) {
+				oldest = new Date(time).toISOString();
+				if (time <= sinceMs) return Object.assign(lines, { cut: null });
+				break;
+			}
+		} catch {}
+	}
+	return Object.assign(lines, { cut: start === 0 ? null : { oldest } });
 }
 
 /**

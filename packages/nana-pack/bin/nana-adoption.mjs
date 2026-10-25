@@ -3,10 +3,10 @@
  * @module packages/nana-pack/bin/nana-adoption.mjs
  * @purpose Print the seat's session-start block of git repositories a session ran in that nobody has
  *  adopted.
- * @inputs argv (`--cwd <dir>` accepted and unused), the tail of the journal named by lib/adoption.mjs
+ * @inputs argv (`--cwd <dir>` accepted and unused), adoption config, the journal's last configured window bytes named by lib/adoption.mjs
  *  adoptionSettings, and each claimed root's current state on disk
  * @outputs `[nana:adoption]` plus the Markdown block on stdout (paths as code spans, at most SHOW rows,
- *  then a refused-entry count), an `ADOPTION UNAVAILABLE` line when the journal exists but cannot be read,
+ *  then a refused-entry count and any window-cut line), an `ADOPTION UNAVAILABLE` line when the journal exists but cannot be read,
  *  and nothing when nothing is open
  * @effects disk (reads the journal tail, stats each claimed root and its ancestors)
  * @errors none — always exits 0; a journal or reader failure prints the ADOPTION UNAVAILABLE line instead
@@ -28,30 +28,33 @@
 import * as fs from "node:fs";
 
 const TAG = "[nana:adoption]";
-const WINDOW_MS = 7 * 86_400_000;
 const SHOW = 5;
 // Deliberately NOT lib/display.mjs: this allow-list must work when the import below fails.
 const oneLine = (e) => String(e?.code ?? e?.message ?? "failed").replace(/[^\w .:-]/g, "").slice(0, 60);
 
 try {
-	const { adoptionSettings, isAdopted, recentReports, repoRootOf, rootState, tailLines } = await import("../lib/adoption.mjs");
+	const { adoptionSettings, isAdopted, recentReports, repoRootOf, rootState, windowLines } = await import("../lib/adoption.mjs");
 	const { codeSpan } = await import("../lib/display.mjs");
+	const { ADOPTION_WINDOW_CUT_PREFIX, ADOPTION_WINDOW_MS, JOURNAL_WINDOW_READ_MAX_BYTES } = await import("../lib/adoption-config.mjs");
 	const { journal, objectiveFile } = adoptionSettings();
 	if (process.env.NANA_TEST_TEMP_ROOTS !== undefined) {
 		process.stderr.write(`${TAG} warning: NANA_TEST_TEMP_ROOTS is set (test seam) — temporary-root filtering uses ${process.env.NANA_TEST_TEMP_ROOTS}\n`);
 	}
 	let lines = [];
+	let cut = null;
 	let unavailable = null;
+	const sinceMs = Date.now() - ADOPTION_WINDOW_MS;
 	if (journal) {
 		try {
-			lines = tailLines(journal);
+			lines = windowLines(journal, sinceMs, JOURNAL_WINDOW_READ_MAX_BYTES);
+			cut = lines.cut;
 		} catch (e) {
 			unavailable = `journal unreadable (${oneLine(e)})`;
 		}
 	}
 	if (unavailable) process.stdout.write(`${TAG}\nADOPTION UNAVAILABLE: ${unavailable}.\n`);
 	else {
-		const reports = recentReports(lines, Date.now() - WINDOW_MS);
+		const reports = recentReports(lines, sinceMs);
 		const open = reports
 			.filter((r) => repoRootOf(r.root) === r.root) // gone, or no longer a repository root
 			.map((r) => ({ ...r, s: rootState(r.root, objectiveFile) }))
@@ -76,6 +79,7 @@ try {
 			);
 		}
 		if (reports.dropped) out.push(...(out.length ? [""] : []), `${reports.dropped} ${reports.dropped === 1 ? "entry was" : "entries were"} not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and ${reports.dropped === 1 ? "was" : "were"} skipped.`);
+		if (cut) out.push(...(out.length ? [""] : []), cut.oldest === null ? `${ADOPTION_WINDOW_CUT_PREFIX} only the journal's last ${JOURNAL_WINDOW_READ_MAX_BYTES} bytes were read, and they hold no dated line; reports may be missing.` : `${ADOPTION_WINDOW_CUT_PREFIX} only the journal's last ${JOURNAL_WINDOW_READ_MAX_BYTES} bytes were read, back to ${cut.oldest}; older reports are not listed.`);
 		if (out.length) process.stdout.write(`${TAG}\n${out.join("\n")}\n`);
 	}
 } catch (err) {
