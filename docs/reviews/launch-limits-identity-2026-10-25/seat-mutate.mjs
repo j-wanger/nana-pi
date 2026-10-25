@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane launch-limits-identity (ordinary), written by the seat 2026-10-25 after build 1 at 6ac0931a.
+// Seat wrong-code pairs for lane launch-limits-identity (ordinary), written by the seat 2026-10-25 after build 1 at 6ac0931a. Re-run at 3ff880fc after build 2.
 // They follow the must-meet's "Seat wrong-code pairs" list (pairs 1 to 21; 16 and 17 split into one edit each).
 // Run from the lane worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/launch-limits-identity-2026-10-25/seat-mutate.mjs
@@ -60,4 +60,4 @@ const PAIRS = [
 	{ n: "21", name: "the relay's killTree kills only its direct child (product)", edits: [one(BS, "\tkillProcessTree(child.pid, { fallback: (signal) => { try { child.kill(signal); } catch {} } });", "\ttry { child.kill(\"SIGKILL\"); } catch {}")], tests: [T], expectRed: [R_2023], alsoRed: [R_2130, R_2131] },
 ];
 
-process.exitCode = await runMutations({ lane: "launch-limits-identity", self: import.meta.url, tip: "6ac0931a", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "launch-limits-identity", self: import.meta.url, tip: "3ff880fc", declared: DECLARED, pairs: PAIRS });
