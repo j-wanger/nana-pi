@@ -4,7 +4,6 @@
 
 - Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
 - Lane cleanup (deliverable-fields land): when the lane branch's pushed copy lags its tip, cleanup removes the worktree, then git refuses to delete the branch as not fully merged. A rerun then refuses for lack of a worktree. The seat pushed the branch and deleted it with `git branch -d`.
-- Land record (audit re-check, 2026-10-22): a land writes no ledger line of its own; only the locked suite's land record in the clone shows it.
 - Land reads CI (land-reads-ci): the run conclusion decides, so a continue-on-error job can fail and the land still passes. Today only the Linux suite leg does this (R-1531).
 - Land reads CI (land-reads-ci): only GitHub Actions runs on github.com are read. Commit statuses, other apps' check runs and Enterprise hosts are not.
 - Land reads CI (land-reads-ci): the strict origin pattern skips CI, with its note, for an ssh host alias, an upper-case host or a URL with credentials.
@@ -45,3 +44,14 @@
 - CI records at land (land-ci-timings, final review): a Windows EBUSY during the prune throws after the store writes the new record. The note then says "not kept" for a record the store kept; no data is lost.
 - CI records at land (land-ci-timings, final review): a leftover temporary file with an artifact's exact name makes its write fail. Each later land then prints one "not kept" note for that artifact.
 - CI records at land (land-ci-timings, land review): the default gh runner's check uses a zero limit, not the fractional limit the plan named. The code refuses a fractional limit today, but no test pins it.
+- Land records (land-records, plan): the land writes no record for a refusal in the argument parser or a `--main` outside any repository. A bad `--reviewed` value gets a preflight record.
+- Land records (land-records, plan): `no end` cannot tell an interrupted land from a running one.
+- Land records (land-records, plan): a land stopped during its CI-records read has merged but reads `no end`.
+- Land records (land-records, plan): the CI wait exists only when CI passed. A re-run adds the gap before someone asked for it.
+- Land records (land-records, plan): a merge-stage refusal may follow a completed fast-forward.
+- Land records (land-records, plan): records are per clone and start after this lane. Main's land tool landed this lane, so its own land wrote none.
+- Land records (land-records, plan): past the 32 MiB read cap, every land's last line says `lane line unavailable`, and nothing prunes the ledger.
+- Land records (land-records, plan): the product page shows `age not measured: clone store` for the land records.
+- Land records (land-records, plan): two lands can append at once with no lock. A same-instant tear is possible but unlikely on a local disk (inferred).
+- Land records (land-records, independent check): a ledger whose last line lacks a newline swallows the next start record. That attempt drops out of the history.
+- Land records (land-records, independent check): the `not kept` line prints the error code twice, as pi-worker's build line does.

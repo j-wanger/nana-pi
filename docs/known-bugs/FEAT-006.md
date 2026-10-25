@@ -120,3 +120,6 @@
 - Hard-kill watcher (win-temp-check, plan): the tests' watcher wait counts 5 × 100 ms of removal retries, but Node sleeps about 1.5 s per stuck entry.
 - Hard-kill watcher (win-temp-check, plan): no failure line named the leftover entry in the three Windows failures of 2026-10-24, so the seat inferred it.
 - Hard-kill watcher (win-temp-check, seat pairs): the R-2803 sort check passes without the sort on macOS, which lists names sorted; Linux catches it (inferred).
+- Hard-kill watcher (win-temp-check, final review): R-2803 says the check reports a folder empty, but the three call sites decide that. The test checks only the helper's names.
+- Hard-kill watcher (win-temp-check, final review): the plan says the helper replaces `tempEmpty`, but `tempEmpty` stays for the cases that are not hard kills.
+- Build records (land-records, independent check): a build ledger whose last line lacks a newline swallows the next start record, as the land ledger does.
