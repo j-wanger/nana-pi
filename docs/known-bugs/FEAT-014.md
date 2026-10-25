@@ -79,3 +79,14 @@
 - Project check line (project-check-line, final review): the line's by-hand split is a fixed rule, but the check's comes from a setup dry run. If setup learns or drops a row fix, the two drift, and only the by-hand fixtures link them.
 - Project check line (project-check-line, final review): the line names the resolved real root, while the check names the path as given. On macOS the two differ for temp folders; this is harmless.
 - Windows flakes (land-records CI, 2026-10-24): adoption-reader's "hook prints nothing" check failed once on a slow Windows runner at d3cf9a0d, a 1,211 s suite. Every leg passed the same code at 1661558e (a runner flake, inferred).
+- Adoption window (adoption-window, plan): R-151's 7-day window holds only up to the 4 MiB read cap. Past the cap, the cut line names how far back the reader looked, and the reader still skips older reports.
+- Adoption window (adoption-window, plan): the cut line names the read's first dated whole line. Out-of-order timestamps could misstate the oldest time checked; the real journal had 0 backward steps.
+- Adoption window (adoption-window, plan): the read drops its first segment past byte 0, even when the cap lands on a line start. A needless cut line follows only if that line was the read's only one at or before the window start.
+- Adoption window (adoption-window, plan): a future-dated first line, from a clock set back, counts as newer than the window start. The cut line can then name a future time.
+- Adoption window (adoption-window, plan): once the journal passes 4 MiB, each seat session start reads 4 MiB, about 15 to 17 ms warm.
+- Adoption window (adoption-window, plan): the journal still grows with no cap or rotation, about 300 to 700 KB a week lately. This lane left its writers alone.
+- Adoption window (adoption-window, plan): the producer's 24-hour duplicate check still reads 256 KiB, and one measured day needed 284,377 bytes. A heavy day can write a second line per root; the reader still lists each root once.
+- Adoption window (adoption-window, plan): part two (child journal events) stays out; R-076 and the pack README promise the line. So child sessions still write config_project_ignored, about a fifth of the journal's bytes.
+- Adoption window (adoption-window, plan): no test pins that `lib/adoption.mjs` gains no import. The reviewer confirms it by reading.
+- Adoption window (adoption-window, plan): the A-025 Artifact line's writer list stays as the assessment found it. So does the state inventory's journal path under PI_CODING_AGENT_DIR.
+- Adoption window (adoption-window, plan): the journal's failure and security events still have no code reader.
