@@ -1,14 +1,14 @@
 /**
  * @module packages/nana-knowledge/lib/hook.ts
- * @purpose One prompt-time knowledge pull — the block of pointers to print for a prompt, or nothing.
- * @inputs the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), NANA_ROLE environment variable, the index
+ * @purpose One prompt-time knowledge pull — a frozen-index notice before the pointer block, or nothing.
+ * @inputs the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), NANA_ROLE, sources.json bytes at paths.sources, the index
  *  at paths.db, and the per-session shown file
- * @outputs HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one
- *  pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome
+ * @outputs HookResult {output, reason, hits} whose output is the sources notice line followed by the `[nana:knowledge]` block
+ *  (header plus pointer lines, block ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome
  *  records to pull.log
- * @effects disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25
+ * @effects disk (reads sources.json and the index, writes shown/<session>.json, appends pull.log), database (the BM25
  *  search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
- * @errors none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason,
+ * @errors none — every failure is a named reason, with a sources problem carried by the notice line: bad-json, bad-input, a skipReason,
  *  no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block, reviewer-role, worker-role
  */
 // UserPromptSubmit hook. Contract: whatever goes wrong, print nothing and exit 0.
@@ -22,6 +22,7 @@ import { openDb } from "./db.ts";
 import { paths } from "./paths.ts";
 import { FIELD_SEP, renderFields, search, type Hit } from "./query.ts";
 import { promptText } from "../../nana-pack/lib/display.mjs";
+import { frozenNotice, readSourcesFile } from "./sources-file.mjs";
 import { meaningfulTokens, PROMPT_MAX_CHARS, skipReason } from "./tokenize.ts";
 
 export const BUDGET_MS = 1500;
@@ -138,6 +139,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	const over = () => clock() - t0 > budget;
 	let input: any = null;
 	let parsed = false;
+	let notice: string | null = null;
 	const finish = (reason: string, output: string | null = null, hits: Hit[] = []): HookResult => {
 		const excluded = new Set(["reviewer-role", "worker-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]);
 		if (!excluded.has(reason)) {
@@ -153,7 +155,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 				ms: clock() - t0,
 			});
 		}
-		return { output, reason, hits };
+		return { output: notice ? `${notice}${output ? `\n${output}` : ""}` : output, reason, hits };
 	};
 	const none = (reason: string): HookResult => finish(reason);
 	if (process.env.NANA_ROLE === "reviewer") return none("reviewer-role");
@@ -166,6 +168,9 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	const prompt = typeof input.prompt === "string" ? input.prompt.slice(0, PROMPT_MAX_CHARS) : input.prompt;
 	const skip = skipReason(prompt);
 	if (skip) return none(skip);
+
+	const sourceFile = readSourcesFile(paths.sources);
+	if (sourceFile.status === "problem") notice = `[nana:knowledge] sources.json ${frozenNotice(sourceFile.problem)}`;
 
 	const freshness = ensureFreshIndex(opts.now ?? Date.now(), opts.spawnFn);
 	if (!fs.existsSync(paths.db)) return none(`no-index(${freshness})`);

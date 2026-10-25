@@ -7,12 +7,12 @@
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
+ *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db and <knowledgeHome>/sources.json, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail, installLabel? } rows, including pi's `pi dependencies` row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
- *  knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
+ *  knowledgeIndexState(), knowledgeSourcesState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node, a bounded pi --version process tree and launchctl to probe)
@@ -24,6 +24,7 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import { configFailureDetail, jsonParseFailure, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { frozenNotice, readSourcesFile } from "../../nana-knowledge/lib/sources-file.mjs";
 import { codeSpan } from "../../nana-pack/lib/display.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
@@ -31,7 +32,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -67,15 +68,30 @@ function retiredSettingsCommands(settings) {
 	return findings;
 }
 
-export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite").DatabaseSync) {
+export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite").DatabaseSync, now = Date.now()) {
 	let db;
 	try {
 		db = new DatabaseSync(dbPath, { readOnly: true });
 		const row = db.prepare("SELECT COUNT(*) AS n FROM docs").get();
-		return { ok: Number.isInteger(row?.n), detail: `read-only docs count: ${row?.n}` };
+		// Restate status's built_at read and one-decimal hour form: nana-setup cannot import nana-knowledge's .ts db module below its Node floor.
+		let age = "no build time recorded";
+		try {
+			const built = Number(db.prepare("SELECT value FROM meta WHERE key = 'built_at'").get()?.value);
+			if (Number.isFinite(built) && built > 0 && built <= now) age = `built ${((now - built) / 3600000).toFixed(1)}h ago`;
+		} catch { /* older or docs-only index has no meta table */ }
+		return { ok: Number.isInteger(row?.n), detail: `read-only docs count: ${row?.n}; ${age}` };
 	} catch (error) {
 		return { ok: false, detail: `cannot open/query expected docs schema (${error.message})` };
 	} finally { try { db?.close(); } catch { /* already closed */ } }
+}
+
+export function knowledgeSourcesState(file) {
+	const result = readSourcesFile(file);
+	if (result.status === "absent") return { status: NOTE, detail: `${file} — not present; the next build seeds it` };
+	if (result.status === "parsed") return { status: OK, detail: `${file} — parses` };
+	const commandPath = KNOWLEDGE_CLI.includes(" ") ? `"${KNOWLEDGE_CLI}"` : KNOWLEDGE_CLI;
+	const rescan = `node ${commandPath} build`;
+	return { status: FAIL, detail: `${file} — ${frozenNotice(result.problem)} Rescan with \`${rescan}\`.` };
 }
 
 /**
@@ -645,6 +661,8 @@ export function diagnose(layout, opts = {}) {
 	const db = path.join(layout.knowledgeHome, "index.db");
 	const index = knowledgeIndexState(db);
 	add(index.ok ? OK : FAIL, "knowledge index", `${db} — ${index.detail}`);
+	const sources = knowledgeSourcesState(path.join(layout.knowledgeHome, "sources.json"));
+	add(sources.status, "knowledge sources", sources.detail);
 
 	// --- PATH ---
 	if (win) {

@@ -4,7 +4,7 @@
  * @purpose The knowledge CLI — build, query, hook, status and prune over the local index.
  * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
  *  JSON on stdin (up to STDIN_MAX_BYTES), and sources.json bytes plus the index
- * @outputs build counts, source/root and index-damage markers, query hits or JSON, index/root status, and the hook pointer block on stdout; usage and query failures on stderr
+ * @outputs build counts, source/root and index-damage markers, query hits or JSON, index/root status, and the hook frozen-index notice and pointer block on stdout; usage and query failures on stderr
  * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
  *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
  * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, and 0 otherwise — including reported index damage, source-file problems, every `hook` failure, and a build that lost the lock
@@ -16,7 +16,8 @@ import { build, pruneShown, BuildLockedError } from "../lib/build.ts";
 import { checkIndex, getMeta, indexDamage, openDb } from "../lib/db.ts";
 import { paths } from "../lib/paths.ts";
 import { search } from "../lib/query.ts";
-import { formatSourcesProblem, loadSources } from "../lib/sources.ts";
+import { loadSources } from "../lib/sources.ts";
+import { formatSourcesProblem } from "../lib/sources-file.mjs";
 import { runHook, BUDGET_MS, STDIN_MAX_BYTES } from "../lib/hook.ts";
 
 const USAGE = `nana-knowledge — local BM25 index over the knowledge stores
