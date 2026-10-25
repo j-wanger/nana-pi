@@ -4,7 +4,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 243 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613
+  Parent: — · Rows: 247 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863
   Kind: product
   Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
@@ -40,7 +40,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.
     Status: active
     Also applies: R-310
-    Parent: CAP-01 · Rows: 65 · IDs: R-200–R-216, R-232, R-235, R-236, R-240, R-347, R-348, R-386, R-871, R-872, R-881–R-885, R-894, R-933–R-935, R-1910–R-1915, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409
+    Parent: CAP-01 · Rows: 69 · IDs: R-200–R-216, R-232, R-235, R-236, R-240, R-347, R-348, R-386, R-871, R-872, R-881–R-885, R-894, R-933–R-935, R-1910–R-1915, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2860–R-2863
     Artifacts: A-004, A-052, A-053
     Reads: A-055, A-062
   - **FEAT-004 · Retrieve relevant context with provenance**
@@ -49,7 +49,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-285, R-286, R-973, R-974
     Parent: CAP-01 · Rows: 34 · IDs: R-217–R-231, R-233, R-234, R-237–R-239, R-886–R-893, R-895–R-897, R-1710–R-1712
     Artifacts: A-054, A-055
-    Reads: A-004
+    Reads: A-004, A-052
   - **FEAT-005 · Communicate decisions clearly**
     Purpose: Deliver the preferred writing guidance and check report readability and structure.
     Status: active
@@ -185,7 +185,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-985, R-2023, R-2024
     Parent: CAP-04 · Rows: 164 · IDs: R-341–R-344, R-346, R-362, R-364–R-372, R-377, R-393, R-399, R-586, R-654, R-666, R-667, R-673–R-675, R-937, R-952, R-953, R-990, R-991, R-997–R-999, R-1037, R-1055, R-1057, R-1060, R-1070–R-1077, R-1079–R-1084, R-1096, R-1209, R-1540–R-1545, R-1580–R-1586, R-1600–R-1606, R-1750–R-1752, R-1760–R-1766, R-1790–R-1796, R-1810–R-1812, R-1853–R-1855, R-1972, R-1974, R-1980, R-1983, R-1990–R-1997, R-2000–R-2004, R-2021, R-2070–R-2076, R-2084, R-2085, R-2091, R-2180–R-2183, R-2230–R-2237, R-2280, R-2281, R-2292–R-2294, R-2320–R-2325, R-2410–R-2412, R-2681–R-2687, R-2701–R-2703, R-2705, R-2713–R-2715
     Artifacts: A-022, A-048
-    Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-016, A-021, A-025, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-065, A-066, A-069, A-071, A-079
+    Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-016, A-021, A-025, A-052, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-065, A-066, A-069, A-071, A-079
   - **FEAT-016 · Start the local development desk**
     Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
     Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
