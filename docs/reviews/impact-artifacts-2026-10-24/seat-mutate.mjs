@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane impact-artifacts (ordinary), written by the seat 2026-10-24 after build 1 at f5a2927d.
+// Seat wrong-code pairs for lane impact-artifacts (ordinary), written by the seat 2026-10-24 after build 1 at f5a2927d; re-run at c50dc854 after build 2 widened the fixture.
 // They follow the must-meet rows' red cases (R-2820 to R-2823) and the seal.
 // Run from the lane worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/impact-artifacts-2026-10-24/seat-mutate.mjs
@@ -47,4 +47,4 @@ const PAIRS = [
 	{ n: "24", name: "the star label changes", edits: [one(CF, "export const ARTIFACT_STAR = \"*\";", "export const ARTIFACT_STAR = \"+\";")], tests: [T], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "impact-artifacts", self: import.meta.url, tip: "f5a2927d", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "impact-artifacts", self: import.meta.url, tip: "c50dc854", declared: DECLARED, pairs: PAIRS });
