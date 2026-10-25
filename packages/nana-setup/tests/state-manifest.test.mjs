@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/state-manifest.test.mjs
  * @purpose Pins the state inventory, layout coverage, ledger parity, and secret classification.
- * @inputs state manifest and setup layout APIs.
+ * @inputs state manifest, setup layout APIs, and nana-pack's ledger path API.
  * @outputs PASS/FAIL checks and process exit status.
  * @effects disk (temporary fixture for read-only CLI proof).
  * @errors Failed checks increment the exit status.
@@ -38,8 +38,21 @@ const pathEntries = Object.entries(layout).filter(([key, value]) => typeof value
 // req: R-955
 check("every resolved layout path except declared containers is inventoried", pathEntries.every(([, value]) => byPath.has(path.resolve(value))), pathEntries.filter(([, value]) => !byPath.has(path.resolve(value))).map(([key]) => key).join(", "));
 const ledger = ledgerPaths(layout.base);
-// req: R-955
-check("manifest ledger paths equal ledgerPaths(home)", JSON.stringify(rows.filter((row) => row.store.startsWith("review ledger ")).map((row) => path.resolve(row.path)).sort()) === JSON.stringify(["tally", "audit", "rotated", "lock", "resDir"].map((key) => path.resolve(ledger[key])).sort()));
+const tallyRow = rows.find((row) => row.store === "review ledger tally");
+const textStoreRow = rows.find((row => row.store === "review ledger texts" && path.resolve(row.path) === path.resolve(ledger.texts)));
+// req: R-2870
+check("R-2870: the kept review text store's manifest row is a durable nana-pack folder with the tally row's source and restore text", textStoreRow?.class === STATE_CLASSES.DURABLE && textStoreRow.owner === "nana-pack" && textStoreRow.kind === "dir" && textStoreRow.source === tallyRow?.source && textStoreRow.restore === tallyRow?.restore);
+const ledgerContainers = ["dir"];
+const ledgerLayouts = [
+  layout,
+  resolveLayout({ home: path.join(os.tmpdir(), "manifest-custom"), piHome: path.join(os.tmpdir(), "manifest-custom-pi"), claudeHome: path.join(os.tmpdir(), "manifest-custom-claude") }),
+];
+// req: R-2871
+check("R-2871: the manifest holds exactly one row for each path the review ledger names, read from ledgerPaths, wherever pi home is", ledgerLayouts.every((current) => {
+  const expected = Object.entries(ledgerPaths(current.base)).filter(([key]) => !ledgerContainers.includes(key)).map(([, value]) => path.resolve(value)).sort();
+  const actual = stateRows(current).filter((row) => row.store.startsWith("review ledger ")).map((row) => path.resolve(row.path)).sort();
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}));
 const secretNames = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", ".credentials.json", "settings.json", "stage-keys", "sessions", "bench-agent"];
 // req: R-954
 check("secret-capable stores are classified as secret", secretNames.every((name) => rows.some((r) => path.basename(r.path) === name && r.class === "secret")) && ["Claude login", "Claude transcripts"].every((store) => rows.some((row) => row.store === store && row.class === "secret")), secretNames.filter((name) => !rows.some((r) => path.basename(r.path) === name && r.class === "secret")).join(", "));
