@@ -13,7 +13,7 @@ import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE } from "../../nana-pack/lib/json-text.mjs";
-import { runHook, renderBlock, BUDGET_MS } from "../lib/hook.ts";
+import { runHook, renderBlock, BUDGET_MS, BLOCK_MAX_CHARS } from "../lib/hook.ts";
 import { paths } from "../lib/paths.ts";
 import { formatSourcesProblem, SOURCES_FROZEN_CLAUSE } from "../lib/sources-file.mjs";
 
@@ -101,7 +101,7 @@ fs.rmSync(unreadableFixture.sources);
 fs.mkdirSync(unreadableFixture.sources);
 const unreadable = run(unreadableFixture, "build");
 const unreadableHit = hit(unreadableFixture);
-const unreadableMarker = `  ${unreadableFixture.sources}  UNREADABLE (no roots read, rows kept)`;
+const unreadableMarker = `  ${unreadableFixture.sources}  UNREADABLE (no roots read, rows kept).`;
 
 const emptyFixture = fixture("empty-roots");
 writeGood(emptyFixture);
@@ -184,14 +184,33 @@ run(noticePullGoodTwin, "build");
 activatePull(noticePullGoodTwin);
 const goodHitTwin = await runPull(hookPayload(`${noticePullGoodTwin.token} knowledge`, "good-twin"), { spawnFn: () => {} });
 const goodNoHitTwin = await runPull(hookPayload("unmatched distinct query words", "good-no-hit-twin"), { spawnFn: () => {} });
+const budgetFixture = fixture("notice-budget-twin", "budgetnoticeuniquetoken");
+const longDir = `path-${"x".repeat(210)}`;
+for (let i = 0; i < 3; i++) {
+	const dir = path.join(budgetFixture.root, `${longDir}-${i}`);
+	fs.mkdirSync(dir, { recursive: true });
+	fs.writeFileSync(path.join(dir, `article-${i}.md`), `# ${"T".repeat(100)}\n${"budgetnoticeuniquetoken ".repeat(50)}\n`);
+}
+writeGood(budgetFixture);
+run(budgetFixture, "build");
+const budgetGood = await pullCase(budgetFixture, "budgetnoticeuniquetoken unique query", "notice-budget-good");
+const budgetGoodPointers = budgetGood.output?.split(String.fromCharCode(10)).slice(1) ?? [];
+fs.writeFileSync(budgetFixture.sources, F1);
+const budgetBroken = await pullCase(budgetFixture, "budgetnoticeuniquetoken unique query", "notice-budget-broken");
+const budgetBrokenLines = budgetBroken.output?.split(String.fromCharCode(10)) ?? [];
 const roleFixture = freshBroken;
+activatePull(roleFixture);
 process.env.NANA_ROLE = "reviewer";
 const reviewer = await runPull(hookPayload(`${roleFixture.token} knowledge`), { spawnFn: () => {} });
+activatePull(roleFixture);
 process.env.NANA_ROLE = "worker";
 const worker = await runPull(hookPayload(`${roleFixture.token} knowledge`), { spawnFn: () => {} });
 delete process.env.NANA_ROLE;
+activatePull(roleFixture);
 const short = await runPull(hookPayload("hi"), { spawnFn: () => {} });
+activatePull(roleFixture);
 const badJson = await runPull("{", {});
+activatePull(roleFixture);
 const badInput = await runPull("null", {});
 const sourceReadOnlyPlain = fixture("pull-good-plain");
 writeGood(sourceReadOnlyPlain);
@@ -209,7 +228,8 @@ run(sourceReadOnlyUtf16, "build");
 const utf16Bytes = fs.readFileSync(sourceReadOnlyUtf16.sources);
 const utf16Pull = await pullCase(sourceReadOnlyUtf16);
 const crlfFixture = fixture("pull-good-crlf");
-writeGood(crlfFixture, (text) => Buffer.from(text.replaceAll(String.fromCharCode(10), String.fromCharCode(13) + String.fromCharCode(10))));
+const crlfText = `{\r\n  "roots": [\r\n    { "path": ${JSON.stringify(crlfFixture.root)}, "kind": "articles" }\r\n  ]\r\n}\r\n`;
+fs.writeFileSync(crlfFixture.sources, crlfText);
 run(crlfFixture, "build");
 const crlfBytes = fs.readFileSync(crlfFixture.sources);
 const crlfPull = await pullCase(crlfFixture);
@@ -227,9 +247,9 @@ const goodBytesUnchanged = plainBytes.equals(fs.readFileSync(sourceReadOnlyPlain
 const pullLogs = (f) => fs.existsSync(path.join(f.home, "pull.log")) ? fs.readFileSync(path.join(f.home, "pull.log"), "utf8").trim().split(String.fromCharCode(10)).filter(Boolean).map((line) => JSON.parse(line)) : [];
 const hitLog = pullLogs(freshBroken).find((entry) => entry.session_id === "frozen-test");
 // req: R-2860
-check("R-2860: a pull with an unparseable or unreadable sources.json prints one frozen-index notice line first, with or without pointers", marker && sameHit.reason === "ok" && hitOutput[0] === noticeLine && hitOutput.filter((line) => line === noticeLine).length === 1 && hitOutput.slice(1).join(String.fromCharCode(10)) === hitBlock && noHit.output === `[nana:knowledge] sources.json ${expectedMarkerFromStatus(freshBroken)} ${SOURCES_FROZEN_CLAUSE}` && absentIndex.reason === "no-index(spawned)" && absentIndex.output?.startsWith("[nana:knowledge] sources.json ") && repeated.reason === "all-shown" && repeated.output?.startsWith("[nana:knowledge] sources.json ") && ["db-open-failed", "query-failed"].includes(random.reason) && random.output?.startsWith("[nana:knowledge] sources.json ") && budget.reason === "budget" && budget.output?.startsWith("[nana:knowledge] sources.json ") && unreadablePull.output?.includes("UNREADABLE") && emptyFilePull.output?.startsWith("[nana:knowledge] sources.json UNPARSEABLE") && manual.output?.includes(MANUAL_JSON_ADVICE) && !manual.output?.includes("/one") && cliResult.status === 0 && cliResult.stderr === "" && cliResult.stdout.startsWith("[nana:knowledge] sources.json ") && goodHitTwin.reason === sameHit.reason && goodNoHitTwin.reason === noHit.reason && hitLog?.reason === sameHit.reason && pullLogs(freshBroken).filter((entry) => entry.session_id === "frozen-test" || entry.session_id === "budget-test").every((entry) => Object.keys(entry).sort().join(",") === "cwd,hits,ms,reason,session_id,source,tokens,ts") && [reviewer, worker, short, badJson, badInput].every((result) => result.output === null));
+check("R-2860: a pull with an unparseable or unreadable sources.json prints one frozen-index notice line first, with or without pointers", marker && sameHit.reason === "ok" && hitOutput[0] === noticeLine && hitOutput.filter((line) => line === noticeLine).length === 1 && hitOutput.slice(1).join(String.fromCharCode(10)) === hitBlock && noHit.output === `[nana:knowledge] sources.json ${expectedMarkerFromStatus(freshBroken)} ${SOURCES_FROZEN_CLAUSE}` && absentIndex.reason === "no-index(spawned)" && absentIndex.output?.startsWith("[nana:knowledge] sources.json ") && repeated.reason === "all-shown" && repeated.output?.startsWith("[nana:knowledge] sources.json ") && ["db-open-failed", "query-failed"].includes(random.reason) && random.output?.startsWith("[nana:knowledge] sources.json ") && budget.reason === "budget" && budget.output?.startsWith("[nana:knowledge] sources.json ") && unreadablePull.output?.includes("UNREADABLE (no roots read, rows kept).") && emptyFilePull.output?.startsWith("[nana:knowledge] sources.json UNPARSEABLE") && manual.output?.includes(MANUAL_JSON_ADVICE) && !manual.output?.includes("/one") && cliResult.status === 0 && cliResult.stderr === "" && cliResult.stdout.startsWith("[nana:knowledge] sources.json ") && goodHitTwin.reason === sameHit.reason && goodNoHitTwin.reason === noHit.reason && budgetGood.reason === "ok" && budgetBroken.reason === "ok" && budgetGoodPointers.length > 0 && budgetGoodPointers.every((line) => budgetBrokenLines.includes(line)) && budgetGood.output.length + (`[nana:knowledge] sources.json ${expectedMarkerFromStatus(budgetFixture)} ${SOURCES_FROZEN_CLAUSE}`).length > BLOCK_MAX_CHARS && hitLog?.reason === sameHit.reason && pullLogs(freshBroken).filter((entry) => entry.session_id === "frozen-test" || entry.session_id === "budget-test").every((entry) => Object.keys(entry).sort().join(",") === "cwd,hits,ms,reason,session_id,source,tokens,ts") && [reviewer, worker, short, badJson, badInput].every((result) => result.output === null));
 // req: R-2861
-check("R-2861: a pull with a parsing or absent sources.json prints no notice, and its own read never creates or rewrites the file", [plainPull, utf8Pull, utf16Pull, crlfPull, wrongShapePull].every((result) => result.output === null || result.output.startsWith("[nana:knowledge] untrusted search pointers")) && goodBytesUnchanged && absentPull.output === null && absentStillAbsent);
+check("R-2861: a pull with a parsing or absent sources.json prints no notice, and its own read never creates or rewrites the file", [plainPull, utf8Pull, utf16Pull, crlfPull, wrongShapePull].every((result) => result.output === null || result.output.startsWith("[nana:knowledge] untrusted search pointers")) && crlfBytes.includes(13) && crlfBytes.toString("utf8").includes("\r\n") && goodBytesUnchanged && absentPull.output === null && absentStillAbsent);
 // req: R-2860
 // req: R-2862
 check('seal: the frozen-index clause reads "The knowledge index is frozen until the user repairs sources.json; the next build after the repair rescans it."', SOURCES_FROZEN_CLAUSE === "The knowledge index is frozen until the user repairs sources.json; the next build after the repair rescans it.");

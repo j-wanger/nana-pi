@@ -61,6 +61,8 @@ const f1 = ["{", '  "roots": [', `    { "path": "C:${slash}Users${slash}x${slash
 const unparseableSources = stateFor(f1);
 const f3 = ["{", '  "roots": [', '    { "path": "/one", "kind": "articles" },', "  ]", "}"].join(lineEnd) + lineEnd;
 const manualSources = stateFor(f3);
+const quotedParserText = "private-parser-message-secret";
+const quotedParserSources = stateFor(`{"roots":[${quotedParserText}]}`);
 fs.rmSync(sourceFile);
 fs.mkdirSync(sourceFile);
 const unreadableSources = knowledgeSourcesState(sourceFile);
@@ -77,7 +79,7 @@ fs.writeFileSync(quotedFile, f1);
 const quotedRescan = knowledgeSourcesState(quotedFile);
 const expectedMarker = "UNPARSEABLE at line 3, column 19 (no roots read, rows kept).";
 // req: R-2862
-check("R-2862: doctor's knowledge sources row is ok for a parsing file, a note for an absent one and a fail naming the marker, the frozen index and a rescan command for a broken one, and never writes the file", plainSources.state.status === "ok" && utf16Sources.state.status === "ok" && wrongShapeSources.state.status === "ok" && [plainSources, utf16Sources, wrongShapeSources].every((item) => item.unchanged) && unparseableSources.state.status === "fail" && unparseableSources.state.detail.startsWith(sourceFile) && unparseableSources.state.detail.includes(expectedMarker) && unparseableSources.state.detail.includes(FORWARD_SLASH_ADVICE) && unparseableSources.state.detail.includes(SOURCES_FROZEN_CLAUSE) && unparseableSources.state.detail.includes(`node ${KNOWLEDGE_CLI} build`) && !unparseableSources.state.detail.includes(`C:${slash}Users`) && manualSources.state.status === "fail" && manualSources.state.detail.includes(MANUAL_JSON_ADVICE) && !manualSources.state.detail.includes("/one") && unreadableSources.status === "fail" && unreadableSources.detail.includes("UNREADABLE (no roots read, rows kept)") && unreadableSources.detail.includes(SOURCES_FROZEN_CLAUSE) && absentSources.status === "note" && absentSources.detail.startsWith(missingPath) && absentSources.detail.includes("next build seeds it") && !fs.existsSync(missingPath) && sourceRow.length === 1 && sourceRow[0].status === "note" && noIndexRows.filter((check) => check.label === "knowledge index").length === 1 && sourceRow[0].label !== noIndexRows.find((check) => check.label === "knowledge index")?.label && sourceRowFile.startsWith(path.join(home, "no-index-home")) && sourceRowBytesAbsent && quotedRescan.detail.includes(KNOWLEDGE_CLI.includes(" ") ? `node "${KNOWLEDGE_CLI}" build` : `node ${KNOWLEDGE_CLI} build`));
+check("R-2862: doctor's knowledge sources row is ok for a parsing file, a note for an absent one and a fail naming the marker, the frozen index and a rescan command for a broken one, and never writes the file", plainSources.state.status === "ok" && utf16Sources.state.status === "ok" && wrongShapeSources.state.status === "ok" && [plainSources, utf16Sources, wrongShapeSources].every((item) => item.unchanged) && unparseableSources.state.status === "fail" && unparseableSources.state.detail.startsWith(sourceFile) && unparseableSources.state.detail.includes(expectedMarker) && unparseableSources.state.detail.includes(FORWARD_SLASH_ADVICE) && unparseableSources.state.detail.includes(SOURCES_FROZEN_CLAUSE) && unparseableSources.state.detail.includes(`node ${KNOWLEDGE_CLI} build`) && !unparseableSources.state.detail.includes(`C:${slash}Users`) && manualSources.state.status === "fail" && manualSources.state.detail.includes(MANUAL_JSON_ADVICE) && !manualSources.state.detail.includes("/one") && quotedParserSources.state.status === "fail" && !quotedParserSources.state.detail.includes("private-pa") && unreadableSources.status === "fail" && unreadableSources.detail.includes("UNREADABLE (no roots read, rows kept)") && unreadableSources.detail.includes(SOURCES_FROZEN_CLAUSE) && absentSources.status === "note" && absentSources.detail.startsWith(missingPath) && absentSources.detail.includes("next build seeds it") && !fs.existsSync(missingPath) && sourceRow.length === 1 && sourceRow[0].status === "note" && noIndexRows.filter((check) => check.label === "knowledge index").length === 1 && sourceRow[0].label !== noIndexRows.find((check) => check.label === "knowledge index")?.label && sourceRowFile.startsWith(path.join(home, "no-index-home")) && sourceRowBytesAbsent && quotedRescan.detail.includes(KNOWLEDGE_CLI.includes(" ") ? `node "${KNOWLEDGE_CLI}" build` : `node ${KNOWLEDGE_CLI} build`));
 
 const ageNow = 2_000_000_000_000;
 const agedDbPath = path.join(home, "aged-index.db");
@@ -88,7 +90,11 @@ db.prepare("INSERT INTO meta VALUES ('built_at', ?)").run(String(ageNow - 2.5 * 
 db.close();
 fs.utimesSync(agedDbPath, new Date(ageNow - 24 * 60 * 60 * 1000), new Date(ageNow - 24 * 60 * 60 * 1000));
 const aged = knowledgeIndexState(agedDbPath, DatabaseSync, ageNow);
-const noMeta = knowledgeIndexState(dbPath, ProbeDatabase, ageNow);
+const docsOnlyPath = path.join(home, "docs-only-index.db");
+const docsOnlyDb = new DatabaseSync(docsOnlyPath);
+docsOnlyDb.exec("CREATE TABLE docs (id INTEGER)");
+docsOnlyDb.close();
+const noMeta = knowledgeIndexState(docsOnlyPath, DatabaseSync, ageNow);
 const writeMeta = (value) => {
 	const handle = new DatabaseSync(agedDbPath);
 	handle.prepare("UPDATE meta SET value = ? WHERE key = 'built_at'").run(value);

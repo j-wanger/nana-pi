@@ -34,7 +34,7 @@ export function readSourcesFile(file) {
 
 /** Safe CLI marker for a sources.json problem; never includes parser or file text. */
 export function formatSourcesProblem(problem) {
-	if (problem.kind === "unreadable") return `${UNREADABLE_MARKER} (no roots read, rows kept)`;
+	if (problem.kind === "unreadable") return `${UNREADABLE_MARKER} (no roots read, rows kept).`;
 	const place = Number.isInteger(problem.line) && Number.isInteger(problem.column)
 		? ` at line ${problem.line}, column ${problem.column}`
 		: "";
