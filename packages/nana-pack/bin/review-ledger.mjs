@@ -5,14 +5,16 @@
  *  records its verdict, `check` asks whether one would be admitted.
  * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>`,
  *  `check --item <slug> [--tree <path>] [--revision R]`, or `keep --item <slug> --into <dir> [--repo <path>]`),
- *  the reviewed tree's git state, the user-scope review ledger,
+ *  the reviewed tree's git state, the user-scope review ledger, review-movement.mjs's section for `--repo`'s HEAD,
  *  review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
  * @outputs the child's stdout written to --out and the kept-text store, a recorded round, lane-folder copies
- *  from `keep`, the projection note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
+ *  from `keep` including tree-movement.md and its movement warning, the projection note on stdout for `check`,
+ *  and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
  * @effects process (resolves and spawns the review command with reviewer child env and stdout piped,
- *  runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock,
+ *  runs the reservation heartbeat and review-movement.mjs on keep, sets the exit code), disk (writes --out and the ledger's lock,
  *  reservation, kept text, tally and audit files, including a best-effort cannot-start line)
- * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
+ * @errors keep warns and never refuses over the movement; it exits 1 with no kept text unless it wrote the movement file.
+ *  Other exits: 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
  *  admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero /
  *  non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
  */
@@ -32,9 +34,10 @@ import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
-  admit, canonicalItem, complete, KEEP_NAME_HASH_CHARS, project, readRounds, release, repoKeyOf,
+  admit, canonicalItem, complete, KEEP_MOVEMENT_FILE_NAME, KEEP_NAME_HASH_CHARS, project, readRounds, release, repoKeyOf,
   reviewTextEvidence, SLUG_MAX, startHeartbeat,
 } from './review-round.mjs';
+import { reviewMovementSection, notComputedReason } from '../lib/review-movement.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { reviewLaunch } from './review-launch.mjs';
 import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
@@ -72,7 +75,12 @@ if (cmd === 'keep') {
     if (prior && !prior.equals(kept.bytes)) die(`two kept texts would use ${name} with different bytes; wrote nothing`);
     planned.set(name, kept.bytes);
   }
-  if (!planned.size) die(`item ${item} in this repository has no kept text`);
+  const section = reviewMovementSection(resolve(repoPath));
+  const notComputed = section === null ? null : notComputedReason(section);
+  const movementWarning = (reason) => process.stderr.write(`review-ledger: WARNING: ${KEEP_MOVEMENT_FILE_NAME} not written: ${reason}\n`);
+  if (notComputed !== null) movementWarning(notComputed);
+  const wantMovement = section !== null && notComputed === null;
+  if (planned.size === 0 && !wantMovement) die(`item ${item} in this repository has no kept text`);
   const into = resolve(intoArg);
   let intoState = null;
   try { intoState = lstatSync(into); } catch (error) { if (error.code !== 'ENOENT') die(`cannot inspect ${into}: ${error.message}`); }
@@ -92,7 +100,18 @@ if (cmd === 'keep') {
     mkdirSync(into, { recursive: true });
     for (const [target, bytes] of writes) writeFileSync(target, bytes, { flag: 'wx', mode: 0o600 });
   } catch (error) { die(`cannot keep review text: ${error.message}`); }
-  process.stdout.write(`kept ${planned.size} review text(s) for ${item} in ${into}\n`);
+  let movementWritten = false;
+  if (wantMovement) {
+    const target = join(into, KEEP_MOVEMENT_FILE_NAME);
+    try {
+      let state = null;
+      try { state = lstatSync(target); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (state && (!state.isFile() || state.isSymbolicLink())) movementWarning('not a regular file');
+      else { writeFileSync(target, section); movementWritten = true; }
+    } catch (error) { movementWarning(error.code ?? error.message); }
+  }
+  if (planned.size === 0 && !movementWritten) die(`item ${item} in this repository has no kept text`);
+  process.stdout.write(`kept ${planned.size} review text(s)${movementWritten ? ` and ${KEEP_MOVEMENT_FILE_NAME}` : ''} for ${item} in ${into}\n`);
   process.exit(0);
 }
 if (cmd === 'report') {

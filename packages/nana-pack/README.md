@@ -6,7 +6,7 @@ project scaffolding, and dev-workflow skills.
 **Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
 is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
 something they install), and `package.json` declares no `dependencies` or
-`devDependencies`. The review launchers start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in.
+`devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in.
 Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
 FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
 and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
@@ -242,7 +242,7 @@ node packages/nana-pack/bin/review-ledger.mjs run --item <slug> --out "%scratch%
 item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
 launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
 
-`review-ledger keep --item <slug> --into <dir> [--repo <path>]` copies every available kept text for that item and repository into the lane folder as `r<round>-<role>-<sha8>.md`. It leaves an equal existing file unchanged. It checks every destination before writing and refuses the whole command when any same-named file differs. An item with no kept text exits 1. Run it with each fix commit and once before the final review round, never while a review of that worktree is live.
+`review-ledger keep --item <slug> --into <dir> [--repo <path>]` copies every available kept text for that item and repository into the lane folder as `r<round>-<role>-<sha8>.md`. It leaves an equal existing file unchanged. It checks every destination before writing and refuses the whole command when any same-named file differs. When the repository's HEAD commit holds a REQUIREMENTS.md, keep also writes tree-movement.md into the folder: the tree movement section the review launchers send, for HEAD against main. Each keep replaces it, so the folder holds the movement of the last kept tip. With no committed ledger keep writes no movement file and says nothing about it. A movement that cannot be computed or written gets one warning and no file, and the review texts are still kept. An item with no kept text exits 1 unless keep writes the movement file. Run it with each fix commit and once before the final review round, never while a review of that worktree is live.
 
 `node bin/review-timeline.mjs --item <slug> [--repo <path>]` prints one lane's review timeline as
 markdown: every round the ledger recorded for that item in the selected repository (the current

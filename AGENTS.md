@@ -154,7 +154,7 @@ The live sections are Where things stand, Next, and Open for the owner. Run `nan
 
 ### The tree in briefs, reviews and lands
 
-A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief carries a Precedent section, and pi-worker refuses one without it. pi-review and claude-review add the tree movement, computed against main by `scripts/requirements-moved.mjs`, to every reviewer's prompt, and the reviewer reads every feature it names. The seat's land report points the owner to the movement, in the review folder or the brief, instead of pasting it.
+A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief carries a Precedent section, and pi-worker refuses one without it. pi-review and claude-review add the tree movement, computed against main by `scripts/requirements-moved.mjs`, to every reviewer's prompt, and the reviewer reads every feature it names. The seat's land report points the owner to the lane folder's tree-movement.md, which review-ledger keep writes before the final round.
 
 ### The desk
 

@@ -580,6 +580,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const afterTimes = wroteExpected ? Object.fromEntries(names.map((name) => [name, fs.statSync(path.join(into, name)).mtimeMs])) : {};
 	const legacy = { v: 2, kind: "round", repo: mod.repoKeyOf(A.d), item: "legacy-no-text", revision: A.shas[0], role: "old", verdict: "LAND" };
 	fs.appendFileSync(tallyFile, `${JSON.stringify(legacy)}\n`);
+	// R-2573's empty case exits 1 because repository A commits no ledger; R-2913 owns the no-text exit rule.
 	const empty = ledgerKeep(["--item", "legacy-no-text", "--into", path.join(tmp, "legacy-kept"), "--repo", A.d], A.d);
 	// req: R-2573
 	check("R-2573: keep writes each kept review text of the item into the lane folder",

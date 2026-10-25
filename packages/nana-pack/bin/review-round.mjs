@@ -84,6 +84,8 @@ export const REVIEW_TEXT_HASH = 'sha256';
 export const REVIEW_TEXT_HASH_HEX_CHARS = 64;
 // chosen 2026-10-22: eight digest characters keep committed review names readable and distinct per item (R-2573).
 export const KEEP_NAME_HASH_CHARS = 8;
+// chosen 2026-10-25 (keep-movement): one fixed name per lane folder, so each keep replaces the last kept tip's movement and a reader finds it without a hash (R-2910).
+export const KEEP_MOVEMENT_FILE_NAME = 'tree-movement.md';
 // chosen, measured 2026-10-22: no size cap; observed p95 8.5 KB and maximum 17.8 KB.
 // chosen: names the throwaway scratch index+object folder workingState borrows the repo's objects into
 // (W7c amend, 2026-10-18), so a leftover from a crashed derivation is recognizable in the OS temp dir.

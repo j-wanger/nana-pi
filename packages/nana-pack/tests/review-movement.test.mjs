@@ -26,7 +26,7 @@ check("R-2905: the ledger lists the tree movement report as a CAP-07 deliverable
   assert.match(cap, /^Deliverables: .*\bR-1460\b/m);
   assert.match(cap, /^Made by: R-1460 · review: packages\/nana-pack\/bin\/claude-review\.mjs, packages\/nana-pack\/bin\/pi-review\.mjs, packages\/nana-pack\/lib\/review-movement\.mjs, scripts\/requirements-moved\.mjs · built from: A-030$/m);
   assert.match(cap, /^Read by: R-1460 · prompt: packages\/nana-pack\/bin\/claude-review\.mjs, packages\/nana-pack\/bin\/pi-review\.mjs$/m);
-  assert.match(cap, /^Read by: R-1460 · person: the seat's land report points the owner to it$/m);
+  assert.match(cap, /^Read by: R-1460 · person: the seat's land report points the owner to the lane folder's tree-movement\.md, which review-ledger keep writes$/m);
 });
 // req: R-2900 R-2901 R-2902 R-2906 R-2907 R-2908
 check("seal: the tree movement section is headed ## Tree movement with its lead line, computed against main by the pack's own requirements-moved within 30 seconds and 16 MiB, and a failed run reads tree movement: not computed:", () => {

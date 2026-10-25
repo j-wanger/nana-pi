@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/review-movement.mjs
  * @purpose Compute the reviewed tree's movement as an advisory prompt section without refusing a review.
  * @inputs A tree path, an optional process runner, HEAD's REQUIREMENTS.md and the pack's scripts/requirements-moved.mjs.
- * @outputs reviewMovementSection() returns null or the movement section text.
+ * @outputs reviewMovementSection() returns null or the movement section text; notComputedReason() extracts its failure reason.
  * @effects process (runs git and scripts/requirements-moved.mjs with node), disk (children read git and ledger files).
  * @errors No errors escape; a failed ledger check returns null and a failed movement becomes a not-computed line.
  */
@@ -28,4 +28,9 @@ export function reviewMovementSection(tree, { run = spawnSync } = {}) {
     ? String(result.stdout ?? '').replace(/[\r\n]+$/, '')
     : `${MOVEMENT_NOT_COMPUTED} ${reason}`;
   return `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${body}`;
+}
+
+export function notComputedReason(section) {
+  const prefix = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${MOVEMENT_NOT_COMPUTED} `;
+  return typeof section === 'string' && section.startsWith(prefix) ? section.slice(prefix.length) : null;
 }
