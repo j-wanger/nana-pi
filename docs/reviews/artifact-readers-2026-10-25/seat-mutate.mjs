@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane artifact-readers (ordinary), written by the seat 2026-10-25 after build 1 at 9dae642b.
+// Seat wrong-code pairs for lane artifact-readers (ordinary), written by the seat 2026-10-25 after build 1 at 9dae642b; re-run at 4f25258e after build 2 closed eight test gaps.
 // Pairs 1, 5b and 41b take the pair checker's fixes (wf_4d21505b-cad).
 // They follow the must-meet rows' red cases (R-2830 to R-2834, R-2837) and the seal.
 // Run from the lane worktree root:
@@ -94,4 +94,4 @@ const PAIRS = [
 	{ n: "46", name: "the coverage note text changes", edits: [one(D, "export const NO_DECLARED_READER_NOTE = \"has no declared reader\";", "export const NO_DECLARED_READER_NOTE = \"has no reader\";")], tests: [TD], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "artifact-readers", self: import.meta.url, tip: "9dae642b", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "artifact-readers", self: import.meta.url, tip: "4f25258e", declared: DECLARED, pairs: PAIRS });

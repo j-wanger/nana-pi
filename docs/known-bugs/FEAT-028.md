@@ -85,3 +85,16 @@
 - Feature reads (feature-artifact-lines, plan): a deliverable's Read by paths and its feature's Reads lines overlap. The flow lane draws only the Reads lines.
 - Feature reads (feature-artifact-lines, final review): a repeated Reads line for an ID with no live entry gets two notes. One names the repeat and one the missing entry.
 - Feature reads (feature-artifact-lines, final review): another project may already use "Reads:" as prose in a feature span. Under a kinded capability, that line now gets a malformed note, report-only there.
+- Artifact readers (artifact-readers, plan): the page shows none of the new lines until the later page lane. It shows no artifact Read by lines, parks, runtime kind or no-reader list.
+- Artifact readers (artifact-readers, plan): the page keeps its own reference join beside the exported consumer function until the later page lane imports it.
+- Artifact readers (artifact-readers, plan): `manual` still covers hand-written sources and hand-made copies alike until the later page lane adds `source`.
+- Artifact readers (artifact-readers, plan): the impact command's artifact block lists Reads lines only. An own-code Read by reader does not show in a file's impact.
+- Artifact readers (artifact-readers, plan): the checker proves only that git tracks an own-code Read by path. It does not prove the path belongs to the maker feature or reads the artifact.
+- Artifact readers (artifact-readers, plan): a person reader or a park clears the coverage note. Only the owner's reading of those lines judges them.
+- Artifact readers (artifact-readers, plan): a direct reference inherits every reader kind of its row, so A-048 looks code-read through R-1070.
+- Artifact readers (artifact-readers, plan): the rule that a currency or presence check is not a reader is prose. The checker cannot tell, and A-053's Reads line still counts.
+- Artifact readers (artifact-readers, plan): the test-reader rule is a file-name rule, so spec files and test helpers without `.test.` pass.
+- Artifact readers (artifact-readers, plan): the outline does not list artifact Read by or Parked lines; the movement report does.
+- Artifact readers (artifact-readers, plan): the template prose edit cuts a template tag on land, so copier-linked projects show drift.
+- Artifact readers (artifact-readers, plan): projects that carry a registry get the coverage note the first time they run the checker, report-only there.
+- Artifact readers (artifact-readers, plan): the assessment's extra Reads lines for A-038, A-039 and A-050 stay unrecorded.
