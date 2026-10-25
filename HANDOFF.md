@@ -12,15 +12,15 @@
 
 1. **Current priority: the artifact work (the owner, 2026-10-23).** Each artifact comes from an existing run, is read by code, and shows its age. The owner's Windows run and checklist passed that day.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The impact lane the owner picked on 2026-10-24 is on main. No lane is building.
-4. **Product page readability (the owner, 2026-10-24).** The page is getting too complex. The pause is on: no new lane and no page addition until the owner's discussion. The impact lane was the owner's one exception.
+3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** On 2026-10-25 the owner lifted the pause for four page-free lanes. Two are on main; the other two and a Windows lane are building.
+4. **Product page readability (the owner, 2026-10-24).** The page is getting too complex. It stays frozen: no page addition until the owner's discussion.
 5. **Queue after that.** The owner's discussion sets it. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
-6. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five causes on 2026-10-23. Nobody knows yet whether the install relay's new kill ends its Windows failures.
+6. **Windows first-try failures.** Since 2026-10-22, flaky tests failed 32 of 171 first Windows runs, about 18% both before and after the 2026-10-23 hardening lane. Two Windows test lanes are in planning; the owner says when they build.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
 ## Open for the owner
 
-- **[blocking, since 2026-10-24] The pause discussion.** The artifact assessment asks eleven questions, and the page brief offers three options. Default: option two.
+- **[blocking, since 2026-10-24] The page discussion.** The page stays frozen until it. The artifact assessment asks eleven questions, and the page brief offers three options. Default: option two.
 - **[optional, since 2026-10-22] What a land waits for.** Each land waits about 21 minutes for its tip's CI run. Nothing lands during a GitHub outage, urgent fixes included. Default: wait for the whole run.
 - **[optional, since 2026-10-22] A copier project's drift line.** It compares against main, not the project's template tag. Default: it stands.
 - **[optional, since 2026-10-23] A real Claude Code builder behind a proxy.** The seat checked its login and proxy settings against a fake endpoint only. Start one real build behind a proxy and check that it logs in and commits. Default: the seat waits for your run.
@@ -52,7 +52,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-24: the impact command lists the artifacts each named file writes and reads. It marks readers and writers that share no import path with the file.
+- 2026-10-25: an artifact can now declare its own-feature, person or runtime readers, or a dated park. The check notes any live artifact with neither.
 
 ## Known bugs
 

@@ -103,7 +103,7 @@ State classes:
 | Store | Class | How it comes back |
 |---|---|---|
 | Private rule, shared memory, project memories | durable | Restore from the private archive; the SessionStart hook recreates project `shared` links. |
-| Review-ledger tally, audit and rotated files | durable | Restore from the private archive. |
+| Review-ledger tally, audit and rotated files, and kept review texts | durable | Restore from the private archive. |
 | nana-pack config, objective, pi settings, knowledge sources and pull log, apps and nana share | durable | Restore from the private archive. |
 | Hook, rule, skill and bin launchers; subagent config and reviewer seed | rebuildable | Run `nana-setup install`. |
 | Knowledge index, pi-subagents package and desk plist | rebuildable | Build knowledge, install pi-subagents from the network, and use `install --desk` when needed. |
