@@ -20,63 +20,16 @@ env:
   PI_FLOOR_BEFORE: "2026-10-05T08:40:00Z"
 
 jobs:
-  install-check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-        pi: [ceiling, floor]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-        if: matrix.pi == 'ceiling'
-      - name: Verify ceiling pi version
-        if: matrix.pi == 'ceiling'
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_FLOOR_VERSION} --before="${PI_FLOOR_BEFORE}"
-        if: matrix.pi == 'floor'
-      - name: Verify floor pi version
-        if: matrix.pi == 'floor'
-        run: test "$(pi --version)" = "${PI_FLOOR_VERSION}"
-      - name: Install check
-        env:
-          TEMP: ${{ runner.temp }}
-          TMP: ${{ runner.temp }}
-        run: node packages/nana-setup/bin/install-check.mjs
-
-  suite:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops
-    # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest
-    # finished Windows leg 34.5 min (run 39298256239), macOS 18.7, Linux 14.5. Windows grew about
-    # 5 minutes a day on 2026-10-19 and 2026-10-20 as tests landed. About 2.6 times the slowest leg,
-    # so suite growth and runner variance do not cancel an honest leg; a false time-out blocks release.
-    # Suite legs run four files at a time since this lane.
+  # SEAT SCRATCH (never merged): lane win-test-limits' Windows-only wrong-code pairs 14 to 16 (R-2884).
+  win-pairs:
+    runs-on: windows-latest
     timeout-minutes: 90
-    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     defaults:
       run:
         shell: bash
     env:
       NANA_TEST_REQUIRE_COPIER: "1"
-      # chosen; measured clean at 4 against 1 in probe run 39761155058
-      NANA_CI_JOBS: "4"
-      # chosen; about twice review-ledger's projected 412 s at four on Windows (runs 39731735341 and 39761155058)
       NANA_TEST_TIMEOUT_MS: "900000"
-      # chosen: one stable name in each leg's temporary folder, outside the checkout
-      NANA_CI_RECORD_NAME: "nana-suite-record.json"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,44 +45,15 @@ jobs:
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }}
-        if: matrix.os != 'windows-latest'
-        env:
-          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
-      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }}
-        if: matrix.os == 'windows-latest'
-        env:
-          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          name: suite-record-${{ matrix.os }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
-
-  release:
-    needs: [suite, install-check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    concurrency:
-      group: template-release
-      cancel-in-progress: false
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: astral-sh/setup-uv@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
-      - name: Verify pi version
-        run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: git config user.name "github-actions[bot]"
-      - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: node scripts/template-release.mjs --push
+      - name: Point main at origin/main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git branch -f main origin/main
+      - name: SEAT SCRATCH - Windows pairs 14 to 16 for win-test-limits
+        run: |
+          export npm_execpath="$(node -p "require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')")"
+          echo "npm_execpath=$npm_execpath"; test -f "$npm_execpath"
+          set +e
+          node win-pairs.mjs win-table.mjs 2>&1 | tee win-pairs-output.txt
+          set -e
+          grep -q "RESULT: 3/3 red" win-pairs-output.txt
