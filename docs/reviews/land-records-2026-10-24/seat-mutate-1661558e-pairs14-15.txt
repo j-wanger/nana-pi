@@ -1,0 +1,12 @@
+seat-mutate: lane land-records, tip 1661558eca808a15d9ba3965f7fbc21a27753c55, table 179682230d2025e57fcee53f347407f5d446f30a49c1fe6d79979419888ddfb6, merge-base 86c628b905a98af0ef592750ad14162673fd9b66, 2 pairs in 2 shards (1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T01:29:48.934Z
+DECLARED (seat) pairs 1 to 4 follow R-2810's red cases; 5 to 9 R-2811's; 10 to 13 R-2812's; 14 and 15 R-2813's; 16 to 20 R-2814's; 21 to 28 R-2815's; 29 to 31 R-2816's; 32 and 33 the seal
+DECLARED (seat) declared non-pairs: 'the line lands under ~/.pi/agent' (no one-line mutation reaches a second store; pair 4 covers a skipped start), 'the last landed CI wait from the wrong attempt' (the R-2815 fixture has one landed attempt per lane, a residual), and 'two lands at once tear a line' (no lock by design, a known limit)
+[1/2] seat-mutate: lane land-records, shard 1/2, tip 1661558eca808a15d9ba3965f7fbc21a27753c55, merge-base 86c628b905a98af0ef592750ad14162673fd9b66, 1 pairs, darwin, node v22.22.2, 2026-10-25T01:29:50.202Z
+[1/2] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/2] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/2] seat-mutate: lane land-records, shard 2/2, tip 1661558eca808a15d9ba3965f7fbc21a27753c55, merge-base 86c628b905a98af0ef592750ad14162673fd9b66, 1 pairs, darwin, node v22.22.2, 2026-10-25T01:29:54.004Z
+[2/2] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/2] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 14 an unkept start changes the exit code — 1/1 named: /^R-2813: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 a read failure prints two record lines — 1/1 named: /^R-2813: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 2 shards

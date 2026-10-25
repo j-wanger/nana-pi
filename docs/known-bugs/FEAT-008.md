@@ -55,3 +55,6 @@
 - Land records (land-records, plan): two lands can append at once with no lock. A same-instant tear is possible but unlikely on a local disk (inferred).
 - Land records (land-records, independent check): a ledger whose last line lacks a newline swallows the next start record. That attempt drops out of the history.
 - Land records (land-records, independent check): the `not kept` line prints the error code twice, as pi-worker's build line does.
+- Land records (land-records, final review): the shared record-ledger module imports its minute grain from the build ledger's config.
+- Land records (land-records, final review): a written end record with an unknown outcome reads as refused. Only a forged ledger can hold one.
+- Land records (land-records, final review): the lane-line renderer tells views from raw records by a `start` field, so renaming that field would break it.
