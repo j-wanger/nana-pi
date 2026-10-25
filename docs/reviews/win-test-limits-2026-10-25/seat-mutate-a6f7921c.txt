@@ -1,0 +1,53 @@
+seat-mutate: lane win-test-limits, tip a6f7921c10b694c64c8432cee362cef94e72e116, table 105fd19d5aef0e29647cb2c8cae16c376e4b08bab5ab38ef774e78e560238efa, merge-base 91444acec6a8e635a35ade62d29b85f0194817ad, 18 pairs in 5 shards (4+4+4+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T17:05:19.959Z
+DECLARED (seat) pairs 1 to 21 follow the must-meet's seat wrong-code list in order; every item is one edit, so none splits; each names the rows the must-meet says it turns red
+DECLARED (Windows-only, not in this table) pairs 14 to 16 are R-2884's: the taskkill-off-PATH case's timeoutMs back to TREE_DEADLINE_MS, its alive wait back to TREE_DEADLINE_MS, and level A's late start removed. R-2884's check runs only on win32 and prints a SKIP line elsewhere, so no macOS run can turn it red. The seat runs them on a scratch Windows CI push, as the must-meet says
+DECLARED (seat) pair 17 removes R-2884's exact-title SKIP line; R-1954's scan of post-edit-hardening.test.mjs is static, so it runs on macOS
+DECLARED (runner config) pairs 18 to 20 edit RUN_ALONE in test-runner-config.mjs, the lane's own change and the edit the must-meet's list names; every other pair edits a test file alone; no pair edits product code
+DECLARED (not expressible) R-2885's third red case, a named constant hook-producer does not export as a number, has no one-place lane edit (must-meet); a rename in hook-producer.mjs would show it at a merge
+DECLARED (seat) no alsoRed is declared: the table was written before any full run, and only pair 17 was run end to end
+[1/5] seat-mutate: lane win-test-limits, shard 1/5, tip a6f7921c10b694c64c8432cee362cef94e72e116, merge-base 91444acec6a8e635a35ade62d29b85f0194817ad, 4 pairs, darwin, node v22.22.2, 2026-10-25T17:05:21.176Z
+[1/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 52 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/mutation-runner.test.mjs (exit 0, 42 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/test-runner-parallel.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[1/5] RESULT: 4/4 red (2 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane win-test-limits, shard 2/5, tip a6f7921c10b694c64c8432cee362cef94e72e116, merge-base 91444acec6a8e635a35ade62d29b85f0194817ad, 4 pairs, darwin, node v22.22.2, 2026-10-25T17:05:24.981Z
+[2/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 52 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/mutation-runner.test.mjs (exit 0, 42 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/test-runner-parallel.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[2/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane win-test-limits, shard 3/5, tip a6f7921c10b694c64c8432cee362cef94e72e116, merge-base 91444acec6a8e635a35ade62d29b85f0194817ad, 4 pairs, darwin, node v22.22.2, 2026-10-25T17:05:29.039Z
+[3/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 52 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/mutation-runner.test.mjs (exit 0, 42 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/path-spelling.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[3/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane win-test-limits, shard 4/5, tip a6f7921c10b694c64c8432cee362cef94e72e116, merge-base 91444acec6a8e635a35ade62d29b85f0194817ad, 3 pairs, darwin, node v22.22.2, 2026-10-25T17:05:33.085Z
+[4/5] BASELINE ok   packages/nana-pack/tests/mutation-runner.test.mjs (exit 0, 42 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/windows-skip-lines.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[4/5] RESULT: 3/3 red (2 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane win-test-limits, shard 5/5, tip a6f7921c10b694c64c8432cee362cef94e72e116, merge-base 91444acec6a8e635a35ade62d29b85f0194817ad, 3 pairs, darwin, node v22.22.2, 2026-10-25T17:05:37.022Z
+[5/5] BASELINE ok   packages/nana-pack/tests/mutation-runner.test.mjs (exit 0, 42 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/test-runner-parallel.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 RECORD_LIMIT_MS back to 800 — 1/1 named: /^R-2880: /; UNNAMED red: [test-runner.test.mjs] R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause… | [test-runner.test.mjs] seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-ou…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 a-pass's sleep removed — 1/1 named: /^R-2880: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 3 d-timeout sleeps RECORD_LIMIT_MS - 1000, then ends — 1/1 named: /^R-2880: /; UNNAMED red: [test-runner.test.mjs] R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 R-1960's child guard back to 1500 — 1/1 named: /^R-2881: /; UNNAMED red: [mutation-runner.test.mjs] R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit {"finite":…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 R-1960's child late start removed — 1/1 named: /^R-2881: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 6 the contend held wait back to 4000 — 1/1 named: /^R-2882: /; UNNAMED red: [mutation-runner.test.mjs] mutation runner: a second run given the same record file is refused with exit 2, naming it, before it creates…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 NANA_TEST_WAIT_MS dropped from run1's env — 1/1 named: /^R-2882: /; UNNAMED red: [mutation-runner.test.mjs] mutation runner: a second run given the same record file is refused with exit 2, naming it, before it creates…; 2 FAIL total (1 file changed, 1 deletion(-))
+RED 8 NANA_TEST_START_DELAY_MS dropped from run1's env (the late mark removed) — 1/1 named: /^R-2882: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 9 the late release's wait removed — 1/1 named: /^R-2882: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 10 worker-lane run's poll back to 0.1 — 1/1 named: /^R-2883: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 R-2883's shim folder placed after process.env.PATH — 1/1 named: /^R-2883: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 R-2883's fake pi hold removed — 1/1 named: /^R-2883: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 R-2883's shim written into the stub folder — 1/1 named: /^R-2883: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 R-2884's SKIP line removed — 1/1 named: /^post-edit-hardening\.test\.mjs: each check it runs only off Windows has its own SKIP line/; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 18 hook-deadlines removed from RUN_ALONE — 1/1 named: /^R-2885: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 19 adoption-reader removed from RUN_ALONE — 1/1 named: /^R-2885: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 20 hook-deadlines' reason stripped of both constant names — 1/1 named: /^R-2885: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 GP4 given process.pid instead of IMPOSSIBLE_PID — 1/1 named: /^GP4: a dead review checkout registered under one spelling of the temp folder is reclaimed/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 18/18 red (13 exactly their named titles, 0 with a named title green, 5 with an unnamed red), 0 survived, across 5 shards
