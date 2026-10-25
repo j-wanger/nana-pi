@@ -12,14 +12,14 @@
 
 1. **Current priority: the artifact work (the owner, 2026-10-23).** Each artifact comes from an existing run, is read by code, and shows its age. The owner's Windows run and checklist passed that day.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The four artifact lanes of 2026-10-24 are on main. Two candidate lanes wait for the owner's pick.
-4. **Queue after that.** A settings file with a byte-order mark, the audit's seat calls and the review-timeline diagram. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
-5. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five causes on 2026-10-23. Nobody knows yet whether the install relay's new kill ends its Windows failures.
-6. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
+3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** On 2026-10-24 the owner picked both candidate lanes. The land records lane is building.
+4. **Product page readability (the owner, 2026-10-24).** The page is getting too complex. Pause after the assessment and the two lanes to discuss; no page additions until then.
+5. **Queue after that.** A settings file with a byte-order mark, the audit's seat calls and the review-timeline diagram. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
+6. **Windows first-try failures.** On 2026-10-22, 15 CI failures hit tests no lane touched, and every re-run passed. The flaky-test lane hardened five causes on 2026-10-23. Nobody knows yet whether the install relay's new kill ends its Windows failures.
+7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
 ## Open for the owner
 
-- **[optional, since 2026-10-24] Two candidate lanes.** A Windows cleanup timing failure hit three CI runs on 2026-10-24, and a small lane would fix it. The land and build records lane is next on the audit list. Default: the cleanup fix first.
 - **[optional, since 2026-10-22] What a land waits for.** Each land waits about 21 minutes for its tip's CI run. Nothing lands during a GitHub outage, urgent fixes included. Default: wait for the whole run.
 - **[optional, since 2026-10-22] A copier project's drift line.** It compares against main, not the project's template tag. Default: it stands.
 - **[optional, since 2026-10-23] A real Claude Code builder behind a proxy.** The seat checked its login and proxy settings against a fake endpoint only. Start one real build behind a proxy and check that it logs in and commits. Default: the seat waits for your run.
@@ -51,7 +51,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-24: the product page has an Artifacts view. It shows how artifacts link the capabilities, and which artifacts no other feature reads.
+- 2026-10-24: the Windows hard-kill tests no longer kill pi-worker during a PowerShell sample. Each names any file left in its temp folder.
 
 ## Known bugs
 

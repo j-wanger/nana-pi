@@ -114,4 +114,9 @@
 - Hard-kill watcher (hard-kill-watcher, independent check): a `stopped` end record can name a builder that still runs: when the lock stays because a builder may run, and when the pid record is missing. The pack README does not say so.
 - Hard-kill watcher (hard-kill-watcher, independent check): the start-time read reuses the watcher's git timeout, so retuning one retunes the other.
 - Hard-kill watcher (hard-kill-watcher, independent check): the builder's captured output now sits inside the lane folder, so deleting only that folder loses it (inferred).
-- Hard-kill watcher (bench-study-scratch, artifact-registry and report-names-artifacts CI, 2026-10-24): on Windows the watcher three times exited with the lane temp folder not yet empty. R-2722's live-owner case, R-2728 and R-2721 each failed once; re-runs passed. A killed builder's open files likely outlast the removal retries (inferred).
+- Hard-kill watcher (win-temp-check, plan): a tree kill during pi-watchdog's Windows CPU sample can leave PowerShell's two policy-test files in the user's temp folder.
+- Hard-kill watcher (win-temp-check, plan): pi-review shares that sampler, so its tree kills can leave the same two files.
+- Hard-kill watcher (win-temp-check, plan): the hard-kill tests no longer kill during a sample, so no test covers that leftover.
+- Hard-kill watcher (win-temp-check, plan): the tests' watcher wait counts 5 × 100 ms of removal retries, but Node sleeps about 1.5 s per stuck entry.
+- Hard-kill watcher (win-temp-check, plan): no failure line named the leftover entry in the three Windows failures of 2026-10-24, so the seat inferred it.
+- Hard-kill watcher (win-temp-check, seat pairs): the R-2803 sort check passes without the sort on macOS, which lists names sorted; Linux catches it (inferred).

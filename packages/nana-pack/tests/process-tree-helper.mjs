@@ -1,13 +1,20 @@
 /**
  * @module packages/nana-pack/tests/process-tree-helper.mjs
- * @purpose End a spawned test worker's process tree without making cleanup failures escape the test.
- * @inputs a child process and optional platform and synchronous runner
- * @outputs none
- * @effects process (signals the child or starts taskkill)
+ * @purpose Report what a killed worker left and end spawned test worker process trees without letting cleanup failures escape the test.
+ * @inputs a case temp folder, child process, and optional platform and synchronous runner
+ * @outputs sorted names left in a hard-kill case temp folder; kill helpers return none
+ * @effects disk (reads the case temp folder), process (signals the child or starts taskkill)
  * @errors suppresses absent-process and launcher errors
  */
 import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
 import * as path from "node:path";
+
+/** Return sorted entry names; a missing case folder is already empty after cleanup. */
+export function hardKillTempNames(root) {
+	try { return fs.readdirSync(root).sort(); }
+	catch (error) { if (error?.code === "ENOENT") return []; throw error; }
+}
 
 /** Read the worker pid from the watcher command line. */
 export function watcherWorkerPid(line) {
