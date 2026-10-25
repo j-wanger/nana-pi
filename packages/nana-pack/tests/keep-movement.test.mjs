@@ -8,7 +8,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync, lstatSync, existsSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync, lstatSync, existsSync } from "node:fs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { ledgerRepo, makeLedgerBranch, ledgerText, reportToFile } from "./ledger-repo.mjs";
 import { reviewMovementSection } from "../lib/review-movement.mjs";
@@ -22,6 +22,7 @@ const root = tmpDir(join(tmpdir(), "keep-movement-test-"));
 const bin = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "review-ledger.mjs");
 let checkCount = 0;
 let failures = 0;
+const runningAsRoot = process.getuid?.() === 0;
 function check(title, fn) {
   checkCount++;
   try { fn(); console.log("PASS", title); }
@@ -119,6 +120,26 @@ check("R-2912: a movement that cannot be computed or written leaves no movement 
   assert.equal(readdirSync(into2).filter((name) => name !== KEEP_MOVEMENT_FILE_NAME).length, 1);
 });
 
+// req: R-2912
+check("R-2912: a movement write error warns but keeps review text and exits 0", () => {
+  if (runningAsRoot) { console.log("SKIP R-2912 read-only movement write: running as root can write read-only files"); return; }
+  const fixture = branch("r2912-permission"), home = newHome("r2912-permission"), outside = join(root, "outside-r2912-permission"), into = join(root, "into-r2912-permission");
+  recordRound(fixture, home, "r2912-permission", "reviewer", outside);
+  mkdirSync(into, { recursive: true });
+  const target = join(into, KEEP_MOVEMENT_FILE_NAME), known = Buffer.from("known movement bytes\n");
+  writeFileSync(target, known); chmodSync(target, 0o444);
+  try {
+    const result = keep(fixture, home, "r2912-permission", into);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readdirSync(into).filter((name) => name !== KEEP_MOVEMENT_FILE_NAME).length, 1);
+    const warnings = result.stderr.trim().split(/\r?\n/);
+    assert.equal(warnings.length, 1);
+    assert.ok(warnings[0].includes(KEEP_MOVEMENT_FILE_NAME));
+    assert.match(warnings[0], /\b(?:EACCES|EPERM)\b/);
+    assert.deepEqual(readFileSync(target), known);
+  } finally { chmodSync(target, 0o644); }
+});
+
 // req: R-2913
 check("R-2913: with no kept review text, keep exits 0 when it writes the tree movement file and 1 when it does not", () => {
   const fixture = branch("r2913"), home = newHome("r2913"), into = join(root, "into-r2913");
@@ -132,6 +153,25 @@ check("R-2913: with no kept review text, keep exits 0 when it writes the tree mo
   const failure = keep(trunk, home, "r2913-empty", failedInto);
   assert.equal(failure.status, 1); assert.match(failure.stderr, /no kept text/);
   assert.equal(existsSync(join(failedInto, KEEP_MOVEMENT_FILE_NAME)), false);
+});
+
+// req: R-2913
+check("R-2913: no kept text refuses when writing the movement file fails", () => {
+  if (runningAsRoot) { console.log("SKIP R-2913 read-only movement write: running as root can write read-only files"); return; }
+  const fixture = branch("r2913-permission"), home = newHome("r2913-permission"), into = join(root, "into-r2913-permission");
+  mkdirSync(into, { recursive: true });
+  const target = join(into, KEEP_MOVEMENT_FILE_NAME), known = Buffer.from("known movement bytes\n");
+  writeFileSync(target, known); chmodSync(target, 0o444);
+  try {
+    const result = keep(fixture, home, "r2913-empty", into);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /no kept text/);
+    const warnings = result.stderr.trim().split(/\r?\n/);
+    assert.equal(warnings.length, 2);
+    assert.ok(warnings[0].includes(KEEP_MOVEMENT_FILE_NAME));
+    assert.match(warnings[0], /\b(?:EACCES|EPERM)\b/);
+    assert.deepEqual(readFileSync(target), known);
+  } finally { chmodSync(target, 0o644); }
 });
 
 // req: R-2574
