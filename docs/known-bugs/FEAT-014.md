@@ -78,7 +78,7 @@
 - Project check line (project-check-line, seat pairs): no project test pins the check's row order; only the line's test catches a reorder. Only R-2762's mode-000 case pins the check's AGENTS.md read error.
 - Project check line (project-check-line, final review): the line's by-hand split is a fixed rule, but the check's comes from a setup dry run. If setup learns or drops a row fix, the two drift, and only the by-hand fixtures link them.
 - Project check line (project-check-line, final review): the line names the resolved real root, while the check names the path as given. On macOS the two differ for temp folders; this is harmless.
-- Windows flakes (land-records CI, 2026-10-24): adoption-reader's "hook prints nothing" check failed once on a slow Windows runner at d3cf9a0d, a 1,211 s suite. Every leg passed the same code at 1661558e (a runner flake, inferred).
+- Windows flakes (land-records CI, 2026-10-24): adoption-reader's "hook prints nothing" check failed once on a slow Windows runner at d3cf9a0d, during a runner-wide stall. The file now runs alone, which would not have prevented that stall.
 - Adoption window (adoption-window, plan): R-151's 7-day window holds only up to the 4 MiB read cap. Past the cap, the cut line names how far back the reader looked, and the reader still skips older reports.
 - Adoption window (adoption-window, plan): the cut line names the read's first dated whole line. Out-of-order timestamps could misstate the oldest time checked; the real journal had 0 backward steps.
 - Adoption window (adoption-window, plan): the read drops its first segment past byte 0, even when the cap lands on a line start. A needless cut line follows only if that line was the read's only one at or before the window start.
@@ -90,3 +90,4 @@
 - Adoption window (adoption-window, plan): no test pins that `lib/adoption.mjs` gains no import. The reviewer confirms it by reading.
 - Adoption window (adoption-window, plan): the A-025 Artifact line's writer list stays as the assessment found it. So does the state inventory's journal path under PI_CODING_AGENT_DIR.
 - Adoption window (adoption-window, plan): the journal's failure and security events still have no code reader.
+- Adoption window (adoption-window, final review): R-2851 and R-2852 speak of any whole line at or before the window start, but the code checks only the first dated whole line.

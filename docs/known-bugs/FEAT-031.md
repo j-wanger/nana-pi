@@ -94,7 +94,7 @@
 - Windows flakes (win-flake-hardening, plan): only a finished file's temp folder is guarded; a busy per-file home folder still ends the runner, as before, though all four measured holds were under the temp folder.
 - Windows flakes (win-flake-hardening, plan): the temp-folder removal retries (5 at 100 ms) are chosen, not measured on a Windows hold.
 - Windows flakes (win-flake-hardening, plan): R-1471's and R-1473's overlap preconditions keep their timing; neither failed in 93 Windows attempts.
-- Windows flakes (win-flake-hardening, plan): worker-lane and build-records keep `--poll 0.1`, and worker-lane keeps its 15-second limit, so a slow CPU sampler can still reach them as it reached brief-check.
+- Windows test limits (win-test-limits, plan): worker-lane's `launchTogether` and build-records keep `--poll 0.1`; neither has a child limit that can fail on time.
 - Windows flakes (win-flake-hardening, plan): build-report's hard-kill worker polls above the test's start wait by reading; no test pins it.
 - Windows flakes (win-flake-hardening, plan): templates-update's adopt failure stays for shared-helpers.
 - Windows flakes (win-flake-hardening, plan): CI re-runs cannot prove the failure rate fell; the proof is the injected schedules and their wrong-code pairs.
@@ -105,9 +105,18 @@
 - Suite records (report-at-land, plan): the store keeps 300 records, about 5 to 6 days at the 2026-10-22 pace, not the 9 days its comment says. When no record in HEAD's history remains, the report says so.
 - Suite records (report-at-land, seat pairs): no test pins that the suite record's land prefix comes from the shared land test. A version that compares only the land tip with HEAD changes nothing but the prefix on a hand measure's record lines.
 - Product report at land (report-at-land, final review): a stop signal during the report build releases the lock while the build finishes. The rename is atomic and the exit code stays the signal's, but another suite can start before this run returns.
-- Test runner (bench-study-scratch and win-temp-check CI, 2026-10-24): R-2546's run-record check failed three times on the Windows suite leg, at 822286b5, 86c628b9 and 1e77de81. Each re-run passed (a Windows first-try flake, inferred).
 - Windows flakes (report-names-artifacts CI, 2026-10-24): one re-run attempt at 6ea795eb took 1,181 s against 956 s. In it, project-stale failed seven checks with empty producer output. That file passed in the other two attempts (a slow runner, inferred).
 - CI timing (2026-10-24): the Windows suite leg ran in two bands across five runs that day, 877 to 956 s or 1,180 to 1,197 s. In them, land.test.mjs took 241 to 249 s or 349 to 357 s, though no lane touched it (two runner pools, inferred).
-- Mutation runner (land-records CI, 2026-10-24): R-1960's release-retry case failed once on a slow Windows runner at d3cf9a0d, in a 1,181 s suite. A SIGKILL ended the child before the bounded release finished; the lane touched no runner code.
 - Windows flakes (impact-artifacts CI, 2026-10-25): R-1984 failed once at 56ad9dd1, because doctor's pi executable row read `·` before and `✓` after. The lane touched no setup code (a first-try flake, inferred).
-- Windows flakes (artifact-readers CI, 2026-10-25): R-2546's run-record check failed a fifth time at 9dae642b, in a 1,397 s suite. The lane touched no runner code, and the Windows timing lane takes that limit.
+- Windows test limits (win-test-limits, plan): R-1779's child guard reads CHILD_LIMIT_MS but has no late-start case; only the seal pins the constant.
+- Windows test limits (win-test-limits, plan): R-1700's tree case keeps 2.5 s with the same Windows start exposure; it has not failed in 171 legs.
+- Windows test limits (win-test-limits, plan): other tests still judge the pid of an exited process: `hook.test.mjs:486`, `mutation-runner.test.mjs:1341-1342`, `review-ledger.test.mjs:794`, `worker-claude.test.mjs:811` and `:872`. None failed in 171 legs.
+- Windows test limits (win-test-limits, plan): sources-file's and writing-injection's limits are named but not sealed. A runner stall longer than 30 s per spawn still fails sources-file.
+- Windows test limits (win-test-limits, plan): requirements-deliverables keeps its 10 s git limit, because artifact-readers edited that file.
+- Windows test limits (win-test-limits, plan): the two run-alone files run after the pool drains, about 27 to 36 s more per full parallel run on every platform. Inside the pool, test-runner.test.mjs gains about 10 s, mutation-runner.test.mjs about 13 s, and the R-1701 case about 7.5 s on Windows.
+- Windows test limits (win-test-limits, plan): the causes of the R-2546, R-2619, R-1701 and sources-file failures are inferred; those checks printed no detail before this lane, which adds it.
+- Windows test limits (win-test-limits, plan): R-2884 and its three wrong-code pairs are proven only on Windows CI (the seat's scratch run, 3 of 3 red).
+- Windows test limits (win-test-limits, plan): CI re-runs cannot prove the first-try rate fell. The proof is the forced late starts and their pairs.
+- Windows test limits (win-test-limits, plan): new tests keep arriving with the same two habits, a short child limit and a bare-pid read; about 41% of the next flakes may come from checks not yet seen (the critic's estimate).
+- Launch limits (launch-limits-identity, final review; here while FEAT-013's file is at its size cap): the judge probes each record's pid, not its ppid shim, though R-2023's title says every process; a shim outliving its node child is not realistic.
+- Launch limits (launch-limits-identity, final review; here while FEAT-013's file is at its size cap): R-2894's test title says a stopped launch returns the margin before the hang, but the test checks only the constants' sums.
