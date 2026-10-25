@@ -305,6 +305,8 @@ for (const [label, lines, fragment] of [
   const notes = artifactReaderNotes(artifactConsumerLedger({ after: lines }));
   if (notes.length !== 1 || !notes[0].includes(fragment)) artifactReaderFailures.push(`${label}: ${notes.join(" | ")}`);
 }
+const capabilityArtifactReaderNotes = artifactReaderNotes(tree("Made by: R-001 · manual: owner\nRead by: R-001 · person: owner\nRead by: R-001 · person: capability reader"));
+if (capabilityArtifactReaderNotes.some((entry) => entry.includes("malformed Read by:") || entry.includes("Read by: R-001 is"))) artifactReaderFailures.push(`capability reader parsed as artifact reader: ${capabilityArtifactReaderNotes.join(" | ")}`);
 const foreignArtifactLedger = artifactConsumerLedger({ second: ["Artifact: A-002 · other · user-home store: ~/other · manual: owner"] });
 const foreignArtifactNotes = artifactReaderNotes(foreignArtifactLedger.replace("Artifact: A-001 · output", "Read by: A-002 · code: scripts/read.mjs\nArtifact: A-001 · output"));
 if (foreignArtifactNotes.length !== 1 || !foreignArtifactNotes[0].includes("another feature")) artifactReaderFailures.push(`foreign: ${foreignArtifactNotes.join(" | ")}`);
@@ -328,6 +330,10 @@ const readsNotesAfter = parsedReads(artifactConsumerLedger({ after: ["Read by: A
 if (JSON.stringify(registryNotesBefore) !== JSON.stringify(registryNotesAfter) || JSON.stringify(readsNotesBefore) !== JSON.stringify(readsNotesAfter)) artifactReaderFailures.push("artifactRegistry or artifactReads notes changed");
 const reportOnlyArtifactReader = deliverableReportLines(parseLedger(artifactConsumerLedger({ after: ["Read by: A-001 · code: scripts/missing.mjs"] })), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) }));
 if (!reportOnlyArtifactReader.some((line) => line.includes("scripts/missing.mjs") && line.includes("not a tracked file"))) artifactReaderFailures.push(`shared report: ${reportOnlyArtifactReader.join(" | ")}`);
+const capabilityOnlyMisplaced = `# CAP-01 · Product\nPurpose: product\nOutcome: output\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nRead by: A-001 · code: scripts/read.mjs\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | Output exists. | untested | — |`;
+const misplacedReport = checkDeliverables(parseLedger(capabilityOnlyMisplaced), ["scripts/read.mjs"]);
+const misplacedLines = deliverableReportLines(parseLedger(capabilityOnlyMisplaced), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) }));
+if (misplacedReport.fieldLineCount !== 1 || !misplacedLines.some((line) => line.includes("A-001") && line.includes("no live entry"))) artifactReaderFailures.push(`misplaced field line: count=${misplacedReport.fieldLineCount}; ${misplacedLines.join(" | ")}`);
 // req: R-2830
 check("R-2830: an artifact Read by line reads its own feature's entry, and a malformed, foreign, unknown, untracked, reasonless, repeated or misplaced line gets one note", artifactReaderFailures.length === 0, artifactReaderFailures.join("\n"));
 
@@ -364,6 +370,10 @@ for (const [label, line, fragment] of [
 }
 const readAndPark = checkDeliverables(parseLedger(artifactConsumerLedger({ after: ["Parked: A-001 · since 2026-10-25: held"], second: ["Reads: A-001 · scripts/read.mjs"] })), ["scripts/read.mjs"]);
 if (!readAndPark.notes.some((entry) => entry.includes("Parked:") && entry.includes("parks nothing")) || readAndPark.artifactConsumers?.get("A-001")?.park) artifactParkFailures.push(`read entry: ${readAndPark.notes.join(" | ")}`);
+const foreignPark = checkDeliverables(parseLedger(artifactConsumerLedger({ after: ["Parked: A-002 · since 2026-10-25: held"], second: ["Artifact: A-002 · other · user-home store: ~/other · manual: owner"] })), []);
+if (!foreignPark.notes.some((entry) => entry.includes("Parked:") && entry.includes("registered in that feature")) || foreignPark.artifactConsumers?.get("A-002")?.park) artifactParkFailures.push(`foreign park: ${foreignPark.notes.join(" | ")}`);
+const capabilityPark = checkDeliverables(parseLedger(tree("Made by: R-001 · manual: owner\nRead by: R-001 · person: owner\nParked: R-001 · since 2026-10-25: held")), []);
+if (capabilityPark.artifactConsumers?.get("A-001")?.park || capabilityPark.notes.some((entry) => entry.includes("Parked: line"))) artifactParkFailures.push(`capability park: ${capabilityPark.notes.join(" | ")}`);
 // req: R-2832
 check("R-2832: an artifact park needs its own unread entry, a since date and a reason, and a park of a read entry parks nothing", artifactParkFailures.length === 0, artifactParkFailures.join("\n"));
 
@@ -388,25 +398,29 @@ for (const [label, text, tracked] of [
 check("R-2833: a reader path whose file name is a test file gets one note on every reader form, and a harness file in a tests folder gets none", testReaderFailures.length === 0, testReaderFailures.join("\n"));
 
 const consumerLedger = [
-  "# CAP-01 · Product", "Purpose: product", "Outcome: artifacts are consumed", "Kind: product", "Deliverables: R-001, R-002, R-003",
+  "# CAP-01 · Product", "Purpose: product", "Outcome: artifacts are consumed", "Kind: product", "Deliverables: R-001, R-002, R-003, R-004",
   "Made by: R-001 · suite: scripts/make.mjs · built from: A-003, A-008", "Read by: R-001 · code: scripts/read.mjs", "Parked: R-001 · since 2026-10-25: held",
   "Made by: R-002 · manual: owner · built from: A-004", "Read by: R-002 · person: owner",
-  "Made by: R-003 · suite: scripts/make.mjs · A-005", "Read by: R-003 · runtime: loaded by host", "",
+  "Made by: R-003 · suite: scripts/make.mjs · A-005", "Read by: R-003 · runtime: loaded by host",
+  "Made by: R-004 · manual: owner · A-011", "Read by: R-004 · code: tests/reader.test.mjs", "",
   "## FEAT-001 · Maker", "Purpose: make artifacts", "Status: active",
   "Artifact: A-001 · one · user-home store: ~/one · manual: owner",
   "Artifact: A-002 · two · user-home store: ~/two · manual: owner", "Read by: A-002 · person: owner",
   "Artifact: A-003 · three · user-home store: ~/three · manual: owner",
   "Artifact: A-004 · four · user-home store: ~/four · manual: owner",
   "Artifact: A-005 · five · user-home store: ~/five · suite: scripts/make.mjs",
-  "Artifact: A-006 · six · user-home store: ~/six · manual: owner",
+  "Artifact: A-006 · six · user-home store: ~/six · manual: owner", "Parked: A-006 · since 2026-10-25 held",
   "Artifact: A-007 · seven · user-home store: ~/seven · manual: owner", "Parked: A-007 · since 2026-10-25: held",
   "Artifact: A-008 · eight · user-home store: ~/eight · manual: owner",
-  "Artifact: A-009 · nine · user-home store: ~/nine · manual: owner", "Read by: A-009 · code: tests/bad.test.mjs", "",
-  "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | One shall exist. | untested | — |", "| R-002 | Two shall exist. | untested | — |", "| R-003 | Three shall exist. | untested | — |", "",
+  "Artifact: A-009 · nine · user-home store: ~/nine · manual: owner", "Read by: A-009 · code: tests/bad.test.mjs",
+  "Artifact: A-010 · ten · retired: replaced by A-001",
+  "Artifact: A-011 · eleven · user-home store: ~/eleven · manual: owner",
+  "Artifact: A-012 · twelve · user-home store: ~/twelve · manual: owner", "",
+  "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | One shall exist. | untested | — |", "| R-002 | Two shall exist. | untested | — |", "| R-003 | Three shall exist. | untested | — |", "| R-004 | Four shall exist. | untested | — |", "",
   "## FEAT-002 · Reader", "Purpose: read artifacts", "Status: active", "Reads: A-001 · scripts/read.mjs", "",
   "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-004 | The reader shall exist. | untested | — |",
 ].join("\n");
-const consumerReport = checkDeliverables(parseLedger(consumerLedger), ["scripts/make.mjs", "scripts/read.mjs", "tests/bad.test.mjs"]);
+const consumerReport = checkDeliverables(parseLedger(consumerLedger), ["scripts/make.mjs", "scripts/read.mjs", "tests/bad.test.mjs", "tests/reader.test.mjs"]);
 const consumerMap = consumerReport.artifactConsumers;
 const consumerFacts = consumerMap instanceof Map
   && consumerMap.get("A-001")?.kinds.has("code")
@@ -416,10 +430,15 @@ const consumerFacts = consumerMap instanceof Map
   && consumerMap.get("A-005")?.kinds.has("runtime")
   && consumerMap.get("A-007")?.park
   && consumerMap.get("A-008")?.kinds.has("code")
-  && consumerMap.get("A-009")?.kinds.size === 0;
+  && consumerMap.get("A-009")?.kinds.size === 0
+  && consumerMap.get("A-011")?.kinds.size === 0
+  && !consumerMap.has("A-010");
 const noReaderNotes = consumerReport.notes.filter((entry) => entry.includes("has no declared reader"));
+const secondCapabilityLedger = `${consumerLedger}\n\n# CAP-02 · Other product\nPurpose: other product\nKind: product\n\n## FEAT-003 · Other reader\nPurpose: other reader\nStatus: active\nReads: A-012 · scripts/other.mjs\n`;
+const secondCapabilityReport = checkDeliverables(parseLedger(secondCapabilityLedger), ["scripts/make.mjs", "scripts/read.mjs", "scripts/other.mjs", "tests/bad.test.mjs", "tests/reader.test.mjs"]);
+const secondCapabilityCounts = secondCapabilityReport.artifactConsumers?.get("A-012")?.kinds.has("code") === true;
 // req: R-2834
-check("R-2834: the shared consumer predicate gives each entry its reader kinds, and an entry with none and no park gets one note", consumerFacts && noReaderNotes.length === 2 && noReaderNotes.some((entry) => entry.includes("A-006")) && noReaderNotes.some((entry) => entry.includes("A-009")) && !noReaderNotes.some((entry) => entry.includes("A-007") || entry.includes("A-008")), JSON.stringify({ consumers: consumerMap ? [...consumerMap].map(([id, value]) => [id, [...value.kinds], value.park]) : null, notes: consumerReport.notes }));
+check("R-2834: the shared consumer predicate gives each entry its reader kinds, and an entry with none and no park gets one note", consumerFacts && noReaderNotes.length === 4 && noReaderNotes.some((entry) => entry.includes("A-006")) && noReaderNotes.some((entry) => entry.includes("A-009")) && noReaderNotes.some((entry) => entry.includes("A-011")) && noReaderNotes.some((entry) => entry.includes("A-012")) && !noReaderNotes.some((entry) => entry.includes("A-007") || entry.includes("A-008") || entry.includes("A-010")) && secondCapabilityCounts, JSON.stringify({ consumers: consumerMap ? [...consumerMap].map(([id, value]) => [id, [...value.kinds], value.park]) : null, notes: consumerReport.notes }));
 
 // req: R-2833, R-2834
 check("seal: the test-reader glob and the no-declared-reader note read as sealed", deliverablesModule.TEST_READER_GLOB === "*.test.*" && deliverablesModule.NO_DECLARED_READER_NOTE === "has no declared reader", JSON.stringify({ glob: deliverablesModule.TEST_READER_GLOB, note: deliverablesModule.NO_DECLARED_READER_NOTE }));

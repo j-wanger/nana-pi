@@ -365,7 +365,7 @@ const kindlessReadsOutput = treeMovement({
 check("R-2797: the movement report names every change to a feature's reads and is unchanged when no reads line changed", readsMovementOutput.startsWith("tree movement base..head: 0 rows in 0 features, 2 read change(s)") && readsMovementOutput.includes("\nartifacts:\n") && readsExpected.every((line) => readsMovementOutput.includes(`  ${line}`)) && !readsMovementOutput.includes("tree movement: none") && variedReadsOutput === readsMovementOutput && kindlessReadsOutput === "tree movement: none" && treeMovement({ baseText: readsMovementBase, headText: readsMovementBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", `normal:\n${readsMovementOutput}\nvaried:\n${variedReadsOutput}\nkindless:\n${kindlessReadsOutput}`);
 
 const consumerMovementBase = artifactMovementBase
-  .replace("Kind: product", "Kind: product\nRead by: R-001 · person: deliverable reader")
+  .replace("Kind: product", "Kind: product\nRead by: R-001 · person: capability reader old\nRead by: R-001 · person: deliverable reader")
   .replace("Artifact: A-001 · writer · tracked: docs/a.md · suite: scripts/a.mjs", [
     "Artifact: A-001 · writer · tracked: docs/a.md · suite: scripts/a.mjs",
     "Read by: A-001 · person: owner reads the old form",
@@ -373,6 +373,7 @@ const consumerMovementBase = artifactMovementBase
     "Parked: A-001 · since 2026-10-25: old reason",
   ].join("\n"));
 const consumerMovementHead = consumerMovementBase
+  .replace("capability reader old", "capability reader new")
   .replace("owner reads the old form", "owner reads the new form")
   .replace("Read by: A-001 · runtime: loaded by the old host\n", "")
   .replace("Parked: A-001 · since 2026-10-25: old reason", "Parked: A-001 · since 2026-10-25: new reason\nRead by: A-001 · code: scripts/read.mjs");
@@ -384,8 +385,12 @@ const consumerMovementExpected = [
   "FEAT-001 A-001 reader code added",
   "FEAT-001 A-001 park 2026-10-25 changed",
 ];
+const capabilityDeliverableMovementLines = consumerMovementOutput.split("\n").filter((line) => line.includes("R-001") && (line.includes("Made by/Read by lines changed") || line.includes("reader person changed")));
+const artifactReaderOnlyBase = artifactMovementBase.replace("Artifact: A-001 · writer · tracked: docs/a.md · suite: scripts/a.mjs", "Artifact: A-001 · writer · tracked: docs/a.md · suite: scripts/a.mjs\nRead by: A-001 · person: old reader");
+const artifactReaderOnlyHead = artifactReaderOnlyBase.replace("old reader", "new reader");
+const artifactReaderOnlyMovement = treeMovement({ baseText: artifactReaderOnlyBase, headText: artifactReaderOnlyHead, baseRevLabel: "base", headRevLabel: "head" });
 // req: R-2837
-check("R-2837: the movement report lists each added, removed or changed artifact Read by and Parked line", consumerMovementOutput.includes("\nartifacts:\n") && consumerMovementExpected.every((line) => consumerMovementLines.some((actual) => actual.includes(line))) && consumerMovementLines.length === 4 && !consumerMovementOutput.includes("tree movement: none") && treeMovement({ baseText: consumerMovementBase, headText: consumerMovementBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", consumerMovementOutput);
+check("R-2837: the movement report lists each added, removed or changed artifact Read by and Parked line", consumerMovementOutput.includes("\nartifacts:\n") && consumerMovementExpected.every((line) => consumerMovementLines.some((actual) => actual.includes(line))) && consumerMovementLines.length === 4 && capabilityDeliverableMovementLines.filter((line) => line.includes("Made by/Read by lines changed")).length === 1 && !capabilityDeliverableMovementLines.some((line) => line.includes("reader person changed")) && !consumerMovementOutput.includes("tree movement: none") && artifactReaderOnlyMovement.includes("FEAT-001 A-001 reader person changed") && !artifactReaderOnlyMovement.includes("tree movement: none") && treeMovement({ baseText: consumerMovementBase, headText: consumerMovementBase, baseRevLabel: "base", headRevLabel: "head" }) === "tree movement: none", consumerMovementOutput);
 
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all checks passed");
