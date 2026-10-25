@@ -1,0 +1,57 @@
+seat-mutate: lane land-records, tip 5912a41b2fb929bb94b44fe4a49fd1bc17818e6f, table 179682230d2025e57fcee53f347407f5d446f30a49c1fe6d79979419888ddfb6, merge-base 122d795ecc71d0fb766cb0e7c8a2778b524d2dd6, 33 pairs in 5 shards (7+7+7+6+6, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T00:28:24.798Z
+DECLARED (seat) pairs 1 to 4 follow R-2810's red cases; 5 to 9 R-2811's; 10 to 13 R-2812's; 14 and 15 R-2813's; 16 to 20 R-2814's; 21 to 28 R-2815's; 29 to 31 R-2816's; 32 and 33 the seal
+DECLARED (seat) declared non-pairs: 'the line lands under ~/.pi/agent' (no one-line mutation reaches a second store; pair 4 covers a skipped start), 'the last landed CI wait from the wrong attempt' (the R-2815 fixture has one landed attempt per lane, a residual), and 'two lands at once tear a line' (no lock by design, a known limit)
+[1/5] seat-mutate: lane land-records, shard 1/5, tip 5912a41b2fb929bb94b44fe4a49fd1bc17818e6f, merge-base 122d795ecc71d0fb766cb0e7c8a2778b524d2dd6, 7 pairs, darwin, node v22.22.2, 2026-10-25T00:28:25.888Z
+[1/5] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/5] RESULT: 7/7 red (5 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane land-records, shard 2/5, tip 5912a41b2fb929bb94b44fe4a49fd1bc17818e6f, merge-base 122d795ecc71d0fb766cb0e7c8a2778b524d2dd6, 7 pairs, darwin, node v22.22.2, 2026-10-25T00:28:29.883Z
+[2/5] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[2/5] RESULT: 7/7 red (4 exactly their named titles, 0 with a named title green, 3 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane land-records, shard 3/5, tip 5912a41b2fb929bb94b44fe4a49fd1bc17818e6f, merge-base 122d795ecc71d0fb766cb0e7c8a2778b524d2dd6, 7 pairs, darwin, node v22.22.2, 2026-10-25T00:28:33.761Z
+[3/5] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/5] RESULT: 7/7 red (5 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane land-records, shard 4/5, tip 5912a41b2fb929bb94b44fe4a49fd1bc17818e6f, merge-base 122d795ecc71d0fb766cb0e7c8a2778b524d2dd6, 6 pairs, darwin, node v22.22.2, 2026-10-25T00:28:37.941Z
+[4/5] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[4/5] RESULT: 6/6 red (5 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane land-records, shard 5/5, tip 5912a41b2fb929bb94b44fe4a49fd1bc17818e6f, merge-base 122d795ecc71d0fb766cb0e7c8a2778b524d2dd6, 6 pairs, darwin, node v22.22.2, 2026-10-25T00:28:42.063Z
+[5/5] BASELINE ok   packages/nana-pack/tests/land-records.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/build-report.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[5/5] RESULT: 6/6 red (5 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+RED 1 the lane comes from the tree's folder name — 1/1 named: /^R-2810: /; UNNAMED red: [land-records.test.mjs] R-2814: every ended land attempt's last line names it and its lane's land line exactly as the build report pr…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the start keeps a short tip — 1/1 named: /^R-2810: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 a detached tree gets a lane — 1/1 named: /^R-2810: /; UNNAMED red: [land-records.test.mjs] R-2814: every ended land attempt's last line names it and its lane's land line exactly as the build report pr…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 a separate-clone attempt writes no start — 1/1 named: /^R-2810: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 a preflight refusal records suite 0 — 1/1 named: /^R-2811: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 every refusal records one fixed stage — 1/1 named: /^R-2811: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 the reason carries the suite output — 1/1 named: /^R-2811: /; UNNAMED red: [land-records.test.mjs] R-2810: a land attempt appends one start record under the main clone's git common folder before it compares t…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 a merge refusal is recorded as landed — 1/1 named: /^R-2811: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 only a landed attempt appends an end — 1/1 named: /^R-2811: /; UNNAMED red: [land-records.test.mjs] R-2810: a land attempt appends one start record under the main clone's git common folder before it compares t…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 the CI wait starts at run_started_at — 1/1 named: /^R-2812: /; UNNAMED red: [land-records.test.mjs] seal: land records live at nana/land-records.jsonl in schema 1, are read up to 32 MiB, and their line starts …; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 the CI wait takes the shortest span — 1/1 named: /^R-2812: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 a run without times refuses the land — 1/1 named: /^R-2812: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 a skipped-CI land records a wait — 1/1 named: /^R-2812: /; UNNAMED red: [land-records.test.mjs] R-2814: every ended land attempt's last line names it and its lane's land line exactly as the build report pr…; 2 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED 14 an unkept start changes the exit code — 1/1 named: /^R-2813: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 a read failure prints two record lines — 1/1 named: /^R-2813: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 the record line comes first — 1/1 named: /^R-2814: /; UNNAMED red: [land-records.test.mjs] R-2813: an unwritable land ledger leaves the land's verdict, merge and output unchanged and names why in one …; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 the record line glues onto unterminated output — 1/1 named: /^R-2814: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the record line is printed only on a landed attempt — 1/1 named: /^R-2814: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 the lane part leaves out this attempt — 1/1 named: /^R-2814: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 20 an attempt with no lane prints a dash — 1/1 named: /^R-2814: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 the land total counts records, not attempts — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 a torn line stops the read — 1/1 named: /^R-2815: /; UNNAMED red: [build-report.test.mjs] R-2600: the build report prints each build, one line per lane and a total counting lanes with two or more bui…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 an unpaired start counts as landed — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 24 a null suite time prints as 0 min — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 25 the attempt line leaves out the reason — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 26 --lane beta also prints alpha — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 27 an over-cap land ledger exits 1 — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 28 an attempt with no lane gets a lane line — 1/1 named: /^R-2815: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 29 the entry spells another file name — 1/1 named: /^R-2816: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 30 R-2811 drops out of the deliverables — 1/1 named: /^R-2816: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 31 the deliverable's only reader is a person — 1/1 named: /^R-2816: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 32 the ledger moves to another path — 1/1 named: /^seal: land records live /; UNNAMED red: [land-records.test.mjs] R-2813: an unwritable land ledger leaves the land's verdict, merge and output unchanged and names why in one … | [land-records.test.mjs] R-2816: the ledger lists the land records as a CAP-02 deliverable read by code at the store's own path Assert…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 33 the read cap halves — 1/1 named: /^seal: land records live /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 33/33 red (24 exactly their named titles, 0 with a named title green, 9 with an unnamed red), 0 survived, across 5 shards

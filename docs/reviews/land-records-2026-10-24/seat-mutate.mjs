@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seat wrong-code pairs for lane land-records (land tool), written by the seat 2026-10-24 after build 2 at c354f281 (code as at d54146cb).
+// Seat wrong-code pairs for lane land-records (land tool), written by the seat 2026-10-24 after build 3 at 5912a41b (first run at c354f281).
 // They follow the must-meet rows' red cases (R-2810 to R-2816) and the seal.
 // Run from the lane worktree root:
 //   SEAT_MUTATE_OUT=<file> node docs/reviews/land-records-2026-10-24/seat-mutate.mjs
@@ -97,4 +97,4 @@ const PAIRS = [
 	{ n: "33", name: "the read cap halves", edits: [one(LC, READ_CAP, "export const LAND_LEDGER_READ_MAX_BYTES = 16 * 1024 * 1024;")], tests: [T_LR], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "land-records", self: import.meta.url, tip: "c354f281", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "land-records", self: import.meta.url, tip: "5912a41b", declared: DECLARED, pairs: PAIRS });
