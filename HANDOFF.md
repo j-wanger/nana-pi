@@ -53,7 +53,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-25: Windows test checks now have room to start late, and the two hook test files run alone.
+- 2026-10-25: every reviewer now gets the tree movement in its prompt, and every deliverable is made and read by code or parked.
 
 ## Known bugs
 

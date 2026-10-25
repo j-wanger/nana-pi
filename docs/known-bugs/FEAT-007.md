@@ -16,7 +16,7 @@
 - Review timeline (review-timeline): it prints markdown only. It tracks no closed MUST, shows no review still running and reads no line under the older repository key. The queued review-timeline diagram stays open; it should reuse the blast-radius lane's drawing code.
 - Review timeline (review-timeline): its MUST reader repeats part of the bench's finding extractor on purpose. The code map forbids a package importing an app, and that extractor serves an older set of review files.
 - Review timeline (review-timeline): no check covers a bullet list under a bare MUST heading. The suite still passes with the same-indent check removed. Without that check, a nested detail bullet there would list as a finding.
-- Review timeline (review-timeline): nothing runs it automatically. Its six new requirements leave the review feature's product-report assessment out of date until the queued report refresh.
+- Review timeline (review-timeline; parked by review-movement on 2026-10-25): nothing runs it automatically, and no code reads it. A launcher that gives a confirmation round the earlier rounds' findings deletes the park.
 - Unread verdict (unread-verdict-loud): a bold first verdict line that agrees with the final line still leaves the round empty. Accepting it would loosen the verdict reader, which is the owner's call.
 - Unread verdict (unread-verdict-loud): exit 1 from pi-review or review-ledger run no longer always means no round was spent. The notice says when one was.
 - Unread verdict (unread-verdict-loud): when the tree changes during a review, the launchers print only the old changed-tree message, with no notice.
@@ -107,3 +107,17 @@
 - Review runner (lane-temp-cleanup, attack): pi-review crashes on an uncaught write error when its standard-error pipe closes mid-review, as pi-worker did before lane-temp-cleanup. Fixing it is a review-tool lane.
 - Pid liveness (hard-kill-watcher, plan): review-round keeps its own private pid-liveness copy; the shared `pidAlive` now lives in process-tree.mjs.
 - Claude review launcher (impact-artifacts, round 1): the Opus reviewer also wrote its verdict in its first sentence, as the writing rule asks (inferred). The ledger refused the round, so the lane needed a confirmation round.
+- Review movement (review-movement, plan): the movement reads HEAD's committed ledger. A dirty-tree review with uncommitted ledger edits reads none, or leaves the edits out, with no sign of it.
+- Review movement (review-movement, plan): claude-review computes the movement at launch, so a commit before admission can make the section's head differ from the reviewed revision. `tree movement: none` names no revision.
+- Review movement (review-movement, plan): the base is always the local `main`. A project that branches lanes from elsewhere gets a not-computed line or a movement against `main`, and says so only by its revisions.
+- Review movement (review-movement, plan): a local `main` that lags its remote gives a movement that includes rows already landed upstream.
+- Review movement (review-movement, plan): a ledger the tree checker rejects can read `none` or `text changed` quietly; the suite catches both in nana-pi, and other projects may not run it.
+- Review movement (review-movement, plan): the code map shows no edge from the launchers to the movement command, because a process call is not an import.
+- Review movement (review-movement, plan): a reviewer started outside the two launchers, such as `review-ledger run` with a hand command, gets no section.
+- Review movement (review-movement, plan): a git failure while checking for the ledger reads as no ledger, so it gives no section rather than a not-computed line.
+- Review movement (review-movement, plan): a crash names its source location, not its cause. A pack copied without the repository's `scripts/` folder, or a Node older than 22.18, gets such a line (inferred).
+- Review movement (review-movement, plan): only a one-line refusal is tested; the first-line rule for a several-line stderr is written, not pinned. No test forces pi-review's section-file write to fail.
+- Review movement (review-movement, plan): a reviewer child whose context cannot hold the section fails the review. The buffer cap bounds the spawn, not the reader; today's largest report is about 20 to 25 thousand tokens.
+- Review movement (review-movement, plan): only a macOS run pins the pipe fix; CI's Linux leg writes pipes synchronously, so it cannot catch the old exit line (inferred).
+- Review movement (review-movement, plan): each launch in a tree with a ledger spends about 0.3 s before admission (measured on the seat's Mac).
+- Review movement (review-movement, plan): R-1560's `built from` names A-007 and A-008, while the timeline also reads the audit log, A-056.

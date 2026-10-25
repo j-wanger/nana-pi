@@ -102,3 +102,4 @@
 - Artifact readers (artifact-readers, final review): in a subgroup span, the checker skips a deliverable Read by line with no note. A deliverable park there gets an outside-a-feature note.
 - Artifact readers (artifact-readers, final review): the checker drops a second valid park of the same entry with no note.
 - Artifact readers (artifact-readers, final review): a test-file deliverable code reader gets its note, but its row still counts as code-read in report-only projects.
+- Script exit lines (review-movement, plan): other scripts ending in `process.exit(main())` can still cut piped output past 64 KiB on macOS: requirements-tree, requirements-lift, requirements-regroup, blast-radius and readme-check.

@@ -120,3 +120,5 @@
 - Windows test limits (win-test-limits, plan): new tests keep arriving with the same two habits, a short child limit and a bare-pid read; about 41% of the next flakes may come from checks not yet seen (the critic's estimate).
 - Launch limits (launch-limits-identity, final review; here while FEAT-013's file is at its size cap): the judge probes each record's pid, not its ppid shim, though R-2023's title says every process; a shim outliving its node child is not realistic.
 - Launch limits (launch-limits-identity, final review; here while FEAT-013's file is at its size cap): R-2894's test title says a stopped launch returns the margin before the hang, but the test checks only the constants' sums.
+- Windows test limits (win-test-limits, final review): R-2884's own check leaves out "descendants survived" and "cleanup ended"; R-1701's check still asserts both.
+- Windows test limits (win-test-limits, final review): adoption-reader's run-alone reason names HOOK_PRODUCER_TIMEOUT_MS, which the test file never names; the link runs through the hook it spawns (inferred).
