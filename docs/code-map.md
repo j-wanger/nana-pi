@@ -622,13 +622,13 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/code-map.mjs`
 
-- **purpose** — Run the project template's code-map generator over this repo, adding the measured test files to --impact, so nana-pi's own map is produced by the tool it ships (G-004, G-007, G-009, G-010, G-011).
-- **inputs** — argv (--write | --render | --check | --impact <file...>), code-map.config.json at the repo root, the modules under its roots, and for --impact, git and the runtime data file (NANA_RUNTIME_MAP_FILE override)
-- **outputs** — docs/code-map.md on --write, check findings, or impact callers, callees, freshness and measured test files
-- **effects** — disk (reads the config, the module sources and the runtime data file, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
-- **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; a thrown Error for a bad config or an unknown mode
+- **purpose** — Run the project template's code-map generator over this repo, adding artifact readers and measured test files to --impact, so nana-pi's own map is produced by the tool it ships (G-004, G-007, G-009, G-010, G-011).
+- **inputs** — argv (--write | --render | --check | --impact <file...>), code-map.config.json, module sources, REQUIREMENTS.md, git and runtime data (NANA_RUNTIME_MAP_FILE override)
+- **outputs** — docs/code-map.md on --write, check findings, or impact callers, callees, artifact writers and readers, freshness and measured test files
+- **effects** — disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
+- **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
 - **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/blast-radius.mjs`, `scripts/requirement-rows.mjs`
-- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`
+- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/deliverables.mjs`
 
@@ -637,7 +637,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
-- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 - **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `scripts/requirements-moved.mjs`
 
 ### `scripts/identity-scan.mjs`
@@ -747,7 +747,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
-- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-trace.mjs`
 
 ### `scripts/runtime-measure.mjs`
@@ -1856,9 +1856,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/runtime-map-config.mjs`
 
-- **purpose** — Declare the runtime-map layer's tunables with their provenance.
+- **purpose** — Declare the runtime map and impact command's tunables with their provenance.
 - **inputs** — none
-- **outputs** — RUNTIME_SCHEMA, COVERAGE_ENV, RECORD_FILE, COMPLETION_FILE, KNOB_LINE, DATA_FILE_ENV, DATA_SUBPATH, STOP_SIGNALS, STALE_MARK, NOTE_PREFIX, NOT_COUNTED, COVERAGE_PREFIX, SECONDS_DIGITS, STOP_WAIT_MS, TREE_LIST
+- **outputs** — RUNTIME_SCHEMA, COVERAGE_ENV, RECORD_FILE, COMPLETION_FILE, KNOB_LINE, DATA_FILE_ENV, DATA_SUBPATH, STOP_SIGNALS, STALE_MARK, NOTE_PREFIX, NOT_COUNTED, ARTIFACT_HEADING, ARTIFACT_WRITES, ARTIFACT_READ_BY, ARTIFACT_NO_IMPORT_PATH, ARTIFACT_READS, ARTIFACT_STAR, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_NONE, ARTIFACT_CLOSING_NOTE, ARTIFACT_NOTE_PREFIX, COVERAGE_PREFIX, SECONDS_DIGITS, STOP_WAIT_MS, TREE_LIST
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/code-map.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
@@ -3012,7 +3012,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (spawns git, the copied test runner, the real code-map and runtime-measure CLIs, and fake multi-level process trees for the signal case), disk (temp git repositories and data files under one mkdtemp tree, removed at exit)
 - **errors** — a FAIL line naming the broken behaviour; a non-zero exit code
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`, `scripts/runtime-measure.mjs`
+- **callees** — `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`, `scripts/runtime-measure.mjs`
 
 ### `packages/nana-pack/tests/skill-claims.mjs`
 

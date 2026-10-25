@@ -17,8 +17,8 @@
 import { tmpDir } from "./tmp-dir.mjs";
 import { measure } from "../../../scripts/runtime-measure.mjs";
 import { hashFile } from "../lib/runtime-map.mjs";
-import { runtimeBlock } from "../../../scripts/code-map.mjs";
-import { COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE, STOP_WAIT_MS } from "../lib/runtime-map-config.mjs";
+import { artifactBlock, runtimeBlock } from "../../../scripts/code-map.mjs";
+import { ARTIFACT_CLOSING_NOTE, ARTIFACT_HEADING, ARTIFACT_NONE, ARTIFACT_NOTE_PREFIX, ARTIFACT_NO_IMPORT_PATH, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_READ_BY, ARTIFACT_READS, ARTIFACT_STAR, ARTIFACT_WRITES, COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE, STOP_WAIT_MS } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
@@ -176,9 +176,12 @@ const staticPart = staticOk ? noData.out.slice(0, noData.out.length - noDataSuff
 
 const withData = runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: mm3Data });
 // req: R-1272
-check("R-1272: with runtime data, impact prints the generator's output byte for byte, then the measured test files that ran each named file longest first with seconds and a FAIL label, a zero line for a file no test ran, and the not-counted closing line",
+check("R-1272: with runtime data, impact prints the generator's output byte for byte, then the artifact block, then the measured test files that ran each named file longest first with seconds and a FAIL label, a zero line for a file no test ran, and the not-counted closing line",
 	staticOk
 		&& withData.out.startsWith(`${staticPart}\n`)
+		&& withData.out.includes(ARTIFACT_CLOSING_NOTE)
+		&& withData.out.indexOf("artifacts for scripts/test.mjs") < withData.out.indexOf("runtime map:")
+		&& !withData.out.includes("artifact note:")
 		&& withData.out.includes(`measured tests for ${NAMED_A} (2):`)
 		&& withData.out.includes("2.5s  fixture/a.test.mjs")
 		&& withData.out.includes("1.1s  fixture/b.test.mjs [FAIL]")
@@ -189,9 +192,18 @@ check("R-1272: with runtime data, impact prints the generator's output byte for 
 );
 
 // req: R-1273
-check("R-1273: with no runtime data, impact prints one note naming npm run map:measure after the generator's output and exits with the generator's code",
+check("R-1273: with no runtime data, impact prints one note naming npm run map:measure after the generator's output and artifact block and exits with the generator's code",
 	staticOk && noData.out.includes("npm run map:measure") && noData.code === 0,
 );
+
+// req: R-2822
+check("R-2822: impact prints the generator output, then the artifact block with its closing note, then the runtime block",
+	withData.code === 0
+		&& withData.out.includes(`${ARTIFACT_NONE} ${NAMED_ZERO}`)
+		&& withData.out.match(new RegExp(ARTIFACT_CLOSING_NOTE, "g"))?.length === 1
+		&& withData.out.indexOf("untraced test modules") < withData.out.indexOf(`artifacts for ${NAMED_A}`)
+		&& withData.out.indexOf(ARTIFACT_CLOSING_NOTE) < withData.out.indexOf("measured tests for")
+		&& !withData.out.includes("artifact note:"));
 
 const freshnessData = path.join(TD, "freshness-data.json");
 const freshnessHashes = currentHashes();
@@ -226,7 +238,48 @@ const relationConfig = {
 const relationRoot = mkGitFixture("main-relation", {
 	"code-map.config.json": JSON.stringify(relationConfig),
 	"probe/a.mjs": "export const A = 1;\n",
+	"probe/writer.mjs": "export const W = 1;\n",
+	"probe/reader.mjs": 'import "./writer.mjs";\n',
+	"probe/outside.mjs": "export const O = 1;\n",
 });
+const artifactLedger = [
+	"# CAP-01 · Fixture", "Kind: product", "Outcome: fixture", "", "## FEAT-001 · Maker", "Purpose: makes artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | fixture | implemented | test |", "Artifact: A-001 · writer data · tracked: probe/writer.mjs · suite: probe/writer.mjs", "",
+	"## FEAT-002 · Reader", "Purpose: reads artifacts", "Status: active", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-002 | fixture | implemented | test |", "Reads: A-999 · probe/reader.mjs", "Reads: A-001 · probe/reader.mjs", "Reads: A-001 · probe/outside.mjs", "",
+].join("\n");
+fs.writeFileSync(path.join(relationRoot, "REQUIREMENTS.md"), artifactLedger);
+const artifactReader = async () => ({
+	parseLedger: (await import("../../../scripts/requirements-tree.mjs")).parseLedger,
+	ledgerReadProblem: (await import("../../../scripts/requirements-tree.mjs")).ledgerReadProblem,
+	artifactRegistry: (await import("../../../scripts/deliverables.mjs")).artifactRegistry,
+	artifactReads: (await import("../../../scripts/deliverables.mjs")).artifactReads,
+});
+const artifactFixtureOut = await artifactBlock(relationRoot, ["--impact", path.join(relationRoot, "probe", "writer.mjs"), path.join(relationRoot, "probe", "reader.mjs"), path.join(relationRoot, "probe", "outside.mjs")], { load: artifactReader });
+// req: R-2820
+check("R-2820: impact lists each artifact a named file writes with every recorded reader and marks readers outside its import radius",
+	artifactFixtureOut.includes("artifacts for probe/writer.mjs (1):")
+		&& artifactFixtureOut.includes("writes A-001 writer data · FEAT-001 · suite")
+		&& artifactFixtureOut.includes("probe/reader.mjs (FEAT-002)")
+		&& artifactFixtureOut.includes(`probe/outside.mjs (FEAT-002) ${ARTIFACT_NO_IMPORT_PATH}`)
+		&& artifactFixtureOut.includes("read by: —") === false);
+// req: R-2821
+check("R-2821: impact lists each artifact a named file reads, stars those whose writer is outside its import radius and marks IDs with no live entry",
+	artifactFixtureOut.includes(`reads (2): A-001, A-999 ${ARTIFACT_NO_LIVE_ENTRY}`)
+		&& artifactFixtureOut.includes(`reads (1): A-001${ARTIFACT_STAR}`));
+const missingLedgerRoot = path.join(TD, "missing-ledger");
+fs.mkdirSync(missingLedgerRoot, { recursive: true });
+fs.writeFileSync(path.join(missingLedgerRoot, "code-map.config.json"), JSON.stringify(relationConfig));
+fs.writeFileSync(path.join(missingLedgerRoot, "probe.mjs"), "export {};\n");
+const missingLedgerNote = await artifactBlock(missingLedgerRoot, ["--impact", "probe.mjs"], { load: artifactReader });
+const rejectedLoaderNote = await artifactBlock(relationRoot, ["--impact", "probe/reader.mjs"], { load: async () => { throw new Error("fixture loader failed"); } });
+const nulLedgerRoot = path.join(TD, "nul-ledger");
+fs.mkdirSync(nulLedgerRoot, { recursive: true });
+fs.copyFileSync(path.join(relationRoot, "code-map.config.json"), path.join(nulLedgerRoot, "code-map.config.json"));
+fs.writeFileSync(path.join(nulLedgerRoot, "REQUIREMENTS.md"), "\0\0");
+const nulLedgerNote = await artifactBlock(nulLedgerRoot, ["--impact", "probe/reader.mjs"], { load: artifactReader });
+// req: R-2823
+check("R-2823: an unreadable or unusable ledger or an unloadable parse gives one artifact note and keeps the impact output and exit code",
+	[missingLedgerNote, nulLedgerNote, rejectedLoaderNote].every((out) => out.match(/artifact note:/g)?.length === 1));
+
 function fixtureGit(...args) {
 	const result = spawnSync("git", args, { cwd: relationRoot, encoding: "utf8" });
 	if (result.status !== 0) throw new Error((result.stderr ?? "git failed").trim());
@@ -567,10 +620,20 @@ const mm9ImpactOut = (mm9Impact.stdout ?? "") + (mm9Impact.stderr ?? "");
 check("R-1278: run from a linked worktree with no override, the real measure command writes nana/runtime-map.json under the git common directory and impact in the main checkout reads it",
 	mm9Run.status === 0 && createdNanaMM9 && runtimeMapPresentMM9
 		&& mm9Impact.status === 0
+		&& mm9ImpactOut.match(/artifact note:/g)?.length === 1
 		&& mm9ImpactOut.includes("measured tests for packages/probe/moduleMM9.mjs (1):")
 		&& mm9ImpactOut.includes("packages/probe/tests/a.test.mjs"),
 	`measure status: ${mm9Run.status}; measure output: ${(mm9Run.stdout ?? "") + (mm9Run.stderr ?? "")}; impact output: ${mm9ImpactOut}`,
 );
+
+// req: R-2820 R-2821 R-2822 R-2823
+check("seal: the artifact block's heading, writes, read by, no import path, reads, star, no live entry, none, closing and note labels",
+	ARTIFACT_HEADING === "artifacts for" && ARTIFACT_WRITES === "writes" && ARTIFACT_READ_BY === "read by"
+		&& ARTIFACT_NO_IMPORT_PATH === "(no import path)" && ARTIFACT_READS === "reads" && ARTIFACT_STAR === "*"
+		&& ARTIFACT_NO_LIVE_ENTRY === "(no live entry)"
+		&& ARTIFACT_NONE === "artifacts: no Artifact writer list or Reads line names"
+		&& ARTIFACT_CLOSING_NOTE === "artifact block shows only Artifact: writer lists and other features' Reads: lines; it leaves out readers in the maker's own feature, deliverable Read by: lines, hand-run makers and a file that is itself an artifact's location"
+		&& ARTIFACT_NOTE_PREFIX === "artifact note:");
 
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");
 process.exit(fails ? 1 : 0);

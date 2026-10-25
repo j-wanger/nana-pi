@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
  * @module scripts/code-map.mjs
- * @purpose Run the project template's code-map generator over this repo, adding the measured test files to --impact, so nana-pi's own map is produced by the tool it ships (G-004, G-007, G-009, G-010, G-011).
- * @inputs argv (--write | --render | --check | --impact <file...>), code-map.config.json at the repo root, the modules under its roots, and for --impact, git and the runtime data file (NANA_RUNTIME_MAP_FILE override)
- * @outputs docs/code-map.md on --write, check findings, or impact callers, callees, freshness and measured test files
- * @effects disk (reads the config, the module sources and the runtime data file, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
- * @errors exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; a thrown Error for a bad config or an unknown mode
+ * @purpose Run the project template's code-map generator over this repo, adding artifact readers and measured test files to --impact, so nana-pi's own map is produced by the tool it ships (G-004, G-007, G-009, G-010, G-011).
+ * @inputs argv (--write | --render | --check | --impact <file...>), code-map.config.json, module sources, REQUIREMENTS.md, git and runtime data (NANA_RUNTIME_MAP_FILE override)
+ * @outputs docs/code-map.md on --write, check findings, or impact callers, callees, artifact writers and readers, freshness and measured test files
+ * @effects disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
+ * @errors exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
  */
 // A shim, not a copy. The generator is ONE source — the template every project
 // scaffolds from (`templates/typescript/template/scripts/code-map.mjs`) — and nana-pi
 // runs that file, so the repo lives under the rule it ships. Not a symlink: a win32
 // checkout does not keep one.
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +30,11 @@ import {
 } from "../templates/typescript/template/scripts/code-map.mjs";
 import { checkoutDrift, dataPath, formatFreshness, formatRuntime, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { MAIN_REF } from "../packages/nana-pack/lib/land-config.mjs";
-import { NOTE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
+import {
+	ARTIFACT_CLOSING_NOTE, ARTIFACT_HEADING, ARTIFACT_NONE, ARTIFACT_NOTE_PREFIX,
+	ARTIFACT_NO_IMPORT_PATH, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_READ_BY, ARTIFACT_READS,
+	ARTIFACT_STAR, ARTIFACT_WRITES, NOTE_PREFIX,
+} from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
 export const REPO_ROOT = resolve(
@@ -53,8 +57,7 @@ export function repoGraph(root = REPO_ROOT) {
 }
 
 /** The same repo-relative path each `--impact` argument resolves to inside the generator's own `main` (R-1272). */
-function resolveImpactPaths(args, root) {
-	const graph = repoGraph(root);
+function resolveImpactPaths(args, root, graph = repoGraph(root)) {
 	return args.map((a) => {
 		const rel = relative(root, resolve(a)).split(sep).join("/");
 		return posix.normalize(existsSync(resolve(a)) || graph.modules.has(rel) ? rel : a);
@@ -95,6 +98,56 @@ export function runtimeBlock(root, argv, { env = process.env, now = () => new Da
 	return `\n${freshness ? `${freshness}\n` : ""}${formatRuntime(loaded.data, paths, { hashOf })}\n`;
 }
 
+export async function artifactBlock(root, argv, { load = async () => {
+	const [tree, deliverables] = await Promise.all([import("./requirements-tree.mjs"), import("./deliverables.mjs")]);
+	return { parseLedger: tree.parseLedger, ledgerReadProblem: tree.ledgerReadProblem, artifactRegistry: deliverables.artifactRegistry, artifactReads: deliverables.artifactReads };
+} } = {}) {
+	try {
+		const modules = await load();
+		const ledger = readFileSync(resolve(root, "REQUIREMENTS.md"), "utf8");
+		const parsed = modules.parseLedger(ledger);
+		const problem = modules.ledgerReadProblem(ledger, parsed);
+		if (problem) return `\n${ARTIFACT_NOTE_PREFIX} ${problem}\n`;
+		const registry = modules.artifactRegistry(parsed, null);
+		const reads = modules.artifactReads(parsed, null, registry);
+		const graph = repoGraph(root);
+		const paths = resolveImpactPaths(argv.slice(1), root, graph);
+		const out = [];
+		for (const file of paths) {
+			const radius = new Set([file, ...impact(graph, [file]).callers, ...impact(graph, [file]).callees]);
+			const writes = registry.entries.filter((entry) => entry.live && entry.writers.includes(file));
+			const readIds = [...new Set(reads.reads.filter((entry) => entry.readers.includes(file)).map((entry) => entry.id))]
+				.filter((id) => !writes.some((entry) => entry.id === id))
+				.sort((a, b) => Number(a.slice(2)) - Number(b.slice(2)));
+			const ids = new Set([...writes.map((entry) => entry.id), ...readIds]);
+			out.push(`${ARTIFACT_HEADING} ${file} (${ids.size}):`);
+			if (!ids.size) out.push(`  ${ARTIFACT_NONE} ${file}`);
+			for (const entry of writes) {
+				out.push(`  ${ARTIFACT_WRITES} ${entry.id} ${entry.name} · ${entry.featureId} · ${entry.run}`);
+				const byPath = new Map();
+				for (const read of reads.reads.filter((item) => item.id === entry.id && item.featureId !== entry.featureId)) {
+					for (const reader of read.readers) {
+						if (reader === file) continue;
+						if (!byPath.has(reader)) byPath.set(reader, new Set());
+						byPath.get(reader).add(read.featureId);
+					}
+				}
+				const readers = [...byPath].map(([reader, features]) => `${reader} (${[...features].join(", ")})${radius.has(reader) ? "" : ` ${ARTIFACT_NO_IMPORT_PATH}`}`);
+				out.push(`    ${ARTIFACT_READ_BY}: ${readers.join("; ") || "—"}`);
+			}
+			if (readIds.length) out.push(`  ${ARTIFACT_READS} (${readIds.length}): ${readIds.map((id) => {
+				const entry = registry.byId.get(id);
+				if (!entry?.live) return `${id} ${ARTIFACT_NO_LIVE_ENTRY}`;
+				return `${id}${entry.writers.some((writer) => radius.has(writer)) ? "" : ARTIFACT_STAR}`;
+			}).join(", ")}`);
+		}
+		out.push(ARTIFACT_CLOSING_NOTE);
+		return `\n${out.join("\n")}\n`;
+	} catch (error) {
+		return `\n${ARTIFACT_NOTE_PREFIX} ${error instanceof Error ? error.message : String(error)}\n`;
+	}
+}
+
 function printRuntimeBlock(root, argv) {
 	process.stdout.write(runtimeBlock(root, argv));
 }
@@ -102,6 +155,9 @@ function printRuntimeBlock(root, argv) {
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
 	const argv = process.argv.slice(2);
 	const code = main(argv, REPO_ROOT);
-	if ((argv[0] ?? "--write") === "--impact") printRuntimeBlock(REPO_ROOT, argv);
+	if ((argv[0] ?? "--write") === "--impact") {
+		process.stdout.write(await artifactBlock(REPO_ROOT, argv));
+		printRuntimeBlock(REPO_ROOT, argv);
+	}
 	process.exit(code);
 }
