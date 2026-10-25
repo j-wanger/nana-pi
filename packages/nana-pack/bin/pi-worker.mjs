@@ -31,6 +31,7 @@ import { appendBuildRecord, buildBriefPath, buildEndRecord, buildRecordsPath, bu
 import { BUILD_LEDGER_READ_MAX_BYTES, BUILD_RECORD_LINE_PREFIX, BUILD_RECORD_SCHEMA, REPORT_COST_DIGITS, REPORT_MILLISECONDS_PER_MINUTE, WORKER_TAG } from '../lib/build-records-config.mjs';
 import { releaseLaneLock } from '../lib/lane-lock.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
+import { errorText } from '../lib/record-ledger.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
@@ -276,7 +277,6 @@ function readClaudeBuilderSettings(sealed) {
 function writeClaudeBuilderSettings(settingsFile, carry) {
 	writeFileSync(settingsFile, JSON.stringify(carry.settings), { mode: 0o600 });
 }
-function errorText(error) { return `${error?.code ? `${error.code}: ` : ''}${error?.message ?? String(error)}`; }
 function workerExit(result) {
 	if (result.signal) return { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[result.signal] ?? 1;
 	return result.ok ? 0 : 1;

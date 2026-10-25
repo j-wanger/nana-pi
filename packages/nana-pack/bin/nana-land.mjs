@@ -22,6 +22,7 @@ import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
+import { errorText } from "../lib/record-ledger.mjs";
 
 const LANE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
@@ -241,7 +242,6 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 
-const landRecordErrorText = (error) => `${error?.code ? `${error.code}: ` : ""}${error?.message ?? String(error)}`;
 const withLandRecordLine = (text, line) => `${text}${text && !text.endsWith("\n") ? "\n" : ""}${line}\n`;
 
 /** Run a merge with a best-effort start/end record lifecycle that never changes its verdict or earlier output. */
@@ -279,7 +279,7 @@ export function runLand(options) {
 	if (!common) return result;
 	if (!startKept) {
 		const detail = recordFailure ?? { file: landRecordsPath(common), error: new Error("start record was not kept") };
-		return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${detail.file}: ${landRecordErrorText(detail.error)}`) };
+		return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${detail.file}: ${errorText(detail.error)}`) };
 	}
 
 	let end;
@@ -302,10 +302,10 @@ export function runLand(options) {
 		};
 		const kept = appendLandRecord(common, end);
 		if (!kept.ok) {
-			return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${kept.file}: ${landRecordErrorText(kept.error)}`) };
+			return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${kept.file}: ${errorText(kept.error)}`) };
 		}
 	} catch (error) {
-		return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${landRecordsPath(common)}: ${landRecordErrorText(error)}`) };
+		return { ...result, text: withLandRecordLine(result.text, `${LAND_RECORD_LINE_PREFIX} not kept: ${landRecordsPath(common)}: ${errorText(error)}`) };
 	}
 
 	let laneLine;
@@ -315,7 +315,7 @@ export function runLand(options) {
 			const ledger = readLandLedger(landRecordsPath(common), { maxBytes: options.landLedgerReadMaxBytes ?? LAND_LEDGER_READ_MAX_BYTES });
 			laneLine = renderLandLaneLine(ledger.records, start.lane);
 		} catch (error) {
-			laneLine = `lane line unavailable: ${error?.code === "ERR_TOO_LARGE" ? error.message : landRecordErrorText(error)}`;
+			laneLine = `lane line unavailable: ${error?.code === "ERR_TOO_LARGE" ? error.message : errorText(error)}`;
 		}
 	}
 	return { ...result, text: withLandRecordLine(result.text, renderLandRecordLine(end, laneLine)) };

@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/record-ledger.mjs
- * @purpose Append, bounded-read, pair, and format clone-shared start/end record ledgers.
- * @inputs Ledger paths, JSON records, schema predicates, pairing keys, durations, and counts.
- * @outputs Best-effort append results, parsed records with unreadable counts, paired views, minute values, and plural text.
+ * @purpose Append, bounded-read, pair, format, and render errors for clone-shared record ledgers.
+ * @inputs Ledger paths, JSON records, schema predicates, pairing keys, durations, counts, and errors.
+ * @outputs Best-effort append results, parsed records with unreadable counts, paired views, minute values, plural text, and error text.
  * @effects disk (record append and bounded ledger reads)
  * @errors Appends return named failures; bounded reads throw filesystem errors or ERR_TOO_LARGE with file and cap fields.
  */
@@ -77,3 +77,6 @@ export const minutes = (durationMs) => durationMs === null || durationMs === und
 
 /** A count and singular or plural noun. */
 export const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+
+/** Render error code and message text consistently for ledger diagnostics. */
+export function errorText(error) { return `${error?.code ? `${error.code}: ` : ''}${error?.message ?? String(error)}`; }

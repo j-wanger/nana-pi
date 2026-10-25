@@ -176,6 +176,13 @@ check("R-2812: a CI-passed land records the longest judged run span as its CI wa
 	assert.equal(missing.end.ci, "passed");
 	assert.equal(missing.end.ciWaitMs, null);
 	assert.match(missing.out.text, /^ci: ci run 101 attempt 1 .* success/m);
+
+	const skippedFixture = makeLand("wait-skipped");
+	const skipped = land(skippedFixture);
+	assert.equal(skipped.code, 0, skipped.text);
+	const skippedEnd = ledgerRows(skippedFixture.main).find((row) => row.kind === "end");
+	assert.equal(skippedEnd.ci, "skipped");
+	assert.equal(skippedEnd.ciWaitMs, null);
 });
 
 // req: R-2813
@@ -238,6 +245,12 @@ check("R-2814: every ended land attempt's last line names it and its lane's land
 	assert(last.endsWith(`; ${laneLine}`), `${last}\n${laneLine}`);
 	assert.match(last, new RegExp(`^${LAND_RECORD_LINE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} landed, stage -, 0 min total, 0 min suite, - CI wait; `));
 	assert.match(laneLine, /3 attempts \| 1 landed, 1 refused, 1 no end/);
+
+	const offLane = makeLand("line-no-lane");
+	git(offLane.feature, "checkout", "-b", "topic/ordinary");
+	const offLaneOut = land(offLane);
+	assert.equal(offLaneOut.code, 0, offLaneOut.text);
+	assert.match(offLaneOut.text.trimEnd().split(/\r?\n/).at(-1), /; no lane$/);
 
 	const dirty = makeLand("line-dirty"); fs.writeFileSync(path.join(dirty.main, "base.txt"), "dirty\n");
 	const dirtyOut = land(dirty);
