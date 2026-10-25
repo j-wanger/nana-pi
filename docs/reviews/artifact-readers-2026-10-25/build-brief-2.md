@@ -19,7 +19,7 @@ The task: widen the fixtures and assertions so each gap pair turns its named che
 7. Pair 40 (R-2834, "no accepted park"): a malformed park on an otherwise unread entry in R-2834's fixture; assert the entry still gets the coverage note.
 8. Pair 41b (R-2834, a noted reader line gives no kind): a direct-reference deliverable whose `Read by:` line names a test-file path; assert that reference gives the entry no kind.
 
-Run `node docs/reviews/artifact-readers-2026-10-25/seat-mutate.mjs 1 14 20 21 36 39 40 41b` with SEAT_MUTATE_OUT unset (console only) after your commit; it must report 8/8 red with each named title red. Then run it with no pair numbers; it must report 48/48 red. The runner tests your committed tip, so commit first, then run it, then amend only if a pair still survives. Do not commit any file it leaves.
+After your commit, run `SEAT_MUTATE_TIP=HEAD node docs/reviews/artifact-readers-2026-10-25/seat-mutate.mjs 1 14 20 21 36 39 40 41b` with SEAT_MUTATE_OUT unset (console only); it must report 8/8 red with each named title red. Then run it with no pair numbers; it must report 48/48 red. The script pins session 1's tip, and SEAT_MUTATE_TIP=HEAD makes it test your commit instead. Amend your commit only if a pair still survives, then run both again. Do not commit any file it leaves.
 
 Checks before your commit: requirements-deliverables.test.mjs and requirements-moved.test.mjs alone; `npm run map:check`; `npm run readme:check`; `node scripts/requirements-trace.mjs`; `node scripts/requirements-tree.mjs --check`; `npm run test:locked`, with its output kept out of the worktree; then `git status --short` must print nothing.
 
