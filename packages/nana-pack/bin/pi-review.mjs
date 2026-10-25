@@ -5,11 +5,11 @@
  *  only when a review was produced.
  * @inputs argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
  *  and the pi args), the user-scope review ledger, the reviewed tree's git revision, and
- *  prompts/review-standard.md
+ *  prompts/review-standard.md and HEAD's tree movement from scripts/requirements-moved.mjs
  * @outputs the review text written to --out and the kept-text store, a round recorded in the ledger,
- *  and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
- * @effects disk (writes --out plus the ledger's reservation, kept text, tally and audit files), process (the
- *  watchdog's `pi` child, the reservation heartbeat, the exit code)
+ *  an external temporary movement prompt file, and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
+ * @effects disk (writes --out, creates/removes an external movement folder, and writes the ledger's reservation, kept text, tally and audit files), process (git and scripts/requirements-moved.mjs,
+ *  the watchdog's `pi` child, the reservation heartbeat, the exit code)
  * @errors exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args, a missing,
  *  non-regular or blank review standard), when every attempt stalled or failed, when the round could not
  *  be recorded, or when its recorded verdict is empty; exit 0 otherwise
@@ -35,6 +35,8 @@ import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
+import { reviewMovementSection } from '../lib/review-movement.mjs';
+import { MOVEMENT_HEADING, MOVEMENT_LEAD, MOVEMENT_NOT_COMPUTED, MOVEMENT_FOLDER_PREFIX, MOVEMENT_FILE_NAME } from '../lib/review-movement-config.mjs';
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const w = parseWatchdogArgv(process.argv);
@@ -68,6 +70,7 @@ const sourceRoot = realPath(sourceScope.root, { mustExist: true });
 let sourceOutWarning = null;
 const sourceRedirect = inTreeRedirect(sourceRoot);
 let tempRoot = null, tempRootReal = null, admittedId = null, setupSignal = null;
+let movementFolder = null;
 const setupSignalHandlers = new Map(['SIGINT', 'SIGTERM', 'SIGHUP'].map((signal) => [signal, () => { setupSignal = signal; }]));
 for (const [signal, handler] of setupSignalHandlers) process.on(signal, handler);
 const git = (cwd, args) => {
@@ -171,6 +174,18 @@ try {
   const checkoutRevision = resolveRevision(sourceScope.head, checkoutScope, checkoutScope.root);
   if (checkoutRevision !== sourceRevision) throw new Error(`dirty snapshot could not be reproduced exactly (source ${sourceRevision}, checkout ${checkoutRevision}); review refused without consuming a round`);
 
+  const movement = reviewMovementSection(tempRoot);
+  let movementPrompt = null;
+  if (movement !== null) {
+    try {
+      movementFolder = mkdtempSync(join(tmpdir(), MOVEMENT_FOLDER_PREFIX));
+      movementPrompt = join(movementFolder, MOVEMENT_FILE_NAME);
+      writeFileSync(movementPrompt, movement);
+    } catch (error) {
+      movementPrompt = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${MOVEMENT_NOT_COMPUTED} section file: ${error.code ?? 'unknown'}`;
+    }
+  }
+
   const childArgs = [...w.ownArgs];
   const treeIndex = childArgs.indexOf('--tree');
   if (treeIndex >= 0) childArgs[treeIndex + 1] = tempRoot;
@@ -200,7 +215,7 @@ try {
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;
   try {
-    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText], childEnv: { ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
+    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(movementPrompt === null ? [] : ['--append-system-prompt', movementPrompt])], childEnv: { ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
   } finally {
     stopHeartbeat();
     if (!r?.ok) release(adm.id);
@@ -227,6 +242,10 @@ try {
   process.stderr.write(`pi-review: ${e.message}\n`);
   process.exitCode = 1;
 } finally {
+  if (movementFolder) {
+    try { rmSync(movementFolder, { recursive: true, force: true }); }
+    catch (e) { process.stderr.write(`pi-review: WARNING: movement cleanup failed: ${e.code ?? e.message}\n`); }
+  }
   try { removeWorktree(); } catch (e) { process.stderr.write(`pi-review: WARNING: worktree cleanup failed: ${e.message}\n`); process.exitCode = 1; }
   for (const [signal, handler] of setupSignalHandlers) process.removeListener(signal, handler);
 }

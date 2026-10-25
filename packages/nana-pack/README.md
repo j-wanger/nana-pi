@@ -6,7 +6,7 @@ project scaffolding, and dev-workflow skills.
 **Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
 is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
 something they install), and `package.json` declares no `dependencies` or
-`devDependencies`. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in.
+`devDependencies`. The review launchers start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in.
 Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
 FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
 and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
@@ -182,7 +182,7 @@ pi-review --item <slug> --role sol --out "$scratch/sol-r1.md" -- --provider open
 **The review standard.** Before admission, `pi-review` and `claude-review` read `prompts/review-standard.md` and refuse —
 exit 1, no reservation and no reviewer child — when the file is missing, not a regular file, or blank
 after trimming. `pi-review` appends its text once after the immutable-checkout sentence. `claude-review`
-puts its text once between the brief and its reviewer sentence. A review brief therefore states only
+puts its text once between the brief and its reviewer sentence. pi-review appends a tree movement section file outside the checkout after the standard, or a not-computed line with a reason when computation or writing fails, without refusing the review. A review brief therefore states only
 the threat model and lane class and never repeats the bar. `review-ledger run` wraps any other launcher
 command as given and does **not** inject this text; a hand-rolled review brief must paste it itself.
 
@@ -199,7 +199,7 @@ The launcher requires `--item`, `--tree`, `--brief` and `--out`; it resolves the
 reviewed tree and passes the output path through unchanged. It reads the reviewer model from the
 machine roster, sends the brief, shared review standard and read-only reviewer sentence on standard
 input, then runs `claude -p --model <model> --allowedTools Read,Grep,Glob,Bash --disallowedTools Edit,Write,NotebookEdit`
-through `review-ledger run`. It exits with the ledger's status. A pi reviewer entry is refused before
+through `review-ledger run`. It adds the tree movement section between the brief and the standard, or a not-computed line with a reason when computation fails, without refusing the review. It exits with the ledger's status. A pi reviewer entry is refused before
 admission and must use `pi-review`; there is no fallback model. Set the Claude Code reviewer from a
 terminal or Claude Code shell, not a pi model shell:
 

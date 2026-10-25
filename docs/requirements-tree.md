@@ -59,7 +59,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-011
 - **CAP-02 · Deliver controlled changes**
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
-  Parent: — · Rows: 282 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433, R-1560–R-1565, R-1620–R-1623, R-1634, R-1636, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2270–R-2273, R-2430–R-2432, R-2560–R-2576, R-2578–R-2583, R-2585–R-2592, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2660, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2750–R-2752, R-2754–R-2756, R-2803, R-2810–R-2816
+  Parent: — · Rows: 291 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433, R-1560–R-1565, R-1620–R-1623, R-1634, R-1636, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2270–R-2273, R-2430–R-2432, R-2560–R-2576, R-2578–R-2583, R-2585–R-2592, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2660, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2750–R-2752, R-2754–R-2756, R-2803, R-2810–R-2816, R-2900–R-2908
   Kind: product
   Deliverables: R-1400, R-1008, R-1560, R-977, R-2597, R-2811
   - **FEAT-006 · Launch builders with execution limits**
@@ -73,7 +73,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
     Status: active
     Also applies: R-137, R-2603, R-1125
-    Parent: CAP-02 · Rows: 152 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1370–R-1378, R-1390–R-1395, R-1560–R-1565, R-1620–R-1623, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2576, R-2660
+    Parent: CAP-02 · Rows: 161 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1370–R-1378, R-1390–R-1395, R-1560–R-1565, R-1620–R-1623, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2576, R-2660, R-2900–R-2908
     Artifacts: A-007, A-008, A-056, A-057, A-058
     Reads: A-011
     - **SUB-006 · Identify and freeze the review target**
@@ -84,7 +84,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
       Parent: FEAT-007 · Rows: 18 · IDs: R-192, R-707, R-711, R-714–R-716, R-719, R-720, R-726, R-729, R-834, R-837, R-840–R-842, R-850, R-971, R-972
     - **SUB-008 · Run and stop an isolated reviewer**
       Purpose: Keep reviewer roles separate, suppress unrelated context mutation, apply watchdog and retry rules, and stop child processes cleanly.
-      Parent: FEAT-007 · Rows: 55 · IDs: R-139, R-246, R-623, R-700, R-702, R-727, R-728, R-831, R-846, R-851, R-854, R-919, R-973, R-974, R-1105–R-1108, R-1353, R-1354, R-1390–R-1395, R-1680–R-1683, R-1720–R-1723, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2567
+      Parent: FEAT-007 · Rows: 64 · IDs: R-139, R-246, R-623, R-700, R-702, R-727, R-728, R-831, R-846, R-851, R-854, R-919, R-973, R-974, R-1105–R-1108, R-1353, R-1354, R-1390–R-1395, R-1680–R-1683, R-1720–R-1723, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2567, R-2900–R-2908
     - **SUB-009 · Accept and record a valid result**
       Purpose: Require the expected completion evidence and a valid reservation while invalidating results for changed review state.
       Parent: FEAT-007 · Rows: 12 · IDs: R-249, R-701, R-717, R-718, R-838, R-839, R-969, R-1010, R-1620–R-1623

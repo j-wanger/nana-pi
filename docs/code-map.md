@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 438 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 442 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1057,12 +1057,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/claude-review.mjs`
 
 - **purpose** — Launch the roster's Claude Code reviewer through review-ledger with the shared review prompt on standard input.
-- **inputs** — argv (--item, --tree, --brief relative to --tree, --out, optional --role and --over-cap), the user roster, the brief and review standard.
+- **inputs** — argv (--item, --tree, --brief relative to --tree, --out, optional --role and --over-cap), the user roster, the brief, review standard and HEAD's tree movement.
 - **outputs** — the review-ledger run stderr and output file, one recorded round on success, and review-ledger's exit status.
-- **effects** — disk (reads roster, brief and standard; review-ledger writes its output and records), process (spawns review-ledger and its Claude Code child).
+- **effects** — disk (reads roster, brief and standard; review-ledger writes its output and records), process (computes movement with git and scripts/requirements-moved.mjs, then spawns review-ledger and its Claude Code child).
 - **errors** — exit 1 for bad arguments, a refused roster or non-Claude reviewer, an unreadable or blank input, or review-ledger failure; no stack is printed.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/review-standard.mjs`
+- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/review-movement.mjs`, `packages/nana-pack/lib/review-standard.mjs`
 
 ### `packages/nana-pack/bin/nana-adoption.mjs`
 
@@ -1137,12 +1137,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/pi-review.mjs`
 
 - **purpose** — Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict only when a review was produced.
-- **inputs** — argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, the reviewed tree's git revision, and prompts/review-standard.md
-- **outputs** — the review text written to --out and the kept-text store, a round recorded in the ledger, and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
-- **effects** — disk (writes --out plus the ledger's reservation, kept text, tally and audit files), process (the watchdog's `pi` child, the reservation heartbeat, the exit code)
+- **inputs** — argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, the reviewed tree's git revision, and prompts/review-standard.md and HEAD's tree movement from scripts/requirements-moved.mjs
+- **outputs** — the review text written to --out and the kept-text store, a round recorded in the ledger, an external temporary movement prompt file, and the admission note, warnings and a SUCCESS, FAILED or unread-verdict line on stderr
+- **effects** — disk (writes --out, creates/removes an external movement folder, and writes the ledger's reservation, kept text, tally and audit files), process (git and scripts/requirements-moved.mjs, the watchdog's `pi` child, the reservation heartbeat, the exit code)
 - **errors** — exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args, a missing, non-regular or blank review standard), when every attempt stalled or failed, when the round could not be recorded, or when its recorded verdict is empty; exit 0 otherwise
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/review-standard.mjs`
+- **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/review-movement-config.mjs`, `packages/nana-pack/lib/review-movement.mjs`, `packages/nana-pack/lib/review-standard.mjs`
 
 ### `packages/nana-pack/bin/pi-watchdog.mjs`
 
@@ -1431,7 +1431,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Claude command flags, reviewer tool lists, REVIEW_SLOT, STANDARD_HEADING, REVIEWER_SENTENCE and renderReviewerSentence().
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/config.ts`
@@ -1814,6 +1814,26 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-pack/bin/review-timeline.mjs`
 - **callees** — `packages/nana-pack/lib/review-timeline-config.mjs`
 
+### `packages/nana-pack/lib/review-movement-config.mjs`
+
+- **purpose** — Define the review movement section's framing, command and resource bounds.
+- **inputs** — none
+- **outputs** — Named movement prompt, process and temporary-file tunables.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/lib/review-movement.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/review-movement.test.mjs`
+- **callees** — —
+
+### `packages/nana-pack/lib/review-movement.mjs`
+
+- **purpose** — Compute the reviewed tree's movement as an advisory prompt section without refusing a review.
+- **inputs** — A tree path, an optional process runner, HEAD's REQUIREMENTS.md and the pack's scripts/requirements-moved.mjs.
+- **outputs** — reviewMovementSection() returns null or the movement section text.
+- **effects** — process (runs git and scripts/requirements-moved.mjs with node), disk (children read git and ledger files).
+- **errors** — No errors escape; a failed ledger check returns null and a failed movement becomes a not-computed line.
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`
+- **callees** — `packages/nana-pack/lib/review-movement-config.mjs`
+
 ### `packages/nana-pack/lib/review-standard.mjs`
 
 - **purpose** — Read and validate the pack's shared review standard before a launcher admits a review.
@@ -2137,12 +2157,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/claude-review.test.mjs`
 
 - **purpose** — Pin the Claude Code review launcher from roster selection through prompt assembly, ledger admission, platform launch and exit pass-through.
-- **inputs** — bin/claude-review.mjs, prompts/review-standard.md, temporary git trees, temporary HOME rosters, and fake claude commands on PATH.
+- **inputs** — bin/claude-review.mjs, the standard and movement helpers/config, shared ledger fixtures, temporary HOME rosters, injected stderr forms and fake claude commands on PATH.
 - **outputs** — named PASS/FAIL checks, with one Windows-only skip off win32.
 - **effects** — disk (temporary homes, repositories, pack copies, outputs and fake-command records), process (spawns launchers, git and fake Claude Code commands).
 - **errors** — failed checks or timed-out launcher cases exit nonzero; unexpected setup errors throw.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/review-movement-config.mjs`, `packages/nana-pack/lib/review-movement.mjs`, `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/code-map.test.mjs`
 
@@ -2436,13 +2456,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/immutable-review.test.mjs`
 
-- **purpose** — Pins immutable pi-review snapshots, refusal before admission, child checkout identity and cleanup.
-- **inputs** — pi-review.mjs, review-round.mjs, a fake pi executable and temporary git repositories.
+- **purpose** — Pin immutable pi-review snapshots, admission, child identity, movement prompt files and cleanup.
+- **inputs** — pi-review.mjs, review-round.mjs, movement config, shared ledger fixtures and a fake pi executable.
 - **outputs** — PASS/FAIL checks and a failing process status when a check is false.
-- **effects** — disk (temporary repositories and worktrees), process (fake review launch).
+- **effects** — disk (temporary repositories, worktrees and copies of appended prompt files), process (fake review launch).
 - **errors** — failed assertions exit nonzero; unexpected process errors fail the test.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/launch-wait.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/review-movement-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/launch-wait.mjs`, `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/known-bugs.test.mjs`
 
@@ -2523,6 +2543,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Record read errors other than ENOENT propagate.
 - **callers** — `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`
 - **callees** — —
+
+### `packages/nana-pack/tests/ledger-repo.mjs`
+
+- **purpose** — Build caller-scoped ledger repositories and capture real movement reports without a stdout pipe.
+- **inputs** — A caller-supplied folder, optional ledger texts and branch name, and the repository's movement script.
+- **outputs** — Git runner, ledger writer, commit helper, process result and file-written report text.
+- **effects** — disk (writes temporary repositories and report files), process (starts git and node).
+- **errors** — Git setup or file errors throw; movement failures are returned with stderr and status.
+- **callers** — `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`
+- **callees** — `packages/nana-pack/lib/review-movement-config.mjs`
 
 ### `packages/nana-pack/tests/lifecycle-journal.test.mjs`
 
@@ -2887,12 +2917,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/requirements-moved.test.mjs`
 
 - **purpose** — Pin the tree movement report's row grouping, merge-base diffing, capability, artifact and feature-read changes, and shared-row annotations.
-- **inputs** — scripts/requirements-moved.mjs, direct ledger texts and a fixture git repository built under the OS temp directory.
+- **inputs** — scripts/requirements-moved.mjs, direct ledger texts and ledger-repo.mjs's caller-scoped fixture and file-written report under the OS temp directory.
 - **outputs** — PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
 - **effects** — disk (creates a scratch git repository under the OS temp directory; never touches the repository this test runs in), process (spawns node and git as children)
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-moved.mjs`
+- **callees** — `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-moved.mjs`
 
 ### `packages/nana-pack/tests/requirements-regroup.test.mjs`
 
@@ -2954,6 +2984,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/verdict-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/launch-wait.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
+### `packages/nana-pack/tests/review-movement.test.mjs`
+
+- **purpose** — Pin the movement deliverable's maker and readers and the section's sealed tunables.
+- **inputs** — The repository ledger and review-movement-config.mjs exports.
+- **outputs** — Named PASS/FAIL lines and a failing status for any broken assertion.
+- **effects** — disk (reads the repository ledger).
+- **errors** — Failed assertions print their reason and set a nonzero exit status.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/review-movement-config.mjs`
+
 ### `packages/nana-pack/tests/review-round.test.mjs`
 
 - **purpose** — Pins the review ROUND CAP as pure rules — a round is a distinct revision, the item slug is canonical, and the deprecated path helper keeps its contract
@@ -2967,7 +3007,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/review-standard.test.mjs`
 
 - **purpose** — Pins the review standard's required verdict and MUST text, and pi-review's refusal before admission when the standard file is missing, not a regular file, or blank.
-- **inputs** — packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/review-standard.mjs, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
+- **inputs** — packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/review-standard.mjs, lib/review-movement.mjs, lib/review-movement-config.mjs, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
 - **outputs** — PASS/FAIL lines per check on stdout, and a nonzero exit when any check fails.
 - **effects** — disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

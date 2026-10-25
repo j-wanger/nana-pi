@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/immutable-review.test.mjs
- * @purpose Pins immutable pi-review snapshots, refusal before admission, child checkout identity and cleanup.
- * @inputs pi-review.mjs, review-round.mjs, a fake pi executable and temporary git repositories.
+ * @purpose Pin immutable pi-review snapshots, admission, child identity, movement prompt files and cleanup.
+ * @inputs pi-review.mjs, review-round.mjs, movement config, shared ledger fixtures and a fake pi executable.
  * @outputs PASS/FAIL checks and a failing process status when a check is false.
- * @effects disk (temporary repositories and worktrees), process (fake review launch).
+ * @effects disk (temporary repositories, worktrees and copies of appended prompt files), process (fake review launch).
  * @errors failed assertions exit nonzero; unexpected process errors fail the test.
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -14,6 +14,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { makeLedgerBranch, reportToFile } from "./ledger-repo.mjs";
+import { MOVEMENT_HEADING, MOVEMENT_LEAD, MOVEMENT_NOT_COMPUTED, MOVEMENT_FILE_NAME, MOVEMENT_FOLDER_PREFIX } from "../lib/review-movement-config.mjs";
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const piReview = path.join(bin, "pi-review.mjs");
@@ -31,6 +33,17 @@ const fakeBody = `const fs = require("node:fs");
 if (process.env.OBSERVE_PID) fs.writeFileSync(process.env.OBSERVE_PID, String(process.pid) + "\\n");
 const recordPart = process.env.OBSERVE + ".part";
 fs.writeFileSync(recordPart, process.cwd() + "\\n" + process.env.NANA_REVIEW_ROOT + "\\n" + process.env.NANA_ROLE + "\\n" + process.argv.slice(2).join(" "));
+const argv = process.argv.slice(2);
+const prompts = [];
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] !== "--append-system-prompt") continue;
+  const value = argv[++i];
+  const isFile = fs.existsSync(value);
+  const copy = process.env.OBSERVE + ".prompt-" + prompts.length;
+  if (isFile) fs.copyFileSync(value, copy);
+  prompts.push({ value, copy: isFile ? copy : null });
+}
+fs.writeFileSync(process.env.OBSERVE + ".json", JSON.stringify({ argv, prompts }));
 fs.renameSync(recordPart, process.env.OBSERVE);
 const waitFor = process.env.WAIT_FOR;
 function finish() {
@@ -181,6 +194,9 @@ const standardOccurrences = standardText ? argvStr.split(standardText).length - 
 check("pi-review appends the review standard text once after the immutable sentence",
   launched && standardOccurrences === 1 && idxImmutable >= 0 && idxStandard > idxImmutable && !argvStr.includes("review-standard.md"),
   `${JSON.stringify({ standardOccurrences, idxImmutable, idxStandard })} compared: ${pathForms(path.join(repo, "tracked.txt"))}`);
+// req: R-2904
+check("R-2904: pi-review appends no tree movement section for a revision with no committed ledger",
+  launched && JSON.parse(fs.readFileSync(observe + ".json", "utf8")).prompts.length === 2 && !argvStr.includes(MOVEMENT_HEADING), argvStr);
 // req: R-970
 check("pi-review records its provider, model, actual attempts and duration",
   row?.provider === "openai-codex" && row?.model === "gpt-5.6-sol" && row?.attempts === 1 && Number.isFinite(row?.durationMs) &&
@@ -385,6 +401,49 @@ check("nested repository is refused before admission and consumes no round", ref
       new RegExp(`^${mm5Head}\\+snap:[0-9a-f]{64}$`).test(mm5Row?.revision ?? ""),
     JSON.stringify({ status: mm5Run.status, stderr: mm5Run.stderr, row: mm5Row }));
 }
+
+// contract: Windows limits the whole command line to 32,767 characters.
+const COMMAND_LINE_MAX_CHARS = 32_767;
+const movementCase = (label, options = {}) => {
+  const tree = path.join(root, `movement-${label}`);
+  makeLedgerBranch(tree, options);
+  const expected = reportToFile(tree, path.join(root, `expected-${label}.txt`));
+  const observe = path.join(root, `movement-${label}-observe`);
+  const item = `movement-${label}`;
+  const result = spawnSync(process.execPath, [piReview, "--tree", tree, "--item", item, "--out", path.join(root, `${item}.md`), "--retries", "0", "--", "-p", "review"], {
+    cwd: root, env: env({ OBSERVE: observe, PI_CODING_AGENT_DIR: path.join(home, ".pi", "agent") }), encoding: "utf8", timeout: STALL_CHECK_GUARD_MS,
+  });
+  const record = fs.existsSync(observe + ".json") ? JSON.parse(fs.readFileSync(observe + ".json", "utf8")) : { prompts: [] };
+  const checkout = fs.existsSync(observe) ? fs.readFileSync(observe, "utf8").split("\n")[0] : "";
+  const texts = record.prompts.map((p) => p.copy ? fs.readFileSync(p.copy, "utf8") : p.value);
+  return { expected, item, result, record, checkout, texts };
+};
+const smallMovement = movementCase("small");
+const smallSection = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${smallMovement.expected.stdout.replace(/[\r\n]+$/, "")}`;
+const sectionFile = smallMovement.record.prompts[2]?.value ?? "";
+const sectionRelative = path.relative(smallMovement.checkout, sectionFile);
+// req: R-2901
+check("R-2901: pi-review appends one tree movement section as a file outside the checkout, computed against main, after the review standard, and removes the file when it exits",
+  smallMovement.expected.status === 0 && smallMovement.expected.stdout.includes("R-002 new") && smallMovement.result.status === 0 && smallMovement.record.prompts.length === 3 &&
+  smallMovement.texts[1] === fs.readFileSync(standardPath, "utf8") && smallMovement.texts[2] === smallSection && Boolean(smallMovement.record.prompts[2]?.copy) &&
+  path.basename(sectionFile) === MOVEMENT_FILE_NAME && path.basename(path.dirname(sectionFile)).startsWith(MOVEMENT_FOLDER_PREFIX) &&
+  (sectionRelative === ".." || sectionRelative.startsWith(`..${path.sep}`)) && !fs.existsSync(sectionFile) && !fs.existsSync(path.dirname(sectionFile)),
+  JSON.stringify({ status: smallMovement.result.status, stderr: smallMovement.result.stderr, record: smallMovement.record, texts: smallMovement.texts, checkout: smallMovement.checkout }));
+
+const largeMovement = movementCase("large", { large: true });
+const largeSection = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${largeMovement.expected.stdout.replace(/[\r\n]+$/, "")}`;
+// req: R-2907
+check("R-2907: a tree movement section longer than 32,767 characters reaches the pi reviewer whole",
+  largeMovement.expected.status === 0 && largeSection.length > COMMAND_LINE_MAX_CHARS && largeMovement.result.status === 0 && largeMovement.texts[2] === largeSection,
+  JSON.stringify({ status: largeMovement.result.status, stderr: largeMovement.result.stderr, expectedChars: largeSection.length, receivedChars: largeMovement.texts[2]?.length }));
+
+const trunkMovement = movementCase("trunk", { trunk: true });
+const reason = trunkMovement.expected.stderr.split(/\r?\n/).find((line) => line.trim());
+const refusedSection = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${MOVEMENT_NOT_COMPUTED} ${reason}`;
+// req: R-2908
+check("R-2908: on a repository with no main branch, pi-review appends one not-computed tree movement section, records its round and exits 0",
+  trunkMovement.expected.status !== 0 && Boolean(reason) && trunkMovement.result.status === 0 && trunkMovement.record.prompts.length === 3 && trunkMovement.texts[2] === refusedSection && reviewRound.readRounds(home, { item: trunkMovement.item }).length === 1,
+  JSON.stringify({ status: trunkMovement.result.status, stderr: trunkMovement.result.stderr, texts: trunkMovement.texts }));
 
 try {
   fs.rmSync(root, { recursive: true, force: true, maxRetries: TEMP_REMOVE_MAX_RETRIES, retryDelay: TEMP_REMOVE_RETRY_DELAY_MS });

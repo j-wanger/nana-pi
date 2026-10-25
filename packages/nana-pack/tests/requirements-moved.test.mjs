@@ -1,161 +1,23 @@
 /**
  * @module packages/nana-pack/tests/requirements-moved.test.mjs
  * @purpose Pin the tree movement report's row grouping, merge-base diffing, capability, artifact and feature-read changes, and shared-row annotations.
- * @inputs scripts/requirements-moved.mjs, direct ledger texts and a fixture git repository built under the OS temp directory.
+ * @inputs scripts/requirements-moved.mjs, direct ledger texts and ledger-repo.mjs's caller-scoped fixture and file-written report under the OS temp directory.
  * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
  * @effects disk (creates a scratch git repository under the OS temp directory; never touches the repository this test runs in), process (spawns node and git as children)
  * @errors A failed check prints its reason and exits non-zero.
  */
-import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { treeMovement } from "../../../scripts/requirements-moved.mjs";
+import { TABLE, makeMovementRepo, reportToFile } from "./ledger-repo.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
 
-const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const CLI = join(REPO_ROOT, "scripts/requirements-moved.mjs");
-
 const dir = tmpDir(join(tmpdir(), "req-moved-"));
-const cleanEnv = () => {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) if (/^GIT_/.test(key)) delete env[key];
-  return env;
-};
-const env = cleanEnv();
-function git(...args) {
-  return spawnSync(
-    "git",
-    ["-c", "user.name=test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", ...args],
-    { cwd: dir, encoding: "utf8", env },
-  );
-}
-function writeLedger(text) { writeFileSync(join(dir, "REQUIREMENTS.md"), text); }
-function commit(message) {
-  const add = git("add", "-A");
-  if (add.status !== 0) throw new Error(`git add failed: ${add.stderr}`);
-  const made = git("commit", "-qm", message);
-  if (made.status !== 0) throw new Error(`git commit failed: ${made.stderr}`);
-}
-
-const TABLE = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n";
-
-// Commit c1 on main (must-meet.md's fixture).
-const c1 = `# CAP-01 · Cap
-Purpose: cap
-
-## FEAT-001 · Alpha
-Purpose: alpha
-Status: active
-
-${TABLE}| R-001 | Row one. | planned | — |
-| R-002 | Row two. | untested | — |
-| R-003 | Row three. | implemented | — |
-
-## FEAT-002 · Beta
-Purpose: beta
-Status: active
-Also applies: R-001
-
-${TABLE}| R-004 | Row four. | untested | — |
-| R-005 | Row five. | untested | — |
-
-## FEAT-003 · Gamma
-Purpose: gamma
-Status: active
-
-### SUB-001 · Deep
-Purpose: deep
-
-${TABLE}| R-008 | Row eight. | untested | — |
-`;
-
-// Branch feat/x from c1 (must-meet.md's branch bullets): R-001 implemented, R-002 reworded,
-// R-003 deleted, R-006 added planned in FEAT-001, R-004 moved into FEAT-001, R-005 Evidence-only
-// edit, R-008 implemented.
-const branch = `# CAP-01 · Cap
-Purpose: cap
-
-## FEAT-001 · Alpha
-Purpose: alpha
-Status: active
-
-${TABLE}| R-001 | Row one. | implemented | — |
-| R-002 | Row two, reworded. | untested | — |
-| R-004 | Row four. | untested | — |
-| R-006 | Row six. | planned | — |
-
-## FEAT-002 · Beta
-Purpose: beta
-Status: active
-Also applies: R-001
-
-${TABLE}| R-005 | Row five. | untested | edited |
-
-## FEAT-003 · Gamma
-Purpose: gamma
-Status: active
-
-### SUB-001 · Deep
-Purpose: deep
-
-${TABLE}| R-008 | Row eight. | implemented | — |
-`;
-
-// main, after the branch point (must-meet.md: "After the branch, main gains R-007 in FEAT-002").
-const mainAfter = `# CAP-01 · Cap
-Purpose: cap
-
-## FEAT-001 · Alpha
-Purpose: alpha
-Status: active
-
-${TABLE}| R-001 | Row one. | planned | — |
-| R-002 | Row two. | untested | — |
-| R-003 | Row three. | implemented | — |
-
-## FEAT-002 · Beta
-Purpose: beta
-Status: active
-Also applies: R-001
-
-${TABLE}| R-004 | Row four. | untested | — |
-| R-005 | Row five. | untested | — |
-| R-007 | Row seven. | untested | — |
-
-## FEAT-003 · Gamma
-Purpose: gamma
-Status: active
-
-### SUB-001 · Deep
-Purpose: deep
-
-${TABLE}| R-008 | Row eight. | untested | — |
-`;
-
-git("init", "-q", "-b", "main");
-git("config", "core.autocrlf", "false");
-writeLedger(c1);
-commit("c1");
-
-const branched = git("checkout", "-q", "-b", "feat/x");
-if (branched.status !== 0) throw new Error(`git checkout -b feat/x failed: ${branched.stderr}`);
-writeLedger(branch);
-commit("branch");
-
-const toMain = git("checkout", "-q", "main");
-if (toMain.status !== 0) throw new Error(`git checkout main failed: ${toMain.stderr}`);
-writeLedger(mainAfter);
-commit("main gains R-007");
-
-const backToBranch = git("checkout", "-q", "feat/x");
-if (backToBranch.status !== 0) throw new Error(`git checkout feat/x failed: ${backToBranch.stderr}`);
-
-const result = spawnSync(process.execPath, [CLI, "--root", dir, "--base", "main"], { encoding: "utf8", env });
+makeMovementRepo(dir);
+const result = reportToFile(dir, join(dir, "movement.txt"));
 const stdout = result.stdout ?? "";
 
 /** A row line's nearest preceding unindented stdout line. */
