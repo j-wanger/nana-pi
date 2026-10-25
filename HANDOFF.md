@@ -52,7 +52,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-25: an artifact can now declare its own-feature, person or runtime readers, or a dated park. The check notes any live artifact with neither.
+- 2026-10-25: a broken knowledge sources file now prints a frozen-index notice on every pull, and doctor shows the file's state and the index age.
 
 ## Known bugs
 

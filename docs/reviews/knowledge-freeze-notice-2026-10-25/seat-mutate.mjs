@@ -80,4 +80,4 @@ const PAIRS = [
 	{ n: "40", name: "the clause names nana-knowledge build", edits: [one(SF, CLAUSE, "export const SOURCES_FROZEN_CLAUSE = \"The knowledge index is frozen until the user repairs sources.json; then run nana-knowledge build.\";")], tests: [TS, TD], expectRed: [SEAL] },
 ];
 
-process.exitCode = await runMutations({ lane: "knowledge-freeze-notice", self: import.meta.url, tip: "9ceaad8a", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "knowledge-freeze-notice", self: import.meta.url, tip: "793b0494", declared: DECLARED, pairs: PAIRS });

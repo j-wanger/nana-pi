@@ -1,0 +1,65 @@
+seat-mutate: lane knowledge-freeze-notice, tip 793b049452067be0f07d0c4a623b53a903e7afd2, table 17caf30da55859bfe8c567c3b0e0fda517beece8e251cbbc596ad25e0686c939, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 40 pairs in 5 shards (8+8+8+8+8, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T16:20:15.961Z
+DECLARED (seat) pairs 1 to 14 follow R-2860's red cases; 15 to 19 R-2861's; 20 to 31 R-2862's; 32 to 38 R-2863's; 39 and 40 the seal
+DECLARED (seat) packages/nana-knowledge/tests/hook.test.mjs holds no R-2860 to R-2863 row, so no pair runs it
+DECLARED (seat) declared non-pair: an unquoted rescan path; R-2862's check expects quotes only when KNOWLEDGE_CLI holds a space, so on a checkout path without one no edit can turn it red
+[1/5] seat-mutate: lane knowledge-freeze-notice, shard 1/5, tip 793b049452067be0f07d0c4a623b53a903e7afd2, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 8 pairs, darwin, node v22.22.2, 2026-10-25T16:20:17.071Z
+[1/5] BASELINE ok   packages/nana-knowledge/tests/sources-file.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-setup/tests/doctor-knowledge.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/5] RESULT: 8/8 red (7 exactly their named titles, 2 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane knowledge-freeze-notice, shard 2/5, tip 793b049452067be0f07d0c4a623b53a903e7afd2, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 8 pairs, darwin, node v22.22.2, 2026-10-25T16:20:21.078Z
+[2/5] BASELINE ok   packages/nana-knowledge/tests/sources-file.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/doctor-knowledge.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[2/5] RESULT: 8/8 red (7 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane knowledge-freeze-notice, shard 3/5, tip 793b049452067be0f07d0c4a623b53a903e7afd2, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 8 pairs, darwin, node v22.22.2, 2026-10-25T16:20:25.163Z
+[3/5] BASELINE ok   packages/nana-knowledge/tests/sources-file.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-setup/tests/doctor-knowledge.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/5] RESULT: 8/8 red (6 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane knowledge-freeze-notice, shard 4/5, tip 793b049452067be0f07d0c4a623b53a903e7afd2, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 8 pairs, darwin, node v22.22.2, 2026-10-25T16:20:29.200Z
+[4/5] BASELINE ok   packages/nana-knowledge/tests/sources-file.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-setup/tests/doctor-knowledge.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[4/5] RESULT: 8/8 red (7 exactly their named titles, 2 with a named title green, 1 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane knowledge-freeze-notice, shard 5/5, tip 793b049452067be0f07d0c4a623b53a903e7afd2, merge-base 61671be05aeefe47090d9b90e575e2c050f5c951, 8 pairs, darwin, node v22.22.2, 2026-10-25T16:20:33.372Z
+[5/5] BASELINE ok   packages/nana-knowledge/tests/sources-file.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-setup/tests/doctor-knowledge.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[5/5] RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 the notice prints only when hits exist — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the notice prints after the block — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 the notice counts inside the block budget — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 a budget return drops the notice — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 the pull's marker drops the place — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 the pull's marker gives the manual advice — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 the parser's message joins the notice — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 the notice prints for a reviewer or worker role — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 2 insertions(+))
+RED 9 the notice prints for bad input — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 2 insertions(+))
+RED 10 the notice prints for a skipped prompt — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 2 insertions(+))
+RED 11 pull.log gains a frozen field — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 12 pull.log logs a new frozen reason — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 the notice line prints twice — 1/1 named: /^R-2860: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 a read error throws out of the reader — (no named case); named but NOT REACHED: /^R-2860: /, /^R-2862: /; UNNAMED red: [sources-file.test.mjs] R-2375: a sources.json that exists but cannot be read keeps every row and is named UNREADABLE; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH sources-file.test.mjs THREW (later checks never ran) || doctor-knowledge.test.mjs THREW (later checks never ran)
+RED 15 the pull reads through loadSources, which seeds an absent file — 1/1 named: /^R-2861: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 the pull rewrites a parsing file — 1/1 named: /^R-2861: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 17 the reader parses text with JSON.parse — 2/2 named: /^R-2861: / | /^R-2862: /; UNNAMED red: [sources-file.test.mjs] R-2370: a sources.json with a UTF-8, UTF-16LE or UTF-16BE byte-order mark indexes its root like its plain UTF…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the notice keys on no roots — 1/1 named: /^R-2861: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 an absent file prints the notice — 1/1 named: /^R-2861: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 20 doctor seeds an absent file — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 doctor parses text, so a UTF-16 file fails — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 22 doctor fails a wrong-shape file — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 a broken file is a note — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 24 the parser's message joins doctor's detail — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 25 doctor's marker drops the place — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 26 the rescan command names nana-knowledge build — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 27 the rescan command is missing — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 28 the fail detail is not led by the path — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 29 the row reuses the knowledge index label — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 30 the row is missing without an index — 1/1 named: /^R-2862: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 31 an absent file throws out of the doctor row — (no named case); named but NOT REACHED: /^R-2862: /; 0 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-)); CRASH doctor-knowledge.test.mjs THREW (later checks never ran)
+RED 32 the age comes from the file's mtime — 1/1 named: /^R-2863: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 33 a missing meta table turns the row to fail — 1/1 named: /^R-2863: /; UNNAMED red: [doctor-knowledge.test.mjs] valid docs table is counted read-only {"status":"fail","label":"knowledge index","detail":"/private/tmp/claud…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 34 the age is worded in minutes — 1/1 named: /^R-2863: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 35 a non-number built_at prints NaN — 1/1 named: /^R-2863: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 36 a zero built_at prints a huge age — 1/1 named: /^R-2863: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 37 a future built_at prints a negative age — 1/1 named: /^R-2863: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 38 the docs count is dropped from the detail — 1/1 named: /^R-2863: /; UNNAMED red: [doctor-knowledge.test.mjs] valid docs table is counted read-only {"status":"ok","label":"knowledge index","detail":"/private/tmp/claude-…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 39 the clause names no actor — 1/1 named: /^seal: the frozen-index clause/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 40 the clause names nana-knowledge build — 1/1 named: /^seal: the frozen-index clause/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 40/40 red (35 exactly their named titles, 4 with a named title green, 4 with an unnamed red), 0 survived, across 5 shards
