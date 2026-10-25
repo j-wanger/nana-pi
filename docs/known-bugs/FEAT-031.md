@@ -96,7 +96,7 @@
 - Windows flakes (win-flake-hardening, plan): R-1471's and R-1473's overlap preconditions keep their timing; neither failed in 93 Windows attempts.
 - Windows flakes (win-flake-hardening, plan): worker-lane and build-records keep `--poll 0.1`, and worker-lane keeps its 15-second limit, so a slow CPU sampler can still reach them as it reached brief-check.
 - Windows flakes (win-flake-hardening, plan): build-report's hard-kill worker polls above the test's start wait by reading; no test pins it.
-- Windows flakes (win-flake-hardening, plan): templates-update's adopt failure and R-2023's relay kill stay for shared-helpers; their link is inferred.
+- Windows flakes (win-flake-hardening, plan): templates-update's adopt failure stays for shared-helpers.
 - Windows flakes (win-flake-hardening, plan): CI re-runs cannot prove the failure rate fell; the proof is the injected schedules and their wrong-code pairs.
 - Windows flakes (win-flake-hardening, final review): in R-2668's and R-2669's fixtures the late file's wait for its partner's ready file has no deadline, so a partner that never starts hangs the fixture until the runner's per-file timeout instead of failing fast; it matters only when the runner is already broken.
 - Windows flakes (win-flake-hardening, final review): R-2667 tests a kill helper that lives inside the test, as the plan decided; it proves the step cannot throw, not taskkill's real behaviour, and its status-255 and status-128 fakes cannot fail because spawnSync never throws on a non-zero status.
@@ -106,9 +106,8 @@
 - Suite records (report-at-land, seat pairs): no test pins that the suite record's land prefix comes from the shared land test. A version that compares only the land tip with HEAD changes nothing but the prefix on a hand measure's record lines.
 - Product report at land (report-at-land, final review): a stop signal during the report build releases the lock while the build finishes. The rename is atomic and the exit code stays the signal's, but another suite can start before this run returns.
 - Test runner (bench-study-scratch and win-temp-check CI, 2026-10-24): R-2546's run-record check failed three times on the Windows suite leg, at 822286b5, 86c628b9 and 1e77de81. Each re-run passed (a Windows first-try flake, inferred).
-- Windows flakes (report-names-artifacts CI, 2026-10-24): one re-run attempt at 6ea795eb took 1,181 s against 956 s. In it, project-stale failed seven checks with empty producer output, and R-2023 found a timed-out pi process still alive. Both files passed in the other two attempts (a slow runner, inferred).
+- Windows flakes (report-names-artifacts CI, 2026-10-24): one re-run attempt at 6ea795eb took 1,181 s against 956 s. In it, project-stale failed seven checks with empty producer output. That file passed in the other two attempts (a slow runner, inferred).
 - CI timing (2026-10-24): the Windows suite leg ran in two bands across five runs that day, 877 to 956 s or 1,180 to 1,197 s. In them, land.test.mjs took 241 to 249 s or 349 to 357 s, though no lane touched it (two runner pools, inferred).
 - Mutation runner (land-records CI, 2026-10-24): R-1960's release-retry case failed once on a slow Windows runner at d3cf9a0d, in a 1,181 s suite. A SIGKILL ended the child before the bounded release finished; the lane touched no runner code.
 - Windows flakes (impact-artifacts CI, 2026-10-25): R-1984 failed once at 56ad9dd1, because doctor's pi executable row read `·` before and `✓` after. The lane touched no setup code (a first-try flake, inferred).
-- Windows flakes (impact-artifacts CI, 2026-10-25): R-2023 failed again at 61671be0, on a timed-out pi process tree. The re-run passed, and a planned lane takes its pid check.
 - Windows flakes (artifact-readers CI, 2026-10-25): R-2546's run-record check failed a fifth time at 9dae642b, in a 1,397 s suite. The lane touched no runner code, and the Windows timing lane takes that limit.

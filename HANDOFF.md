@@ -12,10 +12,10 @@
 
 1. **Current priority: the artifact work (the owner, 2026-10-23).** Each artifact comes from an existing run, is read by code, and shows its age. The owner's Windows run and checklist passed that day.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** On 2026-10-25 the owner lifted the pause for four page-free lanes. Two are on main; the other two and a Windows lane are building.
+3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** On 2026-10-25 the owner lifted the pause for four page-free lanes. Three are on main; one more and a Windows lane are still building.
 4. **Product page readability (the owner, 2026-10-24).** The page is getting too complex. It stays frozen: no page addition until the owner's discussion.
 5. **Queue after that.** The owner's discussion sets it. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
-6. **Windows first-try failures.** Since 2026-10-22, flaky tests failed 32 of 171 first Windows runs, about 18% both before and after the 2026-10-23 hardening lane. Two Windows test lanes are in planning; the owner says when they build.
+6. **Windows first-try failures.** Since 2026-10-22, flaky tests failed 32 of 171 first Windows runs, about 18% both before and after the 2026-10-23 hardening lane. The owner picked both Windows test lanes; one is on main, and one is building.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
 ## Open for the owner
@@ -52,7 +52,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-25: an artifact can now declare its own-feature, person or runtime readers, or a dated park. The check notes any live artifact with neither.
+- 2026-10-25: the setup test that killed processes by reused process IDs now judges each one at once and kills nothing.
 
 ## Known bugs
 

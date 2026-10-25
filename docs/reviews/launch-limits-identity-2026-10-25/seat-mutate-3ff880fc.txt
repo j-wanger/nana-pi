@@ -1,0 +1,47 @@
+seat-mutate: lane launch-limits-identity, tip 3ff880fcf1feb17f77f29e47e35c3d2ee0882a2d, table 3c30f1b10e413f15fe1bb7320dc907c5dd889ca3c9c7d4867ea4a400dc19f212, merge-base 4af28b0f75261dbbf0f0968d52e9e25dfd06e8c7, 25 pairs in 5 shards (5+5+5+5+5, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-25T16:12:09.988Z
+DECLARED (seat) pairs 1 to 21 follow the must-meet's seat wrong-code list in order; pair 16 splits into 16a to 16d and pair 17 into 17a and 17b, one edit each; each names the rows the must-meet says it turns red
+DECLARED (seat) the old kill loops (plan :280 and :187) are gone at this tip, so pairs 1 and 12 put them back where they sat: after the judge's probe loop, and after observeParentKill's wait
+DECLARED (seat) alsoRed lists rows a pair also turns red as a side effect the must-meet does not name: 3 (R-2892, an injected EINVAL or EPERM reads ended), 16a (R-2895, a 3 s allowance against a 2.5 s late child; timing-dependent), 21 (R-2130 and R-2131, the parent-kill path ends through the same killTree)
+DECLARED (Windows-only, not in this table) no must-meet pair is marked Windows-only. R-2300 and R-2303 skip off Windows, so no pair names them; R-2303's start wait reverted to waitFor's default has no macOS red case (must-meet Known limits). The seat runs it on the Windows CI leg if needed
+DECLARED (product) pair 21 is the must-meet's seat-only product mutation in bounded-spawn-child.mjs; every other pair edits the test file alone
+[1/5] seat-mutate: lane launch-limits-identity, shard 1/5, tip 3ff880fcf1feb17f77f29e47e35c3d2ee0882a2d, merge-base 4af28b0f75261dbbf0f0968d52e9e25dfd06e8c7, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:12:11.248Z
+[1/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 22 PASS, 0 FAIL, )
+[1/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane launch-limits-identity, shard 2/5, tip 3ff880fcf1feb17f77f29e47e35c3d2ee0882a2d, merge-base 4af28b0f75261dbbf0f0968d52e9e25dfd06e8c7, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:12:15.067Z
+[2/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 22 PASS, 0 FAIL, )
+[2/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane launch-limits-identity, shard 3/5, tip 3ff880fcf1feb17f77f29e47e35c3d2ee0882a2d, merge-base 4af28b0f75261dbbf0f0968d52e9e25dfd06e8c7, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:12:19.124Z
+[3/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 22 PASS, 0 FAIL, )
+[3/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane launch-limits-identity, shard 4/5, tip 3ff880fcf1feb17f77f29e47e35c3d2ee0882a2d, merge-base 4af28b0f75261dbbf0f0968d52e9e25dfd06e8c7, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:12:22.998Z
+[4/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 22 PASS, 0 FAIL, )
+[4/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane launch-limits-identity, shard 5/5, tip 3ff880fcf1feb17f77f29e47e35c3d2ee0882a2d, merge-base 4af28b0f75261dbbf0f0968d52e9e25dfd06e8c7, 5 pairs, darwin, node v22.22.2, 2026-10-25T16:12:26.987Z
+[5/5] BASELINE ok   packages/nana-setup/tests/pi-launch-limits.test.mjs (exit 0, 22 PASS, 0 FAIL, )
+[5/5] RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 the judge SIGKILLs each pid it reads alive — 2/2 named: /^R-2890: / | /^R-2893: /; 2 FAIL total (1 file changed, 1 insertion(+))
+RED 2 the verdict drops the pid list and probe results — 1/1 named: /^R-2890: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 ended comes from the record count, not the probes — 1/1 named: /^R-2890: /; also (declared): /^R-2892: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 the judge ignores at — 1/1 named: /^R-2891: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 the deadline drops the self-exit margin — 1/1 named: /^R-2891: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 the judge skips a record with no at — 1/1 named: /^R-2891: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 the probe keeps the old polarity, any code but EPERM reads gone — 1/1 named: /^R-2892: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 the probe reads EPERM as gone — 1/1 named: /^R-2892: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 the judge drops records without a positive integer pid and ppid — 1/1 named: /^R-2892: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 the verdict omits the error code — 1/1 named: /^R-2892: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 R-2303's wrapper cleanup keeps process.kill(child.pid) — 1/1 named: /^R-2893: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 observeParentKill's failure-path kill loop is back — 1/1 named: /^R-2893: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 13 the judge calls its injected kill with SIGKILL on a live pid — 2/2 named: /^R-2893: / | /^R-2890: /; 2 FAIL total (1 file changed, 1 insertion(+))
+RED 14 an unused tree-kill helper import — 1/1 named: /^R-2893: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 15 R-2023 runs taskkill over recorded pids — 1/1 named: /^R-2893: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 16a the start allowance at 3 s — 1/1 named: /^R-2894: /; declared but GREEN: /^R-2895: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16b the start allowance at 7 s — 1/1 named: /^R-2894: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16c the self-exit margin at 0 — 1/1 named: /^R-2894: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16d the start allowance folded into the parent-kill bound — 2/2 named: /^R-2894: / | /^R-2484: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17a observeParentKill keeps waitFor's default start wait — 1/1 named: /^R-2895: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17b observeParentKill's start wait uses LIMIT_MS — 1/1 named: /^R-2895: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the hang body ignores CHILD_DELAY_MS — 1/1 named: /^R-2895: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 R-2023 runs all four launches, then judges — 1/1 named: /^R-2023: /; 1 FAIL total (1 file changed, 2 insertions(+), 3 deletions(-))
+RED 20 R-2023's runs use LIMIT_MS, not the start allowance — 1/1 named: /^R-2023: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 the relay's killTree kills only its direct child (product) — 1/1 named: /^R-2023: /; also (declared): /^R-2130: / | /^R-2131: /; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 25/25 red (25 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards
