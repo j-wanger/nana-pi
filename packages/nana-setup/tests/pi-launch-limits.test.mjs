@@ -38,6 +38,7 @@ const PARENT_KILL_BOUND_MS = RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + RELA
 const CLEANUP_DELAY_MS = 2 * RELAY_PARENT_POLL_MS;
 const CASE_LIMIT_MS = SIGNAL_CASE_BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS;
 const PID_POLL_MS = 2_000;
+const BYSTANDER_ANSWER_LIMIT_MS = 2_000;
 const LATE_CHILD_MS = (PID_POLL_MS + START_ALLOWANCE_MS) / 2;
 const limits = Object.freeze({ version: LIMIT_MS, install: LIMIT_MS });
 const expectedPack = path.join(repoRoot, "packages", "nana-pack");
@@ -336,8 +337,14 @@ check("R-2890: a recorded pid still alive when the judge's wait ends makes the r
 	try {
 		const record = { pid: bystander.pid, ppid: process.pid, args: ["bystander"], at: Date.now() };
 		const result = judgeRun([record]);
-		const answered = new Promise((resolve) => { bystander.once("message", (message) => resolve(message === "pong")); bystander.send("ping"); });
-		const pinged = await Promise.race([answered, sleep(PID_POLL_MS).then(() => false)]);
+		const answered = new Promise((resolve) => {
+			bystander.once("message", (message) => resolve(message === "pong"));
+			bystander.once("error", () => resolve(false));
+			bystander.once("exit", () => resolve(false));
+			try { bystander.send("ping", (error) => { if (error) resolve(false); }); }
+			catch { resolve(false); }
+		});
+		const pinged = await Promise.race([answered, sleep(BYSTANDER_ANSWER_LIMIT_MS).then(() => false)]);
 		return { ok: !result.ended && result.details.some((item) => item.pid === record.pid && item.last === "alive") && pinged, detail: JSON.stringify({ result, pinged }) };
 	} finally { bystander.kill("SIGKILL"); }
 });
