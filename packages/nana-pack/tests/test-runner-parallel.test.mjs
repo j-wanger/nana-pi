@@ -19,6 +19,7 @@
 // themselves — never from guessing at scheduling.
 import { tmpDir } from "./tmp-dir.mjs";
 import { RUN_ALONE } from "../lib/test-runner-config.mjs";
+import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS } from "../../nana-setup/lib/hook-producer.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -494,6 +495,22 @@ const runAloneOk = runAlonePaths.length > 0 && runAlonePaths.every((p) =>
 	COLLECTED_TEST_PATTERN.test(p) && fs.existsSync(path.join(REPO, p)) && typeof RUN_ALONE[p] === "string" && RUN_ALONE[p].trim().length > 0);
 // req: R-1474
 check("R-1474: the run-alone list names only collected test files, each with a reason", runAloneOk, runAlonePaths.join(", "));
+
+const hookBoundNames = new Map([
+	["HOOK_DEADLINE_MS", HOOK_DEADLINE_MS],
+	["HOOK_PRODUCER_TIMEOUT_MS", HOOK_PRODUCER_TIMEOUT_MS],
+]);
+const loadSensitiveAlone = [
+	"packages/nana-setup/tests/hook-deadlines.test.mjs",
+	"packages/nana-pack/tests/adoption-reader.test.mjs",
+].map((file) => {
+	const reason = RUN_ALONE[file];
+	const names = [...hookBoundNames].filter(([name]) => reason?.includes(name));
+	return { file, reason, names, ok: typeof reason === "string" && names.length > 0 && names.every(([, value]) => typeof value === "number") };
+});
+// req: R-2885
+check("R-2885: the run-alone list names hook-deadlines and adoption-reader, each with a reason naming HOOK_DEADLINE_MS or HOOK_PRODUCER_TIMEOUT_MS",
+	loadSensitiveAlone.every((entry) => entry.ok), JSON.stringify(loadSensitiveAlone));
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // R-1475: SIGINT and SIGTERM during a --jobs run kill every running tree and remove every

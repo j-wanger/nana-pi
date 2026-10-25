@@ -3,11 +3,19 @@
  * @purpose Pins fail-closed lane and brief verification, prompt delivery, and the sealed worker ceiling.
  * @inputs pi-worker, brief config, a temporary git repository/worktree, and a stub pi executable
  * @outputs named PASS/FAIL checks
- * @effects disk (OS temp fixtures), process (git and worker subprocesses)
+ * @effects disk (OS temp fixtures and a slow CPU-sampler shim), process (git and worker subprocesses)
  * @errors failed assertions exit nonzero
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
+import {
+	FAKE_PI_HOLD_MS,
+	resolveSampler,
+	samplerIsFirst,
+	SLOW_SAMPLER_MS,
+	WORKER_POLL_SECS,
+	writeSlowSampler,
+} from "./slow-sampler.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -69,10 +77,16 @@ writeStub(mainPosixScript(true), mainNodeBody(true));
 // it per call.
 const defaultAgentDir = path.join(temp, ".pi", "agent");
 const out = path.join(temp, "output.md");
-const run = (cwd, args, more = {}, piArgs = []) => spawnSync(process.execPath, [worker, "--poll", "0.1", "--out", out, ...args, ...(piArgs.length ? ["--", ...piArgs] : [])], {
-	cwd, encoding: "utf8", timeout: 15000,
-	env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir, ...more },
-});
+// chosen 2026-10-25 (R-2883): R-2619 missed 15 seconds once at 26235c79; a cold CPU sampler is the inferred cause.
+const CHILD_LIMIT_MS = 30_000;
+const run = (cwd, args, more = {}, piArgs = []) => {
+	const started = Date.now();
+	const result = spawnSync(process.execPath, [worker, "--poll", String(WORKER_POLL_SECS), "--out", out, ...args, ...(piArgs.length ? ["--", ...piArgs] : [])], {
+		cwd, encoding: "utf8", timeout: CHILD_LIMIT_MS,
+		env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir, ...more },
+	});
+	return { ...result, elapsedMs: Date.now() - started };
+};
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) process.exitCode = 1; };
 const clearLaunchArtifacts = () => {
 	fs.rmSync(piSpawnMarker, { force: true });
@@ -262,22 +276,64 @@ check("R-2618: a brief with no Precedent section is told the label stands on a l
 	return phraseChecks.every(Boolean) && empty.status === 1 && !empty.stderr.includes("a Precedent heading") && actualSection.status === 0 && fs.existsSync(piSpawnMarker);
 })());
 
-// req: R-2619
-check("R-2619: bold and punctuated Precedent paths are checked as the bare path", (() => {
+const r2619Launches = [];
+const r2619Ok = (() => {
 	const passing = [
 		"- **seed** — note", "- **`tracked/nested.mjs`**:12,", "- seed:93-100).", "- seed: the reader",
 		"- `seed`: the reader", "- seed:12: note", "- **none:** no earlier code exists",
 	];
 	for (const entry of passing) {
 		const result = runBriefText(`Precedent:\n${entry}\n`);
+		r2619Launches.push({ entry, status: result.status, elapsedMs: result.elapsedMs, stderrTail: result.stderr.trim().split(/\r?\n/).slice(-3).join(" | ") });
 		if (result.status !== 0 || !fs.existsSync(piSpawnMarker) || !result.stderr.includes("1 checked at HEAD")) return false;
 	}
 	for (const entry of ["- *.mjs", "- [seed](seed)", "- tracked/..", "- **missing.mjs**"]) {
 		const result = runBriefText(`Precedent:\n${entry}\n`);
+		r2619Launches.push({ entry, status: result.status, elapsedMs: result.elapsedMs, stderrTail: result.stderr.trim().split(/\r?\n/).slice(-3).join(" | ") });
 		if (result.status !== 1 || fs.existsSync(piSpawnMarker)) return false;
 	}
 	return true;
-})());
+})();
+// req: R-2619
+check("R-2619: bold and punctuated Precedent paths are checked as the bare path", r2619Ok, JSON.stringify(r2619Launches));
+
+const samplerDir2883 = path.join(temp, "r2883-sampler");
+const samplerMarker2883 = path.join(temp, "r2883-sampler-started");
+const holdRecord2883 = path.join(temp, "r2883-hold.json");
+const { samplerName: samplerName2883, samplerShim: samplerShim2883 } = writeSlowSampler(samplerDir2883);
+const holdBody2883 = `const fs = require("node:fs");\nconst started = Date.now();\nsetTimeout(() => { fs.writeFileSync(${JSON.stringify(holdRecord2883)}, JSON.stringify({ heldMs: Date.now() - started })); process.stdout.write("worker output\\n"); }, ${FAKE_PI_HOLD_MS});\n`;
+const holdScript2883 = path.join(stubDir, "r2883-hold.cjs");
+fs.writeFileSync(holdScript2883, holdBody2883);
+writeStub(`#!/bin/sh\nexec "${process.execPath}" "${holdScript2883}" "$@"\n`, holdBody2883);
+fs.writeFileSync(brief, defaultBriefText);
+clearLaunchArtifacts();
+const launchEnv2883 = {
+	PATH: `${samplerDir2883}${path.delimiter}${stubDir}${path.delimiter}${process.env.PATH}`,
+	SAMPLER_MARKER: samplerMarker2883,
+	SLOW_SAMPLER_MS: String(SLOW_SAMPLER_MS),
+};
+const resolvedLaunchSampler2883 = resolveSampler({ ...process.env, ...launchEnv2883 }, CHILD_LIMIT_MS);
+const launch2883 = run(lane, ["--lane", "alpha", "--brief", brief], launchEnv2883);
+writeStub(mainPosixScript(true), mainNodeBody(true));
+const defaultSamplerEnv2883 = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}` };
+const resolvedDefaultSampler2883 = resolveSampler(defaultSamplerEnv2883, CHILD_LIMIT_MS);
+const hold2883 = fs.existsSync(holdRecord2883) ? JSON.parse(fs.readFileSync(holdRecord2883, "utf8")) : null;
+const samplerStarted2883 = fs.existsSync(samplerMarker2883);
+const stubHasSampler2883 = fs.existsSync(path.join(stubDir, path.basename(samplerShim2883)));
+// req: R-2883
+check("R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler",
+	launch2883.status === 0 && samplerIsFirst(resolvedLaunchSampler2883, samplerShim2883)
+		&& hold2883?.heldMs >= FAKE_PI_HOLD_MS && !samplerStarted2883
+		&& !samplerIsFirst(resolvedDefaultSampler2883, samplerShim2883) && !stubHasSampler2883,
+	JSON.stringify({ status: launch2883.status, signal: launch2883.signal, elapsedMs: launch2883.elapsedMs, stderrTail: launch2883.stderr?.trim().split(/\r?\n/).slice(-3).join(" | "), samplerName: samplerName2883, resolvedLaunchSampler: resolvedLaunchSampler2883, resolvedDefaultSampler: resolvedDefaultSampler2883, hold: hold2883, samplerStarted: samplerStarted2883, stubHasSampler: stubHasSampler2883 }));
+if (samplerStarted2883) {
+	const samplerPid = Number(fs.readFileSync(samplerMarker2883, "utf8"));
+	if (samplerPid > 0) { try { process.kill(samplerPid, "SIGKILL"); } catch {} }
+}
+// req: R-2883
+check("seal: worker-lane's launches have a 30-second limit and poll less often than that",
+	CHILD_LIMIT_MS === 30_000 && WORKER_POLL_SECS * 1000 > CHILD_LIMIT_MS,
+	JSON.stringify({ CHILD_LIMIT_MS, WORKER_POLL_SECS }));
 
 // req: R-2620
 check("R-2620: a heading such as Precedent audit is not read as the Precedent section", (() => {

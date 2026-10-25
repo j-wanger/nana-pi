@@ -48,9 +48,14 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const OUTER_HOME = os.homedir();
 const posix = process.platform !== "win32";
+// chosen 2026-10-25 (R-2880): 800 ms missed on four Windows first tries; R-2753 passed in the later three,
+// so both records used 800 ms and the miss was in labels or causes. Four seconds remain after the late pass.
+const RECORD_LIMIT_MS = 5_000;
+const LATE_PASS_MS = 1_000; // chosen 2026-10-25 (R-2880): above the old 800 ms limit, so the old limit fails every run.
+const TIMEOUT_FIXTURE_MS = 5 * RECORD_LIMIT_MS; // chosen (R-2880): the runner self-test's 5:1 fixture-to-limit ratio.
 
 let fails = 0;
-const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+const check = (n, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : detail); if (!ok) fails++; };
 
 // ── fixture roots ────────────────────────────────────────────────────────────────────────────
 /** A throwaway repo root: the real runner at scripts/test.mjs plus the given files. */
@@ -520,17 +525,26 @@ check("R-1270: with the coverage knob unset, the runner prints no knob line, wri
 
 // ── case I2: the whole-run record knob (R-2546) ─────────────────────────────────────────────
 const rootRecord = mkRoot("suite-record", {
-	"packages/probe/tests/a-pass.test.mjs": 'console.log("PASS record pass");\n',
+	"packages/probe/tests/a-pass.test.mjs": [
+		'import * as fs from "node:fs";',
+		'import * as path from "node:path";',
+		'const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));',
+		'const started = Date.now();',
+		`while (Date.now() - started < ${LATE_PASS_MS}) await sleep(Math.min(25, ${LATE_PASS_MS} - (Date.now() - started)));`,
+		'fs.writeFileSync(path.join(process.env.PROBE_OUT, "a-pass-sleep.json"), JSON.stringify({ sleptMs: Date.now() - started }));',
+		'console.log("PASS record pass");',
+		'',
+	].join("\n"),
 	"packages/probe/tests/b-exit.test.mjs": 'console.log("PASS reached exit"); process.exit(7);\n',
 	"packages/probe/tests/c-silent.test.mjs": 'console.log("diagnostic only");\n',
-	"packages/probe/tests/d-timeout.test.mjs": 'setTimeout(() => {}, 5000);\n',
+	"packages/probe/tests/d-timeout.test.mjs": `setTimeout(() => process.exit(0), ${TIMEOUT_FIXTURE_MS});\n`,
 	"packages/probe/tests/e-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
 	"apps/bench/test/study-tasks.test.mjs": TRAP("the declared skip did not skip"),
 });
 function runRecorded(name, args, extra = {}) {
 	const recordFile = path.join(TD, `${name}.json`);
 	fs.rmSync(recordFile, { force: true });
-	const result = run(rootRecord, args, { [RECORD_FILE_ENV]: recordFile, NANA_TEST_TIMEOUT_MS: "800", ...extra }, extra[COVERAGE_ENV] === undefined ? [COVERAGE_ENV] : []);
+	const result = run(rootRecord, args, { [RECORD_FILE_ENV]: recordFile, NANA_TEST_TIMEOUT_MS: String(RECORD_LIMIT_MS), ...extra }, extra[COVERAGE_ENV] === undefined ? [COVERAGE_ENV] : []);
 	let record = null;
 	try { record = JSON.parse(fs.readFileSync(recordFile, "utf8")); } catch {}
 	return { result, record, recordFile };
@@ -608,7 +622,26 @@ check("R-2546: with the record knob set, the runner writes one run record with e
 		&& noSuiteRunRecordUnder(rootKnob) && noSuiteRunRecordUnder(recordedUnset.tmp) && !recordedUnset.out.includes("suite record:"));
 // req: R-2753
 check("R-2753: the run record names the default per-file time limit the runner applied",
-	recordedSerial.record?.fileTimeoutMs === Number("800") && recordedParallel.record?.fileTimeoutMs === Number("800"));
+	recordedSerial.record?.fileTimeoutMs === RECORD_LIMIT_MS && recordedParallel.record?.fileTimeoutMs === RECORD_LIMIT_MS);
+
+const recordRuns2880 = [
+	{ label: "serial", run: recordedSerial, files: serialFiles },
+	{ label: "parallel", run: recordedParallel, files: parallelFiles },
+].map(({ label, run, files }) => ({
+	label,
+	pass: files.get("packages/probe/tests/a-pass.test.mjs"),
+	timeout: files.get("packages/probe/tests/d-timeout.test.mjs"),
+	sleptMs: readJson(run.result.out_dir, "a-pass-sleep.json")?.sleptMs ?? null,
+}));
+// req: R-2880
+check("R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel",
+	recordRuns2880.every((entry) => entry.pass?.label === "PASS" && entry.pass?.cause === undefined
+		&& entry.timeout?.label === "FAIL" && entry.timeout?.cause === "timed out" && entry.sleptMs >= LATE_PASS_MS),
+	JSON.stringify(recordRuns2880.map((entry) => ({ label: entry.label, pass: { label: entry.pass?.label, cause: entry.pass?.cause, seconds: entry.pass?.seconds }, timeout: { label: entry.timeout?.label, cause: entry.timeout?.cause, seconds: entry.timeout?.seconds }, sleptMs: entry.sleptMs }))));
+// req: R-2880
+check("seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds",
+	RECORD_LIMIT_MS === 5_000 && LATE_PASS_MS === 1_000 && TIMEOUT_FIXTURE_MS === 25_000,
+	JSON.stringify({ RECORD_LIMIT_MS, LATE_PASS_MS, TIMEOUT_FIXTURE_MS }));
 
 const testRoots = [
 	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })

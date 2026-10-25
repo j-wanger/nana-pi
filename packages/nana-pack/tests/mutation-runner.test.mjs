@@ -149,7 +149,10 @@ function buildFixtureRepo(root, initialProbeMode = "plain") {
 		"  const met = await waitFor(`start-${PROBE_PARTNER_KEY}`, waitLimitMs);",
 		'  console.log(met ? "PASS" : "FAIL", "fixture: probe met its rendezvous partner");',
 		'} else if (PROBE_MODE === "rendezvous-lock") {',
-		`  mark(\`lockheld-\${PROBE_KEY}\`, "1");`,
+		"  const lateMarkStarted = Date.now();",
+		"  const lateMarkMs = Number(process.env.NANA_TEST_START_DELAY_MS || 0);",
+		"  while (Date.now() - lateMarkStarted < lateMarkMs) await sleep(Math.min(25, lateMarkMs - (Date.now() - lateMarkStarted)));",
+		`  mark(\`lockheld-\${PROBE_KEY}\`, JSON.stringify({ delayedMs: Date.now() - lateMarkStarted }));`,
 		"  const released = await waitFor(`release-${PROBE_KEY}`, waitLimitMs);",
 		'  console.log(released ? "PASS" : "FAIL", "fixture: probe was released");',
 		'} else if (PROBE_MODE === "sleep") {',
@@ -298,6 +301,13 @@ const CLEANUP_THREE_SHARDS = 3;
 const CONTENTION_BUDGET_MS = 120_000;
 // chosen: five seconds lets workers finish their current millisecond-scale critical section before forced cleanup.
 const CONTENTION_STOP_GRACE_MS = 5_000;
+// chosen 2026-10-25 (R-2881): 1.5 seconds killed R-1960's child once at d3cf9a0d; both child guards share 30 seconds.
+const CHILD_LIMIT_MS = 30_000;
+// chosen 2026-10-25 (R-2882): the 4-second held wait missed once in run 39887104509; this matches the rendezvous limit.
+const CONTEND_WAIT_MS = 30_000;
+const CHILD_LATE_START_MS = 3_000; // chosen (R-2881): twice the old 1.5-second child guard.
+const PROBE_LATE_MARK_MS = 5_000; // chosen (R-2882): above the old 4-second held wait.
+const LATE_RELEASE_MS = 5_000; // chosen (R-2882): above the old 4-second probe wait.
 
 /** Build a minimal table def; `self` is filled by writeTable. */
 function table(fx, pairs, extra = {}) {
@@ -671,6 +681,9 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		importLine("{ withWorktreeOperationLock }", pathToFileURL(RUNNER_LIB).href),
 		importLine("* as fs", "node:fs"),
 		"const [lockPath, resultPath, limitRaw] = process.argv.slice(2);",
+		"const lateStart = Date.now();",
+		`Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${CHILD_LATE_START_MS});`,
+		"const startDelayMs = Date.now() - lateStart;",
 		'const fault = Object.assign(new Error("injected EPERM"), { code: "EPERM" });',
 		"let clock = 0; let waits = 0; let unlinks = 0; const reports = []; let error = null;",
 		"try { withWorktreeOperationLock(lockPath, () => undefined, {",
@@ -680,7 +693,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		"  unlinkSync: () => { unlinks++; throw fault; },",
 		"  report: (line) => reports.push(line),",
 		"}); } catch (err) { error = err?.message ?? String(err); }",
-		"fs.writeFileSync(resultPath, JSON.stringify({ clock, waits, unlinks, reports, error }));",
+		"fs.writeFileSync(resultPath, JSON.stringify({ clock, waits, unlinks, reports, error, startDelayMs }));",
 		"",
 	].join("\n"));
 	const child = spawn(process.execPath, [childPath, lockPath, resultPath, String(injectedReleaseLimitMs)], { stdio: ["ignore", "pipe", "pipe"] });
@@ -689,7 +702,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		let settled = false;
 		child.stdout.on("data", (d) => { output += d; });
 		child.stderr.on("data", (d) => { output += d; });
-		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 1500);
+		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, CHILD_LIMIT_MS);
 		const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
 		child.on("error", (err) => done(null, err.message));
 		child.on("close", done);
@@ -703,6 +716,10 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 	const ok = finiteOk && boundedOk;
 	// req: R-1960
 	check("R-1960: release retries outlive acquisition but stop, report and throw at the sealed release limit", ok, JSON.stringify({ finite, finiteOk, bounded, boundedOk, transientFailures, childResult, lockLeft: fs.existsSync(lockPath) }));
+	// req: R-2881
+	check("R-2881: R-1960's bounded-release child still reports its result when it starts 3 seconds late",
+		childResult.code === 0 && bounded.startDelayMs >= CHILD_LATE_START_MS,
+		JSON.stringify({ childResult, bounded, CHILD_LATE_START_MS, CHILD_LIMIT_MS }));
 }
 
 {
@@ -737,7 +754,7 @@ const cleanupFaultPair = (n, key, mode) => ({ n: String(n), name: mode, edits: [
 		let settled = false;
 		child.stdout.on("data", (d) => { output += d; });
 		child.stderr.on("data", (d) => { output += d; });
-		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, 1500);
+		const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* already gone */ } }, CHILD_LIMIT_MS);
 		const done = (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); resolve({ code, signal, output }); };
 		child.on("error", (err) => done(null, err.message));
 		child.on("close", done);
@@ -1319,21 +1336,36 @@ if (!posix) {
 // ── R-1242: the record lock ──────────────────────────────────────────────────────────────────────
 {
 	const reasons = [];
+	let r2882Observation = null;
 	{
 		const fx = newFixture("m23-contend");
 		const out = outFile(fx, "r.txt");
 		const pairs = [{ n: "1", name: "holds the lock", edits: [...probeKeyEdit("lock1"), probeModeEdit("rendezvous-lock")], tests: [T2], expectRed: [] }];
-		const run1 = run(fx, "t1.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: out, [CFG.ENV_NAMES.SHARDS]: "1" });
-		const held = await waitUntil(() => fs.existsSync(path.join(fx.marks, "lockheld-lock1")), 4000);
+		const run1 = run(fx, "t1.mjs", table(fx, pairs), {
+			[CFG.ENV_NAMES.OUT]: out,
+			[CFG.ENV_NAMES.SHARDS]: "1",
+			NANA_TEST_START_DELAY_MS: String(PROBE_LATE_MARK_MS),
+			NANA_TEST_WAIT_MS: String(CONTEND_WAIT_MS),
+		});
+		const held = await waitUntil(() => fs.existsSync(path.join(fx.marks, "lockheld-lock1")), CONTEND_WAIT_MS);
 		if (!held) reasons.push("contend: run1 never reached its rendezvous");
 		const run2 = await run(fx, "t2.mjs", table(fx, [{ n: "1", name: "refused", edits: [], tests: [T1], expectRed: [] }]), { [CFG.ENV_NAMES.OUT]: out, [CFG.ENV_NAMES.SHARDS]: "1" });
 		if (run2.result !== CFG.EXIT_REFUSED) reasons.push(`contend: second run exit ${run2.result}`);
 		if (!/refusing a second run/.test(run2.text)) reasons.push(`contend: no refusal line: ${run2.text}`);
-		fs.writeFileSync(path.join(fx.marks, "release-lock1"), "1");
+		const releaseStarted = Date.now();
+		while (Date.now() - releaseStarted < LATE_RELEASE_MS) await sleep(Math.min(25, LATE_RELEASE_MS - (Date.now() - releaseStarted)));
+		const releaseDelayMs = Date.now() - releaseStarted;
+		fs.writeFileSync(path.join(fx.marks, "release-lock1"), JSON.stringify({ delayedMs: releaseDelayMs }));
 		const run1Result = await run1;
+		const record = readOut(fx, "r.txt");
 		if (run1Result.result !== 0) reasons.push(`contend: run1 exit ${run1Result.result}`);
-		if (!/^GREEN 1 /m.test(readOut(fx, "r.txt"))) reasons.push(`contend: run1's record incomplete: ${readOut(fx, "r.txt")}`);
+		if (!/^GREEN 1 /m.test(record)) reasons.push(`contend: run1's record incomplete: ${record}`);
 		if (fs.existsSync(`${out}${CFG.LOCK_SUFFIX}`)) reasons.push("contend: the lock file is still there");
+		let lateMark = null;
+		let releaseMark = null;
+		try { lateMark = JSON.parse(readMark(fx, "lockheld-lock1")); } catch {}
+		try { releaseMark = JSON.parse(readMark(fx, "release-lock1")); } catch {}
+		r2882Observation = { held, run2Exit: run2.result, run1Exit: run1Result.result, recordWhole: /^GREEN 1 /m.test(record), lockGone: !fs.existsSync(`${out}${CFG.LOCK_SUFFIX}`), lateMarkMs: lateMark?.delayedMs ?? null, releaseDelayMs: releaseMark?.delayedMs ?? null };
 	}
 	{
 		const fx = newFixture("m23-stale");
@@ -1346,6 +1378,16 @@ if (!posix) {
 	}
 	// req: R-1242
 	check("mutation runner: a second run given the same record file is refused with exit 2, naming it, before it creates any worktree, the first run's record is whole and its lock gone when it ends, and a lock left by a process that no longer runs is reported and replaced", reasons.length === 0, reasons.join("; "));
+	// req: R-2882
+	check("R-2882: R-1242's contend case holds when the first run marks its lock 5 seconds late and is released 5 seconds after the refusal",
+		r2882Observation?.held === true && r2882Observation.run2Exit === CFG.EXIT_REFUSED && r2882Observation.run1Exit === 0
+			&& r2882Observation.recordWhole && r2882Observation.lockGone
+			&& r2882Observation.lateMarkMs >= PROBE_LATE_MARK_MS && r2882Observation.releaseDelayMs >= LATE_RELEASE_MS,
+		JSON.stringify({ ...r2882Observation, CONTEND_WAIT_MS, PROBE_LATE_MARK_MS, LATE_RELEASE_MS }));
+	// req: R-2881 R-2882
+	check("seal: the bounded lock children have a 30-second limit and the contend case waits 30 seconds, with a 3-second late child, a 5-second late mark and a 5-second late release",
+		CHILD_LIMIT_MS === 30_000 && CONTEND_WAIT_MS === 30_000 && CHILD_LATE_START_MS === 3_000 && PROBE_LATE_MARK_MS === 5_000 && LATE_RELEASE_MS === 5_000,
+		JSON.stringify({ CHILD_LIMIT_MS, CONTEND_WAIT_MS, CHILD_LATE_START_MS, PROBE_LATE_MARK_MS, LATE_RELEASE_MS }));
 }
 
 // ── R-1243: tip and table identity ──────────────────────────────────────────────────────────────

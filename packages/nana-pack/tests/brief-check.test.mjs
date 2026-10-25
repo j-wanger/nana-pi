@@ -9,6 +9,14 @@
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
+import {
+	FAKE_PI_HOLD_MS,
+	resolveSampler,
+	samplerIsFirst,
+	SLOW_SAMPLER_MS,
+	WORKER_POLL_SECS,
+	writeSlowSampler,
+} from "./slow-sampler.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -48,9 +56,6 @@ git(repo, "worktree", "add", "-qb", "feat/alpha", lane);
 // all from legs that failed elsewhere; 30 seconds is 7.5 times the slowest, matches build-records'
 // CASE_LIMIT_MS, and keeps seven children under the 300-second per-file land limit.
 const CHILD_LIMIT_MS = 30_000;
-const WORKER_POLL_SECS = 60; // chosen 2026-10-23 (R-2670): twice the child limit, so the fake exits before a CPU sample.
-const FAKE_PI_HOLD_MS = 1_000; // chosen 2026-10-23: ten times the old 0.1-second poll, forcing old code to sample.
-const SLOW_SAMPLER_MS = 60_000; // chosen 2026-10-23: twice the child limit, modeling a sampler that outlives it.
 const nodeBody = `const fs = require("node:fs");\nconst started = Date.now();\nfs.writeFileSync(${JSON.stringify(marker)}, "spawned\\n");\nsetTimeout(() => { fs.writeFileSync(${JSON.stringify(holdRecord)}, JSON.stringify({ heldMs: Date.now() - started })); process.stdout.write("worker output\\n"); }, ${FAKE_PI_HOLD_MS});\n`;
 if (process.platform === "win32") writeFakePi(stubDir, nodeBody);
 else {
@@ -60,15 +65,9 @@ else {
 	fs.writeFileSync(pi, `#!/bin/sh\nexec "${process.execPath}" "${body}" "$@"\n`);
 	fs.chmodSync(pi, 0o755);
 }
-const samplerBody = path.join(stubDir, "slow-sampler.cjs");
-fs.writeFileSync(samplerBody, `const fs = require("node:fs"); fs.writeFileSync(process.env.SAMPLER_MARKER, String(process.pid)); setTimeout(() => {}, Number(process.env.SLOW_SAMPLER_MS));\n`);
-const samplerShim = path.join(stubDir, process.platform === "win32" ? "powershell.cmd" : "ps");
-if (process.platform === "win32") fs.writeFileSync(samplerShim, `@echo off\r\n"${process.execPath}" "${samplerBody}" %*\r\nexit /b %errorlevel%\r\n`);
-else { fs.writeFileSync(samplerShim, `#!/bin/sh\nexec "${process.execPath}" "${samplerBody}" "$@"\n`); fs.chmodSync(samplerShim, 0o755); }
+const { samplerShim } = writeSlowSampler(stubDir);
 const env = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: agentDir, SAMPLER_MARKER: samplerMarker, SLOW_SAMPLER_MS: String(SLOW_SAMPLER_MS) };
-const resolvedSampler = process.platform === "win32"
-	? spawnSync("where", ["powershell"], { env, encoding: "utf8", timeout: CHILD_LIMIT_MS }).stdout?.trim().split(/\r?\n/)[0]
-	: spawnSync("/bin/sh", ["-c", "command -v ps"], { env, encoding: "utf8", timeout: CHILD_LIMIT_MS }).stdout?.trim();
+const resolvedSampler = resolveSampler(env, CHILD_LIMIT_MS);
 const writeBrief = (name, text) => {
 	const file = path.join(temp, name);
 	fs.writeFileSync(file, text);
@@ -115,13 +114,7 @@ const sharedByBoth = fs.existsSync(sharedCheck) &&
 	!["readBrief", "checkPrecedent", "ls-tree", "KNOWN_BUGS_DIR"].some((token) => checkerSource.includes(token));
 
 const hold = fs.existsSync(holdRecord) ? JSON.parse(fs.readFileSync(holdRecord, "utf8")) : null;
-const realpath = process.platform === "win32" ? fs.realpathSync.native : fs.realpathSync;
-let samplerResolvedFirst = false;
-if (resolvedSampler) {
-	try {
-		samplerResolvedFirst = realpath(resolvedSampler) === realpath(samplerShim);
-	} catch {}
-}
+const samplerResolvedFirst = samplerIsFirst(resolvedSampler, samplerShim);
 const ok = observations.every((entry) => entry.ok) && sharedByBoth;
 const check = (title, pass, detail = "") => {
 	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : detail);

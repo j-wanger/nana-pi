@@ -25,6 +25,8 @@ const { runLand, runCleanup } = await import(pathToFileURL(path.join(bin, "nana-
 const { admit, complete, readRounds } = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
 
 const win32 = process.platform === "win32";
+// chosen: the impossible owner used by mutation-runner-takeover.test.mjs, outside the platform pid range.
+const IMPOSSIBLE_PID = 2_147_483_647;
 // MUST 4 (brief 2): do NOT resolve this to its long/native form. On Windows CI the runner's own
 // os.tmpdir() is already a short 8.3-style path (e.g. under `RUNNER~1`) — the natural second
 // spelling every repo and home built under it inherits for free. Each "canonical" ground truth
@@ -400,12 +402,15 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const spellings = otherSpellings(tempParent, "GP4");
   // req: R-1353
   if (spellings.length) check("GP4: a dead review checkout registered under one spelling of the temp folder is reclaimed when pi-review's own temp folder env points at another", () => {
+   let probeError = null;
+   try { process.kill(IMPOSSIBLE_PID, 0); } catch (error) { probeError = error; }
+   ok(probeError?.code === "ESRCH", `impossible pid probe did not throw ESRCH: ${probeError?.code ?? "no error"}`);
+   let index = 0;
    for (const { kind, path: other } of spellings) {
     printSpelling("GP4", kind, tempParent, other);
     for (const [dirA, dirB, label] of [[tempParent, other, "canonical-then-other"], [other, tempParent, "other-then-canonical"]]) {
-      const dead = spawnSync(process.execPath, ["-e", ""]).pid;
-      ok(Number.isInteger(dead) && dead > 0, `could not get a dead pid`);
-      const deadPath = path.join(dirA, `nana-review-${dead}-gp4`);
+      index++;
+      const deadPath = path.join(dirA, `nana-review-${IMPOSSIBLE_PID}-gp4-${index}`);
       git(canonicalRepo, "worktree", "add", "--detach", deadPath);
       const home = freshHome();
       const tempEnv = win32 ? { TEMP: dirB, TMP: dirB } : { TMPDIR: dirB };
@@ -413,7 +418,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
       const worktrees = git(canonicalRepo, "worktree", "list", "--porcelain");
       ok(res.status === 0, `[${kind}/${label}] pi-review refused: ${res.stderr}`);
       ok(!fs.existsSync(deadPath), `[${kind}/${label}] the dead checkout folder is still present: ${deadPath}`);
-      ok(!worktrees.includes(`nana-review-${dead}-gp4`), `[${kind}/${label}] the dead checkout is still registered: ${worktrees}`);
+      ok(!worktrees.includes(`nana-review-${IMPOSSIBLE_PID}-gp4-${index}`), `[${kind}/${label}] the dead checkout is still registered: ${worktrees}`);
     }
    }
   });

@@ -54,7 +54,7 @@ const { POST_EDIT_KILL_GRACE_MS } = await import(new URL("../lib/post-edit-confi
 const SETTLE_BOUND_MS = POST_EDIT_KILL_GRACE_MS + 4000;
 
 let fails = 0;
-const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+const check = (n, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : detail); if (!ok) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const JOURNAL = path.join(tmpDir(path.join(os.tmpdir(), "postedit-journal-")), "journal.jsonl");
@@ -96,6 +96,9 @@ async function settle(promise) {
 const POSIX = process.platform !== "win32";
 const FIXTURE_EXIT_MS = 30_000; // chosen: self-reap well after WATCHDOG_MS so broken kill paths stay observable.
 const TREE_DEADLINE_MS = 2500; // chosen: about 6x the observed Windows checker-run time, leaving ample process-tree startup margin.
+// chosen 2026-10-25 (R-2884): the 2.5-second taskkill-off-PATH case missed once at 833bedee; cause inferred.
+const WIN_TREE_DEADLINE_MS = 10_000;
+const TREE_LATE_START_MS = 3_000; // chosen 2026-10-25 (R-2884): above the old 2.5-second deadline.
 const POST_KILL_POLL_MS = 2000; // chosen: gives platform process tables time to observe taskkill or signal completion without hiding a survivor.
 const mark = (tag) => `nana-${tag}-${process.pid}-${Math.random().toString(36).slice(2)}`;
 // checks that the tool argument names an existing file — proves the substituted path
@@ -126,7 +129,7 @@ async function waitUntil(predicate, timeoutMs) {
 function readPid(file) {
 	try { return Number(fs.readFileSync(file, "utf8").trim()); } catch { return undefined; }
 }
-function writeTreeFixture(td, { ignoreSigterm = false, child = true } = {}) {
+function writeTreeFixture(td, { ignoreSigterm = false, child = true, lateStartMs = 0 } = {}) {
 	const script = path.join(td, "tree.cjs");
 	fs.writeFileSync(script, [
 		'const { spawn } = require("node:child_process");',
@@ -137,6 +140,11 @@ function writeTreeFixture(td, { ignoreSigterm = false, child = true } = {}) {
 		'if (process.argv[3] === "level-b") {',
 		'  fs.writeFileSync(path.join(dir, "level-b.pid"), String(process.pid));',
 		'} else {',
+		'  const lateStart = Date.now();',
+		`  const lateStartMs = ${lateStartMs};`,
+		'  const sleeper = new Int32Array(new SharedArrayBuffer(4));',
+		'  while (Date.now() - lateStart < lateStartMs) Atomics.wait(sleeper, 0, 0, Math.min(25, lateStartMs - (Date.now() - lateStart)));',
+		'  fs.writeFileSync(path.join(dir, "level-a-delay.json"), JSON.stringify({ delayedMs: Date.now() - lateStart }));',
 		'  fs.writeFileSync(path.join(dir, "level-a.pid"), String(process.pid));',
 		'  fs.writeFileSync(path.join(dir, "level-a.ppid"), String(process.ppid));',
 		...(child ? ['  spawn(process.execPath, [__filename, dir, "level-b"], { stdio: "inherit" });'] : []),
@@ -288,6 +296,7 @@ if (process.platform === "win32") {
 	let shellEnded = false;
 	let descendantsSurvived = false;
 	let settledTimedOut = false;
+	let startDelayMs = null;
 	let cleanupEnded = false;
 	try {
 		process.env.PATH = path.dirname(process.execPath);
@@ -299,15 +308,16 @@ if (process.platform === "win32") {
 		if (precondition) {
 			({ td } = setup([]));
 			const handlers = {};
-			const script = writeTreeFixture(td);
+			const script = writeTreeFixture(td, { lateStartMs: TREE_LATE_START_MS });
 			const levelAFile = path.join(td, "level-a.pid");
 			const levelBFile = path.join(td, "level-b.pid");
 			const ppidFile = path.join(td, "level-a.ppid");
+			const delayFile = path.join(td, "level-a-delay.json");
 			const command = `"${process.execPath}" "${script}" "${td}"`;
 			fs.writeFileSync(USER_CFG, JSON.stringify({
 				journal: { enabled: true, path: JOURNAL },
 				receipts: { enabled: true, dir: path.join(td, "receipts") },
-				postEdit: { commands: [{ match: "\\.txt$", run: command, timeoutMs: TREE_DEADLINE_MS }] },
+				postEdit: { commands: [{ match: "\\.txt$", run: command, timeoutMs: WIN_TREE_DEADLINE_MS }] },
 			}));
 			ext({ on: (name, fn) => { handlers[name] = fn; } });
 			const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true, signal: new AbortController().signal };
@@ -322,8 +332,9 @@ if (process.platform === "win32") {
 				levelA = readPid(levelAFile);
 				levelB = readPid(levelBFile);
 				shellPid = readPid(ppidFile);
-				return Date.now() - started < TREE_DEADLINE_MS && shellPid !== process.pid && pidAlive(shellPid) && pidAlive(levelA) && pidAlive(levelB);
-			}, TREE_DEADLINE_MS);
+				return Date.now() - started < WIN_TREE_DEADLINE_MS && shellPid !== process.pid && pidAlive(shellPid) && pidAlive(levelA) && pidAlive(levelB);
+			}, WIN_TREE_DEADLINE_MS);
+			try { startDelayMs = JSON.parse(fs.readFileSync(delayFile, "utf8")).delayedMs; } catch {}
 			const { hung, ret } = await settle(pending);
 			shellEnded = await waitUntil(() => !pidAlive(shellPid), POST_KILL_POLL_MS);
 			descendantsSurvived = pidAlive(levelA) && pidAlive(levelB);
@@ -331,15 +342,24 @@ if (process.platform === "win32") {
 		}
 	} finally {
 		if (originalPath === undefined) delete process.env.PATH; else process.env.PATH = originalPath;
-		cleanupEnded = await reapTree([levelA, levelB, shellPid]);
+		cleanupEnded = await reapTree([levelA, levelB, ...(shellEnded ? [] : [shellPid])]);
 		if (td && cleanupEnded) removeTreeFixture(td);
 	}
 	if (!precondition) console.log(`taskkill-off-PATH precondition failed: ${preconditionCause}`);
+	const treeDetail = JSON.stringify({ precondition, shellWasAlive, shellEnded, descendantsSurvived, settledTimedOut, startDelayMs, cleanupEnded });
 	// req: R-1701
-	check("win32: with taskkill off PATH the timed-out check's shell is killed and the run settles", precondition && shellWasAlive && shellEnded && descendantsSurvived && settledTimedOut && cleanupEnded);
+	check("win32: with taskkill off PATH the timed-out check's shell is killed and the run settles", precondition && shellWasAlive && shellEnded && descendantsSurvived && settledTimedOut && cleanupEnded, treeDetail);
+	// req: R-2884
+	check("R-2884: with taskkill off PATH and the tree's first level starting 3 seconds late, the shell still ends and the run settles timed out",
+		precondition && shellWasAlive && shellEnded && settledTimedOut && startDelayMs >= TREE_LATE_START_MS, treeDetail);
 } else {
 	console.log("SKIP win32: with taskkill off PATH the timed-out check's shell is killed and the run settles — taskkill is Windows-only");
+	console.log("SKIP R-2884: with taskkill off PATH and the tree's first level starting 3 seconds late, the shell still ends and the run settles timed out — taskkill is Windows-only");
 }
+// req: R-2884
+check("seal: the taskkill-off-PATH case allows 10 seconds and starts its first level 3 seconds late, inside the settle watchdog and the fixture's self-exit",
+	WIN_TREE_DEADLINE_MS === 10_000 && TREE_LATE_START_MS === 3_000 && WIN_TREE_DEADLINE_MS < WATCHDOG_MS && TREE_LATE_START_MS < WIN_TREE_DEADLINE_MS && WIN_TREE_DEADLINE_MS < FIXTURE_EXIT_MS,
+	JSON.stringify({ WIN_TREE_DEADLINE_MS, TREE_LATE_START_MS, WATCHDOG_MS, FIXTURE_EXIT_MS }));
 
 // (c) an aborted turn with NO deadline (timeoutMs 0) ends a two-level,
 // SIGTERM-ignoring checker tree whose pids were alive before the abort.

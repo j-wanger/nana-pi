@@ -54,7 +54,9 @@ export const TEMP_REMOVE_RETRY_DELAY_MS = 100;
 // the pool; it joins this list instead. CI run 39785202152 (Windows, four jobs, 2026-10-22)
 // showed the post-edit-utf8 check timing out under load. Run 39792797841 (macOS, four jobs,
 // 2026-10-22) showed review-ledger's 1000 ms reservation stale window with a 200 ms heartbeat
-// missing a renewal under load.
+// missing a renewal under load. Windows run 1e77de81 showed hook-deadlines overrun
+// HOOK_DEADLINE_MS under load; the adoption-reader miss shared a runner-wide stall, so its
+// HOOK_PRODUCER_TIMEOUT_MS-sensitive producer cases also run outside the pool.
 export const RUN_ALONE = Object.freeze({
 	"packages/nana-knowledge/tests/hook.test.mjs": "load-sensitive timing bounds (1500/1800 ms)",
 	"packages/nana-knowledge/tests/extension.test.mjs": "load-sensitive timing bounds (1000/1500 ms)",
@@ -62,4 +64,6 @@ export const RUN_ALONE = Object.freeze({
 	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",
 	"packages/nana-pack/tests/post-edit-utf8.test.mjs": "load-sensitive 3000 ms post-edit check starts a Python parent and child",
 	"packages/nana-pack/tests/review-ledger.test.mjs": "load-sensitive 1000 ms reservation stale window with a 200 ms heartbeat",
+	"packages/nana-setup/tests/hook-deadlines.test.mjs": "load-sensitive hook cases bounded by HOOK_DEADLINE_MS and HOOK_PRODUCER_TIMEOUT_MS",
+	"packages/nana-pack/tests/adoption-reader.test.mjs": "load-sensitive adoption producer bounded by HOOK_PRODUCER_TIMEOUT_MS",
 });

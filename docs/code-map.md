@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 435 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 436 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -2072,7 +2072,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses and the bounded shim)
 - **errors** — A failed comparison prints its cases and exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/build-records.test.mjs`
 
@@ -3034,6 +3034,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/skill-claims.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
+### `packages/nana-pack/tests/slow-sampler.mjs`
+
+- **purpose** — Build and verify a caller-scoped slow CPU-sampler shim for watchdog tests.
+- **inputs** — A caller-supplied shim folder, environment and spawn limit.
+- **outputs** — Shared sampler tunables, the written shim paths, sampler resolution and first-on-PATH comparison.
+- **effects** — disk (writes the sampler body and platform shim), process (resolves the sampler command).
+- **errors** — File and child-process errors propagate; an unresolved sampler returns an empty path.
+- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
+- **callees** — —
+
 ### `packages/nana-pack/tests/suite-records.test.mjs`
 
 - **purpose** — Pin whole-run suite records at the runner-to-locked-suite boundary.
@@ -3102,7 +3112,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs the copied runner as a child per case; two cases leave a running process tree the runner must kill on signal, reaped here if it does not), disk (one mkdtemp tree holding every fixture root, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/hook-producer.mjs`
 
 ### `packages/nana-pack/tests/test-runner.test.mjs`
 
@@ -3199,10 +3209,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Pins fail-closed lane and brief verification, prompt delivery, and the sealed worker ceiling.
 - **inputs** — pi-worker, brief config, a temporary git repository/worktree, and a stub pi executable
 - **outputs** — named PASS/FAIL checks
-- **effects** — disk (OS temp fixtures), process (git and worker subprocesses)
+- **effects** — disk (OS temp fixtures and a slow CPU-sampler shim), process (git and worker subprocesses)
 - **errors** — failed assertions exit nonzero
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/known-bugs.mjs`
+- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/known-bugs.mjs`
 
 ### `packages/nana-pack/tests/writing-check.test.mjs`
 
@@ -3391,7 +3401,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — producer stdout or the supplied marker on stdout, and the number of characters written.
 - **effects** — process (spawns a child process and writes stdout).
 - **errors** — spawn failures, signals, nonzero exits, no time left and a run past the time limit are represented by the marker; never thrown.
-- **callers** — `packages/nana-setup/claude/hooks/nana-adoption.mjs`, `packages/nana-setup/claude/hooks/nana-objective.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hook-producers.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
+- **callers** — `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-setup/claude/hooks/nana-adoption.mjs`, `packages/nana-setup/claude/hooks/nana-objective.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hook-producers.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`
 
 ### `packages/nana-setup/lib/install-check-config.mjs`

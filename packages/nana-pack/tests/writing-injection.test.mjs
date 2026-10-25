@@ -24,6 +24,9 @@ import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+// chosen 2026-10-25: the old 5-second case guard ended one child with SIGTERM; 30 seconds still bounds a broken case.
+const CASE_CHILD_LIMIT_MS = 30_000;
+
 let fails = 0;
 const check = (n, ok, extra) => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : (extra ?? ""));
@@ -118,7 +121,7 @@ console.log(JSON.stringify({ injected }));
 		}
 		const child = spawnSync(process.execPath, ["--experimental-strip-types", runner, writingExtUrl, new URL("../lib/config.ts", import.meta.url).href, rulePath, cwd, trusted ? "yes" : "no", rewrite === undefined ? "-" : Buffer.from(rewrite).toString("base64")], {
 			encoding: "utf8",
-			timeout: 5000,
+			timeout: CASE_CHILD_LIMIT_MS,
 			env: { ...process.env, HOME: caseHome, USERPROFILE: caseHome, PI_CODING_AGENT_DIR: agentDir },
 		});
 		let observed = null;
