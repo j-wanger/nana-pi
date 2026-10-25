@@ -323,5 +323,103 @@ const LS = String.fromCharCode(0x2028), NEL = String.fromCharCode(0x85);
 	check("journal: relative journal.path → reads <agent dir>/nana-journal.jsonl, not <cwd>/rel.jsonl", o.stdout.includes(`- \`${r}\` —`) && !o.stdout.includes(roots[5]), o.stdout);
 }
 
+// Adoption-window coverage fixtures use ASCII JSON lines and byte-count assertions.
+const NL = String.fromCharCode(10);
+const adoptionConfig = await import(new URL("../lib/adoption-config.mjs", import.meta.url).href);
+const { JOURNAL_WINDOW_READ_MAX_BYTES: CAP, ADOPTION_WINDOW_MS: WINDOW, ADOPTION_WINDOW_CUT_PREFIX: CUT } = adoptionConfig;
+const dated = (ts, extra = {}) => JSON.stringify({ ts: new Date(ts).toISOString(), event: "session_start", ...extra });
+const writeLines = (items) => fs.writeFileSync(JOURNAL, items.join(NL) + NL);
+const cutLine = (date) => `${CUT} only the journal's last ${CAP} bytes were read, back to ${date}; older reports are not listed.`;
+const day = 86_400_000;
+{
+	const a = repo("window-first"), b = repo("window-last");
+	const now = Date.now();
+	const first = JSON.stringify({ ts: new Date(now - 6 * day).toISOString(), event: "directory_unadopted", cwd: a, has: {} });
+	const last = JSON.stringify({ ts: new Date(now - 3_600_000).toISOString(), event: "directory_unadopted", cwd: b, has: {} });
+	const filler = dated(now - 3 * day);
+	const items = [first, ...Array(50).fill(filler), last];
+	const padAt = items.length - 2;
+	let low = 0, high = CAP;
+	while (low <= high) {
+		const mid = Math.floor((low + high) / 2);
+		items[padAt] = JSON.stringify({ ts: new Date(now).toISOString(), event: "session_start", padding: "x".repeat(mid) });
+		const size = Buffer.byteLength(items.join(NL) + NL);
+		if (size === CAP) break;
+		if (size < CAP) low = mid + 1;
+		else high = mid - 1;
+	}
+	const text = items.join(NL) + NL;
+	fs.writeFileSync(JOURNAL, text);
+	check("R-2850: exactly-cap journal lists the open report on its first line and prints no cut", Buffer.byteLength(text) === CAP);
+	if (Buffer.byteLength(text) === CAP) {
+		const result = run();
+		// req: R-2850
+		check("R-2850: a journal of exactly the read cap lists the open report on its first line, six days old, and prints no cut line", result.status === 0 && result.stdout.includes(b) && result.stdout.includes(a) && !result.stdout.split(NL).some((l) => l.startsWith(CUT)), result.stdout);
+	}
+}
+{
+	const now = Date.now();
+	const filler = (ts, extra = {}) => JSON.stringify({ event: "session_start", ...extra, ts: new Date(ts).toISOString() });
+	const straddle = JSON.stringify({ event: "session_start", padding: "x".repeat(100), ts: new Date(now - 8 * day).toISOString() });
+	const markerTs = new Date(now - 40 * 3_600_000).toISOString();
+	const marker = filler(now - 40 * 3_600_000, { marker: true });
+	const later = filler(now - 3_600_000);
+	const fillerLine = filler(now - 3_600_000);
+	const fillerBytes = fillerLine.length + 1;
+	const straddleBytes = straddle.length + 1;
+	const markerBytes = marker.length + 1;
+	const laterBytes = later.length + 1;
+	const suffixCount = Math.ceil((CAP - straddleBytes - markerBytes - laterBytes) / fillerBytes);
+	const prefixCount = Math.ceil((1024 * 1024) / fillerBytes);
+	const prefix = Array(prefixCount).fill(fillerLine);
+	const suffix = Array(suffixCount).fill(fillerLine);
+	let journal = [...prefix, straddle, marker, later, ...suffix].join(NL) + NL;
+	const offset = journal.length - CAP;
+	const straddleStart = prefixCount * fillerBytes;
+	check("R-2851 fixture asserts cap starts inside the straddling line", offset > straddleStart && offset < straddleStart + straddle.length);
+	check("R-2851 fixture asserts marker is first whole line after the straddle", offset > straddleStart && offset < straddleStart + straddle.length && journal.slice(straddleStart + straddleBytes, straddleStart + straddleBytes + marker.length) === marker);
+	{
+		fs.writeFileSync(JOURNAL, journal);
+		const result = run();
+		// req: R-2851
+		check("R-2851: a seven-day window longer than the read cap prints one cut line naming the cap and the oldest time checked, with or without open roots", result.status === 0 && result.stdout === `[nana:adoption]${NL}${cutLine(new Date(JSON.parse(marker).ts).toISOString())}${NL}`, result.stdout);
+	}
+	{
+		const root = repo("window-after-marker");
+		const openLine = JSON.stringify({ ts: new Date(now - 3_600_000).toISOString(), event: "directory_unadopted", cwd: root, has: {} });
+		const openSuffixCount = Math.ceil((CAP - straddleBytes - markerBytes - openLine.length - 1) / fillerBytes);
+		journal = [...prefix, straddle, marker, openLine, ...Array(openSuffixCount).fill(fillerLine)].join(NL) + NL;
+		const openOffset = journal.length - CAP;
+		check("R-2851 open-root fixture keeps the cap inside the straddling line", openOffset > straddleStart && openOffset < straddleStart + straddle.length);
+		fs.writeFileSync(JOURNAL, journal);
+		const result = run();
+		check("R-2851: cut line follows an open-root block exactly once", result.status === 0 && result.stdout.endsWith(`${NL}${cutLine(new Date(JSON.parse(marker).ts).toISOString())}${NL}`) && result.stdout.split(CUT).length === 2, result.stdout);
+	}
+	{
+		const undated = "x".repeat(CAP + 1);
+		fs.writeFileSync(JOURNAL, undated);
+		const result = run();
+		// req: R-2851
+		check("R-2851: no dated whole line uses the no-dated-line form", result.status === 0 && result.stdout === `[nana:adoption]${NL}${CUT} only the journal's last ${CAP} bytes were read, and they hold no dated line; reports may be missing.${NL}`, result.stdout);
+	}
+}
+{
+	const now = Date.now(), oldTs = new Date(now - 8 * day).toISOString(), root = repo("covered-old-line");
+	const chunks = [JSON.stringify({ ts: oldTs, event: "session_start" }), ...Array(100).fill("not-json"), JSON.stringify({ ts: new Date(now - 3_600_000).toISOString(), event: "directory_unadopted", cwd: root, has: {} })];
+	const chunksBytes = chunks.reduce((sum, item) => sum + item.length + 1, 0);
+	const undatedCount = Math.floor((CAP - chunksBytes) / 8) + 1;
+	const text = [...Array(undatedCount).fill("undated"), ...chunks].join(NL) + NL;
+	const offset = text.length - CAP;
+	const oldLineBytes = chunks[0].length + 1;
+	check("R-2852 fixture asserts the older dated line is within the read window after undated lines", offset < undatedCount * 8 + oldLineBytes && offset > 0);
+	fs.writeFileSync(JOURNAL, text);
+	const result = run();
+	// req: R-2852
+	check("R-2852: a journal over the read cap whose read reaches a line older than seven days prints no cut line, even after undated lines", result.status === 0 && result.stdout.includes(root) && !result.stdout.includes(CUT), result.stdout);
+}
+
+// req: R-146 R-151 R-2850 R-2851 R-2852
+check("seal: the adoption reader reads at most 4 MiB of the journal for a 7-day window, its cut line starts ADOPTION WINDOW CUT:, and the producer's tail stays 256 KiB", CAP === 4 * 1024 * 1024 && WINDOW === 7 * 86_400_000 && CUT === "ADOPTION WINDOW CUT:" && (await import(new URL("../lib/adoption.mjs", import.meta.url).href)).TAIL_BYTES === 256 * 1024);
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
