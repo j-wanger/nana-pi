@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @module scripts/deliverables.mjs
- * @purpose Parse and check product-capability deliverable claims, the feature artifact registry and cross-feature artifact reads, then produce their shared checker lines.
+ * @purpose Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines.
  * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
  * @outputs Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
@@ -23,10 +23,14 @@ export const PARKED_LABEL = "Parked";
 export const PARKED_SINCE = "since";
 // Contract: the audit's six runs plus hook and extension from the seat brief, and manual from the ruling; R-2537.
 export const MAKER_RUNS = Object.freeze(["session start", "suite", "land", "review", "build", "CI", "hook", "extension", "manual"]);
-// Contract: code and rule come from the ruling; prompt and person are chosen because injected context and pages are readers; R-2537.
-export const READER_KINDS = Object.freeze(["code", "prompt", "person", "rule"]);
-// Contract: manual, rule, and person claims explain why they exist; R-2535.
-export const REASON_REQUIRED = Object.freeze(["manual", "rule", "person"]);
+// Chosen: the assessment's consumers-first rule (report section 6), which keeps R-1150's harness legal; R-2833.
+export const TEST_READER_GLOB = "*.test.*";
+// Contract: artifact coverage reports this exact phrase; R-2834.
+export const NO_DECLARED_READER_NOTE = "has no declared reader";
+// Contract: code and rule come from the ruling; prompt and person are chosen because injected context and pages are readers; runtime is host loading; R-2537 and R-2831.
+export const READER_KINDS = Object.freeze(["code", "prompt", "person", "rule", "runtime"]);
+// Contract: manual, rule, person, and runtime claims explain why they exist; R-2535 and R-2831.
+export const REASON_REQUIRED = Object.freeze(["manual", "rule", "person", "runtime"]);
 // Contract: every automatic maker and every code or prompt reader names code; R-2537.
 export const PATH_REQUIRED = Object.freeze([...MAKER_RUNS.filter((run) => run !== "manual"), "code", "prompt"]);
 // Chosen: the requirements ledger's heading separator.
@@ -68,8 +72,35 @@ export const READS_LABEL = "Reads";
 // Contract (artifact-registry must-meet, R-2780): the feature-registry field labels.
 const ARTIFACT_LABELS = new Set(["Artifact"]);
 const READS_LABEL_SET = new Set([READS_LABEL]);
+const ARTIFACT_CONSUMER_LABELS = new Set(["Read by", PARKED_LABEL]);
 const ROW_AT_START = /^(R-(?:[0-9]{3}|[1-9][0-9]{3}))\b/;
 const PARKED_DATE = new RegExp(`^${PARKED_SINCE}\\s+(\\d{4}-\\d{2}-\\d{2})$`);
+
+/** Parse one reader claim without deciding its placement or tracked paths. */
+export function readerClaim(text) {
+  const colon = text.indexOf(":");
+  const kind = (colon < 0 ? text : text.slice(0, colon)).trim();
+  const detail = colon < 0 ? "" : text.slice(colon + 1).trim();
+  return {
+    kind,
+    detail,
+    known: READER_SET.has(kind),
+    needsReason: REASON_SET.has(kind),
+    needsPath: kind === "code" || kind === "prompt",
+    paths: kind === "code" || kind === "prompt" ? detail.split(",").map((value) => value.trim()).filter(Boolean) : [],
+  };
+}
+
+/** Parse one park body without deciding whether its ID belongs to the enclosing span. */
+export function parkClaim(body) {
+  const parts = body.split(/\s*·\s*/u);
+  const id = parts[0]?.trim() ?? "";
+  const claim = parts.length === 2 ? parts[1].trim() : "";
+  const colon = claim.indexOf(":");
+  const dateClaim = (colon < 0 ? claim : claim.slice(0, colon)).trim();
+  const reason = colon < 0 ? "" : claim.slice(colon + 1).trim();
+  return { parts, id, dateClaim, date: PARKED_DATE.exec(dateClaim)?.[1] ?? null, reason };
+}
 
 const capabilityEntries = (heading, label) => heading.capabilityFields?.[label] ?? [];
 const capabilityKind = (heading) => capabilityEntries(heading, "Kind")[0]?.value ?? null;
@@ -226,19 +257,35 @@ export function artifactReads(parsed, trackedPaths = null, registry = artifactRe
         notes.push(note(`line ${field.line}: malformed ${READS_LABEL}: line`));
         continue;
       }
-      const entry = { id, readers: readerParts, line: field.line, text: field.rawText, featureId: heading.id, capabilityId: capability.id };
+      const entry = { id, readers: readerParts, line: field.line, text: field.rawText, featureId: heading.id, capabilityId: capability.id, valid: true };
       reads.push(entry);
       if (!byFeature.has(heading.id)) byFeature.set(heading.id, []);
       const featureReads = byFeature.get(heading.id);
-      if (featureReads.some((value) => value.id === id)) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} appears more than once in ${heading.id}`));
-      else featureReads.push(entry);
+      if (featureReads.some((value) => value.id === id)) {
+        notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} appears more than once in ${heading.id}`));
+        entry.valid = false;
+      } else featureReads.push(entry);
       const artifact = registry.byId.get(id);
-      if (!artifact?.live) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} has no live entry`));
-      else if (artifact.featureId === heading.id) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} is registered in the same feature ${heading.id}`));
-      if (/^(?:proposed|retired\b)/.test(heading.status ?? "")) notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} is in a proposed or retired feature span`));
-      if (tracked) {
-        for (const reader of readerParts) {
-          if (hasGlob(reader) || reader.endsWith("/") || !tracked.has(reader)) notes.push(note(`line ${field.line}: ${READS_LABEL}: reader path "${reader}" is not a tracked file at HEAD`));
+      if (!artifact?.live) {
+        notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} has no live entry`));
+        entry.valid = false;
+      } else if (artifact.featureId === heading.id) {
+        notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} is registered in the same feature ${heading.id}`));
+        entry.valid = false;
+      }
+      if (/^(?:proposed|retired\b)/.test(heading.status ?? "")) {
+        notes.push(note(`line ${field.line}: ${READS_LABEL}: ${id} is in a proposed or retired feature span`));
+        entry.valid = false;
+      }
+      for (const reader of readerParts) {
+        const lastSegment = reader.split(/[\\/]/).at(-1) ?? "";
+        if (globMatch(TEST_READER_GLOB, lastSegment)) {
+          notes.push(note(`line ${field.line}: ${READS_LABEL}: reader path "${reader}" is a test file`));
+          entry.valid = false;
+        }
+        if (tracked && (hasGlob(reader) || reader.endsWith("/") || !tracked.has(reader))) {
+          notes.push(note(`line ${field.line}: ${READS_LABEL}: reader path "${reader}" is not a tracked file at HEAD`));
+          entry.valid = false;
         }
       }
     }
@@ -308,11 +355,157 @@ export function isMadeAndReadByCode(claims) {
   return state.madeByCode && state.readByCode;
 }
 
+/** Join every accepted reader and park declaration onto each live artifact entry. */
+export function artifactConsumers(parsed, trackedPaths = null, registry = artifactRegistry(parsed, trackedPaths), reads = artifactReads(parsed, trackedPaths, registry)) {
+  const consumers = new Map(registry.entries.filter((entry) => entry.live).map((entry) => [entry.id, { kinds: new Set(), park: null, notes: [] }]));
+  const notes = [];
+  const lines = [];
+  const parkCandidates = [];
+  const seenArtifactReaders = new Set();
+  const tracked = Array.isArray(trackedPaths) ? new Set(trackedPaths) : null;
+  let fieldLineCount = 0;
+  let needsTrackedPaths = false;
+  const addNote = (id, message) => {
+    const value = note(message);
+    notes.push(value);
+    if (consumers.has(id)) consumers.get(id).notes.push(value);
+  };
+  const testReaderProblem = (path) => {
+    const lastSegment = path.split(/[\\/]/).at(-1) ?? "";
+    return globMatch(TEST_READER_GLOB, lastSegment) ? `reader path "${path}" is a test file` : null;
+  };
+  const badReaderPath = (path) => testReaderProblem(path) ?? (tracked && (hasGlob(path) || path.endsWith("/") || !tracked.has(path)) ? `reader path "${path}" is not a tracked file at HEAD` : null);
+  const badDeliverableReaderPath = (path) => testReaderProblem(path) ?? (tracked && !trackedAtHead(path, tracked) ? `reader path "${path}" is not tracked at HEAD` : null);
+
+  for (const read of reads.reads) if (read.valid && consumers.has(read.id)) consumers.get(read.id).kinds.add("code");
+
+  for (const heading of parsed.headings) {
+    const capability = capabilityOf(heading);
+    if (!capability || !capabilityKind(capability) || capability.id === heading.id) continue;
+    const fields = ownFieldLines(parsed, heading, ARTIFACT_CONSUMER_LABELS);
+    fieldLineCount += fields.length;
+    for (const field of fields) {
+      if (!heading.id?.startsWith("FEAT-")) {
+        if (field.label === "Read by" && ROW_AT_START.test(field.body)) continue;
+        notes.push(note(`line ${field.line}: ${field.label}: line is outside a feature span`));
+        continue;
+      }
+      if (field.label === "Read by") {
+        const parts = field.body.split(PART_SEPARATOR).map((part) => part.trim());
+        const id = parts[0] ?? "";
+        const claim = readerClaim(parts[1] ?? "");
+        lines.push({ label: field.label, id, kind: claim.kind, date: null, line: field.line, text: field.rawText, featureId: heading.id });
+        let problem = null;
+        if (parts.length !== 2 || !ARTIFACT_ID_PATTERN.test(id)) problem = "malformed Read by: line";
+        else if (!claim.known) problem = `Read by: ${id} has unknown reader "${claim.kind || "(empty)"}"`;
+        else {
+          const entry = registry.byId.get(id);
+          if (!entry?.live) problem = `Read by: ${id} has no live entry`;
+          else if (entry.featureId !== heading.id) problem = `Read by: ${id} is registered in another feature, not ${heading.id}`;
+          else if (/^(?:proposed|retired\b)/.test(heading.status ?? "")) problem = `Read by: ${id} is in a proposed or retired feature span`;
+          else if (claim.needsReason && !claim.detail) problem = `Read by: ${id} needs a reason`;
+          else if (claim.needsPath && !claim.detail) problem = `Read by: ${id} needs a code path`;
+          else if (claim.needsPath) {
+            needsTrackedPaths = true;
+            if (claim.paths.length === 0) problem = `Read by: ${id} needs a code path`;
+            else {
+              const bad = claim.paths.map(badReaderPath).find(Boolean);
+              if (bad) problem = `Read by: ${id} ${bad}`;
+            }
+          }
+        }
+        const readerKey = `${heading.id}\0${id}\0${claim.kind}`;
+        if (!problem && seenArtifactReaders.has(readerKey)) problem = `Read by: ${id} reader ${claim.kind} appears more than once in ${heading.id}`;
+        if (problem) addNote(id, `line ${field.line}: ${problem}`);
+        else {
+          seenArtifactReaders.add(readerKey);
+          consumers.get(id)?.kinds.add(claim.kind);
+        }
+        continue;
+      }
+
+      const claim = parkClaim(field.body);
+      lines.push({ label: field.label, id: claim.id, kind: null, date: claim.date, line: field.line, text: field.rawText, featureId: heading.id });
+      let problem = null;
+      if (claim.parts.length !== 2 || !ARTIFACT_ID_PATTERN.test(claim.id)) problem = `cannot read ${PARKED_LABEL}: line ${field.line}`;
+      else {
+        const entry = registry.byId.get(claim.id);
+        if (!entry?.live || entry.featureId !== heading.id) problem = `${claim.id} ${PARKED_LABEL}: line ${field.line} names no live entry registered in that feature`;
+        else if (!claim.date) problem = `${claim.id} ${PARKED_LABEL}: line ${field.line} needs a ${PARKED_SINCE} date`;
+        else if (!claim.reason) problem = `${claim.id} ${PARKED_LABEL}: line ${field.line} needs a reason`;
+        else if (/^(?:proposed|retired\b)/.test(heading.status ?? "")) problem = `${claim.id} ${PARKED_LABEL}: line ${field.line} is in a proposed or retired feature span`;
+      }
+      if (problem) addNote(claim.id, problem);
+      else parkCandidates.push({ id: claim.id, date: claim.date, reason: claim.reason, line: field.line, text: field.rawText });
+    }
+  }
+
+  const rowHomeFeature = new Map();
+  for (const table of parsed.tables) {
+    const home = featureOf(table.heading);
+    if (home) for (const row of table.rows) rowHomeFeature.set(row, home.id);
+  }
+  for (const capability of parsed.headings.filter((heading) => heading.id?.startsWith("CAP-") && liveProduct(heading))) {
+    const listed = new Set(deliverableIds(capability));
+    const readerKinds = new Map([...listed].map((row) => [row, new Set()]));
+    const fields = ownFieldLines(parsed, capability, DELIVERABLE_LABELS);
+    for (const field of fields.filter((value) => value.label === "Read by")) {
+      const parts = field.body.split(PART_SEPARATOR);
+      const row = parts[0]?.trim() ?? "";
+      const claim = readerClaim(parts[1]?.trim() ?? "");
+      if (parts.length !== 2 || !listed.has(row) || !claim.known || (claim.needsReason && !claim.detail) || (claim.needsPath && !claim.detail)) continue;
+      if (claim.needsPath && claim.paths.some((path) => badDeliverableReaderPath(path))) continue;
+      readerKinds.get(row).add(claim.kind);
+    }
+    for (const field of fields.filter((value) => value.label === "Made by")) {
+      const parts = field.body.split(PART_SEPARATOR);
+      if (parts.length !== 3) continue;
+      const row = parts[0]?.trim() ?? "";
+      if (!listed.has(row)) continue;
+      const makerText = parts[1].trim();
+      const colon = makerText.indexOf(":");
+      const run = (colon < 0 ? makerText : makerText.slice(0, colon)).trim();
+      const detail = colon < 0 ? "" : makerText.slice(colon + 1).trim();
+      if (!MAKER_SET.has(run) || !detail) continue;
+      const makerPaths = run === "manual" ? [] : detail.split(",").map((value) => value.trim()).filter(Boolean);
+      if (run !== "manual" && tracked && makerPaths.some((path) => !trackedAtHead(path, tracked))) continue;
+      const reference = registryReference(parts[2].trim());
+      if (!reference) continue;
+      for (const id of reference.ids) {
+        const entry = registry.byId.get(id);
+        if (!entry?.live || !consumers.has(id)) continue;
+        if (reference.kind === "built from") {
+          const homeFeatureId = rowHomeFeature.get(row);
+          const registeredAtHome = entry.featureId === homeFeatureId;
+          const readAtHome = (reads.byFeature.get(homeFeatureId) ?? []).some((read) => read.id === id);
+          if (registeredAtHome || readAtHome) consumers.get(id).kinds.add(run === "manual" ? "person" : "code");
+        } else {
+          const bindingValid = entry.run === run && entry.writers.every((writer) => makerPaths.includes(writer));
+          if (bindingValid) for (const kind of readerKinds.get(row)) consumers.get(id).kinds.add(kind);
+        }
+      }
+    }
+  }
+
+  for (const park of parkCandidates) {
+    const consumer = consumers.get(park.id);
+    if (!consumer) continue;
+    if (consumer.kinds.size > 0) addNote(park.id, `${park.id} ${PARKED_LABEL}: line ${park.line} parks nothing; it has a declared reader`);
+    else if (!consumer.park) consumer.park = park;
+  }
+  for (const [id, consumer] of consumers) {
+    if (consumer.kinds.size === 0 && !consumer.park) addNote(id, `${id} ${NO_DECLARED_READER_NOTE}`);
+  }
+  Object.assign(consumers, { notes, lines, fieldLineCount, needsTrackedPaths });
+  return consumers;
+}
+
 /** Check deliverable fields. Pass null for trackedPaths to collect path claims without deciding them. */
 export function checkDeliverables(parsed, trackedPaths = null) {
   const registry = artifactRegistry(parsed, trackedPaths);
   const featureReads = artifactReads(parsed, trackedPaths, registry);
-  const notes = [...registry.notes, ...featureReads.notes];
+  const consumers = artifactConsumers(parsed, trackedPaths, registry, featureReads);
+  const notes = [...registry.notes, ...featureReads.notes, ...consumers.notes];
   for (const entry of registry.entries) {
     if (entry.live && entry.className === "clone store" && Object.hasOwn(ARTIFACT_AGE_TABLE, entry.location) && artifactAgeTableKey(entry) === null) {
       notes.push(artifactNote(entry, "is at an age table location but does not match its run and one writer"));
@@ -320,7 +513,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   }
   const pathsToCheck = [];
   let checkedDeliverables = 0;
-  let fieldLineCount = registry.fieldLineCount + featureReads.fieldLineCount;
+  let fieldLineCount = registry.fieldLineCount + featureReads.fieldLineCount + consumers.fieldLineCount;
   let deliverableFieldLineCount = 0;
   const rowHomeFeature = new Map();
   for (const table of parsed.tables) {
@@ -358,9 +551,9 @@ export function checkDeliverables(parsed, trackedPaths = null) {
       const parts = field.body.split(PART_SEPARATOR);
       if (rowHint && listedSet.has(rowHint) && field.label !== PARKED_LABEL) seen.get(rowHint).add(field.label);
       if (field.label === PARKED_LABEL) {
-        const parkParts = field.body.split(/\s*·\s*/u);
-        const row = parkParts[0]?.trim() ?? "";
-        if (parkParts.length !== 2 || !/^R-(?:[0-9]{3}|[1-9][0-9]{3})$/.test(row)) {
+        const parsedPark = parkClaim(field.body);
+        const row = parsedPark.id;
+        if (parsedPark.parts.length !== 2 || !/^R-(?:[0-9]{3}|[1-9][0-9]{3})$/.test(row)) {
           notes.push(note(`${rowHint ? `${rowHint} ` : ""}cannot read ${PARKED_LABEL}: line ${field.line}`));
           continue;
         }
@@ -368,15 +561,11 @@ export function checkDeliverables(parsed, trackedPaths = null) {
           notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} names an unlisted deliverable`));
           continue;
         }
-        const parkedClaim = parkParts[1].trim();
-        const colon = parkedClaim.indexOf(":");
-        const dateClaim = (colon < 0 ? parkedClaim : parkedClaim.slice(0, colon)).trim();
-        const reason = colon < 0 ? "" : parkedClaim.slice(colon + 1).trim();
-        if (!PARKED_DATE.test(dateClaim)) {
+        if (!parsedPark.date) {
           notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} needs a ${PARKED_SINCE} date`));
           continue;
         }
-        if (!reason) {
+        if (!parsedPark.reason) {
           notes.push(note(`${row} ${PARKED_LABEL}: line ${field.line} needs a reason`));
           continue;
         }
@@ -457,20 +646,21 @@ export function checkDeliverables(parsed, trackedPaths = null) {
         notes.push(note(`${row} cannot read Read by: line ${field.line}`));
         continue;
       }
-      const claim = parts[1].trim();
-      const colon = claim.indexOf(":");
-      const reader = (colon < 0 ? claim : claim.slice(0, colon)).trim();
-      const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
-      if (!READER_SET.has(reader)) {
-        notes.push(note(`${row} Read by: line ${field.line} has unknown reader "${reader || "(empty)"}"`));
+      const parsedReader = readerClaim(parts[1].trim());
+      if (!parsedReader.known) {
+        notes.push(note(`${row} Read by: line ${field.line} has unknown reader "${parsedReader.kind || "(empty)"}"`));
         continue;
       }
-      if (REASON_SET.has(reader)) {
-        if (!detail) notes.push(note(`${row} Read by: line ${field.line} needs a reason`));
-      } else if (!detail) {
+      if (parsedReader.needsReason) {
+        if (!parsedReader.detail) notes.push(note(`${row} Read by: line ${field.line} needs a reason`));
+      } else if (!parsedReader.detail) {
         notes.push(note(`${row} Read by: line ${field.line} needs a code path`));
       } else {
-        for (const path of detail.split(",")) addPath(row, path, field.line, "reader path");
+        for (const path of parsedReader.paths) {
+          const lastSegment = path.split(/[\\/]/).at(-1) ?? "";
+          if (globMatch(TEST_READER_GLOB, lastSegment)) notes.push(note(`${row} Read by: line ${field.line} reader path "${path}" is a test file`));
+          else addPath(row, path, field.line, "reader path");
+        }
       }
     }
 
@@ -510,7 +700,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     }
   }
 
-  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, deliverableFieldLineCount, artifactsRequireTracked: registry.needsTrackedPaths || featureReads.needsTrackedPaths, artifacts: registry.byId, reads: featureReads.byFeature, madeAndReadByCode, parkedDeliverables };
+  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, deliverableFieldLineCount, artifactsRequireTracked: registry.needsTrackedPaths || featureReads.needsTrackedPaths || consumers.needsTrackedPaths, artifacts: registry.byId, reads: featureReads.byFeature, artifactConsumers: consumers, madeAndReadByCode, parkedDeliverables };
 }
 
 /** Return the exact deliverable lines plus the HEAD paths used to derive them. */

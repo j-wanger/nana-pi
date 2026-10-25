@@ -632,7 +632,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/deliverables.mjs`
 
-- **purpose** — Parse and check product-capability deliverable claims, the feature artifact registry and cross-feature artifact reads, then produce their shared checker lines.
+- **purpose** — Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines.
 - **inputs** — A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
 - **outputs** — Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
