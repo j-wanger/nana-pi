@@ -3978,7 +3978,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove install, its dry run and doctor bound pi launches and end every process those launches start.
 - **inputs** — steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
-- **outputs** — PASS/FAIL/SKIP lines for eighteen requirement checks and exit 1 when any check fails
+- **outputs** — PASS/FAIL/SKIP lines for twenty-four requirement checks and exit 1 when any check fails
 - **effects** — disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
 - **errors** — a failed or over-time check prints FAIL and makes the file exit nonzero
 - **callers** — —
