@@ -67,11 +67,11 @@ await check("R-2920: the overview is the landing view and first tab, unknown and
 });
 // req: R-2921
 await check("R-2921: Needs you counts asks as blocking, optional and parked, lists each blocking ask's title in file order, and counts the open questions the Decisions view lists", async () => {
-  const handoff = ["# Handoff", "## Open for the owner", "- **[optional, since 2026-01-05] Opt.** body", "- **[Blocking, since 2026-02-01] Zeta.** body", "## Open for the second owner", "- **[parked, since 2026-01-03] Held.** body", "- **[blocking, since 2026-01-01] Alpha.** body"].join("\r\n");
+  const handoff = ["# Handoff", "## Open for the owner", "- **[optional, since 2026-01-05] Opt.** body", "- **[optional, since 2026-01-06] Opt two.** body", "- **[Blocking, since 2026-02-01] Zeta.** body", "## Open for the second owner", "- **[parked, since 2026-01-03] Held.** body", "- **[blocking, since 2026-01-01] Alpha.** body"].join("\r\n");
   const ledger = basic() + "\n## Open questions\n1. Open one.  \n- (lane) Open bullet.\t\n## Closed questions\n2. (closed 2026-01-01) Done.\n## Deliberate omissions\n- An omission.";
   const repo = treeFixture(temp, "asks", ledger.replaceAll("\n", "\r\n"), handoff);
   const html = await page(repo, "asks");
-  assert.deepEqual(lines(renderHtmlAt(html), 0), [`${L.asks}: 4 · ${L.blocking}: 2 · ${L.optional}: 1 · ${L.parked}: 1`, `${L.mustDecide}: Zeta · ${L.since} 2026-02-01`, `${L.mustDecide}: Alpha · ${L.since} 2026-01-01`, `${L.questions}: 2`]);
+  assert.deepEqual(lines(renderHtmlAt(html), 0), [`${L.asks}: 5 · ${L.blocking}: 2 · ${L.optional}: 2 · ${L.parked}: 1`, `${L.mustDecide}: Zeta · ${L.since} 2026-02-01`, `${L.mustDecide}: Alpha · ${L.since} 2026-01-01`, `${L.questions}: 2`]);
   const questions = renderHtmlAt(html, "#decisions").nodes.find((node) => node.attrs?.class === "open-questions");
   assert.equal(questions?.children.length, 2);
 });
