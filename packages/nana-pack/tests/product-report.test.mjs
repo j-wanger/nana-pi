@@ -14,7 +14,10 @@ import * as path from "node:path";
 import * as vm from "node:vm";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { buildReport, generateReport, generatePackets, renderInto, validateStore } from "../../../scripts/product-report.mjs";
+import { buildReport, generateReport, generatePackets, renderInto, validateStore, OVERVIEW_BLOCKS } from "../../../scripts/product-report.mjs";
+import { CASE_LIMIT_MS, withinCaseLimit, treeFixture as treeFixtureIn, table, hashRow, makeAssessment, writeStore, writeRuntimeFile, commitAt as commitAtIn, renderHtmlAt } from "./report-fixtures.mjs";
+const treeFixture = (...args) => treeFixtureIn(temp, ...args);
+const commitAt = (...args) => commitAtIn(temp, ...args);
 import * as productReportModule from "../../../scripts/product-report.mjs";
 import * as deliverablesModule from "../../../scripts/deliverables.mjs";
 import { MAX_GIT_BUFFER } from "../../../scripts/requirements-moved.mjs";
@@ -33,19 +36,6 @@ function check(name, ok, detail = "") {
   console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
   if (!ok) fails++;
 }
-// Match the canonical runner's established per-file ceiling while giving each new async case its own watchdog.
-const CASE_LIMIT_MS = Number(process.env.NANA_TEST_TIMEOUT_MS) || 5 * 60 * 1000;
-async function withinCaseLimit(label, action) {
-  let timer;
-  try {
-    return await Promise.race([
-      Promise.resolve().then(action),
-      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} exceeded ${CASE_LIMIT_MS} ms`)), CASE_LIMIT_MS); }),
-    ]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 function fixture(name = "repo") {
   const root = path.join(temp, name);
   fs.mkdirSync(root, { recursive: true });
@@ -56,36 +46,9 @@ function fixture(name = "repo") {
   git(["add", "REQUIREMENTS.md", "HANDOFF.md"]); git(["commit", "-qm", "fixture"]);
   return { root, git };
 }
-function treeFixture(name, ledger, handoff = "# Handoff\n\n## Open for the owner\n") {
-  const root = path.join(temp, name);
-  fs.mkdirSync(root, { recursive: true });
-  fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), ledger);
-  fs.writeFileSync(path.join(root, "HANDOFF.md"), handoff);
-  const git = (args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
-  git(["init", "-q"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
-  git(["add", "REQUIREMENTS.md", "HANDOFF.md"]); git(["commit", "-qm", "fixture"]);
-  return { root, git };
-}
-const table = (rows) => `| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n${rows.map(([id, status]) => `| ${id} | ${id} shall work. | ${status} | — |`).join("\n")}\n`;
 const capabilityCards = (view) => view.root.children.filter((node) => node.tag === "article");
 const capabilityCard = (view, id) => capabilityCards(view).find((card) => card.children.some((node) => node.tag === "h3" && node.textContent.startsWith(`${id} · `)));
 const pinsKindedHeadings = (view, expected) => expected.every(([id, label]) => capabilityCard(view, id)?.children.some((node) => node.tag === "h3" && node.textContent === `${id} · ${label}`));
-const hashRow = (id, requirement, status) => createHash("sha256").update(JSON.stringify([id, requirement, status])).digest("hex");
-function makeAssessment(root, commit, featureId = "FEAT-001") {
-  const parsed = parseLedger(fs.readFileSync(path.join(root, "REQUIREMENTS.md"), "utf8").replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[ \t]+$/g, "")).join("\n"));
-  const feature = parsed.headings.find((heading) => heading.id === featureId);
-  const descendants = parsed.headings.filter((heading) => { for (let current = heading; current; current = current.parent) if (current === feature) return true; return false; });
-  const own = readRequirementRows(parsed).filter((row) => descendants.includes(row.heading));
-  const shared = feature.alsoApplies.map((id) => readRequirementRows(parsed).find((row) => row.id === id)).filter(Boolean);
-  const rows = [...own.map((row) => ({ ...row, mark: "own" })), ...shared.map((row) => ({ ...row, mark: "shared" }))];
-  return { id: feature.id, what_it_does: "Keeps the requirements together.", maturity: "partial", maturity_reason: "Some checks remain open.", gaps: ["A missing check."], risks: ["A stale result."], decisions: ["A future choice."], next_step: "Run the full suite.", written_by: "seat", checked_by: "reviewer", date: "2026-10-11", stamp: { commit, purpose: feature.purpose, status: feature.status, rows: rows.map((row) => ({ id: row.id, mark: row.mark, status: row.status, sha256: hashRow(row.id, row.requirement, row.status) })) } };
-}
-function writeStore(root, features) {
-  const storePath = path.join(root, "docs/product-report/assessments.json");
-  fs.mkdirSync(path.dirname(storePath), { recursive: true });
-  fs.writeFileSync(storePath, JSON.stringify({ version: 1, features }, null, 2));
-  return storePath;
-}
 // Replaces one row's Evidence cell in a fixture's own REQUIREMENTS.md, by line number, so a
 // test can exercise a cited-test shape without disturbing the row's requirement text or status.
 function setRowEvidence(root, id, evidence) {
@@ -96,15 +59,6 @@ function setRowEvidence(root, id, evidence) {
   const lines = text.split("\n");
   lines[target.line - 1] = `| ${target.id} | ${target.requirement} | ${target.status} | ${evidence} |`;
   fs.writeFileSync(ledgerPath, lines.join("\n"));
-}
-// Schema-1 runtime data at the fixture's own .git/nana/runtime-map.json (R-1278's default
-// place), never injected and never the real clone's.
-function writeRuntimeFile(root, data) {
-  const common = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" }).stdout.trim();
-  const file = path.join(path.resolve(root, common), "nana", "runtime-map.json");
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data));
-  return file;
 }
 function productLedger(artifacts) {
   const rows = artifacts.map((_, index) => `R-${8500 + index}`);
@@ -169,21 +123,6 @@ function historyFixture(name, artifacts, date = "2026-01-01T00:00:00Z", parent =
   run(["commit", "-qm", "fixture ledger"], { env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } });
   return { root, git: run };
 }
-function commitAt(repo, message, date, files, { messageFile = false } = {}) {
-  for (const [name, content] of Object.entries(files)) {
-    const target = path.join(repo.root, name);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, content);
-  }
-  repo.git(["add", "-A"]);
-  const env = { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
-  if (messageFile) {
-    const file = path.join(temp, `commit-message-${Math.random().toString(16).slice(2)}`);
-    fs.writeFileSync(file, message);
-    repo.git(["commit", "-qF", file], { env });
-  } else repo.git(["commit", "-qm", message], { env });
-  return repo.git(["rev-parse", "HEAD"]).stdout.trim();
-}
 function commonDirOf(repo) {
   return path.resolve(repo.root, repo.git(["rev-parse", "--git-common-dir"]).stdout.trim());
 }
@@ -210,30 +149,6 @@ function renderedArtifactLines(view) {
 }
 function onlyArtifactAge(view) {
   return renderedArtifactLines(view)[0] ?? "";
-}
-// The one helper every new check renders through (must-meet.md, report-test-details-2026-10-19):
-// pull the renderer source and the report-data JSON from the HTML generateReport wrote, evaluate
-// the renderer in a fresh vm context (so a reference to an import or module constant the real
-// page cannot see throws exactly as it would in the browser), and render one hash into a stub DOM.
-function renderHtmlAt(html, hash = "") {
-  const prefix = "const renderInto = (";
-  const start = html.indexOf(prefix);
-  if (start === -1) throw new Error("renderer source not found in generated page");
-  const afterStart = start + prefix.length;
-  const close = /\);\r?\n(?=const data = JSON\.parse)/.exec(html.slice(afterStart));
-  if (!close) throw new Error("renderer close not found in generated page");
-  const source = html.slice(afterStart, afterStart + close.index);
-  const sandbox = {};
-  vm.runInNewContext(`renderInto = (${source});`, sandbox);
-  const dataMatch = html.match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/);
-  const model = JSON.parse(dataMatch[1]);
-  const handlers = [];
-  const rootNode = { tag: "main", children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...children) { this.children = children; } };
-  const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener(type, callback) { handlers.push({ node: this, type, callback }); } }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); return node; };
-  const document = { getElementById: () => rootNode, createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
-  sandbox.renderInto(document, model, { hash });
-  const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
-  return { nodes: flatten(rootNode), root: rootNode, model, handlers };
 }
 // Finds a row's <article> card (detail/issues/requirements views share row()) by its heading's
 // leading "<id> " text, and that card's row-tests <ol> items.
@@ -343,7 +258,7 @@ try {
       return { text: flatten(rootNode).map((node) => typeof node.text === "string" ? node.text : "").join(" "), nodes: flatten(rootNode), root: rootNode, handlers };
     };
     const product = render("#product"); const features = render("#features"); const detail = render("#FEAT-039");
-    const requirements = render("#requirements"); const issues = render("#issues"); const decisions = render();
+    const requirements = render("#requirements"); const issues = render("#issues"); const decisions = render("#decisions");
     // req: R-1013
     check("rendered provenance section states exact commit, date, and clean state", decisions.nodes.some((node) => node.tag === "p" && node.textContent === `Commit: ${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`));
     // req: R-1014
@@ -367,11 +282,11 @@ try {
     // req: R-1015
     check("feature detail places human-labelled assessment before counts, shares and rows", detail.nodes.some((node) => node.attrs?.class?.includes("state-current") && node.textContent.startsWith("current — matches the stamped ledger")) && detailText.indexOf("What it does") < detailText.indexOf("Counts") && detailText.indexOf("Counts") < detailText.indexOf("Shared by") && detailText.indexOf("Shared by") < detailText.lastIndexOf("Requirements"));
     // req: R-1015
-    check("feature IDs link to their detail views in product, features, shared and detail views", [product, features, render("#shared"), detail].every((view) => view.nodes.filter((node) => node.tag === "a" && /^FEAT-/.test(node.textContent ?? "")).every((node) => node.attrs.href === `#${node.textContent.split(" · ")[0]}`)) && model.features.every((item) => features.nodes.some((node) => node.tag === "a" && node.attrs.href === `#${item.id}`)));
+    check("feature IDs link to their detail views in product, features, overview and detail views", [product, features, render("#overview"), detail].every((view) => view.nodes.filter((node) => node.tag === "a" && /^FEAT-/.test(node.textContent ?? "")).every((node) => node.attrs.href === `#${node.textContent.split(" · ")[0]}`)) && model.features.every((item) => features.nodes.some((node) => node.tag === "a" && node.attrs.href === `#${item.id}`)));
     // req: R-1015
     check("feature detail shows exact status counts and stacked bar segments", (() => { const item = model.features.find((feature) => feature.id === "FEAT-039"); const bar = detail.nodes.find((node) => node.attrs?.class === "status-bar"); const counts = detail.nodes.find((node) => node.attrs?.class === "count-label"); return bar && bar.children.map((segment) => segment.attrs.style).join(",") === ["implemented", "untested", "planned", "violated", "retired"].map((status) => `flex-grow:${item.counts[status]}`).join(",") && counts.textContent === `Counts: ${["implemented", "untested", "planned", "violated", "retired"].map((status) => `${status} ${item.counts[status]}`).join(" · ")}`; })());
     // req: R-1015
-    check("rendered views never expose raw assessment store keys", [product, features, detail, render("#shared"), requirements, issues, decisions].every((view) => !/what_it_does|maturity_reason/.test(view.text)));
+    check("rendered views never expose raw assessment store keys", [product, features, detail, render("#overview"), requirements, issues, decisions].every((view) => !/what_it_does|maturity_reason/.test(view.text)));
     const plain = (value) => String(value ?? "").replaceAll("**", "").replaceAll("`", "").replace(/\s+/g, " ").trim();
     const allRows = [...new Map(model.features.flatMap((feature) => feature.rows.map((row) => [row.id, row]))).values()];
     const requirementText = requirements.text.replace(/\s+/g, " ");
@@ -395,10 +310,10 @@ try {
     const routeSource = fs.readFileSync(path.join(ROOT, "scripts/product-report.mjs"), "utf8");
     const prototypeHashesRenderDecisions = ["#constructor", "#__proto__", "#hasOwnProperty"].every((hash) => {
       const view = render(hash);
-      return model.asks.length > 0 && model.asks.every((ask) => carries(view.text, ask.body)) && view.nodes.some((node) => /^h[1-6]$/.test(node.tag) && /decision/i.test(node.textContent));
+      return OVERVIEW_BLOCKS.every(([heading]) => view.nodes.some((node) => node.tag === "h3" && node.textContent === heading)) && view.nodes.some((node) => node.tag === "h2" && node.textContent === "Overview");
     });
     // req: R-1019
-    check("unknown prototype hashes render Decisions", prototypeHashesRenderDecisions && /Object\.prototype\.hasOwnProperty\.call\(views, hash\)/.test(routeSource));
+    check("unknown prototype hashes render the Overview", prototypeHashesRenderDecisions && /Object\.prototype\.hasOwnProperty\.call\(views, hash\)/.test(routeSource));
     check("renderer turns markdown spans into b and code nodes", decisions.nodes.some((node) => node.tag === "b") && decisions.nodes.some((node) => node.tag === "code") && !decisions.text.includes("**bold span**") && !decisions.text.includes("`code span`"));
     check("renderer includes tab links and requirements controls", features.nodes.some((node) => node.tag === "a") && requirements.nodes.some((node) => node.tag === "input") && requirements.nodes.some((node) => node.tag === "select"));
     const bootstrap = model.template.split("<script>\n")[1].split("</script>")[0].replace("const renderInto = (__RENDERER__);", "");
@@ -447,9 +362,10 @@ try {
     const root = { children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...nodes) { this.children = nodes; } };
     const made = [];
     const document = { getElementById: () => root, createElement: (tag) => { const node = { tag, children: [], appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute() {}, addEventListener() {} }; made.push(node); return node; }, createTextNode: (text) => ({ text: String(text) }) };
-    renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, capabilities: [], features: [], violated: [], asks: [{ kind: "optional", since: "2026-10-10", title: "<img onerror=alert(1)>", body: "<script>bad</script>" }] });
+    renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, capabilities: [], features: [], violated: [], asks: [{ kind: "optional", since: "2026-10-10", title: "<img onerror=alert(1)>", body: "<script>bad</script>" }] }, { hash: "#decisions" });
+    renderInto(document, { features: [], overview: [{ heading: "Needs you", href: "#decisions", lines: [[{ text: "<img onerror=alert(1)>" }]] }] });
     // req: R-1019
-    check("renderer inserts all dynamic strings only through text nodes", made.every((node) => !("innerHTML" in node) && !("outerHTML" in node)) && root.children.length > 0 && !made.some((node) => node.tag === "script"));
+    check("renderer inserts all dynamic strings only through text nodes", made.every((node) => !("innerHTML" in node) && !("outerHTML" in node)) && root.children.length > 0 && made.some((node) => node.children.some((child) => child.text === "<img onerror=alert(1)>")) && !made.some((node) => node.tag === "script"));
   }
   {
     const { root } = fixture("crlf");
@@ -1114,7 +1030,7 @@ try {
     ], { eol: "\r\n" });
     const out = path.join(temp, "open-questions-numbers.html");
     await generateReport({ root, out });
-    const nodes = renderPageAt(fs.readFileSync(out, "utf8"));
+    const nodes = renderPageAt(fs.readFileSync(out, "utf8"), "#decisions");
     const list = nodes.find((node) => node.tag === "ul" && node.attrs?.class === "open-questions");
     const items = (list?.children ?? []).filter((node) => node.tag === "li").map((node) => node.textContent);
     const expected = [
@@ -1138,14 +1054,14 @@ try {
     const noHeadingOut = path.join(temp, "open-questions-no-heading.html");
     await generateReport({ root: noHeading.root, out: noHeadingOut });
     const noHeadingWritten = fs.existsSync(noHeadingOut);
-    const noHeadingNodes = noHeadingWritten ? renderPageAt(fs.readFileSync(noHeadingOut, "utf8")) : [];
+    const noHeadingNodes = noHeadingWritten ? renderPageAt(fs.readFileSync(noHeadingOut, "utf8"), "#decisions") : [];
 
     const preamble = fixture("open-questions-preamble");
     setLedgerSection(preamble.root, "## Open questions", ["Unruled decisions, numbered."]);
     const preambleOut = path.join(temp, "open-questions-preamble.html");
     await generateReport({ root: preamble.root, out: preambleOut });
     const preambleWritten = fs.existsSync(preambleOut);
-    const preambleNodes = preambleWritten ? renderPageAt(fs.readFileSync(preambleOut, "utf8")) : [];
+    const preambleNodes = preambleWritten ? renderPageAt(fs.readFileSync(preambleOut, "utf8"), "#decisions") : [];
 
     // req: R-1571
     check("R-1571: a ledger with no open questions heading, or none under it, still writes the page and says none are recorded",
@@ -1325,7 +1241,7 @@ try {
     const bothMarks = ["not made by code", "not read by code"].every((mark) => byId["R-6000"]?.textContent.includes(mark));
     // req: R-2642
     check("R-2642: the Product view lists a deliverable's Parked line among its claims in ledger order",
-      JSON.stringify(claims("R-6000")) === JSON.stringify(r6000Claims) && !claims("R-6001").some((claim) => claim.startsWith("Parked:")) && bothMarks && countLine === "deliverables: 0 of 1 made and read by code, 1 parked",
+      JSON.stringify(claims("R-6000")) === JSON.stringify(r6000Claims) && !claims("R-6001").some((claim) => claim.startsWith("Parked:")) && bothMarks && countLine === "deliverables: 0 of 1 made and read by code, 1 more parked",
       JSON.stringify({ claims: Object.fromEntries(Object.keys(byId).map((id) => [id, claims(id)])), bothMarks, countLine }));
   });
   await withinCaseLimit("R-2543", async () => {
@@ -1525,7 +1441,7 @@ try {
     // req: R-2799
     check("R-2799: the artifacts view shows a card per live entry with its class, location, age, maker, reading features and deliverables",
       JSON.stringify(headings) === JSON.stringify(["A-001 · automatic output", "A-002 · manual source", "A-003 · internal output", "A-005 · person source", "A-006 · code source", "A-007 · prompt source", "A-008 · orphan record", "A-009 · rule source", "A-010 · read-only output", "A-011 · manual read-only source"]) &&
-      !card("A-004") && a1?.textContent.includes("Class: tracked: REQUIREMENTS.md") && a1?.textContent.includes("Made in: FEAT-120 · Maker feature · build: REQUIREMENTS.md") && ["FEAT-100", "FEAT-101", "FEAT-110"].every((id) => a1?.textContent.includes(`Read in: ${id} ·`)) && a1?.textContent.includes("Deliverable: R-1200 · names it") && a2?.textContent.includes("Deliverable: R-1201 · built from it") && a8?.textContent.includes("Age: last changed") && a1CardAge === a1ProductAge && JSON.stringify(navLabels.slice(0, 3)) === JSON.stringify(["Decisions", "Product", "Artifacts"]) && emptyText.includes("no artifact registry") && !emptyArtifacts.nodes.some((node) => node.attrs?.class === "artifact-entry-card"),
+      !card("A-004") && a1?.textContent.includes("Class: tracked: REQUIREMENTS.md") && a1?.textContent.includes("Made in: FEAT-120 · Maker feature · build: REQUIREMENTS.md") && ["FEAT-100", "FEAT-101", "FEAT-110"].every((id) => a1?.textContent.includes(`Read in: ${id} ·`)) && a1?.textContent.includes("Deliverable: R-1200 · names it") && a2?.textContent.includes("Deliverable: R-1201 · built from it") && a8?.textContent.includes("Age: last changed") && a1CardAge === a1ProductAge && JSON.stringify(navLabels.slice(0, 4)) === JSON.stringify(["Overview", "Decisions", "Product", "Artifacts"]) && emptyText.includes("no artifact registry") && !emptyArtifacts.nodes.some((node) => node.attrs?.class === "artifact-entry-card"),
       JSON.stringify({ headings, a1: a1?.textContent, a2: a2?.textContent, a8: a8?.textContent, a1CardAge, a1ProductAge, navLabels, emptyText }));
   });
   await withinCaseLimit("R-2800", async () => {

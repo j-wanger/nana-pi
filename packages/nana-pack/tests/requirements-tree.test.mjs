@@ -520,7 +520,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const parkedRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
   const parkedWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const parkedCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
-  const parkedLine = "deliverables: 1 of 2 made and read by code, 2 parked";
+  const parkedLine = "deliverables: 1 of 2 made and read by code, 2 more parked";
   const hasOneParkedCount = (result) => result.status === 0 && lines(result.stdout).filter((line) => line === parkedLine).length === 1;
 
   const oneParkedTree = parkedTree
@@ -529,7 +529,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
     .replace(/^\| R-001.*\n|^\| R-003.*\n|^\| R-004.*\n/gm, "");
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), oneParkedTree);
   const oneParkedRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
-  const oneParkedLine = "deliverables: 0 of 0 made and read by code, 1 parked";
+  const oneParkedLine = "deliverables: 0 of 0 made and read by code, 1 more parked";
   // req: R-2639
   check("R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode",
     hasOneParkedCount(parkedRoot) && hasOneParkedCount(parkedWrite) && hasOneParkedCount(parkedCheck) && oneParkedRoot.status === 0 && lines(oneParkedRoot.stdout).filter((line) => line === oneParkedLine).length === 1,

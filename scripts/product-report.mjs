@@ -3,7 +3,7 @@
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
  * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
- * @outputs A complete product ledger HTML file with shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, an Artifacts flow, lists and entry cards, feature artifact detail lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @outputs A complete product ledger HTML file with a model-built Overview, shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, an Artifacts flow, lists and entry cards, feature artifact detail lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
@@ -63,6 +63,24 @@ export const NO_RECORD_IN_HISTORY = "no record names a commit in HEAD's history"
 export const BUILD_LEDGER_UNREADABLE = "the build ledger cannot be read";
 // Unit: elapsed epoch seconds in one whole day.
 export const SECONDS_PER_DAY = 24 * 60 * 60;
+// contract (R-2924): the owner's 2026-10-25 page discussion picked 30 days as the age that makes an artifact stale.
+export const STALE_AGE_DAYS = 30;
+// Contract (R-2920 to R-2925, R-2927): Overview headings, destinations and finished-line labels.
+export const OVERVIEW_BLOCKS = Object.freeze([
+  Object.freeze(["Needs you", "#decisions"]), Object.freeze(["Broken", "#issues"]),
+  Object.freeze(["Gaps", "#product"]), Object.freeze(["Stale", "#features"]), Object.freeze(["What it does", "#product"]),
+]);
+export const OVERVIEW_LABELS = Object.freeze({
+  asks: "Asks", blocking: "blocking (must decide)", optional: "optional", parked: "parked",
+  mustDecide: "Must decide", since: "since", questions: "Open questions in the ledger",
+  violated: "Violated", notPassed: "Did not pass in this clone's last measured run",
+  failed: "failed", skippedOnly: "skipped only", noRun: "implemented rows with no recorded run",
+  runtimeMissing: "no recorded run: ", deliverableGaps: "Deliverables code does not make and read",
+  notes: "deliverable notes", artifactGaps: "Artifacts with no declared reader",
+  assessments: "Feature assessments out of date", unassessed: "unassessed",
+  staleArtifacts: `Artifacts older than ${STALE_AGE_DAYS} days before HEAD's commit`,
+  notMeasured: "age not measured", unknown: "age unknown", noDeliverables: "no deliverable lines",
+});
 export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
@@ -198,17 +216,20 @@ function parseHistory(text) {
 }
 
 function formatArtifactAge(record, commits, headEpoch) {
-  return `${LAST_CHANGED_PREFIX} ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, record.epoch), "day")} before HEAD by ${record.hash.slice(0, TIP_DIGITS)}: ${record.subject}`;
+  const days = wholeDays(headEpoch, record.epoch);
+  return { text: `${LAST_CHANGED_PREFIX} ${plural(commits, "commit")} and ${plural(days, "day")} before HEAD by ${record.hash.slice(0, TIP_DIGITS)}: ${record.subject}`, days };
 }
 
 function formatRuntimeAge(data, commits, headEpoch, measured) {
   const dirty = Number.isInteger(data.dirty) && data.dirty > 0 ? ` with ${plural(data.dirty, "uncommitted file")}` : "";
-  return `${MEASURED_AT_TIP_PREFIX} ${data.tip.slice(0, TIP_DIGITS)} on ${measured.toISOString()}${dirty}, ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, measured.getTime() / 1000), "day")} before HEAD`;
+  const days = wholeDays(headEpoch, measured.getTime() / 1000);
+  return { text: `${MEASURED_AT_TIP_PREFIX} ${data.tip.slice(0, TIP_DIGITS)} on ${measured.toISOString()}${dirty}, ${plural(commits, "commit")} and ${plural(days, "day")} before HEAD`, days };
 }
 
 function formatRecordAge(record, commits, headEpoch) {
   const recorded = new Date(record.time);
-  return `${RECORD_AT_TIP_PREFIX} ${record.tip.slice(0, TIP_DIGITS)} on ${recorded.toISOString()}, ${plural(commits, "commit")} and ${plural(wholeDays(headEpoch, recorded.getTime() / 1000), "day")} before HEAD`;
+  const days = wholeDays(headEpoch, recorded.getTime() / 1000);
+  return { text: `${RECORD_AT_TIP_PREFIX} ${record.tip.slice(0, TIP_DIGITS)} on ${recorded.toISOString()}, ${plural(commits, "commit")} and ${plural(days, "day")} before HEAD`, days };
 }
 
 const STORE_READERS_BY_WRITER = Object.freeze({
@@ -230,8 +251,12 @@ function recordStoreEntries(key, { root, commonDir, runGit }) {
   return STORE_READERS_BY_KEY[key]?.({ root, commonDir, runGit }) ?? { records: [] };
 }
 
-function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason }) {
+function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason, ageDays }) {
   const ages = new Map();
+  const setAge = (key, age) => {
+    if (typeof age === "string") ages.set(key, age);
+    else { ages.set(key, age.text); ageDays.set(key, age.days); }
+  };
   if (!artifacts.length) return ages;
   const run = (args, options) => gitResult(gitRunner, root, args, options);
   const ageable = [];
@@ -280,7 +305,7 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
           let count;
           try { count = run(["rev-list", "--count", `${record.hash}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
-          ages.set(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatArtifactAge(record, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+          setAge(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatArtifactAge(record, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
@@ -312,7 +337,7 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
           let count;
           try { count = run(["rev-list", "--count", `${newest.tip}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
-          ages.set(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRecordAge(newest, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+          setAge(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRecordAge(newest, commits, headEpoch) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
@@ -333,7 +358,7 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
           let count;
           try { count = run(["rev-list", "--count", `${runtimeData.tip}..HEAD`]); } catch { count = null; }
           const commits = Number(String(count?.stdout ?? "").trim());
-          ages.set(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRuntimeAge(runtimeData, commits, headEpoch, measured) : unknownAge(GIT_HISTORY_FAILURE_REASON));
+          setAge(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRuntimeAge(runtimeData, commits, headEpoch, measured) : unknownAge(GIT_HISTORY_FAILURE_REASON));
         }
       }
     }
@@ -355,8 +380,8 @@ function featureStamp(parsed, feature, commit) {
 
 export function renderInto(document, model, { hash = "" } = {}) {
   const root = document.getElementById("report");
-  const views = { "": "decisions", "#decisions": "decisions", "#product": "product", "#artifacts": "artifacts", "#features": "features", "#shared": "shared", "#issues": "issues", "#requirements": "requirements" };
-  const view = Object.prototype.hasOwnProperty.call(views, hash) ? views[hash] : Object.prototype.hasOwnProperty.call(Object.fromEntries(model.features.map((feature) => [`#${feature.id}`, feature])), hash) ? "detail" : "decisions";
+  const views = { "": "overview", "#overview": "overview", "#decisions": "decisions", "#product": "product", "#artifacts": "artifacts", "#features": "features", "#issues": "issues", "#requirements": "requirements" };
+  const view = Object.prototype.hasOwnProperty.call(views, hash) ? views[hash] : Object.prototype.hasOwnProperty.call(Object.fromEntries(model.features.map((feature) => [`#${feature.id}`, feature])), hash) ? "detail" : "overview";
   const feature = view === "detail" ? model.features.find((item) => `#${item.id}` === hash) : null;
   const el = (tag, value, parent) => { const node = document.createElement(tag); if (value !== undefined) node.appendChild(document.createTextNode(String(value ?? ""))); if (parent) parent.appendChild(node); return node; };
   const text = (parent, value) => {
@@ -398,11 +423,19 @@ export function renderInto(document, model, { hash = "" } = {}) {
     return card;
   };
   root.replaceChildren();
-  const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ decisions: "Decisions", product: "Product", artifacts: "Artifacts", features: "Features", shared: "Shared", issues: "Issues", requirements: "Requirements" })[view];
+  const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ overview: "Overview", decisions: "Decisions", product: "Product", artifacts: "Artifacts", features: "Features", issues: "Issues", requirements: "Requirements" })[view];
   el("h1", "Nana pi product ledger", root); paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
   const nav = el("nav", undefined, root); cls(nav, "tabs");
-  for (const [label, target, key] of [["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Artifacts", "#artifacts", "artifacts"], ["Features", "#features", "features"], ["Shared", "#shared", "shared"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
+  for (const [label, target, key] of [["Overview", "#overview", "overview"], ["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Artifacts", "#artifacts", "artifacts"], ["Features", "#features", "features"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
   const viewHeading = el("h2", title, root);
+  if (view === "overview") {
+    for (const block of model.overview) {
+      const heading = el("h3", undefined, root);
+      const link = el("a", block.heading, heading); link.setAttribute("href", block.href);
+      const list = el("ul", undefined, root);
+      for (const line of block.lines) renderSegments(el("li", undefined, list), line);
+    }
+  }
   if (view === "decisions") {
     for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
@@ -439,9 +472,12 @@ export function renderInto(document, model, { hash = "" } = {}) {
       for (const bound of cap.binds) { const item = el("li", undefined, list); cls(item, `bound${bound.gap ? " gap" : ""}`); text(item, `${bound.id} · ${bound.label} · ${bound.gap ? "gap" : bound.rows.join(", ")}`); }
     }
     if (cap.artifactFeatures) {
-      paragraph(card, cap.artifactFeatures.label, "");
-      const list = el("ul", undefined, card); cls(list, "capability-artifacts");
-      for (const value of cap.artifactFeatures.items) { const item = el("li", undefined, list); text(item, value); }
+      if (!cap.artifactFeatures.items.length) paragraph(card, cap.artifactFeatures.label, "none");
+      else {
+        paragraph(card, cap.artifactFeatures.label, "");
+        const list = el("ul", undefined, card); cls(list, "capability-artifacts");
+        for (const value of cap.artifactFeatures.items) { const item = el("li", undefined, list); text(item, value); }
+      }
     }
     if (cap.retired) paragraph(card, "Retired", `replaced by ${cap.successors.map((item) => `${item.id} · ${item.label}`).join(", ")}`);
     for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } }
@@ -487,7 +523,6 @@ export function renderInto(document, model, { hash = "" } = {}) {
     paragraph(root, "Shared rows", feature.shared.join(", ") || "None");
     el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
   }
-  if (view === "shared") for (const receiving of model.features) for (const id of receiving.shared) { const home = model.features.find((candidate) => candidate.rows.some((r) => r.id === id && r.mark === "own")); const item = receiving.rows.find((r) => r.id === id); const card = el("article", undefined, root); el("h3", id, card); paragraph(card, "Requirement", item?.requirement); const homeLine = el("p", undefined, card); text(homeLine, "Home feature: "); home ? featureLink(homeLine, home.id) : text(homeLine, "Unknown"); const receivingLine = el("p", undefined, card); text(receivingLine, "Receiving feature: "); featureLink(receivingLine, receiving.id); }
   if (view === "issues") {
     if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
     for (const item of model.violated) row(root, item);
@@ -696,7 +731,10 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       if (claim.artifact) artifactDescriptors.set(`path:${claim.artifact}`, { key: `path:${claim.artifact}`, className: "tracked", location: claim.artifact, plain: true });
     }
   }
-  const ages = artifactAges({ artifacts: [...artifactDescriptors.values()], root, gitRunner, trackedPaths, runtimeData, runtimeReason });
+  const runtimeBinding = ARTIFACT_AGE_TABLE[RUNTIME_AGE_KEY];
+  artifactDescriptors.set("overview:runtime", { key: "overview:runtime", live: true, className: "clone store", location: RUNTIME_AGE_KEY, run: runtimeBinding.run, writers: [runtimeBinding.writer] });
+  const ageDays = new Map();
+  const ages = artifactAges({ artifacts: [...artifactDescriptors.values()], root, gitRunner, trackedPaths, runtimeData, runtimeReason, ageDays });
   const fieldValues = (capability, field) => (capability.capabilityFields?.[field] ?? []).flatMap(({ value }) => field === "Kind" ? [value] : value.split(/,\s*/));
   const featureHeadings = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-"));
   const featureHeadingById = new Map(featureHeadings.map((feature) => [feature.id, feature]));
@@ -902,7 +940,50 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
   // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
   const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
-  const model = { commit, date, clean: !dirty, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions: parseOpenQuestions(ledgerText), files: Object.fromEntries(files), runtime: { legend } };
+  const questions = parseOpenQuestions(ledgerText);
+  const labels = OVERVIEW_LABELS;
+  const line = (text) => [{ text }];
+  const idsLine = (items) => items.length ? [line(items.map((item) => item.id).join(", "))] : [];
+  const blocking = asks.filter((ask) => ask.tag.kind === "blocking");
+  const kindCount = (kind) => asks.filter((ask) => ask.tag.kind === kind).length;
+  const failed = notPassed.filter((row) => uniqueFilesOf(row.evidence).some((file) => runStateOf(file)?.label === FAIL_LABEL)).length;
+  const noRun = rows.filter((row) => {
+    if (row.status !== "implemented") return false;
+    const cited = uniqueFilesOf(row.evidence);
+    return cited.length > 0 && cited.every((file) => !runStateOf(file));
+  }).length;
+  const check = deliverableResult.check;
+  const deliverableGaps = check.byCapability.flatMap((capability) => capability.gapRows);
+  const parked = check.byCapability.reduce((sum, capability) => sum + capability.parked, 0);
+  const consumers = [...check.artifactConsumers].sort(([left], [right]) => left.localeCompare(right));
+  const artifactGaps = consumers.filter(([, consumer]) => consumer.kinds.size === 0 && !consumer.park).map(([id]) => ({ id }));
+  const artifactParked = consumers.filter(([, consumer]) => consumer.park).length;
+  const liveFeatures = features.filter(liveFeature);
+  const outdated = liveFeatures.filter((feature) => feature.assessmentState === "out of date");
+  const unassessed = liveFeatures.filter((feature) => feature.assessmentState === "unassessed");
+  const assessmentItems = liveFeatures.filter((feature) => feature.assessmentState === "out of date" || feature.assessmentState === "unassessed");
+  const featureIds = [];
+  assessmentItems.forEach((feature, index) => { if (index) featureIds.push({ text: ", " }); featureIds.push(featureSegment(feature.id)); });
+  const liveEntries = registry.entries.filter((entry) => entry.live).sort((left, right) => left.id.localeCompare(right.id));
+  const staleEntries = liveEntries.filter((entry) => ageDays.get(`registry:${entry.id}`) > STALE_AGE_DAYS);
+  const unmeasured = liveEntries.filter((entry) => !ageDays.has(`registry:${entry.id}`));
+  const notMeasured = unmeasured.filter((entry) => ages.get(`registry:${entry.id}`)?.startsWith(AGE_NOT_MEASURED_PREFIX)).length;
+  const hasDeliverables = check.deliverableFieldLineCount > 0;
+  const overviewLines = [
+    [line(`${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
+      ...blocking.map((ask) => line(`${labels.mustDecide}: ${ask.title.title} · ${labels.since} ${ask.tag.since}`)), line(`${labels.questions}: ${questions.length}`)],
+    [line(`${labels.violated}: ${violated.length}`), ...idsLine(violated),
+      line(`${labels.notPassed}: ${runtimeData ? `${notPassed.length} · ${labels.failed}: ${failed} · ${labels.skippedOnly}: ${notPassed.length - failed} · ${labels.noRun}: ${noRun} · ${ages.get("overview:runtime")}` : `${labels.runtimeMissing}${runtimeReason}`}`), ...idsLine(notPassed)],
+    [line(`${labels.deliverableGaps}: ${hasDeliverables ? `${deliverableGaps.length} · ${labels.parked}: ${parked} · ${labels.notes}: ${check.notes.length}` : labels.noDeliverables}`),
+      ...(hasDeliverables && deliverableGaps.length ? [line(deliverableGaps.join(", "))] : []),
+      line(`${labels.artifactGaps}: ${artifacts.hasRegistry ? `${artifactGaps.length} · ${labels.parked}: ${artifactParked}` : artifacts.emptyText}`), ...idsLine(artifactGaps)],
+    [line(`${labels.assessments}: ${outdated.length} · ${labels.unassessed}: ${unassessed.length}`), ...(featureIds.length ? [featureIds] : []),
+      line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
+      ...staleEntries.map((entry) => line(`${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days`))],
+    hasDeliverables ? [line(deliverableLines[0]), ...check.byCapability.map((capability) => line(`${capability.id} · ${capabilityById.get(capability.id).label}: ${capability.countText}`))] : [line(labels.noDeliverables)],
+  ];
+  const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));
+  const model = { commit, date, clean: !dirty, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions, files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 

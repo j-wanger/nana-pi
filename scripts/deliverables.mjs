@@ -3,7 +3,7 @@
  * @module scripts/deliverables.mjs
  * @purpose Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines.
  * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
- * @outputs Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes and counts including parked counts, and the exact lines printed by the tree checker.
+ * @outputs Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes, per-capability counts and gap rows, and the exact tree-checker lines with their check result from deliverableReport.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
@@ -500,6 +500,10 @@ export function artifactConsumers(parsed, trackedPaths = null, registry = artifa
   return consumers;
 }
 
+function deliverableCountText(madeAndRead, total, parked) {
+  return `${madeAndRead} of ${total} made and read by code${parked ? `, ${parked} more parked` : ""}`;
+}
+
 /** Check deliverable fields. Pass null for trackedPaths to collect path claims without deciding them. */
 export function checkDeliverables(parsed, trackedPaths = null) {
   const registry = artifactRegistry(parsed, trackedPaths);
@@ -522,6 +526,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
   }
   let madeAndReadByCode = 0;
   let parkedDeliverables = 0;
+  const byCapability = [];
 
   const addPath = (row, path, line, kind) => {
     const value = path.trim();
@@ -684,8 +689,14 @@ export function checkDeliverables(parsed, trackedPaths = null) {
       }
       for (const id of missing) notes.push(note(`${row} built-from entry ${id} is neither registered nor read in home feature ${homeFeatureId}`));
     }
-    madeAndReadByCode += listed.filter((row) => isMadeAndReadByCode(claimsByRow.get(row) ?? [])).length;
-    parkedDeliverables += parkedRows.size;
+    const madeRows = new Set(listed.filter((row) => isMadeAndReadByCode(claimsByRow.get(row) ?? [])));
+    const madeAndRead = madeRows.size;
+    const parked = parkedRows.size;
+    byCapability.push({ id: capability.id, listed: listed.length, parked, madeAndRead,
+      gapRows: listed.filter((row) => !parkedRows.has(row) && !madeRows.has(row)),
+      countText: deliverableCountText(madeAndRead, listed.length - parked, parked) });
+    madeAndReadByCode += madeAndRead;
+    parkedDeliverables += parked;
     for (const row of listed) {
       for (const label of DELIVERABLE_FIELD_LABELS) {
         if (!seen.get(row)?.has(label)) notes.push(note(`${row} has no readable ${label}: line`));
@@ -700,7 +711,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
     }
   }
 
-  return { notes, pathsToCheck, checkedDeliverables, fieldLineCount, deliverableFieldLineCount, artifactsRequireTracked: registry.needsTrackedPaths || featureReads.needsTrackedPaths || consumers.needsTrackedPaths, artifacts: registry.byId, reads: featureReads.byFeature, artifactConsumers: consumers, madeAndReadByCode, parkedDeliverables };
+  return { notes, pathsToCheck, checkedDeliverables, byCapability, fieldLineCount, deliverableFieldLineCount, artifactsRequireTracked: registry.needsTrackedPaths || featureReads.needsTrackedPaths || consumers.needsTrackedPaths, artifacts: registry.byId, reads: featureReads.byFeature, artifactConsumers: consumers, madeAndReadByCode, parkedDeliverables };
 }
 
 /** Return the exact deliverable lines plus the HEAD paths used to derive them. */
@@ -725,10 +736,11 @@ export function deliverableReport(parsed, ledgerFolder, gitRunner = (args, optio
   }
   return {
     lines: [
-      ...(report.deliverableFieldLineCount > 0 ? [`deliverables: ${report.madeAndReadByCode} of ${report.checkedDeliverables - report.parkedDeliverables} made and read by code${report.parkedDeliverables ? `, ${report.parkedDeliverables} parked` : ""}`] : []),
+      ...(report.deliverableFieldLineCount > 0 ? [`deliverables: ${deliverableCountText(report.madeAndReadByCode, report.checkedDeliverables - report.parkedDeliverables, report.parkedDeliverables)}`] : []),
       ...report.notes,
     ],
     trackedPaths,
+    check: report,
   };
 }
 
