@@ -13,8 +13,8 @@
 1. **Current priority: the artifact work (the owner, 2026-10-23).** Each artifact comes from an existing run, is read by code, and shows its age.
 2. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 3. **Lanes in flight (power mode continues; the owner, 2026-10-23).** The four page-free lanes the owner picked on 2026-10-25 are on main.
-4. **Product page readability (the owner, 2026-10-25).** The owner picked option two, in two lanes; lane one is on main. Lane two moves the detail to feature pages and retires the flow lines.
-5. **Queue after that.** Page lane two comes next. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
+4. **Product page readability (the owner, 2026-10-25).** Both page lanes are on main.
+5. **Queue after that.** The owner's next pick sets it. Seat work: after each land, check the land-written report's commit against main, then publish it to the owner's copy.
 6. **Windows first-try failures.** Since 2026-10-22, flaky tests failed 32 of 171 first Windows runs, about 18%. Both Windows test lanes the owner picked are on main.
 7. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 
@@ -53,7 +53,7 @@
 ## Landed
 
 - 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
-- 2026-10-25: the product page opens on a one-screen overview of asks, broken rows, gaps, stale items and each stage's deliverables.
+- 2026-10-26: product cards show one line per deliverable; feature pages hold the claims and artifact cards; the flow lines retired.
 
 ## Known bugs
 

@@ -38,7 +38,7 @@
 - Artifact age (report-deliverables, final review): the age takes the first commit in the date-ordered walk that lists the artifact. After a hand-resolved merge that keeps an older-dated side whole, it names main's commit while `git log -1 -- <path>` follows the side.
 - Artifact age (report-deliverables, final review): every report build walks the whole history once, even for one named artifact. Passing the path to git would shrink the walk but changes which merge side it follows.
 - Not-passed rule (audit re-check, 2026-10-22): the artifact audit asked that one failing run not mark a requirement failed until a second run confirms it; no lane built that.
-- Product view (park-deliverables, plan): a parked deliverable keeps both code marks and shows its park line as a claim; the view has no parked mark.
+- Product view (park-deliverables, plan): a parked deliverable keeps both code marks; its Product line says parked, and its park line shows as a claim on its home feature's page.
 - Product report at land (report-at-land, plan): the owner's copy changes only when the seat publishes the land-written page. No code can update it.
 - Product report at land (report-at-land, attack): nana-land can refuse a land after its suite passed. The page then names a tip that never landed, until the next land. The seat checks the page's commit against main before it publishes.
 - Product report at land (report-at-land, plan): only the locked suite writes the page. A land run with another suite command, a hand measure and CI write none.
@@ -63,11 +63,9 @@
 - Artifact ages (report-names-artifacts, final review): one R-2791 check filters the land page and mismatched-store lines and checks every match. It passes if those lines vanish. Seat pair 9 is red, so the risk is small.
 - Artifact block (report-names-artifacts, final review): IDs sort as text within a claim, so A-1000 would sort before A-999. Every ID has three digits today.
 - Artifacts view (artifact-flow, plan): the page cannot say an artifact is unread, because a feature's reads of its own artifacts are not written down.
-- Artifacts view (artifact-flow, plan): a deliverable's Read by paths are not drawn as flow; only feature Reads lines are.
-- Artifacts view (artifact-flow, plan): no flow line carries a stage-order mark until a ledger carries Needs lines.
 - Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git count. The ages share one log walk, so the cost stays below 30 process starts.
-- Artifacts view (artifact-flow, final review): a Reads line the checker flags still draws its line and keeps the entry off the first list. This ledger has none.
-- Artifacts view (artifact-flow, final review): an entry with an empty run renders as " · A-nnn · …"; the checker already flags it.
+- Artifacts view (artifact-flow, final review): a Reads line the checker flags still keeps the entry off the first list. This ledger has none.
+- Artifacts (artifact-flow, final review): an entry with an empty run renders its card line as "Made by: : …"; the checker already flags it.
 - Overview (page-overview, plan): the overview has no line cap. Many blocking asks, gap IDs or stale entries lengthen it; the assessments line names 35 features today.
 - Overview (page-overview, plan): "Must decide" is the `blocking` tag. A decision that holds no work has no mark of its own.
 - Overview (page-overview, plan): a closed question leaves the page only when someone moves it under `## Closed questions`. One closed in place still lists.
@@ -77,7 +75,19 @@
 - Overview (page-overview, plan): ages count to HEAD's commit time, not today. A page built long after HEAD reads young; this keeps R-1012.
 - Overview (page-overview, plan): 47 of 80 entries carry no measured age, so the stale count speaks for 33 entries. The beside counts say so, not which.
 - Overview (page-overview, plan): the not-passed count is this clone's last measured run; on a Mac all six are Windows-only skips. Another clone's page differs.
-- Overview (page-overview, plan): Gaps names parked items by count only; the Product view still shows them in full.
+- Overview (page-overview, plan): Gaps names parked items by count only; each Product line marks a parked row, and its claims sit on its home feature's page.
 - Overview (page-overview, plan): the Product view's `· gap` mark (status not implemented) and the overview's gap (not made and read by code) answer different questions.
-- Overview (page-overview, plan): the Product view's repeats, the artifact cards and the flow lines stay until lane two.
 - Overview (page-overview, plan): other projects get the overview at once through the shared script, without a template tag.
+- Feature pages (page-detail, plan): the age text shows twice on one detail page when the home feature registers the entry it names: 31 of today's 38 direct artifact lines. R-2799 keeps the two equal; the land report asks the owner.
+- Feature pages (page-detail, plan): a read shows on both ends: the card's `Read in:` line on the maker's page and the `Reads:` line on the reader's page.
+- Feature pages (page-detail, plan): the `Registers:` index line repeats the card headings below it.
+- Feature pages (page-detail, plan): `not read by code` repeats the reader kinds whenever they hold neither code nor prompt.
+- Feature pages (page-detail, plan): the one-line age is the largest measured count. A deliverable with one measured and one unmeasured artifact shows only the measured days.
+- Feature pages (page-detail, plan): `no readable reader` covers both no `Read by:` claim and only unreadable ones; the checker's notes say which.
+- Feature pages (page-detail, plan): built-from parts carry no maker link; the home feature's `Reads:` line links each one's maker.
+- Feature pages (page-detail, plan): the Gaps and Stale headings still link to views that show only part of what they count; each counted artifact links its maker.
+- Feature pages (page-detail, plan): R-2794's lists still name each feature's entries, and Product cards keep their feature bars beside the Features view's.
+- Feature pages (page-detail, plan): the Product count line repeats the first line of the Overview's What it does block.
+- Feature pages (page-detail, plan): long detail pages grow; FEAT-013's gains 11 cards above its rows.
+- Feature pages (page-detail, plan): a bookmark to `#artifacts` now opens the two lists only.
+- Feature pages (page-detail, plan): the page grew by 3,015 bytes, not shrank as planned: the maker links outweigh the retired flow lines, and list two kept its reasons.
