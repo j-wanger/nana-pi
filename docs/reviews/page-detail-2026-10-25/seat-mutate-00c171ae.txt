@@ -1,0 +1,94 @@
+seat-mutate: lane page-detail, tip 00c171ae45d751e98d0721c43f55a11b9a7b18a4, table 7c36d5de8c820ed4feec2c9cc7f2ee738e18fec2f7b49cb71fcb346cb1cd820f, merge-base 3010a7ef8f1d7e6424e325efbd1130839ddd22a7, 50 pairs in 5 shards (10+10+10+10+10, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-26T04:27:11.074Z
+DECLARED (seat) pairs 1 to 49 follow the must-meet's seat wrong-code list in order, one pair per item, except item 45, which splits; each names the rows the must-meet says it turns red
+DECLARED (seat) item 45 splits: 45a links each Overview artifact gap ID to its entry's capability; 45b links each Overview stale item to its entry's capability. The build appends the maker link in two places, so the item has two one-place forms
+DECLARED (seat) three pairs make one wrong behaviour with two text edits, applied in order: pair 5 adds readerClaim to the deliverables.mjs import and uses it (product-report.mjs does not import it at this tip); pair 21 first empties the detail sections loop, then inserts a copy of it right after the Reads: line loop (a move needs both, and the copy's text would make the original loop's anchor occur twice if inserted first); pair 41 puts a flow-group model back in the artifacts object and its h3/ul loop back in the Artifacts renderer
+DECLARED (expected survivor, run) pair 7: run green end to end at 00c171ae (SURVIVED, product-detail.test.mjs green after a 4 PASS baseline); R-006's `Read by: R-006 ·code: read.mjs` has no space after the separator, so the ` · ` split gives one part, parts[1] is empty and kind is "" with or without the two-part test; no R-2930 claim has three or more parts, so R-2930 is expected to stay green; the must-meet's red 'R-006' is unpinned for this mutation
+DECLARED (expected named-green, inferred) pair 28: artifactFlowLedger registers FEAT-120's live entries in A-ID order (A-001, A-002, A-005 to A-011), so registration order equals A-ID order there and R-2799 is expected to stay green; R-2932 (FEAT-001 registers A-002 then A-001) carries the pair
+DECLARED (seat) pair 38 runs product-report.test.mjs only: R-2932's entries are named after their IDs, so name order equals A-ID order there
+DECLARED (seat) pair 25 deletes the feature-ancestor walk, so R-002 under SUB-001 finds no home feature and buildReport throws a TypeError; R-2932 goes red on that throw, not on 'R-002 missing'
+DECLARED (seat) pairs 1 and 2 look up the home feature's block from model.features inside the Product branch and nest its claims (pair 1) or its artifact paragraphs (pair 2) under the item, the shape the item had before this lane
+DECLARED (seat) pair 29 is one edit in deliverables.mjs: deliverableClaims reads every capability's own field lines in place of the listing capability's. A page-only flatMap over the capabilities' claim maps would not reach CAP-51's stray R-5000 line, since deliverableClaims keeps only rows its capability lists. The edit also changes the checker's counts
+DECLARED (seat) pair 32 is one edit: a default `ages` parameter with an empty getter shadows the outer ages map inside artifactLinesFor, so every block line (direct, built-from and plain path) loses its age text and keeps its trailing separator
+DECLARED (seat) pair 39 drops the maker segments in the Artifacts renderer (value.slice(0, 1)), so both lists lose them in one edit
+DECLARED (seat) pairs 22 to 24 edit the model: the renderer draws one h3 per section the model holds, so 'always drawn' means a section with nothing under it in the model (pair 22 seeds every feature with an empty Deliverables section; pair 23 adds one when the first card section is made; pair 24 adds an empty Registered artifacts section to every feature after the card loop)
+DECLARED (seat) pair 46 names R-2931 and R-2932, the two checks in product-detail.test.mjs that render a detail view through the shipped renderer; product-report.test.mjs is not run for it because that file runs every check inside one try block, and its first vm render of a detail view with a section (R-1510's #FEAT-039 view, where R-1014's block sits) throws and ends the file, so its later detail checks (R-2542, R-2642, R-2790, R-2799 and the age rows) would print neither PASS nor FAIL and read as not reached
+DECLARED (seat) pair 49 is the one pair outside product-report.mjs and deliverables.mjs, in requirements-tree.mjs, as the must-meet names
+DECLARED (macOS) none is Windows-only, as the must-meet says
+DECLARED (product code) every pair edits product code: scripts/product-report.mjs, scripts/deliverables.mjs or, for pair 49, scripts/requirements-tree.mjs; no pair edits a test file or the ledger
+DECLARED (not expressible) none of the 49 items
+DECLARED (seat) no alsoRed is declared: the table was written before any full run. Expected UNNAMED reds (inferred, not run): pair 34 also R-2799 (A-001's card age is compared with the block line's text after its prefix, which now ends with a maker link) and R-2791 (its FEAT-091 lines must end with their age text, and now end with a maker link to FEAT-091); pair 47 also R-2542, R-2642, R-2790 and R-2799 (they find blocks by the h3's text, which innerHTML leaves empty in the stub); pair 48 also R-2799 (its card lines read text nodes); pairs 6, 7, 29 and 49 also change the tree checker, whose own test files are not run here
+[1/5] seat-mutate: lane page-detail, shard 1/5, tip 00c171ae45d751e98d0721c43f55a11b9a7b18a4, merge-base 3010a7ef8f1d7e6424e325efbd1130839ddd22a7, 10 pairs, darwin, node v22.22.2, 2026-10-26T04:27:11.843Z
+[1/5] BASELINE ok   packages/nana-pack/tests/product-detail.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 91 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[1/5] RESULT: 10/10 red (8 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane page-detail, shard 2/5, tip 00c171ae45d751e98d0721c43f55a11b9a7b18a4, merge-base 3010a7ef8f1d7e6424e325efbd1130839ddd22a7, 10 pairs, darwin, node v22.22.2, 2026-10-26T04:27:15.886Z
+[2/5] BASELINE ok   packages/nana-pack/tests/product-detail.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 91 PASS, 0 FAIL, )
+[2/5] RESULT: 9/10 red (8 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 1 survived [7]
+[3/5] seat-mutate: lane page-detail, shard 3/5, tip 00c171ae45d751e98d0721c43f55a11b9a7b18a4, merge-base 3010a7ef8f1d7e6424e325efbd1130839ddd22a7, 10 pairs, darwin, node v22.22.2, 2026-10-26T04:27:19.945Z
+[3/5] BASELINE ok   packages/nana-pack/tests/product-detail.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 91 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[3/5] RESULT: 10/10 red (8 exactly their named titles, 1 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane page-detail, shard 4/5, tip 00c171ae45d751e98d0721c43f55a11b9a7b18a4, merge-base 3010a7ef8f1d7e6424e325efbd1130839ddd22a7, 10 pairs, darwin, node v22.22.2, 2026-10-26T04:27:23.932Z
+[4/5] BASELINE ok   packages/nana-pack/tests/product-detail.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 91 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[4/5] RESULT: 10/10 red (8 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane page-detail, shard 5/5, tip 00c171ae45d751e98d0721c43f55a11b9a7b18a4, merge-base 3010a7ef8f1d7e6424e325efbd1130839ddd22a7, 10 pairs, darwin, node v22.22.2, 2026-10-26T04:27:28.025Z
+[5/5] BASELINE ok   packages/nana-pack/tests/product-detail.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 91 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[5/5] RESULT: 10/10 red (10 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 the Product item still nests ul.deliverable-claims — 1/1 named: /^R-2930: /; UNNAMED red: [product-detail.test.mjs] R-2931: a Product view deliverable line ends with the largest day count of the artifacts it names, or why it …; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the Product item keeps its artifact paragraphs — 1/1 named: /^R-2930: /; UNNAMED red: [product-detail.test.mjs] R-2931: a Product view deliverable line ends with the largest day count of the artifacts it names, or why it …; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 reader kinds sorted — 1/1 named: /^R-2930: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 reader kinds not deduplicated — 1/1 named: /^R-2930: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 the page builds reader kinds with readerClaim(claim.text) in place of claim.readerKind — 1/1 named: /^R-2930: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED 6 readerKind set without the non-empty detail test — 2/2 named: /^R-2930: / | /^R-2542: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+GREEN 7 readerKind set without the two-part test — SURVIVED
+RED 8 parked from the presence of a Parked: line — 1/1 named: /^R-2930: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 parked from any Parked: line on a row code does not make and read — 1/1 named: /^R-2930: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 parked never printed — 1/1 named: /^R-2930: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 marks dropped from the Product line — 2/2 named: /^R-2930: / | /^R-2542: /; UNNAMED red: [product-report.test.mjs] R-2642: a deliverable's block on its home feature's detail view lists its Parked line among its claims in led…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 the smallest day count in place of the largest — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 built-from entries counted as named — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 plural replaced by `${days} days` — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 age not measured and age unknown swapped — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 plain paths left out of the named set — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 17 any unmeasured named artifact gives age unknown even with days — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the day test written as truthiness, so 0 days reads as no day count — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 19 dead IDs skipped from the named set — 1/1 named: /^R-2931: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 20 blocks in row-table order — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 the sections rendered right after the Reads: line — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED 22 the Deliverables heading always drawn — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 the Deliverables heading drawn when the feature has blocks or cards — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 24 the Registered artifacts heading always drawn — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 25 home taken from the row's own heading, not its feature ancestor — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 26 blocks also drawn on features that share the row — 2/2 named: /^R-2932: / | /^R-2542: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 27 cards rendered before the blocks — 1/1 named: /^R-2932: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 28 cards in registration order — 1/2 named: /^R-2932: /; named but GREEN: /^R-2799: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 29 claims gathered from every capability span — 1/1 named: /^R-2542: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 30 Parked: claims dropped from the block — 1/1 named: /^R-2642: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 31 block artifact lines dropped — 9/9 named: /^R-2931: / | /^R-2790: / | /^R-2799: / | /^R-2544: / | /^R-2545: / | /^R-2744: / | /^R-2745: / | /^R-2791: / | /^R-2792: /; 9 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 32 block artifact lines drop their age — 9/9 named: /^R-2931: / | /^R-2790: / | /^R-2799: / | /^R-2544: / | /^R-2545: / | /^R-2744: / | /^R-2745: / | /^R-2791: / | /^R-2792: /; 9 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 33 the block line drops the maker link — 1/1 named: /^R-2790: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 34 the maker link added to every direct block line, own entries included — 1/1 named: /^R-2790: /; UNNAMED red: [product-report.test.mjs] R-2791: an unageable entry shows age not measured with its class, and the page is the same whatever the store… | [product-report.test.mjs] R-2799: each maker feature's detail view shows a card per live entry it registers with its class, location, a…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 35 cards still drawn on the Artifacts view — 2/2 named: /^R-2799: / | /^R-2801: /; 2 FAIL total (1 file changed, 1 insertion(+))
+RED 36 cards drawn on every feature's page — 2/2 named: /^R-2799: / | /^R-2932: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 37 the card keeps its Made in self link — 1/1 named: /^R-2799: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 38 cards sorted by name — 1/1 named: /^R-2799: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 39 Artifacts list items without the maker link — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 40 Artifacts list items link the first reading feature in place of the maker — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 41 flow groups kept in the model and drawn — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 2 insertions(+))
+RED 42 the second list drops the manual reason — 1/1 named: /^R-2801: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 43 Overview artifact gap IDs without the maker link — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 44 Overview stale items without the maker link — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 45a Overview gap IDs link the entry's capability in place of its maker feature — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 45b Overview stale items link the entry's capability in place of its maker feature — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 46 renderInto reads DETAIL_HEADINGS from module scope — 2/2 named: /^R-2931: / | /^R-2932: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 47 a block heading drawn with innerHTML — 1/1 named: /^renderer inserts all dynamic strings only through text nodes/; UNNAMED red: [product-report.test.mjs] R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's c… | [product-report.test.mjs] R-2642: a deliverable's block on its home feature's detail view lists its Parked line among its claims in led… | [product-report.test.mjs] R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no… | [product-report.test.mjs] R-2799: each maker feature's detail view shows a card per live entry it registers with its class, location, a…; 5 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 48 a card line drawn with innerHTML — 1/1 named: /^renderer inserts all dynamic strings only through text nodes/; UNNAMED red: [product-report.test.mjs] R-2799: each maker feature's detail view shows a card per live entry it registers with its class, location, a…; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 49 the tree checker prints its deliverable lines with console.error — 2/2 named: /^R-2933: / | /^R-2543: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 49/50 red (42 exactly their named titles, 1 with a named title green, 6 with an unnamed red), 1 survived [7], across 5 shards
