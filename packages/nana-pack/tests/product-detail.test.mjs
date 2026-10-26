@@ -25,11 +25,12 @@ const items = (view) => view.nodes.filter((node) => node.tag === "li" && node.at
 const blocks = (view) => view.nodes.filter((node) => node.attrs?.class === "deliverable-block");
 // req: R-2930
 await check("R-2930: a Product view deliverable is one line with its code marks, its readable reader kinds in claim order and its parked state, and no claim or artifact line", async () => {
-  const ids = [1, 2, 3, 4, 5, 6].map((n) => `R-00${n}`);
+  const ids = [1, 2, 3, 4, 5, 6, 7].map((n) => `R-00${n}`);
   const fields = [`Deliverables: ${ids.join(", ")}`, ...code("R-001"), "Read by: R-001 · code: other.mjs",
     "Made by: R-002 · manual: owner makes it", "Read by: R-002 · rule: a rule reads it", "Read by: R-002 · person: owner reads it", park("R-002"),
     ...code("R-003"), park("R-003"), "Made by: R-004 · manual: owner makes it", "Read by: R-004 · code", "Read by: R-004 · bogus: x",
-    ...manual("R-005"), "Parked: R-005 · owner holds it", "Made by: R-006 · suite: make.mjs", "Read by: R-006 ·code: read.mjs"];
+    ...manual("R-005"), "Parked: R-005 · owner holds it", "Made by: R-006 · suite: make.mjs", "Read by: R-006 ·code: read.mjs",
+    "Made by: R-007 · suite: make.mjs", "Read by: R-007 · code: read.mjs · extra"];
   const ledger = stage("CAP-01", "First", fields) + "\n" + feature("FEAT-001", ids.map((id) => [id, "implemented"]));
   // These same cases exercise CRLF, trailing spaces/tabs and no final newline without another test.
   const repo = treeFixture(temp, "line", ledger.split("\n").map((line, i) => line + (i % 2 ? "\t" : "  ")).join("\r\n"));
@@ -38,7 +39,7 @@ await check("R-2930: a Product view deliverable is one line with its code marks,
   const actual = items(renderHtmlAt(await page(temp, repo, "line"), "#product"));
   const marks = ` · ${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE}`;
   const reader = (kind) => `${L.readBy} ${kind}`;
-  const parts = [reader("code"), `${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE} · ${reader("rule, person")} · ${O.parked}`, reader("code"), `${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE} · ${L.noReader}`, `${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE} · ${reader("person")}`, `${NOT_READ_BY_CODE} · ${L.noReader}`];
+  const parts = [reader("code"), `${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE} · ${reader("rule, person")} · ${O.parked}`, reader("code"), `${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE} · ${L.noReader}`, `${NOT_MADE_BY_CODE} · ${NOT_READ_BY_CODE} · ${reader("person")}`, `${NOT_READ_BY_CODE} · ${L.noReader}`, `${NOT_READ_BY_CODE} · ${L.noReader}`];
   assert.ok(marks);
   assert.deepEqual(actual.map((node) => node.textContent), ids.map((id, i) => `${id} · implemented · Home: FEAT-001 · FEAT-001 · ${parts[i]} · ${NO_ARTIFACT_NAMED}`));
   for (const item of actual) {
