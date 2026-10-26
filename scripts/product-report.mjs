@@ -3,7 +3,7 @@
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
  * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
- * @outputs A complete product ledger HTML file with a model-built Overview, shared deliverable lines, per-deliverable claims, artifact blocks and class-bound ages, an Artifacts flow, lists and entry cards, feature artifact detail lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @outputs A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
@@ -81,6 +81,9 @@ export const OVERVIEW_LABELS = Object.freeze({
   staleArtifacts: `Artifacts older than ${STALE_AGE_DAYS} days before HEAD's commit`,
   notMeasured: "age not measured", unknown: "age unknown", noDeliverables: "no deliverable lines",
 });
+// Contract (R-2930, R-2931, R-2932, R-2790): finished deliverable-line labels and feature-detail section headings.
+export const DELIVERABLE_LINE_LABELS = Object.freeze({ readBy: "read by", noReader: "no readable reader", outputOnly: "output only" });
+export const DETAIL_HEADINGS = Object.freeze({ deliverables: "Deliverables", artifacts: "Registered artifacts" });
 export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
@@ -456,14 +459,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
       const list = el("ul", undefined, card);
       for (const deliverable of cap.deliverables) {
         const item = el("li", undefined, list); cls(item, `deliverable${deliverable.gap ? " gap" : ""}`);
-        text(item, `${deliverable.id} · ${deliverable.status}${deliverable.gap ? " · gap" : ""} · Home: `);
-        featureLink(item, deliverable.home.id, `${deliverable.home.id} · ${deliverable.home.label}`);
-        if (deliverable.claims.length) {
-          const claims = el("ul", undefined, item); cls(claims, "deliverable-claims");
-          for (const claim of deliverable.claims) { const line = el("li", undefined, claims); text(line, `${claim.label}: ${claim.text}`); }
-        }
-        for (const mark of deliverable.marks) paragraph(item, "", mark, "deliverable-mark");
-        for (const artifactLine of deliverable.artifactLines) paragraph(item, "", artifactLine, "deliverable-artifact");
+        renderSegments(item, deliverable.segments);
       }
     }
     if (!cap.retired && cap.kind === "constraint") {
@@ -486,20 +482,11 @@ export function renderInto(document, model, { hash = "" } = {}) {
   if (view === "artifacts") {
     if (!model.artifacts?.hasRegistry) paragraph(root, "", model.artifacts?.emptyText);
     else {
-      for (const group of model.artifacts.flowGroups) {
-        const heading = el("h3", group.heading, root); cls(heading, "artifact-flow-pair");
-        const list = el("ul", undefined, root);
-        for (const flow of group.lines) { const item = el("li", undefined, list); cls(item, "artifact-flow-line"); renderSegments(item, flow.segments); }
-      }
       for (const listModel of model.artifacts.lists) {
         el("h3", listModel.heading, root);
         if (listModel.note) paragraph(root, "", listModel.note);
         const list = el("ul", undefined, root); cls(list, listModel.className);
-        for (const value of listModel.items) { const item = el("li", undefined, list); text(item, value); }
-      }
-      for (const entry of model.artifacts.cards) {
-        const card = el("article", undefined, root); cls(card, "artifact-entry-card"); el("h3", entry.heading, card);
-        for (const line of entry.lines) { const p = el("p", undefined, card); renderSegments(p, line.segments); }
+        for (const value of listModel.items) { const item = el("li", undefined, list); renderSegments(item, value); }
       }
     }
   }
@@ -521,6 +508,21 @@ export function renderInto(document, model, { hash = "" } = {}) {
     countBar(root, feature);
     const sharedBy = el("p", undefined, root); text(sharedBy, "Shared by: "); if (feature.sharedBy.length) feature.sharedBy.forEach((id, index) => { if (index) text(sharedBy, ", "); featureLink(sharedBy, id); }); else text(sharedBy, "None");
     paragraph(root, "Shared rows", feature.shared.join(", ") || "None");
+    for (const section of feature.detailSections ?? []) {
+      el("h3", section.heading, root);
+      for (const block of section.blocks ?? []) {
+        const article = el("article", undefined, root); cls(article, "deliverable-block"); el("h3", block.heading, article);
+        if (block.claims.length) {
+          const claims = el("ul", undefined, article); cls(claims, "deliverable-claims");
+          for (const claim of block.claims) { const item = el("li", undefined, claims); text(item, `${claim.label}: ${claim.text}`); }
+        }
+        for (const line of block.artifactLines) { const p = el("p", undefined, article); cls(p, "deliverable-artifact"); renderSegments(p, line); }
+      }
+      for (const entry of section.cards ?? []) {
+        const card = el("article", undefined, root); cls(card, "artifact-entry-card"); el("h3", entry.heading, card);
+        for (const line of entry.lines) { const p = el("p", undefined, card); renderSegments(p, line.segments); }
+      }
+    }
     el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
   }
   if (view === "issues") {
@@ -740,6 +742,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const featureHeadingById = new Map(featureHeadings.map((feature) => [feature.id, feature]));
   const featureCapability = (feature) => { for (let heading = feature.parent; heading; heading = heading.parent) if (heading.id.startsWith("CAP-")) return heading; return null; };
   const featureSegment = (id, label = id) => ({ feature: { id, label } });
+  const makerSegments = (entry) => [{ text: " · made in " }, featureSegment(entry.featureId)];
   const featureArtifactLines = (feature) => {
     if (registry.fieldLineCount === 0) return [{ segments: [{ text: "Registers: no artifact registry" }] }, { segments: [{ text: "Reads: no artifact registry" }] }];
     const registered = registry.entries.filter((entry) => entry.live && entry.featureId === feature.id).sort((left, right) => left.id.localeCompare(right.id));
@@ -752,8 +755,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       const entry = registry.byId.get(item.id);
       if (!entry?.live) readSegments.push({ text: `${item.id} · no live entry` });
       else {
-        readSegments.push({ text: `${item.id} · ${entry.name} · made in ` });
-        readSegments.push(featureSegment(entry.featureId));
+        readSegments.push({ text: `${item.id} · ${entry.name}` }, ...makerSegments(entry));
       }
     });
     return [{ segments: [{ text: `Registers: ${registerText}` }] }, { segments: readSegments }];
@@ -783,7 +785,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
     const capability = featureCapability(feature);
     const kind = fieldValues(capability, "Kind")[0] ?? null;
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, artifactLines: featureArtifactLines(feature), assessmentState, assessment, differences, counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, artifactLines: featureArtifactLines(feature), detailSections: [], assessmentState, assessment, differences, counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
   });
   const capabilityLabel = (id) => ({ id, label: capabilityById.get(id)?.label ?? id });
   const featureLabel = (feature) => ({ id: feature.id, label: feature.label });
@@ -794,23 +796,33 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     }
     return ids;
   };
-  const artifactLinesFor = (claims) => {
+  const artifactLinesFor = (claims, homeId) => {
     const directIds = orderedIds(claims, "artifact");
     const directSet = new Set(directIds);
     const builtIds = orderedIds(claims, "built from").filter((id) => !directSet.has(id));
     const lines = directIds.map((id) => {
       const entry = registry.byId.get(id);
-      return entry?.live ? `artifact ${id} · ${entry.name} · ${ages.get(`registry:${id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` : `artifact ${id} · no live entry`;
+      return entry?.live ? [{ text: `artifact ${id} · ${entry.name} · ${ages.get(`registry:${id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` }, ...(entry.featureId !== homeId ? makerSegments(entry) : [])] : [{ text: `artifact ${id} · no live entry` }];
     });
     if (builtIds.length) {
       const parts = builtIds.map((id) => {
         const entry = registry.byId.get(id);
         return entry?.live ? `${id} · ${entry.name} · ${ages.get(`registry:${id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` : `${id} · no live entry`;
       });
-      lines.push(`${directIds.length ? "" : "output only, "}built from ${parts.join(", ")}`);
+      lines.push([{ text: `${directIds.length ? "" : `${DELIVERABLE_LINE_LABELS.outputOnly}, `}built from ${parts.join(", ")}` }]);
     }
-    for (const claim of claims) if (claim.label === "Made by" && claim.artifact) lines.push(`artifact ${claim.artifact} · ${ages.get(`path:${claim.artifact}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}`);
-    return lines.length ? lines : [NO_ARTIFACT_NAMED];
+    for (const claim of claims) if (claim.label === "Made by" && claim.artifact) lines.push([{ text: `artifact ${claim.artifact} · ${ages.get(`path:${claim.artifact}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` }]);
+    return lines.length ? lines : [[{ text: NO_ARTIFACT_NAMED }]];
+  };
+  const deliverableAge = (claims) => {
+    const named = claims.filter((claim) => claim.label === "Made by").flatMap((claim) => [
+      ...(claim.registryKind === "artifact" ? claim.registryIds.map((id) => `registry:${id}`) : []),
+      ...(claim.artifact ? [`path:${claim.artifact}`] : []),
+    ]);
+    const days = named.filter((key) => ageDays.has(key)).map((key) => ageDays.get(key));
+    if (days.length) return plural(Math.max(...days), "day");
+    if (named.length) return named.every((key) => ages.get(key)?.startsWith(AGE_NOT_MEASURED_PREFIX)) ? OVERVIEW_LABELS.notMeasured : OVERVIEW_LABELS.unknown;
+    return orderedIds(claims, "built from").length ? DELIVERABLE_LINE_LABELS.outputOnly : NO_ARTIFACT_NAMED;
   };
   const liveFeature = (feature) => feature.status === "active" || feature.status.startsWith("frozen (");
   const featureArtifactItem = (feature) => {
@@ -831,7 +843,19 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       const rowClaims = claimsByRow.get(id) ?? [];
       const codeState = deliverableCodeState(rowClaims);
       const marks = [...(!codeState.madeByCode ? [NOT_MADE_BY_CODE] : []), ...(!codeState.readByCode ? [NOT_READ_BY_CODE] : [])];
-      return { id, status: row.status, gap: row.status !== "implemented", home: featureLabel(homeFeature), claims: rowClaims.map(({ label, text }) => ({ label, text })), marks, artifactLines: artifactLinesFor(rowClaims) };
+      const gap = row.status !== "implemented";
+      const heading = `${id} · ${row.status}${gap ? " · gap" : ""}`;
+      const readers = [...new Set(rowClaims.map((claim) => claim.readerKind).filter((kind) => kind !== null))];
+      const readerPart = readers.length ? `${DELIVERABLE_LINE_LABELS.readBy} ${readers.join(", ")}` : DELIVERABLE_LINE_LABELS.noReader;
+      const gapRows = deliverableResult.check.byCapability.find((item) => item.id === capability.id)?.gapRows ?? [];
+      const parked = !(codeState.madeByCode && codeState.readByCode) && !gapRows.includes(id);
+      const segments = [{ text: `${heading} · Home: ` }, featureSegment(homeFeature.id, `${homeFeature.id} · ${homeFeature.label}`), { text: `${marks.map((mark) => ` · ${mark}`).join("")} · ${readerPart}${parked ? ` · ${OVERVIEW_LABELS.parked}` : ""} · ${deliverableAge(rowClaims)}` }];
+      if (!retired && kind === "product") {
+        let section = homeFeature.detailSections.find((item) => item.blocks);
+        if (!section) { section = { heading: DETAIL_HEADINGS.deliverables, blocks: [] }; homeFeature.detailSections.push(section); }
+        section.blocks.push({ heading, claims: rowClaims.map(({ label, text }) => ({ label, text })), artifactLines: artifactLinesFor(rowClaims, homeFeature.id) });
+      }
+      return { id, status: row.status, gap, home: featureLabel(homeFeature), segments };
     });
     const constraintRows = rows.filter((row) => descendants(parsed, capability).includes(row.heading));
     const binds = fieldValues(capability, "Binds").map((id) => {
@@ -869,47 +893,18 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const referencesFor = (id) => [...(deliverableReferences.get(id)?.values() ?? [])];
   let artifacts;
   if (registry.fieldLineCount === 0) {
-    artifacts = { hasRegistry: false, emptyText: "no artifact registry", flowGroups: [], lists: [], cards: [] };
+    artifacts = { hasRegistry: false, emptyText: "no artifact registry", lists: [] };
   } else {
     const liveEntries = registry.entries.filter((entry) => entry.live).sort((left, right) => left.id.localeCompare(right.id));
-    const capabilityOrder = new Map(capabilities.map((capability, index) => [capability.id, index]));
-    const featureOrder = new Map(featureHeadings.map((feature, index) => [feature.id, index]));
-    const flowEntries = [];
-    for (const entry of liveEntries) {
-      const byReaderCapability = new Map();
-      for (const read of reads.reads.filter((item) => item.id === entry.id && item.capabilityId !== entry.capabilityId)) {
-        if (!byReaderCapability.has(read.capabilityId)) byReaderCapability.set(read.capabilityId, new Set());
-        byReaderCapability.get(read.capabilityId).add(read.featureId);
-      }
-      for (const [readerCapabilityId, readerFeatureIds] of byReaderCapability) {
-        flowEntries.push({ entry, makerCapabilityId: entry.capabilityId, readerCapabilityId, readerFeatureIds: [...readerFeatureIds].sort((left, right) => featureOrder.get(left) - featureOrder.get(right)) });
-      }
-    }
-    flowEntries.sort((left, right) => (capabilityOrder.get(left.makerCapabilityId) ?? Infinity) - (capabilityOrder.get(right.makerCapabilityId) ?? Infinity) || (capabilityOrder.get(left.readerCapabilityId) ?? Infinity) - (capabilityOrder.get(right.readerCapabilityId) ?? Infinity) || left.entry.id.localeCompare(right.entry.id));
-    const flowGroups = [];
-    for (const flow of flowEntries) {
-      const key = `${flow.makerCapabilityId}\0${flow.readerCapabilityId}`;
-      let group = flowGroups.find((candidate) => candidate.key === key);
-      if (!group) {
-        const makerCapability = capabilityById.get(flow.makerCapabilityId);
-        const readerCapability = capabilityById.get(flow.readerCapabilityId);
-        group = { key, heading: `${makerCapability.id} · ${makerCapability.label} → ${readerCapability.id} · ${readerCapability.label}`, lines: [] };
-        flowGroups.push(group);
-      }
-      const segments = [{ text: `${flow.entry.run} · ${flow.entry.id} · ${flow.entry.name} · ` }, featureSegment(flow.entry.featureId), { text: " → " }];
-      flow.readerFeatureIds.forEach((id, index) => { if (index) segments.push({ text: ", " }); segments.push(featureSegment(id)); });
-      group.lines.push({ segments });
-    }
     const readIds = new Set(reads.reads.map((read) => read.id));
-    const unreferenced = liveEntries.filter((entry) => !readIds.has(entry.id) && referencesFor(entry.id).length === 0).map((entry) => `${entry.id} · ${entry.name}`);
-    const manualCodeReads = liveEntries.filter((entry) => entry.run === "manual" && (readIds.has(entry.id) || referencesFor(entry.id).some((reference) => reference.readByCode))).map((entry) => `${entry.id} · ${entry.name} · ${entry.className} · manual: ${entry.reason}`);
-    const cards = liveEntries.map((entry) => {
-      const maker = featureHeadingById.get(entry.featureId);
+    const unreferenced = liveEntries.filter((entry) => !readIds.has(entry.id) && referencesFor(entry.id).length === 0).map((entry) => [{ text: `${entry.id} · ${entry.name}` }, ...makerSegments(entry)]);
+    const manualCodeReads = liveEntries.filter((entry) => entry.run === "manual" && (readIds.has(entry.id) || referencesFor(entry.id).some((reference) => reference.readByCode))).map((entry) => [{ text: `${entry.id} · ${entry.name} · ${entry.className} · manual: ${entry.reason}` }, ...makerSegments(entry)]);
+    for (const entry of liveEntries) {
       const makerDetail = entry.run === "manual" ? entry.reason : entry.writers.join(", ");
       const lines = [
         { segments: [{ text: `Class: ${entry.className}: ${entry.location}` }] },
         { segments: [{ text: `Age: ${ages.get(`registry:${entry.id}`) ?? unknownAge(GIT_HISTORY_FAILURE_REASON)}` }] },
-        { segments: [{ text: "Made in: " }, featureSegment(entry.featureId, `${entry.featureId} · ${maker.label}`), { text: ` · ${entry.run}: ${makerDetail}` }] },
+        { segments: [{ text: `Made by: ${entry.run}: ${makerDetail}` }] },
       ];
       const entryReads = reads.reads.filter((read) => read.id === entry.id);
       if (!entryReads.length) lines.push({ segments: [{ text: "Read in: none" }] });
@@ -920,17 +915,18 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       const entryReferences = referencesFor(entry.id);
       if (!entryReferences.length) lines.push({ segments: [{ text: "Deliverable: none" }] });
       else for (const reference of entryReferences) lines.push({ segments: [{ text: `Deliverable: ${reference.rowId} · ${reference.kind}` }] });
-      return { heading: `${entry.id} · ${entry.name}`, lines };
-    });
+      const maker = features.find((feature) => feature.id === entry.featureId);
+      let section = maker.detailSections.find((item) => item.cards);
+      if (!section) { section = { heading: DETAIL_HEADINGS.artifacts, cards: [] }; maker.detailSections.push(section); }
+      section.cards.push({ heading: `${entry.id} · ${entry.name}`, lines });
+    }
     artifacts = {
       hasRegistry: true,
       emptyText: null,
-      flowGroups: flowGroups.map(({ heading, lines }) => ({ heading, lines })),
       lists: [
         { heading: "Artifacts no other feature reads and no deliverable names", note: "Its maker or a person may still read it.", className: "artifact-list-unread", items: unreferenced },
         { heading: "Read by code, made by no nana run", note: null, className: "artifact-list-manual", items: manualCodeReads },
       ],
-      cards,
     };
   }
   const violated = rows.filter((row) => row.status === "violated");
@@ -976,10 +972,10 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       line(`${labels.notPassed}: ${runtimeData ? `${notPassed.length} · ${labels.failed}: ${failed} · ${labels.skippedOnly}: ${notPassed.length - failed} · ${labels.noRun}: ${noRun} · ${ages.get("overview:runtime")}` : `${labels.runtimeMissing}${runtimeReason}`}`), ...idsLine(notPassed)],
     [line(`${labels.deliverableGaps}: ${hasDeliverables ? `${deliverableGaps.length} · ${labels.parked}: ${parked} · ${labels.notes}: ${check.notes.length}` : labels.noDeliverables}`),
       ...(hasDeliverables && deliverableGaps.length ? [line(deliverableGaps.join(", "))] : []),
-      line(`${labels.artifactGaps}: ${artifacts.hasRegistry ? `${artifactGaps.length} · ${labels.parked}: ${artifactParked}` : artifacts.emptyText}`), ...idsLine(artifactGaps)],
+      line(`${labels.artifactGaps}: ${artifacts.hasRegistry ? `${artifactGaps.length} · ${labels.parked}: ${artifactParked}` : artifacts.emptyText}`), ...(artifactGaps.length ? [artifactGaps.flatMap(({ id }, index) => [...(index ? [{ text: ", " }] : []), { text: id }, ...makerSegments(registry.byId.get(id))])] : [])],
     [line(`${labels.assessments}: ${outdated.length} · ${labels.unassessed}: ${unassessed.length}`), ...(featureIds.length ? [featureIds] : []),
       line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
-      ...staleEntries.map((entry) => line(`${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days`))],
+      ...staleEntries.map((entry) => [{ text: `${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days` }, ...makerSegments(entry)])],
     hasDeliverables ? [line(deliverableLines[0]), ...check.byCapability.map((capability) => line(`${capability.id} · ${capabilityById.get(capability.id).label}: ${capability.countText}`))] : [line(labels.noDeliverables)],
   ];
   const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));

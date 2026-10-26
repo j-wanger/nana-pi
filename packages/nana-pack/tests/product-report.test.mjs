@@ -15,7 +15,7 @@ import * as vm from "node:vm";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { buildReport, generateReport, generatePackets, renderInto, validateStore, OVERVIEW_BLOCKS } from "../../../scripts/product-report.mjs";
-import { CASE_LIMIT_MS, withinCaseLimit, treeFixture as treeFixtureIn, table, hashRow, makeAssessment, writeStore, writeRuntimeFile, commitAt as commitAtIn, renderHtmlAt } from "./report-fixtures.mjs";
+import { CASE_LIMIT_MS, withinCaseLimit, treeFixture as treeFixtureIn, table, hashRow, makeAssessment, writeStore, writeRuntimeFile, commitAt as commitAtIn, renderHtmlAt, artifactFlowLedger } from "./report-fixtures.mjs";
 const treeFixture = (...args) => treeFixtureIn(temp, ...args);
 const commitAt = (...args) => commitAtIn(temp, ...args);
 import * as productReportModule from "../../../scripts/product-report.mjs";
@@ -79,36 +79,6 @@ function productLedger(artifacts) {
     "## FEAT-085 · Artifact report", "Purpose: report artifact ages.", "Status: active", ...registry, "", table(rows.map((id) => [id, "implemented"])).trimEnd(),
   ].join("\n");
 }
-function artifactFlowLedger() {
-  return [
-    "# CAP-10 · Earlier readers", "Purpose: read later artifacts.", "Outcome: later artifacts are consumed.", "Kind: product", "",
-    "## FEAT-100 · First reader", "Purpose: read several artifacts.", "Status: active", "Reads: A-001 · REQUIREMENTS.md", "Reads: A-002 · HANDOFF.md", "Reads: A-004 · REQUIREMENTS.md", "Reads: A-010 · HANDOFF.md", "Reads: A-011 · REQUIREMENTS.md", "Reads: A-999 · REQUIREMENTS.md\t", "", table([["R-1000", "implemented"]]).trimEnd(), "",
-    "## FEAT-101 · Second reader", "Purpose: share a capability read.", "Status: active", "Reads: A-001 · HANDOFF.md", "", table([["R-1001", "implemented"]]).trimEnd(), "",
-    "# CAP-11 · Other readers", "Purpose: read artifacts elsewhere.", "Outcome: another capability consumes artifacts.", "Kind: product", "",
-    "## FEAT-110 · Third reader", "Purpose: read one artifact.", "Status: active", "Reads: A-001 · REQUIREMENTS.md", "", table([["R-1100", "implemented"]]).trimEnd(), "",
-    "# CAP-12 · Makers", "Purpose: make registered artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-1200, R-1201, R-1202, R-1203, R-1204, R-1205, R-1206",
-    "Made by: R-1200 · build: REQUIREMENTS.md · A-001", "Read by: R-1200 · code: REQUIREMENTS.md",
-    "Made by: R-1201 · manual: fixture input · built from: A-002", "Read by: R-1201 · code: REQUIREMENTS.md",
-    "Made by: R-1202 · manual: retired fixture · A-004", "Read by: R-1202 · code: REQUIREMENTS.md",
-    "Made by: R-1203 · manual: fixture input · built from: A-005", "Read by: R-1203 · person: fixture person",
-    "Made by: R-1204 · manual: fixture output · A-006", "Read by: R-1204 · code: REQUIREMENTS.md",
-    "Made by: R-1205 · manual: fixture input · built from: A-007", "Read by: R-1205 · prompt: HANDOFF.md",
-    "Made by: R-1206 · manual: fixture input · built from: A-009", "Read by: R-1206 · rule: fixture rule", "",
-    "## FEAT-120 · Maker feature", "Purpose: register most artifacts.", "Status: active",
-    "Artifact: A-001 · automatic output · tracked: REQUIREMENTS.md · build: REQUIREMENTS.md",
-    "Artifact: A-002 · manual source · other project: <project>/source.txt · manual: another tool writes it",
-    "Artifact: A-004 · retired output · retired: replaced by A-001",
-    "Artifact: A-005 · person source · user-home store: ~/person.txt · manual: a person writes it",
-    "Artifact: A-006 · code source · other project: <project>/code.txt · manual: a hand-run command writes it",
-    "Artifact: A-007 · prompt source · user-home store: ~/prompt.txt · manual: an editor writes it",
-    "Artifact: A-008 · orphan record · tracked: HANDOFF.md · manual: a person maintains it",
-    "Artifact: A-009 · rule source · other project: <project>/rule.txt · manual: a person writes it",
-    "Artifact: A-010 · read-only output · tracked: REQUIREMENTS.md · build: REQUIREMENTS.md",
-    "Artifact: A-011 · manual read-only source · other project: <project>/read-only.txt · manual: another tool writes it",
-    "Reads: A-003 · REQUIREMENTS.md  ", "", table([["R-1200", "implemented"], ["R-1201", "implemented"], ["R-1202", "implemented"], ["R-1203", "implemented"], ["R-1204", "implemented"], ["R-1205", "implemented"], ["R-1206", "implemented"]]).trimEnd(), "",
-    "## FEAT-121 · Internal maker", "Purpose: make an internally read artifact.", "Status: active", "Artifact: A-003 · internal output · tracked: HANDOFF.md · build: REQUIREMENTS.md", "", table([["R-1210", "implemented"]]).trimEnd(),
-  ].join("\r\n");
-}
 function noArtifactRegistryLedger() {
   return ["# CAP-13 · Empty product", "Purpose: hold no artifacts.", "Outcome: no artifact is registered.", "Kind: product", "", "## FEAT-130 · Empty feature", "Purpose: register nothing.", "Status: active", "", table([["R-1300", "implemented"]]).trimEnd()].join("\n");
 }
@@ -141,6 +111,11 @@ async function renderedProduct(repo, name, gitRunner) {
   await generateReport({ root: repo.root, out, ...(gitRunner ? { gitRunner } : {}) });
   return { out, view: renderHtmlAt(fs.readFileSync(out, "utf8"), "#product") };
 }
+async function renderedHomes(repo, name, gitRunner) {
+  const { out, view } = await renderedProduct(repo, name, gitRunner);
+  const html = fs.readFileSync(out, "utf8");
+  return { out, view: { nodes: view.model.features.flatMap((feature) => renderHtmlAt(html, `#${feature.id}`).nodes) } };
+}
 function renderedClaims(view) {
   return view.nodes.filter((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims").flatMap((node) => node.children.map((item) => item.textContent));
 }
@@ -153,7 +128,7 @@ function onlyArtifactAge(view) {
 // Finds a row's <article> card (detail/issues/requirements views share row()) by its heading's
 // leading "<id> " text, and that card's row-tests <ol> items.
 function cardFor(view, rowId) {
-  return view.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent.startsWith(`${rowId} `)));
+  return view.nodes.find((node) => node.tag === "article" && node.attrs?.class === "requirement-card" && node.children.some((child) => child.tag === "h3" && child.textContent.startsWith(`${rowId} `)));
 }
 function testItemsOf(card) {
   return card?.children.find((child) => child.tag === "ol" && child.attrs?.class === "row-tests")?.children.filter((child) => child.tag === "li") ?? [];
@@ -276,7 +251,7 @@ try {
     check("feature detail shows its title once", featureHeadings.length === 1);
     const detailListItems = detail.nodes.filter((node) => node.tag === "li");
     // req: R-1041
-    check("assessment lists render separate text-only list items", detail.nodes.filter((node) => node.tag === "ul").length === 3 && ["A missing check.", "Another gap."].every((value) => detailListItems.some((item) => item.textContent === value)) && detailListItems.some((item) => item.children.some((child) => child.tag === "b")) && detailListItems.some((item) => item.children.some((child) => child.tag === "code")));
+    check("assessment lists render separate text-only list items", detail.nodes.filter((node) => node.tag === "ul" && !node.attrs?.class).length === 3 && ["A missing check.", "Another gap."].every((value) => detailListItems.some((item) => item.textContent === value)) && detailListItems.some((item) => item.children.some((child) => child.tag === "b")) && detailListItems.some((item) => item.children.some((child) => child.tag === "code")));
     // req: R-1041
     check("assessment lists do not join entries into punctuation", !detail.text.includes(".;"));
     // req: R-1015
@@ -361,11 +336,13 @@ try {
   {
     const root = { children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...nodes) { this.children = nodes; } };
     const made = [];
-    const document = { getElementById: () => root, createElement: (tag) => { const node = { tag, children: [], appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute() {}, addEventListener() {} }; made.push(node); return node; }, createTextNode: (text) => ({ text: String(text) }) };
+    const document = { getElementById: () => root, createElement: (tag) => { const node = { tag, children: [], appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, attrs: {}, setAttribute(key, value) { this.attrs[key] = value; }, addEventListener() {} }; made.push(node); return node; }, createTextNode: (text) => ({ text: String(text) }) };
     renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, capabilities: [], features: [], violated: [], asks: [{ kind: "optional", since: "2026-10-10", title: "<img onerror=alert(1)>", body: "<script>bad</script>" }] }, { hash: "#decisions" });
     renderInto(document, { features: [], overview: [{ heading: "Needs you", href: "#decisions", lines: [[{ text: "<img onerror=alert(1)>" }]] }] });
+    const before = made.length;
+    renderInto(document, { features: [{ id: "FEAT-001", label: "Feature", status: "active", capability: {}, assessmentState: "unassessed", sharedBy: [], shared: [], rows: [], detailSections: [{ heading: "Deliverables", blocks: [{ heading: "<img onerror=alert(1)>", claims: [], artifactLines: [] }] }, { heading: "Registered artifacts", cards: [{ heading: "A-001", lines: [{ segments: [{ text: "<img onerror=alert(2)>" }] }] }] }] }] }, { hash: "#FEAT-001" });
     // req: R-1019
-    check("renderer inserts all dynamic strings only through text nodes", made.every((node) => !("innerHTML" in node) && !("outerHTML" in node)) && root.children.length > 0 && made.some((node) => node.children.some((child) => child.text === "<img onerror=alert(1)>")) && !made.some((node) => node.tag === "script"));
+    check("renderer inserts all dynamic strings only through text nodes", made.every((node) => !("innerHTML" in node) && !("outerHTML" in node)) && root.children.length > 0 && made.some((node) => node.children.some((child) => child.text === "<img onerror=alert(1)>")) && !made.some((node) => node.tag === "script") && made.slice(before).some((node) => node.children.some((child) => child.text === "<img onerror=alert(1)>")) && made.slice(before).some((node) => node.tag === "article" && node.attrs.class === "deliverable-block") && made.slice(before).some((node) => node.tag === "article" && node.attrs.class === "artifact-entry-card" && node.children.some((child) => child.children?.some((text) => text.text === "<img onerror=alert(2)>"))));
   }
   {
     const { root } = fixture("crlf");
@@ -1186,7 +1163,8 @@ try {
     const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
     const allItems = capabilityCards(product).flatMap((capability) => capability.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")));
     const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
-    const claims = (id) => (byId[id]?.children.find((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent.replace(/ · last changed .*$/, ""));
+    const detail = renderHtmlAt(fs.readFileSync(out, "utf8"), "#FEAT-050");
+    const claims = (id) => (detail.nodes.find((node) => node.attrs?.class === "deliverable-block" && node.children[0]?.textContent.startsWith(`${id} · `))?.children.find((node) => node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent.replace(/ · last changed .*$/, ""));
     const mark = (id, value) => byId[id]?.textContent.includes(value) ?? false;
     const expectedClaims = {
       "R-5000": ["Made by: session start: REQUIREMENTS.md · REQUIREMENTS.md", "Read by: code: REQUIREMENTS.md"],
@@ -1210,7 +1188,7 @@ try {
     const exactClaims = Object.entries(expectedClaims).every(([id, expected]) => JSON.stringify(claims(id)) === JSON.stringify(expected)) && claims("R-5005").length === 0;
     // req: R-2542
     check("R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's code marks, and no consumers",
-      items.length === 9 && exactClaims && exactMarks && artifactMarks && claimsStayOwned && homeLinksOnly && !card?.textContent.includes("Consumers") &&
+      items.length === 9 && exactClaims && exactMarks && artifactMarks && claimsStayOwned && homeLinksOnly && !card?.textContent.includes("Consumers") && !renderHtmlAt(fs.readFileSync(out, "utf8"), "#FEAT-052").nodes.some((node) => node.attrs?.class === "deliverable-block" && node.children.some((child) => child.tag === "h3" && /^(?:R-5000|R-5001) /.test(child.textContent))) &&
       productReportModule.NOT_MADE_BY_CODE === notMadeByCode && productReportModule.NOT_READ_BY_CODE === notReadByCode && productReportModule.NO_ARTIFACT_NAMED === noArtifactNamed &&
       count && Number(count[1]) === withNeitherMark && Number(count[2]) === allItems.length,
       JSON.stringify({ items: items.map((item) => item.textContent), claims: Object.fromEntries(Object.keys(byId).map((id) => [id, claims(id)])), countLine, exports: [productReportModule.NOT_MADE_BY_CODE, productReportModule.NOT_READ_BY_CODE, productReportModule.NO_ARTIFACT_NAMED] }));
@@ -1231,7 +1209,8 @@ try {
     const card = capabilityCard(product, "CAP-60");
     const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
     const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
-    const claims = (id) => (byId[id]?.children.find((node) => node.tag === "ul" && node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent);
+    const detail = renderHtmlAt(fs.readFileSync(out, "utf8"), "#FEAT-060");
+    const claims = (id) => (detail.nodes.find((node) => node.attrs?.class === "deliverable-block" && node.children[0]?.textContent.startsWith(`${id} · `))?.children.find((node) => node.attrs?.class === "deliverable-claims")?.children ?? []).map((node) => node.textContent);
     const r6000Claims = [
       "Made by: manual: a person makes it",
       "Parked: since 2026-10-22: the owner holds it",
@@ -1240,7 +1219,7 @@ try {
     const countLine = product.root.children.find((node) => node.attrs?.class === "deliverable-report-line" && /^deliverables:/.test(node.textContent))?.textContent ?? "";
     const bothMarks = ["not made by code", "not read by code"].every((mark) => byId["R-6000"]?.textContent.includes(mark));
     // req: R-2642
-    check("R-2642: the Product view lists a deliverable's Parked line among its claims in ledger order",
+    check("R-2642: a deliverable's block on its home feature's detail view lists its Parked line among its claims in ledger order",
       JSON.stringify(claims("R-6000")) === JSON.stringify(r6000Claims) && !claims("R-6001").some((claim) => claim.startsWith("Parked:")) && bothMarks && countLine === "deliverables: 0 of 1 made and read by code, 1 more parked",
       JSON.stringify({ claims: Object.fromEntries(Object.keys(byId).map((id) => [id, claims(id)])), bothMarks, countLine }));
   });
@@ -1285,33 +1264,35 @@ try {
   });
   await withinCaseLimit("R-2790", async () => {
     const ledger = [
-      "# CAP-90 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-9000, R-9001, R-9002, R-9003, R-9004, R-9005",
+      "# CAP-90 · Artifact stage", "Purpose: make artifacts.", "Outcome: artifacts exist.", "Kind: product", "Deliverables: R-9000, R-9001, R-9002, R-9003, R-9004, R-9005, R-9006",
       "Made by: R-9000 · build: REQUIREMENTS.md · A-002, A-001", "Made by: R-9000 · build: REQUIREMENTS.md · built from: A-003, A-001", "Made by: R-9000 · build: REQUIREMENTS.md · built from: A-003", "Read by: R-9000 · code: REQUIREMENTS.md",
       "Made by: R-9001 · build: REQUIREMENTS.md · built from: A-003", "Read by: R-9001 · code: REQUIREMENTS.md",
       "Made by: R-9002 · manual: owner", "Read by: R-9002 · person: owner",
       "Made by: R-9003 · build: REQUIREMENTS.md · docs/plain.txt", "Read by: R-9003 · code: REQUIREMENTS.md",
       "Made by: R-9004 · build: REQUIREMENTS.md · A-999", "Read by: R-9004 · code: REQUIREMENTS.md",
       "Made by: R-9005 · build: REQUIREMENTS.md · A-001", "Made by: R-9005 · build: REQUIREMENTS.md · built from: A-003", "Read by: R-9005 · code: REQUIREMENTS.md", "",
+      "Made by: R-9006 · build: REQUIREMENTS.md · A-004", "Read by: R-9006 · code: REQUIREMENTS.md", "",
       "## FEAT-090 · Artifact report", "Purpose: report artifacts.", "Status: active",
       "Artifact: A-001 · tracked output · tracked: tracked.txt · build: REQUIREMENTS.md",
       "Artifact: A-002 · home output · user-home store: ~/home-output · build: REQUIREMENTS.md",
       "Artifact: A-003 · source input · tracked: source.txt · build: REQUIREMENTS.md", "",
-      table([["R-9000", "implemented"], ["R-9001", "implemented"], ["R-9002", "implemented"], ["R-9003", "implemented"], ["R-9004", "implemented"], ["R-9005", "implemented"]]).trimEnd(),
+      table([["R-9000", "implemented"], ["R-9001", "implemented"], ["R-9002", "implemented"], ["R-9003", "implemented"], ["R-9004", "implemented"], ["R-9005", "implemented"], ["R-9006", "implemented"]]).trimEnd(),
+      "## FEAT-093 · Second maker", "Purpose: make another output.", "Status: active", "Artifact: A-004 · other output · user-home store: ~/other-output · build: REQUIREMENTS.md", "", table([["R-9010", "implemented"]]).trimEnd(),
     ].join("\n");
     const repo = treeFixture("named-artifact-blocks", ledger);
     commitAt(repo, "make artifacts", "2026-10-01T00:00:00Z", { "tracked.txt": "tracked\n", "source.txt": "source\n", "docs/plain.txt": "plain\n" });
     commitAt(repo, "artifact head", "2026-10-02T00:00:00Z", { "head.txt": "head\n" });
-    const product = (await renderedProduct(repo, "named-artifact-blocks")).view;
-    const card = capabilityCard(product, "CAP-90");
-    const items = card?.children.flatMap((node) => node.tag === "ul" ? node.children : []).filter((node) => node.attrs?.class?.split(" ").includes("deliverable")) ?? [];
-    const byId = Object.fromEntries(items.map((item) => [item.textContent.slice(0, 6), item]));
+    const { out } = await renderedProduct(repo, "named-artifact-blocks");
+    const product = renderHtmlAt(fs.readFileSync(out, "utf8"), "#FEAT-090");
+    const items = product.nodes.filter((node) => node.attrs?.class === "deliverable-block");
+    const byId = Object.fromEntries(items.map((item) => [item.children[0].textContent.slice(0, 6), item]));
     const lines = (id) => (byId[id]?.children ?? []).filter((node) => node.attrs?.class === "deliverable-artifact").map((node) => node.textContent);
     const r9000 = lines("R-9000");
     const r9005 = lines("R-9005");
     const r9000BuiltFrom = r9000[2] ?? "";
     // req: R-2790
     check("R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no artifact is written down",
-      r9000.length === 3 && r9000[0].startsWith("artifact A-001 · tracked output · last changed") && r9000[1] === "artifact A-002 · home output · age not measured: user-home store" && r9000BuiltFrom.startsWith("built from A-003 · source input · last changed") && (r9000BuiltFrom.match(/A-003/g) ?? []).length === 1 && !r9000BuiltFrom.includes("A-001") &&
+      JSON.stringify(lines("R-9006")) === JSON.stringify(["artifact A-004 · other output · age not measured: user-home store · made in FEAT-093"]) && byId["R-9006"]?.children.find((node) => node.attrs?.class === "deliverable-artifact")?.children.filter((node) => node.tag === "a").map((node) => node.attrs.href).join() === "#FEAT-093" && !byId["R-9000"]?.children.filter((node) => node.attrs?.class === "deliverable-artifact").some((node) => node.children.some((child) => child.tag === "a")) && r9000.length === 3 && r9000[0].startsWith("artifact A-001 · tracked output · last changed") && r9000[1] === "artifact A-002 · home output · age not measured: user-home store" && r9000BuiltFrom.startsWith("built from A-003 · source input · last changed") && (r9000BuiltFrom.match(/A-003/g) ?? []).length === 1 && !r9000BuiltFrom.includes("A-001") &&
       lines("R-9001")[0]?.startsWith("output only, built from A-003 · source input · last changed") && JSON.stringify(lines("R-9002")) === JSON.stringify(["artifact not written down"]) && lines("R-9003")[0]?.startsWith("artifact docs/plain.txt · last changed") && JSON.stringify(lines("R-9004")) === JSON.stringify(["artifact A-999 · no live entry"]) && r9005.length === 2 && r9005[0].startsWith("artifact A-001 · tracked output · last changed") && r9005[1].startsWith("built from A-003 · source input · last changed") && renderedClaims(product).every((line) => !/last changed|age not measured|age unknown|newest record|measured at tip/.test(line)),
       JSON.stringify(Object.fromEntries(Object.keys(byId).map((id) => [id, lines(id)]))));
   });
@@ -1354,7 +1335,7 @@ try {
       const newTime = new Date("2020-01-01T00:00:00Z"); fs.utimesSync(homeFile, newTime, newTime); fs.utimesSync(landFile, newTime, newTime);
       repo.git(["tag", "release-old", old]);
       await generateReport({ root: repo.root, out: second });
-      const lines = renderedArtifactLines(renderHtmlAt(fs.readFileSync(second, "utf8"), "#product"));
+      const lines = renderedArtifactLines(renderHtmlAt(fs.readFileSync(second, "utf8"), "#FEAT-091"));
       // req: R-2791
       check("R-2791: an unageable entry shows age not measured with its class, and the page is the same whatever the stores and refs hold",
         productReportModule.AGE_NOT_MEASURED_PREFIX === "age not measured: " && fs.readFileSync(first).equals(fs.readFileSync(second)) && ["user-home store", "other project", "git ref", "CI record"].every((className) => lines.some((line) => line.endsWith(`age not measured: ${className}`))) && lines.filter((line) => /A-005|A-006/.test(line)).every((line) => line.endsWith("age not measured: clone store") && !line.includes("newest record at tip")),
@@ -1381,10 +1362,10 @@ try {
     const matched = commitAt(repo, "glob file", "2026-10-03T00:00:00Z", { "docs/reviews/a/x.txt": "one\n" });
     commitAt(repo, "nested nonmatch", "2026-10-04T00:00:00Z", { "docs/reviews/a/b/x.txt": "nested\n" });
     commitAt(repo, "tracked head", "2026-10-05T00:00:00Z", { "head.txt": "head\n" });
-    const lines = renderedArtifactLines((await renderedProduct(repo, "tracked-artifact-ages")).view);
+    const lines = renderedArtifactLines((await renderedHomes(repo, "tracked-artifact-ages")).view);
     const plain = historyFixture("plain-glob-is-not-pattern", ["docs/*.md"]);
     commitAt(plain, "matching-looking file", "2026-10-02T00:00:00Z", { "docs/a.md": "a\n" });
-    const plainLine = onlyArtifactAge((await renderedProduct(plain, "plain-glob-is-not-pattern")).view);
+    const plainLine = onlyArtifactAge((await renderedHomes(plain, "plain-glob-is-not-pattern")).view);
     // req: R-2792
     check("R-2792: a tracked entry shows the age of the last commit that changed a file it matches",
       lines.some((line) => line.includes(`A-001 · one file · last changed`) && line.includes(single.slice(0, 8))) && lines.some((line) => line.includes(`A-002 · one folder · last changed`) && line.includes(folder.slice(0, 8))) && lines.some((line) => line.includes(`A-003 · one segment glob · last changed`) && line.includes(matched.slice(0, 8))) && plainLine === "artifact docs/*.md · age unknown: not tracked at HEAD",
@@ -1423,14 +1404,16 @@ try {
     await generateReport({ root: repo.root, out });
     const html = fs.readFileSync(out, "utf8");
     const artifacts = renderHtmlAt(html, "#artifacts");
-    const product = renderHtmlAt(html, "#product");
-    const cards = artifacts.root.children.filter((node) => node.attrs?.class === "artifact-entry-card");
+    const product = renderHtmlAt(html, "#FEAT-120");
+    const cards = product.root.children.filter((node) => node.attrs?.class === "artifact-entry-card");
+    const internalCards = renderHtmlAt(html, "#FEAT-121").nodes.filter((node) => node.attrs?.class === "artifact-entry-card");
     const headings = cards.map((card) => card.children.find((node) => node.tag === "h3")?.textContent);
     const card = (id) => cards.find((item) => item.children.some((node) => node.tag === "h3" && node.textContent.startsWith(`${id} · `)));
     const a1 = card("A-001");
     const a2 = card("A-002");
     const a8 = card("A-008");
-    const a1ProductAge = renderedArtifactLines(product).find((line) => line.startsWith("artifact A-001 · automatic output · "))?.slice("artifact A-001 · automatic output · ".length);
+    const r1200 = product.nodes.find((node) => node.attrs?.class === "deliverable-block" && node.children[0]?.textContent.startsWith("R-1200 · "));
+    const a1ProductAge = r1200?.children.find((node) => node.attrs?.class === "deliverable-artifact" && node.textContent.startsWith("artifact A-001 · automatic output · "))?.textContent.slice("artifact A-001 · automatic output · ".length);
     const a1CardAge = a1?.children.find((node) => node.textContent.startsWith("Age: "))?.textContent.slice("Age: ".length);
     const noRegistry = treeFixture("artifact-flow-no-registry", noArtifactRegistryLedger());
     const noRegistryOut = path.join(temp, "artifact-flow-no-registry.html");
@@ -1439,24 +1422,10 @@ try {
     const navLabels = artifacts.root.children.find((node) => node.tag === "nav")?.children.map((node) => node.textContent) ?? [];
     const emptyText = emptyArtifacts.nodes.map((node) => node.textContent ?? node.text ?? "").join(" ");
     // req: R-2799
-    check("R-2799: the artifacts view shows a card per live entry with its class, location, age, maker, reading features and deliverables",
-      JSON.stringify(headings) === JSON.stringify(["A-001 · automatic output", "A-002 · manual source", "A-003 · internal output", "A-005 · person source", "A-006 · code source", "A-007 · prompt source", "A-008 · orphan record", "A-009 · rule source", "A-010 · read-only output", "A-011 · manual read-only source"]) &&
-      !card("A-004") && a1?.textContent.includes("Class: tracked: REQUIREMENTS.md") && a1?.textContent.includes("Made in: FEAT-120 · Maker feature · build: REQUIREMENTS.md") && ["FEAT-100", "FEAT-101", "FEAT-110"].every((id) => a1?.textContent.includes(`Read in: ${id} ·`)) && a1?.textContent.includes("Deliverable: R-1200 · names it") && a2?.textContent.includes("Deliverable: R-1201 · built from it") && a8?.textContent.includes("Age: last changed") && a1CardAge === a1ProductAge && JSON.stringify(navLabels.slice(0, 4)) === JSON.stringify(["Overview", "Decisions", "Product", "Artifacts"]) && emptyText.includes("no artifact registry") && !emptyArtifacts.nodes.some((node) => node.attrs?.class === "artifact-entry-card"),
+    check("R-2799: each maker feature's detail view shows a card per live entry it registers with its class, location, age, run, reading features and deliverables, and the Artifacts view shows none",
+      JSON.stringify(headings) === JSON.stringify(["A-001 · automatic output", "A-002 · manual source", "A-005 · person source", "A-006 · code source", "A-007 · prompt source", "A-008 · orphan record", "A-009 · rule source", "A-010 · read-only output", "A-011 · manual read-only source"]) && JSON.stringify(internalCards.map((card) => card.children[0]?.textContent)) === JSON.stringify(["A-003 · internal output"]) && [artifacts, renderHtmlAt(html, "#FEAT-100"), renderHtmlAt(fs.readFileSync(noRegistryOut, "utf8"), "#FEAT-130")].every((view) => !view.nodes.some((node) => node.attrs?.class === "artifact-entry-card")) &&
+      !card("A-004") && a1?.textContent.includes("Class: tracked: REQUIREMENTS.md") && a1?.textContent.includes("Made by: build: REQUIREMENTS.md") && !a1?.children.some((node) => node.children.some((child) => child.attrs?.href === "#FEAT-120")) && ["FEAT-100", "FEAT-101", "FEAT-110"].every((id) => a1?.textContent.includes(`Read in: ${id} ·`)) && a1?.textContent.includes("Deliverable: R-1200 · names it") && a2?.textContent.includes("Deliverable: R-1201 · built from it") && a8?.textContent.includes("Age: last changed") && a1CardAge === a1ProductAge && JSON.stringify(navLabels.slice(0, 4)) === JSON.stringify(["Overview", "Decisions", "Product", "Artifacts"]) && emptyText.includes("no artifact registry") && !emptyArtifacts.nodes.some((node) => node.attrs?.class === "artifact-entry-card"),
       JSON.stringify({ headings, a1: a1?.textContent, a2: a2?.textContent, a8: a8?.textContent, a1CardAge, a1ProductAge, navLabels, emptyText }));
-  });
-  await withinCaseLimit("R-2800", async () => {
-    const repo = treeFixture("artifact-flow-lines", artifactFlowLedger());
-    const out = path.join(temp, "artifact-flow-lines.html");
-    await generateReport({ root: repo.root, out });
-    const artifacts = renderHtmlAt(fs.readFileSync(out, "utf8"), "#artifacts");
-    const headings = artifacts.nodes.filter((node) => node.attrs?.class === "artifact-flow-pair").map((node) => node.textContent);
-    const lines = artifacts.nodes.filter((node) => node.attrs?.class === "artifact-flow-line").map((node) => node.textContent);
-    const cli = spawnSync(process.execPath, [path.join(ROOT, "scripts/requirements-tree.mjs"), "--root", repo.root], { cwd: ROOT, encoding: "utf8", timeout: CASE_LIMIT_MS });
-    // req: R-2800
-    check("R-2800: the flow lists one line per cross-capability read with its run, and a read toward an earlier capability adds no mark and no tree problem",
-      JSON.stringify(headings) === JSON.stringify(["CAP-12 · Makers → CAP-10 · Earlier readers", "CAP-12 · Makers → CAP-11 · Other readers"]) &&
-      lines.includes("build · A-001 · automatic output · FEAT-120 → FEAT-100, FEAT-101") && lines.includes("manual · A-002 · manual source · FEAT-120 → FEAT-100") && lines.includes("build · A-001 · automatic output · FEAT-120 → FEAT-110") && lines.filter((line) => line.includes("A-001")).length === 2 && !lines.some((line) => /A-003|A-004|A-999|stage order|against/.test(line)) && cli.status === 0 && cli.stderr === "",
-      JSON.stringify({ headings, lines, status: cli.status, stderr: cli.stderr, stdout: cli.stdout }));
   });
   await withinCaseLimit("R-2801", async () => {
     const repo = treeFixture("artifact-flow-lists", artifactFlowLedger());
@@ -1470,8 +1439,8 @@ try {
     const artifactText = artifacts.nodes.map((node) => node.textContent ?? node.text ?? "").join(" ");
     // req: R-2801
     check("R-2801: the artifacts view lists the artifacts no other feature reads and the ones code reads but no nana run makes",
-      artifactText.includes("Artifacts no other feature reads and no deliverable names") && artifactText.includes("Its maker or a person may still read it.") && JSON.stringify(firstItems) === JSON.stringify(["A-008 · orphan record"]) &&
-      artifactText.includes("Read by code, made by no nana run") && JSON.stringify(secondItems) === JSON.stringify(["A-002 · manual source · other project · manual: another tool writes it", "A-006 · code source · other project · manual: a hand-run command writes it", "A-007 · prompt source · user-home store · manual: an editor writes it", "A-011 · manual read-only source · other project · manual: another tool writes it"]) && !secondItems.some((item) => /A-001|A-005|A-009/.test(item)) && secondItems.every((item) => item.includes("manual: ")),
+      JSON.stringify(artifacts.root.children.slice(artifacts.root.children.findIndex((node) => node.tag === "h2") + 1).map((node) => node.tag)) === JSON.stringify(["h3", "p", "ul", "h3", "ul"]) && [first, second].every((list) => list.children.every((item) => { const links = item.children.filter((node) => node.tag === "a"); return links.length === 1 && links[0].attrs.href === "#FEAT-120"; })) && artifactText.includes("Artifacts no other feature reads and no deliverable names") && artifactText.includes("Its maker or a person may still read it.") && JSON.stringify(firstItems) === JSON.stringify(["A-008 · orphan record · made in FEAT-120"]) &&
+      artifactText.includes("Read by code, made by no nana run") && JSON.stringify(secondItems) === JSON.stringify(["A-002 · manual source · other project · manual: another tool writes it", "A-006 · code source · other project · manual: a hand-run command writes it", "A-007 · prompt source · user-home store · manual: an editor writes it", "A-011 · manual read-only source · other project · manual: another tool writes it"].map((item) => `${item} · made in FEAT-120`)) && !secondItems.some((item) => /A-001|A-005|A-009/.test(item)) && secondItems.every((item) => item.includes("manual: ")),
       JSON.stringify({ firstItems, secondItems, artifactText }));
   });
   await withinCaseLimit("R-2802", async () => {
@@ -1510,7 +1479,7 @@ try {
     commitAt(core, "head", "2026-01-05T00:00:00Z", { "head.txt": "head\n" });
     const calls = [];
     const capturingRunner = (args, options) => { calls.push({ args, options }); return spawnSync("git", args, options); };
-    const coreView = (await renderedProduct(core, "artifact-core", capturingRunner)).view;
+    const coreView = (await renderedHomes(core, "artifact-core", capturingRunner)).view;
     expectClaim("sweep and first filename", coreView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 1 day before HEAD by ${sweep.slice(0, 8)}: scrub: sweep records`)));
     const walk = calls.find((call) => call.args[0] === "log" && call.args.includes("--name-only"));
     if (!walk || !["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"].every((flag) => walk.args.includes(flag)) || walk.options.maxBuffer !== MAX_GIT_BUFFER) failures.push({ label: "walk flags and buffer", walk });
@@ -1526,7 +1495,7 @@ try {
     oldLane.git(["merge", "-q", "--no-ff", "lane", "-m", "merge old lane"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-02-07T00:00:00Z", GIT_COMMITTER_DATE: "2026-02-07T00:00:00Z" } });
     const oldCount = Number(oldLane.git(["rev-list", "--count", `${oldChange}..HEAD`]).stdout.trim());
     const oldDays = Math.max(0, Math.floor((Number(oldLane.git(["show", "-s", "--format=%ct", "HEAD"]).stdout.trim()) - Number(oldLane.git(["show", "-s", "--format=%ct", oldChange]).stdout.trim())) / (24 * 60 * 60)));
-    expectClaim("parent graph count", (await renderedProduct(oldLane, "artifact-old-lane")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} ${oldCount} commits and ${oldDays} days before HEAD by ${oldChange.slice(0, 8)}: change artifact`)));
+    expectClaim("parent graph count", (await renderedHomes(oldLane, "artifact-old-lane")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} ${oldCount} commits and ${oldDays} days before HEAD by ${oldChange.slice(0, 8)}: change artifact`)));
 
     const merged = historyFixture("artifact-merge", ["artifact.txt"]);
     commitAt(merged, "base artifact", "2026-03-01T00:00:00Z", { "artifact.txt": "base\n" });
@@ -1538,26 +1507,26 @@ try {
     merged.git(["merge", "-q", "--no-ff", "side", "-m", "merge both artifacts"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-03-04T00:00:00Z", GIT_COMMITTER_DATE: "2026-03-04T00:00:00Z" } });
     if (merged.git(["status", "--porcelain"]).stdout) { fs.writeFileSync(path.join(merged.root, "artifact.txt"), "merged\n"); merged.git(["add", "artifact.txt"]); merged.git(["commit", "-qm", "merge both artifacts"], { env: { ...process.env, GIT_AUTHOR_DATE: "2026-03-04T00:00:00Z", GIT_COMMITTER_DATE: "2026-03-04T00:00:00Z" } }); }
     const mergeHash = merged.git(["rev-parse", "HEAD"]).stdout.trim();
-    expectClaim("merge change", (await renderedProduct(merged, "artifact-merge")).view, (claims) => claims.some((claim) => claim.includes(`${mergeHash.slice(0, 8)}: merge both artifacts`)));
+    expectClaim("merge change", (await renderedHomes(merged, "artifact-merge")).view, (claims) => claims.some((claim) => claim.includes(`${mergeHash.slice(0, 8)}: merge both artifacts`)));
 
     const zones = historyFixture("artifact-zones", ["offset.txt", "future.txt"]);
     const offset = commitAt(zones, "offset change", "2026-04-02T13:30:00+14:00", { "offset.txt": "offset\n" });
     const future = commitAt(zones, "future change", "2026-04-05T00:00:00Z", { "future.txt": "future\n" });
     commitAt(zones, "earlier dated head", "2026-04-02T12:30:00-12:00", { "head.txt": "head\n" });
-    const zonesView = (await renderedProduct(zones, "artifact-zones")).view;
+    const zonesView = (await renderedHomes(zones, "artifact-zones")).view;
     expectClaim("epoch days", zonesView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 2 commits and 1 day before HEAD by ${offset.slice(0, 8)}: offset change`)));
     expectClaim("day clamp", zonesView, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 0 days before HEAD by ${future.slice(0, 8)}: future change`)));
 
     const halfDay = historyFixture("artifact-half-day", ["artifact.txt"], "2026-04-01T00:00:00Z");
     const halfDayChange = commitAt(halfDay, "half-day change", "2026-04-01T00:00:00Z", { "artifact.txt": "made\n" });
     commitAt(halfDay, "36 hours later", "2026-04-02T12:00:00Z", { "head.txt": "head\n" });
-    expectClaim("36 hours is one whole day", (await renderedProduct(halfDay, "artifact-half-day")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 1 day before HEAD by ${halfDayChange.slice(0, 8)}: half-day change`)));
+    expectClaim("36 hours is one whole day", (await renderedHomes(halfDay, "artifact-half-day")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 1 commit and 1 day before HEAD by ${halfDayChange.slice(0, 8)}: half-day change`)));
 
     const folder = historyFixture("artifact-folder", ["made/"]);
     commitAt(folder, "older folder file", "2026-05-01T00:00:00Z", { "made/old.txt": "old\n" });
     const newest = commitAt(folder, "newest folder file", "2026-05-03T00:00:00Z", { "made/new.txt": "new\n" });
     commitAt(folder, "folder head", "2026-05-04T00:00:00Z", { "head.txt": "head\n" });
-    expectClaim("folder newest", (await renderedProduct(folder, "artifact-folder")).view, (claims) => claims.some((claim) => claim.includes(`${newest.slice(0, 8)}: newest folder file`)));
+    expectClaim("folder newest", (await renderedHomes(folder, "artifact-folder")).view, (claims) => claims.some((claim) => claim.includes(`${newest.slice(0, 8)}: newest folder file`)));
 
     const subParent = path.join(temp, "artifact-sub-parent"); fs.mkdirSync(subParent, { recursive: true });
     const sub = historyFixture("ledger", ["output.txt"], "2026-06-01T00:00:00Z", subParent);
@@ -1567,16 +1536,16 @@ try {
     const subChange = commitAt(sub, "subfolder artifact", "2026-06-02T00:00:00Z", { "ledger/output.txt": "made\n" });
     commitAt(sub, "subfolder head", "2026-06-03T00:00:00Z", { "outside.txt": "head\n" });
     sub.root = path.join(subParent, "ledger");
-    expectClaim("ledger-relative artifact", (await renderedProduct(sub, "artifact-subfolder")).view, (claims) => claims.some((claim) => claim.includes(`${subChange.slice(0, 8)}: subfolder artifact`)));
+    expectClaim("ledger-relative artifact", (await renderedHomes(sub, "artifact-subfolder")).view, (claims) => claims.some((claim) => claim.includes(`${subChange.slice(0, 8)}: subfolder artifact`)));
 
     const large = historyFixture("artifact-large-walk", ["artifact.txt"]);
     const largeChange = commitAt(large, "large walk artifact", "2026-07-01T00:00:00Z", { "artifact.txt": "made\n" });
     for (let index = 0; index < 10; index++) commitAt(large, `${index}-${"x".repeat(110_000)}`, `2026-07-${String(index + 2).padStart(2, "0")}T00:00:00Z`, { [`long-${index}.txt`]: `${index}\n` }, { messageFile: true });
-    expectClaim("large walk buffer", (await renderedProduct(large, "artifact-large-walk")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 10 commits`) && claim.includes(largeChange.slice(0, 8))));
+    expectClaim("large walk buffer", (await renderedHomes(large, "artifact-large-walk")).view, (claims) => claims.some((claim) => claim.includes(`${lastChanged} 10 commits`) && claim.includes(largeChange.slice(0, 8))));
 
     const unknown = historyFixture("artifact-unknown", ["missing.txt"]);
     commitAt(unknown, "unknown head", "2026-08-02T00:00:00Z", { "head.txt": "head\n" });
-    expectClaim("not tracked", (await renderedProduct(unknown, "artifact-unknown")).view, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}${notTracked}`)));
+    expectClaim("not tracked", (await renderedHomes(unknown, "artifact-unknown")).view, (claims) => claims.some((claim) => claim.includes(`${ageUnknown}${notTracked}`)));
 
     const shallowSource = historyFixture("artifact-shallow-source", ["artifact.txt"]);
     commitAt(shallowSource, "shallow artifact", "2026-09-01T00:00:00Z", { "artifact.txt": "made\n" });
@@ -1585,13 +1554,13 @@ try {
     const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.root).href, shallowRoot], { encoding: "utf8" });
     const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
     const isShallow = shallow.git(["rev-parse", "--is-shallow-repository"]).stdout.trim() === "true";
-    expectClaim("shallow clone", (await renderedProduct(shallow, "artifact-shallow")).view, (claims) => isShallow && clone.status === 0 && claims.some((claim) => claim.includes(`${ageUnknown}${shallowClone}`)));
+    expectClaim("shallow clone", (await renderedHomes(shallow, "artifact-shallow")).view, (claims) => isShallow && clone.status === 0 && claims.some((claim) => claim.includes(`${ageUnknown}${shallowClone}`)));
 
     const failed = historyFixture("artifact-walk-failure", ["artifact.txt"]);
     commitAt(failed, "failed artifact", "2026-10-01T00:00:00Z", { "artifact.txt": "made\n" });
     const failedRunner = (args, options) => args[0] === "log" && args.includes("--name-only") ? { status: 1, stdout: "", stderr: "fixture history failure" } : spawnSync("git", args, options);
     try {
-      const failedRender = await renderedProduct(failed, "artifact-walk-failure", failedRunner);
+      const failedRender = await renderedHomes(failed, "artifact-walk-failure", failedRunner);
       expectClaim("walk failure degrades", failedRender.view, (claims) => fs.existsSync(failedRender.out) && claims.some((claim) => claim.includes(`${ageUnknown}${historyFailure}`)));
     } catch (error) {
       failures.push({ label: "walk failure degrades", error: error instanceof Error ? error.message : String(error) });
@@ -1612,7 +1581,7 @@ try {
       if (data === null) fs.rmSync(path.dirname(writeRuntimeFile(repo.root, { schema: 1 })), { recursive: true, force: true });
       else if (typeof data === "string") { const file = writeRuntimeFile(repo.root, { schema: 1 }); fs.writeFileSync(file, data); }
       else writeRuntimeFile(repo.root, data);
-      const rendered = await renderedProduct(repo, `runtime-${label}`, runner);
+      const rendered = await renderedHomes(repo, `runtime-${label}`, runner);
       const artifacts = renderedArtifactLines(rendered.view);
       if (!predicate(artifacts, rendered)) failures.push({ label, artifacts });
     };
@@ -1690,16 +1659,16 @@ try {
     suiteRecord(core.repo, core.side, "2026-11-05T00:00:00.000Z", "2026-11-05T00:00:00.000Z");
     const suiteDir = path.dirname(suiteRecord(core.repo, core.side, "not-a-time", "2026-11-06T00:00:00.000Z"));
     fs.writeFileSync(path.join(suiteDir, "99999999T999999999Z_other.json"), JSON.stringify({ schema: RECORD_SCHEMA + 1, tip: core.a, recordedAt: "2026-11-06T00:00:00.000Z" }));
-    const coreAge = onlyArtifactAge((await renderedProduct(core.repo, "suite-record-age")).view);
+    const coreAge = onlyArtifactAge((await renderedHomes(core.repo, "suite-record-age")).view);
     if (!coreAge.includes(`${recordAtTip} ${core.a.slice(0, 8)} on 2026-11-01T00:00:00.000Z, 2 commits and 3 days before HEAD`)) failures.push(["record and side branch", coreAge]);
 
     const none = makeHistory("suite-record-none", "suite-runs");
-    const noneAge = onlyArtifactAge((await renderedProduct(none.repo, "suite-record-none")).view);
+    const noneAge = onlyArtifactAge((await renderedHomes(none.repo, "suite-record-none")).view);
     if (!noneAge.includes(`age unknown: ${noReadable}`)) failures.push(["no readable", noneAge]);
 
     const outside = makeHistory("suite-record-outside", "suite-runs");
     suiteRecord(outside.repo, outside.side, "2026-11-05T00:00:00.000Z");
-    const outsideAge = onlyArtifactAge((await renderedProduct(outside.repo, "suite-record-outside")).view);
+    const outsideAge = onlyArtifactAge((await renderedHomes(outside.repo, "suite-record-outside")).view);
     if (!outsideAge.includes(`age unknown: ${noHistory}`)) failures.push(["no history", outsideAge]);
 
     const shallowSource = makeHistory("suite-record-shallow-source", "suite-runs");
@@ -1707,7 +1676,7 @@ try {
     const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.repo.root).href, shallowRoot], { encoding: "utf8" });
     const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
     suiteRecord(shallow, shallowSource.a, "2026-11-01T00:00:00.000Z");
-    const shallowAge = onlyArtifactAge((await renderedProduct(shallow, "suite-record-shallow")).view);
+    const shallowAge = onlyArtifactAge((await renderedHomes(shallow, "suite-record-shallow")).view);
     if (clone.status !== 0 || !shallowAge.includes("age unknown: shallow clone")) failures.push(["shallow", shallowAge, clone.stderr]);
 
     // req: R-2744
@@ -1737,28 +1706,28 @@ try {
 
     const core = makeHistory("build-record-age");
     writeBuildLedger(core.repo, ["not json", end("a", core.a, "2026-11-01T00:00:00.000Z"), start("running"), end("no-tip", null, "2026-11-06T00:00:00.000Z"), end("side", core.side, "2026-11-05T00:00:00.000Z")]);
-    const coreAge = onlyArtifactAge((await renderedProduct(core.repo, "build-record-age")).view);
+    const coreAge = onlyArtifactAge((await renderedHomes(core.repo, "build-record-age")).view);
     if (!coreAge.includes(`${recordAtTip} ${core.a.slice(0, 8)} on 2026-11-01T00:00:00.000Z, 2 commits and 3 days before HEAD`)) failures.push(["record, start, tipless and side", coreAge]);
 
     const none = makeHistory("build-record-none");
-    const noneAge = onlyArtifactAge((await renderedProduct(none.repo, "build-record-none")).view);
+    const noneAge = onlyArtifactAge((await renderedHomes(none.repo, "build-record-none")).view);
     if (!noneAge.includes(`age unknown: ${noReadable}`)) failures.push(["no ledger", noneAge]);
     writeBuildLedger(none.repo, [start("running-only")]);
-    const startAge = onlyArtifactAge((await renderedProduct(none.repo, "build-record-start-only")).view);
+    const startAge = onlyArtifactAge((await renderedHomes(none.repo, "build-record-start-only")).view);
     if (!startAge.includes(`age unknown: ${noReadable}`)) failures.push(["start only", startAge]);
     writeBuildLedger(none.repo, [end("tipless-only", null, "2026-11-06T00:00:00.000Z")]);
-    const tiplessAge = onlyArtifactAge((await renderedProduct(none.repo, "build-record-tipless-only")).view);
+    const tiplessAge = onlyArtifactAge((await renderedHomes(none.repo, "build-record-tipless-only")).view);
     if (!tiplessAge.includes(`age unknown: ${noReadable}`)) failures.push(["tipless only", tiplessAge]);
 
     const outside = makeHistory("build-record-outside");
     writeBuildLedger(outside.repo, [end("side", outside.side, "2026-11-05T00:00:00.000Z")]);
-    const outsideAge = onlyArtifactAge((await renderedProduct(outside.repo, "build-record-outside")).view);
+    const outsideAge = onlyArtifactAge((await renderedHomes(outside.repo, "build-record-outside")).view);
     if (!outsideAge.includes(`age unknown: ${noHistory}`)) failures.push(["no history", outsideAge]);
 
     const blocked = makeHistory("build-record-unreadable");
     const blockedFile = buildRecordsPath(commonDirOf(blocked.repo));
     fs.mkdirSync(blockedFile, { recursive: true });
-    const blockedRendered = await renderedProduct(blocked.repo, "build-record-unreadable");
+    const blockedRendered = await renderedHomes(blocked.repo, "build-record-unreadable");
     const blockedAge = onlyArtifactAge(blockedRendered.view);
     if (!fs.existsSync(blockedRendered.out) || !blockedAge.includes(`age unknown: ${unreadable}`)) failures.push(["unreadable", blockedAge]);
 
@@ -1767,7 +1736,7 @@ try {
     const clone = spawnSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(shallowSource.repo.root).href, shallowRoot], { encoding: "utf8" });
     const shallow = { root: shallowRoot, git: (args, options = {}) => spawnSync("git", args, { cwd: shallowRoot, encoding: "utf8", ...options }) };
     writeBuildLedger(shallow, [end("a", shallowSource.a, "2026-11-01T00:00:00.000Z")]);
-    const shallowAge = onlyArtifactAge((await renderedProduct(shallow, "build-record-shallow")).view);
+    const shallowAge = onlyArtifactAge((await renderedHomes(shallow, "build-record-shallow")).view);
     if (clone.status !== 0 || !shallowAge.includes("age unknown: shallow clone")) failures.push(["shallow", shallowAge, clone.stderr]);
 
     // req: R-2745

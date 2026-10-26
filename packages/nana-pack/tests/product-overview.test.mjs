@@ -13,7 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { CASE_LIMIT_MS, withinCaseLimit, treeFixture, table, makeAssessment, writeStore, writeRuntimeFile, commitAt, renderHtmlAt } from "./report-fixtures.mjs";
+import { CASE_LIMIT_MS, withinCaseLimit, treeFixture, table, makeAssessment, writeStore, writeRuntimeFile, commitAt, renderHtmlAt, feature, stage, code, manual, park, page as pageIn, commitCode as commitCodeIn } from "./report-fixtures.mjs";
 import { generateReport, OVERVIEW_BLOCKS, OVERVIEW_LABELS as L, STALE_AGE_DAYS, AGE_NOT_MEASURED_PREFIX, AGE_UNKNOWN_PREFIX, MEASURED_AT_TIP_PREFIX } from "../../../scripts/product-report.mjs";
 import { TIP_DIGITS } from "../lib/land-config.mjs";
 import { ARTIFACT_AGE_TABLE } from "../../../scripts/deliverables.mjs";
@@ -24,14 +24,9 @@ async function check(title, action) {
   try { await withinCaseLimit(title, action); console.log("PASS", title); }
   catch (error) { failures++; console.log("FAIL", title, error.stack); }
 }
-const feature = (id, rows, extra = [], status = "active") => [`## ${id} · ${id}`, "Purpose: keep output.", `Status: ${status}`, ...extra, "", table(rows).trimEnd()].join("\n");
-const stage = (id, label, fields = [], kind = "product") => [`# ${id} · ${label}`, "Purpose: make output.", "Outcome: output exists.", ...(kind ? [`Kind: ${kind}`] : []), ...fields, ""].join("\n");
+const page = (...args) => pageIn(temp, ...args);
+const commitCode = (...args) => commitCodeIn(temp, ...args);
 const basic = (kind = "product", fields = []) => stage("CAP-01", "First", fields, kind) + "\n" + feature("FEAT-001", [["R-001", "implemented"]]);
-async function page(repo, name) {
-  const out = path.join(temp, `${name}.html`);
-  await generateReport({ root: repo.root, out });
-  return fs.readFileSync(out, "utf8");
-}
 function blocks(view) {
   const result = [];
   for (const node of view.root.children) {
@@ -46,10 +41,6 @@ function cli(repo) {
   assert.equal(run.status, 0, run.stderr);
   return run.stdout.trimEnd().split(/\r?\n/).slice(1);
 }
-const code = (id) => [`Made by: ${id} · suite: make.mjs`, `Read by: ${id} · code: read.mjs`];
-const manual = (id) => [`Made by: ${id} · manual: owner makes it`, `Read by: ${id} · person: owner reads it`];
-const park = (id) => `Parked: ${id} · since 2026-01-01: owner holds it`;
-function commitCode(repo) { commitAt(temp, repo, "code", "2026-01-02T00:00:00Z", { "make.mjs": "export const made = true;\n", "read.mjs": "export const read = true;\n" }); }
 
 // req: R-2920
 await check("R-2920: the overview is the landing view and first tab, unknown and #shared hashes render it, and its five blocks come in order with links to their views", async () => {
@@ -97,19 +88,21 @@ await check("R-2922: Broken names the violated rows and the implemented rows tha
 await check("R-2923: Gaps names the unparked deliverables code does not make and read and the artifacts with no declared reader, each beside its parked count, and counts the checker's notes", async () => {
   const fields = ["Deliverables: R-005, R-001, R-002, R-003, R-004", ...code("R-001"), ...manual("R-002"), ...manual("R-005"), ...manual("R-003"), park("R-003"), ...code("R-004"), park("R-004")];
   const entries = [5, 1, 2, 3, 4].map((n) => `Artifact: A-00${n} · item ${n} · other project: <project>/item${n} · manual: owner`);
-  const ledger = stage("CAP-01", "First", fields) + "\n" + feature("FEAT-001", [1, 2, 3, 4, 5].map((n) => [`R-00${n}`, "implemented"]), [...entries, "Parked: A-003 · since 2026-01-01: owner holds it", "Read by: A-004 · person: owner reads it"]) + "\n" + feature("FEAT-002", [["R-007", "implemented"]], ["Reads: A-001 · read.mjs"]);
+  const ledger = stage("CAP-01", "First", fields) + "\n" + feature("FEAT-001", [1, 2, 3, 4, 5].map((n) => [`R-00${n}`, "implemented"]), [...entries.filter((line) => !line.startsWith("Artifact: A-002")), "Parked: A-003 · since 2026-01-01: owner holds it", "Read by: A-004 · person: owner reads it"]) + "\n" + feature("FEAT-002", [["R-007", "implemented"]], [entries[2], "Reads: A-001 · read.mjs"]);
   const repo = treeFixture(temp, "gaps", ledger);
   commitCode(repo);
   const checker = cli(repo);
   const notes = checker.filter((line) => line.startsWith("deliverable note:")).length;
   assert.ok(notes > 0);
-  assert.deepEqual(lines(renderHtmlAt(await page(repo, "gaps")), 2), [`${L.deliverableGaps}: 2 · ${L.parked}: 1 · ${L.notes}: ${notes}`, "R-005, R-002", `${L.artifactGaps}: 2 · ${L.parked}: 1`, "A-002, A-005"]);
+  const view = renderHtmlAt(await page(repo, "gaps"));
+  assert.deepEqual(lines(view, 2), [`${L.deliverableGaps}: 2 · ${L.parked}: 1 · ${L.notes}: ${notes}`, "R-005, R-002", `${L.artifactGaps}: 2 · ${L.parked}: 1`, "A-002 · made in FEAT-002, A-005 · made in FEAT-001"]);
+  assert.deepEqual(blocks(view)[2].lines[3].children.filter((node) => node.tag === "a").map((node) => node.attrs.href), ["#FEAT-002", "#FEAT-001"]);
 });
 // req: R-2924
 await check("R-2924: Stale counts live features' out-of-date and unassessed assessments, and artifacts older than the stale age before HEAD's commit time, beside the not-measured and unknown counts", async () => {
   const runtimeKey = Object.keys(ARTIFACT_AGE_TABLE).find((key) => ARTIFACT_AGE_TABLE[key].writer === "scripts/runtime-measure.mjs");
   const extra = ["Artifact: A-001 · first · tracked: a.txt · manual: owner", "Artifact: A-002 · boundary · tracked: b.txt · manual: owner", "Artifact: A-003 · home · user-home store: ~/fixture · manual: owner", "Artifact: A-004 · missing · tracked: absent.txt · manual: owner", `Artifact: A-005 · runtime · clone store: ${runtimeKey} · land: scripts/runtime-measure.mjs`];
-  const ledger = stage("CAP-01", "First") + "\n" + feature("FEAT-001", [["R-001", "implemented"]], extra) + "\n" + feature("FEAT-002", [["R-002", "implemented"]]) + "\n" + feature("FEAT-003", [], [], "proposed");
+  const ledger = stage("CAP-01", "First") + "\n" + feature("FEAT-001", [["R-001", "implemented"]], extra.slice(0, 4)) + "\n" + feature("FEAT-002", [["R-002", "implemented"]], [extra[4]]) + "\n" + feature("FEAT-003", [], [], "proposed");
   const repo = treeFixture(temp, "stale", ledger, undefined, "2020-01-01T00:00:00Z");
   const first = commitAt(temp, repo, "artifacts", "2020-01-01T00:00:00Z", { "a.txt": "a\n", "b.txt": "b\n" });
   const assessment = makeAssessment(repo.root, first);
@@ -118,10 +111,11 @@ await check("R-2924: Stale counts live features' out-of-date and unassessed asse
   commitAt(temp, repo, "head", "2020-02-01T00:00:00Z", { "REQUIREMENTS.md": ledger.replace("R-001 shall work.", "R-001 shall change.") });
   writeRuntimeFile(repo.root, { schema: 1, hashes: {}, tests: {}, tip: first, measuredAt: "2019-12-01T00:00:00Z" });
   const view = renderHtmlAt(await page(repo, "stale"));
-  assert.deepEqual(lines(view, 3), [`${L.assessments}: 1 · ${L.unassessed}: 1`, "FEAT-001, FEAT-002", `${L.staleArtifacts}: 2 · ${L.notMeasured}: 1 · ${L.unknown}: 1`, `A-001 · first · ${STALE_AGE_DAYS + 1} days`, `A-005 · runtime · ${STALE_AGE_DAYS + 32} days`]);
+  assert.deepEqual(lines(view, 3), [`${L.assessments}: 1 · ${L.unassessed}: 1`, "FEAT-001, FEAT-002", `${L.staleArtifacts}: 2 · ${L.notMeasured}: 1 · ${L.unknown}: 1`, `A-001 · first · ${STALE_AGE_DAYS + 1} days · made in FEAT-001`, `A-005 · runtime · ${STALE_AGE_DAYS + 32} days · made in FEAT-002`]);
+  assert.deepEqual(blocks(view)[3].lines.slice(3).map((line) => line.children.filter((node) => node.tag === "a").map((node) => node.attrs.href)), [["#FEAT-001"], ["#FEAT-002"]]);
   const linked = blocks(view)[3].lines[1].children.filter((node) => node.tag === "a").map((node) => node.attrs.href);
   assert.deepEqual(linked, ["#FEAT-001", "#FEAT-002"]);
-  const ages = renderHtmlAt(await page(repo, "age-prefixes"), "#artifacts").nodes.filter((node) => node.tag === "p").map((node) => node.textContent);
+  const ages = renderHtmlAt(await page(repo, "age-prefixes"), "#FEAT-001").nodes.filter((node) => node.tag === "p").map((node) => node.textContent);
   assert.ok(ages.some((text) => text.startsWith(`Age: ${AGE_NOT_MEASURED_PREFIX}`)) && ages.some((text) => text.startsWith(`Age: ${AGE_UNKNOWN_PREFIX}`)));
   const second = treeFixture(temp, "young", stage("CAP-01", "First") + "\n" + feature("FEAT-001", [["R-001", "implemented"]], [extra[0], extra[2], extra[3]]), undefined, "2020-01-01T00:00:00Z");
   commitAt(temp, second, "artifact", "2020-01-27T00:00:00Z", { "a.txt": "young\n" });

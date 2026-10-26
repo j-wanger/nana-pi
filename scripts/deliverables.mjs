@@ -3,7 +3,7 @@
  * @module scripts/deliverables.mjs
  * @purpose Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines.
  * @inputs A parsed requirements tree, a capability, ledger folder, tracked paths, sealed artifact, read and age-table shapes, or an injected git runner.
- * @outputs Registry entries by A-ID, reads by feature, per-row claims, code predicates, clone-store age bindings, deliverable notes, per-capability counts and gap rows, and the exact tree-checker lines with their check result from deliverableReport.
+ * @outputs Registry entries by A-ID, reads by feature, per-row claims with each claim's reader kind, code predicates, clone-store age bindings, deliverable notes, per-capability counts and gap rows, and the exact tree-checker lines with their check result from deliverableReport.
  * @effects process (the shared line function may query the ledger folder's HEAD tree through injected git)
  * @errors Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
  */
@@ -329,14 +329,15 @@ export function deliverableClaims(parsed, capability, registry = artifactRegistr
     const kind = (colon < 0 ? claim : claim.slice(0, colon)).trim();
     const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
     if (field.label === PARKED_LABEL) {
-      claims.get(row).push({ row, label: field.label, text: claimText, artifact: null, thirdPart: null, registryIds: [], madeByCode: false, readByCode: false });
+      claims.get(row).push({ row, label: field.label, text: claimText, artifact: null, thirdPart: null, registryIds: [], madeByCode: false, readerKind: null, readByCode: false });
       continue;
     }
     const madeByCode = field.label === "Made by" && parts.length <= 3 && MAKER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
-    const readByCode = field.label === "Read by" && parts.length === 2 && READER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
+    const readerKind = field.label === "Read by" && parts.length === 2 && READER_SET.has(kind) && detail.length > 0 ? kind : null;
+    const readByCode = readerKind !== null && !REASON_SET.has(readerKind);
     const thirdPart = field.label === "Made by" && parts.length === 3 && parts[2].trim() ? parts[2].trim() : null;
     const reference = thirdPart ? registryReference(thirdPart) : null;
-    claims.get(row).push({ row, label: field.label, text: claimText, artifact: thirdPart && !reference ? thirdPart : null, thirdPart, registryIds: reference?.ids ?? [], registryKind: reference?.kind ?? null, madeByCode, readByCode });
+    claims.get(row).push({ row, label: field.label, text: claimText, artifact: thirdPart && !reference ? thirdPart : null, thirdPart, registryIds: reference?.ids ?? [], registryKind: reference?.kind ?? null, madeByCode, readerKind, readByCode });
   }
   return claims;
 }

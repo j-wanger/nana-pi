@@ -229,7 +229,8 @@ function pageModel(file) {
 }
 
 function ageFor(model, row) {
-	const line = model.capabilities.flatMap((capability) => capability.deliverables).find((deliverable) => deliverable.id === row)?.artifactLines[0] ?? "";
+	const block = model.features.flatMap((feature) => feature.detailSections.flatMap((section) => section.blocks ?? [])).find((block) => block.heading.startsWith(`${row} `));
+	const line = (block?.artifactLines[0] ?? []).map((segment) => segment.text).join("");
 	return /(?:newest record at tip|measured at tip|last changed|age (?:unknown|not measured):).*$/u.exec(line)?.[0] ?? "";
 }
 
