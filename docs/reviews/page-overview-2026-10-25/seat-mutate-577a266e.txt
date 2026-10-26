@@ -1,0 +1,81 @@
+seat-mutate: lane page-overview, tip 577a266e5e6c98fd48c83b6fbd336eda73bb593d, table 2eb1f98f207845b9d5a5a090c97c33b801fb38409e105d6d84e4f8b4eb616d4a, merge-base e4d29927abe43a8cc6556a4ab371e22c8da53e0f, 47 pairs in 5 shards (10+10+9+9+9, round-robin, 4s apart), darwin, node v22.22.2, 2026-10-26T02:31:15.103Z
+DECLARED (seat) pairs 1 to 46 follow the must-meet's seat wrong-code list in order, one pair per item, except item 31, which splits; each names the rows the must-meet says it turns red
+DECLARED (seat) item 31 splits: 31a drops the unassessed count from the assessment count line; 31b drops unassessed features from the linked list under it. The build counts them in one place and lists them in another, so the item's 'left out of the assessment count' has two one-place forms
+DECLARED (seat) pair 7 names every overview check (R-2920 to R-2925 and R-2927), as the must-meet's 'and every overview check' says; R-2794's check renders #product and the seal renders nothing, so neither is named
+DECLARED (seat) pair 8: the renderer draws every overview line through one loop with no notion of which line is the blocking ask, so the pair draws every overview line, the blocking-ask line among them, with innerHTML; it runs product-report.test.mjs only, where R-1019's text-node check lives
+DECLARED (seat) pair 27 computes days from Date.now() in the tracked formatter, the one the fixture's boundary entry (A-002) reaches; pair 28 is one edit in the shared setAge helper, which records days only for text that starts with the tracked prefix, so the runtime and record formatters lose their days together
+DECLARED (seat) pairs 37 to 42 replace a guard's condition with `true`, so the guarded form always prints; pair 41 moves the stage lines outside the field-line guard in one edit
+DECLARED (seat) pair 21 is one contiguous edit in deliverables.mjs: the per-capability push takes its parked set from the listed rows any Parked: line names, in place of parkedRows, so a code-made and read row with a Parked: line (R-2641) counts parked on the stage and gap lines only; the checker's count line keeps parkedRows
+DECLARED (seat) pair 35 gives a constraint capability a stage line by pushing a zero byCapability entry in the non-product skip of checkDeliverables
+DECLARED (expected survivor, run) pair 11: run green end to end at ccf3ad60 (SURVIVED, product-overview.test.mjs 9 PASS); R-2921's fixture has one optional ask and one parked ask, so swapping their counts prints the same line; the must-meet's red 'kinds ... swapped' is unpinned for equal counts
+DECLARED (macOS) none is Windows-only, as the must-meet says
+DECLARED (product code) every pair edits product code: scripts/product-report.mjs or scripts/deliverables.mjs; no pair edits a test file or the ledger
+DECLARED (not expressible) none of the 46 items; as the must-meet says, the closed-question move is ledger text and pair 12 covers the parse it relies on
+DECLARED (seat) no alsoRed is declared: the table was written before any full run. Expected UNNAMED reds (inferred, not run): pair 1 also R-2921 to R-2925 and R-2927 (an empty hash renders Decisions, so their block lines read empty); pair 13 also R-2927 (its not-passed line is gone); pair 21 none beyond its two; pair 45 none in its two files
+[1/5] seat-mutate: lane page-overview, shard 1/5, tip 577a266e5e6c98fd48c83b6fbd336eda73bb593d, merge-base e4d29927abe43a8cc6556a4ab371e22c8da53e0f, 10 pairs, darwin, node v22.22.2, 2026-10-26T02:31:16.451Z
+[1/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/requirements-tree.test.mjs (exit 0, 98 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[1/5] RESULT: 10/10 red (9 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane page-overview, shard 2/5, tip 577a266e5e6c98fd48c83b6fbd336eda73bb593d, merge-base e4d29927abe43a8cc6556a4ab371e22c8da53e0f, 10 pairs, darwin, node v22.22.2, 2026-10-26T02:31:20.173Z
+[2/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[2/5] RESULT: 10/10 red (9 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane page-overview, shard 3/5, tip 577a266e5e6c98fd48c83b6fbd336eda73bb593d, merge-base e4d29927abe43a8cc6556a4ab371e22c8da53e0f, 9 pairs, darwin, node v22.22.2, 2026-10-26T02:31:24.323Z
+[3/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/product-report.test.mjs (exit 0, 92 PASS, 0 FAIL, )
+[3/5] RESULT: 9/9 red (8 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane page-overview, shard 4/5, tip 577a266e5e6c98fd48c83b6fbd336eda73bb593d, merge-base e4d29927abe43a8cc6556a4ab371e22c8da53e0f, 9 pairs, darwin, node v22.22.2, 2026-10-26T02:31:28.338Z
+[4/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[4/5] RESULT: 9/9 red (9 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane page-overview, shard 5/5, tip 577a266e5e6c98fd48c83b6fbd336eda73bb593d, merge-base e4d29927abe43a8cc6556a4ab371e22c8da53e0f, 9 pairs, darwin, node v22.22.2, 2026-10-26T02:31:32.385Z
+[5/5] BASELINE ok   packages/nana-pack/tests/product-overview.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[5/5] RESULT: 9/9 red (9 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 views[""] back to "decisions" — 1/1 named: /^R-2920: /; UNNAMED red: [product-overview.test.mjs] R-2921: Needs you counts asks as blocking, optional and parked, lists each blocking ask's title in file order… | [product-overview.test.mjs] R-2922: Broken names the violated rows and the implemented rows that did not pass, split into failed and skip… | [product-overview.test.mjs] R-2923: Gaps names the unparked deliverables code does not make and read and the artifacts with no declared r… | [product-overview.test.mjs] R-2924: Stale counts live features' out-of-date and unassessed assessments, and artifacts older than the stal… | [product-overview.test.mjs] R-2925: What it does shows the checker's count line and one line per live product stage whose counts add up t… | [product-overview.test.mjs] R-2927: with no runtime data, no artifact registry or no deliverable lines, each overview line that reads it …; 7 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 the unknown-hash fallback back to "decisions" — 2/2 named: /^R-2920: / | /^unknown prototype hashes render the Overview/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 a "#shared": "shared" entry put back in views — 1/1 named: /^R-2920: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 nav lists Decisions before Overview — 1/1 named: /^R-2920: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 two OVERVIEW_BLOCKS entries swapped — 1/1 named: /^R-2920: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 one block's href changed to #product — 1/1 named: /^R-2920: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 the renderer reads OVERVIEW_BLOCKS from module scope in place of the model — 7/7 named: /^R-2920: / | /^R-2921: / | /^R-2922: / | /^R-2923: / | /^R-2924: / | /^R-2925: / | /^R-2927: /; 7 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 the overview's lines, the blocking-ask line among them, drawn with innerHTML — 1/1 named: /^renderer inserts all dynamic strings only through text nodes/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 Needs you lists every ask's title — 1/1 named: /^R-2921: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 Needs you sorts blocking asks by since-date — 1/1 named: /^R-2921: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 11 optional and parked counts swapped in the count line — 1/1 named: /^R-2921: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 12 parseOpenQuestions breaks only on `# ` (level one) — 2/2 named: /^R-2921: / | /^R-1570: /; UNNAMED red: [product-report.test.mjs] R-1571: a ledger with no open questions heading, or none under it, still writes the page and says none are re…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 13 Broken drops the not-passed line — 1/1 named: /^R-2922: /; UNNAMED red: [product-overview.test.mjs] R-2927: with no runtime data, no artifact registry or no deliverable lines, each overview line that reads it …; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 14 the overview's not-passed list filters on didNotPass without the implemented status test — 1/1 named: /^R-2922: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 15 the not-passed items line left out — 1/1 named: /^R-2922: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 16 the overview's not-passed list keeps only rows with a FAIL label — 1/1 named: /^R-2922: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 17 the split counts every row as skipped only — 1/1 named: /^R-2922: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 18 the no-recorded-run count drops the implemented status test — 1/1 named: /^R-2922: /; 1 FAIL total (1 file changed, 1 deletion(-))
+RED 19 the runtime age text left off the not-passed line — 1/1 named: /^R-2922: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 20 deliverable gaps taken as listed rows not made and read, ignoring parkedRows — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 21 stage and gap parked rows taken from the presence of a Parked: field line — 2/2 named: /^R-2923: / | /^R-2925: /; 2 FAIL total (1 file changed, 4 insertions(+), 3 deletions(-))
+RED 22 artifact gaps from the page's readIds and referencesFor join — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 23 the parked entry count dropped from Gaps — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 24 the deliverable note count dropped — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 25 artifact gaps in registry order (no sort) — 1/1 named: /^R-2923: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 26 Stale compares with >= — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 27 stale days computed from Date.now() (the tracked formatter) — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 28 days recorded only for the tracked formatter's ages — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 29 the not-measured and unknown counts merged into one — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 30 the beside counts printed only when the stale count is not 0 — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 31a unassessed features left out of the assessment count line — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 31b unassessed features left out of the assessment list — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 32 the liveFeature filter dropped — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 33 feature IDs printed as text, not links — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 34 stale entries sorted by days — 1/1 named: /^R-2924: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 35 a constraint capability gets a stage line — 1/1 named: /^R-2925: /; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 36 the checker count line left out of What it does — 1/1 named: /^R-2925: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 37 the runtime guard dropped from the not-passed line — 1/1 named: /^R-2927: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 38 the registry guard dropped from the artifact gap line — 1/1 named: /^R-2927: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 39 the registry guard dropped from the stale artifact line — 1/1 named: /^R-2927: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 40 What it does takes deliverableLines[0] without the field-line guard — 1/1 named: /^R-2927: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 41 stage lines printed when the count line is absent — 1/1 named: /^R-2927: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 42 the deliverable gap line's guard dropped — 1/1 named: /^R-2927: /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 43 an empty list renders its label over an empty list — 1/1 named: /^R-2794: a capability card whose list has no item /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 44 an empty list renders nothing — 1/1 named: /^R-2794: a capability card whose list has no item /; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 45 the suffix back to `, <n> parked` — 2/2 named: /^R-2639: / | /^R-2642: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 46 STALE_AGE_DAYS retuned to 31 — 2/2 named: /^seal: the overview's stale age is 30 days/ | /^R-2924: /; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 47/47 red (44 exactly their named titles, 0 with a named title green, 3 with an unnamed red), 0 survived, across 5 shards

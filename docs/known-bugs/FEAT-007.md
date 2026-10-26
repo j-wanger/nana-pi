@@ -131,3 +131,4 @@
 - Keep movement (keep-movement, plan): a `--repo` naming a subfolder gets no movement file and no message, since the ledger check reads relative to that folder (the independent check saw it).
 - Keep movement (keep-movement, plan): a failed movement write is pinned only through a read-only file; root on POSIX can write it, so that case skips there.
 - Review movement (review-movement, final review): claude-review computes the prompt's movement before review-ledger admits the review; a commit in that gap pairs one revision's movement with the next revision's review. keep's file computes its own copy, so it does not inherit the gap.
+- Keep movement (keep-movement, land review): R-2910's test leaves out the plan's uncommitted ledger edit before the first keep, so nothing pins that the file reports HEAD and not the working tree.

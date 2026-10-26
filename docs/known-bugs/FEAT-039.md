@@ -16,7 +16,6 @@
 - Not-passed list (report-not-passed): with no runtime data, the list's heading reads 0. The legend just above it says the report found no run.
 - Not-passed list (report-not-passed): a label marked changed since still decides the list, so a stale skip keeps its row listed. The plan's adversary called this the claim most likely wrong and left it to the owner. Reversing it changes one rule and flips one requirement.
 - Not-passed list (report-not-passed): no check pins that a row citing no test file is never listed. Every check stays green with the empty-run guard removed.
-- Open questions in the report (audit-open-questions): closed questions still list, each with its own closed note. The page has no filter for them.
 - Open questions in the report (audit-open-questions): only a dash bullet or a numbered line starts a question. A star bullet joins the question above it.
 - Open questions in the report (audit-open-questions): a new project's placeholder question lists as question 1, with its underscores shown.
 - Open questions in the report (audit-open-questions): the 2026-10-09 verification found issues beyond the audit, in two rows, one pack README line and misfiled rows. No open question records them.
@@ -69,3 +68,16 @@
 - Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git count. The ages share one log walk, so the cost stays below 30 process starts.
 - Artifacts view (artifact-flow, final review): a Reads line the checker flags still draws its line and keeps the entry off the first list. This ledger has none.
 - Artifacts view (artifact-flow, final review): an entry with an empty run renders as " · A-nnn · …"; the checker already flags it.
+- Overview (page-overview, plan): the overview has no line cap. Many blocking asks, gap IDs or stale entries lengthen it; the assessments line names 35 features today.
+- Overview (page-overview, plan): "Must decide" is the `blocking` tag. A decision that holds no work has no mark of its own.
+- Overview (page-overview, plan): a closed question leaves the page only when someone moves it under `## Closed questions`. One closed in place still lists.
+- Overview (page-overview, plan): stale counts registry entries only; a plain-path artifact on a `Made by:` line is not counted.
+- Overview (page-overview, plan): the six stale entries are one finished study's records (CAP-08, all parked). They stay on the first screen and grow older each day.
+- Overview (page-overview, plan): 7 of the 34 out-of-date assessments belong to frozen desk features.
+- Overview (page-overview, plan): ages count to HEAD's commit time, not today. A page built long after HEAD reads young; this keeps R-1012.
+- Overview (page-overview, plan): 47 of 80 entries carry no measured age, so the stale count speaks for 33 entries. The beside counts say so, not which.
+- Overview (page-overview, plan): the not-passed count is this clone's last measured run; on a Mac all six are Windows-only skips. Another clone's page differs.
+- Overview (page-overview, plan): Gaps names parked items by count only; the Product view still shows them in full.
+- Overview (page-overview, plan): the Product view's `· gap` mark (status not implemented) and the overview's gap (not made and read by code) answer different questions.
+- Overview (page-overview, plan): the Product view's repeats, the artifact cards and the flow lines stay until lane two.
+- Overview (page-overview, plan): other projects get the overview at once through the shared script, without a template tag.
