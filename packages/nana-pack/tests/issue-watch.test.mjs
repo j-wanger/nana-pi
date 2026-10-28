@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { EventEmitter } from "node:events";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { watchIssues, watchCommand } from "../lib/issue-watch.mjs";
 import { ghAsyncFromEnvironment } from "../lib/gh-runner-async.mjs";
@@ -28,6 +28,7 @@ const ghEnv = { [GH_COMMAND_ENV]: JSON.stringify([process.execPath, summaryGh]) 
 const pointer = "## Next\nSee issues.\n## Open for the owner\nhttps://github.com/example/project/issues\n";
 const baseline = Date.parse("2026-10-28T00:00:00Z");
 const iso = (n) => new Date(baseline + n).toISOString();
+const response = (body, date = iso(0), ending = "\r\n") => `HTTP/2.0 200 OK${ending}Date: ${new Date(date).toUTCString()} \t${ending}${ending}${body}`;
 const settle = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
 function fakeClock() {
 	let now = baseline, id = 0;
@@ -43,7 +44,7 @@ function fixture({ rows = [], type = "User", since = iso(0), text = pointer, run
 	const root = tmpDir(path.join(TD, "project "));
 	fs.mkdirSync(path.join(root, ".git")); fs.writeFileSync(path.join(root, "HANDOFF.md"), text);
 	const clock = fakeClock(), lines = [], owners = [], calls = [];
-	const gh = async (cwd, args, opts) => { calls.push({ cwd, args, opts }); return runGh ? runGh(cwd, args, opts) : { status: 0, stdout: args.includes(`users/example`) ? type : JSON.stringify(rows) }; };
+	const gh = async (cwd, args, opts) => { calls.push({ cwd, args, opts }); return runGh ? runGh(cwd, args, opts) : { status: 0, stdout: response(args.includes(`users/example`) ? type : JSON.stringify(rows)) }; };
 	const start = (extra = {}) => watchIssues({ root, since, clock, env: {}, runGh: gh, emit: (line) => lines.push(line), onOwner: (line) => owners.push(line), ...options, ...extra });
 	return { root, clock, lines, owners, calls, start };
 }
@@ -56,18 +57,98 @@ async function check(title, fn) {
 	finally { clearTimeout(timer); }
 }
 try {
+// req: R-2990 R-2992
+await check("R-2992: GitHub cursor survives a 3 second fast clock and an 800 ms late comment", async () => {
+	for (const ending of ["\n", "\r\n"]) {
+		let visible = false;
+		const f = fixture({ runGh: (_cwd, args) => ({ status: 0, stdout: args.includes("users/example") ? "User" : response(JSON.stringify(visible ? [row(1, 800)] : []), iso(0), ending) }) });
+		await f.clock.advance(3000); const watch = f.start(); await settle();
+		assert.equal(watch.cursor, iso(-config.WATCH_OVERLAP_MS));
+		await f.clock.advance(1600); visible = true;
+		await f.clock.advance(config.WATCH_INTERVAL_MS); assert.equal(f.owners.length, 1);
+		assert.equal(watch.cursor, iso(800 - config.WATCH_OVERLAP_MS));
+		await f.clock.advance(config.WATCH_INTERVAL_MS); assert.equal(f.owners.length, 1);
+		watch.stop(); await watch.done;
+	}
+});
+// req: R-2991
+await check("R-2991: org OWNER and MEMBER comments name their author but not collaborators", async () => {
+	const f = fixture({ type: "Organization", rows: [row(1, 1, "owner answer", "org-owner", "OWNER"), row(2, 2, "member answer", "org-member", "MEMBER"), row(3, 3, "hidden", "helper", "COLLABORATOR")] });
+	const watch = f.start(); await settle(); await f.clock.advance(config.WATCH_INTERVAL_MS);
+	assert.deepEqual(f.owners, [`issue #7 comment by org-owner: ${config.WATCH_QUOTE_LABEL}: owner answer`, `issue #7 comment by org-member: ${config.WATCH_QUOTE_LABEL}: member answer`]);
+	assert.equal(f.lines.at(-1), "issue #7: a comment by someone else"); watch.stop(); await watch.done;
+});
+// req: R-2991 R-2997
+await check("R-2997: seat comments print no text and never reach pi or start a turn", async () => {
+	const rows = [row(1, 1, "Seat: secret seat reply"), row(2, 2, "Seat:\r\nsecret seat reply", "member", "MEMBER")];
+	const f = fixture({ type: "Organization", rows }); const watch = f.start(); await settle(); await f.clock.advance(config.WATCH_INTERVAL_MS);
+	assert.deepEqual(f.lines, ["issue #7: a seat comment", "issue #7: a seat comment"]); assert.deepEqual(f.owners, []); watch.stop(); await watch.done;
+	const handlers = {}, messages = [];
+	extension({ on: (name, fn) => { handlers[name] = fn; }, sendMessage: (...args) => messages.push(args) }, { env: ghEnv, clock: f.clock, runGh: async (_cwd, args) => ({ status: 0, stdout: response(args.includes("users/example") ? "Organization" : JSON.stringify(rows)) }) });
+	await handlers.session_start({}, { cwd: f.root, hasUI: true, isIdle: () => true }); await settle(); await f.clock.advance(config.WATCH_INTERVAL_MS);
+	assert.deepEqual(messages, []); await handlers.session_shutdown({}, {});
+});
+// req: R-2992
+await check("R-2992: real opted-in command keeps polling prints an owner answer and ends with restart", async () => {
+	const f = fixture(), fake = path.join(f.root, "gh.mjs"), preload = path.join(f.root, "clock.mjs"), count = path.join(f.root, "polls");
+	fs.writeFileSync(preload, `import { WATCH_INTERVAL_MS, WATCH_RUN_MS } from ${JSON.stringify(new URL("../lib/frontier-summary-config.mjs", import.meta.url).href)}; const later = globalThis.setTimeout; globalThis.setTimeout = (fn, delay, ...args) => later(fn, delay === WATCH_INTERVAL_MS ? 50 : delay === WATCH_RUN_MS ? 3000 : delay, ...args);`);
+	fs.writeFileSync(fake, `import fs from 'node:fs'; const file=${JSON.stringify(count)}; const n=fs.existsSync(file)?Number(fs.readFileSync(file,'utf8')):0; if(process.argv.includes('--jq')) process.stdout.write(${JSON.stringify(response("User"))}); else { fs.writeFileSync(file,String(n+1)); process.stdout.write(n ? ${JSON.stringify(response(JSON.stringify([row(1, 800, "command answer")])))} : ${JSON.stringify(response("[]"))}); }`);
+	const cli = await new Promise((resolve, reject) => { const child = spawn(process.execPath, ["--import", preload, path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root, "--since", iso(0)], { env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } }); let stdout = "", stderr = ""; const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("CLI limit")); }, 6000); child.stdout.on("data", (data) => { stdout += data; }); child.stderr.on("data", (data) => { stderr += data; }); child.on("error", reject); child.on("close", (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); }); });
+	assert.equal(cli.status, 0, cli.stderr); assert(Number(fs.readFileSync(count, "utf8")) >= 2); assert.match(cli.stdout, /comment by example: .*command answer/); assert.match(cli.stdout.trimEnd().split("\n").at(-1), /^Issue watch restart: .* --since /);
+});
+// req: R-2995
+await check("R-2995: unreadable pointers never name a watch in the session block", () => {
+	for (const ending of ["\n", "\r\n"]) {
+		const f = fixture({ text: ["## Open for the owner", "https://github.com/example"].map((line) => line + " \t").join(ending) });
+		const out = frontierSummary({ cwd: f.root, env: {}, readIssues: () => { throw new Error("must not read"); } });
+		assert(out.includes("issues pointer unreadable")); assert(!out.includes("Issue watch"));
+	}
+});
+// req: R-2993
+await check("R-2993: each failure prints its own cause", async () => {
+	for (const [result, cause] of [[{ error: Object.assign(new Error(), { code: "ENOENT" }) }, "cannot start gh"], [{ status: 1 }, "gh failed"], [{ error: Object.assign(new Error(), { code: "ETIMEDOUT" }) }, "timeout"], [{ status: 0, stdout: "invalid" }, "unreadable output"]]) {
+		const f = fixture({ runGh: () => result }); const watch = f.start(); await settle(); assert.deepEqual(f.lines, [`Issue watch: ${cause}.`]); watch.stop(); await watch.done;
+	}
+});
+// req: R-2997
+await check("R-2997: default watch runner is asynchronous without a runner injection", async () => {
+	const f = fixture(), fake = path.join(f.root, "slow-gh.mjs"), heartbeat = path.join(f.root, "heartbeat");
+	fs.writeFileSync(fake, `import fs from 'node:fs'; if (!fs.existsSync(${JSON.stringify(heartbeat)})) process.exit(9); process.stdout.write(process.argv.includes('--jq') ? ${JSON.stringify(response("User"))} : ${JSON.stringify(response(JSON.stringify([row(1, 1)])))});`);
+	const beat = setTimeout(() => fs.writeFileSync(heartbeat, "alive"), 0);
+	let watch;
+	try {
+		await new Promise((resolve, reject) => {
+			const timer = setTimeout(() => reject(new Error("default runner blocked or did not deliver")), 3000);
+			watch = watchIssues({ root: f.root, since: iso(0), env: { ...process.env, [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) }, onOwner: () => { clearTimeout(timer); resolve(); }, emit: (line) => { if (line.startsWith("Issue watch:")) { clearTimeout(timer); reject(new Error(line)); } } });
+		});
+		assert(fs.existsSync(heartbeat));
+	} finally { clearTimeout(beat); watch?.stop(); await watch?.done; }
+});
+// req: R-2996
+await check("R-2996: real worker and reviewer commands exit zero immediately without gh", async () => {
+	const f = fixture(), fake = path.join(f.root, "forbidden-gh.mjs"), marker = path.join(f.root, "called");
+	fs.writeFileSync(fake, `import fs from 'node:fs'; fs.writeFileSync(${JSON.stringify(marker)}, 'called'); process.exit(99);`);
+	for (const role of ["worker", "reviewer"]) {
+		const cli = spawnSync(process.execPath, [path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root], { encoding: "utf8", timeout: 2000, env: { ...process.env, NANA_ROLE: role, [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } });
+		assert.equal(cli.status, 0); assert.equal(cli.stdout, ""); assert.equal(cli.stderr, ""); assert(!fs.existsSync(marker));
+	}
+});
+// req: R-2998
+await check("R-2998: seal GitHub cursor overlap at 5000 ms", () => assert.equal(config.WATCH_OVERLAP_MS, 5000));
+// req: R-2998
+await check("R-2998: seal seat comment marker", () => assert.equal(config.WATCH_SEAT_MARKER, "Seat:"));
 // req: R-2990
 await check("R-2990: pinned polls dedupe new comments ignore edits clean excerpts and warn at a full page", async () => {
 	const body = "answer\u001b[31m\r\nsecond\t" + "x".repeat(config.WATCH_EXCERPT_CAP + 20);
 	const f = fixture({ rows: [row(1, 1000, body), row(1, 1000, body), row(2, -1000, "older edited") ] });
-	const watch = f.start(); await settle(); assert.equal(f.lines.length, 0);
+	const watch = f.start(); await settle(); assert.equal(f.lines.length, 1);
 	await f.clock.advance(config.WATCH_INTERVAL_MS - 1); assert.equal(f.calls.length, 2);
 	await f.clock.advance(1);
 	assert.equal(f.lines.length, 1); assert(f.lines[0].startsWith(`issue #7 comment by example: ${config.WATCH_QUOTE_LABEL}: `));
 	const excerpt = f.lines[0].split(`${config.WATCH_QUOTE_LABEL}: `)[1];
 	assert.equal(excerpt.length, config.WATCH_EXCERPT_CAP); assert(!/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(excerpt));
 	await f.clock.advance(config.WATCH_INTERVAL_MS); assert.equal(f.lines.length, 1);
-	assert.deepEqual(f.calls[2].args, ["api", "--hostname", "github.com", `repos/example/project/issues/comments?since=${iso(0)}&per_page=${config.ISSUES_FETCH_CAP}`]);
+	assert.deepEqual(f.calls[2].args, ["api", "--hostname", "github.com", `repos/example/project/issues/comments?since=${iso(1000 - config.WATCH_OVERLAP_MS)}&per_page=${config.ISSUES_FETCH_CAP}`, "--include"]);
 	assert.equal(f.calls[2].opts.timeoutMs, config.ISSUES_READ_LIMIT_MS); watch.stop(); await watch.done;
 	const full = fixture({ rows: Array.from({ length: config.ISSUES_FETCH_CAP }, (_, i) => row(i, 1)) });
 	const capped = full.start(); await settle(); await full.clock.advance(config.WATCH_INTERVAL_MS);
@@ -75,18 +156,18 @@ await check("R-2990: pinned polls dedupe new comments ignore edits clean excerpt
 	// GitHub timestamps have whole-second precision: do not lose the startup second.
 	const fractional = fixture({ rows: [row(10, 0, "startup-second answer")] });
 	await fractional.clock.advance(500); const fractionalWatch = fractional.start({ since: undefined }); await settle();
-	assert.equal(fractional.owners.length, 0); await fractional.clock.advance(config.WATCH_INTERVAL_MS);
+	assert.equal(fractional.owners.length, 1); await fractional.clock.advance(config.WATCH_INTERVAL_MS);
 	assert.equal(fractional.owners.length, 1); fractionalWatch.stop(); await fractionalWatch.done;
 });
 // req: R-2991
 await check("R-2991: user and org owners alone expose words while outsider notices expose only issue numbers", async () => {
 	for (const type of ["User", "Organization"]) {
-		const f = fixture({ type, rows: [row(1, 1, "owner words", type === "User" ? "EXAMPLE" : "org-owner"), row(2, 2, "private outsider words", "outsider", "MEMBER"), row(3, 3, "collaborator words", "collaborator", "COLLABORATOR")] });
+		const f = fixture({ type, rows: [row(1, 1, "owner words", type === "User" ? "EXAMPLE" : "org-owner"), row(2, 2, "private outsider words", "outsider", "NONE"), row(3, 3, "collaborator words", "collaborator", "COLLABORATOR")] });
 		const watch = f.start(); await settle(); await f.clock.advance(config.WATCH_INTERVAL_MS);
 		assert.equal(f.owners.length, 1); assert.match(f.owners[0], /owner words/);
 		assert.equal(f.lines.filter((line) => line === "issue #7: a comment by someone else").length, 2);
 		assert(!f.lines.join("\n").includes("private outsider") && !f.lines.join("\n").includes("collaborator words"));
-		assert.deepEqual(f.calls[0].args, ["api", "--hostname", "github.com", "users/example", "--jq", ".type"]); watch.stop(); await watch.done;
+		assert.deepEqual(f.calls[0].args, ["api", "--hostname", "github.com", "users/example", "--jq", ".type", "--include"]); watch.stop(); await watch.done;
 	}
 });
 // req: R-2992
@@ -95,9 +176,9 @@ await check("R-2992: bounded run prints an exact restart cursor and a gap commen
 	await f.clock.advance(config.WATCH_RUN_MS); await watch.done;
 	assert(config.WATCH_RUN_MS < 1800000); assert.equal(f.clock.timers.size, 0);
 	const cursor = watch.cursor;
-	assert.equal(f.lines.at(-1), `Issue watch restart: ${watchCommand(f.root, cursor)}`);
+	assert.equal(f.lines.at(-1), `Issue watch restart: ${watchCommand(f.root, cursor, watch.seen)}`);
 	assert.equal(watchCommand("C:\\Projects\\space here", cursor), `${config.WATCH_COMMAND_PREFIX} --root "C:\\Projects\\space here" --since "${cursor}"`);
-	const g = fixture({ rows: [row(1, 1), row(2, config.WATCH_RUN_MS + 1000, "gap answer")], since: cursor });
+	const g = fixture({ rows: [row(1, 1), row(2, config.WATCH_RUN_MS + 1000, "gap answer")], since: cursor, seen: watch.seen });
 	await g.clock.advance(config.WATCH_RUN_MS + 2000); const restart = g.start(); await settle();
 	assert.equal(g.owners.length, 1); assert.match(g.owners[0], /gap answer/); restart.stop(); await restart.done;
 });
@@ -155,14 +236,14 @@ await check("R-2996: seat rule starts the named background monitor and runs its 
 // req: R-2997
 await check("R-2997: pi starts only UI seat watches replaces and stops them and steers running or wakes idle", async () => {
 	const f = fixture(); const handlers = {}, messages = []; let release;
-	const runGh = async (_cwd, args) => args.includes("users/example") ? { status: 0, stdout: "User" } : new Promise((resolve) => { release = resolve; });
+	const runGh = async (_cwd, args) => args.includes("users/example") ? { status: 0, stdout: response("User") } : new Promise((resolve) => { release = resolve; });
 	extension({ on: (name, fn) => { handlers[name] = fn; }, sendMessage: (message, opts) => messages.push({ message, opts }) }, { env: ghEnv, clock: f.clock, runGh });
 	assert.equal(f.clock.timers.size, 0);
 	let idle = true; const ctx = { cwd: f.root, hasUI: true, isIdle: () => idle };
 	await handlers.session_start({}, ctx); await settle(); assert.equal(typeof release, "function");
 	let turned = false; await Promise.resolve().then(() => { turned = true; }); assert(turned); assert.equal(messages.length, 0);
 	await f.clock.advance(1000); release({ status: 0, stdout: JSON.stringify([row(1, 1)]) }); await settle();
-	// A row created after that poll began is picked up on the next poll.
+	// Overlap can fetch the same row again without delivering it again.
 	await f.clock.advance(config.WATCH_INTERVAL_MS); release({ status: 0, stdout: JSON.stringify([row(1, 1)]) }); await settle();
 	assert.equal(messages.length, 1); assert.deepEqual(messages[0].opts, { triggerTurn: true, deliverAs: "steer" }); assert(messages[0].message.content.includes(config.WATCH_QUOTE_LABEL));
 	idle = false; await f.clock.advance(config.WATCH_INTERVAL_MS); release({ status: 0, stdout: JSON.stringify([row(2, config.WATCH_INTERVAL_MS + 1001), row(3, config.WATCH_INTERVAL_MS + 1002, "secret", "outsider", "MEMBER")]) }); await settle();

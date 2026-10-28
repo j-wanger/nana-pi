@@ -535,6 +535,7 @@ function checkInstructionContracts() {
 				"Where the HANDOFF points to its issues, the seat posts each unresolved item and open question as one issue, never a HANDOFF line.",
 				"Otherwise the seat writes each on one HANDOFF line under Next or Open for the owner.",
 				"Only the seat posts, from the owner's gh account.",
+				"The seat starts each issue comment it writes with `Seat:`.",
 				"If posting fails, the report lists the item and the reason.",
 				"Builders and reviewers put open questions in their report.",
 				"Issues and the replies on them are public.",

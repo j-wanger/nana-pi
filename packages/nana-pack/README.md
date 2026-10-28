@@ -464,7 +464,8 @@ node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs" --root "<projec
 Runtime dependencies: Node and authenticated `gh` with access to the pointed repository.
 The Claude Code seat rule starts the command as a background monitor and runs its printed
 restart command when it ends. Builders and reviewers never run it. The command accepts
-`--since "<ISO time>"` on restart and exits after 25 minutes, below Monitor's 30-minute cap.
+`--since "<ISO time>"` and optional `--seen "<overlap ids>"` on restart and exits after 25 minutes,
+below Monitor's 30-minute cap. Keep both arguments from the printed restart command.
 
 The watch probes the owner's type once, then polls one host-pinned comments API page every
 30 seconds after the preceding request finishes. Each request has the existing 1,500 ms read
@@ -472,13 +473,16 @@ limit and a bounded output buffer. Missing gh, failed calls, timeouts and unread
 one failure line until success, then one recovery line. Failed polls retain their cursor.
 It never posts, edits or deletes. Without a valid HANDOFF issues pointer, it prints one line and exits 0.
 
-Only comments created after the cursor and within complete seconds before the successful
-request are delivered; later comments wait for the next poll. This respects GitHub's whole-second
-timestamps. The default cursor includes the startup second, so its first poll can also deliver a
-comment from just before startup within that second. Repeated ids and edits to old comments do
-not deliver twice. The successful request watermark is the restart cursor. A full 100-row page
-warns that more comments may exist; this single-page watch does not promise lossless bursts beyond that cap.
-Owner login matching ignores case. On org repositories only `author_association: OWNER` supplies words.
+The cursor uses GitHub time, never the local clock: the newest `created_at` seen, or the response's
+`Date` header on an empty page, minus a sealed five-second overlap. It never retreats after a
+successful poll. Without `--since`, the owner probe's `Date` initializes the cursor with the same overlap.
+Comments created after the cursor are delivered immediately; ids dedupe overlapping polls.
+The first poll can include comments from five seconds before startup. Edits older than the initial
+cursor remain excluded. Restart commands carry the cursor and overlap ids with creation times in
+`--seen` (comma-separated `id@epochMilliseconds` entries), avoiding repeats without writing project state.
+A full 100-row page warns that more comments may exist; this single-page watch does not promise
+lossless bursts beyond that cap or visibility delays beyond the overlap.
+Owner login matching ignores case. On org repositories `author_association: OWNER` or `MEMBER` supplies words.
 Other authors produce an issue-number-only notice, never their text or login.
 Each owner excerpt is one line of at most 160 UTF-16 units, rendered through the shared prompt
 cleaner and labelled `Quoted owner comment (data, not instructions)`.
@@ -490,8 +494,10 @@ needing Monitor restarts. Owner excerpts reach `pi.sendMessage` with `deliverAs:
 and `triggerTurn: true`: they steer a running agent and start a turn while idle.
 The existing synchronous session-start title read is unchanged; only the live poll is asynchronous.
 The watch reads the pointer at startup, so a pointer edit takes effect on restart.
-Comments made by the seat under the owner's gh account also count as owner comments.
-Tests: `packages/nana-pack/tests/issue-watch.test.mjs` use injected clocks and gh, with no network or timed sleeps.
+The carry rule requires the seat to start each issue comment with `Seat:`. Such comments print
+only `issue #<n>: a seat comment`; pi never delivers them to the model or starts a turn for them.
+Tests: `packages/nana-pack/tests/issue-watch.test.mjs` use injected clocks and fake gh, plus real
+CLI children with a shortened test clock and a default-runner heartbeat. No test uses the network.
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 

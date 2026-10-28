@@ -1107,7 +1107,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/nana-issue-watch.mjs`
 
 - **purpose** — Print an opted-in project's live issue-comment monitor with a bounded restart cursor.
-- **inputs** — argv (--root <project root>, optional --since <ISO time>), environment and HANDOFF pointer.
+- **inputs** — argv (--root <project root>, optional --since <ISO time> and --seen <overlap ids>), environment and HANDOFF pointer.
 - **outputs** — One line per comment or status, and a final runnable restart command.
 - **effects** — disk (HANDOFF), process (timers and gh), network (read-only gh API).
 - **errors** — Bad arguments exit 2; no opt-in exits 0; gh failures retry quietly within the run limit.

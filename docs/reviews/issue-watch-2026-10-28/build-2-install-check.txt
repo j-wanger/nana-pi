@@ -1,0 +1,23 @@
+pi: <user-home>/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: <user-home>/.hermes/node/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+FAIL pi post-edit — write-error: write tool result is marked as an error
+PASS pi-review
+PASS hook set
+PASS hook shared memory
+PASS hook roster notice
+PASS hook verifier pipe (Bash)
+PASS hook knowledge pull
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+settings hooks: {"SessionStart":[{"hooks":[{"type":"command","command":"node '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5/.claude/hooks/nana-objective.mjs'","timeout":5,"statusMessage":"nana: objective + current priority"},{"type":"command","command":"node '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5/.claude/hooks/nana-adoption.mjs'","timeout":5,"statusMessage":"nana: unadopted repositories"},{"type":"command","command":"node '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5/.claude/hooks/nana-shared-memory.mjs'","timeout":5,"statusMessage":"nana: shared memory index"},{"type":"command","command":"node '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5/.claude/hooks/nana-roster-notice.mjs'","timeout":5,"statusMessage":"nana: roster notice"}]}],"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"node '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5/.claude/hooks/verifier-pipe.mjs'","timeout":5,"statusMessage":"nana: verifier pipe"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"NODE_NO_WARNINGS=1 node '<worktree>/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull"}]}]}
+last pull.log record: {"ts":"2026-10-28T23:18:20.982Z","cwd":"/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5/project","session_id":null,"source":null,"reason":"ok","tokens":["nana","install","check","validate","fixture","installcheck_mvsqjh6y"],"hits":["~/notes/docs/install-check.md"],"ms":4}
+install-check home retained: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-PiwiU5

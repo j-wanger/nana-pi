@@ -1,0 +1,47 @@
+-:1: verdict: first sentence "VERDICT: DONE" carries no verdict word
+-:5: identifier: `feat/issue-watch`
+-:5: identifier: `bce45cb6`
+-:5: identifier: `fefea3b9`
+-:9: identifier: `packages/nana-pack/tests/issue-watch.test.mjs`
+-:22: identifier: `WATCH_OVERLAP_MS`
+-:22: identifier: `WATCH_SEAT_MARKER`
+-:22: identifier: `Seat:`
+-:22: identifier: `docs/code-map.md`
+-:26: passive: passive candidate: "installed" in "Wrong clauses were installed together, so these are not claims of an isolated mutation campaign."
+-:40: identifier: `build-2-wrong-first.txt`
+-:40: identifier: `build-2-rule-wrong.txt`
+-:40: identifier: `build-2-mutations.txt`
+-:40: identifier: `build-2-targeted.txt`
+-:48: identifier: `packages/nana-pack/tests/templates-render.test.mjs`
+-:53: passive: passive candidate: "replaced" in "Build 1's local complete-second watermark is replaced with GitHub timestamps and a five-second overlap, as the brief requires."
+-:54: passive: passive candidate: "unchanged" in "The synchronous title reader and its org-author restriction are unchanged."
+-:55: passive: passive candidate: "written" in "Entries expire once their creation time is outside the overlap; no project-state file is written."
+-:58: passive: passive candidate: "moved" in "No private helper was moved or copied."
+-:58: identifier: `issuesPointer`
+-:58: identifier: `ghResult`
+-:60: passive: passive candidate: "changed" in "None of the brief's listed known bugs was changed."
+-:60: passive: passive candidate: "closed" in "The independent check's watch clock, org membership and self-echo points are closed by the tests above."
+-:64: identifier: `Seat:`
+-:64: identifier: `ask`
+-:64: identifier: `blocking`
+-:64: identifier: `optional`
+-:64: identifier: `parked`
+-:64: identifier: `next`
+-:64: identifier: `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`
+-:64: identifier: `gh issue view <number> --comments`
+-:69: identifier: `npm test -- issue-watch templates-render handoff-issues frontier-summary frontier-golden frontier-hook hook-producers seat-rule`
+-:70: identifier: `npm run map`
+-:71: identifier: `npm run test:locked`
+-:72: identifier: `231 files: 229 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8635 pass, 0 fail, 44 skip · 609.2s`
+-:73: identifier: `npm run map:check`
+-:74: identifier: `npm run readme:check`
+-:75: identifier: `node --experimental-strip-types scripts/requirements-trace.mjs`
+-:76: identifier: `node scripts/requirements-tree.mjs --root .`
+-:77: identifier: `node scripts/known-bugs.mjs --root .`
+-:78: identifier: `node scripts/identity-scan.mjs`
+-:79: identifier: `git diff --check`
+-:80: identifier: `node packages/nana-setup/bin/install-check.mjs`
+-:80: identifier: `env -u NANA_WORKTREE_ROOT -u NANA_ROLE -u NANA_HANDOFF node packages/nana-setup/bin/install-check.mjs`
+-:80: identifier: `build-2-install-check.txt`
+-:80: identifier: `build-2-install-check-clean.txt`
+summary sentences=91 words=1009 over=0 passive=7 banned=0 verdict=0/1 identifiers=38

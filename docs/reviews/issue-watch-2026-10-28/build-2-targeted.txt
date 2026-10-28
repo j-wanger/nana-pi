@@ -1,0 +1,14 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs issue-watch templates-render handoff-issues frontier-summary frontier-golden frontier-hook hook-producers seat-rule
+
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs   1 pass  0.5s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs  6 pass  0.8s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs    11 pass  3.1s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs       23 pass  3.6s
+PASS  packages/nana-pack/tests/templates-render.test.mjs  173 pass  84.9s
+PASS  packages/nana-setup/tests/frontier-hook.test.mjs    1 pass  1.8s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs   13 pass  0.1s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs        13 pass  0.0s
+
+8 files: 8 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 241 pass, 0 fail, 0 skip · 95.3s
