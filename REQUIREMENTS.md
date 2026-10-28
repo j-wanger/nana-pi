@@ -2246,6 +2246,7 @@ Read by: R-1460 · prompt: packages/nana-pack/bin/claude-review.mjs, packages/na
 Read by: R-1460 · person: the seat's land report points the owner to the lane folder's tree-movement.md, which review-ledger keep writes
 Made by: R-1014 · land: scripts/test-locked.mjs, scripts/product-report.mjs · A-045
 Read by: R-1014 · person: the seat reads the land copy's test status at each land (issue 243)
+Parked: R-1014 · since 2026-10-23: the local land copy has no code reader; a session-start line that consumes that copy deletes this line
 Made by: R-1272 · land: packages/nana-pack/bin/nana-land.mjs, scripts/test-locked.mjs, scripts/runtime-measure.mjs · A-032
 Made by: R-1272 · manual: builders run npm run map:impact by hand to print the section · built from: A-032
 Read by: R-1272 · rule: the standards rule and the requirements skill tell builders to run the impact command before touching a mapped module

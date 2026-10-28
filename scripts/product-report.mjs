@@ -442,7 +442,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
     }
   }
   if (view === "decisions") {
-    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body ?? ""); }
+    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url || ask.body) paragraph(card, "Ask", ask.body ?? ""); }
     if (model.nextItems?.length) { el("h3", "Next", root); const list = el("ul", undefined, root); for (const item of model.nextItems) { const li = el("li", undefined, list); const link = el("a", `#${item.number} ${item.title}`, li); link.setAttribute("href", item.url); } }
     if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
@@ -530,7 +530,6 @@ export function renderInto(document, model, { hash = "" } = {}) {
     el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
   }
   if (view === "issues") {
-    if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
     for (const item of model.violated) row(root, item);
     // contract (R-1655): declared inside renderInto, which runs through String() on the page —

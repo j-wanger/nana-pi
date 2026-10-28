@@ -1804,6 +1804,7 @@ try {
     await generateReport({ root: repo.root, out, readIssues: async (options) => { seen.push(options); return readHandoffIssues({ ...options, runGh: () => ({ status: 0, stdout: JSON.stringify(items) }) }); } });
     const model = JSON.parse(fs.readFileSync(out, "utf8").match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/)?.[1] ?? "{}");
     const decisions = renderHtmlAt(fs.readFileSync(out, "utf8"), "#decisions");
+    const issues = renderHtmlAt(fs.readFileSync(out, "utf8"), "#issues");
     const overview = renderHtmlAt(fs.readFileSync(out, "utf8"), "#overview");
     const askCard = decisions.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === "Owner ask"));
     const overviewAsks = overview.nodes.find((node) => node.tag === "li" && node.textContent.startsWith("Asks:"))?.textContent;
@@ -1811,7 +1812,7 @@ try {
     await generateReport({ root: repo.root, out: belowOut, readIssues: async () => ({ url: "https://github.com/example-org/example-repo/issues", items: [{ number: 11, title: "Owner ask", kind: "blocking", createdAt: "2026-10-20" }], truncated: false }) });
     const belowDecisions = renderHtmlAt(fs.readFileSync(belowOut, "utf8"), "#decisions");
     // req: R-2981
-    check("R-2981: issue asks are filtered and drawn with kind, date, link, counts and cap warning", model.asks.length === 1 && model.asks[0].title === "Owner ask" && model.asks[0].since === "2026-10-20" && model.asks[0].url.endsWith("/11") && model.issueNotice.includes("may be longer") && seen[0]?.limitMs === undefined && seen[0]?.ceilingMs === CI_READ_TIMEOUT_MS && askCard?.children.some((node) => node.textContent === "Kind: blocking") && askCard?.children.some((node) => node.tag === "h3" && node.children.some((link) => link.tag === "a" && link.attrs.href.endsWith("/11"))) && overviewAsks === "Asks: 1 · blocking (must decide): 1 · optional: 0 · parked: 0" && decisions.nodes.some((node) => node.textContent === "Open issues may be longer than the fetched list.") && !belowDecisions.nodes.some((node) => node.textContent === "Open issues may be longer than the fetched list."), JSON.stringify({ asks: model.asks, next: model.nextItems, notice: model.issueNotice, seen, overviewAsks, card: askCard?.textContent }));
+    check("R-2981: issue asks are filtered and drawn with kind, date, link, counts and cap warning", model.asks.length === 1 && model.asks[0].title === "Owner ask" && model.asks[0].since === "2026-10-20" && model.asks[0].url.endsWith("/11") && model.issueNotice.includes("may be longer") && seen[0]?.limitMs === undefined && seen[0]?.ceilingMs === CI_READ_TIMEOUT_MS && askCard?.children.some((node) => node.textContent === "Kind: blocking") && askCard?.children.some((node) => node.tag === "h3" && node.children.some((link) => link.tag === "a" && link.attrs.href.endsWith("/11"))) && !askCard?.children.some((node) => node.tag === "p" && node.textContent.startsWith("Ask:")) && overviewAsks === "Asks: 1 · blocking (must decide): 1 · optional: 0 · parked: 0" && decisions.nodes.some((node) => node.textContent === "Issues: Open issues may be longer than the fetched list.") && !issues.nodes.some((node) => node.textContent === "Issues: Open issues may be longer than the fetched list.") && !belowDecisions.nodes.some((node) => node.textContent === "Issues: Open issues may be longer than the fetched list."), JSON.stringify({ asks: model.asks, next: model.nextItems, notice: model.issueNotice, seen, overviewAsks, card: askCard?.textContent }));
     // req: R-2982
     check("R-2982: Decisions lists each open next issue as a linked item", model.nextItems.length === 1 && model.nextItems[0].title === "Owner next" && model.nextItems[0].url.endsWith("/12") && decisions.nodes.some((node) => node.tag === "a" && node.attrs.href.endsWith("/12")), JSON.stringify({ next: model.nextItems, nodes: decisions.nodes.map((node) => node.textContent) }));
   });
@@ -1838,10 +1839,12 @@ try {
     const html = fs.readFileSync(out, "utf8");
     const overview = renderHtmlAt(html, "#overview");
     const issues = renderHtmlAt(html, "#issues");
+    const decisions = renderHtmlAt(html, "#decisions");
     const asksLine = overview.nodes.find((node) => node.tag === "li" && node.textContent.startsWith("Asks:"))?.textContent;
     const issueParagraph = issues.nodes.find((node) => node.tag === "p" && node.textContent.startsWith("Issues:"))?.textContent;
+    const decisionsParagraph = decisions.nodes.find((node) => node.tag === "p" && node.textContent.startsWith("Issues:"))?.textContent;
     // req: R-2984
-    check("R-2984: failed issue read renders an unknown Overview count and drawn Issues notice", report.issueNotice?.startsWith("Open issues: unavailable") && report.issueNotice.includes("timeout") && asksLine?.includes("unknown") && asksLine.includes("unavailable (timeout)") && !asksLine.includes(": 0") && issueParagraph?.includes("unavailable (timeout)") && !html.includes("after 0 ms"), JSON.stringify({ notice: report.issueNotice, asksLine, issueParagraph }));
+    check("R-2984: failed issue read renders an unknown Overview count and drawn Issues notice", report.issueNotice?.startsWith("Open issues: unavailable") && report.issueNotice.includes("timeout") && asksLine?.includes("unknown") && asksLine.includes("unavailable (timeout)") && !asksLine.includes(": 0") && decisionsParagraph?.includes("unavailable (timeout)") && !issueParagraph && !html.includes("after 0 ms"), JSON.stringify({ notice: report.issueNotice, asksLine, issueParagraph, decisionsParagraph }));
   });
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;
