@@ -35,7 +35,7 @@ export function readHandoffIssues({ text, pointer = issuesPointer(text), cwd, en
 	let rows;
 	try {
 		rows = JSON.parse(result.stdout);
-		if (!Array.isArray(rows) || rows.some((row) => !Number.isInteger(row?.number) || typeof row.title !== "string" || !Array.isArray(row.labels) || typeof row.author?.login !== "string")) return fail("unreadable output");
+		if (!Array.isArray(rows) || rows.some((row) => !Number.isInteger(row?.number) || typeof row.title !== "string" || !Array.isArray(row.labels) || row.labels.some((label) => typeof label !== "object" || label === null || typeof label.name !== "string") || typeof row.author?.login !== "string")) return fail("unreadable output");
 	} catch { return fail("unreadable output"); }
 	if (rows.length === 0) {
 		const remaining = Math.floor(budget - (clock() - started));
@@ -52,7 +52,7 @@ export function readHandoffIssues({ text, pointer = issuesPointer(text), cwd, en
 		const labels = new Set(row.labels.map((label) => label?.name));
 		if (row.author.login.toLowerCase() !== pointer.owner.toLowerCase() || (!labels.has("ask") && !labels.has("next")) || seen.has(row.number)) continue;
 		seen.add(row.number);
-		const kind = labels.has("ask") && labels.has("blocking") ? "blocking" : labels.has("next") ? "next" : labels.has("parked") ? "parked" : "optional";
+		const kind = labels.has("ask") && labels.has("blocking") ? "blocking" : labels.has("next") ? "next" : labels.has("parked") ? "parked" : labels.has("optional") ? "optional" : null;
 		items.push({ number: row.number, title: row.title, kind });
 	}
 	return { ...pointer, items, truncated: rows.length >= ISSUES_FETCH_CAP };

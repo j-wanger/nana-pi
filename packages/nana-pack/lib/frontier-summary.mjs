@@ -60,8 +60,9 @@ function renderBlock(file, result, next, asks, selected, issues) {
 	else out.push(`Next (${next.length}):`, ...selectedNext.map((item) => `- ${item.rendered}`));
 	if (!issues?.failure || next.length) out.push("");
 	if (issues && !issues.failure) {
-		out.push(asks.length ? `Open for the owner (${asks.length}):` : "Open for the owner: none found.");
-		out.push(...selectedAsks.filter((item) => item.tag?.kind !== "blocking").map((item) => `- [${item.tag.kind}] ${item.rendered}`));
+		const ownerAsks = asks.filter((item) => item.tag?.kind !== "blocking");
+		out.push(ownerAsks.length ? `Open for the owner (${ownerAsks.length}):` : "Open for the owner: none found.");
+		out.push(...selectedAsks.filter((item) => item.tag?.kind !== "blocking").map((item) => `- [${item.tag?.kind ?? "no tag"}] ${item.rendered}`));
 	} else if (asks.length === 0) { if (!issues?.failure) out.push("Open for the owner: none found."); }
 	else {
 		const counts = askCounts(asks);
@@ -102,10 +103,11 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 	const pointer = issuesPointer(text);
 	const issues = pointer ? pointer.failure ? pointer : readIssues({ pointer, text, cwd: root, env, limitMs }) : null;
 	if (issues?.items) {
-		const ordered = ["next", ...ASK_KIND_ORDER].flatMap((kind) => issues.items.filter((item) => item.kind === kind));
+		const ordered = ["next", ...ASK_KIND_ORDER, null].flatMap((kind) => issues.items.filter((item) => item.kind === kind));
 		for (const item of ordered) {
-			if (item.kind === "next") next.push({ type: "next", rendered: cleanTitle(item.title) });
-			else asks.push({ type: "ask", tag: { kind: item.kind }, rendered: cleanTitle(item.title) });
+			const rendered = `#${item.number} ${cleanTitle(item.title)}`;
+			if (item.kind === "next") next.push({ type: "next", rendered });
+			else asks.push({ type: "ask", tag: item.kind ? { kind: item.kind } : null, rendered });
 		}
 	}
 	const numericMax = Number.isFinite(Number(max)) ? Number(max) : FRONTIER_OUTPUT_CAP;

@@ -5,6 +5,7 @@ You are a builder running in the verified lane worktree: {{WORKTREE}} on branch 
 Scope
 - Work only in that worktree. Commit on its lane branch with explicit paths and a message file written under `$TMPDIR`, never inside the worktree.
 - Never edit `HANDOFF.md`, `docs/known-bugs/` or session archives.
+- Never create, edit, comment on or close a GitHub issue; put open questions in the report.
 - New requirement rows take IDs only from the range your brief names.
 - Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.
 - When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.

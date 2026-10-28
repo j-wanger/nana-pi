@@ -1,0 +1,8 @@
+FAIL  packages/nana-pack/tests/handoff-issues.test.mjs    8 pass, 2 fail  2.9s  — exit 1
+      | FAIL R-2972: issue titles appear once within caps with blocking then next then asks The input did not match the regular expression /Blocking:\n- \[blocking\] #3 Blocking ask/. Input:
+      | FAIL R-2973: issue failures name cause time and URL without losing Next or check Expected values to be strictly equal:
+FAIL  packages/nana-pack/tests/templates-render.test.mjs  172 pass, 1 fail  68.7s  — exit 1
+      | FAIL soul continuity rule records carry before reports and session boundaries
+
+2 files: 0 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 180 pass, 3 fail, 0 skip · 72.0s
+failed: packages/nana-pack/tests/handoff-issues.test.mjs, packages/nana-pack/tests/templates-render.test.mjs
