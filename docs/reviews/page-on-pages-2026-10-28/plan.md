@@ -17,7 +17,7 @@ What he gets:
 ## Assumptions (any may be wrong)
 
 - A1. The page builds on a GitHub runner with no change to its inputs. The grounding built it from a fresh full clone: 2.2 MB in about 2 s. Absent clone stores already degrade to one line each.
-- A2. **The public copy shows no test results.** The runtime map, the suite records and the build records live only in this clone. Built on a runner, all 225 test files lose their pass or fail label, and the "Did not pass" list (6 rows today) reads "no runtime data". Ages read "age unknown". **This is the owner's call (issue 243, default: accept).** Accept means the public page carries features, deliverables and his questions, and test status stays on the land copy the seat reads. The other answer keeps the hand-publish until a follow-up feeds the CI suite records in.
+- A2. **The public copy shows no test results.** The runtime map, the suite records and the build records live only in this clone. Built on a runner, all 225 test files lose their pass or fail label, and the "Did not pass" list (6 rows today) reads "no runtime data". Ages read "age unknown". **The owner accepted on 2026-10-28 (issue 243).** Accept means the public page carries features, deliverables and his questions, and test status stays on the land copy the seat reads. The other answer keeps the hand-publish until a follow-up feeds the CI suite records in.
 - A3. nana-land's CI gate is unaffected. It asks only for runs at the tip's SHA (`nana-land.mjs:168`) and judges the workflows returned (`land-ci.mjs:69-77`). Push and issue runs carry main's head, never a lane tip. Only a manual dispatch on a lane branch could leave a run there, and must-meet 1 stops its deploy.
 - A4. Nothing new becomes public. The page carries the repo's own text, commit subjects and the issues, which are all public already. The identity check still runs on the built page before upload, because the page renders text in new combinations.
 - A5. Verified by the adversary from GitHub's Pages limits page: the soft limit of ten builds an hour "does not apply if you build and publish your site with a custom GitHub Actions workflow". The concurrency group bounds a burst anyway.
@@ -86,7 +86,7 @@ Rows R-2980 to R-2989 are free for this lane. Each check carries its `// req:` m
 Also in this change, with no new row:
 
 - The pack README's product report section names the public page's address and says what the public copy lacks (A2).
-- FEAT-039 gains one known-bug line for A2's missing test results, unless the owner answers issue 243 the other way.
+- FEAT-039 gains one known-bug line for A2's missing test results, which the owner accepted.
 - FEAT-039 gains one known-bug line for N5's residual: the identity scan reads the page's escaped JSON, so a word fused to an escape goes uncounted. Issue titles pass the name check before posting.
 
 ## Expected changes to existing tests (forecast, not a limit)
