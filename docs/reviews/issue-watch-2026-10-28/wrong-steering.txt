@@ -1,0 +1,16 @@
+FAIL R-2997: pi starts only UI seat watches replaces and stops them and steers running or wakes idle AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    deliverAs: 'steer',
++   triggerTurn: false
+-   triggerTurn: true
+  }
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:163:43
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:150:1
+(node:18469) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <user-home>/nana-pi-wt/issue-watch/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

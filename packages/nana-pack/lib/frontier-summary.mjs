@@ -8,6 +8,7 @@
  */
 import * as path from "node:path";
 import { issuesPointer, readHandoffIssues } from "./handoff-issues.mjs";
+import { watchCommand } from "./issue-watch.mjs";
 import { canonicalCwd, repoRootOf } from "./adoption.mjs";
 import { BOUNDED_READ_CAP, readBounded, readFailureCause } from "./bounded-read.mjs";
 import { checkFrontier, frontierSummaryLine } from "./frontier-check.mjs";
@@ -40,7 +41,7 @@ const askCounts = (asks) => [...ASK_KIND_ORDER, "untagged"].flatMap((kind) => {
 });
 const cleanTitle = (title) => promptText(title, FRONTIER_TITLE_CAP);
 
-function renderBlock(file, result, next, asks, selected, issues) {
+function renderBlock(file, result, next, asks, selected, issues, watchLine) {
 	const selectedNext = next.filter((item) => selected.has(item));
 	const selectedAsks = asks.filter((item) => selected.has(item));
 	const omittedNext = next.length - selectedNext.length;
@@ -71,6 +72,7 @@ function renderBlock(file, result, next, asks, selected, issues) {
 	}
 	if (omitted) out.push(`…and ${omitted} more titles not shown (${omittedNext} Next, ${omittedAsks} asks).`);
 	if (issues?.truncated) out.push("Open issues: list may be longer (fetch cap reached).");
+	if (watchLine) out.push(watchLine);
 	const counts = findingCounts(result.findings);
 	out.push(`Frontier check: ${frontierSummaryLine(result)}${counts.length ? ` (${counts.map(({ kind, count }) => `${kind} ${count}`).join(", ")})` : ""}`);
 	return `${out.join("\n")}\n`;
@@ -101,6 +103,7 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 	const rawAsks = splitOpenSection(text).map((entry, index) => ({ type: "ask", index, tag: entry.tag, rendered: cleanTitle(askTitle(entry)) }));
 	const asks = [...ASK_KIND_ORDER, null].flatMap((kind) => rawAsks.filter((ask) => kind === null ? ask.tag === null : ask.tag?.kind === kind));
 	const pointer = issuesPointer(text);
+	const watchLine = pointer && !pointer.failure ? `Issue watch background monitor: ${watchCommand(root)}` : null;
 	const issues = pointer ? pointer.failure ? pointer : readIssues({ pointer, text, cwd: root, env, limitMs }) : null;
 	if (issues?.items) {
 		const ordered = ["next", ...ASK_KIND_ORDER, null].flatMap((kind) => issues.items.filter((item) => item.kind === kind));
@@ -120,9 +123,10 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 	];
 	for (const item of priority) {
 		chosen.add(item);
-		if (renderBlock(file, result, next, asks, chosen, issues).length > limit) chosen.delete(item);
+		if (renderBlock(file, result, next, asks, chosen, issues, watchLine).length > limit) chosen.delete(item);
 	}
-	const rendered = renderBlock(file, result, next, asks, chosen, issues);
+	const rendered = renderBlock(file, result, next, asks, chosen, issues, watchLine);
+	if (rendered.length > limit && watchLine && watchLine.length + 1 <= limit) return `${watchLine}\n`;
 	if (rendered.length > limit) return `frontier block omitted: ${numericMax} characters left after the objective\n`;
 	return rendered;
 }

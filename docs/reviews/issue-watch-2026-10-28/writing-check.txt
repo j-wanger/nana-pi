@@ -1,0 +1,87 @@
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:1: verdict: first sentence "VERDICT: DONE" carries no verdict word
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:5: identifier: `feat(issue-watch): deliver owner comments to running seat sessions`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:5: identifier: `feat/issue-watch`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:6: identifier: `1afd75ea`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:6: identifier: `3e88ba6d`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:9: passive: passive candidate: "created" in "No GitHub issue was created, edited, commented on or closed."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:13: identifier: `packages/nana-pack/tests/issue-watch.test.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:14: identifier: `implemented`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:14: identifier: `file::title`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:14: identifier: `REQUIREMENTS.md`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:28: identifier: `node --experimental-strip-types packages/nana-pack/tests/issue-watch.test.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:29: identifier: `node docs/reviews/issue-watch-2026-10-28/mutation-check.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:30: identifier: `NANA_TEST_CASE`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:35: identifier: `packages/nana-pack/lib/frontier-summary-config.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:38: identifier: `R-2998: seal watch interval at 30000 ms`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:39: identifier: `R-2998: seal watch excerpt cap at 160 UTF-16 units`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:40: identifier: `R-2998: seal watch run time at 1500000 ms`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:41: identifier: `R-2998: seal quoted owner comment label`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:42: identifier: `R-2999: seal runnable watch command prefix`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:45: passive: passive candidate: "regenerated" in "`docs/code-map.md` and `docs/requirements-tree.md` were regenerated."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:45: identifier: `docs/code-map.md`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:45: identifier: `docs/requirements-tree.md`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:46: identifier: `packages/nana-pack/README.md`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:50: identifier: `wrong-first.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:51: identifier: `wrong-steering.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:51: identifier: `triggerTurn: false`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:52: identifier: `wrong-watermark.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:53: identifier: `mutation-output.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:57: identifier: `packages/nana-pack/tests/handoff-issues.test.mjs::R-2973: issue failures name cause time and URL without losing Next or check`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:63: passive: passive candidate: "exercised" in "LF, CRLF, trailing spaces/tabs and missing final newline are exercised in the new pointer and startup cases."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:64: passive: passive candidate: "awaited" in "Every async case is awaited under an 8-second per-case failure limit; production clocks are injected."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:65: identifier: `tmpDir`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:69: identifier: `<user-home>`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:71: identifier: `NANA_ROLE= node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd .`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:83: identifier: `node docs/reviews/issue-watch-2026-10-28/watch-sample.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:98: identifier: `pi --version`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:98: identifier: `1.0.2`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:99: identifier: `docs/extensions.md`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:100: identifier: `@earendil-works/pi-coding-agent/dist/`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:102: identifier: `core/extensions/types.d.ts:1220-1224`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:102: identifier: `pi.sendMessage`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:102: identifier: `triggerTurn?: boolean`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:102: identifier: `deliverAs?: "steer" | "followUp" | "nextTurn"`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:103: identifier: `core/agent-session.d.ts:553-568`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:103: identifier: `triggerTurn: false`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:105: identifier: `core/agent-session.js:1756-1772`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:105: identifier: `deliverAs: "steer"`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:105: identifier: `triggerTurn !== false`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:107: identifier: `{ triggerTurn: true, deliverAs: "steer" }`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:109: identifier: `triggerTurn: false`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:110: identifier: `pi.sendMessage`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:114: identifier: `handoff-issues.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:114: identifier: `issuesPointer`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:115: identifier: `readHandoffIssues`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:116: identifier: `users/<owner> --jq .type`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:118: identifier: `gh-runner.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:118: identifier: `ghEnvironment`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:118: identifier: `ghFromEnvironment`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:118: identifier: `ghResult`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:119: identifier: `spawn`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:120: identifier: `ghResult`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:122: identifier: `nana-frontier-summary.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:122: identifier: `frontier-summary.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:125: identifier: `nana-frontier-summary.ts`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:127: passive: passive candidate: "unreferenced" in "Its timers are unreferenced, startup replaces earlier watches, and stop aborts in-flight gh before late delivery can reach a replacement session."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:128: identifier: `frontier-summary-config.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:130: identifier: `nana-seat.md`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:132: identifier: `handoff-issues.test.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:132: identifier: `tmpDir`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:139: passive: passive candidate: "copied" in "No private Precedent helper was copied or moved."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:160: identifier: `install-check-clean.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:162: passive: passive candidate: "weakened" in "No production or test policy was weakened; only child-role environment inheritance was removed for the isolated rehearsal."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:162: identifier: `install-check.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:165: length: 26 words (cap 25)
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:166: identifier: `tmpDir`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:167: passive: passive candidate: "edited" in "No unrelated test was edited to hide those failures."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:168: passive: passive candidate: "listed" in "The first focused integration run exited 1 on the R-2973 adjacency assertion; its required update is listed above."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:169: passive: passive candidate: "removed" in "The initial trace run exited 1 on an extra citation without a matching marker; the redundant citation was removed."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:170: length: 27 words (cap 25)
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:174: passive: passive candidate: "fixed" in "No supplied known bug was fixed or removed."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:176: identifier: `NANA_CI_RECORDS_GH_COMMAND`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:178: passive: passive candidate: "added" in "The existing Windows bare-name gh launch with the project cwd remains the precedent for both runners; no Windows process-start measurement was added."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:187: passive: passive candidate: "requested" in "No hosted Windows/Linux CI was requested or launched, and no Windows runtime pass is claimed."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:188: passive: passive candidate: "started" in "No real Claude Code Monitor or real pi model session was started for this feature demonstration."
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:193: identifier: `writing-check.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-1.md:194: identifier: `VERDICT: DONE`
+summary sentences=130 words=1526 over=2 passive=14 banned=0 verdict=0/1 identifiers=69

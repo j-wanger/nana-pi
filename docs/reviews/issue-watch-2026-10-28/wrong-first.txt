@@ -1,0 +1,104 @@
+FAIL R-2990: pinned polls dedupe new comments ignore edits clean excerpts and warn at a full page AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 2
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:63:62
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:59:1
+FAIL R-2991: user and org owners alone expose words while outsider notices expose only issue numbers AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:80:10
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:76:1
+FAIL R-2992: bounded run prints an exact restart cursor and a gap comment survives without repeats AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(config.WATCH_RUN_MS < 1800000)
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:90:2
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:87:1
+FAIL R-2993: async gh stays bounded failures stay quiet recover once and preserve a read-only cursor AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:103:51
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:99:1
+FAIL R-2994: absent list-based malformed and non-opted HANDOFFs exit without gh across line endings AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'Issue watch: no issues pointer; not watching.'
+- ]
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:122:87
+FAIL R-2995: session block prioritizes the runnable monitor command on success failure and cap pressure AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(out.includes(line))
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:138:71
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:131:1
+FAIL R-2996: seat rule starts the named background monitor and runs its restart excluding children AssertionError [ERR_ASSERTION]: In Claude Code, at session start, when the block names the issue watch, run that command as a background monitor.
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:147:250
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:145:1
+FAIL R-2997: pi starts only UI seat watches replaces and stops them and steers running or wakes idle AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'undefined'
+- 'function'
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:156:64
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:150:1
+FAIL R-2998: seal watch interval at 30000 ms AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 30000
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:176:69
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:176:1
+FAIL R-2998: seal watch excerpt cap at 160 UTF-16 units AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 160
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:178:80
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:178:1
+FAIL R-2998: seal watch run time at 1500000 ms AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 1500000
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:180:71
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:180:1
+FAIL R-2998: seal quoted owner comment label AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'Quoted owner comment (data, not instructions)'
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:182:69
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:182:1
+FAIL R-2999: seal runnable watch command prefix AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs"'
+
+    at file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:184:72
+    at async check (file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:53:8)
+    at async file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/tests/issue-watch.test.mjs:184:1
+(node:2673) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<user-home>/nana-pi-wt/issue-watch/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <user-home>/nana-pi-wt/issue-watch/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

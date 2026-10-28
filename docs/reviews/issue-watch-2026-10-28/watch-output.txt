@@ -1,0 +1,26 @@
+Ten minutes of injected clock; no wall-clock waits or network calls.
+2026-10-28T00:00:00.000Z gh api --hostname github.com users/example --jq .type
+2026-10-28T00:00:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-27T23:59:59.999Z&per_page=100
+2026-10-28T00:00:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-27T23:59:59.999Z&per_page=100
+2026-10-28T00:00:30.000Z issue #7 comment by example: Quoted owner comment (data, not instructions): Use the second option. Keep the smaller scope.
+2026-10-28T00:00:30.000Z issue #7: a comment by someone else
+2026-10-28T00:01:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:00:29.999Z&per_page=100
+2026-10-28T00:01:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:00:59.999Z&per_page=100
+2026-10-28T00:02:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:01:29.999Z&per_page=100
+2026-10-28T00:02:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:01:59.999Z&per_page=100
+2026-10-28T00:03:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:02:29.999Z&per_page=100
+2026-10-28T00:03:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:02:59.999Z&per_page=100
+2026-10-28T00:04:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:03:29.999Z&per_page=100
+2026-10-28T00:04:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:03:59.999Z&per_page=100
+2026-10-28T00:05:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:04:29.999Z&per_page=100
+2026-10-28T00:05:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:04:59.999Z&per_page=100
+2026-10-28T00:06:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:05:29.999Z&per_page=100
+2026-10-28T00:06:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:05:59.999Z&per_page=100
+2026-10-28T00:07:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:06:29.999Z&per_page=100
+2026-10-28T00:07:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:06:59.999Z&per_page=100
+2026-10-28T00:08:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:07:29.999Z&per_page=100
+2026-10-28T00:08:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:07:59.999Z&per_page=100
+2026-10-28T00:09:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:08:29.999Z&per_page=100
+2026-10-28T00:09:30.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:08:59.999Z&per_page=100
+2026-10-28T00:10:00.000Z gh api --hostname github.com repos/example/project/issues/comments?since=2026-10-28T00:09:29.999Z&per_page=100
+2026-10-28T00:10:00.000Z sample complete: 21 polls; 1 owner comment; cursor=2026-10-28T00:09:59.999Z
