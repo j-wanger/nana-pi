@@ -26,3 +26,9 @@ export const HANDOFF_FILE = "HANDOFF.md";
 export const LAUNCHER_ROLES = ["reviewer", "worker"];
 /** chosen: urgency order, with untagged asks rendered after these groups. */
 export const ASK_KIND_ORDER = ["blocking", "optional", "parked"];
+/** chosen 2026-10-28 (R-2979): 1.6 times the 0.90 s warm maximum across 15 calls per CI OS in run 40693949252; covers cold macOS/Linux (1.31/1.27 s), not cold Windows (6.39 s). */
+export const ISSUES_READ_LIMIT_MS = 1500;
+/** chosen 2026-10-28 (R-2979): reserve for rendering and writing after gh, within the measured launcher's 2,500 ms cap. */
+export const ISSUES_WRITE_RESERVE_MS = 250;
+/** chosen 2026-10-28 (R-2979): three times the migrated set of 30 open issues, rounded up. */
+export const ISSUES_FETCH_CAP = 100;

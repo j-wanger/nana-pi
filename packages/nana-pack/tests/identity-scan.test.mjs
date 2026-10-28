@@ -23,6 +23,22 @@ const check = (title, ok, detail = "") => {
 };
 const digest = (word) => createHash("sha256").update(word.toLowerCase()).digest("hex");
 
+{
+ const root = tmpDir(path.join(os.tmpdir(), "identity-stdin-"));
+ execFileSync("git", ["init", "-q", root]);
+ fs.writeFileSync(path.join(root, "identity-scan.config.json"), JSON.stringify({ wordDigests: [digest("quux")], wordLengths: [4], allowlist: [] }));
+ const cli = path.join(REPO, "scripts/identity-scan.mjs");
+ const run = (args, input) => spawnSync(process.execPath, [cli, "--root", root, ...args], { input, encoding: "utf8", timeout: 10000 });
+ const clean = run(["--stdin"], "nothing personal");
+ const hits = ["quux quux", "quux \t\r\nquux \t", "quux\nquux\n"].map((input) => run(["--stdin"], input));
+ const bad = run(["--stdin", "--unknown"], "quux");
+ // req: R-2976
+ check("R-2976: stdin scan prints only hit indices and counts with clean hit and bad-use exits",
+  clean.status === 0 && hits.every((hit) => hit.status === 1 && hit.stdout === "wordIndex=0 count=2\n" && !hit.stderr) && bad.status === 2 && ![clean, ...hits, bad].some((result) => /quux|nothing personal/.test(result.stdout + result.stderr)),
+  JSON.stringify({ clean, hits, bad }));
+ fs.rmSync(root, { recursive: true, force: true });
+}
+
 function gitTree(label, entries) {
 	const root = tmpDir(path.join(os.tmpdir(), `identity-scan-${label}-`));
 	execFileSync("git", ["init", "-q", root]);

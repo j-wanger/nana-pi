@@ -104,7 +104,7 @@ for (const [label, line] of [
   if (report.notes.length !== 1 || !report.notes[0].includes("A-001")) artifactShapeFailures.push(`${label}: ${report.notes.join(" | ")}`);
 }
 const shapesPinned = Object.isFrozen(ARTIFACT_CLASSES)
-  && JSON.stringify(ARTIFACT_CLASSES) === JSON.stringify(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record"])
+  && JSON.stringify(ARTIFACT_CLASSES) === JSON.stringify(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record", "GitHub issues"])
   && ARTIFACT_ID_PATTERN.source === "^A-(?:00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$"
   && Object.isFrozen(ARTIFACT_LOCATION_SHAPES)
   && JSON.stringify(ARTIFACT_LOCATION_SHAPES) === JSON.stringify({
@@ -114,6 +114,7 @@ const shapesPinned = Object.isFrozen(ARTIFACT_CLASSES)
     "other project": "<project>/<path>",
     "git ref": "refs/heads/<name> or refs/tags/<prefix>",
     "CI record": "ci: .github/workflows/<workflow>.yml#<name-without-slash>",
+    "GitHub issues": "github: <owner>/<repo> labelled <label>[, <label>]",
   });
 if (!shapesPinned) artifactShapeFailures.push("sealed artifact classes, ID pattern or location shapes differ");
 // req: R-2781

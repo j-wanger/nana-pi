@@ -1,0 +1,4 @@
+requirements tree: 0 problems; rows 2079; features 39
+deliverables: 21 of 21 made and read by code, 21 more parked
+deliverable note: line 176: Read by: A-084 reader path "packages/nana-pack/lib/handoff-issues.mjs" is not a tracked file at HEAD
+deliverable note: A-084 has no declared reader

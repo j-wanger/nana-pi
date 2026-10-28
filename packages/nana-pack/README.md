@@ -6,7 +6,7 @@ project scaffolding, and dev-workflow skills.
 **Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
 is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
 something they install), and `package.json` declares no `dependencies` or
-`devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in.
+`devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in. Session-start issue reads also use signed-in `gh`; without it, the frontier keeps its local lines and reports the unavailable issue read.
 Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
 FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
 and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
@@ -416,7 +416,7 @@ The `nana-frontier-summary` extension and the existing Claude Code objective hoo
 it from the session folder. The bounded block quotes only top-level titles from the first Next
 section and Open for the owner asks with their tag or no-tag label. The report-only frontier
 check summary follows those titles.
-Blocking asks get selection priority, while displayed groups keep Next first and then blocking,
+For projects without an issues pointer, blocking asks get selection priority, while displayed groups keep Next first and then blocking,
 optional, parked and untagged asks.
 
 The block holds at most 4,000 characters and each displayed title holds at most 160 characters.
@@ -430,6 +430,21 @@ Run the producer directly with:
 ```bash
 node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd <dir>
 ```
+
+A project opts into issues when its Open for the owner section has no list item and holds
+an `https://github.com/<owner>/<repo>/issues` pointer paragraph. Plain URLs, angle brackets,
+Markdown links and query strings work. A GitHub paragraph with an unreadable pointer gets
+one diagnostic line. Other projects retain the existing block without running gh.
+
+The reader makes one host-qualified, open, author-only gh call, capped at 100 rows, then
+keeps only the owner's `ask` or `next` issues. Each issue appears once: blocking asks first,
+Next items second, other asks last. At the fetch cap, a line warns the list may be longer.
+The existing title and output caps still apply. Only titles are shown, never issue bodies.
+The read waits at most 1,500 ms; the Claude producer's `--limit-ms` can shorten that wait,
+reserving 250 ms for rendering and writing after its own elapsed process time.
+Missing gh, a timeout, a nonzero exit, unreadable output or an organization owner prints
+`Open issues: unavailable (<cause>, after <n> ms); see <url>` while retaining local Next
+and frontier-check lines. Organization logins cannot supply the author filter.
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 

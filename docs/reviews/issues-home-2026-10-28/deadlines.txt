@@ -1,0 +1,9 @@
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 8772 ms; cases 1780,1780,2606,2605 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8035 ms; objective 4017 ms (before clock 11.660888671875 ms, after deadline 5.339111328125 ms); adoption 4016 ms (before clock 11.658935546875 ms, after deadline 4.341064453125 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+PASS R-2974: late-start objective hook keeps Next timeout and check lines when gh hangs

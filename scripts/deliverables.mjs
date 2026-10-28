@@ -49,8 +49,8 @@ export function artifactAgeTableKey(entry) {
 }
 // Contract (R-2543): shared verbatim by the checker and Product view when HEAD paths cannot be read.
 export const DELIVERABLE_PATHS_NOT_CHECKED = "deliverable note: paths not checked: git could not read the ledger folder's HEAD tree";
-// Contract (artifact-registry must-meet, R-2781): the owner's 2026-10-24 artifact classes.
-export const ARTIFACT_CLASSES = Object.freeze(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record"]);
+// Contract (R-2781/R-2978): artifact classes approved 2026-10-24, plus GitHub issues approved 2026-10-28.
+export const ARTIFACT_CLASSES = Object.freeze(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record", "GitHub issues"]);
 // Contract (artifact-registry must-meet, R-2780/R-2781): allocated artifact IDs are A-001 through A-999.
 export const ARTIFACT_ID_PATTERN = /^A-(?:00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$/;
 // Contract (artifact-registry must-meet, R-2781): the sealed location-shape expressions approved on 2026-10-24.
@@ -61,6 +61,8 @@ export const ARTIFACT_LOCATION_SHAPES = Object.freeze({
   "other project": "<project>/<path>",
   "git ref": "refs/heads/<name> or refs/tags/<prefix>",
   "CI record": "ci: .github/workflows/<workflow>.yml#<name-without-slash>",
+  // Contract: owner approval 2026-10-28, issues-home must-meet 9; R-2978.
+  "GitHub issues": "github: <owner>/<repo> labelled <label>[, <label>]",
 });
 
 const MAKER_SET = new Set(MAKER_RUNS);
@@ -150,6 +152,7 @@ function locationShape(className, location, tracked) {
   if (className === "user-home store") return /^(?:~|<pi agent dir>)\/.+/.test(location) && !location.includes("\\") && !location.split("/").includes("..");
   if (className === "other project") return /^<project>\/.+/.test(location) && !location.includes("\\") && !location.split("/").includes("..");
   if (className === "git ref") return /^refs\/(?:heads\/.+|tags\/.*)$/.test(location) && !location.includes("\\") && !location.split("/").includes("..");
+  if (className === "GitHub issues") return /^github: [A-Za-z0-9-]+\/[A-Za-z0-9_.-]+ labelled [A-Za-z0-9_-]+(?:, [A-Za-z0-9_-]+)*$/.test(location);
   if (className === "CI record") {
     const match = CI_LOCATION.exec(location);
     return Boolean(match && (tracked === null || tracked.has(match[1])));

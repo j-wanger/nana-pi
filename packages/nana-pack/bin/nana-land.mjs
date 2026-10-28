@@ -23,27 +23,12 @@ import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs"
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
 import { errorText } from "../lib/record-ledger.mjs";
+import { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
+export { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 
 const LANE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
-const ghEnvironment = (environment) => {
-	const env = {};
-	for (const [key, value] of Object.entries(environment)) if (key.toUpperCase() !== "GH_FORCE_TTY") env[key] = value;
-	env.CLICOLOR_FORCE = "0";
-	return env;
-};
-/** Build the default gh runner with bounded time and output. */
-export function ghDefault({ timeoutMs = CI_READ_TIMEOUT_MS, maxBuffer = CHILD_OUTPUT_MAX_BYTES } = {}) {
-	return (cwd, args, { env = process.env, timeoutMs: callTimeoutMs = timeoutMs } = {}) => {
-		if (!Number.isInteger(callTimeoutMs) || callTimeoutMs < 1) {
-			const error = Object.assign(new RangeError("gh timeout must be a positive whole number of milliseconds"), { code: "ERR_OUT_OF_RANGE" });
-			return { status: null, signal: null, stdout: "", stderr: "", error, nanaTimeoutMs: callTimeoutMs };
-		}
-		try { return { ...spawnSync("gh", args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", timeout: callTimeoutMs, maxBuffer }), nanaTimeoutMs: callTimeoutMs }; }
-		catch (error) { return { status: null, signal: null, stdout: "", stderr: "", error, nanaTimeoutMs: callTimeoutMs }; }
-	};
-}
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
 const landNotes = (result) => [result.stdout ?? "", result.stderr ?? ""]
 	.flatMap((text) => text.split(/\r?\n/))
@@ -93,7 +78,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault(), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, now = () => new Date(), lifecycle }) {
+function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, now = () => new Date(), lifecycle }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
