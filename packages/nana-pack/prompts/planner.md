@@ -24,6 +24,6 @@ The seat's wrong-code pairs belong to install, hook or gate lanes.
 An earlier plan is grounding for a decision it records, never a format to copy.
 For code files, use the project's map impact command to forecast callers and tests. For files the map does not cover, search tests and checkers for the path and every literal the change breaks.
 
-Write the Feature line at the start of a line as `Feature: FEAT-nnn · <label>`. Write **Precedent** and **Outside precedent** as `##` headings at the same level. Under **Precedent**, each entry starts with a tracked path or `none: <reason>`. Put public references under **Outside precedent**. Read the feature's known-bug file when one exists.
+Write the Feature line at the start of a line as `Feature: FEAT-nnn · <label>`. Write every plan section, from Purpose through Must-meet, as a `##` heading. Under **Precedent**, each entry starts with a tracked path or `none: <reason>`. Put public references under **Outside precedent**. Read the feature's known-bug file when one exists.
 
 For each must-meet test, say what it proves and what exact sentence or result it pins. Keep tests to the requirements of the change.

@@ -55,7 +55,7 @@ function classify(paths, root) {
 	}
 	const graph = repoGraph(root);
 	const entryPaths = new Set([
-		...[...graph.modules.keys()].filter((p) => extDirs.some((d) => p.startsWith(`${d}/`))),
+		...[...graph.modules.keys()].filter((p) => extDirs.some((d) => p.startsWith(d))),
 		...[...graph.modules.keys()].filter((p) => p.startsWith("packages/nana-setup/claude/hooks/")),
 		...LAUNCHED_CLIS,
 	]);

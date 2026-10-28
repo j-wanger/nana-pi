@@ -53,8 +53,11 @@ check("R-2962: a launched CLI is named as a launched hook CLI", cli.status === 0
 const hookLib = run("--files", "packages/nana-knowledge/lib/hook.ts");
 const toolLib = run("--files", "packages/nana-pack/lib/verdict-config.mjs");
 const sharedToolLib = run("--files", "packages/nana-pack/lib/json-text.mjs");
+const extensionOnlyLib = run("--files", "packages/nana-pack/lib/post-edit-config.mjs");
 // req: R-2963
 check("R-2963: direct hook and tool importers are named, while shared tool dependencies stay ordinary", hookLib.status === 0 && line(hookLib)[0].startsWith("hook:") && line(hookLib)[0].includes("packages/nana-knowledge/bin/nana-knowledge.ts") && toolLib.status === 0 && line(toolLib)[0].startsWith("gate:") && line(toolLib)[0].includes("packages/nana-pack/bin/review-round.mjs") && sharedToolLib.status === 0 && line(sharedToolLib)[0] === "ordinary" && line(sharedToolLib).some((item) => item.startsWith("also reaches:")), JSON.stringify({ hookLib: hookLib.stdout, toolLib: toolLib.stdout, sharedToolLib: sharedToolLib.stdout }));
+// req: R-2963
+check("R-2963: a library imported only by a pi extension names that extension as hook", extensionOnlyLib.status === 0 && line(extensionOnlyLib)[0].startsWith("hook:") && line(extensionOnlyLib)[0].includes("packages/nana-pack/extensions/nana-post-edit.ts"), JSON.stringify({ path: "packages/nana-pack/lib/post-edit-config.mjs", importer: "packages/nana-pack/extensions/nana-post-edit.ts", output: extensionOnlyLib.stdout }));
 
 const posix = run("--files", "packages/nana-setup/lib/planned.json");
 const winPath = run("--files", ".\\packages\\nana-setup\\lib\\planned.json");

@@ -102,7 +102,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 - Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.
 <!-- nana:working-under-nana-pi end -->
 
-In nana-pi, the lane class is what `node scripts/lane-class.mjs` prints. A planner runs it with `--root . --files <planned files>` and puts its line in the plan; pi-worker prints it after each build. A wrong call is fixed in its list.
+In nana-pi, the lane class is what `node scripts/lane-class.mjs` prints. A planner runs it with `--root . --files <comma-separated planned files>` and puts its line in the plan; pi-worker prints it after each build. A wrong call is fixed in its list.
 
 ### Requirements-first
 

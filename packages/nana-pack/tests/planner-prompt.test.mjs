@@ -75,7 +75,7 @@ check("R-2954: a plan in the prompt form passes brief parsing and precedent chec
 	return parsed.feature === "FEAT-006" && parsed.precedent?.length === 2 &&
 		checkPrecedent(parsed.precedent, ["AGENTS.md"]).length === 0 &&
 		refused.precedent?.length > 1 && checkPrecedent(refused.precedent, ["AGENTS.md"]).length > 0 &&
-		prompt.includes("Write **Precedent** and **Outside precedent** as `##` headings at the same level.") &&
+		prompt.includes("Write every plan section, from Purpose through Must-meet, as a `##` heading.") &&
 		prompt.includes("Read the feature's known-bug file when one exists.") &&
 		prompt.includes("Feature: FEAT-nnn · <label>") && prompt.includes("none: <reason>");
 })(), prompt);

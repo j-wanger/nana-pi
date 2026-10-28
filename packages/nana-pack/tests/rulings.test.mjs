@@ -228,7 +228,7 @@ function containsWholeWord(text, word) {
 }
 
 {
-	const requiredLaneClassSentence = "In nana-pi, the lane class is what `node scripts/lane-class.mjs` prints. A planner runs it with `--root . --files <planned files>` and puts its line in the plan; pi-worker prints it after each build. A wrong call is fixed in its list.";
+	const requiredLaneClassSentence = "In nana-pi, the lane class is what `node scripts/lane-class.mjs` prints. A planner runs it with `--root . --files <comma-separated planned files>` and puts its line in the plan; pi-worker prints it after each build. A wrong call is fixed in its list.";
 	const projectAgents = fs.readFileSync(PROJECT_AGENTS_PATH, "utf8");
 	// req: R-2969
 	check("R-2969: nana-pi project section gives planners the lane-class command and build instruction",
