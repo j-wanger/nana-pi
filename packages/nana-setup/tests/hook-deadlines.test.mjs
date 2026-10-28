@@ -7,11 +7,14 @@
  * @errors A watchdog kills an over-limit hook; failed checks set a nonzero process exit code.
  */
 import { spawn } from "node:child_process";
+import childProcess from "node:child_process";
+import { syncBuiltinESMExports } from "node:module";
+import { ghDefault, ghResult } from "../../nana-pack/lib/gh-runner.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS, hookProducerConfig } from "../lib/hook-producer.mjs";
+import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS, hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
 import { desiredHooks } from "../lib/settings.mjs";
 import { SHARED_MEMORY_OUTPUT_BUDGET } from "../lib/shared-memory-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -188,11 +191,26 @@ const issueTimeout = await runHook("nana-objective.mjs", { preload: lateStartPre
 const issueBudgets = [];
 const issueText = fs.readFileSync(path.join(root, "HANDOFF.md"), "utf8");
 for (const limitMs of [1000, 10000, 100]) {
- readHandoffIssues({ text: issueText, cwd: root, limitMs, clock: () => 200, runGh: (_cwd, _args, options) => { issueBudgets.push(options.timeoutMs); return { status: 0, stdout: "[]" }; } });
+ readHandoffIssues({ text: issueText, cwd: root, limitMs, clock: () => 200, runGh: (_cwd, _args, options) => { issueBudgets.push(options.timeoutMs); return { status: 0, stdout: JSON.stringify([{ number: 1, title: "Kept", labels: [{ name: "ask" }], author: { login: "example" } }]) };  } });
 }
+const producerLimits = [];
+for (const name of ["objective", "frontier", "adoption", "stale-copies"]) {
+ runHookProducer({ ...hookProducerConfig(name, root), deadlineMs: 1200, clock: () => 200,
+  run: (_cmd, args) => { producerLimits.push({ name, args }); return { status: 0, stdout: "" }; }, stdout: { write() {} } });
+}
+let defaultOptions;
+const originalSpawn = childProcess.spawnSync;
+try {
+ childProcess.spawnSync = (_cmd, _args, options) => { defaultOptions = options; return { status: 0, stdout: "" }; };
+ syncBuiltinESMExports();
+ ghDefault()(root, []);
+} finally { childProcess.spawnSync = originalSpawn; syncBuiltinESMExports(); }
+const timeoutReason = ghResult(() => ({ error: { code: "ETIMEDOUT" }, nanaTimeoutMs: 123 }), root, []);
 // req: R-2974
 check("R-2974: late-start objective hook keeps Next timeout and check lines when gh hangs",
  JSON.stringify(issueBudgets) === JSON.stringify([1000 - 200 - ISSUES_WRITE_RESERVE_MS, ISSUES_READ_LIMIT_MS]) &&
+ producerLimits.every(({ name, args }) => name === "frontier" ? args.slice(-2).join(" ") === "--limit-ms 1000" : !args.includes("--limit-ms")) &&
+ !Object.hasOwn(defaultOptions, "timeout") && timeoutReason.reason === "gh timed out after 123 ms" &&
  issueTimeout.code === 0 && !issueTimeout.timedOut && issueTimeout.elapsed < installedLimit("SessionStart objective") &&
  issueTimeout.stdout.includes("Keep local next") && issueTimeout.stdout.includes("Frontier check:") &&
  (issueTimeout.stdout.match(/Open issues: unavailable \(timeout, after \d+ ms\); see https:\/\/github.com\/example\/project\/issues/g) ?? []).length === 1 && !issueTimeout.stdout.includes("producer failed"), JSON.stringify(issueTimeout));

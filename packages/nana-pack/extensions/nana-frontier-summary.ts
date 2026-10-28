@@ -3,7 +3,7 @@
  * @purpose Inject the current project frontier block into every pi session start.
  * @inputs pi session_start and before_agent_start events, ctx.cwd, and optional date/environment seams.
  * @outputs The frontier block in the nana-frontier system-prompt section, or no section when inapplicable.
- * @effects disk (lib/frontier-summary.mjs reads HANDOFF.md)
+ * @effects disk (reads HANDOFF.md), process and network (budget-bounded gh calls through frontier-summary.mjs)
  * @errors none; every handler catches failures and never throws into pi.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";

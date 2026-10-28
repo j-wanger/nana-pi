@@ -528,7 +528,16 @@ function checkInstructionContracts() {
 	// req: R-681
 	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles[1].includes(rootStartup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
 	// req: R-682
-	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to the owner on one HANDOFF line each/.test(soul) && [soul, shared].every((text) => /one issue each where the HANDOFF points to its issues, with the title and body first passed through `identity-scan --stdin`/.test(text)) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
+	check("soul continuity rule records carry before reports and session boundaries",
+		/Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul) &&
+		[soul, shared, frontDoors[1]].every((text) => [
+			"Record every unresolved item and every open question to the owner on one HANDOFF line each.",
+			"Or write one issue each where the HANDOFF points to its issues.",
+			"Issues and the replies on them are public.",
+			'First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`.',
+			"Then hand-check work references and project names, because the scan knows only four words.",
+			"Delete a wrong post, never edit it.",
+		].every((sentence) => text.includes(sentence) && sentence.split(/\s+/).length < 25)));
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;

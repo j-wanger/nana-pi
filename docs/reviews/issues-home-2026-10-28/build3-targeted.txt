@@ -1,0 +1,17 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs handoff-issues.test identity-scan.test templates-render.test hook-deadlines.test hook-producers.test frontier-summary.test frontier-golden.test ci-records.test land.test land-ci-records.test
+
+PASS  packages/nana-pack/tests/ci-records.test.mjs        6 pass  3.6s
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs   1 pass  0.5s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs  6 pass  0.8s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs    10 pass  2.4s
+PASS  packages/nana-pack/tests/identity-scan.test.mjs     8 pass  14.5s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs   7 pass  13.0s
+PASS  packages/nana-pack/tests/land.test.mjs              66 pass  85.7s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs      11 pass  16.7s
+PASS  packages/nana-pack/tests/templates-render.test.mjs  173 pass  68.7s
+PASS  packages/nana-setup/tests/hook-deadlines.test.mjs   7 pass  34.3s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs   13 pass  0.1s
+
+11 files: 11 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 308 pass, 0 fail, 0 skip · 240.6s

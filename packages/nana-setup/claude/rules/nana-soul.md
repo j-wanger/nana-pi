@@ -34,7 +34,7 @@ Allocate effort — thinking and process — proportional to cost-of-error and b
 - Auto-memory is two-tier (2026-09-18): SHARED (user · feedback · reference) at `~/.claude/nana-memory/shared`, index printed at session start and symlinked as `shared/` in every project's memory dir; PROJECT facts in the repo's own memory dir. Write to the right tier.
 - Before recommendations, check memory for prior decisions and corrections. A documented past decision beats a fresh derivation.
 - When the user corrects you or makes a decision, store it immediately — don't re-derive it next session.
-- Before an OPEN, YOUR CALL, or BLOCKED final report, and before `/clear` or ending a session, put every unresolved item and every open question to the owner on one HANDOFF line each (Next or Open for the owner), or one issue each where the HANDOFF points to its issues, with the title and body first passed through `identity-scan --stdin`. The closing report introduces no unrecorded carry.
+- Before an OPEN, YOUR CALL, or BLOCKED final report, record carry. Do this before `/clear` or ending a session too. Record every unresolved item and every open question to the owner on one HANDOFF line each. Or write one issue each where the HANDOFF points to its issues. Issues and the replies on them are public. First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`. Then hand-check work references and project names, because the scan knows only four words. Delete a wrong post, never edit it. The closing report introduces no unrecorded carry.
 
 ## Work habits
 

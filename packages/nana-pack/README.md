@@ -433,18 +433,19 @@ node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd <dir>
 
 A project opts into issues when its Open for the owner section has no list item and holds
 an `https://github.com/<owner>/<repo>/issues` pointer paragraph. Plain URLs, angle brackets,
-Markdown links and query strings work. A GitHub paragraph with an unreadable pointer gets
+Markdown links, trailing slashes and query strings work. A GitHub paragraph with an unreadable pointer gets
 one diagnostic line. Other projects retain the existing block without running gh.
 
-The reader makes one host-qualified, open, author-only gh call, capped at 100 rows, then
-keeps only the owner's `ask` or `next` issues. Each issue appears once: blocking asks first,
-Next items second, other asks last. At the fetch cap, a line warns the list may be longer.
+The reader makes one host-qualified, open, author-only gh list call, capped at 100 rows, then
+keeps only the owner's exact, case-sensitive `ask` or `next` issues. After an empty list,
+it checks the owner's type with one host-qualified API call within the remaining read budget.
+Each issue appears once: blocking asks first, Next items second, optional asks then parked asks. At the fetch cap, a line warns the list may be longer.
 The existing title and output caps still apply. Only titles are shown, never issue bodies.
 The read waits at most 1,500 ms; the Claude producer's `--limit-ms` can shorten that wait,
 reserving 250 ms for rendering and writing after its own elapsed process time.
 Missing gh, a timeout, a nonzero exit, unreadable output or an organization owner prints
 `Open issues: unavailable (<cause>, after <n> ms); see <url>` while retaining local Next
-and frontier-check lines. Organization logins cannot supply the author filter.
+and frontier-check lines, without claiming no items were found. Organization logins cannot supply the author filter.
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 

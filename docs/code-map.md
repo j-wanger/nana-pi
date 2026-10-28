@@ -1229,7 +1229,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Inject the current project frontier block into every pi session start.
 - **inputs** — pi session_start and before_agent_start events, ctx.cwd, and optional date/environment seams.
 - **outputs** — The frontier block in the nana-frontier system-prompt section, or no section when inapplicable.
-- **effects** — disk (lib/frontier-summary.mjs reads HANDOFF.md)
+- **effects** — disk (reads HANDOFF.md), process and network (budget-bounded gh calls through frontier-summary.mjs)
 - **errors** — none; every handler catches failures and never throws into pi.
 - **callers** — `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`
@@ -1489,7 +1489,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Read a project's HANDOFF and render its bounded session-start frontier block.
 - **inputs** — Session cwd, injected date/environment and issue reader, launcher limit, filesystem state and frontier configuration.
 - **outputs** — The frontier block with Next titles, ordered asks and checker summary, an unavailable block, or null.
-- **effects** — disk (bounded HANDOFF read), process and network (one bounded gh call for opted-in projects).
+- **effects** — disk (bounded HANDOFF read), process and network (budget-bounded gh calls for opted-in projects).
 - **errors** — none; missing input is silent and every other read or decode failure becomes one marker line.
 - **callers** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`
 - **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/frontier-check.mjs`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`
@@ -1551,7 +1551,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Synchronous process runners and success or named failure results.
 - **effects** — process (spawns gh or the injected command), network (through gh).
 - **errors** — Missing commands, timeouts, spawn errors and nonzero exits become classified results.
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `scripts/ci-records.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `scripts/ci-records.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`
 
 ### `packages/nana-pack/lib/handoff-asks.mjs`
@@ -1566,12 +1566,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/handoff-issues.mjs`
 
-- **purpose** — Read a HANDOFF's opted-in GitHub issues through one bounded command.
+- **purpose** — Read a HANDOFF's opted-in GitHub issues through budget-bounded commands.
 - **inputs** — HANDOFF text, cwd, environment, launcher limit, process clock and injected gh runner.
 - **outputs** — Null for legacy projects, or a pointer, filtered issue titles, cap warning and named read failure.
 - **effects** — process (bounded gh), network (through gh).
 - **errors** — Missing gh, timeout, nonzero exit, organization authors and unreadable data become one status line.
-- **callers** — `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`
+- **callers** — `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/json-text.mjs`
@@ -2422,7 +2422,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), process (bounded fake gh and producer children).
 - **errors** — Failed assertions set exit 1; every async case is awaited under a per-case limit.
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/handoff-staleness.test.mjs`
 
@@ -4022,7 +4022,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (creates a throwaway checkout and writes preload timing), process (spawns copied hooks and producer stubs).
 - **errors** — A watchdog kills an over-limit hook; failed checks set a nonzero process exit code.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/hook-producers.test.mjs`
 
