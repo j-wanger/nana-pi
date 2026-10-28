@@ -63,3 +63,9 @@
 - Issue read (issues-home, independent check): the name check knows four words; the owner's legal first name and the machine's hostname are left to the rule's hand check.
 - Carry rule (posting-rule, final review): the rule names "the seat", so a plain session that launches nothing could read itself as out of scope.
 - Carry rule (posting-rule, final review): an item whose post failed lives only in that report, so the next cold session cannot see it.
+- Issue watch (issue-watch, independent check): a burst of more than 100 comments between polls prints the first page and one "more comments than shown" line; the rest are lost.
+- Issue watch (issue-watch, independent check): in pi, failure lines and the notices of other people's comments are dropped; only owner comments reach the model.
+- Issue watch (issue-watch, independent check): a watch killed early prints no restart line, so the next run starts from that moment.
+- Issue watch (issue-watch, independent check): the Windows command quoting breaks for a network-share or drive root, and for a `$` in the path under PowerShell; only bash was checked.
+- Issue watch (issue-watch, independent check): the pi message reuses the frontier block's name `nana-frontier`.
+- Issue watch (issue-watch, seat pairs): four of the seat's pairs aimed at cursor code that build 2 rewrote; the new GitHub-time cursor has its own drift tests but no seat pair.

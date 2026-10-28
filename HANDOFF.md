@@ -8,7 +8,7 @@
 
 - **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **Current priority: discovery (the owner, 2026-10-27).** The owner and the seat find and improve what to build, and carry what they learn into the work. Review on 2026-11-10.
-- **Lanes in flight (two building).** page-on-pages is in its final review; it publishes the product page on GitHub Pages. issue-watch is in its first build: seat sessions hear the owner's issue comments while they run.
+- **Lanes in flight (two building, one planned).** issue-watch is in its final reviews: seat sessions hear the owner's issue comments while they run. code-search is building a planner search over an improved code map. The seat planned clarify-questions, which waits for a build slot.
 
 ## Next
 
