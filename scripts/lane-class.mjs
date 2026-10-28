@@ -9,7 +9,7 @@
  */
 import { existsSync, realpathSync } from "node:fs";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { collectChangedPaths } from "./blast-radius.mjs";
 import { repoGraph } from "./code-map.mjs";
@@ -35,20 +35,25 @@ function parse(argv) {
 function extensionDirs(root) {
 	const dirs = [];
 	for (const manifest of ["package.json", "packages/nana-stage/package.json"]) {
+		const manifestDir = manifest === "package.json" ? "." : "packages/nana-stage";
 		const parsed = JSON.parse(readFileSync(resolve(root, manifest), "utf8"));
-		for (const item of parsed.pi?.extensions ?? []) dirs.push(norm(resolve(root, manifest === "package.json" ? item : resolve("packages/nana-stage", item)).slice(root.length + 1).replace(/\\/g, "/")));
+		for (const item of parsed.pi?.extensions ?? []) {
+			const dir = norm(relative(root, resolve(root, manifestDir, item)).replace(/\\/g, "/"));
+			dirs.push(`${dir.replace(/\/$/, "")}/`);
+		}
 	}
 	return dirs;
 }
 function classify(paths, root) {
 	const changed = [...new Set(paths.map(norm))].sort(cmp);
+	const extDirs = extensionDirs(root);
 	for (const path of changed) {
 		if (LAUNCHED_CLIS.includes(path)) return { kind: "hook", line: `hook: ${path} — launched CLI`, changed };
-		const rule = CLASS_PATHS.find(({ prefix }) => path.startsWith(prefix));
+		const rule = CLASS_PATHS.find(({ prefix }) => path.startsWith(prefix)) ??
+			(extDirs.some((prefix) => path.startsWith(prefix)) ? { kind: "hook", why: "pi extension" } : null);
 		if (rule) return { kind: rule.kind, line: `${rule.kind}: ${path} — ${rule.why}`, changed };
 	}
 	const graph = repoGraph(root);
-	const extDirs = extensionDirs(root);
 	const entryPaths = new Set([
 		...[...graph.modules.keys()].filter((p) => extDirs.some((d) => p.startsWith(`${d}/`))),
 		...[...graph.modules.keys()].filter((p) => p.startsWith("packages/nana-setup/claude/hooks/")),

@@ -24,6 +24,7 @@ const check = (title, ok, detail = "") => {
 check("R-2950: planner prompt names its sources in conflict order and resolves pack paths", (() => {
 	const sources = prompt.split("## Sources")[1]?.split("\n## ")[0] ?? "";
 	const entries = [
+		"Use these sources in this order when instructions conflict:",
 		"The owner's words for this lane",
 		"$HOME/nana-pi/packages/nana-pack/rules/nana-rulings.md",
 		"This project's own AGENTS.md section after the shared markers",
@@ -49,9 +50,11 @@ check("R-2951: planner prompt requests the required plan sections in order", (()
 check("R-2952: without an agreed reading the planner returns readings and no plan", [
 	"An agreed reading is the owner's own words that already choose one meaning",
 	"a pre-written plan, a pick, or a go on a slate line that described the lane",
+	"For new capability without an agreed reading",
 	"return two or three readings of the intent, each with its consequences",
 	"recommend a pick",
 	"do not write a plan",
+	"A fix that restores agreed behaviour plans straight away.",
 ].every((sentence) => prompt.includes(sentence)), prompt);
 
 // req: R-2953
@@ -66,9 +69,13 @@ check("R-2953: planner prompt pins its planning and forecast rules without scrat
 // req: R-2954
 check("R-2954: a plan in the prompt form passes brief parsing and precedent checking", (() => {
 	const sample = `Feature: FEAT-006 · Launch builders with execution limits\n\n## Precedent\n- AGENTS.md\n- none: no code precedent for the manual prompt text\n\n## Outside precedent\n- Public reference: a planning approach\n`;
+	const mergedBoldOutside = `Feature: FEAT-006 · Launch builders with execution limits\n\n## Precedent\n- AGENTS.md\n**Outside precedent**\n- Public reference: a planning approach\n`;
 	const parsed = readBrief(sample);
+	const refused = readBrief(mergedBoldOutside);
 	return parsed.feature === "FEAT-006" && parsed.precedent?.length === 2 &&
 		checkPrecedent(parsed.precedent, ["AGENTS.md"]).length === 0 &&
+		refused.precedent?.length > 1 && checkPrecedent(refused.precedent, ["AGENTS.md"]).length > 0 &&
+		prompt.includes("Write **Precedent** and **Outside precedent** as `##` headings at the same level.") &&
 		prompt.includes("Read the feature's known-bug file when one exists.") &&
 		prompt.includes("Feature: FEAT-nnn · <label>") && prompt.includes("none: <reason>");
 })(), prompt);

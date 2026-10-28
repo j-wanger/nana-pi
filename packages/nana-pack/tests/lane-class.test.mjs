@@ -7,7 +7,11 @@
  * @errors Failed assertions print their title and exit non-zero.
  */
 import { spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpDir } from "./tmp-dir.mjs";
 import { CLASS_PATHS, LAUNCHED_CLIS } from "../lib/lane-class-config.mjs";
 
 const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
@@ -20,6 +24,9 @@ function check(name, ok, why = "") {
 function run(...args) {
 	return spawnSync(process.execPath, [CLI, "--root", ROOT, ...args], { encoding: "utf8", timeout: 45_000 });
 }
+function runAt(root, ...args) {
+	return spawnSync(process.execPath, [CLI, "--root", root, ...args], { encoding: "utf8", timeout: 45_000 });
+}
 function line(result) { return result.stdout.trim().split(/\r?\n/); }
 
 const ordinary = run("--files", "README.md");
@@ -27,8 +34,17 @@ const ordinary = run("--files", "README.md");
 check("R-2960: unrelated changed files print ordinary", ordinary.status === 0 && line(ordinary)[0] === "ordinary", JSON.stringify(ordinary));
 
 const deletedAndNonModule = run("--files", "packages/nana-pack/extensions/deleted.ts,packages/nana-setup/lib/retired-fingerprints.json");
+const extensionFixture = tmpDir(path.join(tmpdir(), "lane-class-"));
+let addedExtension;
+try {
+	writeFileSync(path.join(extensionFixture, "package.json"), JSON.stringify({ pi: { extensions: ["./packages/extra/extensions"] } }));
+	copyFileSync(path.join(ROOT, "code-map.config.json"), path.join(extensionFixture, "code-map.config.json"));
+	mkdirSync(path.join(extensionFixture, "packages/nana-stage"), { recursive: true });
+	writeFileSync(path.join(extensionFixture, "packages/nana-stage/package.json"), JSON.stringify({ pi: { extensions: ["./extensions"] } }));
+	addedExtension = runAt(extensionFixture, "--files", "packages/extra/extensions/hook-data.txt");
+} finally { rmSync(extensionFixture, { recursive: true, force: true }); }
 // req: R-2961
-check("R-2961: sealed prefixes match deleted and non-module paths and name the first reason", deletedAndNonModule.status === 0 && line(deletedAndNonModule)[0].startsWith("hook:") && line(deletedAndNonModule)[0].includes("packages/nana-pack/extensions/deleted.ts"), JSON.stringify(deletedAndNonModule));
+check("R-2961: sealed prefixes match deleted, non-module and manifest-added extension paths", deletedAndNonModule.status === 0 && line(deletedAndNonModule)[0].startsWith("hook:") && line(deletedAndNonModule)[0].includes("packages/nana-pack/extensions/deleted.ts") && addedExtension.status === 0 && line(addedExtension)[0] === "hook: packages/extra/extensions/hook-data.txt — pi extension", JSON.stringify({ deletedAndNonModule, addedExtension }));
 
 const cli = run("--files", "packages/nana-setup/bin/stale-copies.mjs");
 // req: R-2962
@@ -56,7 +72,7 @@ check("R-2966: worker runs the sealed-timeout class child after the build-end li
 // req: R-2967
 check("R-2967: worker checks the class script at HEAD before running the class child", /git', \['cat-file', '-e', 'HEAD:scripts\/lane-class\.mjs'\]/.test(workerSource), "HEAD presence check missing");
 
-const sealedExpected = ["packages/nana-pack/extensions/", "packages/nana-knowledge/extensions/", "packages/nana-stage/extensions/", "packages/nana-setup/claude/hooks/", "packages/nana-setup/bin/", "packages/nana-setup/lib/", "packages/nana-pack/lib/gate-paths.ts", "packages/nana-pack/lib/gate-rm-inside.ts", "packages/nana-pack/lib/gate-rm-outside.ts", "packages/nana-pack/lib/gate-shell.ts", "packages/nana-pack/lib/gate-temp-roots.ts", "packages/nana-pack/bin/nana-land.mjs", "packages/nana-pack/bin/pi-review.mjs", "packages/nana-pack/bin/claude-review.mjs", "packages/nana-pack/bin/review-round.mjs"];
+const sealedExpected = ["packages/nana-setup/claude/hooks/", "packages/nana-setup/bin/", "packages/nana-setup/lib/", "packages/nana-pack/lib/gate-paths.ts", "packages/nana-pack/lib/gate-rm-inside.ts", "packages/nana-pack/lib/gate-rm-outside.ts", "packages/nana-pack/lib/gate-shell.ts", "packages/nana-pack/lib/gate-temp-roots.ts", "packages/nana-pack/bin/nana-land.mjs", "packages/nana-pack/bin/pi-review.mjs", "packages/nana-pack/bin/claude-review.mjs", "packages/nana-pack/bin/review-round.mjs"];
 const launchedExpected = ["packages/nana-pack/bin/nana-objective.mjs", "packages/nana-pack/bin/nana-frontier-summary.mjs", "packages/nana-pack/bin/nana-adoption.mjs", "packages/nana-knowledge/bin/nana-knowledge.ts", "packages/nana-setup/bin/stale-copies.mjs"];
 // req: R-2961
 check("seal: R-2961 class paths and launched CLIs match the reviewed path list", JSON.stringify(CLASS_PATHS.map(({ prefix }) => prefix)) === JSON.stringify(sealedExpected) && JSON.stringify(LAUNCHED_CLIS) === JSON.stringify(launchedExpected) && /AGENTS\.md:94/.test(await (await import("node:fs/promises")).readFile(fileURLToPath(new URL("../lib/lane-class-config.mjs", import.meta.url)), "utf8")), JSON.stringify({ paths: CLASS_PATHS, launched: LAUNCHED_CLIS }));
