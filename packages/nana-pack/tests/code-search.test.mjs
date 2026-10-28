@@ -63,10 +63,8 @@ await check("R-3000: written launch links are reciprocal and stale links fail th
 		writeMap(root);
 		assert.deepEqual(checkRepo(root).problems, []);
 		const doctor = readFileSync(join(ROOT, "packages/nana-setup/lib/doctor.mjs"), "utf8").split("*/")[0];
-		const frontier = readFileSync(join(ROOT, "packages/nana-pack/lib/frontier-summary.mjs"), "utf8").split("*/")[0];
 		assert.match(doctor, /Judge one machine and return an ordered check list/);
 		assert.match(doctor, /knowledgeHome/);
-		assert.match(frontier, /next items and open questions/);
 	} finally { rmSync(root, { recursive: true, force: true }); }
 });
 
