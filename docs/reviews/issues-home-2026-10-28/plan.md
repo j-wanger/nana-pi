@@ -56,7 +56,7 @@ The builder decides and reports, unless marked for the seat or the owner.
   - The failure line has this form: "Open issues: unavailable (<cause>, after <n> ms); see <url>".
 - E2. The one-word default of a blocking issue goes in a title suffix, "(default: <word>)", because the phone list shows titles only. Nothing checks it in this lane.
 - E3. Labels: `ask` and `next`, plus `blocking`, `optional` or `parked` on each ask. Feature ids go in the body.
-- E4. For the owner, one line in the next report. The issue set has no artifact class today. The seat's default is "no class; FEAT-002 notes the issues as an undeclared external source". Adding a class changes the owner's 2026-10-24 artifact classes.
+- E4. Ruled by the owner on 2026-10-28: "Yes, it should be treated as a maintained artifact". The open-issue set becomes a declared artifact (must-meet 9). The location shape of the new class is the builder's choice; the seat's pick is `github: <owner>/<repo> labelled <label>[, <label>]`.
 
 ## Threat model
 
@@ -91,6 +91,8 @@ Deliberate forgery is out. That means a forged author or labels, and an outsider
 - `packages/nana-pack/tests/hook-deadlines.test.mjs`: R-2672's late-start preload, which the end-to-end time-limit test reuses.
 - `packages/nana-setup/claude/rules/nana-soul.md:37` and `templates/_shared/working-under-nana-pi.md`: the open-question rule. R-682 pins it at `templates-render.test.mjs:531`, and R-859 at `:436` requires the AGENTS.md region to match byte for byte.
 - `packages/nana-pack/tests/product-report.test.mjs:39-47, :225, :284`: the test copies the real HANDOFF. Its fixture appends one well-formed ask, as `:365-380` already does.
+- `scripts/deliverables.mjs:25, :53-64, :197`: MAKER_RUNS, the sealed ARTIFACT_CLASSES and ARTIFACT_LOCATION_SHAPES (approved 2026-10-24), and the parse that refuses an unknown class. R-2781 (`REQUIREMENTS.md:2292`, FEAT-028) pins them.
+- `REQUIREMENTS.md:489`: an `Artifact:` line with a manual maker, the form for the issue set's line.
 
 ## Outside precedent
 
@@ -123,6 +125,7 @@ Rows R-2970 to R-2979 are free for this lane. Each check carries its `// req:` m
    - Its output never echoes any input text.
    - It exits 0 when clean, 1 on a hit and 2 on bad use. An unknown flag still exits 2.
 8. **This repo's HANDOFF.** It holds an issues pointer paragraph and no list item under both Next and Open for the owner, in R-2505's form.
+9. **The issue set is a maintained artifact.** The sealed artifact classes gain one class for GitHub issues, with its location shape, and the tree check accepts an entry in that class and refuses one without the shape. FEAT-002 registers the open-issue set as an artifact in that class: made by `manual` (the seat opens each issue after `identity-scan --stdin`, and the owner opens his own), read by `code` (the session-start issue read). This row sits in FEAT-028 beside R-2781, a named departure from one feature per lane: the artifact this lane creates needs the class, and the owner asked for it.
 
 Also in this change, with no new row:
 
@@ -160,6 +163,7 @@ Also in this change, with no new row:
 - `ci-records.test.mjs`: the moved seam.
 - `templates-render.test.mjs:436, :531`: R-859 byte equality with the reworded template, and the R-682 phrase.
 - `known-bugs.test.mjs` or a new file: the pointer check, in R-2505's form.
+- `requirements-deliverables.test.mjs` (R-2781): the sealed class list grows by one; the tree check's counts line moves by one artifact.
 
 ## Class and size
 
@@ -198,6 +202,7 @@ Also in this change, with no new row:
   - **Unreadable pointer:** must-meet 1.
   - **Forecast:** items 1 to 7, with the HANDOFF pointer committed by the seat at build start.
   - **Width:** must-meet 1 split into 1, 2 and 3; must-meet 7 never echoes input.
+- **Owner, after the plan:** the issue set is a maintained artifact (E4, must-meet 9).
 - **NOTE findings, all taken:**
   - D3's org case.
   - Removals put to the owner before the build.
