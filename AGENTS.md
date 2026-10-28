@@ -102,6 +102,8 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 - Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.
 <!-- nana:working-under-nana-pi end -->
 
+In nana-pi, the lane class is what lane-class prints; a wrong call is fixed in its list.
+
 ### Requirements-first
 
 Change the applicable requirement row first, then tagged tests, then code. Keep evidence and status honest; consult the requirements skill and affected rows for the full contract.

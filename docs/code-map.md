@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 446 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 449 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -607,7 +607,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the HTML page written to <file>; one stdout line naming the per-column counts, the unmapped count and the out path
 - **effects** — disk (reads module sources and code-map.config.json through the shim, creates the out file's folder and writes the page), process (runs read-only git commands: merge-base, diff, ls-files)
 - **errors** — exit 2 for a usage error, naming --root, --base and --out; exit 1 for an unresolvable revision or no merge base, naming the cause, writing nothing
-- **callers** — `packages/nana-pack/tests/blast-radius.test.mjs`
+- **callers** — `packages/nana-pack/tests/blast-radius.test.mjs`, `scripts/lane-class.mjs`
 - **callees** — `packages/nana-pack/lib/blast-radius-config.mjs`, `scripts/code-map.mjs`, `scripts/requirements-moved.mjs`
 
 ### `scripts/ci-records.mjs`
@@ -627,7 +627,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, check findings, or impact callers, callees, artifact writers and readers, freshness and measured test files
 - **effects** — disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/blast-radius.mjs`, `scripts/requirement-rows.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/blast-radius.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/deliverables.mjs`
@@ -659,6 +659,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — missing or unreadable inputs become name findings; malformed CLI options exit 2
 - **callers** — `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `scripts/requirements-tree.mjs`
+
+### `scripts/lane-class.mjs`
+
+- **purpose** — Classify changed or planned paths as ordinary or install, hook or gate using AGENTS.md:94 and one mapped import hop.
+- **inputs** — argv (--root <dir> --base <rev> | --files <comma-list>); git changed paths and code map.
+- **outputs** — One class line naming the first trigger and optional also-reaches lines.
+- **effects** — process (read-only git when --files is absent).
+- **errors** — exit 2 for usage; exit 1 for git or map failures.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/lane-class-config.mjs`, `scripts/blast-radius.mjs`, `scripts/code-map.mjs`, `scripts/requirements-moved.mjs`
 
 ### `scripts/product-report.mjs`
 
@@ -717,7 +727,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry or feature-read change, on stdout; a named refusal on stderr.
 - **effects** — process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
 - **errors** — exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
-- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/deliverables.mjs`, `scripts/lane-class.mjs`, `scripts/product-report.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/requirements-regroup.mjs`
@@ -1162,7 +1172,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary prompts/settings, output and build records), process (registers no-op start-up signal listeners in lane mode, starts a detached lane watcher, spawns and may kill pi or Claude Code child groups)
 - **errors** — exit 1 on bad args, invalid lane, refused precedent/roster, failed worker, output failure or ceiling; settings-source and record failures report
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
+- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/lane-class-config.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
 
 ### `packages/nana-pack/bin/review-launch.mjs`
 
@@ -1623,6 +1633,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Appends return named failures; bounded reads throw ERR_TOO_LARGE or filesystem errors.
 - **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/nana-land.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
+
+### `packages/nana-pack/lib/lane-class-config.mjs`
+
+- **purpose** — Seal lane-class paths, launchers and process bounds with their provenance.
+- **inputs** — none
+- **outputs** — Class path rules, launched CLI paths, base and timeout.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/lane-class.test.mjs`, `scripts/lane-class.mjs`
+- **callees** — —
 
 ### `packages/nana-pack/lib/lane-lock.mjs`
 
@@ -2523,6 +2543,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed checks exit nonzero; unexpected exceptions fail the process.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/lane-class.test.mjs`
+
+- **purpose** — Pin lane-class decisions for changed and planned paths, hop rules, errors, and the sealed path list.
+- **inputs** — scripts/lane-class.mjs and this checkout's code map.
+- **outputs** — Requirement-tagged PASS/FAIL lines and a non-zero exit on failure.
+- **effects** — process (runs the CLI); disk (none).
+- **errors** — Failed assertions print their title and exit non-zero.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/lane-class-config.mjs`
 
 ### `packages/nana-pack/tests/lane-watcher.test.mjs`
 

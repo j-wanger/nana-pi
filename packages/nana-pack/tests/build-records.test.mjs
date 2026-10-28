@@ -309,8 +309,8 @@ const report = spawnSync(process.execPath, [REPORT, "--repo", LANE, "--lane", "a
 const alphaLine = report.stdout.trimEnd().split(/\r?\n/).find((line) => line.startsWith("lane alpha"));
 const workerEnd = lines().filter((row) => row.kind === "end").at(-1);
 const literal = renderLaneLine(readBuildLedger(LEDGER).records, "alpha");
-// req: R-2602
-check("R-2602: the last stderr line names this build's outcome, minutes and cost and its lane's builds so far", lineRun.status === 0 && lastLine?.startsWith(`${BUILD_RECORD_LINE_PREFIX} ok, exit 0, 0 min, $${expectedUsage.cost.total.toFixed(2)}; `) && lastLine.endsWith(alphaLine) && alphaLine === literal && /3 builds/.test(alphaLine) && /2 ok/.test(alphaLine) && /1 no end/.test(alphaLine) && workerEnd?.outcome === "ok", JSON.stringify({ stderr: lineRun.stderr, report: report.stdout, alphaLine, literal }));
+// req: R-2602 R-2967
+check("R-2602: the build-record stderr line names this build's outcome, minutes and cost and its lane's builds so far; an absent class script prints nothing", lineRun.status === 0 && !lineRun.stderr.includes("lane class:") && lastLine?.startsWith(`${BUILD_RECORD_LINE_PREFIX} ok, exit 0, 0 min, $${expectedUsage.cost.total.toFixed(2)}; `) && lastLine.endsWith(alphaLine) && alphaLine === literal && /3 builds/.test(alphaLine) && /2 ok/.test(alphaLine) && /1 no end/.test(alphaLine) && workerEnd?.outcome === "ok", JSON.stringify({ stderr: lineRun.stderr, report: report.stdout, alphaLine, literal }));
 
 // req: R-2596 R-2599 R-2602
 check("seal: build records live at nana/build-records.jsonl in schema 1 and their stderr lines start pi-worker: build record:", BUILD_RECORDS_SUBPATH === "nana/build-records.jsonl" && BUILD_RECORD_SCHEMA === 1 && BUILD_RECORD_LINE_PREFIX === "pi-worker: build record:" && BUILD_SESSION_READ_MAX_BYTES === 64 * 1024 * 1024 && BUILD_LEDGER_READ_MAX_BYTES === 32 * 1024 * 1024);
