@@ -2,9 +2,9 @@
 /**
  * @module packages/nana-pack/bin/nana-frontier-summary.mjs
  * @purpose Print the bounded HANDOFF frontier block for a Claude Code session-start hook.
- * @inputs argv (`--cwd <dir>`, `--max <characters>`), environment role and project HANDOFF state.
+ * @inputs argv (`--cwd <dir>`, `--max <characters>`, `--limit-ms <ms>`), environment role and HANDOFF state.
  * @outputs `[nana:frontier]` plus the frontier block, nothing when inapplicable, or one fail-open line.
- * @effects disk (the frontier library reads HANDOFF.md)
+ * @effects disk (HANDOFF.md), process and network (bounded gh for opted-in projects).
  * @errors none; every failure is rendered as one line and the process always exits 0.
  */
 const TAG_FALLBACK = "[nana:frontier]";
@@ -25,7 +25,10 @@ try {
 	const maxArg = value("--max");
 	const max = maxArg === undefined ? undefined : Number(maxArg);
 	if (maxArg !== undefined && !Number.isFinite(max)) throw new Error("invalid --max");
-	const block = frontierSummary({ cwd, env: process.env, ...(max === undefined ? {} : { max }) });
+	const limitArg = value("--limit-ms");
+	const limitMs = limitArg === undefined ? undefined : Number(limitArg);
+	if (limitArg !== undefined && (!Number.isFinite(limitMs) || limitMs < 0)) throw new Error("invalid --limit-ms");
+	const block = frontierSummary({ cwd, env: process.env, max, limitMs });
 	if (block !== null) process.stdout.write(`${FRONTIER_TAG}\n${block}`);
 } catch (error) {
 	let tag = TAG_FALLBACK;

@@ -1,0 +1,12 @@
+Full-suite commands ran as plain foreground `npm run test:locked`, with output on screen and one machine-wide lock.
+
+Initial run: exit 1.
+229 files: 225 PASS, 2 FAIL, 2 SKIP, 0 WARN · checks: 8601 pass, 4 fail, 44 skip · 564.8s
+Failures: requirement-rows (one check), requirements-trace (three checks).
+Cause: R-682 had two shall clauses. Corrected to one clause; no tests or allowance changed.
+
+Final run: exit 0.
+229 files: 227 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8605 pass, 0 fail, 44 skip · 565.4s
+suite record: 227 PASS, 0 FAIL; failed: none; passed only without coverage: none; this lane: 7 full runs, 65.7 min
+
+The runner's machine record retains per-file outcomes. This committed file preserves the summaries without redirecting the required foreground command.

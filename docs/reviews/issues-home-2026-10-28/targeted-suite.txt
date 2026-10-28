@@ -1,0 +1,13 @@
+PASS  packages/nana-pack/tests/ci-records.test.mjs                 6 pass  3.5s
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs            1 pass  0.5s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs           6 pass  0.8s
+PASS  packages/nana-pack/tests/identity-scan.test.mjs              8 pass  14.7s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs            7 pass  12.9s
+PASS  packages/nana-pack/tests/land.test.mjs                       66 pass  84.1s
+PASS  packages/nana-pack/tests/product-report.test.mjs             91 pass  54.6s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs  21 pass  0.7s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs               11 pass  16.5s
+PASS  packages/nana-pack/tests/templates-render.test.mjs           173 pass  71.7s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs            13 pass  0.1s
+
+11 files: 11 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 403 pass, 0 fail, 0 skip · 260.5s

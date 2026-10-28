@@ -6,7 +6,7 @@ project scaffolding, and dev-workflow skills.
 **Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
 is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
 something they install), and `package.json` declares no `dependencies` or
-`devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in.
+`devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in. Session-start issue reads also use signed-in `gh`; without it, the frontier keeps its local lines and reports the unavailable issue read.
 Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
 FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
 and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
@@ -311,7 +311,9 @@ node "$HOME/nana-pi/packages/nana-pack/bin/brief-check.mjs" --brief <file> --tre
 
 Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`; a Claude Code launch also sets the sealed child values described above. The gate refuses edit/write targets outside that root and the temporary roots it counts: the real `os.tmpdir()`, and on Windows a differing `TMP` too — except a temp folder that resolves to a drive or filesystem root, the home folder, or a folder above the home folder, which does not count. `/tmp` is a separate rule on every system but Windows: it counts as a temporary root regardless, even when it resolves under the home folder. Each target is judged at the path pi's own edit/write tools actually write it to — pi's `~`, `@` and `file://` forms are expanded first — and every root and target is compared by its true on-disk spelling (case, 8.3 short names, and symlinks all fold to the same real path), not by the literal string typed. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
 
-Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically. The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`. A builder's tool command in its own process group can still outlive that builder group. Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire builder process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory. After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit. Its final stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary.
+Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically. The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`. A builder's tool command in its own process group can still outlive that builder group. Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire builder process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory. After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit. Its final build-record stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary. In a tree carrying the lane-class script at HEAD, its class line follows that build-record line.
+
+To inspect a planned list, run `node scripts/lane-class.mjs --root <dir> --files <comma-separated-paths>`; use `--base <rev>` instead of `--files` to classify the merge-base diff.
 
 #### Build records
 
@@ -416,7 +418,7 @@ The `nana-frontier-summary` extension and the existing Claude Code objective hoo
 it from the session folder. The bounded block quotes only top-level titles from the first Next
 section and Open for the owner asks with their tag or no-tag label. The report-only frontier
 check summary follows those titles.
-Blocking asks get selection priority, while displayed groups keep Next first and then blocking,
+For projects without an issues pointer, blocking asks get selection priority, while displayed groups keep Next first and then blocking,
 optional, parked and untagged asks.
 
 The block holds at most 4,000 characters and each displayed title holds at most 160 characters.
@@ -430,6 +432,22 @@ Run the producer directly with:
 ```bash
 node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd <dir>
 ```
+
+A project opts into issues when its Open for the owner section has no list item and holds
+an `https://github.com/<owner>/<repo>/issues` pointer paragraph. Plain URLs, angle brackets,
+Markdown links, trailing slashes and query strings work. A GitHub paragraph with an unreadable pointer gets
+one diagnostic line. Other projects retain the existing block without running gh.
+
+The reader makes one host-qualified, open, author-only gh list call, capped at 100 rows, then
+keeps only the owner's exact, case-sensitive `ask` or `next` issues. After an empty list,
+it checks the owner's type with one host-qualified API call within the remaining read budget.
+Each issue appears once: blocking asks first, Next items second, optional asks then parked asks. At the fetch cap, a line warns the list may be longer.
+The existing title and output caps still apply. Only titles are shown, never issue bodies.
+The read waits at most 1,500 ms; the Claude producer's `--limit-ms` can shorten that wait,
+reserving 250 ms for rendering and writing after its own elapsed process time.
+Missing gh, a timeout, a nonzero exit, unreadable output or an organization owner prints
+`Open issues: unavailable (<cause>, after <n> ms); see <url>` while retaining local Next
+and frontier-check lines, without claiming no items were found. Organization logins cannot supply the author filter.
 
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 

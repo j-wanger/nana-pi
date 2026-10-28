@@ -1,0 +1,257 @@
+PASS R-2612: the pi section equals the Claude hook's frontier block minus its tag line for every session start reason, and is re-read after an edit
+(node:62402) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<lane>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <lane>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs   1 pass  0.5s
+PASS R-2607: Next titles and ask tags and titles are listed in block order, and nested items, fences and other sections are not
+PASS R-2608: the block ends with the frontier checker's own summary line and counts
+PASS R-2609: the block stays within its caps, renders each title as one clean line, keeps blocking asks first and counts the titles it left out
+PASS R-2610: no HANDOFF.md or a reviewer or worker role gives no output and exit 0
+PASS R-2611: an unreadable HANDOFF.md gives one FRONTIER UNAVAILABLE line naming its cause and path
+PASS seal: the frontier block's tag is [nana:frontier], its pi section is nana-frontier and its caps are 4,000 and 160 characters
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs  6 pass  0.8s
+PASS R-2970: only list-free issue pointers opt in and legacy bytes stay unchanged
+PASS R-2971: one pinned gh call filters author and labels and warns at the cap
+PASS R-2972: issue titles appear once within caps with blocking then next then asks
+PASS R-2973: issue failures name cause time and URL without losing Next or check
+PASS R-2975: worker and reviewer paths never invoke gh
+PASS R-2977: real HANDOFF Next and Open sections are pointer-only
+PASS R-2978: GitHub issue artifacts require the sealed location shape and register this issue set
+PASS R-2979: seal issue read limit at 1500 ms
+PASS R-2979: seal issue write reserve at 250 ms
+PASS R-2979: seal issue fetch cap at 100
+(node:62446) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<lane>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <lane>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:62446) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<lane>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <lane>/package.json.
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs    10 pass  3.0s
+PASS R-2976: stdin scan prints only hit indices and counts with clean hit and bad-use exits
+PASS the scan finds identity words in every written form
+PASS an allowlisted file with one more, one fewer or swapped identity words is reported
+PASS the scan refuses to rewrite its allowlist
+PASS the scan reads a tracked list over 1 MiB
+PASS every allowlist entry is byte-pinned or frozen-desk
+PASS no tracked file outside the allowlist carries an identity word
+PASS seal: identity word digests
+PASS  packages/nana-pack/tests/identity-scan.test.mjs     8 pass  14.4s
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason
+PASS seal: RULINGS_READ_CAP is 8192
+PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang
+PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker
+PASS no fixture text leaks into the unavailable marker
+PASS planner prompt names no owner or work project
+PASS the rulings file names no owner and no work project
+PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction
+PASS every ruling is one bullet that opens with its date
+PASS R-2956: the rulings file carries the 2026-10-28 readings ruling
+PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move
+PASS planner prompt names no model id
+PASS the rulings file names no model, leaving the lineup to the roster
+PASS the rulings file opens with the scope sentence for builders and reviewers
+PASS  packages/nana-pack/tests/rulings.test.mjs           15 pass  0.1s
+PASS nana-pi Part G mirrors templates/_shared/requirements-general.md
+PASS seal: the known-bugs folder is docs/known-bugs
+PASS AGENTS.md marker-owned section is byte-identical to the shared file
+PASS AGENTS.md shared section follows a complete paragraph
+PASS working pattern names lane launcher and keeps local overrides after marker region
+PASS pack README documents lane preamble, write gap, ceiling, and trust notice
+PASS …and a one-byte drift is caught, not silently passed (mutation)
+PASS shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory
+PASS startup guidance scopes every requirements read to row lookup
+PASS soul continuity rule records carry before reports and session boundaries
+PASS shared working pattern names generic defaults and local overrides
+PASS three front doors carry one identical scoped platform claim
+PASS shared working pattern makes the pattern the default with the machine roster
+PASS R-1127: the shared seat land review applies in an install, hook or gate lane when the roster sets no land model
+PASS nana-soul carries the shared default-pattern and seat land review bullets
+PASS shared working pattern carries one seat-guide bullet
+PASS seat-guide bullet names a guide file present in this checkout
+PASS R-2652: the shared working pattern starts the larger-lane builder, pi or Claude Code, through pi-worker --lane-size larger and a small lane through --lane-size small
+PASS shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user
+PASS shared working pattern says the builder builds every lane when the roster sets no larger-lane builder
+PASS desk matrix states nana resources for every spawn class and the terminal trust step
+PASS shared working pattern requires a threat model per plan
+PASS R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent
+PASS R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding
+PASS R-1300: the shared working pattern gives an ordinary lane one final reviewer, defines install, hook and gate lanes, and says plans get no review round
+PASS shared working pattern freezes edits after an all-LAND review
+PASS shared working pattern ships urgent fixes alone
+PASS shared working pattern states the review bar for seats
+PASS R-2509: the shared working pattern records a non-blocking finding in its feature's known-bug file, not HANDOFF
+PASS AGENTS.md carries the macOS install check outside the shared region
+PASS requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner
+PASS scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G
+PASS requirements skill names the tree check and the product report with a project root
+PASS requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has
+PASS requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has
+PASS typescript: copier renders the template
+PASS typescript scaffold: all declared skill claims resolve independently for scaffold-ts
+PASS scaffold-ts: an unknown package script is rejected
+PASS scaffold-ts: an inline pnpm separator mutation is rejected
+PASS typescript scaffold: all declared skill claims resolve independently for spec
+PASS typescript scaffold: all declared skill claims resolve independently for requirements
+STALE exemption templates/_shared/working-under-nana-pi.md path 'nana-knowledge.ts hook'
+STALE exemption templates/_shared/working-under-nana-pi.md path 'nana-knowledge'
+PASS typescript scaffold: all declared skill claims resolve independently for templates/_shared/working-under-nana-pi.md
+PASS typescript scaffold: a removed shared HANDOFF path is rejected
+PASS typescript scaffold: all declared skill paths resolve independently
+PASS typescript scaffold: all declared package-script commands resolve independently
+PASS typescript scaffold: all declared flags and subcommands resolve independently
+PASS typescript: rendered AGENTS.md marker region matches shared bytes and follows a paragraph
+PASS typescript: the requirements-first files all land
+PASS typescript scaffold: Part G ships G-001..G-022 unrenumbered
+PASS typescript scaffold: no jinja survives into REQUIREMENTS.md
+PASS typescript scaffold: REQUIREMENTS.md's organization section comes from the one shared source
+PASS typescript scaffold: REQUIREMENTS.md passes the requirements tree checker
+PASS typescript scaffold: every G row is homed in FEAT-900 under CAP-90 with no R row
+PASS typescript scaffold: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+PASS typescript: the example product row is implemented
+PASS typescript: rendered policy config has the protected filename
+PASS typescript: the smoke test carries the trace marker
+PASS typescript: the rail self-test carries real req: markers
+PASS typescript: the code map checks clean with no deps installed
+PASS typescript: the check covers src, scripts and tests
+PASS typescript: --impact prints the untraced-test count for a fresh scaffold
+PASS typescript: a fresh scaffold passes biome check with no edits
+PASS typescript: the scaffolded README passes readme-check with no deps installed
+PASS typescript: readme-check --list prints its claims
+PASS typescript: readme-check catches a command that is not a script
+PASS typescript: readme-check catches a path that does not exist
+PASS typescript: readme-check catches a missing test section
+PASS typescript: readme-check catches an undocumented script
+PASS typescript: a header dropped in tests/ fails the check
+PASS typescript adopt: copier renders the template
+PASS typescript adopt: all declared skill claims resolve independently for adopt-ts
+PASS adopt-ts: a removed code-map test path is rejected
+PASS typescript adopt: all declared skill claims resolve independently for adopt-structure
+PASS typescript adopt: all declared skill claims resolve independently for templates/_shared/working-under-nana-pi.md
+PASS typescript adopt: all declared skill paths resolve independently
+PASS typescript adopt: all declared package-script commands resolve independently
+PASS typescript adopt: all declared flags and subcommands resolve independently
+PASS typescript adopt: skill file list exactly matches emitted files
+PASS typescript adopt: all copier-preserved files are marked written only when absent
+PASS typescript adopt: every rendered package script is named in adopt-ts
+PASS typescript adopt: workspace build permission is valid YAML
+PASS typescript adopt: the rail and the generator land too
+PASS typescript adopt: no scaffold starters are written
+PASS typescript adopt: Part G ships G-001..G-022 unrenumbered
+PASS typescript adopt: no jinja survives into REQUIREMENTS.md
+PASS typescript adopt: REQUIREMENTS.md's organization section comes from the one shared source
+PASS typescript adopt: REQUIREMENTS.md passes the requirements tree checker
+PASS typescript adopt: every G row is homed in FEAT-900 under CAP-90 with no R row
+PASS typescript adopt: the product feature is proposed and holds no row
+PASS typescript adopt: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+PASS typescript adopt: no row claims implemented
+PASS typescript adopt: every Part G row starts untested
+PASS typescript adopt: no product row is invented
+PASS typescript adopt: the confirm-the-statuses blockquote is gone
+PASS typescript adopt: the rail self-test carries req-candidate, not req:
+PASS typescript adopt: no jinja survives into the rail self-test
+PASS typescript adopt: the first --check fails and names the regenerate command
+PASS typescript adopt: the documented command generates the map
+PASS typescript adopt: --check is green after that ONE command
+PASS python: copier renders the template
+PASS python scaffold: requirements-trace, code-map and readme-check tests pass under a cp1252 Python environment
+PASS requirements: a misspelled code-map flag is rejected
+PASS python scaffold: all declared skill claims resolve independently for scaffold-py
+PASS scaffold-py: a removed code-map path is rejected
+PASS python scaffold: all declared skill claims resolve independently for py-lint
+PASS python scaffold: all declared skill claims resolve independently for py-test
+PASS python scaffold: all declared skill claims resolve independently for py-review
+PASS python scaffold: all declared skill claims resolve independently for spec
+PASS python scaffold: all declared skill claims resolve independently for requirements
+STALE exemption templates/_shared/working-under-nana-pi.md path 'nana-knowledge.ts hook'
+STALE exemption templates/_shared/working-under-nana-pi.md path 'nana-knowledge'
+PASS python scaffold: all declared skill claims resolve independently for templates/_shared/working-under-nana-pi.md
+PASS python scaffold: a removed shared HANDOFF path is rejected
+PASS python scaffold: all declared skill paths resolve independently
+PASS python scaffold: all declared package-script commands resolve independently
+PASS python scaffold: all declared flags and subcommands resolve independently
+PASS python: rendered AGENTS.md marker region matches shared bytes and follows a paragraph
+PASS python: the requirements-first files all land
+PASS python scaffold: Part G ships G-001..G-022 unrenumbered
+PASS python scaffold: no jinja survives into REQUIREMENTS.md
+PASS python scaffold: REQUIREMENTS.md's organization section comes from the one shared source
+PASS python scaffold: REQUIREMENTS.md passes the requirements tree checker
+PASS python scaffold: every G row is homed in FEAT-900 under CAP-90 with no R row
+PASS python scaffold: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+PASS python: the example product row is implemented
+PASS python: rendered policy config has the protected filename
+PASS python: the smoke test carries the trace marker
+PASS python: the rail self-test carries real req: markers
+PASS python: the code map checks clean with no deps installed
+PASS python: the check covers src, scripts and tests
+PASS python: --impact prints the untraced-test count for a fresh scaffold
+PASS python: a fresh scaffold passes ruff check with no edits
+PASS python: a fresh scaffold is ruff-format clean with no edits
+PASS python: the scaffolded README passes readme-check with no deps installed
+PASS python: readme-check --list prints its claims
+PASS python: readme-check catches a command naming a file that is gone
+PASS python: readme-check catches a path that does not exist
+PASS python: readme-check catches a missing test section
+PASS python: readme-check catches an undocumented script
+PASS python: a header dropped in tests/ fails the check
+PASS python adopt: copier renders the template
+PASS python adopt: requirements-trace, code-map and readme-check tests pass under a cp1252 Python environment
+PASS python adopt: all declared skill claims resolve independently for adopt-py
+PASS python adopt: all declared skill claims resolve independently for adopt-structure
+PASS python adopt: all declared skill claims resolve independently for templates/_shared/working-under-nana-pi.md
+PASS python adopt: all declared skill paths resolve independently
+PASS python adopt: all declared package-script commands resolve independently
+PASS python adopt: all declared flags and subcommands resolve independently
+PASS python adopt: skill file list exactly matches emitted files
+PASS python adopt: all copier-preserved files are marked written only when absent
+PASS python adopt: the rail and the generator land too
+PASS python adopt: no scaffold starters are written
+PASS python adopt: Part G ships G-001..G-022 unrenumbered
+PASS python adopt: no jinja survives into REQUIREMENTS.md
+PASS python adopt: REQUIREMENTS.md's organization section comes from the one shared source
+PASS python adopt: REQUIREMENTS.md passes the requirements tree checker
+PASS python adopt: every G row is homed in FEAT-900 under CAP-90 with no R row
+PASS python adopt: the product feature is proposed and holds no row
+PASS python adopt: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+PASS python adopt: no row claims implemented
+PASS python adopt: every Part G row starts untested
+PASS python adopt: no product row is invented
+PASS python adopt: the confirm-the-statuses blockquote is gone
+PASS python adopt: the rail self-test carries req-candidate, not req:
+PASS python adopt: no jinja survives into the rail self-test
+PASS python adopt: the first --check fails and names the regenerate command
+PASS python adopt: the documented command generates the map
+PASS python adopt: --check is green after that ONE command
+PASS R-1321: each template's code-map, readme-check and trace scripts pass on a rendered project rewritten to CRLF
+PASS R-2559: a fresh TypeScript scaffold pins Biome to the sealed exact version 2.5.15
+PASS python: the readme check prints every line under ASCII and cp1252 output
+PASS python: the code map check prints every line under ASCII and cp1252 output
+PASS python: the code map impact view prints every line under ASCII and cp1252 output
+PASS python: the readme check and code map print a non-ASCII path unescaped under UTF-8 output
+PASS generated project update guidance is generic with adopted-project qualification
+claims: 447 extracted, 119 command claims not judged (heads: scripts/code-map.mjs, uvx, pnpm, @module, @purpose, @inputs, @outputs, @effects, @errors, uv, node, scripts/readme-check.mjs, npx, yarn, NANA_PROJECT_NAME='<the, scripts/code_map.py, python, [FAIL], npm, scripts/readme_check.py)
+all passed
+PASS  packages/nana-pack/tests/templates-render.test.mjs  173 pass  70.4s
+PASS R-2671: the objective and adoption hooks print a producer's output when it takes 1.7 seconds, and the next producer's output after it, also when the hook starts 2.5 seconds late
+note: R-2671 elapsed 8871 ms; cases 1783,1815,2639,2631 ms
+PASS R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang
+note: R-2672 elapsed 8065 ms; objective 4026 ms (before clock 12.544921875 ms, after deadline 13.455078125 ms); adoption 4036 ms (before clock 23.968994140625 ms, after deadline 12.031005859375 ms)
+PASS adoption hook prints its marker and the stale-copy output when the adoption producer hangs
+PASS adoption hook prints both markers before its installed limit when both producers hang
+PASS objective hook prints its marker before its installed limit when its producer hangs
+PASS R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap
+PASS R-2974: late-start objective hook keeps Next timeout and check lines when gh hangs
+PASS  packages/nana-setup/tests/hook-deadlines.test.mjs   7 pass  34.2s
+PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32)
+PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32)
+PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32)
+PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32)
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install
+PASS  packages/nana-setup/tests/rulings-install.test.mjs  8 pass  2.1s
+
+8 files: 8 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 228 pass, 0 fail, 0 skip · 126.0s

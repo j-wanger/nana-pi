@@ -292,31 +292,26 @@ export function renderPage(model, meta) {
 	);
 }
 
+export function collectChangedPaths(root, base, git = defaultGit) {
+	const mergeBase = git(root, ["--no-optional-locks", "merge-base", base, "HEAD"]);
+	if (mergeBase.status !== 0) return { error: `could not find a merge base for '${base}' and HEAD: ${(mergeBase.stderr || "").trim() || "git failed"}` };
+	const mb = mergeBase.stdout.trim();
+	const diff = git(root, ["--no-optional-locks", "diff", "--name-only", "--no-renames", "--relative", "-z", mb]);
+	if (diff.status !== 0) return { error: `could not diff the working tree against ${mb}: ${(diff.stderr || "").trim() || "git failed"}` };
+	const untracked = git(root, ["--no-optional-locks", "ls-files", "-z", "--others", "--exclude-standard"]);
+	if (untracked.status !== 0) return { error: `could not list untracked files: ${(untracked.stderr || "").trim() || "git failed"}` };
+	return { mergeBase: mb, paths: [...new Set([...parseZList(diff.stdout), ...parseZList(untracked.stdout)])] };
+}
+
 export function main(argv, git = defaultGit) {
 	const args = parseArgs(argv);
 	if (!args) return usage();
 	const root = resolve(process.cwd(), args.root);
 
-	const mergeBase = git(root, ["--no-optional-locks", "merge-base", args.base, "HEAD"]);
-	if (mergeBase.status !== 0) {
-		console.error(`could not find a merge base for '${args.base}' and HEAD: ${(mergeBase.stderr || "").trim() || "git failed"}`);
-		return 1;
-	}
-	const mb = mergeBase.stdout.trim();
-
-	const diff = git(root, ["--no-optional-locks", "diff", "--name-only", "--no-renames", "--relative", "-z", mb]);
-	if (diff.status !== 0) {
-		console.error(`could not diff the working tree against ${mb}: ${(diff.stderr || "").trim() || "git failed"}`);
-		return 1;
-	}
-
-	const untracked = git(root, ["--no-optional-locks", "ls-files", "-z", "--others", "--exclude-standard"]);
-	if (untracked.status !== 0) {
-		console.error(`could not list untracked files: ${(untracked.stderr || "").trim() || "git failed"}`);
-		return 1;
-	}
-
-	const changed = [...new Set([...parseZList(diff.stdout), ...parseZList(untracked.stdout)])];
+	const changedSet = collectChangedPaths(root, args.base, git);
+	if (changedSet.error) { console.error(changedSet.error); return 1; }
+	const mb = changedSet.mergeBase;
+	const changed = changedSet.paths;
 
 	const config = loadConfig(root);
 	const graph = buildGraph(collectModules(root, config), config);

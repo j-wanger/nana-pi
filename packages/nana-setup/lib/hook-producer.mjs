@@ -33,6 +33,7 @@ const launcherDefinitions = {
 		marker: (cli) => `[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (${cli}). Tell the user before spending.\n`,
 	},
 	frontier: {
+		passLimit: true,
 		cli: "packages/nana-pack/bin/nana-frontier-summary.mjs",
 		marker: (cli) => `${FRONTIER_TAG}\n${FRONTIER_UNAVAILABLE} producer failed (${cli}).\n`,
 	},
@@ -50,16 +51,16 @@ export function hookProducerConfig(name, repoRoot) {
 	const definition = launcherDefinitions[name];
 	if (!definition) throw new Error(`Unknown hook producer: ${name}`);
 	const cli = path.join(repoRoot, definition.cli);
-	return { cli, marker: definition.marker(cli) };
+	return { cli, marker: definition.marker(cli), passLimit: definition.passLimit === true };
 }
 
-export function runHookProducer({ cli, marker, args = [], cwd, env = process.env, deadlineMs, clock = () => performance.now(), run = spawnSync, stdout = process.stdout }) {
+export function runHookProducer({ cli, marker, passLimit = false, args = [], cwd, env = process.env, deadlineMs, clock = () => performance.now(), run = spawnSync, stdout = process.stdout }) {
 	let output = marker;
 	try {
 		const limit = deadlineMs === undefined ? HOOK_PRODUCER_TIMEOUT_MS : Math.min(HOOK_PRODUCER_TIMEOUT_MS, Math.floor(deadlineMs - clock()));
 		if (limit > 0) {
 			const resolvedCwd = cwd ?? process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
-			const result = run(process.execPath, ["--no-warnings", cli, "--cwd", resolvedCwd, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], env, timeout: limit });
+			const result = run(process.execPath, ["--no-warnings", cli, "--cwd", resolvedCwd, ...args, ...(passLimit ? ["--limit-ms", String(limit)] : [])], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], env, timeout: limit });
 			if (result?.status === 0 && !result.signal && !result.error) output = typeof result.stdout === "string" && result.stdout.length > 0 ? `${result.stdout.replace(/\n+$/, "")}\n` : "";
 		}
 	} catch {

@@ -41,6 +41,7 @@ function fixture(name = "repo") {
   fs.mkdirSync(root, { recursive: true });
   fs.copyFileSync(path.join(ROOT, "REQUIREMENTS.md"), path.join(root, "REQUIREMENTS.md"));
   fs.copyFileSync(path.join(ROOT, "HANDOFF.md"), path.join(root, "HANDOFF.md"));
+  fs.appendFileSync(path.join(root, "HANDOFF.md"), "\n## Open for the owner\n- **[optional, since 2026-10-10] Fixture question.** A fixture body for the decisions view.\n");
   const git = (args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
   git(["init", "-q"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
   git(["add", "REQUIREMENTS.md", "HANDOFF.md"]); git(["commit", "-qm", "fixture"]);

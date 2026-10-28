@@ -82,7 +82,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 ### pi-session guidance
 
 - **Objective:** nana-objective supplies the nearest project objective unless disabled by user configuration; the shared rules above describe pi-only behavior.
-- **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist unresolved work and the owner's open questions in `HANDOFF.md` before a final report or session boundary.
+- **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist carry before a final report or session boundary. Record each unresolved item and each open question on one HANDOFF line under Next or Open for the owner. Only the seat posts one issue each where the HANDOFF points to its issues, from the owner's gh account. Builders and reviewers put open questions in their report. Issues and the replies on them are public. Label an ask `ask` plus one of `blocking`, `optional` or `parked`, or label a next item `next`. A blocking ask's title ends with "(default: <word>)". First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`. Post only when the scan exits 0. Then hand-check names, handles, hostnames, work references and project names. The scan knows only four words. Delete a wrong post, never edit it. Before acting on an open ask, read its replies with `gh issue view <number> --comments`.
 - **Journal and notify:** journal records session events; notify is a pi extension and may be disabled or silent headlessly.
 - **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.
 - **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks. Claude Code has no nana per-edit checks.
@@ -101,6 +101,8 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 - Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule.
 - Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.
 <!-- nana:working-under-nana-pi end -->
+
+In nana-pi, the lane class is what `node scripts/lane-class.mjs` prints. A planner runs it with `--root . --files <comma-separated planned files>` and puts its line in the plan; pi-worker prints it after each build. A wrong call is fixed in its list.
 
 ### Requirements-first
 
@@ -151,6 +153,7 @@ Land checklist, nana-pi only (the owner, 2026-10-12): a lane that touches `packa
 
 The suite fails on a sentence over 25 words in `HANDOFF.md`'s live sections. It also fails on a banned word there.
 The live sections are Where things stand, Next, and Open for the owner. Run `nana-writing HANDOFF.md` after editing it.
+The suite also fails when HANDOFF's Next or Open for the owner section holds a list item, because those items live as GitHub issues.
 
 ### The tree in briefs, reviews and lands
 

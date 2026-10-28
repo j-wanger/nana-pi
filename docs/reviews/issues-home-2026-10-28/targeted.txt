@@ -1,0 +1,10 @@
+PASS R-2970: only list-free issue pointers opt in and legacy bytes stay unchanged
+PASS R-2971: one pinned gh call filters author and labels and warns at the cap
+PASS R-2972: issue titles appear once within caps with blocking then next then asks
+PASS R-2973: issue failures name cause time and URL without losing Next or check
+PASS R-2975: worker and reviewer paths never invoke gh
+PASS R-2977: real HANDOFF Next and Open sections are pointer-only
+PASS R-2978: GitHub issue artifacts require the sealed location shape and register this issue set
+PASS R-2979: seal issue read limit at 1500 ms
+PASS R-2979: seal issue write reserve at 250 ms
+PASS R-2979: seal issue fetch cap at 100

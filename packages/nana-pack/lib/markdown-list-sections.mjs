@@ -72,6 +72,6 @@ export function scanListSections(text, { headingMatches, label = null }) {
 			entries.push({ line: index + 1, lines: entryLines });
 			index = next - 1;
 		}
-		return { line: section.line, kind: section.kind, entries };
+		return { line: section.line, kind: section.kind, entries, body: lines.slice(section.index + 1, section.end).filter((_, index) => outsideFence[section.index + 1 + index]).join("\n") };
 	});
 }

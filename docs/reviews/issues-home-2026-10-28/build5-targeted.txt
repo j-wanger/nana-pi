@@ -1,0 +1,9 @@
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs   1 pass  0.5s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs  6 pass  0.8s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs    10 pass  3.2s
+PASS  packages/nana-pack/tests/templates-render.test.mjs  173 pass  68.5s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs       67 pass  27.6s
+PASS  packages/nana-setup/tests/frontier-hook.test.mjs    1 pass  1.7s
+PASS  packages/nana-setup/tests/hook-deadlines.test.mjs   7 pass  34.3s
+
+7 files: 7 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 265 pass, 0 fail, 0 skip · 137.0s

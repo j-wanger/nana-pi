@@ -528,7 +528,26 @@ function checkInstructionContracts() {
 	// req: R-681
 	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles[1].includes(rootStartup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
 	// req: R-682
-	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to the owner on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
+	check("soul continuity rule records carry before reports and session boundaries",
+		/Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul) &&
+		[soul, shared, frontDoors[1]].every((text) => {
+			const sentences = [
+				"Record each unresolved item and each open question on one HANDOFF line under Next or Open for the owner.",
+				"Only the seat posts one issue each where the HANDOFF points to its issues, from the owner's gh account.",
+				"Builders and reviewers put open questions in their report.",
+				"Issues and the replies on them are public.",
+				"Label an ask `ask` plus one of `blocking`, `optional` or `parked`, or label a next item `next`.",
+				'A blocking ask\'s title ends with "(default: <word>)".',
+				'First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`.',
+				"Post only when the scan exits 0.",
+				"Then hand-check names, handles, hostnames, work references and project names.",
+				"The scan knows only four words.",
+				"Delete a wrong post, never edit it.",
+				"Before acting on an open ask, read its replies with `gh issue view <number> --comments`.",
+			];
+			return text.includes(sentences.join(" ")) && sentences.every((sentence) => sentence.split(/\s+/).length < 25);
+		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
+			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;

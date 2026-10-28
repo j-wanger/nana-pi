@@ -141,27 +141,33 @@ export function scanTree({ root, config, files } = {}) {
 }
 
 function usage() {
-	return "usage: node scripts/identity-scan.mjs [--root <dir>]";
+	return "usage: node scripts/identity-scan.mjs [--root <dir>] [--stdin]";
 }
 
 function parseArgs(argv) {
 	let root = ".";
 	let sawRoot = false;
+	let stdin = false;
 	for (let index = 0; index < argv.length; index++) {
 		if (argv[index] === "--root" && !sawRoot && argv[index + 1]) {
 			root = argv[++index];
 			sawRoot = true;
+		} else if (argv[index] === "--stdin" && !stdin) {
+			stdin = true;
 		} else {
 			throw new Error(usage());
 		}
 	}
-	return { root };
+	return { root, stdin };
 }
 
 function runCli(argv) {
 	let options;
 	try {
 		options = parseArgs(argv);
+		if (!fs.existsSync(options.root) || !fs.statSync(options.root).isDirectory()) {
+			throw new Error(`${usage()}\n--root must name an existing directory`);
+		}
 	} catch (error) {
 		console.error(error.message);
 		return 2;
@@ -169,6 +175,11 @@ function runCli(argv) {
 	const resolvedRoot = gitRoot(options.root);
 	const configPath = path.join(resolvedRoot, "identity-scan.config.json");
 	const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+	if (options.stdin) {
+		const counts = countIdentityWords({ content: fs.readFileSync(0, "utf8"), config });
+		counts.forEach((count, wordIndex) => { if (count) console.log(`wordIndex=${wordIndex} count=${count}`); });
+		return counts.some(Boolean) ? 1 : 0;
+	}
 	const result = scanTree({ root: options.root, config });
 	for (const finding of result.findings) {
 		console.log(`${finding.path}: wordIndex=${finding.wordIndex} expected=${finding.expected} actual=${finding.actual} ${finding.kind}`);

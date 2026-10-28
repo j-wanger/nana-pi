@@ -40,6 +40,7 @@ const { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULING
 const { ROSTER_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
 
 const SHIPPED_PATH = fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url));
+const PROJECT_AGENTS_PATH = fileURLToPath(new URL("../../../AGENTS.md", import.meta.url));
 const SHIPPED_TEXT = fs.readFileSync(SHIPPED_PATH, "utf8"); // READ only — never written in this file
 const PLANNER_TEXT = fs.readFileSync(fileURLToPath(new URL("../prompts/planner.md", import.meta.url)), "utf8");
 const IDENTITY_CONFIG = JSON.parse(fs.readFileSync(fileURLToPath(new URL("../../../identity-scan.config.json", import.meta.url)), "utf8"));
@@ -224,6 +225,15 @@ function containsWholeWord(text, word) {
 		counts.every((count) => count === 0),
 		JSON.stringify({ counts }),
 	);
+}
+
+{
+	const requiredLaneClassSentence = "In nana-pi, the lane class is what `node scripts/lane-class.mjs` prints. A planner runs it with `--root . --files <comma-separated planned files>` and puts its line in the plan; pi-worker prints it after each build. A wrong call is fixed in its list.";
+	const projectAgents = fs.readFileSync(PROJECT_AGENTS_PATH, "utf8");
+	// req: R-2969
+	check("R-2969: nana-pi project section gives planners the lane-class command and build instruction",
+		projectAgents.split("\n").filter((line) => line === requiredLaneClassSentence).length === 1,
+		JSON.stringify({ requiredLaneClassSentence, matches: projectAgents.split("\n").filter((line) => line.includes("lane class")) }));
 }
 
 {

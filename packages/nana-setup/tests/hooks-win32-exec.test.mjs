@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { withPiStub } from "./stub-pi.mjs";
 import { desiredHooks, entryInvokes } from "../lib/settings.mjs";
 import { platform } from "../lib/paths.mjs";
+import { GH_COMMAND_ENV } from "../../nana-pack/lib/suite-records-config.mjs";
 
 const repoRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)), "..", "..");
 let fails = 0;
@@ -64,6 +65,8 @@ try {
 	const project = path.join(worktree, `proj-${weird}`);
 	fs.mkdirSync(home, { recursive: true });
 	fs.mkdirSync(project, { recursive: true });
+	const fakeGh = path.join(home, "gh.mjs");
+	fs.writeFileSync(fakeGh, "process.stdout.write('[]');\n");
 	fs.copyFileSync(path.join(worktree, "templates", "_shared", "OBJECTIVE.md"), path.join(project, "OBJECTIVE.md"));
 
 	// pi-subagents floor fixture (win32-degrade.test.mjs seeds the same shape) — without it
@@ -93,6 +96,7 @@ try {
 		HOME: home,
 		USERPROFILE: home,
 		CLAUDE_PROJECT_DIR: project,
+		[GH_COMMAND_ENV]: JSON.stringify([process.execPath, fakeGh]),
 		CLAUDE_CONFIG_DIR: claudeHome,
 		NANA_KNOWLEDGE_HOME: path.join(home, ".nana-knowledge"),
 	};

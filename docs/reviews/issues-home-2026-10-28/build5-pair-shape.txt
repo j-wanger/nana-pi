@@ -1,0 +1,5 @@
+FAIL  packages/nana-pack/tests/handoff-issues.test.mjs  9 pass, 1 fail  3.0s  — exit 1
+      | FAIL R-2973: issue failures name cause time and URL without losing Next or check Expected values to be strictly equal:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 9 pass, 1 fail, 0 skip · 3.3s
+failed: packages/nana-pack/tests/handoff-issues.test.mjs

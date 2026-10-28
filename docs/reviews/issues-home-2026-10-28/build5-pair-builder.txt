@@ -1,0 +1,5 @@
+FAIL  packages/nana-pack/tests/templates-render.test.mjs  172 pass, 1 fail  69.7s  — exit 1
+      | FAIL soul continuity rule records carry before reports and session boundaries
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 172 pass, 1 fail, 0 skip · 70.1s
+failed: packages/nana-pack/tests/templates-render.test.mjs

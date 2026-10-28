@@ -12,6 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { githubRepoOf } from "./land-ci.mjs";
+import { firstLine, ghResult } from "./gh-runner.mjs";
 import { CI_HOST, CI_REMOTE, TIP_DIGITS } from "./land-config.mjs";
 import {
 	CI_ARTIFACT_PREFIX,
@@ -26,7 +27,6 @@ import { finalFiles, readRunRecord, recordCounts } from "./suite-records.mjs";
 
 const defaultGit = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: GH_OUTPUT_MAX_BYTES });
 const numberText = (value) => Number.isInteger(value) ? String(value) : Number(Number(value).toFixed(2)).toString();
-const firstLine = (value) => String(value ?? "").split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? "";
 const idCompare = (left, right) => Number(left) - Number(right) || String(left).localeCompare(String(right));
 const timeOf = (value) => {
 	const parsed = Date.parse(String(value ?? ""));
@@ -39,21 +39,6 @@ function gitValue(runGit, cwd, args) {
 	catch (error) { return { ok: false, reason: error?.message ?? "git could not start" }; }
 	if (result?.error || result?.status !== 0) return { ok: false, reason: firstLine(result?.stderr) || result?.error?.message || `exit ${result?.status ?? result?.signal ?? "unknown"}` };
 	return { ok: true, value: String(result.stdout ?? "").trim() };
-}
-
-function ghResult(runGh, cwd, args) {
-	let result;
-	try { result = runGh(cwd, args, { env: process.env }); }
-	catch (error) { return { ok: false, reason: `gh could not start: ${error?.message ?? "unknown error"}` }; }
-	if (result?.error) {
-		const lead = result.error.code === "ENOENT" ? "cannot start gh" : "gh could not start";
-		return { ok: false, reason: `${lead}: ${result.error.message}` };
-	}
-	if (result?.status !== 0) {
-		const detail = firstLine(result?.stderr) || firstLine(result?.stdout);
-		return { ok: false, reason: `gh failed (exit ${result?.status ?? result?.signal ?? "unknown"})${detail ? `: ${detail}` : ""}` };
-	}
-	return { ok: true, stdout: String(result.stdout ?? "") };
 }
 
 function ghJson(runGh, cwd, args, arrayName) {
