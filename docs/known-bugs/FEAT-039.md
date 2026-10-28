@@ -91,3 +91,4 @@
 - Feature pages (page-detail, plan): long detail pages grow; FEAT-013's gains 11 cards above its rows.
 - Feature pages (page-detail, plan): a bookmark to `#artifacts` now opens the two lists only.
 - Feature pages (page-detail, plan): the page grew by 3,015 bytes, not shrank as planned: the maker links outweigh the retired flow lines, and list two kept its reasons.
+- Product page asks (issues-home plan): the product page counts asks from HANDOFF list items, and nana-pi's HANDOFF now points to GitHub issues, so the page shows "Asks: 0" until page-on-pages reads the issues.

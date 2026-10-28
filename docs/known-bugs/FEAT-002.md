@@ -50,3 +50,13 @@
 - Frontier block (session-start-frontier, final review): an ask with bold around the tag only (`- **[blocking, since …]** text`) renders as `[blocking, since …] **** text`; the title pattern needs the title inside the bold, and the fallback strips only the tag.
 - Frontier checks (park-honestly, plan): HANDOFF's word budget stays a seat check, not a suite gate. Only 10 of 152 versions since 2026-10-06 met it, so the seat trims at each notes step.
 - Handoff store (artifact audit, 2026-10-24): nothing has written the store since 2026-09-28, and session start logs it missing. Only a pi session's compaction writes it, and builder sessions skip it (inferred).
+- Issue read (issues-home, seat check): the command seam variable `NANA_CI_RECORDS_GH_COMMAND` now also redirects the session-start issue read, so its name misleads.
+- Issue read (issues-home, seat check): a list-free Open section that links another project's GitHub issues opts in to that project's issues.
+- Issue read (issues-home, seat check): the pi path blocks session start for up to the 1.5 s read limit, longer when gh ignores the kill signal. A cold Windows start (6.4 s measured) prints the timeout line.
+- Issue read (issues-home, seat check): a spent budget reports "timeout" although gh never ran.
+- Issue read (issues-home, seat check): a mixed-case host (`GitHub.com`) stays on the legacy block.
+- Issue registry (issues-home, seat check): the registry check accepts a GitHub-issues location with text before `github:`, and `identity-scan --stdin --stdin` is accepted.
+- Issue read (issues-home, independent check): every gh failure prints the same cause, "gh failed"; the block carries no gh stderr on purpose.
+- Issue read (issues-home, independent check): a gh that ignores SIGTERM is never sent SIGKILL, so it holds up pi's session start and drops the Claude block.
+- Issue read (issues-home, independent check): on Windows gh runs as a bare name with the project root as its working folder, and the 250 ms write reserve was not measured against Windows process start (read from the code).
+- Issue read (issues-home, independent check): the name check knows four words; the owner's legal first name and the machine's hostname are left to the rule's hand check.
