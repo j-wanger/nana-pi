@@ -43,7 +43,7 @@ All work was read-only. The impact command only prints, and the worktree status 
 
 **Fix.** Use this wording: 'never a format to copy; an earlier plan only as grounding for a decision it records'. Pin that wording instead.
 
-**Evidence.** plan.md:82; lane-class plan.md:17, :88; ~/.claude/projects/-Users-jwang-nana-pi/82d91e52-19c1-4db3-a749-8181adf82a59/workflows/scripts/plan-page-detail-wf_3d75a2a7-50a.js:9 (lane one's plan used as precedent for decisions, not only form)
+**Evidence.** plan.md:82; lane-class plan.md:17, :88; <seat-home>/.claude/projects/<project-id>/workflows/scripts/plan-page-detail-wf.js:9 (lane one's plan used as precedent for decisions, not only form)
 
 ## 5. SHOULD · Missing instruction: how the planner searches code for Precedent and the test forecast (the user's code-map question)
 
@@ -59,7 +59,7 @@ All work was read-only. The impact command only prints, and the worktree status 
 
 **Fix.** Restate A3 with this evidence. Name one free check after the land: search the seat's session workflow scripts for `const FORMAT` or a `docs/reviews/.../must-meet.md` format pointer. Six such scripts exist today. This is a one-time search with no record to keep.
 
-**Evidence.** AGENTS.md:94; packages/nana-pack/tests/templates-render.test.mjs:610-615; docs/reviews/*-2026-10-2[2-8]/ (48 folders, 46 with seat-mutate or pairs files); ~/.claude/projects/-Users-jwang-nana-pi/82d91e52-19c1-4db3-a749-8181adf82a59/workflows/scripts/plan-*.js (FORMAT at :8-13)
+**Evidence.** AGENTS.md:94; packages/nana-pack/tests/templates-render.test.mjs:610-615; docs/reviews/*-2026-10-2[2-8]/ (48 folders, 46 with seat-mutate or pairs files); <seat-home>/.claude/projects/<project-id>/workflows/scripts/plan-*.js (FORMAT at :8-13)
 
 ## 7. SHOULD · Must-meets 2 to 5: test width and precedent
 

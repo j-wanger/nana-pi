@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 446 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 447 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1391,7 +1391,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
 - **errors** — Read and git failures become fail-closed result objects; pure helpers represent malformed entries as data.
-- **callers** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `scripts/deliverables.mjs`
+- **callers** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `scripts/deliverables.mjs`
 - **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/build-records-config.mjs`
@@ -2743,6 +2743,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — an assertion failure exits nonzero.
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/pipe-guard.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/planner-prompt.test.mjs`
+
+- **purpose** — Pins the planner prompt's source order, requested plan content, readings behavior and pi-worker-compatible brief form.
+- **inputs** — packages/nana-pack/prompts/planner.md, tracked repository paths, and the shared brief parser.
+- **outputs** — PASS/FAIL lines and a nonzero exit when a contract check fails.
+- **effects** — none
+- **errors** — failed assertions print FAIL and make the process exit nonzero
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/brief-precedent.mjs`
 
 ### `packages/nana-pack/tests/post-edit-default-timeout.test.mjs`
 
