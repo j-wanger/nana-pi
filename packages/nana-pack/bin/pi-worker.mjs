@@ -9,6 +9,7 @@
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { homedir, tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -32,6 +33,7 @@ import { BUILD_LEDGER_READ_MAX_BYTES, BUILD_RECORD_LINE_PREFIX, BUILD_RECORD_SCH
 import { releaseLaneLock } from '../lib/lane-lock.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { errorText } from '../lib/record-ledger.mjs';
+import { LANE_CLASS_MAX_BUFFER_BYTES, LANE_CLASS_TIMEOUT_MS } from '../lib/lane-class-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
@@ -383,6 +385,22 @@ else process.stderr.write(r.ok
 	? `[pi-worker] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath})\n`
 	: r.ceiling ? `[pi-worker] FAILED: wall-clock ceiling ${maxArg}s reached\n` : `[pi-worker] FAILED after ${w.retries + 1} attempt(s) (endpoint likely in a bad stretch)\n`);
 if (buildEndKept) process.stderr.write(`${buildEndLine()}\n`);
+if (laneMode && buildEndKept) {
+	try {
+		const present = spawnSync('git', ['cat-file', '-e', 'HEAD:scripts/lane-class.mjs'], { cwd: process.cwd(), encoding: 'utf8', timeout: LANE_CLASS_TIMEOUT_MS });
+		if (present.status === 0) {
+			const script = fileURLToPath(new URL('../../../scripts/lane-class.mjs', import.meta.url));
+			const result = spawnSync(process.execPath, ['--no-warnings', script, '--root', process.cwd()], { cwd: process.cwd(), encoding: 'utf8', timeout: LANE_CLASS_TIMEOUT_MS, maxBuffer: LANE_CLASS_MAX_BUFFER_BYTES });
+			if (result.status === 0) process.stderr.write(`${String(result.stdout ?? '').replace(/[\r\n]+$/, '')}\n`);
+			else {
+				const reason = String(result.stderr ?? '').split(/\r?\n/).find((line) => line.trim()) || result.error?.code || (result.signal ? `signal ${result.signal}` : `exit ${result.status}`);
+				process.stderr.write(`pi-worker: lane class unavailable: ${reason}\n`);
+			}
+		}
+	} catch (error) {
+		process.stderr.write(`pi-worker: lane class unavailable: ${error?.code ?? error?.message ?? 'unknown error'}\n`);
+	}
+}
 process.exit(exit);
 
 function acquireLaneLock(gitDir) {
