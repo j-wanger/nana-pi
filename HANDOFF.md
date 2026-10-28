@@ -12,7 +12,7 @@
 
 1. **Current priority: discovery (the owner, 2026-10-27).** The owner and the seat find and improve what to build, and carry what they learn into the work. First, the seat removes the ceremony it added beyond the owner's lane rulings. Review on 2026-11-10.
 2. **2026-10-23 readings, overdue:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The pull reading drops sessions named for pi-worker or pi-review; the owner then rules. If it stops, `nana-knowledge query` needs its own index refresh.
-3. **Lanes in flight (two building, one in planning).** lane-class builds. The seat plans issues-home, which makes GitHub issues the one home for open items (the owner, 2026-10-28). page-on-pages follows: the product page on GitHub Pages, rebuilt when an issue changes. Until then the seat publishes each land's report to the owner's copy.
+3. **Lanes in flight (two building, one in planning).** lane-class is in its final review. issues-home builds and is in the seat's check. The seat planned page-on-pages, which builds after issues-home lands; the owner accepted a public page without test results (issue 243). Until then the seat publishes each land's report to the owner's copy.
 4. **Windows first-try failures.** Since 2026-10-22, flaky tests failed 32 of 171 first Windows runs, about 18%. Both Windows test lanes the owner picked are on main.
 5. **Capability kinds (the owner, 2026-10-21).** Other projects gain the capability lines in place, each in its own session.
 

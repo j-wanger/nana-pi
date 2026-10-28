@@ -43,3 +43,6 @@
 - Impact artifacts (impact-artifacts, final review): R-2820's check never asserts the `—` for an artifact with no readers. It names files only by absolute path, never by a relative, `./` or native-separator form.
 - Impact artifacts (impact-artifacts, final review): R-2823's check counts one note per failure case but runs no command. Only R-1278's copied shim checks the kept output and exit code, and only for an unloadable parse.
 - Impact artifacts (impact-artifacts, final review): on a Node older than 22.18, R-1272 and R-2822 fail in the suite rather than degrade to the artifact note.
+- Lane class (lane-class): the script reads the extension folders from two manifests only, the root `package.json` and nana-stage's. A new package that declares extensions only in its own manifest is missed until the list gains it.
+- Lane class (lane-class): the script reads both manifests before any prefix rule, so a `--root` without them exits 1 even for a path a prefix rule would have classed (read from the code, not run).
+- Lane class (lane-class): R-2969's row says the project section, but its check matches the line anywhere in AGENTS.md. The byte-identical template check keeps it out of the marker region only.
