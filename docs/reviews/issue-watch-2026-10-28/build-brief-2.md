@@ -18,7 +18,6 @@ From the seat's wrong-code pairs (each was a wrong version the tests missed):
 7. **Pair L:** the watch's default gh runner is the asynchronous one; pin it without injecting a runner.
 8. **Pair O:** the command exits 0 at once with no gh call under `NANA_ROLE=worker` and `NANA_ROLE=reviewer`.
 
-Then run the seat's harness once against your result (`seat-pairs-fefea3b9.md` lists the pairs) and report which turn red.
 
 Run the locked full suite as a plain foreground command with its output on screen, not redirected to a file and not in the background. Another lane's suite may hold the machine-wide lock; waiting for it is expected.
 
@@ -26,7 +25,7 @@ Run the locked full suite as a plain foreground command with its output on scree
 
 Rows R-2990 to R-2999 stay `implemented`, R-682 stays `implemented`, and the locked full suite (`npm run test:locked`), `npm run map:check`, `npm run readme:check`, the requirements trace, the tree check, the known-bugs check and `node scripts/identity-scan.mjs` are green.
 
-Report: each fix and its test; the pairs result; the rule bullet as it now reads; each departure from the Precedent below; every existing test you changed.
+Report: each fix and its test; the rule bullet as it now reads; each departure from the Precedent below; every existing test you changed.
 
 ## Precedent
 
