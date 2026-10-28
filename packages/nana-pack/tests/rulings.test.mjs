@@ -41,6 +41,7 @@ const { ROSTER_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS } = await import(new URL(".
 
 const SHIPPED_PATH = fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url));
 const SHIPPED_TEXT = fs.readFileSync(SHIPPED_PATH, "utf8"); // READ only — never written in this file
+const PLANNER_TEXT = fs.readFileSync(fileURLToPath(new URL("../prompts/planner.md", import.meta.url)), "utf8");
 const IDENTITY_CONFIG = JSON.parse(fs.readFileSync(fileURLToPath(new URL("../../../identity-scan.config.json", import.meta.url)), "utf8"));
 
 const tmps = [];
@@ -210,6 +211,13 @@ function containsWholeWord(text, word) {
 }
 
 {
+	const counts = countIdentityWords({ content: PLANNER_TEXT, config: IDENTITY_CONFIG });
+	check("planner prompt names no owner or work project",
+		counts.every((count) => count === 0),
+		JSON.stringify({ counts }));
+}
+
+{
 	const counts = countIdentityWords({ content: SHIPPED_TEXT, config: IDENTITY_CONFIG });
 	// req: R-1415
 	check("the rulings file names no owner and no work project",
@@ -226,12 +234,28 @@ function containsWholeWord(text, word) {
 		bulletLines.length >= 1 && badBullets.length === 0,
 		JSON.stringify({ bulletCount: bulletLines.length, badBullets }),
 	);
+	const readingsRuling = "- 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.";
+	// req: R-2956
+	check("R-2956: the rulings file carries the 2026-10-28 readings ruling",
+		bulletLines.filter((line) => line === readingsRuling).length === 1,
+		JSON.stringify({ readingsRuling, matches: bulletLines.filter((line) => line.includes("readings")) }));
 	const helperRuling = "- 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.";
 	// req: R-2663
 	check("R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move",
 		bulletLines.filter((line) => line === helperRuling).length === 1,
 		JSON.stringify({ helperRuling, matches: bulletLines.filter((line) => line.includes("helper")) }),
 	);
+}
+
+{
+	// The public planner prompt follows the same model-id exclusion as the rulings file.
+	const modelIds = Object.values(ROSTER_DEFAULTS)
+		.filter((slot) => slot && typeof slot === "object" && typeof slot.model === "string")
+		.map((slot) => slot.model);
+	const shortNames = modelIds.map((id) => id.split("-").pop());
+	const modelWords = [...new Set([...modelIds, ...shortNames, ...CLAUDE_CODE_SUBAGENT_MODELS])];
+	const found = modelWords.filter((word) => containsWholeWord(PLANNER_TEXT, word));
+	check("planner prompt names no model id", found.length === 0, JSON.stringify({ found }));
 }
 
 {

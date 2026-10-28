@@ -606,6 +606,12 @@ function checkInstructionContracts() {
 		plansBullets.length === 1 &&
 		plansBullets[0].includes("Every plan names its precedent, the nearest existing code for each part by path, or none with a reason."),
 		JSON.stringify(plansBullets));
+	// req: R-2955
+	check("R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding",
+		plansBullets.length === 1 && plansBullets[0].includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
+		frontDoors[1].includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
+		markerBlock(frontDoors[1]) === shared,
+		JSON.stringify(plansBullets));
 	// req: R-1101
 	// req: R-1300
 	check("R-1300: the shared working pattern gives an ordinary lane one final reviewer, defines install, hook and gate lanes, and says plans get no review round",

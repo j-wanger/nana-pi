@@ -488,6 +488,8 @@ Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R
 Artifact: A-006 · build records · clone store: <git common dir>/nana/build-records.jsonl · build: packages/nana-pack/lib/build-records.mjs
 Artifact: A-079 · builder preamble · tracked: packages/nana-pack/prompts/builder-preamble.md · manual: edited by hand in reviewed lanes
 Artifact: A-080 · seat rule · tracked: packages/nana-setup/claude/rules/nana-seat.md · manual: edited by hand in reviewed lanes
+Artifact: A-083 · planner prompt · tracked: packages/nana-pack/prompts/planner.md · manual: edited by hand in reviewed lanes
+Read by: A-083 · rule: the Plans bullet points every planner to the prompt; no code reader by design because the planner reads its named file without a print command
 Reads: A-010 · packages/nana-pack/lib/objective.ts, packages/nana-pack/bin/pi-worker.mjs
 Reads: A-011 · packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/bin/pi-worker.mjs
 Reads: A-023 · packages/nana-pack/lib/build-records.mjs
@@ -496,6 +498,13 @@ Reads: A-061 · packages/nana-pack/bin/pi-worker.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-2950 | The planner prompt shall list its instruction sources in winning-conflict order: the owner's words for the lane, the rulings file, this project's post-marker AGENTS.md section, the shared working pattern, and the prompt itself, naming pack files through `$HOME/nana-pi/` paths. | implemented | `packages/nana-pack/tests/planner-prompt.test.mjs::R-2950: planner prompt names its sources in conflict order and resolves pack paths` |
+| R-2951 | The planner prompt shall request, in order, Purpose, marked Assumptions and Open choices, then Feature, threat model, Precedent, Outside precedent and must-meet tests, with the specified purpose for a fix. | implemented | `packages/nana-pack/tests/planner-prompt.test.mjs::R-2951: planner prompt requests the required plan sections in order` |
+| R-2952 | WHEN a new capability has no agreed reading, the planner prompt shall define an agreed reading as the owner's words already choosing one meaning and request two or three readings with consequences, a recommended pick and no plan. | implemented | `packages/nana-pack/tests/planner-prompt.test.mjs::R-2952: without an agreed reading the planner returns readings and no plan` |
+| R-2953 | The planner prompt shall state the forecast, wrong-code-pair, earlier-plan grounding and map-impact plus literal-search rules, and name no `docs/reviews/` path or `must-meet.md`. | implemented | `packages/nana-pack/tests/planner-prompt.test.mjs::R-2953: planner prompt pins its planning and forecast rules without scratch-plan pointers` |
+| R-2954 | The planner prompt shall specify parser-compatible Feature and Precedent forms, put public references under Outside precedent, and direct the planner to read the feature's known-bug file when present. | implemented | `packages/nana-pack/tests/planner-prompt.test.mjs::R-2954: a plan in the prompt form passes brief parsing and precedent checking` |
+| R-2955 | The shared and project Plans bullets shall point to the planner prompt and state that the planner gets the request and grounding, with an earlier plan only as grounding for a recorded decision, never as a format to copy. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding` |
+| R-2956 | The rulings file shall carry the owner's dated 2026-10-28 readings ruling as one exact dated bullet. | implemented | `packages/nana-pack/tests/rulings.test.mjs::R-2956: the rulings file carries the 2026-10-28 readings ruling` |
 | R-732 | pi-worker shall run a worker under the same watchdog while importing no ledger module, recording nothing and touching no ledger file. | retired | R-2603 narrows it to the review ledger; lane builds keep build records, R-2596. |
 | R-733 | pi-worker shall refuse review options before running anything. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::pi-worker refuses review options (--item)` |
 | R-734 | A worker shall succeed when pi exits 0 with non-empty output, with no review shape required. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::a worker reply with NO review token succeeds (exit 0, output written)` |
