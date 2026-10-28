@@ -33,4 +33,6 @@ export const LAUNCHED_CLIS = [
 ];
 // chosen: follow review-movement's bounded child-process pattern; five seconds comfortably exceeds local classification.
 export const LANE_CLASS_TIMEOUT_MS = 5000;
+// chosen: cap captured class output at 1 MiB, far above the line-oriented classifier's bounded report.
+export const LANE_CLASS_MAX_BUFFER_BYTES = 1024 * 1024;
 export const LANE_CLASS_BASE = "main";

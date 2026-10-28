@@ -17,7 +17,7 @@ import { defaultGit } from "./requirements-moved.mjs";
 import { CLASS_PATHS, LAUNCHED_CLIS, LANE_CLASS_BASE } from "../packages/nana-pack/lib/lane-class-config.mjs";
 
 const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-const norm = (value) => value.replace(/\\/g, "/").replace(/^(\.\/)+/, "").replace(/^\.\//, "");
+const norm = (value) => value.replace(/\\/g, "/").replace(/^(\.\/)+/, "");
 function usage() {
 	console.error("Usage: lane-class.mjs --root <dir> [--base <rev> | --files <comma-list>]");
 	return 2;
@@ -54,20 +54,24 @@ function classify(paths, root) {
 		if (rule) return { kind: rule.kind, line: `${rule.kind}: ${path} — ${rule.why}`, changed };
 	}
 	const graph = repoGraph(root);
-	const entryPaths = new Set([
-		...[...graph.modules.keys()].filter((p) => extDirs.some((d) => p.startsWith(d))),
-		...[...graph.modules.keys()].filter((p) => p.startsWith("packages/nana-setup/claude/hooks/")),
-		...LAUNCHED_CLIS,
-	]);
+	const hopSources = new Map();
+	for (const modulePath of graph.modules.keys()) {
+		if (extDirs.some((prefix) => modulePath.startsWith(prefix)) || modulePath.startsWith("packages/nana-setup/claude/hooks/")) hopSources.set(modulePath, "hook");
+		if (modulePath.startsWith("packages/nana-setup/bin/") || modulePath.startsWith("packages/nana-setup/lib/")) hopSources.set(modulePath, "install");
+		const policy = CLASS_PATHS.find(({ prefix, why }) => why === "nana-gate policy" && prefix === modulePath);
+		if (policy) hopSources.set(modulePath, "gate");
+	}
+	for (const path of LAUNCHED_CLIS) hopSources.set(path, "hook");
+	const entryPaths = new Set(hopSources.keys());
 	const toolRoots = [...graph.modules.keys()].filter((p) => CLASS_PATHS.some((r) => / tool$/.test(r.why) && p === r.prefix));
 	const direct = [];
 	const also = [];
 	for (const path of changed) {
 		const callers = [...graph.modules.values()].filter((module) => module.callees.includes(path) && !module.path.includes("/tests/") && !module.path.endsWith(".test.mjs")).map((module) => module.path).sort(cmp);
-		const starters = callers.filter((p) => entryPaths.has(p));
-		if (starters.length) direct.push({ path, importer: starters[0], kind: "hook" });
+		const starters = callers.filter((p) => entryPaths.has(p)).map((importer) => ({ path, importer, kind: hopSources.get(importer) })).sort((a, b) => cmp(a.importer, b.importer));
+		if (starters.length) direct.push(starters[0]);
 		const toolCallers = callers.filter((p) => toolRoots.includes(p));
-		if (toolCallers.length && callers.every((p) => toolRoots.includes(p))) direct.push({ path, importer: toolCallers[0], kind: "gate" });
+		if (!starters.length && toolCallers.length && callers.every((p) => toolRoots.includes(p))) direct.push({ path, importer: toolCallers[0], kind: "gate" });
 		else if (toolCallers.length) also.push(`${path} — also reaches ${toolCallers[0]}`);
 	}
 	if (direct.length) {
