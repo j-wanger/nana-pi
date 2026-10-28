@@ -8,7 +8,7 @@ The seat wrote this plan from `$HOME/nana-pi/packages/nana-pack/prompts/planner.
 
 The owner answers open questions as comments on GitHub issues. Today no session hears a comment until it next reads that issue. The owner said: "for any project converted/worked on using our process, with github issues enabled, at session start, the issue comment tracking should be automatically started". With this lane, a seat session in a project whose HANDOFF points to its issues watches for the owner's new comments from the start of the session. Each new comment reaches the seat while the session runs.
 
-The owner's reading 2 has three parts. A pack command watches and prints one line per new owner comment. In Claude Code, the session-start block names that command, and the rule says to run it as a background monitor. A Claude Code hook can only add text, so it cannot start the command itself. In pi, an extension runs the watch itself and shows each comment as a notice.
+The owner's reading 2 has three parts. A pack command watches and prints one line per new owner comment. In Claude Code, the session-start block names that command, and the rule says to run it as a background monitor. A Claude Code hook can only add text, so it cannot start the command itself. In pi, an extension runs the watch itself and hands each comment to the model (O1).
 
 ## Assumptions (any may be wrong)
 
