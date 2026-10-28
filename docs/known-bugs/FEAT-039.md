@@ -89,5 +89,14 @@
 - Feature pages (page-detail, plan): long detail pages grow; FEAT-013's gains 11 cards above its rows.
 - Feature pages (page-detail, plan): a bookmark to `#artifacts` now opens the two lists only.
 - Feature pages (page-detail, plan): the page grew by 3,015 bytes, not shrank as planned: the maker links outweigh the retired flow lines, and list two kept its reasons.
-- Public product page (FEAT-039 A2): the GitHub Pages copy has no test results; the owner accepted that limit on 2026-10-28 (issue 243).
-- Public product page (FEAT-039 N5): identity-scan reads escaped JSON, so a word fused to an escape is not counted; issue titles pass the name check before posting.
+- Public product page (page-on-pages, plan A2): the GitHub Pages copy has no test results; the owner accepted that limit on 2026-10-28 (issue 243).
+- Public product page (page-on-pages, plan attack N5): identity-scan reads escaped JSON, so a word fused to an escape is not counted; issue titles pass the name check before posting.
+- Public product page (page-on-pages, seat check): a transferred issue's title stays on the page until the next push or issue event, because `transferred` is not a trigger.
+- Public product page (page-on-pages, seat check): an issue with an unreadable creation date stops the whole page with a HANDOFF line error, so that Pages run fails.
+- Public product page (page-on-pages, seat check): every ask moved from HANDOFF shows the migration day, 2026-10-28, as its Since date; the issue body holds the real date.
+- Public product page (page-on-pages, seat check): a failed issue read prints nothing in the CI log; only the page shows it.
+- Public product page (page-on-pages, seat check): blocking asks are not listed first in Decisions.
+- Public product page (page-on-pages, seat check): the page loads Google Fonts, so each visitor's browser contacts a third party.
+- Public product page (page-on-pages, seat check): the report's catch path would put a raw error message on the page; today the issue reader never throws.
+- Public product page (page-on-pages, seat check): anyone who opens an issue on the public repo starts a build and a deploy; the queue keeps one pending run.
+- Public product page (page-on-pages, seat check): an issue ask draws no Ask line, and the issue body never reaches the page.

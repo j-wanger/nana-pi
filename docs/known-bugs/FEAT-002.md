@@ -61,3 +61,5 @@
 - Issue read (issues-home, independent check): a gh that ignores SIGTERM is never sent SIGKILL, so it holds up pi's session start and drops the Claude block.
 - Issue read (issues-home, independent check): on Windows gh runs as a bare name with the project root as its working folder, and the 250 ms write reserve was not measured against Windows process start (read from the code).
 - Issue read (issues-home, independent check): the name check knows four words; the owner's legal first name and the machine's hostname are left to the rule's hand check.
+- Carry rule (posting-rule, final review): the rule names "the seat", so a plain session that launches nothing could read itself as out of scope.
+- Carry rule (posting-rule, final review): an item whose post failed lives only in that report, so the next cold session cannot see it.
