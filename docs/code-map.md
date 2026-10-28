@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 457 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 458 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -673,12 +673,12 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/product-report.mjs`
 
 - **purpose** — Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
-- **inputs** — REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
+- **inputs** — REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional GitHub issue reader and CI budget, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
 - **outputs** — A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
 - **callers** — `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/test-locked.mjs`
-- **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/readme-check.mjs`
 
@@ -1501,7 +1501,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Frontier tag, heading, section, marker, framing, caps, file name, roles and ask priority.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/bin/nana-issue-watch.mjs`, `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/bin/nana-issue-watch.mjs`, `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/frontier-summary.mjs`
@@ -1601,7 +1601,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Null for legacy projects, or a pointer, filtered issue titles, cap warning and named read failure.
 - **effects** — process (bounded gh), network (through gh).
 - **errors** — Missing gh, timeout, nonzero exit, organization authors and unreadable data become one status line.
-- **callers** — `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`
+- **callers** — `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `scripts/product-report.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/issue-watch.mjs`
@@ -1661,7 +1661,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Process bounds, CI scope, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/gh-runner-async.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/ci-records.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/gh-runner-async.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/ci-records.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/land-records-config.mjs`
@@ -2794,6 +2794,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
+### `packages/nana-pack/tests/pages-workflow.test.mjs`
+
+- **purpose** — Pins the public product-page workflow's triggers, permissions, branch gate and identity scan.
+- **inputs** — The repository's Pages workflow file.
+- **outputs** — Requirement-tagged PASS/FAIL checks.
+- **effects** — disk (reads the workflow).
+- **errors** — Failed assertions set a nonzero exit.
+- **callers** — —
+- **callees** — —
+
 ### `packages/nana-pack/tests/path-spelling.test.mjs`
 
 - **purpose** — Pins GP1-GP7 (W7c): the land and review tools treat two spellings of one folder — another letter case, an 8.3 short name, a link, a `\\?\` prefix or another Unicode form — as one folder.
@@ -2962,7 +2972,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixture repositories); process (git commands).
 - **errors** — failed assertions set a nonzero test exit.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/pwsh-oracle.mjs`
 

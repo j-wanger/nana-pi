@@ -178,6 +178,12 @@ await check("R-2978: GitHub issue artifacts require the sealed location shape an
 	assert.equal(entry?.featureId, "FEAT-002"); assert.equal(entry.run, "manual");
 	assert(text.includes(`Read by: ${entry.id} · code: packages/nana-pack/lib/handoff-issues.mjs`));
 });
+// req: R-2984
+await check("R-2984: issue reader ceiling defaults to the session limit and accepts the CI ceiling", () => {
+	const budgets = [];
+	for (const options of [{}, { ceilingMs: 30_000 }]) readHandoffIssues({ text: pointer(), cwd: TD, clock: () => 0, runGh: (_cwd, _args, runOptions) => { budgets.push(runOptions.timeoutMs); return { status: 1, stdout: "" }; }, ...options });
+	assert.deepEqual(budgets, [config.ISSUES_READ_LIMIT_MS, 30_000]);
+});
 // req: R-2979
 await check("R-2979: seal issue read limit at 1500 ms", () => assert.equal(config.ISSUES_READ_LIMIT_MS, 1500));
 // req: R-2979

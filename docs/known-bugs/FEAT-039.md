@@ -39,9 +39,7 @@
 - Artifact age (report-deliverables, final review): every report build walks the whole history once, even for one named artifact. Passing the path to git would shrink the walk but changes which merge side it follows.
 - Not-passed rule (audit re-check, 2026-10-22): the artifact audit asked that one failing run not mark a requirement failed until a second run confirms it; no lane built that.
 - Product view (park-deliverables, plan): a parked deliverable keeps both code marks; its Product line says parked, and its park line shows as a claim on its home feature's page.
-- Product report at land (report-at-land, plan): the owner's copy changes only when the seat publishes the land-written page. No code can update it.
-- Product report at land (report-at-land, attack): nana-land can refuse a land after its suite passed. The page then names a tip that never landed, until the next land. The seat checks the page's commit against main before it publishes.
-- Product report at land (report-at-land, plan): only the locked suite writes the page. A land run with another suite command, a hand measure and CI write none.
+- Product report at land (report-at-land, plan): only the locked suite writes the land report. A land run with another suite command or a hand measure writes none.
 - Product report at land (report-at-land, plan): if the report module fails to load, the land prints a note, but no test pins that path.
 - Product report at land (report-at-land, attack): inner test runs stay off the real page only because the test runner clears every nana variable. A test file run alone with a land tip set would write it.
 - Product report at land (report-at-land, attack): the page adds about 1 to 2.6 seconds to each land on macOS. Nobody has measured it on Windows.
@@ -91,4 +89,14 @@
 - Feature pages (page-detail, plan): long detail pages grow; FEAT-013's gains 11 cards above its rows.
 - Feature pages (page-detail, plan): a bookmark to `#artifacts` now opens the two lists only.
 - Feature pages (page-detail, plan): the page grew by 3,015 bytes, not shrank as planned: the maker links outweigh the retired flow lines, and list two kept its reasons.
-- Product page asks (issues-home plan): the product page counts asks from HANDOFF list items, and nana-pi's HANDOFF now points to GitHub issues, so the page shows "Asks: 0" until page-on-pages reads the issues.
+- Public product page (page-on-pages, plan A2): the GitHub Pages copy has no test results; the owner accepted that limit on 2026-10-28 (issue 243).
+- Public product page (page-on-pages, plan attack N5): identity-scan reads escaped JSON, so a word fused to an escape is not counted; issue titles pass the name check before posting.
+- Public product page (page-on-pages, seat check): a transferred issue's title stays on the page until the next push or issue event, because `transferred` is not a trigger.
+- Public product page (page-on-pages, seat check): an issue with an unreadable creation date stops the whole page with a HANDOFF line error, so that Pages run fails.
+- Public product page (page-on-pages, seat check): every ask moved from HANDOFF shows the migration day, 2026-10-28, as its Since date; the issue body holds the real date.
+- Public product page (page-on-pages, seat check): a failed issue read prints nothing in the CI log; only the page shows it.
+- Public product page (page-on-pages, seat check): blocking asks are not listed first in Decisions.
+- Public product page (page-on-pages, seat check): the page loads Google Fonts, so each visitor's browser contacts a third party.
+- Public product page (page-on-pages, seat check): the report's catch path would put a raw error message on the page; today the issue reader never throws.
+- Public product page (page-on-pages, seat check): anyone who opens an issue on the public repo starts a build and a deploy; the queue keeps one pending run.
+- Public product page (page-on-pages, seat check): an issue ask draws no Ask line, and the issue body never reaches the page.

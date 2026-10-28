@@ -1,0 +1,52 @@
+name: github-pages
+on:
+  push:
+    branches: [main]
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled, deleted]
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build product page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/product-report.mjs --out site/index.html
+      - name: Check page identity
+        run: node scripts/identity-scan.mjs --stdin --root . < site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

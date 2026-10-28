@@ -2,7 +2,7 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
+ * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional GitHub issue reader and CI budget, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
  * @outputs A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
  * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
@@ -17,6 +17,8 @@ import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactReads, artifactRegistr
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
+import { issuesPointer, readHandoffIssues } from "../packages/nana-pack/lib/handoff-issues.mjs";
+import { CI_READ_TIMEOUT_MS } from "../packages/nana-pack/lib/land-config.mjs";
 import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { GITHUB_REMOTE } from "../packages/nana-pack/lib/land-ci.mjs";
@@ -440,7 +442,9 @@ export function renderInto(document, model, { hash = "" } = {}) {
     }
   }
   if (view === "decisions") {
-    for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
+    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url || ask.body) paragraph(card, "Ask", ask.body ?? ""); }
+    if (model.nextItems?.length) { el("h3", "Next", root); const list = el("ul", undefined, root); for (const item of model.nextItems) { const li = el("li", undefined, list); const link = el("a", `#${item.number} ${item.title}`, li); link.setAttribute("href", item.url); } }
+    if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
     const NO_OPEN_QUESTIONS = "Open questions: none recorded in REQUIREMENTS.md";
     const questions = model.questions ?? [];
@@ -636,7 +640,7 @@ export function validateStore({ root = REPO_ROOT, storePath, gitRunner = (args, 
   return problems;
 }
 
-export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options) => spawnSync("git", args, options) } = {}) {
+export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options) => spawnSync("git", args, options), readIssues = (options) => readHandoffIssues(options), env = process.env } = {}) {
   const ledgerText = normalise(await readFile(path.join(root, "REQUIREMENTS.md"), "utf8"));
   const readProblem = ledgerReadProblem(ledgerText, parseLedger(ledgerText));
   if (readProblem) throw new Error(readProblem);
@@ -656,7 +660,15 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     .map((file) => pathsCarryPrefix ? file.slice(ledgerPrefix.length) : file);
   const rows = readRequirementRows(parsed);
   const handoff = await readFile(path.join(root, "HANDOFF.md"), "utf8");
-  const asks = splitOpenSection(handoff);
+  const pointer = issuesPointer(handoff);
+  let issueData = null;
+  if (pointer) {
+    try { issueData = await readIssues({ text: handoff, pointer, cwd: root, env, ceilingMs: CI_READ_TIMEOUT_MS }); }
+    catch (error) { issueData = { ...pointer, failure: `Open issues: unavailable (${String(error?.message || "gh failed").replace(/[\r\n]/g, " ")}); see ${pointer.url}` }; }
+  }
+  const asks = pointer
+    ? (issueData?.items ?? []).filter((item) => item.kind !== "next").map((item) => ({ tag: { kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, title: { title: item.title, body: "", kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }))
+    : splitOpenSection(handoff);
   for (const ask of asks) {
     if (!ask.tag || !ask.title || !validDate(ask.tag.since) || ask.tag.kind !== ask.title.kind || ask.tag.since !== ask.title.since) {
       throw new Error(`HANDOFF.md line ${ask.line}: malformed Open for the owner entry`);
@@ -966,7 +978,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const notMeasured = unmeasured.filter((entry) => ages.get(`registry:${entry.id}`)?.startsWith(AGE_NOT_MEASURED_PREFIX)).length;
   const hasDeliverables = check.deliverableFieldLineCount > 0;
   const overviewLines = [
-    [line(`${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
+    [line(issueData?.failure ? `${labels.asks}: unknown · ${issueData.failure}` : `${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
       ...blocking.map((ask) => line(`${labels.mustDecide}: ${ask.title.title} · ${labels.since} ${ask.tag.since}`)), line(`${labels.questions}: ${questions.length}`)],
     [line(`${labels.violated}: ${violated.length}`), ...idsLine(violated),
       line(`${labels.notPassed}: ${runtimeData ? `${notPassed.length} · ${labels.failed}: ${failed} · ${labels.skippedOnly}: ${notPassed.length - failed} · ${labels.noRun}: ${noRun} · ${ages.get("overview:runtime")}` : `${labels.runtimeMissing}${runtimeReason}`}`), ...idsLine(notPassed)],
@@ -979,7 +991,11 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     hasDeliverables ? [line(deliverableLines[0]), ...check.byCapability.map((capability) => line(`${capability.id} · ${capabilityById.get(capability.id).label}: ${capability.countText}`))] : [line(labels.noDeliverables)],
   ];
   const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));
-  const model = { commit, date, clean: !dirty, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), questions, files: Object.fromEntries(files), runtime: { legend } };
+  const issueItems = issueData?.items ?? [];
+  const issueAsks = asks.map((ask) => ({ kind: ask.tag.kind, since: ask.tag.since, title: ask.title.title, body: ask.title.body, url: ask.url ?? null }));
+  const nextItems = issueItems.filter((item) => item.kind === "next").map((item) => ({ ...item, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }));
+  const issueNotice = issueData?.failure ?? (issueData?.truncated ? "Open issues may be longer than the fetched list." : null);
+  const model = { commit, date, clean: !dirty, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
@@ -1020,8 +1036,8 @@ export async function generatePackets({ root = REPO_ROOT, dir, gitRunner = (args
   return packets.map(({ filename }) => path.join(target, filename));
 }
 
-export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitRunner } = {}) {
-  const { model, template } = await buildReport({ root, ...(gitRunner ? { gitRunner } : {}) });
+export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitRunner, readIssues, env } = {}) {
+  const { model, template } = await buildReport({ root, ...(gitRunner ? { gitRunner } : {}), ...(readIssues ? { readIssues } : {}), ...(env ? { env } : {}) });
   const payload = JSON.stringify(model).replaceAll("<", "\\u003c");
   const html = template.replace("__REPORT_DATA__", () => payload).replace("__RENDERER__", () => String(renderInto));
   const target = path.isAbsolute(out) ? out : path.resolve(root, out);
