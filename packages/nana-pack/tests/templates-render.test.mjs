@@ -532,8 +532,10 @@ function checkInstructionContracts() {
 		/Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul) &&
 		[soul, shared, frontDoors[1]].every((text) => {
 			const sentences = [
-				"Record each unresolved item and each open question on one HANDOFF line under Next or Open for the owner.",
-				"Only the seat posts one issue each where the HANDOFF points to its issues, from the owner's gh account.",
+				"Where the HANDOFF points to its issues, the seat posts each unresolved item and open question as one issue, never a HANDOFF line.",
+				"Otherwise the seat writes each on one HANDOFF line under Next or Open for the owner.",
+				"Only the seat posts, from the owner's gh account.",
+				"If posting fails, the report lists the item and the reason.",
 				"Builders and reviewers put open questions in their report.",
 				"Issues and the replies on them are public.",
 				"Label an ask `ask` plus one of `blocking`, `optional` or `parked`, or label a next item `next`.",
@@ -545,7 +547,10 @@ function checkInstructionContracts() {
 				"Delete a wrong post, never edit it.",
 				"Before acting on an open ask, read its replies with `gh issue view <number> --comments`.",
 			];
-			return text.includes(sentences.join(" ")) && sentences.every((sentence) => sentence.split(/\s+/).length < 25);
+			return text.includes(sentences.join(" ")) &&
+				!text.includes("Record each unresolved item and each open question on one HANDOFF line") &&
+				!text.includes("Only the seat posts one issue each where") &&
+				sentences.every((sentence) => sentence.split(/\s+/).length < 25);
 		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	// req: R-683
