@@ -165,6 +165,9 @@ function runCli(argv) {
 	let options;
 	try {
 		options = parseArgs(argv);
+		if (!fs.existsSync(options.root) || !fs.statSync(options.root).isDirectory()) {
+			throw new Error(`${usage()}\n--root must name an existing directory`);
+		}
 	} catch (error) {
 		console.error(error.message);
 		return 2;

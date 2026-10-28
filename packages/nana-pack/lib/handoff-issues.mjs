@@ -18,7 +18,7 @@ export function issuesPointer(text) {
 	if (!sections.length || sections.some((section) => section.entries.length)) return null;
 	const body = sections.map((section) => section.body).join("\n");
 	if (!body.includes("github.com")) return null;
-	const match = /https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9_.-]+)\/issues\/?(?=$|[\s?#<>).])/m.exec(body);
+	const match = /https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9_.-]+)\/issues\/?(?=$|[\s?#<>).`*"',:;])/m.exec(body);
 	if (!match) return { failure: "Open issues: issues pointer unreadable." };
 	return { owner: match[1], repo: match[2], url: `https://github.com/${match[1]}/${match[2]}/issues` };
 }

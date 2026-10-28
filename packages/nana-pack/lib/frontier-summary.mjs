@@ -58,7 +58,7 @@ function renderBlock(file, result, next, asks, selected, issues) {
 	}
 	if (next.length === 0) { if (!issues?.failure) out.push("Next: none found."); }
 	else out.push(`Next (${next.length}):`, ...selectedNext.map((item) => `- ${item.rendered}`));
-	out.push("");
+	if (!issues?.failure || next.length) out.push("");
 	if (issues && !issues.failure) {
 		out.push(asks.length ? `Open for the owner (${asks.length}):` : "Open for the owner: none found.");
 		out.push(...selectedAsks.filter((item) => item.tag?.kind !== "blocking").map((item) => `- [${item.tag.kind}] ${item.rendered}`));

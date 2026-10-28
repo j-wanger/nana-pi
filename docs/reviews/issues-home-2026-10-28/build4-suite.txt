@@ -1,0 +1,9 @@
+Command: npm run test:locked
+Execution: plain foreground command; complete output on screen; one machine-wide lock.
+Exit: 0
+First run, before staging evidence:
+229 files: 227 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8605 pass, 0 fail, 44 skip · 564.3s
+Second run, with normalized evidence staged, exit 0:
+229 files: 227 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8605 pass, 0 fail, 44 skip · 565.0s
+suite record: baseline 08b04ae5 age 0h coverage yes wall 561.3s -> 565s; slower: none
+suite record: 227 PASS, 0 FAIL; failed: none; passed only without coverage: none; this lane: 5 full runs, 46.8 min

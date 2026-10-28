@@ -531,7 +531,7 @@ function checkInstructionContracts() {
 	check("soul continuity rule records carry before reports and session boundaries",
 		/Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul) &&
 		[soul, shared, frontDoors[1]].every((text) => [
-			"Record every unresolved item and every open question to the owner on one HANDOFF line each.",
+			"Record each unresolved item and each open question on one HANDOFF line under Next or Open for the owner.",
 			"Or write one issue each where the HANDOFF points to its issues.",
 			"Issues and the replies on them are public.",
 			'First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`.',

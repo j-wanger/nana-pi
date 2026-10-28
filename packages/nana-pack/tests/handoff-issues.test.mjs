@@ -54,7 +54,7 @@ await check("R-2970: only list-free issue pointers opt in and legacy bytes stay 
 	const legacy = block();
 	assert.equal(legacy, `## Project frontier (nana)\n\nRead from ${file} at session start. ${config.FRONTIER_DATA_NOTE}\n\nNext (1):\n- Local next\n\nOpen for the owner (1: 1 optional):\n- [optional, since 2026-10-01] Local ask\nFrontier check: summary words=17 budget=1200 findings=0\n`);
 	fs.appendFileSync(file, `Paragraph ${url}\n`); assert.equal(block(), legacy.replace("words=17", "words=19")); assert.equal(calls().length, 0);
-	for (const link of [url, `${url}/`, `<${url}>`, `[issues](${url})`, `${url}?q=is%3Aopen`]) {
+	for (const link of [url, `${url}/`, `<${url}>`, `[issues](${url})`, `${url}?q=is%3Aopen`, `\`${url}\``, `**${url}**`, `"${url}"`, `'${url}'`, `${url},`, `${url}:`, `${url};`]) {
 		for (const ending of ["\n", "\r\n"]) {
 			fs.writeFileSync(file, pointer(link).trimEnd().split("\n").map((line) => line + " \t").join(ending));
 			assert.match(block({ rows: [issue(1, "Remote ask", ["ask"])] }), /Remote ask/);
@@ -89,7 +89,9 @@ await check("R-2972: issue titles appear once within caps with blocking then nex
 	for (const title of ["Other ask", "Remote next", "Blocking ask"]) assert.equal(out.split(title).length - 1, 1);
 	assert(out.indexOf("Blocking ask") < out.indexOf("Remote next") && out.indexOf("Remote next") < out.indexOf("Other ask"));
 	assert(out.indexOf("Other ask") < out.indexOf("Parked ask"));
-	assert.match(out, /Next/); assert.match(out, /Local next/); assert.match(out, /Frontier check:/);
+	assert.match(out, /Next \(2\):\n- Local next\n- Remote next\n\nOpen for the owner/);
+	assert(!out.slice(out.indexOf("Open for the owner (")).includes("[next]"));
+	assert.match(out, /Frontier check:/);
 	const long = block({ rows: Array.from({ length: config.ISSUES_FETCH_CAP }, (_, i) => issue(i, `Title ${i} ` + "x".repeat(300) + "\ncontrol", ["ask"])) });
 	assert(long.length <= config.FRONTIER_OUTPUT_CAP); assert.match(long, /more titles not shown/);
 	for (const line of long.split("\n").filter((line) => line.startsWith("- ["))) assert(line.length <= config.FRONTIER_TITLE_CAP + 40);
@@ -99,17 +101,31 @@ await check("R-2973: issue failures name cause time and URL without losing Next 
 	fs.writeFileSync(file, pointer());
 	const states = [[{ env: { ...envFor(), [GH_COMMAND_ENV]: JSON.stringify([path.join(TD, "missing")]) } }, /cannot start gh/], [{}, /gh failed/], [{}, /unreadable/], [{}, /author filter cannot apply/], [{}, /timeout/], [{}, /unreadable/], [{}, /unreadable/], [{}, /gh failed/]];
 	const answers = [{}, { status: 4, stderr: "not signed in" }, { stdout: "not JSON" }, { rows: [], ownerType: { stdout: "Organization" } }, { sleep: 5000 }, { stdout: "{}" }, { rows: [{ ...issue(1, "Bad shape", ["ask"]), labels: null }] }, { status: 1, stderr: "organization access denied" }];
+	states.push([{}, /gh failed/], [{}, /unreadable output/]);
+	answers.push({ rows: [], ownerType: { status: 1, stderr: "probe failed" } }, { rows: [], ownerType: { stdout: "Bot\r\n" } });
 	states.forEach(([options, cause], i) => {
 		fs.rmSync(log, { force: true });
 		const out = block(answers[i], options);
-		if (i === 3) assert.deepEqual(calls().at(-1), ["api", "--hostname", "github.com", "users/example", "--jq", ".type"]);
+		if ([3, 8, 9].includes(i)) assert.deepEqual(calls().at(-1), ["api", "--hostname", "github.com", "users/example", "--jq", ".type"]);
 		if (i === 4) assert.equal(calls().length, 1, "timeout must spawn gh with budget remaining");
 		const lines = out.split("\n").filter((line) => line.startsWith("Open issues: unavailable"));
 		assert.equal(lines.length, 1); assert.match(lines[0], cause); assert.match(lines[0], /after \d+ ms/); assert(lines[0].includes(url));
 		assert.match(out, /Local next/); assert.match(out, /Frontier check:/); assert(!out.includes("none found"));
 	});
+	let spentNow = 0;
+	const spentCalls = [];
+	const spent = block({}, { readIssues: (options) => readHandoffIssues({ ...options, clock: () => spentNow, runGh: (_cwd, args) => {
+		spentCalls.push(args[0]);
+		spentNow = config.ISSUES_READ_LIMIT_MS;
+		return { status: 0, stdout: args[0] === "issue" ? "[]" : "User" };
+	} }) });
+	assert.deepEqual(spentCalls, ["issue"], "spent budget must not start the owner probe");
+	assert.match(spent, /Open issues: unavailable \(timeout, after \d+ ms\); see https:\/\/github.com\/example\/project\/issues/);
+	assert.match(spent, /Next \(1\):\n- Local next/); assert.match(spent, /Frontier check:/); assert(!spent.includes("none found"));
 	fs.writeFileSync(file, pointer().replace("- Local next\n", ""));
-	assert(!block({ status: 1 }).includes("none found"));
+	const emptyFailure = block({ status: 1 });
+	assert(!emptyFailure.includes("none found"));
+	assert.match(emptyFailure, /Open issues: unavailable[^\n]*\n\nFrontier check:/);
 	const budgets = [];
 	let now = 0;
 	const result = readHandoffIssues({ text: pointer(), cwd: TD, clock: () => now, runGh: (_cwd, args, options) => {

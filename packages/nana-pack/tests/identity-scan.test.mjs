@@ -32,10 +32,11 @@ const digest = (word) => createHash("sha256").update(word.toLowerCase()).digest(
  const clean = run(["--stdin"], "nothing personal");
  const hits = ["quux quux", "quux \t\r\nquux \t", "quux\nquux\n"].map((input) => run(["--stdin"], input));
  const bad = run(["--stdin", "--unknown"], "quux");
+ const missing = [[], ["--stdin"]].map((args) => spawnSync(process.execPath, [cli, "--root", path.join(root, "missing"), ...args], { input: "quux", encoding: "utf8", timeout: 10000 }));
  // req: R-2976
  check("R-2976: stdin scan prints only hit indices and counts with clean hit and bad-use exits",
-  clean.status === 0 && clean.stdout === "" && clean.stderr === "" && hits.every((hit) => hit.status === 1 && hit.stdout === "wordIndex=0 count=2\n" && !hit.stderr) && bad.status === 2 && ![clean, ...hits, bad].some((result) => /\b(?:quux|nothing|personal)\b/.test(result.stdout + result.stderr)),
-  JSON.stringify({ clean, hits, bad }));
+  clean.status === 0 && clean.stdout === "" && clean.stderr === "" && hits.every((hit) => hit.status === 1 && hit.stdout === "wordIndex=0 count=2\n" && !hit.stderr) && bad.status === 2 && missing.every((result) => result.status === 2 && result.stdout === "") && ![clean, ...hits, bad, ...missing].some((result) => /\b(?:quux|nothing|personal)\b/.test(result.stdout + result.stderr)),
+  JSON.stringify({ clean, hits, bad, missing }));
  fs.rmSync(root, { recursive: true, force: true });
 }
 
