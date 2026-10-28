@@ -31,6 +31,7 @@ import { storeSuiteRecord } from "../lib/suite-records.mjs";
 import { RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
 import { buildRecordsPath } from "../lib/build-records.mjs";
 import { BUILD_RECORD_SCHEMA } from "../lib/build-records-config.mjs";
+import { CI_READ_TIMEOUT_MS } from "../lib/land-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const temp = tmpDir(path.join(os.tmpdir(), "product-report-"));
@@ -1073,7 +1074,7 @@ try {
     const historicalLedger = spawnSync("git", ["show", "5548d4c2:REQUIREMENTS.md"], { cwd: ROOT, encoding: "utf8" }).stdout;
     const historical = treeFixture("historical-stage-order", historicalLedger, fs.readFileSync(path.join(ROOT, "HANDOFF.md"), "utf8"));
     const historicalOut = path.join(temp, "historical-stage-order.html");
-    await generateReport({ root: historical.root, out: historicalOut });
+    await generateReport({ root: historical.root, out: historicalOut, readIssues: async () => null });
     const oldProduct = renderHtmlAt(fs.readFileSync(historicalOut, "utf8"), "#product");
     const oldCapabilityIds = parseLedger(historicalLedger).headings.filter((heading) => heading.id.startsWith("CAP-")).map((heading) => heading.id);
     const oldCards = capabilityCards(oldProduct);
@@ -1803,26 +1804,44 @@ try {
     await generateReport({ root: repo.root, out, readIssues: async (options) => { seen.push(options); return readHandoffIssues({ ...options, runGh: () => ({ status: 0, stdout: JSON.stringify(items) }) }); } });
     const model = JSON.parse(fs.readFileSync(out, "utf8").match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/)?.[1] ?? "{}");
     const decisions = renderHtmlAt(fs.readFileSync(out, "utf8"), "#decisions");
+    const overview = renderHtmlAt(fs.readFileSync(out, "utf8"), "#overview");
+    const askCard = decisions.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === "Owner ask"));
+    const overviewAsks = overview.nodes.find((node) => node.tag === "li" && node.textContent.startsWith("Asks:"))?.textContent;
+    const belowOut = path.join(temp, "pages-issues-below-cap.html");
+    await generateReport({ root: repo.root, out: belowOut, readIssues: async () => ({ url: "https://github.com/example-org/example-repo/issues", items: [{ number: 11, title: "Owner ask", kind: "blocking", createdAt: "2026-10-20" }], truncated: false }) });
+    const belowDecisions = renderHtmlAt(fs.readFileSync(belowOut, "utf8"), "#decisions");
     // req: R-2981
-    check("R-2981: issue asks are filtered and show date, kind and issue link with a cap warning", model.asks.length === 1 && model.asks[0].title === "Owner ask" && model.asks[0].since === "2026-10-20" && model.asks[0].url.endsWith("/11") && model.issueNotice.includes("may be longer") && seen[0]?.limitMs === undefined && seen[0]?.ceilingMs === 30_000 && decisions.nodes.some((node) => node.tag === "a" && node.attrs.href.endsWith("/11")), JSON.stringify({ asks: model.asks, next: model.nextItems, notice: model.issueNotice, seen, nodes: decisions.nodes.map((node) => node.textContent) }));
+    check("R-2981: issue asks are filtered and drawn with kind, date, link, counts and cap warning", model.asks.length === 1 && model.asks[0].title === "Owner ask" && model.asks[0].since === "2026-10-20" && model.asks[0].url.endsWith("/11") && model.issueNotice.includes("may be longer") && seen[0]?.limitMs === undefined && seen[0]?.ceilingMs === CI_READ_TIMEOUT_MS && askCard?.children.some((node) => node.textContent === "Kind: blocking") && askCard?.children.some((node) => node.tag === "h3" && node.children.some((link) => link.tag === "a" && link.attrs.href.endsWith("/11"))) && overviewAsks === "Asks: 1 · blocking (must decide): 1 · optional: 0 · parked: 0" && decisions.nodes.some((node) => node.textContent === "Open issues may be longer than the fetched list.") && !belowDecisions.nodes.some((node) => node.textContent === "Open issues may be longer than the fetched list."), JSON.stringify({ asks: model.asks, next: model.nextItems, notice: model.issueNotice, seen, overviewAsks, card: askCard?.textContent }));
     // req: R-2982
     check("R-2982: Decisions lists each open next issue as a linked item", model.nextItems.length === 1 && model.nextItems[0].title === "Owner next" && model.nextItems[0].url.endsWith("/12") && decisions.nodes.some((node) => node.tag === "a" && node.attrs.href.endsWith("/12")), JSON.stringify({ next: model.nextItems, nodes: decisions.nodes.map((node) => node.textContent) }));
   });
   await withinCaseLimit("R-2983", async () => {
     const repo = fixture("pages-legacy"); let calls = 0;
+    fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for the owner\n- **[optional, since 2026-10-10] Fixture question.**\n");
     const before = path.join(temp, "pages-legacy-before.html"), after = path.join(temp, "pages-legacy-after.html");
     await generateReport({ root: repo.root, out: before });
     await generateReport({ root: repo.root, out: after, readIssues: () => { calls++; throw new Error("must not call"); } });
     const report = await buildReport({ root: repo.root });
+    const drawn = renderHtmlAt(fs.readFileSync(after, "utf8"), "#decisions");
+    const askCard = drawn.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === "Fixture question"));
+    const drawnText = askCard?.children.map((node) => node.textContent).join("\n");
+    const expectedText = "Fixture question\nKind: optional\nSince: 2026-10-10\nAsk: ";
     // req: R-2983
-    check("R-2983: list-based HANDOFF retains report bytes and does not invoke the issue reader", calls === 0 && report.asks.some((ask) => ask.title === "Fixture question") && fs.readFileSync(before, "utf8") === fs.readFileSync(after, "utf8"));
+    check("R-2983: list-ask Decisions drawing matches main's captured text", calls === 0 && report.asks.some((ask) => ask.title === "Fixture question") && !Object.hasOwn(report, "nextItems") && !Object.hasOwn(report, "issueNotice") && fs.readFileSync(before, "utf8") === fs.readFileSync(after, "utf8") && askCard?.children[0]?.tag === "h3" && drawnText === expectedText, JSON.stringify({ drawnText, expectedText }));
   });
   await withinCaseLimit("R-2984", async () => {
     const repo = fixture("pages-failed-read");
     fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for the owner\nhttps://github.com/example-org/example-repo/issues\n");
-    const report = await buildReport({ root: repo.root, readIssues: async (options) => { assert.equal(options.limitMs, undefined); assert.equal(options.ceilingMs, 30_000); throw new Error("timeout"); } });
+    const report = await buildReport({ root: repo.root, readIssues: async (options) => { assert.equal(options.limitMs, undefined); assert.equal(options.ceilingMs, CI_READ_TIMEOUT_MS); throw new Error("timeout"); } });
+    const out = path.join(temp, "pages-failed-read.html");
+    await generateReport({ root: repo.root, out, readIssues: async () => { throw new Error("timeout"); } });
+    const html = fs.readFileSync(out, "utf8");
+    const overview = renderHtmlAt(html, "#overview");
+    const issues = renderHtmlAt(html, "#issues");
+    const asksLine = overview.nodes.find((node) => node.tag === "li" && node.textContent.startsWith("Asks:"))?.textContent;
+    const issueParagraph = issues.nodes.find((node) => node.tag === "p" && node.textContent.startsWith("Issues:"))?.textContent;
     // req: R-2984
-    check("R-2984: report gives the reader CI budget and renders a failed read without failing", report.issueNotice?.startsWith("Open issues: unavailable") && report.issueNotice.includes("timeout"), report.issueNotice);
+    check("R-2984: failed issue read renders an unknown Overview count and drawn Issues notice", report.issueNotice?.startsWith("Open issues: unavailable") && report.issueNotice.includes("timeout") && asksLine?.includes("unknown") && asksLine.includes("unavailable (timeout)") && !asksLine.includes(": 0") && issueParagraph?.includes("unavailable (timeout)") && !html.includes("after 0 ms"), JSON.stringify({ notice: report.issueNotice, asksLine, issueParagraph }));
   });
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;

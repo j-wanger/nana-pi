@@ -442,7 +442,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
     }
   }
   if (view === "decisions") {
-    for (const ask of model.asks) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); if (ask.url) { const link = el("a", ask.title, heading); link.setAttribute("href", ask.url); } else el("span", ask.title, heading); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (ask.body) paragraph(card, "Ask", ask.body); }
+    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body ?? ""); }
     if (model.nextItems?.length) { el("h3", "Next", root); const list = el("ul", undefined, root); for (const item of model.nextItems) { const li = el("li", undefined, list); const link = el("a", `#${item.number} ${item.title}`, li); link.setAttribute("href", item.url); } }
     if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
@@ -530,6 +530,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
     el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
   }
   if (view === "issues") {
+    if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
     for (const item of model.violated) row(root, item);
     // contract (R-1655): declared inside renderInto, which runs through String() on the page —
@@ -978,7 +979,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const notMeasured = unmeasured.filter((entry) => ages.get(`registry:${entry.id}`)?.startsWith(AGE_NOT_MEASURED_PREFIX)).length;
   const hasDeliverables = check.deliverableFieldLineCount > 0;
   const overviewLines = [
-    [line(`${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
+    [line(issueData?.failure ? `${labels.asks}: unknown · ${issueData.failure}` : `${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
       ...blocking.map((ask) => line(`${labels.mustDecide}: ${ask.title.title} · ${labels.since} ${ask.tag.since}`)), line(`${labels.questions}: ${questions.length}`)],
     [line(`${labels.violated}: ${violated.length}`), ...idsLine(violated),
       line(`${labels.notPassed}: ${runtimeData ? `${notPassed.length} · ${labels.failed}: ${failed} · ${labels.skippedOnly}: ${notPassed.length - failed} · ${labels.noRun}: ${noRun} · ${ages.get("overview:runtime")}` : `${labels.runtimeMissing}${runtimeReason}`}`), ...idsLine(notPassed)],

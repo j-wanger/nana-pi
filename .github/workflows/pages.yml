@@ -32,7 +32,6 @@ jobs:
         run: node scripts/product-report.mjs --out site/index.html
       - name: Check page identity
         run: node scripts/identity-scan.mjs --stdin --root . < site/index.html
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
