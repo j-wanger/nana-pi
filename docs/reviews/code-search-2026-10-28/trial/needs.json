@@ -1,0 +1,52 @@
+[
+ {
+  "lane": "adoption-window-2026-10-25",
+  "need": "At session start, read the last seven days of the pi session journal for open unadopted-folder reports, even when the journal is large, and print a line when the read stops short of the week.",
+  "base": "61671be0"
+ },
+ {
+  "lane": "artifact-readers-2026-10-25",
+  "need": "Check the requirements ledger so that every declared artifact names the code that reads it or carries a dated park line, and print a count of artifacts read and parked.",
+  "base": "d3cf9a0d"
+ },
+ {
+  "lane": "build-records-2026-10-22",
+  "need": "When a builder lane starts and ends, append a record of its lane, model, duration, outcome and token cost to a ledger shared by the clone, and print a report of past builds.",
+  "base": "61ac64f3"
+ },
+ {
+  "lane": "hard-kill-watcher-2026-10-23",
+  "need": "Start a detached process beside each builder lane that notices when the launcher was killed hard, ends the leftover builder processes, removes the lane's temp folder and writes the build's end record.",
+  "base": "c273b4de"
+ },
+ {
+  "lane": "keep-movement-2026-10-25",
+  "need": "Keep the requirement-tree movement section each review run sent to its reviewer in the review store, copy it into the lane's review folder, and name the final round's copy when a lane lands.",
+  "base": "36af3dda"
+ },
+ {
+  "lane": "knowledge-freeze-notice-2026-10-25",
+  "need": "When the knowledge sources config file is broken, tell the user in the prompt-time knowledge pull and show it, with the index age, in the setup doctor.",
+  "base": "d3cf9a0d"
+ },
+ {
+  "lane": "land-reads-ci-2026-10-22",
+  "need": "Before merging a lane to main, query GitHub for the newest CI workflow run of the tip commit and refuse the land unless every workflow passed.",
+  "base": "61ac64f3"
+ },
+ {
+  "lane": "pi-version-support-2026-10-23",
+  "need": "Add a doctor row that finds the globally installed pi package, reads its version and its internal package versions, and flags a version outside the supported range or mixed internal versions.",
+  "base": "f2b27357"
+ },
+ {
+  "lane": "report-at-land-2026-10-23",
+  "need": "When the locked full test suite runs for a land, regenerate the product report page and show how old each deliverable's stored records are.",
+  "base": "c273b4de"
+ },
+ {
+  "lane": "session-start-frontier-2026-10-22",
+  "need": "At session start, read the project's HANDOFF file and inject a short summary of its next items and open questions for the owner into the session, from both a Claude Code hook and a pi extension.",
+  "base": "61ac64f3"
+ }
+]
