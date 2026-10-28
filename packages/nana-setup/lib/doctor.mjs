@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/lib/doctor.mjs
- * @purpose Judge one machine and return an ordered check list covering its setup surfaces and memory links.
+ * @purpose Check machine setup health including globally installed pi package versions, knowledge sources config and index age, hooks, rules and memory links.
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM
  *  and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md and nana-rulings.md), skills, settings.json,
  *  the settings lock, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and

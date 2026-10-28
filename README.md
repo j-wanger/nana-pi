@@ -55,6 +55,13 @@ generated code map whose `--check` is in the suite and whose `--impact` gives a 
 radius before you touch a module. Both templates ship the file, the rail and the map script, and nana-pi runs them on ITSELF:
 `npm run map` rewrites `docs/code-map.md`, `npm run map:check` fails when the map and the code
 disagree, `npm run map:impact -- <file...>` prints a change's blast radius, and
+`npm run map:search -- "<need>"` suggests five non-test precedent modules with purpose and ranking reasons,
+then one hop of their callees (tests included). This local, dependency-free search uses whole headers,
+paths and ledger artifact lines, without network or model calls; it adds to the planner's own list.
+Nana-pi's wrapper adds literal bin/script launch links to the written map; the template stays unchanged.
+The search lives in `scripts/code-search.mjs`, with sealed trial settings in `scripts/code-search-config.mjs`;
+`scripts/code-map-launch.mjs` adds the links. The ten fixed-base needs are a hypothesis, not a general quality guarantee.
+The command
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and

@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/frontier-summary.mjs
- * @purpose Read a project's HANDOFF and render its bounded session-start frontier block.
+ * @purpose Read a project's HANDOFF at session start and summarize next items and open questions for the owner in a bounded block shared by the Claude Code hook and pi extension.
  * @inputs Session cwd, injected date/environment and issue reader, launcher limit, filesystem state and frontier configuration.
  * @outputs The frontier block with Next titles, ordered asks and checker summary, an unavailable block, or null.
  * @effects disk (bounded HANDOFF read), process and network (budget-bounded gh calls for opted-in projects).

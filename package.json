@@ -10,6 +10,7 @@
 		"test:locked": "node scripts/test-locked.mjs",
 		"map": "node scripts/code-map.mjs --write",
 		"map:check": "node scripts/code-map.mjs --check",
+		"map:search": "node scripts/code-map.mjs --search",
 		"map:impact": "node scripts/code-map.mjs --impact",
 		"map:measure": "node scripts/runtime-measure.mjs",
 		"req:rows": "node scripts/requirement-rows.mjs",
