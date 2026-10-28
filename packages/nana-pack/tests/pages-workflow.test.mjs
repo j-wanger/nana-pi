@@ -18,13 +18,13 @@ function check(title, fn) { try { fn(); console.log("PASS", title); } catch (err
 // req: R-2980 R-2986
 check("R-2980: Pages builds for main and issue changes, deploys only main with least privilege and serialization", () => {
   assert.match(text, /^on:\n  push:\n    branches: \[main\]\n  issues:\n    types: \[opened, edited, closed, reopened, labeled, unlabeled, deleted\]\n  workflow_dispatch:/m);
-  assert.match(text, /^permissions:\n  contents: read/m);
+  assert.match(text, /^permissions:\n  contents: read\n\njobs:/m);
   const build = text.match(/^  build:\n([\s\S]*?)(?=^  deploy:)/m)?.[1] ?? "";
   const deploy = text.match(/^  deploy:\n([\s\S]*)$/m)?.[1] ?? "";
   assert.match(build, /uses: actions\/checkout@v4\n        with:\n          fetch-depth: 0/);
-  assert.match(build, /permissions:\n      contents: read\n      issues: read/);
+  assert.match(build, /permissions:\n      contents: read\n      issues: read\n    steps:/);
   assert.match(build, /name: Build product page\n        env:\n          GH_TOKEN: \$\{\{ github\.token \}\}/);
-  assert.match(deploy, /permissions:\n      pages: write\n      id-token: write/);
+  assert.match(deploy, /permissions:\n      pages: write\n      id-token: write\n    environment:/);
   assert.match(deploy, /^    if: github\.ref == 'refs\/heads\/main'$/m);
   assert.match(text, /^  cancel-in-progress: false$/m);
   assert.doesNotMatch(text, /^\s*run:.*\$\{\{\s*github\.event/m);
