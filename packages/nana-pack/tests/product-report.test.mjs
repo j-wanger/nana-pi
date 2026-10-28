@@ -6,6 +6,7 @@
  * @effects disk (temporary fixture repositories); process (git commands).
  * @errors failed assertions set a nonzero test exit.
  */
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -22,6 +23,8 @@ import * as productReportModule from "../../../scripts/product-report.mjs";
 import * as deliverablesModule from "../../../scripts/deliverables.mjs";
 import { MAX_GIT_BUFFER } from "../../../scripts/requirements-moved.mjs";
 import { OPEN_SECTION_NAME, OPEN_SECTION_PREFIX } from "../lib/frontier-config.mjs";
+import { readHandoffIssues } from "../lib/handoff-issues.mjs";
+import { ISSUES_FETCH_CAP } from "../lib/frontier-summary-config.mjs";
 import { splitOpenSection } from "../lib/handoff-asks.mjs";
 import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 import { storeSuiteRecord } from "../lib/suite-records.mjs";
@@ -1785,5 +1788,41 @@ try {
     // req: R-2454
     check("R-2454: a retired capability's card comes after every other card and names its successors", JSON.stringify(order) === JSON.stringify(["CAP-71", "CAP-73", "CAP-74", "CAP-70", "CAP-72"]) && oldProduct?.textContent === "Retired: replaced by CAP-71 · Live product" && oldKindless?.textContent === "Retired: replaced by CAP-71 · Live product, CAP-73 · Live kindless" && pinsKindedHeadings(product, [["CAP-70", "Old product"], ["CAP-71", "Live product"], ["CAP-74", "Live constraint"]]), JSON.stringify({ order, oldProduct: oldProduct?.textContent, oldKindless: oldKindless?.textContent }));
   }
+  await withinCaseLimit("R-2981/R-2982", async () => {
+    const repo = fixture("pages-issues");
+    fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Next\nhttps://github.com/example-org/example-repo/issues\n## Open for the owner\nhttps://github.com/example-org/example-repo/issues\n");
+    const seen = [];
+    const out = path.join(temp, "pages-issues.html");
+    const items = [
+      { number: 11, title: "Owner ask", labels: [{ name: "ask" }, { name: "blocking" }], author: { login: "example-org" }, createdAt: "2026-10-20T12:00:00Z" },
+      { number: 12, title: "Owner next", labels: [{ name: "next" }], author: { login: "example-org" }, createdAt: "2026-10-21T12:00:00Z" },
+      { number: 13, title: "Foreign ask", labels: [{ name: "ask" }, { name: "optional" }], author: { login: "other" }, createdAt: "2026-10-22T12:00:00Z" },
+      { number: 14, title: "Unlabelled", labels: [], author: { login: "example-org" }, createdAt: "2026-10-22T12:00:00Z" },
+    ];
+    while (items.length < ISSUES_FETCH_CAP) items.push({ number: 100 + items.length, title: "Ignored", labels: [], author: { login: "other" }, createdAt: "2026-10-22T12:00:00Z" });
+    await generateReport({ root: repo.root, out, readIssues: async (options) => { seen.push(options); return readHandoffIssues({ ...options, runGh: () => ({ status: 0, stdout: JSON.stringify(items) }) }); } });
+    const model = JSON.parse(fs.readFileSync(out, "utf8").match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/)?.[1] ?? "{}");
+    const decisions = renderHtmlAt(fs.readFileSync(out, "utf8"), "#decisions");
+    // req: R-2981
+    check("R-2981: issue asks are filtered and show date, kind and issue link with a cap warning", model.asks.length === 1 && model.asks[0].title === "Owner ask" && model.asks[0].since === "2026-10-20" && model.asks[0].url.endsWith("/11") && model.issueNotice.includes("may be longer") && seen[0]?.limitMs === undefined && seen[0]?.ceilingMs === 30_000 && decisions.nodes.some((node) => node.tag === "a" && node.attrs.href.endsWith("/11")), JSON.stringify({ asks: model.asks, next: model.nextItems, notice: model.issueNotice, seen, nodes: decisions.nodes.map((node) => node.textContent) }));
+    // req: R-2982
+    check("R-2982: Decisions lists each open next issue as a linked item", model.nextItems.length === 1 && model.nextItems[0].title === "Owner next" && model.nextItems[0].url.endsWith("/12") && decisions.nodes.some((node) => node.tag === "a" && node.attrs.href.endsWith("/12")), JSON.stringify({ next: model.nextItems, nodes: decisions.nodes.map((node) => node.textContent) }));
+  });
+  await withinCaseLimit("R-2983", async () => {
+    const repo = fixture("pages-legacy"); let calls = 0;
+    const before = path.join(temp, "pages-legacy-before.html"), after = path.join(temp, "pages-legacy-after.html");
+    await generateReport({ root: repo.root, out: before });
+    await generateReport({ root: repo.root, out: after, readIssues: () => { calls++; throw new Error("must not call"); } });
+    const report = await buildReport({ root: repo.root });
+    // req: R-2983
+    check("R-2983: list-based HANDOFF retains report bytes and does not invoke the issue reader", calls === 0 && report.asks.some((ask) => ask.title === "Fixture question") && fs.readFileSync(before, "utf8") === fs.readFileSync(after, "utf8"));
+  });
+  await withinCaseLimit("R-2984", async () => {
+    const repo = fixture("pages-failed-read");
+    fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for the owner\nhttps://github.com/example-org/example-repo/issues\n");
+    const report = await buildReport({ root: repo.root, readIssues: async (options) => { assert.equal(options.limitMs, undefined); assert.equal(options.ceilingMs, 30_000); throw new Error("timeout"); } });
+    // req: R-2984
+    check("R-2984: report gives the reader CI budget and renders a failed read without failing", report.issueNotice?.startsWith("Open issues: unavailable") && report.issueNotice.includes("timeout"), report.issueNotice);
+  });
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;

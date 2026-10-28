@@ -23,11 +23,11 @@ export function issuesPointer(text) {
 	return { owner: match[1], repo: match[2], url: `https://github.com/${match[1]}/${match[2]}/issues` };
 }
 
-export function readHandoffIssues({ text, pointer = issuesPointer(text), cwd, env = process.env, limitMs, clock = () => performance.now(), runGh = ghFromEnvironment(env) }) {
+export function readHandoffIssues({ text, pointer = issuesPointer(text), cwd, env = process.env, limitMs, ceilingMs = ISSUES_READ_LIMIT_MS, clock = () => performance.now(), runGh = ghFromEnvironment(env) }) {
 	if (!pointer || pointer.failure) return pointer;
 	const started = clock();
 	// performance.now includes Node startup/imports, not just the time spent inside this reader.
-	const budget = Math.floor(Math.min(ISSUES_READ_LIMIT_MS, limitMs === undefined ? ISSUES_READ_LIMIT_MS : limitMs - started - ISSUES_WRITE_RESERVE_MS));
+	const budget = Math.floor(Math.min(ceilingMs, limitMs === undefined ? ceilingMs : limitMs - started - ISSUES_WRITE_RESERVE_MS));
 	const result = budget > 0 ? ghResult(runGh, cwd, ["issue", "list", "-R", `github.com/${pointer.owner}/${pointer.repo}`, "--state", "open", "--author", pointer.owner, "--json", "number,title,labels,author,createdAt", "--limit", String(ISSUES_FETCH_CAP)], { env, timeoutMs: budget }) : { ok: false, kind: "timeout", reason: "timeout" };
 	const fail = (cause) => ({ ...pointer, failure: `Open issues: unavailable (${cause}, after ${Math.max(0, Math.round(clock() - started))} ms); see ${pointer.url}` });
 	const failureCause = (result) => result.kind === "timeout" ? "timeout" : result.kind === "missing" ? "cannot start gh" : "gh failed";
@@ -35,7 +35,7 @@ export function readHandoffIssues({ text, pointer = issuesPointer(text), cwd, en
 	let rows;
 	try {
 		rows = JSON.parse(result.stdout);
-		if (!Array.isArray(rows) || rows.some((row) => !Number.isInteger(row?.number) || typeof row.title !== "string" || !Array.isArray(row.labels) || row.labels.some((label) => typeof label !== "object" || label === null || typeof label.name !== "string") || typeof row.author?.login !== "string")) return fail("unreadable output");
+		if (!Array.isArray(rows) || rows.some((row) => !Number.isInteger(row?.number) || typeof row.title !== "string" || !Array.isArray(row.labels) || row.labels.some((label) => typeof label !== "object" || label === null || typeof label.name !== "string") || typeof row.author?.login !== "string" || typeof row.createdAt !== "string")) return fail("unreadable output");
 	} catch { return fail("unreadable output"); }
 	if (rows.length === 0) {
 		const remaining = Math.floor(budget - (clock() - started));
@@ -53,7 +53,7 @@ export function readHandoffIssues({ text, pointer = issuesPointer(text), cwd, en
 		if (row.author.login.toLowerCase() !== pointer.owner.toLowerCase() || (!labels.has("ask") && !labels.has("next")) || seen.has(row.number)) continue;
 		seen.add(row.number);
 		const kind = labels.has("ask") && labels.has("blocking") ? "blocking" : labels.has("next") ? "next" : labels.has("parked") ? "parked" : labels.has("optional") ? "optional" : null;
-		items.push({ number: row.number, title: row.title, kind });
+		items.push({ number: row.number, title: row.title, kind, createdAt: row.createdAt });
 	}
 	return { ...pointer, items, truncated: rows.length >= ISSUES_FETCH_CAP };
 }

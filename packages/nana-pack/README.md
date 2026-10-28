@@ -85,6 +85,10 @@ neither does an **untrusted** project — reload preserves the session's trust d
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
 `/reload-runtime`.
 
+## Product report
+
+GitHub Pages publishes the public product report at `https://j-wanger.github.io/nana-pi/` after pushes to `main` and issue changes. The public copy includes product decisions and linked issues, but no test results; the land report remains local.
+
 ## Review runner (`bin/pi-review.mjs`)
 
 An independent review is run by a `pi` (Codex) call, and that endpoint intermittently **stalls** —
