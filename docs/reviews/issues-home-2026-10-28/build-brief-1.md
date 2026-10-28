@@ -39,8 +39,8 @@ Report: each must-meet's test title; each sealed tunable with its provenance lin
 - `packages/nana-pack/tests/ci-records.test.mjs:89-94`: a fake gh run through the command seam, which works on all three OSes.
 - `packages/nana-pack/tests/known-bugs.test.mjs:41-58`: R-2505, a section that holds a pointer and no list item.
 - `scripts/identity-scan.mjs:77-82` and `:147-184`: `countIdentityWords` and the CLI's exit codes. The CLI gains `--stdin`.
-- `packages/nana-pack/tests/hook-deadlines.test.mjs`: R-2672's late-start preload, which the end-to-end time-limit test reuses.
-- `packages/nana-setup/claude/rules/nana-soul.md:37` and `templates/_shared/working-under-nana-pi.md`: the open-question rule. R-682 pins it at `templates-render.test.mjs:531`, and R-859 at `:436` requires the AGENTS.md region to match byte for byte.
+- `packages/nana-setup/tests/hook-deadlines.test.mjs`: R-2672's late-start preload, which the end-to-end time-limit test reuses.
+- `packages/nana-setup/claude/rules/nana-soul.md:37` and `templates/_shared/working-under-nana-pi.md`: the open-question rule. R-682 pins it at `packages/nana-pack/tests/templates-render.test.mjs:530-531`, and R-859 at `:436` requires the AGENTS.md region to match byte for byte.
 - `packages/nana-pack/tests/product-report.test.mjs:39-47, :225, :284`: the test copies the real HANDOFF. Its fixture appends one well-formed ask, as `:365-380` already does.
 - `scripts/deliverables.mjs:25, :53-64, :197`: MAKER_RUNS, the sealed ARTIFACT_CLASSES and ARTIFACT_LOCATION_SHAPES (approved 2026-10-24), and the parse that refuses an unknown class. R-2781 (`REQUIREMENTS.md:2301`, FEAT-028) pins them.
 - `REQUIREMENTS.md:489`: an `Artifact:` line with a manual maker, the form for the issue set's line.
@@ -48,3 +48,5 @@ Report: each must-meet's test title; each sealed tunable with its provenance lin
 ## Outside precedent
 
 - GitHub's own CLI issue listing, with its author filter, JSON output and fetch limit.
+
+The plan names `packages/nana-pack/tests/hook-deadlines.test.mjs`; the file is `packages/nana-setup/tests/hook-deadlines.test.mjs`. This brief carries the right path.
