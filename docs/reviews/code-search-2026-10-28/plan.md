@@ -39,7 +39,7 @@ Rows from R-3000. Each check carries its `// req:` marker directly above it.
 
 1. **The map shows launch links.** When a module or test starts a repo bin or script by its path, the written map lists it among that bin's callers, and the bin's callees. `map:check` fails when the links are stale. The headers of the modules where the trial search failed say what the module does in the words a plan would use.
 2. **The search command.** `npm run map:search -- "<need>"` prints the top five modules for a need with one line each: path, purpose and why it ranked. Under them it prints the code those five call. It ranks over each entry's whole header, path and artifact lines, and leaves test files out of the top five but keeps them among the callees.
-3. **It finds what lanes reused.** On the ten committed trial needs, read at each need's base commit, the search's top ten plus callees hold at least the sealed share of the answer key's code (trial: 0.80 for the top five plus callees). The suite run's time for this check goes in the build report.
+3. **It finds what lanes reused.** On the ten committed trial needs, read at each need's base commit, the search's top five plus callees hold at least the sealed share of the answer key's code (trial: 0.80 for the top five plus callees). The suite run's time for this check goes in the build report.
 4. **Plain and repeatable.** The same need on the same map gives the same output. No network, no model call.
 5. **Planners use it.** The planner prompt tells the planner to run the search for each part of the lane and to name, under Precedent, what it took from the results. The check pins the sentence. Whether planners use it is read off the next three plans' Precedent sections, a carry, not a check.
 
