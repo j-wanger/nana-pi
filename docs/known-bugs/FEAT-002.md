@@ -52,7 +52,8 @@
 - Handoff store (artifact audit, 2026-10-24): nothing has written the store since 2026-09-28, and session start logs it missing. Only a pi session's compaction writes it, and builder sessions skip it (inferred).
 - Issue read (issues-home, seat check): the command seam variable `NANA_CI_RECORDS_GH_COMMAND` now also redirects the session-start issue read, so its name misleads.
 - Issue read (issues-home, seat check): a list-free Open section that links another project's GitHub issues opts in to that project's issues.
-- Issue read (issues-home, seat check): the pi path blocks session start for up to the 1.5 s read limit, longer when gh ignores the kill signal. A cold Windows start (6.4 s measured) prints the timeout line.
+- Issue read (posting-rule, plan attack): a list-free Open section with any other github.com link, even one issue's, prints the unreadable-pointer line and drops the none-found lines in a project that never opted in.
+- Issue read (issues-home, seat check): the pi path blocks session start for up to the 1.5 s read limit, longer when gh ignores the kill signal. A cold Windows start (6.4 s measured) prints the timeout line; the pack README does not name this limit.
 - Issue read (issues-home, seat check): a spent budget reports "timeout" although gh never ran.
 - Issue read (issues-home, seat check): a mixed-case host (`GitHub.com`) stays on the legacy block.
 - Issue registry (issues-home, seat check): the registry check accepts a GitHub-issues location with text before `github:`, and `identity-scan --stdin --stdin` is accepted.
