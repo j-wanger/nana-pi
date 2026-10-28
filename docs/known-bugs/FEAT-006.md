@@ -123,3 +123,4 @@
 - Hard-kill watcher (win-temp-check, final review): R-2803 says the check reports a folder empty, but the three call sites decide that. The test checks only the helper's names.
 - Hard-kill watcher (win-temp-check, final review): the plan says the helper replaces `tempEmpty`, but `tempEmpty` stays for the cases that are not hard kills.
 - Build records (land-records, independent check): a build ledger whose last line lacks a newline swallows the next start record, as the land ledger does.
+- Lane watchdog (planner-prompt, builds): pi-worker's flat-CPU watchdog samples only pi, so a builder whose locked suite runs as a detached command with output in a file looks stalled and is killed at 75 seconds, leaving the suite holding the machine lock. Launch with `--stall-secs 1200` and a foreground suite.
