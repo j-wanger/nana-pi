@@ -1,0 +1,64 @@
+FAIL R-3000: written launch links are reciprocal and stale links fail the map check Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'scripts/launcher.mjs',
+-   'tests/launch.test.mjs'
+- ]
+
+FAIL R-3001: search prints five non-tests with reasons then callees using headers paths and artifacts The expression evaluated to a falsy value:
+
+  assert(result.callees.includes("tests/quartz.test.mjs"))
+
+quality adoption-window-2026-10-25: 0/2
+quality artifact-readers-2026-10-25: 0/4
+quality build-records-2026-10-22: 0/8
+quality hard-kill-watcher-2026-10-23: 0/7
+quality keep-movement-2026-10-25: 0/4
+quality knowledge-freeze-notice-2026-10-25: 0/7
+quality land-reads-ci-2026-10-22: 0/3
+quality pi-version-support-2026-10-23: 0/3
+quality report-at-land-2026-10-23: 0/6
+quality session-start-frontier-2026-10-22: 0/10
+quality mean share: 0.000000; floor 0.8; check time 0.218s
+FAIL R-3002: ten fixed-base needs meet the printed-output reuse floor without skipping missing history mean share 0 below 0.8
+FAIL R-3003: identical search inputs give identical bytes with no network or model dependency The expression evaluated to a falsy value:
+
+  assert(a.indexOf("lib/a.mjs") < a.indexOf("lib/z.mjs"))
+
+FAIL R-3004: planners run search for each part and name what they took under Precedent The expression evaluated to a falsy value:
+
+  assert(readFileSync(join(ROOT, "packages/nana-pack/prompts/planner.md"), "utf8").includes('Run `npm run map:search -- "<need>"` for each part of the lane; under Precedent, name what you took from the results, adding to your own list rather than replacing it.'))
+
+FAIL seal: R-3005 shortlist size is 5 Expected values to be strictly equal:
+
+0 !== 5
+
+FAIL seal: R-3006 callee depth is 1 Expected values to be strictly equal:
+
+0 !== 1
+
+PASS seal: R-3007 quality floor is 0.80
+FAIL seal: R-3008 ranking settings retain the facet-free trial values and provenance Expected values to be strictly deep-equal:
++ actual - expected
+
++ {}
+- {
+-   artifactWeight: 0.5,
+-   b: 0.75,
+-   damping: 0.5,
+-   fields: {
+-     effects: 1,
+-     errors: 0.5,
+-     inputs: 1,
+-     outputs: 1,
+-     path: 2,
+-     purpose: 2
+-   },
+-   k1: 1.2,
+-   readerWeight: 1,
+-   seeds: 10,
+-   stopwords: 'a an the and or of to in on for with from by at as is are be it its this that these those when each every one two its into than then so no not only any all who what which shall must can may packages lib bin mjs ts js scripts apps extensions claude',
+-   writerWeight: 1
+- }

@@ -1,0 +1,46 @@
+Final seat checks. Repeated on the committed tip before the builder report.
+
+$ npm run map:check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 458 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+exit 0
+
+$ npm run readme:check
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 788 claims checked; 0 problem(s)
+exit 0
+
+$ node scripts/requirements-trace.mjs
+requirements: 2105 total (1863 implemented · 1 planned · 47 retired · 189 untested · 5 violated); 1863 traced by tests
+ears: 0 rows off form (allowance 0)
+exit 0
+
+$ node scripts/requirements-tree.mjs --root .
+requirements tree: 0 problems; rows 2105; features 39
+deliverables: 21 of 21 made and read by code, 21 more parked
+exit 0
+
+$ node scripts/known-bugs.mjs --root .
+summary names=0 sizes=0
+exit 0
+
+$ node scripts/identity-scan.mjs
+summary files=4506 findings=0 totals=5,0,0,4
+exit 0
+
+$ git diff --check
+exit 0
+
+$ git diff --cached --check
+docs/reviews/code-search-2026-10-28/wrong-code.txt:65: new blank line at EOF.
+exit 2
+
+After trimming the captured wrong-code log EOF:
+$ git diff --cached --check
+exit 0

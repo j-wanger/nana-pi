@@ -18,7 +18,7 @@ import * as path from "node:path";
 //
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
-const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+const { REPO_ROOT, buildGraph, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
 const { TEST_ROOTS } = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
 // R-860's full breadth (bare / .href / .pathname / a second import() argument) is pinned
 // directly against the generator template ships, not the shim: tests may import anything
@@ -55,12 +55,14 @@ check("only the three content-pinned bench modules are excused a header, each wi
 // packages/*/tests module importing an app — now visible once R-860's dynamic-import forms
 // resolve — is excluded here rather than misread as a reversed production import.
 const isExemptFrom = (p) => (config.exemptRoots ?? []).some((r) => p === r || p.startsWith(`${r}/`));
+// Launch edges may cross layers: the import rule still applies only to imports.
+const importGraph = buildGraph(collectModules(REPO_ROOT, config), config);
 const reversed = [];
-for (const from of graph.order) {
+for (const from of importGraph.order) {
 	if (isExemptFrom(from)) continue;
-	const a = graph.modules.get(from).layer?.id;
-	for (const to of graph.modules.get(from).callees) {
-		const b = graph.modules.get(to).layer?.id;
+	const a = importGraph.modules.get(from).layer?.id;
+	for (const to of importGraph.modules.get(from).callees) {
+		const b = importGraph.modules.get(to).layer?.id;
 		if (a === "packages" && b === "apps") reversed.push(`${from} -> ${to}`);
 	}
 }

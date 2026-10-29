@@ -1,0 +1,8 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs code-search.test.mjs test-runner.test.mjs
+
+PASS  packages/nana-pack/tests/code-search.test.mjs  9 pass  0.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs  52 pass  30.0s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 61 pass, 0 fail, 0 skip · 30.9s

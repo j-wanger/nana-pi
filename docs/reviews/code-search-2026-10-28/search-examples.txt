@@ -1,0 +1,44 @@
+Search output on the lane working tree, for the first two committed needs.
+
+## adoption-window-2026-10-25
+$ npm run map:search -- "At session start, read the last seven days of the pi session journal for open unadopted-folder reports, even when the journal is large, and print a line when the read stops short of the week."
+Precedent suggestions (add to your own search):
+packages/nana-pack/bin/nana-adoption.mjs — Print the seat's session-start block of git repositories a session ran in that nobody has adopted. — why: purpose: print,session,start; inputs: journal,last; outputs: line,journal,read,open; effects: read,journal; errors: journal,print,line; artifact: A-025; neighbour: packages/nana-pack/lib/adoption.mjs
+packages/nana-pack/lib/config.ts — Load, normalize and merge the nana-pack user and project config into a fully typed value no file bytes can make throw. — why: inputs: pi,session; outputs: journal,stop; effects: read,pi,journal,session,last; errors: session,journal,line,last,stop; artifact: A-011,A-025,A-069,R-159; neighbour: packages/nana-pack/extensions/nana-handoff.ts
+packages/nana-pack/extensions/nana-handoff.ts — Carry a compaction summary across sessions through the user-scope handoff store, injecting it only into a fresh session in the same directory. — why: purpose: session; inputs: pi,session,start; outputs: line,journal,unadopt; effects: read,journal; errors: journal,line; artifact: A-002,A-011,A-025,A-069,R-108,R-159; neighbour: packages/nana-pack/lib/config.ts
+packages/nana-pack/lib/adoption.mjs — The one adoption predicate — the handoff store's location, whether a repository root has been adopted, and which `directory_unadopted` reports are printable. — why: purpose: unadopt,report; inputs: pi,journal,session; outputs: journal,report; effects: read,journal; errors: journal; artifact: A-002,A-011,A-025,R-108,R-327; neighbour: packages/nana-pack/bin/nana-adoption.mjs
+packages/nana-pack/extensions/nana-lifecycle.ts — Journal session lifecycle events, surface compaction in the UI, and own the /reload-runtime command. — why: purpose: journal,session; inputs: pi,session,start; outputs: journal,line; effects: journal,pi,read; errors: journal,pi; artifact: A-025,R-159; neighbour: packages/nana-pack/lib/config.ts
+Callees (1 hop; tests included):
+  packages/nana-pack/lib/adoption-config.mjs
+  packages/nana-pack/lib/agent-dir.mjs
+  packages/nana-pack/lib/bounded-read.mjs
+  packages/nana-pack/lib/display.mjs
+  packages/nana-pack/lib/gate-paths.ts
+  packages/nana-pack/lib/json-text.mjs
+  packages/nana-pack/lib/objective.ts
+  packages/nana-pack/lib/prompt-sections.mjs
+
+## artifact-readers-2026-10-25
+$ npm run map:search -- "Check the requirements ledger so that every declared artifact names the code that reads it or carries a dated park line, and print a count of artifacts read and parked."
+Precedent suggestions (add to your own search):
+scripts/requirements-moved.mjs — Report requirement-row, artifact-registry, feature-read, capability-placement and capability-field changes since a revision's merge base with HEAD. — why: purpose: requirement,artifact,read; path: requirement; inputs: requirement,read; outputs: line,park,artifact,read,nam; effects: read; errors: nam,read,requirement; artifact: A-015,A-030,R-1460; neighbour: scripts/product-report.mjs
+scripts/product-report.mjs — Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance. — why: purpose: ledger,requirement,check; inputs: requirement,artifact,ledger; outputs: ledger,line,artifact; effects: read; errors: ledger,nam; artifact: A-015,A-030,A-032,A-033,R-1014,R-1272,R-2547,R-2597; neighbour: scripts/requirements-moved.mjs
+scripts/deliverables.mjs — Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines. — why: purpose: check,artifact,read,park; inputs: requirement,ledger,artifact,read; outputs: read,code,count,check; effects: line,ledger; neighbour: scripts/requirements-moved.mjs
+scripts/code-map.mjs — Wrap the template generator with repo launch links and planner precedent search, retaining artifact readers and measured tests in --impact (G-004, G-007, G-009, G-010, G-011). — why: purpose: artifact; path: code; inputs: check,code,requirement; outputs: code,check,artifact; effects: read,requirement,check; errors: artifact,ledger; artifact: A-030,R-1272; neighbour: scripts/deliverables.mjs
+scripts/requirements-tree.mjs — Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline. — why: purpose: requirement; path: requirement; inputs: requirement,ledger; outputs: artifact,read; effects: read,ledger,check; errors: nam; artifact: A-015; neighbour: scripts/requirements-moved.mjs
+Callees (1 hop; tests included):
+  apps/bench/lib/checkers.mjs
+  packages/nana-pack/lib/brief-precedent.mjs
+  packages/nana-pack/lib/build-records-config.mjs
+  packages/nana-pack/lib/build-records.mjs
+  packages/nana-pack/lib/handoff-asks.mjs
+  packages/nana-pack/lib/handoff-issues.mjs
+  packages/nana-pack/lib/land-ci.mjs
+  packages/nana-pack/lib/land-config.mjs
+  packages/nana-pack/lib/runtime-map-config.mjs
+  packages/nana-pack/lib/runtime-map.mjs
+  packages/nana-pack/lib/suite-records-config.mjs
+  packages/nana-pack/lib/suite-records.mjs
+  scripts/code-map-launch.mjs
+  scripts/code-search.mjs
+  scripts/requirements-trace.mjs

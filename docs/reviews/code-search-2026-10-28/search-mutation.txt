@@ -1,0 +1,26 @@
+PASS R-3000: written launch links are reciprocal and stale links fail the map check
+FAIL R-3001: search prints five non-tests with reasons then callees using headers paths and artifacts Expected values to be strictly equal:
+
+0 !== 5
+
+quality adoption-window-2026-10-25: 0/2
+quality artifact-readers-2026-10-25: 0/4
+quality build-records-2026-10-22: 0/8
+quality hard-kill-watcher-2026-10-23: 0/7
+quality keep-movement-2026-10-25: 0/4
+quality knowledge-freeze-notice-2026-10-25: 0/7
+quality land-reads-ci-2026-10-22: 0/3
+quality pi-version-support-2026-10-23: 0/3
+quality report-at-land-2026-10-23: 0/6
+quality session-start-frontier-2026-10-22: 0/10
+quality mean share: 0.000000; floor 0.75; check time 0.233s
+FAIL R-3002: ten fixed-base needs meet the printed-output reuse floor without skipping missing history mean share 0 below 0.75
+FAIL R-3003: identical search inputs give identical bytes with no network or model dependency The expression evaluated to a falsy value:
+
+  assert(a.indexOf("lib/a.mjs") < a.indexOf("lib/z.mjs"))
+
+PASS R-3004: planners run search for each part and name what they took under Precedent
+PASS seal: R-3005 shortlist size is 5
+PASS seal: R-3006 callee depth is 1
+PASS seal: R-3007 quality floor is 0.75
+PASS seal: R-3008 ranking settings retain the facet-free trial values and provenance

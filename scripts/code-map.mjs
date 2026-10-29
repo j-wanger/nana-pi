@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module scripts/code-map.mjs
- * @purpose Run the project template's code-map generator over this repo, adding artifact readers and measured test files to --impact, so nana-pi's own map is produced by the tool it ships (G-004, G-007, G-009, G-010, G-011).
- * @inputs argv (--write | --render | --check | --impact <file...>), code-map.config.json, module sources, REQUIREMENTS.md, git and runtime data (NANA_RUNTIME_MAP_FILE override)
- * @outputs docs/code-map.md on --write, check findings, or impact callers, callees, artifact writers and readers, freshness and measured test files
+ * @purpose Wrap the template generator with repo launch links and planner precedent search, retaining artifact readers and measured tests in --impact (G-004, G-007, G-009, G-010, G-011).
+ * @inputs argv (--write | --render | --check | --search <need> | --impact <file...>), code-map.config.json, module sources, REQUIREMENTS.md, git and runtime data (NANA_RUNTIME_MAP_FILE override)
+ * @outputs docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or impact callers, callees, artifact writers and readers, freshness and measured test files
  * @effects disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
  * @errors exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
  */
@@ -11,7 +11,7 @@
 // scaffolds from (`templates/typescript/template/scripts/code-map.mjs`) — and nana-pi
 // runs that file, so the repo lives under the rule it ships. Not a symlink: a win32
 // checkout does not keep one.
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,11 +25,14 @@ import {
 	isLayerExempt,
 	loadConfig,
 	main,
+	renderMap,
 	untracedTests,
 	writeMap as writeMapAt,
 } from "../templates/typescript/template/scripts/code-map.mjs";
 import { checkoutDrift, dataPath, formatFreshness, formatRuntime, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
 import { MAIN_REF } from "../packages/nana-pack/lib/land-config.mjs";
+import { addLaunchLinks } from "./code-map-launch.mjs";
+import { formatSearch, searchCode } from "./code-search.mjs";
 import {
 	ARTIFACT_CLOSING_NOTE, ARTIFACT_HEADING, ARTIFACT_NONE, ARTIFACT_NOTE_PREFIX,
 	ARTIFACT_NO_IMPORT_PATH, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_READ_BY, ARTIFACT_READS,
@@ -44,11 +47,32 @@ export const REPO_ROOT = resolve(
 
 export { buildGraph, collectModules, formatImpact, impact, isLayerExempt, loadConfig, untracedTests };
 
-/** The whole map check over THIS repo. */
-export const checkRepo = () => checkRepoAt(REPO_ROOT);
+function renderRepoMap(graph) {
+	return renderMap(graph).replace("# Code map\n\n", "# Code map\n\nNana-pi adds literal bin/script launch links to callers and callees below; launch edges\nare not imports and do not follow import layer rules. `--impact` retains the template's\nimport-only graph; `map:search` reads this launch-enriched map.\n\n");
+}
 
-/** Rewrite docs/code-map.md from the code. */
-export const writeMap = () => writeMapAt(REPO_ROOT);
+/** Keep the generator's validation, then compare its launch-enriched rendering. */
+export function checkRepo(root = REPO_ROOT) {
+	const result = checkRepoAt(root);
+	addLaunchLinks(result.graph, collectModules(root, result.graph.config));
+	result.markdown = renderRepoMap(result.graph);
+	const { config } = result.graph;
+	const stale = `${config.mapPath} is stale against the code; run '${config.runner} map'`;
+	result.problems = result.problems.filter((p) => p !== stale);
+	const file = resolve(root, config.mapPath);
+	if (existsSync(file) && readFileSync(file, "utf8").replace(/\r\n/g, "\n") !== result.markdown) result.problems.push(stale);
+	result.line = result.line.replace(/\d+ problem\(s\)$/, `${result.problems.length} problem(s)`);
+	return result;
+}
+
+/** Rewrite the template map with this repo's reciprocal launch links. */
+export function writeMap(root = REPO_ROOT) {
+	const result = writeMapAt(root);
+	addLaunchLinks(result.graph, collectModules(root, result.config));
+	result.markdown = renderRepoMap(result.graph);
+	writeFileSync(resolve(root, result.config.mapPath), result.markdown);
+	return result;
+}
 
 /** The graph of this repo, for an impact walk. */
 export function repoGraph(root = REPO_ROOT) {
@@ -154,7 +178,29 @@ function printRuntimeBlock(root, argv) {
 
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
 	const argv = process.argv.slice(2);
-	const code = main(argv, REPO_ROOT);
+	const mode = argv[0] ?? "--write";
+	let code;
+	if (mode === "--search") {
+		const need = argv.slice(1).join(" ").trim();
+		if (!need) {
+			process.stderr.write('usage: npm run map:search -- "<need>"\n');
+			code = 2;
+		} else {
+			const config = loadConfig(REPO_ROOT);
+			process.stdout.write(formatSearch(searchCode(need, readFileSync(resolve(REPO_ROOT, config.mapPath), "utf8"), readFileSync(resolve(REPO_ROOT, "REQUIREMENTS.md"), "utf8"))));
+			code = 0;
+		}
+	} else if (mode === "--check") {
+		const result = checkRepo();
+		process.stdout.write(`${result.line}\n`);
+		for (const problem of result.problems) process.stdout.write(`  ${problem}\n`);
+		code = result.problems.length ? 1 : 0;
+	} else if (mode === "--write" || mode === "--render") {
+		const { graph, config } = writeMap();
+		process.stdout.write(`${config.mapPath}: ${graph.order.length} modules\n`);
+		for (const problem of graph.problems) process.stdout.write(`  ${problem}\n`);
+		code = graph.problems.length ? 1 : 0;
+	} else code = main(argv, REPO_ROOT);
 	if ((argv[0] ?? "--write") === "--impact") {
 		process.stdout.write(await artifactBlock(REPO_ROOT, argv));
 		printRuntimeBlock(REPO_ROOT, argv);
