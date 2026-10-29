@@ -80,12 +80,12 @@ check("seat guide carries: preamble and review standard named, not restated", li
 
 {
 	const guide = fs.readFileSync(GUIDE, "utf8");
-	const sentence = "In pi, a seat starts another lane's build from another pi session or the desk; its own builds run in the foreground.";
+	const sentence = "In pi, the seat asks the user to start another lane's build from another pi session or the desk; its own builds run in the foreground.";
 	const shared = fs.readFileSync(SHARED_WORKING, "utf8");
 	const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
 	const seatLine = shared.split("\n").find((line) => line.startsWith("- Seat guide:"));
 	// req: R-3026
-	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
+	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && guide.indexOf(sentence) > guide.indexOf(RULE_9) && guide.indexOf(sentence) < guide.indexOf(RULES.find((rule) => rule === RULE_11)) && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
 }
 
 process.exit(fails ? 1 : 0);

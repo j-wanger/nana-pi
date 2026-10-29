@@ -724,7 +724,7 @@ export function stepPiConfig(layout, o) {
 	const rulings = linkFile(layout.piRulings, rulingsSource, { ...o, copyInstead: win(), unedited: o.copyRecord?.unedited(layout.piRulings) });
 	rememberCopy(o, layout.piRulings, rulingsBytes, rulings);
 	out.push({ label: "pi nana-rulings.md", ...rulings });
-	const seatGuideSource = path.join(pkgRoot, "claude", "rules", SEAT_GUIDE_FILE);
+	const seatGuideSource = ruleSource(SEAT_GUIDE_FILE);
 	const seatGuideBytes = win() ? fs.readFileSync(seatGuideSource) : null;
 	const seatGuide = linkFile(layout.piSeatGuide, seatGuideSource, { ...o, copyInstead: win(), unedited: o.copyRecord?.unedited(layout.piSeatGuide) });
 	rememberCopy(o, layout.piSeatGuide, seatGuideBytes, seatGuide);

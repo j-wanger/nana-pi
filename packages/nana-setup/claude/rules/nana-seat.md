@@ -9,10 +9,12 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - In an install, hook or gate lane, re-run the lane's mutation runner after any change of your own to code or tests, before the review.
 - Send findings on a build back in the next brief instead of fixing the builder's work yourself.
 - Before you end your turn, name and start what waits on nothing else: another lane's build, a long mutation run in parts, separate research agents. Each lane's own steps stay in order.
+
+  In pi, the seat asks the user to start another lane's build from another pi session or the desk; its own builds run in the foreground.
 - Post a plan's questions as one `ask` issue before the build. This is the one exception to one issue per question. Label it `blocking` when any question is `hard to undo`, else `optional`. A blocking issue's title ends with "(default: go)", meaning build on the listed defaults.
 - A blocking build waits for the owner's answer; meanwhile the seat reports YOUR CALL and starts other lanes. An optional build starts on the defaults, and a differing answer goes in the next brief. A plan whose questions read `None.` posts nothing.
 - Run the full suite whole, never in parts. Never split a long run while a full suite runs on the same machine. If a check fails on a time limit, re-run it alone before you call it a failure.
 - Keep at most two lanes building and one more in planning, a nana default. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.
 - The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.
 
-In Claude Code, at session start, when the block names the issue watch, run that command as a background monitor. When it ends, run the restart command it printed. Builders and reviewers never run the issue watch. In pi, the frontier extension runs it itself. In pi, a seat starts another lane's build from another pi session or the desk; its own builds run in the foreground.
+In Claude Code, at session start, when the block names the issue watch, run that command as a background monitor. When it ends, run the restart command it printed. Builders and reviewers never run the issue watch. In pi, the frontier extension runs it itself.

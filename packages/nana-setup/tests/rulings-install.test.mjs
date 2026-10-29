@@ -33,7 +33,8 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-const { RULINGS_FILE, SEAT_GUIDE_FILE } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
+const { RULINGS_FILE, SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
+const { PI_TURN } = await import(new URL("../lib/install-check-config.mjs", import.meta.url).href);
 
 const SRC = ruleSource(RULINGS_FILE);
 
@@ -198,6 +199,9 @@ if (process.platform !== "win32") {
 	check("install installs the pi seat guide and uninstall removes its manifest-owned link", good && (process.platform === "win32" || (uninstalled.status === 0 && !lstatSafe(target))), JSON.stringify({ good, uninstall: uninstalled?.status ?? "POSIX-only command" }));
 }
 
+// req: R-3021, R-3025
+check("install-check seat-guide heading matches the injected guide heading", PI_TURN.seatGuideHeading === SEAT_GUIDE_HEADING, JSON.stringify({ live: PI_TURN.seatGuideHeading, injected: SEAT_GUIDE_HEADING }));
+
 {
 	const { H, P } = freshRoots();
 	const source = path.join(pkg, "claude", "rules", SEAT_GUIDE_FILE);
@@ -216,6 +220,17 @@ if (process.platform !== "win32") {
 	}
 	// req: R-3024
 	check("doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms", /✗ pi nana-seat\.md/.test(missing.stdout) && /✓ pi nana-seat\.md/.test(installed.stdout) && /✗ pi nana-seat\.md/.test(stale.stdout), `${missing.stdout}\n${installed.stdout}\n${stale.stdout}`);
+}
+
+{
+	const { H, P } = freshRoots();
+	const source = path.join(pkg, "claude", "rules", SEAT_GUIDE_FILE);
+	const target = path.join(P, SEAT_GUIDE_FILE);
+	run(["install", "--home", H, "--pi-home", P], { NANA_SETUP_PLATFORM: "win32" });
+	fs.writeFileSync(target, "stale guide bytes\n");
+	const stale = run(["doctor", "--home", H, "--pi-home", P], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-3024
+	check("doctor rejects a stale Windows guide copy on every host", /✗ pi nana-seat\.md/.test(stale.stdout) && !fs.readFileSync(target).equals(fs.readFileSync(source)), stale.stdout);
 }
 
 for (const td of tmps) {

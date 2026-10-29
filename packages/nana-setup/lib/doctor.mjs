@@ -509,7 +509,7 @@ export function diagnose(layout, opts = {}) {
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective, "pi nana-objective.md");
 	add(linkOk(layout.piRulings, ruleSource(RULINGS_FILE)) ? OK : FAIL, "pi nana-rulings.md", `-> ${ruleSource(RULINGS_FILE)}`);
-	const seatGuideSource = path.join(pkgRoot, "claude", "rules", SEAT_GUIDE_FILE);
+	const seatGuideSource = ruleSource(SEAT_GUIDE_FILE);
 	add(linkOk(layout.piSeatGuide, seatGuideSource) ? OK : FAIL, "pi nana-seat.md", `-> ${seatGuideSource}`);
 	const projectDir = path.resolve(opts.projectDir || process.cwd());
 	if (fs.existsSync(path.join(projectDir, ".pi", "nana-pack.json"))) {

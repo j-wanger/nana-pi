@@ -97,10 +97,13 @@ async function injectSections(handlers, ctx = { cwd: tempDir() }) {
 	const agentDir = tempDir("seat-guide-worker-");
 	const guide = "# Nana — Running builders and reviewers\nSeat guide fixture.\n";
 	fs.writeFileSync(path.join(agentDir, SEAT_GUIDE_FILE), guide);
-	const sections = await injectSections(session({ agentDir, env: { NANA_ROLE: "worker" } }), { cwd: agentDir });
+	const results = [];
+	for (const role of ["worker", "reviewer"]) {
+		const sections = await injectSections(session({ agentDir, env: { NANA_ROLE: role } }), { cwd: agentDir });
+		results.push({ role, omitted: !sections[SEAT_GUIDE_SECTION], rulings: typeof sections[RULINGS_SECTION] === "string" });
+	}
 	// req: R-3022
-	check("pi builder and reviewer omit the guide while retaining the rulings section", !sections[SEAT_GUIDE_SECTION] && typeof sections[RULINGS_SECTION] === "string",
-		JSON.stringify(Object.keys(sections)));
+	check("pi builder and reviewer omit the guide while retaining the rulings section", results.every((result) => result.omitted && result.rulings), JSON.stringify(results));
 }
 
 {
@@ -121,6 +124,9 @@ async function injectSections(handlers, ctx = { cwd: tempDir() }) {
 	// req: R-3023
 	check("missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing", results.every((result) => result.ok), JSON.stringify(results));
 }
+
+// req: R-3023
+check("seat guide unavailable prefix is distinct from the rulings prefix", SEAT_GUIDE_UNAVAILABLE.startsWith("SEAT GUIDE UNAVAILABLE:") && SEAT_GUIDE_UNAVAILABLE !== RULINGS_UNAVAILABLE);
 
 // req: R-3023
 check("seal: SEAT_GUIDE_READ_CAP is 8192", SEAT_GUIDE_READ_CAP === 8192);
