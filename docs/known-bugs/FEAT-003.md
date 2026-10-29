@@ -79,3 +79,4 @@
 - Frozen-index notice (knowledge-freeze-notice, final review): the doctor-knowledge test's first rescan-command check expects an unquoted CLI path, so it fails in a checkout whose path has a space.
 - Frozen-index notice (knowledge-freeze-notice, final review): the notice repeats on every eligible prompt while the sources file stays broken; the row asks for that, but it may read as nagging.
 - Frozen-index notice (win-test-limits merge): the sources-file test's new pull cases spawn the hook command with a 10 s limit and race a budget deadline, outside the file's named 30 s child limit.
+- Knowledge hook lock (clarify-questions CI, 2026-10-29): "16 processes reclaim one stale lock: exactly one WON" failed once on the macOS suite leg with 2 winners; a rerun passed (run 40800487103).
