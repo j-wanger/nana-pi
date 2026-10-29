@@ -8,7 +8,7 @@
 
 - **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **Current priority: discovery (the owner, 2026-10-27).** The owner and the seat find and improve what to build, and carry what they learn into the work. Review on 2026-11-10.
-- **Lanes in flight (one building).** clarify-questions is in its final review: each plan ranks its open questions for the owner by the cost of a wrong guess.
+- **Lanes in flight (one building).** clarify-questions is in its final review. Each plan ranks its open questions by the cost of a wrong guess.
 
 ## Next
 
