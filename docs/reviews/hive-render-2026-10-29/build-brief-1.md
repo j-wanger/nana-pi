@@ -29,4 +29,3 @@ Report: each must-meet's test title; the sealed values with provenance; each dep
 - `packages/nana-pack/tests/pages-workflow.test.mjs`: the workflow text checks R-3130 extends; R-2980 and R-2985 stay green unchanged.
 - `code-map.config.json`: roots, `ignore` and the `exempt` reasons, the nearest shape for keeping vendored code out of the six-tag header rule.
 - `readme-check.config.json`: where a new README joins the README contract.
-- `npm run map:search` results taken: `apps/desk/server.mjs` and `apps/desk/apps.mjs` for loopback serving, `scripts/first-look.mjs` for browser capture, `apps/desk/public/desk-client.mjs` for a tested browser module, `packages/nana-pack/lib/rulings-config.mjs` for the sealed-config style.
