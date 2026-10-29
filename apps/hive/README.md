@@ -21,7 +21,14 @@ node scripts/hive-page.mjs --out /tmp/nana-hive-preview
 node scripts/hive-page.mjs --out /tmp/nana-hive-custom --data docs/components/fixture.json
 ```
 
-Choose an absent output folder: the publisher refuses an existing folder and stages the complete output before renaming it. The default data is the frozen fixture, not a live audit. The publisher checks the contract name and version; complete validation arrives with the audit lane's swap. `--data` also works with `--serve`.
+Choose an absent output folder: the publisher refuses an existing folder and stages the complete output before renaming it. The local default remains the frozen fixture. The publisher imports the audit's complete contract validator and refuses its first problem before creating output. Pages derives real data with `scripts/component-audit.mjs` and passes it to the publisher.
+
+For a real-data local look:
+
+```sh
+node scripts/component-audit.mjs --out /tmp/nana-components.json
+node scripts/hive-page.mjs --serve --data /tmp/nana-components.json
+```
 
 The output is the app minus this README, plus the component data. Pages publishes it beside the product page. Assets take THREE explicitly; layout, focus, text, raster and frame state work from Node without a DOM or graphics context. Visual values live in `apps/hive/config.mjs`; release hashes live in `scripts/hive-page-config.mjs`.
 

@@ -30,9 +30,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/product-report.mjs --out site/index.html
+      - name: Build component audit
+        run: node scripts/component-audit.mjs --out "$RUNNER_TEMP/components.json"
       - name: Build hive page
         id: hive-page
-        run: node scripts/hive-page.mjs --out site/hive
+        run: node scripts/hive-page.mjs --out site/hive --data "$RUNNER_TEMP/components.json"
       - name: Check hive identity
         run: node scripts/identity-scan.mjs --stdin --root . < site/hive/components.json
       - name: Check page identity

@@ -77,7 +77,8 @@ await test('R-3126: rail order and active cards retain the complete component st
   const container = node('main'); renderText({ createElement: node }, container, model);
   const flatten = n => [n, ...n.children.flatMap(flatten)]; const nodes = flatten(container);
   assert.equal(nodes.filter(n => n.tag === 'article').length, 6); assert.deepEqual(nodes.filter(n => n.tag === 'a').map(n => n.attrs.href), model.rail.map(r => r.href));
-  for (const text of Object.values(card.voices)) assert(nodes.some(n => n.textContent === text));
+  const content = n => n.textContent + n.children.map(content).join('');
+  for (const text of Object.values(card.voices)) assert(nodes.some(n => n.tag === 'p' && content(n) === text));
 });
 // req: R-3127
 await test('R-3127: renderer choice falls back and incompatible data gives one error without a scene', async () => {
@@ -111,7 +112,31 @@ await test('R-3130: builder copies exact app bytes and supplied data and refuses
       for (const file of expected) assert.deepEqual(await fs.readFile(path.join(out, file)), await fs.readFile(path.join(root, 'apps/hive', file)));
       assert.deepEqual(JSON.parse(await fs.readFile(path.join(out, 'components.json'))), data);
     }
-    for (const bad of [{ ...fixture, contract: 'other' }, { ...fixture, version: 2 }]) { const input = path.join(dir, 'bad.json'); const out = path.join(dir, 'bad-out'); await fs.writeFile(input, JSON.stringify(bad)); const result = build(['--out', out, '--data', input]); assert.equal(result.status, 1); assert.equal(result.stderr.trim(), 'hive-page: incompatible component contract'); await assert.rejects(fs.access(out)); }
+    for (const [field, value] of [['contract', 'other'], ['version', 2]]) { const input = path.join(dir, 'bad.json'); const out = path.join(dir, 'bad-out'); await fs.writeFile(input, JSON.stringify({ ...fixture, [field]: value })); const result = build(['--out', out, '--data', input]); assert.equal(result.status, 1); assert.equal(result.stderr.trim(), `hive-page: document: ${field} must equal ${fixture[field]}`); await assert.rejects(fs.access(out)); }
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});
+// req: R-3139
+await test('R-3139: builder refuses contract problems by their first name before creating output', async () => {
+  const { checkComponentData } = await import('../../../scripts/component-contract.mjs');
+  const contract = JSON.parse(await fs.readFile(path.join(root, 'docs/components/contract.json')));
+  const dir = await temporary();
+  try {
+    const badCases = [
+      { ...fixture, project: '' },
+      { ...fixture, components: [] },
+      { ...fixture, components: [{ ...fixture.components[0], status: 'unknown' }] },
+      { ...fixture, components: [{ ...fixture.components[0], parts: ['../outside'] }] },
+      { ...fixture, components: [{ ...fixture.components[0], activity: { recentCommits: -1, inFlight: 0 } }] },
+    ];
+    for (const [i, bad] of badCases.entries()) {
+      const input = path.join(dir, `bad-${i}.json`), out = path.join(dir, `out-${i}`);
+      await fs.writeFile(input, JSON.stringify(bad));
+      const result = build(['--out', out, '--data', input]);
+      assert.equal(result.status, 1);
+      assert.equal(result.stderr.trim(), `hive-page: ${checkComponentData(bad, contract)[0]}`);
+      assert.equal(result.stderr.trim().split('\n').length, 1);
+      await assert.rejects(fs.access(out));
+    }
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 // req: R-3132

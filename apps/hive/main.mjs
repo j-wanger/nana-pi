@@ -57,12 +57,44 @@ async function start(data, model) {
   document.querySelector('#source').textContent = data.project;
   let voice = 'plain';
   const reading = () => renderText(document, stories, textLayer(data, location.hash, rendererName, voice));
-  stories.addEventListener('click', event => { const button = event.target.closest('[data-voice]'); if (button) { voice = button.dataset.voice; reading(); } });
+  stories.addEventListener('click', event => { const button = event.target.closest('[data-voice]'); if (button) { voice = button.dataset.voice; reading(); frame(); } });
   stories.addEventListener('change', event => { if (event.target.matches('select')) { location.hash = event.target.value; } });
   reading(); scrollTo(0, 0);
   const labelNodes = model.chambers.map(c => {
     const node = document.createElement('span'); node.className = 'label'; node.textContent = c.name; labels.append(node); return node;
   });
+  // Pack measured labels around overlays and earlier labels, keeping leaders at their structures.
+  const placeLabels = () => {
+    const width = stage.clientWidth, height = stage.clientHeight;
+    const rect = n => { const r = n.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; };
+    const blocked = [...document.querySelectorAll('header,.voices,.rail,.chapter-picker,.card.active,footer,.scene-caption,.renderer-line,.coordinate')]
+      .filter(n => n.getClientRects().length).map(rect);
+    const visible = labelNodes.filter(n => !n.hidden).sort((a, b) => Number(a.dataset.y) - Number(b.dataset.y));
+    for (const node of visible) {
+      const w = node.offsetWidth, h = node.offsetHeight;
+      const gap = parseFloat(getComputedStyle(node).paddingTop);
+      const ax = Number(node.dataset.x), ay = Number(node.dataset.y);
+      const x = Math.max(gap, Math.min(width - w - gap, ax + h));
+      const y = Math.max(gap, Math.min(height - h - gap, ay - h));
+      const xs = [x, ax - w - h, gap, width - w - gap, ...blocked.flatMap(b => [b.x - w - gap, b.x + b.w + gap])];
+      const ys = [y, gap, height - h - gap, ...blocked.flatMap(b => [b.y - h - gap, b.y + b.h + gap])];
+      let best = null, distance = Infinity;
+      for (const px of xs) for (const py of ys) {
+        if (px < gap || py < gap || px + w + gap > width || py + h + gap > height) continue;
+        const d = (px - x) ** 2 + (py - y) ** 2;
+        if (d >= distance || blocked.some(b => px < b.x + b.w + gap && px + w + gap > b.x && py < b.y + b.h + gap && py + h + gap > b.y)) continue;
+        best = { x: px, y: py, w, h }; distance = d;
+      }
+      // If a tiny viewport has no free label-sized area, the chapter picker remains the reading.
+      if (!best) { node.hidden = true; continue; }
+      node.style.left = `${best.x}px`; node.style.top = `${best.y}px`;
+      const dx = ax - best.x, dy = ay - best.y - h;
+      node.style.setProperty('--leader-length', `${Math.hypot(dx, dy)}px`);
+      node.style.setProperty('--leader-angle', `${Math.atan2(-dx, dy)}rad`);
+      node.style.setProperty('--anchor-x', `${dx}px`); node.style.setProperty('--anchor-y', `${ay - best.y}px`);
+      blocked.push(best);
+    }
+  };
   const raster = pixel(model); const ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;
   if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }
   const pose = () => focus(model, location.hash.slice(1), location.hash ? stage.clientWidth / stage.clientHeight : Math.max(0.9, stage.clientWidth / stage.clientHeight));
@@ -91,8 +123,9 @@ async function start(data, model) {
       model.chambers.forEach((c, i) => {
         const p = new THREE.Vector3(c.x, c.material.status === 'absent' ? 1 : STYLE.structureHeight, c.z).project(camera); const node = labelNodes[i];
         node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1;
-        node.style.left = `${(p.x + 1) / 2 * 100}%`; node.style.top = `${(1 - p.y) / 2 * 100}%`;
+        node.dataset.x = (p.x + 1) / 2 * stage.clientWidth; node.dataset.y = (1 - p.y) / 2 * stage.clientHeight;
       });
+      placeLabels();
     } else {
       drawPixel(ctx, raster);
       labelNodes.forEach(n => { n.hidden = true; });

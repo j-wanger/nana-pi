@@ -2,6 +2,10 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- R-3101 accepts a retired row as evidence. Only a row anchor rejects `retired` (R-3108).
+- The shared component contract and fixture hashes are checked by reviewers, not a sha256 test.
+- A folder part such as `packages/nana-setup/` makes `recentCommits` read busy whenever a file below it changes.
+
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Test details in the report (report-test-details): a test skipped for its platform shows only as this clone's SKIP for its whole file. The page reads no skip reason, no CI Linux or Windows result and no SKIP line inside a file.
 - Test details in the report (report-test-details): the label belongs to the whole file, so a PASS file may have skipped the cited check. The page legend says so.
@@ -124,3 +128,8 @@
 - Needs you (ask-stakes, final review): the gains-line test checks only the present case; the absent case relies on the older exact-line test.
 - Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
 - Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.
+- Records summary (records-counts, final review): the summary writes `failed`, `skipped` and `unmeasured` inline while `OVERVIEW_LABELS` gains unused `skipped` and `unmeasured` labels, so renaming those labels changes nothing.
+- Component audit (component-audit, final review): "sound" means no planned or violated row and no anchor, not that someone checked the component; 18 of 23 are sound while their features hold many known-bug lines.
+- Component audit (component-audit, final review): absent components have no parts, so the stale count counts every commit and names them stale after 20 commits anywhere.
+- Component audit (component-audit, final review): the library component cites only the dated measurement, not the FEAT-003 known-bug line the plan named.
+- Component audit (component-audit, CI): the R-3104 activity test exceeded its 20 s case limit once on the Windows runner; a rerun passed.

@@ -14,12 +14,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STYLE } from '../apps/hive/config.mjs';
+import { checkComponentData } from './component-contract.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 export async function buildHivePage(out, dataFile = path.join(root, 'docs/components/fixture.json')) {
   let data;
   try { data = JSON.parse(await readFile(dataFile, 'utf8')); } catch { throw new Error('unreadable component data'); }
   const contract = JSON.parse(await readFile(path.join(root, 'docs/components/contract.json'), 'utf8'));
-  if (data?.contract !== contract.contract || data?.version !== contract.version) throw new Error('incompatible component contract');
+  const problems = checkComponentData(data, contract);
+  if (problems.length) throw new Error(problems[0]);
   const target = path.resolve(out);
   if (existsSync(target)) throw new Error('output folder already exists');
   await mkdir(path.dirname(target), { recursive: true });

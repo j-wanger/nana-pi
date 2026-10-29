@@ -9,7 +9,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 486 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 490 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -751,7 +751,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or impact callers, callees, artifact writers and readers, freshness and measured test files
 - **effects** — disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/blast-radius.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/code-map-launch.mjs`, `scripts/code-search.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/code-search-config.mjs`
@@ -773,6 +773,36 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — none; absent entries and unmatched needs produce empty results.
 - **callers** — `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`
 - **callees** — `scripts/code-search-config.mjs`
+
+### `scripts/component-audit-config.mjs`
+
+- **purpose** — Seals the component audit's paths and git age windows with provenance.
+- **inputs** — None.
+- **outputs** — Named audit limits and repo-relative source paths.
+- **effects** — none
+- **errors** — None.
+- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `scripts/component-audit.mjs`
+- **callees** — —
+
+### `scripts/component-audit.mjs`
+
+- **purpose** — Check the hand-audited component model and derive contract data, git activity, asks and coverage.
+- **inputs** — Repo root, tracked audit and contract JSON, REQUIREMENTS.md, mapped code graph, git history and optional output path.
+- **outputs** — Check diagnostics, report-only staleness and coverage lines, contract-shaped JSON, or planner-shaped ask blocks.
+- **effects** — disk (reads repository data and optionally writes --out), process (read-only bounded git queries and CLI output).
+- **errors** — Invalid source, paths, IDs, anchors or contract data exit 1; malformed CLI options exit 2.
+- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`
+- **callees** — `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `scripts/code-map.mjs`, `scripts/component-audit-config.mjs`, `scripts/component-contract.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+
+### `scripts/component-contract.mjs`
+
+- **purpose** — Validate component documents against the frozen nana-components v1 contract.
+- **inputs** — A data document and its frozen contract object.
+- **outputs** — Named problem strings, empty for valid data.
+- **effects** — none
+- **errors** — Invalid input is returned as problem strings.
+- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`, `scripts/component-audit.mjs`, `scripts/hive-page.mjs`
+- **callees** — —
 
 ### `scripts/deliverables.mjs`
 
@@ -822,7 +852,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (reads app and data, stages and renames output), network (loopback server)
 - **errors** — Usage exits 2; incompatible data and IO failures exit 1 with one named line.
 - **callers** — `packages/nana-pack/tests/hive-page.test.mjs`
-- **callees** — `apps/hive/config.mjs`
+- **callees** — `apps/hive/config.mjs`, `scripts/component-contract.mjs`
 
 ### `scripts/identity-scan.mjs`
 
@@ -831,7 +861,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — pure count and tree-scan results; the CLI prints findings and a summary
 - **effects** — disk and process (reads tracked files and invokes git)
 - **errors** — invalid config, git, or file reads throw; malformed CLI options exit 2; findings exit 1
-- **callers** — `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`
+- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`
 - **callees** — —
 
 ### `scripts/known-bugs.mjs`
@@ -941,7 +971,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry or feature-read change, on stdout; a named refusal on stderr.
 - **effects** — process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
 - **errors** — exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
-- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/deliverables.mjs`, `scripts/lane-class.mjs`, `scripts/product-report.mjs`
+- **callers** — `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`, `scripts/lane-class.mjs`, `scripts/product-report.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/requirements-regroup.mjs`
@@ -971,7 +1001,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
-- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
+- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-trace.mjs`
 
 ### `scripts/runtime-measure.mjs`
@@ -1595,7 +1625,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Question groups, recommendation and parsed open-since date.
 - **effects** — none
 - **errors** — None; absent labels and empty bodies produce null fields or no groups.
-- **callers** — `packages/nana-pack/tests/ask-shape.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `scripts/product-report.mjs`
+- **callers** — `packages/nana-pack/tests/ask-shape.test.mjs`, `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `scripts/component-audit.mjs`, `scripts/product-report.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/blast-radius-config.mjs`
@@ -1635,7 +1665,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
 - **errors** — Read and git failures become fail-closed result objects; pure helpers represent malformed entries as data.
-- **callers** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `scripts/deliverables.mjs`
+- **callers** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`
 - **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/build-records-config.mjs`
@@ -2488,6 +2518,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`, `scripts/code-search-config.mjs`, `scripts/code-search.mjs`
 
+### `packages/nana-pack/tests/component-audit.test.mjs`
+
+- **purpose** — Pins component audit validation, evidence, activity, asks, staleness and mapped coverage.
+- **inputs** — Component audit modules and temporary repository fixtures.
+- **outputs** — PASS/FAIL lines and nonzero exit for a failed contract.
+- **effects** — disk (OS temporary fixtures only)
+- **errors** — A failed assertion exits 1.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/ask-shape.mjs`, `scripts/component-audit-config.mjs`, `scripts/component-audit.mjs`, `scripts/component-contract.mjs`, `scripts/identity-scan.mjs`
+
 ### `packages/nana-pack/tests/config-display-text.test.mjs`
 
 - **purpose** — Pins that every config diagnostic reaching a UI or the model is display text, so attacker-controlled STRUCTURE never survives into a notification, a block reason or a file
@@ -2796,7 +2836,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), network (loopback test server), process (CLI children)
 - **errors** — Failed cases set exit 1.
 - **callers** — —
-- **callees** — `scripts/hive-page.mjs`
+- **callees** — `scripts/component-contract.mjs`, `scripts/hive-page.mjs`
 
 ### `packages/nana-pack/tests/identity-scan.test.mjs`
 

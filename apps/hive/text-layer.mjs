@@ -51,7 +51,24 @@ export function renderText(document, container, model) {
     el('span', `${item.chapter} / ${model.voice === 'work' ? 'FROM THE WORK' : model.voice.toUpperCase()}`, article).setAttribute('class', 'chapter-number');
     el('h2', item.name, article);
     for (const [voice, text] of Object.entries(item.voices)) {
-      const p = el('p', text, article); p.setAttribute('data-panel', voice); if (voice !== model.voice) p.setAttribute('hidden', '');
+      const p = el('p', '', article); p.setAttribute('data-panel', voice); if (voice !== model.voice) p.setAttribute('hidden', '');
+      if (voice !== 'technical') p.textContent = text;
+      else {
+        // Keep each code-name segment intact; paths may wrap only after a slash.
+        const names = /(?:[\w.-]+\/)+[\w.-]+|\b(?:R|G|FEAT|CAP)-\d{2,4}\b/g;
+        let end = 0;
+        for (const match of text.matchAll(names)) {
+          el('span', text.slice(end, match.index), p);
+          const code = el('code', '', p);
+          const segments = match[0].split('/');
+          segments.forEach((segment, i) => {
+            el('span', segment + (i < segments.length - 1 ? '/' : ''), code);
+            if (i < segments.length - 1) el('wbr', '', code);
+          });
+          end = match.index + match[0].length;
+        }
+        el('span', text.slice(end), p);
+      }
     }
   }
   return container;
