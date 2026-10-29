@@ -60,6 +60,60 @@ async function childReport(root, output) {
 function withoutProvenance(snapshot) {
   return String(snapshot).split(/\r?\n/).filter((line) => !/(?:Commit|Working tree):|\b20\d\d-\d\d-\d\d\b/.test(line)).join("\n");
 }
+function diffOperations(before, after) {
+  const a = before.split("\n"); const b = after.split("\n");
+  let v = new Map([[1, 0]]); const trace = [];
+  for (let d = 0; d <= a.length + b.length; d++) {
+    trace.push(new Map(v));
+    for (let k = -d; k <= d; k += 2) {
+      let x = k === -d || (k !== d && (v.get(k - 1) ?? -1) < (v.get(k + 1) ?? -1))
+        ? (v.get(k + 1) ?? 0) : (v.get(k - 1) ?? 0) + 1;
+      let y = x - k;
+      while (x < a.length && y < b.length && a[x] === b[y]) { x++; y++; }
+      v.set(k, x);
+      if (x >= a.length && y >= b.length) {
+        const operations = []; let cx = a.length; let cy = b.length;
+        for (let depth = d; depth >= 0; depth--) {
+          const prior = trace[depth]; const diagonal = cx - cy;
+          const priorDiagonal = diagonal === -depth || (diagonal !== depth && (prior.get(diagonal - 1) ?? -1) < (prior.get(diagonal + 1) ?? -1))
+            ? diagonal + 1 : diagonal - 1;
+          const px = prior.get(priorDiagonal) ?? 0; const py = px - priorDiagonal;
+          while (cx > px && cy > py) operations.push({ type: " ", line: a[--cx] }), cy--;
+          if (depth > 0) {
+            if (cx === px) operations.push({ type: "+", line: b[--cy] });
+            else operations.push({ type: "-", line: a[--cx] });
+          }
+        }
+        return operations.reverse();
+      }
+    }
+  }
+  return [];
+}
+function unifiedViewDiff(view, before, after) {
+  if (before === after) return "";
+  const operations = diffOperations(before, after); const context = 3; const ranges = [];
+  for (let i = 0; i < operations.length; i++) if (operations[i].type !== " ") {
+    const start = Math.max(0, i - context); const end = Math.min(operations.length, i + context + 1);
+    const last = ranges.at(-1);
+    if (last && start <= last[1]) last[1] = end; else ranges.push([start, end]);
+  }
+  const chunks = [`## ${view}`, `--- ${view} (before)`, `+++ ${view} (after)`];
+  for (const [start, end] of ranges) {
+    let oldLine = 0; let newLine = 0;
+    for (let i = 0; i < start; i++) { if (operations[i].type !== "+") oldLine++; if (operations[i].type !== "-") newLine++; }
+    let oldCount = 0; let newCount = 0;
+    for (const operation of operations.slice(start, end)) { if (operation.type !== "+") oldCount++; if (operation.type !== "-") newCount++; }
+    chunks.push(`@@ -${oldLine + 1},${oldCount} +${newLine + 1},${newCount} @@`);
+    for (const operation of operations.slice(start, end)) chunks.push(`${operation.type}${operation.line}`);
+  }
+  return chunks.join("\n");
+}
+function accessibilityDiff(before, after, views) {
+  const changed = views.map((view) => unifiedViewDiff(view, before[view] ?? "", after[view] ?? "")).filter(Boolean);
+  const unchanged = views.length - changed.length;
+  return `${changed.join("\n\n")}\n\n${changed.length} views changed; ${unchanged} views unchanged\n`;
+}
 async function snapshotViews(browser, url, pageName, side, readTree, product) {
   const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTHS[0], height: 1000 } });
   const trees = {};
@@ -119,7 +173,7 @@ export async function runFirstLook(argv = [], injected = {}) {
     const before = await snapshotViews(browser, beforeUrl, output, "before", readTree, product);
     const after = await snapshotViews(browser, afterUrl, output, "after", readTree, product);
     const views = product ? [...new Set([...PRODUCT_VIEWS, ...Object.keys(before).filter((key) => !PRODUCT_VIEWS.includes(key))])] : ["desk"];
-    const diff = views.map((view) => `## ${view}\n\n### Before\n${before[view]}\n\n### After\n${after[view]}\n`).join("\n");
+    const diff = accessibilityDiff(before, after, views);
     await (injected.writeDiff ? injected.writeDiff(output, diff) : import("node:fs/promises").then(({ writeFile }) => writeFile(path.join(output, "accessibility-diff.txt"), diff, "utf8")));
     stdout(`first-look: saved screenshots and accessibility diff in ${output}`);
     return 0;

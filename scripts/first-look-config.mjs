@@ -24,5 +24,7 @@ export const PAGE_SHAPING_PATHS = Object.freeze([
   "packages/nana-pack/lib/build-records.mjs",
   "apps/bench/lib/checkers.mjs",
 ]);
+// chosen (FEAT-039): 40 lines leaves room for one compact contextual hunk and view summary.
+export const ACCESSIBILITY_DIFF_MAX_LINES = 40;
 export const VIEWPORT_WIDTHS = Object.freeze([380, 1280]);
 export const PRODUCT_VIEWS = Object.freeze(["overview", "decisions", "product", "artifacts", "features", "issues", "requirements"]);

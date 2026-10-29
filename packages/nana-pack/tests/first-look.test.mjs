@@ -11,7 +11,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { runFirstLook } from "../../../scripts/first-look.mjs";
-import { PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS } from "../../../scripts/first-look-config.mjs";
+import { ACCESSIBILITY_DIFF_MAX_LINES, PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS } from "../../../scripts/first-look-config.mjs";
 
 let passed = 0;
 const CASE_LIMIT_MS = 20_000; // chosen: bounds an individual fake-browser case.
@@ -41,15 +41,20 @@ const fakeBrowser = (calls) => ({
 const defaultArgs = (out) => ["--page", "product", "--out", out];
 
 // req: R-3040
-await test("R-3040: builds both checkouts and captures both widths plus every report-view tree", async () => {
+await test("R-3040: builds both checkouts, captures both widths and writes compact diffs only for changed views", async () => {
   const dir = await temp();
   try {
-    const calls = { reports: [], viewports: [], urls: [], shots: [], trees: [] };
+    const calls = { reports: [], viewports: [], urls: [], shots: [], trees: [], readCount: 0 };
     const code = await runFirstLook(defaultArgs(path.join(dir, "out")), {
       root: dir, mergeBase: "base-sha", changedPaths: ["scripts/product-report/template.html"],
       runReport: async (root, out) => { calls.reports.push(root); await fs.writeFile(out, "fake html"); return `file://${out}`; },
       browser: async () => fakeBrowser(calls),
-      readTree: async (page, view) => { calls.trees.push(view); return `${view}\r\n${await page.locator("body").ariaSnapshot()}\t`; },
+      readTree: async (page, view) => {
+        calls.trees.push(view);
+        const side = calls.readCount++ < PRODUCT_VIEWS.length + 1 ? "before" : "after";
+        const content = view === "overview" ? `${side} heading` : `${view} unchanged`;
+        return `${content}\r\nshared tree\t`;
+      },
       stdout: () => {},
     });
     assert.equal(code, 0);
@@ -58,7 +63,13 @@ await test("R-3040: builds both checkouts and captures both widths plus every re
     assert.deepEqual(calls.trees, [...PRODUCT_VIEWS, "FEAT-039", ...PRODUCT_VIEWS, "FEAT-039"]);
     assert.deepEqual(VIEWPORT_WIDTHS, [380, 1280]);
     const diff = await fs.readFile(path.join(dir, "out", "accessibility-diff.txt"), "utf8");
-    assert.ok(diff.includes("overview"));
+    assert.match(diff, /## overview/);
+    assert.match(diff, /-before heading/);
+    assert.match(diff, /\+after heading/);
+    assert.doesNotMatch(diff, /## decisions/);
+    assert.match(diff, /1 views changed; 7 views unchanged/);
+    assert.equal(ACCESSIBILITY_DIFF_MAX_LINES, 40);
+    assert.ok(diff.split("\n").length < ACCESSIBILITY_DIFF_MAX_LINES);
     assert.ok(diff.includes("\t"));
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
