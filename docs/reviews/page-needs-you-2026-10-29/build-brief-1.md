@@ -37,5 +37,4 @@ Report: each must-meet's test title; the Overview's headings in order as the bui
 - `apps/desk/public/app.js` — `el("details", …)` for collapsed notes and thinking cards. Borrow the pattern only; the report renderer stays self-contained.
 - `packages/nana-pack/tests/product-overview.test.mjs` — the R-2920 and R-2921 tests and their fake-DOM `blocks(view)` helper. The new tests extend this file.
 - `packages/nana-pack/tests/handoff-issues.test.mjs` — the injected `runGh` fixtures. Must-meet 2 extends these.
-- From `map:search`: "product report overview blocks order" and "collapsed details section html report" named `scripts/product-report.mjs` and `handoff-asks.mjs` (both already listed). "read github issue body labels" named `issue-watch.mjs` and `nana-frontier-summary.ts`; neither reads bodies, so neither is precedent. "parse labelled lines from text" found no labelled-line parser, so `ask-shape.mjs` is new code with no in-repo precedent beyond the label contract.
 
