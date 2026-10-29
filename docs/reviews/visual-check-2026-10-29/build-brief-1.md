@@ -2,7 +2,7 @@ Feature: FEAT-039 · See the product and its decisions in one report
 
 Lane visual-check. Class: ordinary (`node scripts/lane-class.mjs` prints `ordinary` on the planned files). Builder: pi-worker (small lane). Build session 1.
 
-Work in the lane worktree on feat/visual-check, based on main. The plan of record is `docs/reviews/visual-check-2026-10-29/plan.md`. Read it whole, and read `plan-attack.md` beside it; the plan already takes every attack point, and the owner chose the Claude Code reviewer as the image judge. The plan has no list of allowed edits. The art spec for the first use is committed beside the plan as `hive-art-spec.md`; do not change it.
+Work in the lane worktree on feat/visual-check, based on main. The plan of record is `docs/reviews/visual-check-2026-10-29/plan.md`. Read it whole, and read `plan-attack.md` beside it; the plan already takes every attack point, and the owner chose the Claude Code reviewer as the image judge. The plan has no list of allowed edits. The art spec for the first use is committed beside the plan as `replicate-art-spec.md`; do not change it.
 
 What the lane does, in one sentence: first-look gains a reference mode, a cold Claude Code judge reads the lane's screenshots beside reference frames and an art spec and passes or fails each spec line, and the seat guide says the owner sees shots only after that pass.
 
