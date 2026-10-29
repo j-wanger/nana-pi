@@ -2,7 +2,7 @@ Feature: FEAT-039 · See the product and its decisions in one report
 
 Lane component-audit. Class: ordinary. Builder: pi-worker (small lane). Build session 3, on the reviewed tip af4c897d.
 
-The plan of record is still `docs/reviews/component-audit-2026-10-29/plan.md`. The final reviewer said LAND (`review-r1.md`), but CI then failed on all three systems.
+The plan of record is still `docs/reviews/component-audit-2026-10-29/plan.md`. The final reviewer said LAND (`r1-reviewer-f0c57c6e.md`), but CI then failed on all three systems.
 
 ## 1. The audit needs a local main branch (R-3104)
 
