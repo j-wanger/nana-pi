@@ -58,15 +58,81 @@ async function check(title, fn) {
 }
 try {
 // req: R-2990 R-2992
+await check("R-2992: three bounded runs keep old edited comments behind the starting floor", async () => {
+	const f = fixture({ runGh: (_cwd, args) => {
+		const now = f.clock.now();
+		if (args.includes("users/example")) return { status: 0, stdout: response("User", new Date(now).toISOString()) };
+		const since = Date.parse(new URL(`https://api.github.com/${args[3]}`).searchParams.get("since"));
+		const comments = [
+			{ ...row(1, -86400000, "day-old edited C"), updated_at: iso(now >= baseline + 300000 ? 300000 : -86400000) },
+			{ ...row(2, -3600000, "old answer Y"), issue_url: "https://api.github.com/repos/example/project/issues/8", updated_at: iso(-3600000) },
+		];
+		return { status: 0, stdout: response(JSON.stringify(comments.filter((comment) => Date.parse(comment.updated_at) > since)), new Date(now).toISOString()) };
+	} });
+	const runs = [];
+	let since = iso(0), seen = "";
+	for (let i = 0; i < 3; i++) {
+		const start = since, queryStart = f.calls.length;
+		const watch = f.start({ since, seen }); await settle();
+		await f.clock.advance(config.WATCH_RUN_MS); await watch.done;
+		runs.push({ start, cursor: watch.cursor, restart: f.lines.at(-1), queries: f.calls.slice(queryStart).filter(({ args }) => !args.includes("users/example")) });
+		since = watch.cursor; seen = watch.seen;
+	}
+	assert.deepEqual(f.owners, [], "no run may deliver either pre-session comment");
+	assert.equal(f.lines.filter((line) => line.startsWith("issue #")).length, 0);
+	for (const run of runs) {
+		let previous = Date.parse(run.start);
+		for (const { args } of run.queries) {
+			const cursor = Date.parse(new URL(`https://api.github.com/${args[3]}`).searchParams.get("since"));
+			assert(cursor >= previous && cursor >= baseline, "poll cursor must never retreat"); previous = cursor;
+		}
+		assert(Date.parse(run.cursor) >= previous);
+		assert(run.restart.includes(` --since "${run.cursor}"`));
+	}
+});
+// req: R-2997
+await check("R-2997: pi retries thrown owner deliveries and shows one notice until success", async () => {
+	const f = fixture(), handlers = {}, attempts = [], delivered = [], notices = [];
+	let throwing = true;
+	extension({ on: (name, fn) => { handlers[name] = fn; }, sendMessage: (message) => {
+		attempts.push(message); if (throwing) throw new Error("delivery unavailable"); delivered.push(message);
+	} }, { env: ghEnv, clock: f.clock, runGh: async (_cwd, args) => ({ status: 0, stdout: response(args.includes("users/example") ? "User" : JSON.stringify([row(1, 1, "retry this answer")])) }) });
+	const ctx = { cwd: f.root, hasUI: true, ui: { notify: (...args) => notices.push(args) } };
+	try {
+		await handlers.session_start({}, ctx); await settle();
+		assert.equal(attempts.length, 1); assert.deepEqual(delivered, []);
+		await f.clock.advance(config.WATCH_INTERVAL_MS);
+		assert.deepEqual({ attempts: attempts.length, notices }, {
+			attempts: 2,
+			notices: [["Issue watch: owner comment delivery failed; retrying next poll.", "warning"]],
+		}, "failed comment stays undelivered and pi shows one notice");
+		throwing = false; await f.clock.advance(config.WATCH_INTERVAL_MS);
+		assert.equal(delivered.length, 1); assert.match(delivered[0].content, /retry this answer/);
+		await f.clock.advance(config.WATCH_INTERVAL_MS);
+		assert.equal(attempts.length, 3, "successful delivery is deduplicated"); assert.equal(notices.length, 1);
+	} finally { await handlers.session_shutdown({}, ctx); }
+});
+// req: R-2995
+await check("R-2995: over-cap block keeps the omission notice before the watch line", () => {
+	for (const ending of ["\n", "\r\n"]) {
+		const f = fixture({ text: pointer.trimEnd().split("\n").map((line) => line + " \t").join(ending) });
+		const line = `Issue watch background monitor: ${watchCommand(f.root)}`;
+		const max = line.length + 100;
+		const out = frontierSummary({ cwd: f.root, env: {}, max, readIssues: () => ({ items: [] }) });
+		assert.equal(out, `frontier block omitted: ${max} characters left after the objective\n${line}\n`);
+		assert(out.length <= max);
+	}
+});
+// req: R-2990 R-2992
 await check("R-2992: GitHub cursor survives a 3 second fast clock and an 800 ms late comment", async () => {
 	for (const ending of ["\n", "\r\n"]) {
 		let visible = false;
 		const f = fixture({ runGh: (_cwd, args) => ({ status: 0, stdout: args.includes("users/example") ? "User" : response(JSON.stringify(visible ? [row(1, 800)] : []), iso(0), ending) }) });
 		await f.clock.advance(3000); const watch = f.start(); await settle();
-		assert.equal(watch.cursor, iso(-config.WATCH_OVERLAP_MS));
+		assert.equal(watch.cursor, iso(0));
 		await f.clock.advance(1600); visible = true;
 		await f.clock.advance(config.WATCH_INTERVAL_MS); assert.equal(f.owners.length, 1);
-		assert.equal(watch.cursor, iso(800 - config.WATCH_OVERLAP_MS));
+		assert.equal(watch.cursor, iso(0));
 		await f.clock.advance(config.WATCH_INTERVAL_MS); assert.equal(f.owners.length, 1);
 		watch.stop(); await watch.done;
 	}
@@ -148,7 +214,7 @@ await check("R-2990: pinned polls dedupe new comments ignore edits clean excerpt
 	const excerpt = f.lines[0].split(`${config.WATCH_QUOTE_LABEL}: `)[1];
 	assert.equal(excerpt.length, config.WATCH_EXCERPT_CAP); assert(!/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(excerpt));
 	await f.clock.advance(config.WATCH_INTERVAL_MS); assert.equal(f.lines.length, 1);
-	assert.deepEqual(f.calls[2].args, ["api", "--hostname", "github.com", `repos/example/project/issues/comments?since=${iso(1000 - config.WATCH_OVERLAP_MS)}&per_page=${config.ISSUES_FETCH_CAP}`, "--include"]);
+	assert.deepEqual(f.calls[2].args, ["api", "--hostname", "github.com", `repos/example/project/issues/comments?since=${iso(0)}&per_page=${config.ISSUES_FETCH_CAP}`, "--include"]);
 	assert.equal(f.calls[2].opts.timeoutMs, config.ISSUES_READ_LIMIT_MS); watch.stop(); await watch.done;
 	const full = fixture({ rows: Array.from({ length: config.ISSUES_FETCH_CAP }, (_, i) => row(i, 1)) });
 	const capped = full.start(); await settle(); await full.clock.advance(config.WATCH_INTERVAL_MS);
@@ -223,7 +289,7 @@ await check("R-2995: session block prioritizes the runnable monitor command on s
 			const readIssues = ({ pointer: p }) => { calls++; return failure ? { ...p, failure: "Open issues: unavailable (gh failed)" } : { ...p, items: Array.from({ length: config.ISSUES_FETCH_CAP }, (_, i) => ({ number: i, title: "x".repeat(300), kind: "blocking" })) }; };
 			const line = `Issue watch background monitor: ${watchCommand(f.root)}`;
 			const out = frontierSummary({ cwd: f.root, env: {}, readIssues }); assert(out.includes(line)); assert(out.length <= config.FRONTIER_OUTPUT_CAP); assert.equal(calls, 1);
-			const small = frontierSummary({ cwd: f.root, env: {}, readIssues, max: line.length + 1 }); assert.equal(small, line + "\n");
+			const small = frontierSummary({ cwd: f.root, env: {}, readIssues, max: line.length + 1 }); assert.equal(small, `frontier block omitted: ${line.length + 1} characters left after the objective\n${line}\n`);
 			for (const role of ["worker", "reviewer"]) assert.equal(frontierSummary({ cwd: f.root, env: { NANA_ROLE: role }, readIssues }), null);
 		}
 	}

@@ -455,7 +455,8 @@ and frontier-check lines, without claiming no items were found. Organization log
 
 ### Live issue comments (`bin/nana-issue-watch.mjs`)
 
-Opted-in blocks also name this runnable background monitor, including when the initial issue read fails:
+Opted-in blocks also name this runnable background monitor, including when the initial issue read fails.
+If the block exceeds its cap, the omission notice comes first, then the watch line (even for a smaller remaining budget):
 
 ```bash
 node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs" --root "<project root>"
@@ -475,7 +476,8 @@ It never posts, edits or deletes. Without a valid HANDOFF issues pointer, it pri
 
 The cursor uses GitHub time, never the local clock: the newest `created_at` seen, or the response's
 `Date` header on an empty page, minus a sealed five-second overlap. It never retreats after a
-successful poll. Without `--since`, the owner probe's `Date` initializes the cursor with the same overlap.
+successful poll or below the run's starting cursor, including when GitHub returns an edited old comment.
+Without `--since`, the owner probe's `Date` initializes the cursor with the same overlap.
 Comments created after the cursor are delivered immediately; ids dedupe overlapping polls.
 The first poll can include comments from five seconds before startup. Edits older than the initial
 cursor remain excluded. Restart commands carry the cursor and overlap ids with creation times in
@@ -492,6 +494,8 @@ replaces it on every session start and cancels it on shutdown. Its timers are un
 print/JSON runs and child roles start none. The pi watch continues until shutdown rather than
 needing Monitor restarts. Owner excerpts reach `pi.sendMessage` with `deliverAs: "steer"`
 and `triggerTurn: true`: they steer a running agent and start a turn while idle.
+Only a successful send marks the comment delivered. A thrown send leaves it for the next poll;
+pi shows one warning until a send succeeds.
 The existing synchronous session-start title read is unchanged; only the live poll is asynchronous.
 The watch reads the pointer at startup, so a pointer edit takes effect on restart.
 The carry rule requires the seat to start each issue comment with `Seat:`. Such comments print

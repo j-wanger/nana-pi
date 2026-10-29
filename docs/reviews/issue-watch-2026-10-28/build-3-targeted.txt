@@ -1,0 +1,12 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs issue-watch frontier-summary frontier-golden handoff-issues frontier-hook hook-producers
+
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs   1 pass  0.6s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs  6 pass  0.9s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs    11 pass  3.2s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs       26 pass  3.7s
+PASS  packages/nana-setup/tests/frontier-hook.test.mjs    1 pass  1.8s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs   13 pass  0.1s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 58 pass, 0 fail, 0 skip · 10.5s

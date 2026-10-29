@@ -2,7 +2,7 @@
  * @module packages/nana-pack/extensions/nana-frontier-summary.ts
  * @purpose Inject the current project frontier and deliver live owner issue comments to UI seat sessions.
  * @inputs pi session_start and before_agent_start events, ctx.cwd, and optional date/environment seams.
- * @outputs The frontier block in the nana-frontier system-prompt section, or no section when inapplicable.
+ * @outputs The frontier block in the nana-frontier prompt section, live owner messages, and one warning per delivery-failure streak.
  * @effects disk (reads HANDOFF.md), process and network (budget-bounded gh calls through frontier-summary.mjs)
  * @errors none; every handler catches failures and never throws into pi.
  */
@@ -23,9 +23,19 @@ export default function (pi: ExtensionAPI, opts: { today?: string; env?: NodeJS.
 		try {
 			block = frontierSummary({ cwd: ctx.cwd, today: opts.today, env });
 			if (ctx.hasUI && !LAUNCHER_ROLES.includes(env.NANA_ROLE)) {
+				let deliveryFailed = false;
 				watch = watchIssues({ root: ctx.cwd, env, clock: opts.clock, runGh: opts.runGh, continuous: true,
 					onOwner: (content: string) => {
-						pi.sendMessage({ customType: FRONTIER_SECTION, content, display: true }, { triggerTurn: true, deliverAs: "steer" });
+						try {
+							pi.sendMessage({ customType: FRONTIER_SECTION, content, display: true }, { triggerTurn: true, deliverAs: "steer" });
+							deliveryFailed = false;
+						} catch {
+							if (!deliveryFailed) {
+								deliveryFailed = true;
+								try { ctx.ui.notify("Issue watch: owner comment delivery failed; retrying next poll.", "warning"); } catch {}
+							}
+							throw new Error("owner comment delivery failed");
+						}
 					},
 				});
 			}

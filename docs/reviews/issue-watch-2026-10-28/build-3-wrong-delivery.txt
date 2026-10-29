@@ -1,0 +1,22 @@
+FAIL R-2997: pi retries thrown owner deliveries and shows one notice until success AssertionError [ERR_ASSERTION]: failed comment stays undelivered and pi shows one notice
++ actual - expected
+
+  {
++   attempts: 1,
++   notices: []
+-   attempts: 2,
+-   notices: [
+-     [
+-       'Issue watch: owner comment delivery failed; retrying next poll.',
+-       'warning'
+-     ]
+-   ]
+  }
+
+    at <worktree>/packages/nana-pack/tests/issue-watch.test.mjs:105:10
+    at async check (<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async <worktree>/packages/nana-pack/tests/issue-watch.test.mjs:94:1
+(node:87767) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of <worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

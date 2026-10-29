@@ -1248,7 +1248,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Inject the current project frontier and deliver live owner issue comments to UI seat sessions.
 - **inputs** — pi session_start and before_agent_start events, ctx.cwd, and optional date/environment seams.
-- **outputs** — The frontier block in the nana-frontier system-prompt section, or no section when inapplicable.
+- **outputs** — The frontier block in the nana-frontier prompt section, live owner messages, and one warning per delivery-failure streak.
 - **effects** — disk (reads HANDOFF.md), process and network (budget-bounded gh calls through frontier-summary.mjs)
 - **errors** — none; every handler catches failures and never throws into pi.
 - **callers** — `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`

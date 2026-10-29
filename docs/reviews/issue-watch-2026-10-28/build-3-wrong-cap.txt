@@ -1,0 +1,14 @@
+FAIL R-2995: over-cap block keeps the omission notice before the watch line AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'Issue watch background monitor: node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs" --root "/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/issue watch aePry6/project rao1ex"\n'
+- 'frontier block omitted: 296 characters left after the objective\n' +
+-   'Issue watch background monitor: node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs" --root "/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/issue watch aePry6/project rao1ex"\n'
+
+    at <worktree>/packages/nana-pack/tests/issue-watch.test.mjs:120:10
+    at async check (<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async <worktree>/packages/nana-pack/tests/issue-watch.test.mjs:114:1
+(node:17935) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of <worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -126,7 +126,6 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 		if (renderBlock(file, result, next, asks, chosen, issues, watchLine).length > limit) chosen.delete(item);
 	}
 	const rendered = renderBlock(file, result, next, asks, chosen, issues, watchLine);
-	if (rendered.length > limit && watchLine && watchLine.length + 1 <= limit) return `${watchLine}\n`;
-	if (rendered.length > limit) return `frontier block omitted: ${numericMax} characters left after the objective\n`;
+	if (rendered.length > limit) return `frontier block omitted: ${numericMax} characters left after the objective\n${watchLine ? `${watchLine}\n` : ""}`;
 	return rendered;
 }

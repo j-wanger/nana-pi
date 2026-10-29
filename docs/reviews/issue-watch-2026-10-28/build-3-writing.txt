@@ -1,0 +1,47 @@
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:1: verdict: first sentence "VERDICT: DONE" carries no verdict word
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:5: identifier: `feat/issue-watch`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:6: identifier: `f0e32c24`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:6: identifier: `9c9980f4`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:7: identifier: `3ebcf093`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:13: identifier: `packages/nana-pack/tests/issue-watch.test.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:17: identifier: `packages/nana-pack/lib/issue-watch.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:19: identifier: `R-2992: three bounded runs keep old edited comments behind the starting floor`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:24: identifier: `build-3-wrong-cursor.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:24: identifier: `build-3-targeted.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:27: identifier: `packages/nana-pack/lib/issue-watch.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:27: identifier: `packages/nana-pack/extensions/nana-frontier-summary.ts`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:31: identifier: `R-2997: pi retries thrown owner deliveries and shows one notice until success`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:35: identifier: `build-3-wrong-delivery.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:35: identifier: `build-3-targeted.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:39: identifier: `packages/nana-pack/lib/frontier-summary.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:41: identifier: `R-2995: over-cap block keeps the omission notice before the watch line`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:44: identifier: `build-3-wrong-cap.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:44: identifier: `build-3-targeted.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:51: identifier: `packages/nana-pack/tests/issue-watch.test.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:53: identifier: `R-2992: GitHub cursor survives a 3 second fast clock and an 800 ms late comment`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:54: identifier: `R-2990: pinned polls dedupe new comments ignore edits clean excerpts and warn at a full page`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:55: identifier: `R-2995: session block prioritizes the runnable monitor command on success failure and cap pressure`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:61: identifier: `REQUIREMENTS.md`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:62: identifier: `packages/nana-pack/README.md`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:63: identifier: `docs/code-map.md`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:84: identifier: `NANA_TEST_CASE='<new title prefix>' node --experimental-strip-types packages/nana-pack/tests/issue-watch.test.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:85: identifier: `npm test -- issue-watch frontier-summary frontier-golden handoff-issues frontier-hook hook-producers`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:86: identifier: `6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 58 pass, 0 fail, 0 skip · 10.5s`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:87: identifier: `npm run map:impact -- packages/nana-pack/lib/issue-watch.mjs packages/nana-pack/extensions/nana-frontier-summary.ts packages/nana-pack/lib/frontier-summary.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:88: identifier: `npm run map`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:88: identifier: `build-3-map.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:89: identifier: `env -u NANA_WORKTREE_ROOT -u NANA_ROLE -u NANA_HANDOFF node packages/nana-setup/bin/install-check.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:90: identifier: `build-3-install-check.txt`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:91: identifier: `npm run test:locked`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:92: identifier: `231 files: 229 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8638 pass, 0 fail, 44 skip · 592.5s`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:94: identifier: `npm run map:check`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:95: identifier: `npm run readme:check`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:96: identifier: `node --experimental-strip-types scripts/requirements-trace.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:97: identifier: `node scripts/requirements-tree.mjs --root .`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:98: identifier: `node scripts/known-bugs.mjs --root .`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:99: identifier: `node scripts/identity-scan.mjs`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:101: identifier: `git diff --check`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:102: identifier: `node scripts/lane-class.mjs --root . --files <changed code and contract paths>`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:102: identifier: `hook: packages/nana-pack/extensions/nana-frontier-summary.ts — pi extension`
+docs/reviews/issue-watch-2026-10-28/build-report-3.md:103: identifier: `nana-writing --report <this report>`
+summary sentences=83 words=1018 over=0 passive=0 banned=0 verdict=0/1 identifiers=45

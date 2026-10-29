@@ -97,17 +97,19 @@ export function watchIssues({ root: cwd, since, seen = "", env = process.env, cl
 				const created = Date.parse(row.created_at);
 				// since filters updated_at at GitHub; creation time excludes old edits.
 				if (created <= Math.max(floor, Date.parse(cursor)) || delivered.has(row.id)) continue;
-				delivered.set(row.id, created);
 				const number = row.issue_url.match(/\d+$/)[0];
 				const owner = ownerType === "Organization" ? ["OWNER", "MEMBER"].includes(row.author_association) : row.user.login.toLowerCase() === pointer.owner.toLowerCase();
-				if (row.body.startsWith(WATCH_SEAT_MARKER)) { emit(`issue #${number}: a seat comment`); continue; }
-				if (!owner) { emit(`issue #${number}: a comment by someone else`); continue; }
+				if (row.body.startsWith(WATCH_SEAT_MARKER)) { emit(`issue #${number}: a seat comment`); delivered.set(row.id, created); continue; }
+				if (!owner) { emit(`issue #${number}: a comment by someone else`); delivered.set(row.id, created); continue; }
 				const line = `issue #${number} comment by ${promptText(row.user.login)}: ${WATCH_QUOTE_LABEL}: ${promptText(row.body, WATCH_EXCERPT_CAP)}`;
 				emit(line); onOwner(line);
+				// A throwing receiver must leave this id available to the next poll.
+				delivered.set(row.id, created);
 			}
 			if (rows.length >= ISSUES_FETCH_CAP) emit("Issue watch: more comments than shown (fetch cap reached).");
 			githubTime = Math.max(githubTime, newest);
-			cursor = new Date(githubTime - WATCH_OVERLAP_MS).toISOString();
+			// GitHub since uses updated_at: an old edit must not lower the restart floor.
+			cursor = new Date(Math.max(floor, Date.parse(cursor), githubTime - WATCH_OVERLAP_MS)).toISOString();
 			for (const [id, created] of delivered) if (created <= Date.parse(cursor)) delivered.delete(id);
 		} catch (error) {
 			if (!stopped && !failed) { emit(`Issue watch: ${error.message}.`); failed = true; }
