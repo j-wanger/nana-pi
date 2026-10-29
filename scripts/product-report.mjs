@@ -78,7 +78,7 @@ export const NEEDS_YOU_ASK_CAP = 3;
 export const OVERVIEW_LABELS = Object.freeze({
   asks: "Asks", blocking: "blocking (must decide)", optional: "optional", parked: "parked",
   mustDecide: "Must decide", since: "since", questions: "Open questions in the ledger",
-  recommendation: ASK_LABELS.recommends, question: ASK_LABELS.question, cost: ASK_LABELS.cost,
+  recommendation: ASK_LABELS.recommends, question: ASK_LABELS.question, gains: ASK_LABELS.gains, cost: ASK_LABELS.cost,
   otherwise: ASK_LABELS.otherwise, noneRecorded: ASK_LABELS.none,
   violated: "Violated", notPassed: "Did not pass in this clone's last measured run",
   failed: "failed", skippedOnly: "skipped only", skipped: "skipped", unmeasured: "unmeasured", noRecordedRun: "no recorded run", noRun: "implemented rows with no recorded run (unmeasured)",
@@ -456,7 +456,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
   }
   if (view === "decisions") {
     const askLabels = model.askLabels;
-    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url) paragraph(card, "Ask", ask.body ?? ""); else for (const group of ask.groups ?? []) { paragraph(card, askLabels.question, group.question); paragraph(card, askLabels.recommends, group.default ?? ask.recommendation ?? askLabels.none); if (group.cost) paragraph(card, askLabels.cost, group.cost); if (group.otherwise) paragraph(card, askLabels.otherwise, group.otherwise); } }
+    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url) paragraph(card, "Ask", ask.body ?? ""); else for (const group of ask.groups ?? []) { paragraph(card, askLabels.question, group.question); paragraph(card, askLabels.recommends, group.default ?? ask.recommendation ?? askLabels.none); if (group.gains) paragraph(card, askLabels.gains, group.gains); if (group.cost) paragraph(card, askLabels.cost, group.cost); if (group.otherwise) paragraph(card, askLabels.otherwise, group.otherwise); } }
     if (model.nextItems?.length) { el("h3", "Next", root); const list = el("ul", undefined, root); for (const item of model.nextItems) { const li = el("li", undefined, list); const link = el("a", `#${item.number} ${item.title}`, li); link.setAttribute("href", item.url); } }
     if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
@@ -1002,7 +1002,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       const title = `${ask.title.title} · ${ask.tag.kind} · ${labels.since} ${ask.parsed.since}`;
       const titleSegments = ask.url ? [{ link: { href: ask.url, text: title } }] : line(title);
       const first = ask.parsed.groups[0];
-      return [titleSegments, line(`${labels.question}: ${first?.question ?? ""}`), line(`${labels.recommendation}: ${ask.parsed.recommendation ?? labels.noneRecorded}`), ...(first?.cost ? [line(`${labels.cost}: ${first.cost}`)] : []), ...(ask.parsed.groups.length > 1 ? [line(`${ask.parsed.groups.length - 1} more questions in the issue`)] : [])];
+      return [titleSegments, line(`${labels.question}: ${first?.question ?? ""}`), line(`${labels.recommendation}: ${ask.parsed.recommendation ?? labels.noneRecorded}`), ...(first?.gains ? [line(`${labels.gains}: ${first.gains}`)] : []), ...(first?.cost ? [line(`${labels.cost}: ${first.cost}`)] : []), ...(ask.parsed.groups.length > 1 ? [line(`${ask.parsed.groups.length - 1} more questions in the issue`)] : [])];
     }),
     ...(shapedAsks.length > listed.length ? [[{ link: { href: "#decisions", text: `${shapedAsks.length - listed.length} more in Decisions` } }]] : []),
     line(`${labels.questions}: ${questions.length}`)];

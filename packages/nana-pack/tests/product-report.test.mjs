@@ -296,6 +296,16 @@ try {
       const link = flatten(card).find((node) => node.tag === "a");
       return link?.attrs.href === "https://github.com/example/project/issues/242" && text.includes("Question: Keep <b>x</b>?") && text.includes("Seat recommends: retain the rule") && text.includes("Seat recommends: change the wording") && !text.includes("Seat recommends: keep it") && text.includes("Cost of a wrong guess: hard to undo") && text.includes("If answered otherwise: Ship now") && !text.some((line) => line.includes("undefined"));
     })());
+    // req: R-3072
+    check("R-3072: Decisions cards place present gains between recommendation and cost and omit absent gains", (() => {
+      const root = { children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...nodes) { this.children = nodes; } };
+      const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...nodes) { this.children = nodes; }, setAttribute(key, value) { this.attrs[key] = value; } }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); } }); return node; };
+      const document = { getElementById: () => root, createElement: make, createTextNode: (text) => ({ text: String(text), get textContent() { return this.text; } }) };
+      renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, askLabels: ASK_LABELS, capabilities: [], features: [], violated: [], notPassed: [], questions: [], asks: [{ kind: "optional", since: "2026-10-29", title: "Trade", url: "https://github.com/example/project/issues/259", groups: [{ question: "Which?", default: "yes", gains: "Keeps one meaning; may miss another.", cost: "easy to undo" }, { question: "Another?", default: "no", gains: null, cost: "hard to undo" }] }] }, { hash: "#decisions" });
+      const card = root.children.find((node) => node.tag === "article");
+      const paragraphs = card.children.filter((node) => node.tag === "p").map((node) => node.textContent);
+      return paragraphs.slice(2).join("|") === "Question: Which?|Seat recommends: yes|What the default gains and misses: Keeps one meaning; may miss another.|Cost of a wrong guess: easy to undo|Question: Another?|Seat recommends: no|Cost of a wrong guess: hard to undo";
+    })());
     // req: R-1018
     check("rendered decisions view shows every ask kind, since-date, title and full body",  model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
     // req: R-1018

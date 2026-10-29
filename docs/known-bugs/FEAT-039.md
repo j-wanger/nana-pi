@@ -122,3 +122,5 @@
 - Overview (records-counts, plan): with no deliverable lines, the Records summary still shows `Gaps 0`.
 - Ask parser (ask-stakes, final review): the inline Recommendation/Default reader strips a trailing period when the value ends the body, a change the plan did not list.
 - Needs you (ask-stakes, final review): the gains-line test checks only the present case; the absent case relies on the older exact-line test.
+- Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
+- Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.

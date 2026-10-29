@@ -52,9 +52,9 @@ check("R-3030: planner prompt makes Outside precedent part of the required secti
 // req: R-3031
 check("R-3031: planner prompt requires a licensed outside project or a located none", prompt.includes("Under **Outside precedent**, name one open-source project for the lane's main part, with its licence and one of `adopt`, `borrow` or `skip` and a reason; put any other public reference after it. When none applies, write `none:` with where you looked."), prompt);
 
-// req: R-3010
-check("R-3010: planner prompt specifies the owner-question form, ranking and overflow", [
-	"Then write **Questions for the owner**. Write each question as four labelled lines: `Question:`, `Default:`, `Cost of a wrong guess:` (starting `easy to undo` or `hard to undo`), and `If answered otherwise:`. Order them from the costliest wrong guess down. Keep the top one to three; make every other question a marked assumption. With no open question, write `None.`",
+// req: R-3070
+check("R-3070: planner prompt specifies the five-line owner-question form, ranking and overflow", [
+	"Then write **Questions for the owner**. Write each question as five labelled lines: `Question:`, `Default:`, `What the default gains and misses:` (one concrete gain of the default and one problem it may miss that the main alternative would catch, on one line), `Cost of a wrong guess:` (starting `easy to undo` or `hard to undo`), and `If answered otherwise:`. Order them from the costliest wrong guess down. Keep the top one to three; make every other question a marked assumption. With no open question, write `None.`",
 ].every((sentence) => prompt.includes(sentence)), prompt);
 
 // req: R-3011

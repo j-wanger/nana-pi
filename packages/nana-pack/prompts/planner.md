@@ -15,7 +15,7 @@ First write **Purpose**. Quote the agreed intent reading. For a fix, name the ro
 
 Then write marked **Assumptions** and **Open choices**. Mark assumptions A1, A2, and choices O1, O2. Say what may be wrong and what remains for the builder to decide.
 
-Then write **Questions for the owner**. Write each question as four labelled lines: `Question:`, `Default:`, `Cost of a wrong guess:` (starting `easy to undo` or `hard to undo`), and `If answered otherwise:`. Order them from the costliest wrong guess down. Keep the top one to three; make every other question a marked assumption. With no open question, write `None.`
+Then write **Questions for the owner**. Write each question as five labelled lines: `Question:`, `Default:`, `What the default gains and misses:` (one concrete gain of the default and one problem it may miss that the main alternative would catch, on one line), `Cost of a wrong guess:` (starting `easy to undo` or `hard to undo`), and `If answered otherwise:`. Order them from the costliest wrong guess down. Keep the top one to three; make every other question a marked assumption. With no open question, write `None.`
 
 When you return readings instead of a plan, put the top questions for each reading in the same message.
 

@@ -122,6 +122,15 @@ await check("R-3054: Needs you shows each listed ask's question, recommendation,
   const noRec = blocks(renderHtmlAt(fs.readFileSync(noRecOut, "utf8"))).find(({ heading }) => heading.textContent === "Needs you");
   assert(noRec.lines.some((node) => node.textContent === "Seat recommends: none recorded"));
 });
+// req: R-3073
+await check("R-3073: Needs you places first-group gains after recommendation and before cost", async () => {
+  const repo = treeFixture(temp, "ask-gains", basic(), "## Open for the owner\nIssues: https://github.com/example/project/issues\n");
+  const out = path.join(temp, "ask-gains.html");
+  await generateReport({ root: repo.root, out, readIssues: async ({ pointer }) => ({ ...pointer, url: "https://github.com/example/project/issues", items: [{ number: 259, title: "Default trade", kind: "optional", createdAt: "2026-10-29", body: "Question: Which wording?\nDefault: yes.\nWhat the default gains and misses: It keeps one meaning; it may miss a second alternative.\nCost of a wrong guess: easy to undo." }] }) });
+  const needs = blocks(renderHtmlAt(fs.readFileSync(out, "utf8"))).find(({ heading }) => heading.textContent === "Needs you");
+  assert.deepEqual(needs.lines.map((node) => node.textContent).slice(1, 6), ["Default trade · optional · since 2026-10-29", "Question: Which wording?", "Seat recommends: yes.", "What the default gains and misses: It keeps one meaning; it may miss a second alternative.", "Cost of a wrong guess: easy to undo."]);
+});
+
 // req: R-3053
 await check("seal R-3053: Needs you ask cap is three", async () => assert.equal(NEEDS_YOU_ASK_CAP, 3));
 // req: R-2922
