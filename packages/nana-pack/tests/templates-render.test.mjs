@@ -583,7 +583,7 @@ function checkInstructionContracts() {
 	check("nana-soul carries the shared default-pattern and seat land review bullets",
 		Boolean(defaultPatternBullet) && Boolean(seatLandBullet) &&
 		soul.replace(/\r/g, "").includes(defaultPatternBullet) && soul.replace(/\r/g, "").includes(seatLandBullet));
-	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule.";
+	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.";
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
 	// req: R-1142
 	check("shared working pattern carries one seat-guide bullet",

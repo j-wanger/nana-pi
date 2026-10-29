@@ -1,15 +1,15 @@
 /**
  * @module packages/nana-setup/lib/state-manifest.mjs
  * @purpose Defines the single classified inventory of nana state and its restoration provenance.
- * @inputs resolveLayout-shaped absolute paths including the Windows copy record, ledgerPaths(home), nana-pack's RULINGS_FILE and steps' PATH_COMMANDS.
- * @outputs sealed STATE_CLASSES and stateRows(layout), including every PATH_COMMANDS link and `.cmd` shim.
+ * @inputs resolveLayout-shaped absolute paths including the Windows copy record, ledgerPaths(home), nana-pack's RULINGS_FILE and SEAT_GUIDE_FILE and steps' PATH_COMMANDS.
+ * @outputs sealed STATE_CLASSES and stateRows(layout), including every PATH_COMMANDS link and `.cmd` shim, plus the installed pi seat guide.
  * @effects none
  * @errors none
  */
 import * as path from "node:path";
 import { ledgerPaths } from "../../nana-pack/bin/review-round.mjs";
 import { PATH_COMMANDS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED } from "./steps.mjs";
-import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
 /** Sealed classification vocabulary; chosen by plan 5.5 and critic S2 (2026-10-08). */
 export const STATE_CLASSES = Object.freeze({
@@ -61,6 +61,7 @@ export function stateRows(layout) {
   for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
+  rebuild(`pi rule link ${SEAT_GUIDE_FILE}`, layout.piSeatGuide);
   for (const name of ["requirements", "spec", "py-lint", "py-review", "py-test"]) rebuild(`skill link ${name}`, p(layout.skillsDir, name));
   for (const [name] of PATH_COMMANDS) rebuild(`bin link ${name}`, p(layout.binDir, name));
   for (const [name] of PATH_COMMANDS) rebuild(`bin shim ${name}.cmd`, p(layout.binDir, `${name}.cmd`), "shim");

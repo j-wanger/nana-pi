@@ -4,12 +4,12 @@
  *  `project` can never disagree about where a piece lives.
  * @inputs opts.home / opts.claudeHome / opts.piHome; os.homedir(); Claude-home resolver
  *  (CLAUDE_CONFIG_DIR, else ~/.claude); nana-pack's agent-dir resolver (PI_CODING_AGENT_DIR, else
- *  ~/.pi/agent) and its cwd-relative probe; nana-pack's RULINGS_FILE;
+ *  ~/.pi/agent) and its cwd-relative probe; nana-pack's RULINGS_FILE and SEAT_GUIDE_FILE;
  *  process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
  * @outputs pkgRoot, repoRoot, SHARED_DIR, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
  *  base, claudeHome + claudeHomeSource + claudeHomeCwdRelative, hooksDir, rulesDir, skillsDir,
  *  projectsDir, sharedMemoryDir, claudeSettings, copyRecord, piHome + piHomeSource + piHomeCwdRelative,
- *  piSettings, piPackConfig, piObjective, piRulings,
+ *  piSettings, piPackConfig, piObjective, piRulings, piSeatGuide,
  *  knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig,
  *  reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath,
  *  isRealHome; platform(); tildeify()
@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
 import { CLAUDE_CONFIG_ENV, claudeConfigHome } from "./claude-config-home.mjs";
 import { DEFAULT_OBJECTIVE_FILE } from "../../nana-pack/lib/objective-path.mjs";
-import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
 /** <repo>/packages/nana-setup — the files this package ships. */
@@ -80,6 +80,7 @@ export function resolveLayout(opts = {}) {
 		piPackConfig: path.join(piHome, "nana-pack.json"),
 		piObjective: path.join(piHome, DEFAULT_OBJECTIVE_FILE),
 		piRulings: path.join(piHome, RULINGS_FILE),
+		piSeatGuide: path.join(piHome, SEAT_GUIDE_FILE),
 		// pi-subagents' own config file (a third-party vendor extension nana-pi only consumes —
 		// architecture-ruling.md 2026-10-04 §2): seed-once, doctor-verifies, never clobber a hand
 		// edit, the exact policy nana-pack.json already follows.

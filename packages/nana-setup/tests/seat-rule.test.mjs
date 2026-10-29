@@ -12,6 +12,8 @@ import { fileURLToPath } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const GUIDE = path.join(pkg, "claude", "rules", "nana-seat.md");
+const ROOT = path.resolve(pkg, "..", "..");
+const SHARED_WORKING = path.join(ROOT, "templates", "_shared", "working-under-nana-pi.md");
 
 let fails = 0;
 const check = (n, ok, extra = "") => {
@@ -75,5 +77,15 @@ check("seat guide carries: name and start independent work before the turn ends,
 check("seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone", lines.filter((l) => l === RULE_10).length === 1, JSON.stringify(lines.filter((l) => l === RULE_10)));
 // req: R-1140
 check("seat guide carries: preamble and review standard named, not restated", lines.filter((l) => l === RULE_8).length === 1, JSON.stringify(lines.filter((l) => l === RULE_8)));
+
+{
+	const guide = fs.readFileSync(GUIDE, "utf8");
+	const sentence = "In pi, a seat starts another lane's build from another pi session or the desk; its own builds run in the foreground.";
+	const shared = fs.readFileSync(SHARED_WORKING, "utf8");
+	const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+	const seatLine = shared.split("\n").find((line) => line.startsWith("- Seat guide:"));
+	// req: R-3026
+	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
+}
 
 process.exit(fails ? 1 : 0);

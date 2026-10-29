@@ -35,7 +35,7 @@ import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
-import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
@@ -509,6 +509,8 @@ export function diagnose(layout, opts = {}) {
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective, "pi nana-objective.md");
 	add(linkOk(layout.piRulings, ruleSource(RULINGS_FILE)) ? OK : FAIL, "pi nana-rulings.md", `-> ${ruleSource(RULINGS_FILE)}`);
+	const seatGuideSource = path.join(pkgRoot, "claude", "rules", SEAT_GUIDE_FILE);
+	add(linkOk(layout.piSeatGuide, seatGuideSource) ? OK : FAIL, "pi nana-seat.md", `-> ${seatGuideSource}`);
 	const projectDir = path.resolve(opts.projectDir || process.cwd());
 	if (fs.existsSync(path.join(projectDir, ".pi", "nana-pack.json"))) {
 		let vouched = false;

@@ -16,7 +16,7 @@ import { STATE_CLASSES, stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { ledgerPaths } from "../../nana-pack/bin/review-round.mjs";
 import { PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED } from "../lib/steps.mjs";
-import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -74,8 +74,9 @@ const installTargets = [
   ...["pi-review", "pi-worker", "nana-land", "nana-setup", "nana-writing"].map((name) => path.join(ownerLayout.binDir, name)),
   ...["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd", "nana-writing.cmd"].map((name) => path.join(ownerLayout.binDir, name)),
   ownerLayout.piRulings,
+  ownerLayout.piSeatGuide,
 ];
-const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", "file", ...Array(20).fill("link"), ...Array(5).fill("shim"), "link"];
+const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", "file", ...Array(20).fill("link"), ...Array(5).fill("shim"), "link", "link"];
 const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
 // The manifest row for every "link" target exists on every platform (state-manifest.mjs lists
 // every platform-owned path unconditionally) — the coverage check above holds either way. Actual

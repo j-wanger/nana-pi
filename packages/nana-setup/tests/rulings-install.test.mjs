@@ -33,7 +33,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-const { RULINGS_FILE } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
+const { RULINGS_FILE, SEAT_GUIDE_FILE } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
 
 const SRC = ruleSource(RULINGS_FILE);
 
@@ -182,6 +182,40 @@ if (process.platform !== "win32") {
 		/✗ pi nana-rulings\.md/.test(stale.stdout),
 		stale.stdout,
 	);
+}
+
+{
+	const { H, P } = freshRoots();
+	const source = path.join(pkg, "claude", "rules", SEAT_GUIDE_FILE);
+	run(["install", "--home", H, "--pi-home", P], process.platform === "win32" ? win32Env : {});
+	const target = path.join(P, SEAT_GUIDE_FILE);
+	const installed = lstatSafe(target);
+	const good = process.platform === "win32" || process.env.NANA_SETUP_PLATFORM === "win32"
+		? Boolean(installed?.isFile() && !installed.isSymbolicLink() && fs.readFileSync(target).equals(fs.readFileSync(source)))
+		: Boolean(installed?.isSymbolicLink() && fs.realpathSync(target) === fs.realpathSync(source));
+	const uninstalled = process.platform === "win32" ? null : run(["uninstall", "--yes", "--home", H, "--pi-home", P]);
+	// req: R-3020
+	check("install installs the pi seat guide and uninstall removes its manifest-owned link", good && (process.platform === "win32" || (uninstalled.status === 0 && !lstatSafe(target))), JSON.stringify({ good, uninstall: uninstalled?.status ?? "POSIX-only command" }));
+}
+
+{
+	const { H, P } = freshRoots();
+	const source = path.join(pkg, "claude", "rules", SEAT_GUIDE_FILE);
+	const target = path.join(P, SEAT_GUIDE_FILE);
+	const missing = run(["doctor", "--home", H, "--pi-home", P]);
+	run(["install", "--home", H, "--pi-home", P], win32Env);
+	const installed = run(["doctor", "--home", H, "--pi-home", P], win32Env);
+	let stale;
+	if (process.platform === "win32") {
+		fs.writeFileSync(target, "stale guide");
+		stale = run(["doctor", "--home", H, "--pi-home", P], win32Env);
+	} else {
+		fs.unlinkSync(target);
+		fs.writeFileSync(target, fs.readFileSync(source));
+		stale = run(["doctor", "--home", H, "--pi-home", P]);
+	}
+	// req: R-3024
+	check("doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms", /✗ pi nana-seat\.md/.test(missing.stdout) && /✓ pi nana-seat\.md/.test(installed.stdout) && /✗ pi nana-seat\.md/.test(stale.stdout), `${missing.stdout}\n${installed.stdout}\n${stale.stdout}`);
 }
 
 for (const td of tmps) {

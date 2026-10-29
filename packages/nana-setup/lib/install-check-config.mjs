@@ -63,6 +63,7 @@ export const PI_TURN = {
   record: ".nana-install-check-turn.json",
   noteFile: "install-check.md",
   rulingsHeading: "## Standing rulings (nana)",
+  seatGuideHeading: "## Seat guide (nana)",
   writingTag: "<nana-writing>",
   knowledgeMarker: "[nana:knowledge]",
   gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",

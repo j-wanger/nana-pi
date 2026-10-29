@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/rulings-config.mjs
- * @purpose Every tunable the nana-rulings extension and nana-setup's install/doctor steps read, each defined once with its provenance, so no inline literal names the rulings file, its cap or its system-prompt section at a point of use.
+ * @purpose Every tunable the nana-rulings extension and nana-setup's install/doctor steps read, each defined once with provenance, so file names, caps and prompt sections have no inline duplicates.
  * @inputs none — pure constants
- * @outputs RULINGS_FILE, RULINGS_READ_CAP, RULINGS_HEADING, RULINGS_SECTION, RULINGS_UNAVAILABLE
+ * @outputs RULINGS_FILE, RULINGS_READ_CAP, RULINGS_HEADING, RULINGS_SECTION, RULINGS_UNAVAILABLE and the sealed pi seat-guide values
  * @effects none
  * @errors none
  */
@@ -30,3 +30,18 @@ export const RULINGS_SECTION = "nana-rulings";
 /** The one-line marker's fixed prefix when the installed file is unusable (R-1411) — addressed
  *  to the user, never an instruction for an agent to act on by itself. */
 export const RULINGS_UNAVAILABLE = "RULINGS UNAVAILABLE:";
+
+/** contract R-3020/R-3021: the shared canonical seat rule's installed file name. */
+export const SEAT_GUIDE_FILE = "nana-seat.md";
+
+/** chosen: the shipped guide is about 2.6 KiB (2026-10-29), and 8192 bytes allows substantial growth while bounding each seat session's read. Pinned by rulings.test.mjs::seal: SEAT_GUIDE_READ_CAP is 8192 (R-3023). */
+export const SEAT_GUIDE_READ_CAP = 8192;
+
+/** The heading under which the full installed seat guide is injected. */
+export const SEAT_GUIDE_HEADING = "## Seat guide (nana)";
+
+/** The system-prompt section key the nana-rulings extension sets at before_agent_start. */
+export const SEAT_GUIDE_SECTION = "nana-seat-guide";
+
+/** The one-line unavailable marker prefix, distinct from rulings. */
+export const SEAT_GUIDE_UNAVAILABLE = "SEAT GUIDE UNAVAILABLE:";
