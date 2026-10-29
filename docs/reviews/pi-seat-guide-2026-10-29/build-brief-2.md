@@ -28,7 +28,8 @@ Report: each new test title and the pair it catches; the guide's new pi sentence
 
 ## Precedent
 
-- Build 1's own tests in `packages/nana-pack/tests/rulings.test.mjs` and `packages/nana-setup/tests/rulings-install.test.mjs`: the role cases, the sealed values and the doctor rows.
+- `packages/nana-pack/tests/rulings.test.mjs`: build 1's role cases and sealed values.
+- `packages/nana-setup/tests/rulings-install.test.mjs`: build 1's doctor rows.
 - `packages/nana-setup/lib/doctor.mjs`: the `ruleSource` call on the rulings row.
 - `packages/nana-setup/bin/install-check.mjs`: the rulings heading check.
 - `packages/nana-setup/tests/seat-rule.test.mjs`: the guide's pinned sentences.
