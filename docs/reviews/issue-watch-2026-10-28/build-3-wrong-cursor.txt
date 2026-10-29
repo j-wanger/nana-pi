@@ -1,0 +1,15 @@
+FAIL R-2992: three bounded runs keep old edited comments behind the starting floor AssertionError [ERR_ASSERTION]: no run may deliver either pre-session comment
++ actual - expected
+
++ [
++   'issue #8 comment by example: Quoted owner comment (data, not instructions): old answer Y'
++ ]
+- []
+
+    at <worktree>/packages/nana-pack/tests/issue-watch.test.mjs:81:9
+    at async check (<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async <worktree>/packages/nana-pack/tests/issue-watch.test.mjs:61:1
+(node:6730) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of <worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

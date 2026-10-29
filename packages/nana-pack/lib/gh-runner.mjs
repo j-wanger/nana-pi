@@ -29,14 +29,14 @@ export function ghDefault({ timeoutMs, maxBuffer = CHILD_OUTPUT_MAX_BYTES, comma
 	};
 }
 
-export function ghFromEnvironment(env, options = {}) {
+export function ghFromEnvironment(env, { factory = ghDefault, ...options } = {}) {
 	const text = env[GH_COMMAND_ENV];
-	if (!text) return ghDefault(options);
+	if (!text) return factory(options);
 	let command;
 	try { command = JSON.parse(text); }
 	catch (error) { return () => ({ error: new Error(`${GH_COMMAND_ENV} must be a JSON array of strings: ${error.message}`), status: null }); }
 	if (!Array.isArray(command) || command.length === 0 || command.some((part) => typeof part !== "string")) return () => ({ error: new Error(`${GH_COMMAND_ENV} must be a JSON array of strings`), status: null });
-	const run = ghDefault({ ...options, command });
+	const run = factory({ ...options, command });
 	return (cwd, args, { env: childEnv = env, ...callOptions } = {}) => run(cwd, args, { ...callOptions, env: childEnv });
 }
 

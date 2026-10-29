@@ -1,0 +1,146 @@
+Wrong code only; assertions unchanged. Independent wrong clauses installed together; each case selected separately.
+
+CASE R-2992: GitHub cursor EXIT 1
+FAIL R-2992: GitHub cursor survives a 3 second fast clock and an 800 ms late comment AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ '2026-10-27T23:59:58.000Z'
+- '2026-10-27T23:59:55.000Z'
+                     ^
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:66:10
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:61:1
+(node:4021) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2991: org OWNER EXIT 1
+FAIL R-2991: org OWNER and MEMBER comments name their author but not collaborators AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'issue #7 comment by org-owner: Quoted owner comment (data, not instructions): owner answer',
+-   'issue #7 comment by org-member: Quoted owner comment (data, not instructions): member answer'
+  ]
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:78:9
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:75:1
+(node:4022) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2997: seat comments EXIT 1
+FAIL R-2997: seat comments print no text and never reach pi or start a turn AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'issue #7 comment by example: Quoted owner comment (data, not instructions): Seat: secret seat reply',
++   'issue #7: a comment by someone else'
+-   'issue #7: a seat comment',
+-   'issue #7: a seat comment'
+  ]
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:85:9
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:82:1
+(node:4023) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2992: real opted-in EXIT 1
+FAIL R-2992: real opted-in command keeps polling prints an owner answer and ends with restart AssertionError [ERR_ASSERTION]: Warning: Detected unsettled top-level await at file://<worktree>/packages/nana-pack/bin/nana-issue-watch.mjs:24
+		await watch.done;
+		^
+
+
+
+
+
+13 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:97:9
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:92:1
+(node:4024) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2995: unreadable pointers EXIT 1
+FAIL R-2995: unreadable pointers never name a watch in the session block AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(!out.includes("Issue watch"))
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:104:54
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:100:1
+(node:4028) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2993: each failure EXIT 1
+FAIL R-2993: each failure prints its own cause AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'Issue watch: gh failed.'
+-   'Issue watch: cannot start gh.'
+  ]
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:110:95
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:108:1
+(node:4029) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2997: default watch runner EXIT 1
+FAIL R-2997: default watch runner is asynchronous without a runner injection Error: Issue watch: gh failed.
+    at emit (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:122:277)
+    at poll (file://<worktree>/packages/nana-pack/lib/issue-watch.mjs:113:31)
+(node:4030) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CASE R-2996: real worker EXIT 1
+FAIL R-2996: real worker and reviewer commands exit zero immediately without gh AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+13 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:133:10
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:128:1
+(node:4032) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL R-2998: seal GitHub cursor overlap at 5000 ms AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 5000
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:137:75
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:137:1
+(node:4122) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL R-2998: seal seat comment marker AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+'seat:' !== 'Seat:'
+
+    at file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:139:62
+    at async check (file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:55:8)
+    at async file://<worktree>/packages/nana-pack/tests/issue-watch.test.mjs:139:1
+(node:4123) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-frontier-summary.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

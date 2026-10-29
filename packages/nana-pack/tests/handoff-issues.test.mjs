@@ -133,7 +133,7 @@ await check("R-2973: issue failures name cause time and URL without losing Next 
 	fs.writeFileSync(file, pointer().replace("- Local next\n", ""));
 	const emptyFailure = block({ status: 1 });
 	assert(!emptyFailure.includes("none found"));
-	assert.match(emptyFailure, /Open issues: unavailable[^\n]*\n\nFrontier check:/);
+	assert.match(emptyFailure, /Open issues: unavailable[^\n]*\n\nIssue watch background monitor: [^\n]+\nFrontier check:/);
 	const budgets = [];
 	let now = 0;
 	const result = readHandoffIssues({ text: pointer(), cwd: TD, clock: () => now, runGh: (_cwd, args, options) => {

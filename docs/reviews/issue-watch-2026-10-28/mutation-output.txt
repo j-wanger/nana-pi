@@ -1,0 +1,21 @@
+PASS R-2990 old edited comment: wrong=1 restored=0
+PASS R-2990 whole-second watermark: wrong=1 restored=0
+PASS R-2990 duplicate id: wrong=1 restored=0
+PASS R-2990 host pin: wrong=1 restored=0
+PASS R-2991 org owner: wrong=1 restored=0
+PASS R-2992 restart cursor: wrong=1 restored=0
+PASS R-2993 repeated failures: wrong=1 restored=0
+PASS R-2993 async deadline: wrong=1 restored=0
+PASS R-2994 no pointer notice: wrong=1 restored=0
+PASS R-2995 startup command: wrong=1 restored=0
+PASS R-2995 cap priority: wrong=1 restored=0
+PASS R-2996 restart rule: wrong=1 restored=0
+PASS R-2997 idle turn and live steering: wrong=1 restored=0
+PASS R-2997 replace old watch: wrong=1 restored=0
+PASS R-2997 no-UI exclusion: wrong=1 restored=0
+PASS R-2998: seal watch interval interval seal: wrong=1 restored=0
+PASS R-2998: seal watch excerpt excerpt seal: wrong=1 restored=0
+PASS R-2998: seal watch run runtime seal: wrong=1 restored=0
+PASS R-2998: seal quoted label seal: wrong=1 restored=0
+PASS R-2999 command seal: wrong=1 restored=0
+mutation pairs: 20/20 red wrong code / green restored code

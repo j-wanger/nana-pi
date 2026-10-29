@@ -100,3 +100,5 @@
 - Public product page (page-on-pages, seat check): the report's catch path would put a raw error message on the page; today the issue reader never throws.
 - Public product page (page-on-pages, seat check): anyone who opens an issue on the public repo starts a build and a deploy; the queue keeps one pending run.
 - Public product page (page-on-pages, seat check): an issue ask draws no Ask line, and the issue body never reaches the page.
+- Product report at land (page-on-pages, final review): each locked suite run now reads the real issue list through gh with the 30 s CI limit, so a slow gh can add up to 30 s to a land.
+- Public product page (page-on-pages, final review): R-2986 is a row about the test itself and cites R-2980's test, so it adds no separate check.

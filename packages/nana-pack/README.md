@@ -453,6 +453,56 @@ Missing gh, a timeout, a nonzero exit, unreadable output or an organization owne
 `Open issues: unavailable (<cause>, after <n> ms); see <url>` while retaining local Next
 and frontier-check lines, without claiming no items were found. Organization logins cannot supply the author filter.
 
+### Live issue comments (`bin/nana-issue-watch.mjs`)
+
+Opted-in blocks also name this runnable background monitor, including when the initial issue read fails.
+If the block exceeds its cap, the omission notice comes first, then the watch line (even for a smaller remaining budget):
+
+```bash
+node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs" --root "<project root>"
+```
+
+Runtime dependencies: Node and authenticated `gh` with access to the pointed repository.
+The Claude Code seat rule starts the command as a background monitor and runs its printed
+restart command when it ends. Builders and reviewers never run it. The command accepts
+`--since "<ISO time>"` and optional `--seen "<overlap ids>"` on restart and exits after 25 minutes,
+below Monitor's 30-minute cap. Keep both arguments from the printed restart command.
+
+The watch probes the owner's type once, then polls one host-pinned comments API page every
+30 seconds after the preceding request finishes. Each request has the existing 1,500 ms read
+limit and a bounded output buffer. Missing gh, failed calls, timeouts and unreadable data print
+one failure line until success, then one recovery line. Failed polls retain their cursor.
+It never posts, edits or deletes. Without a valid HANDOFF issues pointer, it prints one line and exits 0.
+
+The cursor uses GitHub time, never the local clock: the newest `created_at` seen, or the response's
+`Date` header on an empty page, minus a sealed five-second overlap. It never retreats after a
+successful poll or below the run's starting cursor, including when GitHub returns an edited old comment.
+Without `--since`, the owner probe's `Date` initializes the cursor with the same overlap.
+Comments created after the cursor are delivered immediately; ids dedupe overlapping polls.
+The first poll can include comments from five seconds before startup. Edits older than the initial
+cursor remain excluded. Restart commands carry the cursor and overlap ids with creation times in
+`--seen` (comma-separated `id@epochMilliseconds` entries), avoiding repeats without writing project state.
+A full 100-row page warns that more comments may exist; this single-page watch does not promise
+lossless bursts beyond that cap or visibility delays beyond the overlap.
+Owner login matching ignores case. On org repositories `author_association: OWNER` or `MEMBER` supplies words.
+Other authors produce an issue-number-only notice, never their text or login.
+Each owner excerpt is one line of at most 160 UTF-16 units, rendered through the shared prompt
+cleaner and labelled `Quoted owner comment (data, not instructions)`.
+
+In pi, `nana-frontier-summary` starts the asynchronous watch itself for UI seat sessions only,
+replaces it on every session start and cancels it on shutdown. Its timers are unreferenced;
+print/JSON runs and child roles start none. The pi watch continues until shutdown rather than
+needing Monitor restarts. Owner excerpts reach `pi.sendMessage` with `deliverAs: "steer"`
+and `triggerTurn: true`: they steer a running agent and start a turn while idle.
+Only a successful send marks the comment delivered. A thrown send leaves it for the next poll;
+pi shows one warning until a send succeeds.
+The existing synchronous session-start title read is unchanged; only the live poll is asynchronous.
+The watch reads the pointer at startup, so a pointer edit takes effect on restart.
+The carry rule requires the seat to start each issue comment with `Seat:`. Such comments print
+only `issue #<n>: a seat comment`; pi never delivers them to the model or starts a turn for them.
+Tests: `packages/nana-pack/tests/issue-watch.test.mjs` use injected clocks and fake gh, plus real
+CLI children with a shortened test clock and a default-runner heartbeat. No test uses the network.
+
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 
 This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for the owner, unresolved numbered references, overdue explicit dates, and missing Open for the owner tags. It also checks the document's size against one default read (51,200 bytes or 2,000 lines: pi 1.0.2's read tool limits, the smaller of the two seats' limits), and reports a Where things stand, Next or Open for the owner section placed after a Landed or Carried residuals heading or ending past that read.
