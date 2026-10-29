@@ -35,9 +35,11 @@ const check = (n, ok, extra) => {
 };
 
 const extUrl = new URL("../extensions/nana-rulings.ts", import.meta.url).href;
-const { default: rulingsExt, buildBlock } = await import(extUrl);
+const { default: rulingsExt, buildBlock, buildSeatGuideBlock } = await import(extUrl);
 const { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULINGS_UNAVAILABLE } = await import(new URL("../lib/rulings-config.mjs", import.meta.url).href);
+const { SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING, SEAT_GUIDE_READ_CAP, SEAT_GUIDE_SECTION, SEAT_GUIDE_UNAVAILABLE } = await import(new URL("../lib/rulings-config.mjs", import.meta.url).href);
 const { ROSTER_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
+const { STALE_SECTION } = await import(new URL("../../nana-setup/lib/stale-copies-config.mjs", import.meta.url).href);
 
 const SHIPPED_PATH = fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url));
 const PROJECT_AGENTS_PATH = fileURLToPath(new URL("../../../AGENTS.md", import.meta.url));
@@ -65,6 +67,69 @@ async function inject(handlers, ctx = { cwd: tempDir() }) {
 	await handlers.before_agent_start(event, ctx);
 	return event.systemPromptOptions.sections[RULINGS_SECTION];
 }
+
+async function injectSections(handlers, ctx = { cwd: tempDir() }) {
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const event = { systemPromptOptions: { sections: {} } };
+	await handlers.before_agent_start(event, ctx);
+	return event.systemPromptOptions.sections;
+}
+
+{
+	const agentDir = tempDir("seat-guide-agentdir-");
+	const guide = "# Nana — Running builders and reviewers\nSeat guide fixture.\n";
+	fs.writeFileSync(path.join(agentDir, SEAT_GUIDE_FILE), guide);
+	const sections = await injectSections(session({ agentDir, env: {} }), { cwd: agentDir });
+	// req: R-3021
+	check("pi seat receives the complete installed guide under its fixed heading", sections[SEAT_GUIDE_SECTION] === `${SEAT_GUIDE_HEADING}\n\n${guide}`,
+		JSON.stringify(sections[SEAT_GUIDE_SECTION]));
+}
+
+{
+	const agentDir = tempDir("seat-guide-stale-");
+	fs.writeFileSync(path.join(agentDir, SEAT_GUIDE_FILE), "stale guide content\\n");
+	const sections = await injectSections(session({ agentDir, env: {} }), { cwd: agentDir });
+	// req: R-3024
+	check("stale guide installation notice names the pi seat guide and nana-setup install", sections[STALE_SECTION]?.includes(`pi ${SEAT_GUIDE_FILE}`) && sections[STALE_SECTION]?.includes(" install"), String(sections[STALE_SECTION]));
+}
+
+{
+	const agentDir = tempDir("seat-guide-worker-");
+	const guide = "# Nana — Running builders and reviewers\nSeat guide fixture.\n";
+	fs.writeFileSync(path.join(agentDir, SEAT_GUIDE_FILE), guide);
+	const results = [];
+	for (const role of ["worker", "reviewer"]) {
+		const sections = await injectSections(session({ agentDir, env: { NANA_ROLE: role } }), { cwd: agentDir });
+		results.push({ role, omitted: !sections[SEAT_GUIDE_SECTION], rulings: typeof sections[RULINGS_SECTION] === "string" });
+	}
+	// req: R-3022
+	check("pi builder and reviewer omit the guide while retaining the rulings section", results.every((result) => result.omitted && result.rulings), JSON.stringify(results));
+}
+
+{
+	const agentDir = tempDir("seat-guide-unavailable-");
+	const p = path.join(agentDir, SEAT_GUIDE_FILE);
+	const unusable = [
+		{ name: "missing", setup: () => {} },
+		{ name: "empty", setup: () => fs.writeFileSync(p, "") },
+		{ name: "oversized", setup: () => fs.writeFileSync(p, "x".repeat(SEAT_GUIDE_READ_CAP + 1)) },
+		{ name: "invalid UTF-8", setup: () => fs.writeFileSync(p, Buffer.from([0xff])) },
+	];
+	const results = unusable.map(({ name, setup }) => {
+		fs.rmSync(p, { force: true });
+		setup();
+		const marker = buildSeatGuideBlock(agentDir);
+		return { name, ok: marker.startsWith(SEAT_GUIDE_UNAVAILABLE) && !marker.includes("\n") && marker.includes(SEAT_GUIDE_FILE) && marker.includes("nana-setup install") };
+	});
+	// req: R-3023
+	check("missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing", results.every((result) => result.ok), JSON.stringify(results));
+}
+
+// req: R-3023
+check("seat guide unavailable prefix is distinct from the rulings prefix", SEAT_GUIDE_UNAVAILABLE.startsWith("SEAT GUIDE UNAVAILABLE:") && SEAT_GUIDE_UNAVAILABLE !== RULINGS_UNAVAILABLE);
+
+// req: R-3023
+check("seal: SEAT_GUIDE_READ_CAP is 8192", SEAT_GUIDE_READ_CAP === 8192);
 
 /* ========================================================================================
  * R-1410 — the PRODUCTION DEFAULT: PI_CODING_AGENT_DIR, every session_start reason, a reload

@@ -229,6 +229,7 @@ export function judgePiTurn({ record, stderr, status, token }) {
   if (stale) return { passed: false, code: "stale", detail: stale };
   if (!system.includes(token)) return { passed: false, code: "missing-token", detail: "system prompt does not hold the run token" };
   if (!system.includes(PI_TURN.rulingsHeading)) return { passed: false, code: "missing-rulings", detail: `system prompt does not hold ${PI_TURN.rulingsHeading}` };
+  if (!system.includes(PI_TURN.seatGuideHeading)) return { passed: false, code: "missing-seat-guide", detail: `system prompt does not hold ${PI_TURN.seatGuideHeading}` };
   if (!system.includes(PI_TURN.writingTag)) return { passed: false, code: "missing-writing", detail: `system prompt does not hold ${PI_TURN.writingTag}` };
   const knowledge = Array.isArray(record.userMessages) && record.userMessages.some((message) => typeof message === "string" && message.startsWith(PI_TURN.knowledgeMarker) && message.includes(PI_TURN.noteFile));
   if (!knowledge) return { passed: false, code: "missing-knowledge", detail: `no ${PI_TURN.knowledgeMarker} user message names ${PI_TURN.noteFile}` };

@@ -5,7 +5,7 @@
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
  *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
  *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
- *  packages/nana-pack/rules (the writing rule and the rulings file); the
+ *  packages/nana-pack/rules (the writing rule, rulings file and canonical seat guide); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  <claudeHome>/nana-setup-copies.json; pi's npm package.json; NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
@@ -14,7 +14,7 @@
  *  install takes the O_EXCL .settings.json.nana-setup.lock before its first write and holds it
  *  through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
- *  <piHome>/nana-pack.json, nana-objective.md and nana-rulings.md (link on POSIX, copy on
+ *  <piHome>/nana-pack.json, nana-objective.md, nana-rulings.md and nana-seat.md in pi's agent dir (links on POSIX, copies on
  *  win32), <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
@@ -51,7 +51,7 @@ import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
-import { RULINGS_FILE } from "../../nana-pack/lib/rulings-config.mjs";
+import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
 import { openCopyRecord } from "./copy-record.mjs";
 
@@ -724,6 +724,11 @@ export function stepPiConfig(layout, o) {
 	const rulings = linkFile(layout.piRulings, rulingsSource, { ...o, copyInstead: win(), unedited: o.copyRecord?.unedited(layout.piRulings) });
 	rememberCopy(o, layout.piRulings, rulingsBytes, rulings);
 	out.push({ label: "pi nana-rulings.md", ...rulings });
+	const seatGuideSource = ruleSource(SEAT_GUIDE_FILE);
+	const seatGuideBytes = win() ? fs.readFileSync(seatGuideSource) : null;
+	const seatGuide = linkFile(layout.piSeatGuide, seatGuideSource, { ...o, copyInstead: win(), unedited: o.copyRecord?.unedited(layout.piSeatGuide) });
+	rememberCopy(o, layout.piSeatGuide, seatGuideBytes, seatGuide);
+	out.push({ label: "pi nana-seat.md", ...seatGuide });
 	return out;
 }
 

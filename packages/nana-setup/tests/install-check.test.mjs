@@ -189,7 +189,7 @@ function passingTurnRecord(token) {
   const edit = installConfig.PI_TURN_EDIT;
   const powershell = installConfig.PI_TURN_POWERSHELL;
   return {
-    system: `${token}\n${turn.rulingsHeading}\n${turn.writingTag}`,
+    system: `${token}\n${turn.rulingsHeading}\n${turn.seatGuideHeading}\n${turn.writingTag}`,
     userMessages: [`${turn.knowledgeMarker} ~/notes/docs/${turn.noteFile}`],
     toolResults: [
       { toolName: turn.tool, isError: true, text: `${turn.gateBlockPrefix} sample` },
@@ -1085,10 +1085,21 @@ check("pi turn: a nonzero exit or a missing record, run token, rulings heading, 
   for (const record of [
     { ...good, system: good.system.replace(token, "missing") },
     { ...good, system: good.system.replace(installConfig.PI_TURN.rulingsHeading, "<nana-rulings>") },
+    { ...good, system: good.system.replace(installConfig.PI_TURN.seatGuideHeading, "missing") },
     { ...good, system: good.system.replace(installConfig.PI_TURN.writingTag, "missing") },
     { ...good, userMessages: [`not ${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}`] },
     { ...good, userMessages: [`${installConfig.PI_TURN.knowledgeMarker} another-note.md`] },
   ]) assert.equal(judge(record).passed, false);
+});
+
+// req: R-3025
+check("install-check requires the pi seat-guide heading in the live seat turn", () => {
+  const token = "installcheck_seat_guide";
+  const good = passingTurnRecord(token);
+  const missing = { ...good, system: good.system.replace(installConfig.PI_TURN.seatGuideHeading, "missing") };
+  const result = installCheck.judgePiTurn({ record: missing, stderr: "", status: 0, token });
+  assert.equal(result.passed, false);
+  assert.equal(result.code, "missing-seat-guide");
 });
 
 // req: R-1792
@@ -1196,6 +1207,7 @@ check("pin R-1790 to R-1796: the turn's sealed fixture path, provider, model, ar
     record: ".nana-install-check-turn.json",
     noteFile: "install-check.md",
     rulingsHeading: "## Standing rulings (nana)",
+    seatGuideHeading: "## Seat guide (nana)",
     writingTag: "<nana-writing>",
     knowledgeMarker: "[nana:knowledge]",
     gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
