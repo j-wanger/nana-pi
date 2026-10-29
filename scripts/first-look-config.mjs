@@ -28,3 +28,8 @@ export const PAGE_SHAPING_PATHS = Object.freeze([
 export const ACCESSIBILITY_DIFF_MAX_LINES = 40;
 export const VIEWPORT_WIDTHS = Object.freeze([380, 1280]);
 export const PRODUCT_VIEWS = Object.freeze(["overview", "decisions", "product", "artifacts", "features", "issues", "requirements"]);
+// chosen (2026-10-29, R-3133): bounds module loading and the first frame on a slow browser.
+export const HIVE_READY_TIMEOUT_MS = 15000;
+// chosen (2026-10-29, R-3133): sample the middle half, not a single pixel in a gap between cells.
+export const HIVE_PROBE_FRACTION = 0.5;
+export { HIVE_BACKGROUND } from '../apps/hive/config.mjs';

@@ -1,6 +1,6 @@
 # Plan: hive-render (2026-10-29)
 
-Worktree `/Users/jwang/nana-pi-wt/hive-render`, branch `feat/hive-render`, based on main `a2ad3f21`. A parallel lane, component-audit, makes the real data this page draws; the two share the data contract below.
+Worktree `hive-render`, branch `feat/hive-render`, based on main `a2ad3f21`. A parallel lane, component-audit, makes the real data this page draws; the two share the data contract below.
 
 Revision 1 takes the adversary's attack in `plan-attack.md` in full: 3 MUST, 5 SHOULD, 5 NOTE. Rows are renumbered R-3120 to R-3133.
 

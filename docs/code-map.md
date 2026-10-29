@@ -9,7 +9,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 471 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 486 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -604,6 +604,116 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — —
 - **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
+### `apps/hive/assets/bee.mjs`
+
+- **purpose** — Builds a reusable faceted bee with paired pale wings.
+- **inputs** — Explicit THREE namespace and shared materials.
+- **outputs** — A small THREE group requiring no WebGL context.
+- **effects** — none
+- **errors** — None.
+- **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callees** — —
+
+### `apps/hive/assets/cell.mjs`
+
+- **purpose** — Builds a reusable six-sided wax cell with a data-height honey surface.
+- **inputs** — Explicit THREE namespace, fill/dark cell data and shared materials.
+- **outputs** — A low-poly THREE group with no renderer dependency.
+- **effects** — none
+- **errors** — None for valid fill.
+- **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callees** — `apps/hive/config.mjs`
+
+### `apps/hive/assets/hive.mjs`
+
+- **purpose** — Assembles reusable cell and bee assets into pickable component chambers.
+- **inputs** — Explicit THREE namespace, world layout and shared materials.
+- **outputs** — A scene group with component and bee metadata.
+- **effects** — none
+- **errors** — None for valid layout.
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callees** — `apps/hive/assets/bee.mjs`, `apps/hive/assets/cell.mjs`, `apps/hive/config.mjs`
+
+### `apps/hive/assets/materials.mjs`
+
+- **purpose** — Builds shared faceted materials from status and kind keys.
+- **inputs** — Explicit THREE namespace.
+- **outputs** — Material palette and pure status/kind colour tables.
+- **effects** — none
+- **errors** — None.
+- **callers** — `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callees** — `apps/hive/config.mjs`
+
+### `apps/hive/camera.mjs`
+
+- **purpose** — Computes pure sphere-framed perspective camera stops for chambers or the whole hive.
+- **inputs** — Layout, optional component ID and viewport aspect ratio.
+- **outputs** — Camera position, target and vertical field of view.
+- **effects** — none
+- **errors** — None for a nonempty layout and positive aspect.
+- **callers** — `apps/hive/main.mjs`
+- **callees** — `apps/hive/config.mjs`
+
+### `apps/hive/config.mjs`
+
+- **purpose** — Seals the hive's rendering vocabulary and visual scale.
+- **inputs** — None.
+- **outputs** — Named immutable rendering values.
+- **effects** — none
+- **errors** — None.
+- **callers** — `apps/hive/assets/cell.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`
+- **callees** — —
+
+### `apps/hive/layout.mjs`
+
+- **purpose** — Converts ordered components into deterministic disjoint chambers, cells and activity bees.
+- **inputs** — A contract-shaped component document.
+- **outputs** — A renderer-independent layout with world-space bounds.
+- **effects** — none
+- **errors** — Invalid document shapes may throw; the boundary checks the contract first.
+- **callers** — `apps/hive/runtime.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callees** — `apps/hive/config.mjs`
+
+### `apps/hive/main.mjs`
+
+- **purpose** — Connects the static page to the pure hive models, interactive scene and accessible stories.
+- **inputs** — Browser document, component JSON, hash, viewport, gestures and motion preference.
+- **outputs** — A WebGL or pixel hive, all component cards and a named ready mark after drawing.
+- **effects** — network (same-origin data and module fetches), process (browser animation frames and event handlers)
+- **errors** — Fetch or incompatible data displays one plain error; WebGL setup failure selects pixel.
+- **callers** — —
+- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/config.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`
+
+### `apps/hive/pixel.mjs`
+
+- **purpose** — Projects the complete hive to a fixed pixel grid and draws its honey cells.
+- **inputs** — Pure world layout and optional explicit 2D drawing context.
+- **outputs** — A hex draw list or pixels on the supplied context.
+- **effects** — none
+- **errors** — None for valid layout and context.
+- **callers** — `apps/hive/main.mjs`
+- **callees** — `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`
+
+### `apps/hive/runtime.mjs`
+
+- **purpose** — Keeps renderer selection, data refusal and frame state independent of the browser.
+- **inputs** — Component data, context factory, query text, motion options and callbacks.
+- **outputs** — Layout or plain error, renderer choice and deterministic animation state.
+- **effects** — none
+- **errors** — Context creation exceptions fall back to pixel; malformed layout data returns a plain error.
+- **callers** — `apps/hive/main.mjs`
+- **callees** — `apps/hive/config.mjs`, `apps/hive/layout.mjs`
+
+### `apps/hive/text-layer.mjs`
+
+- **purpose** — Presents every component's story as a DOM-independent model and text-only rail and cards.
+- **inputs** — Component data, hash, renderer name and explicit document/container when rendering.
+- **outputs** — A reading model or populated container.
+- **effects** — none
+- **errors** — None for contract-shaped data.
+- **callers** — `apps/hive/main.mjs`
+- **callees** — —
+
 ### `scripts/blast-radius.mjs`
 
 - **purpose** — Draw a change's blast radius as one self-contained HTML page, from the code map and the git-diffed changed set against the merge base, with no script, no external reference and no machine-specific content.
@@ -682,7 +792,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — none
 - **errors** — None.
 - **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/outside-reader-config.mjs`
-- **callees** — —
+- **callees** — `apps/hive/config.mjs`
 
 ### `scripts/first-look.mjs`
 
@@ -693,6 +803,26 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — Usage errors exit 2; report/browser setup failures are bounded and never expose raw errors.
 - **callers** — `packages/nana-pack/tests/first-look.test.mjs`
 - **callees** — `scripts/first-look-config.mjs`, `scripts/playwright-resolve.mjs`, `scripts/product-report.mjs`
+
+### `scripts/hive-page-config.mjs`
+
+- **purpose** — Seals the provenance of the vendored hive renderer.
+- **inputs** — None.
+- **outputs** — Three.js release and SHA-256 release bytes.
+- **effects** — none
+- **errors** — None.
+- **callers** — `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callees** — —
+
+### `scripts/hive-page.mjs`
+
+- **purpose** — Publishes the static hive atomically or serves a temporary copy on loopback.
+- **inputs** — CLI output directory, optional contract JSON data and port.
+- **outputs** — Static app plus components.json or a loopback URL.
+- **effects** — disk (reads app and data, stages and renames output), network (loopback server)
+- **errors** — Usage exits 2; incompatible data and IO failures exit 1 with one named line.
+- **callers** — `packages/nana-pack/tests/hive-page.test.mjs`
+- **callees** — `apps/hive/config.mjs`
 
 ### `scripts/identity-scan.mjs`
 
@@ -2647,6 +2777,26 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/hive-assets.test.mjs`
+
+- **purpose** — Pins reusable low-poly assets and the vendored release bytes.
+- **inputs** — Vendored three.js, asset builders and sealed configuration.
+- **outputs** — Tagged PASS or FAIL lines.
+- **effects** — disk (reads vendored bytes)
+- **errors** — Assertion failures set exit 1.
+- **callers** — —
+- **callees** — `apps/hive/assets/bee.mjs`, `apps/hive/assets/cell.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`, `apps/hive/layout.mjs`, `scripts/hive-page-config.mjs`
+
+### `packages/nana-pack/tests/hive-page.test.mjs`
+
+- **purpose** — Pins hive data layout, reading, rendering and local publication.
+- **inputs** — Pure hive modules, fixture and CLI in temporary folders.
+- **outputs** — Tagged PASS and FAIL lines.
+- **effects** — disk (OS temporary fixtures), network (loopback test server), process (CLI children)
+- **errors** — Failed cases set exit 1.
+- **callers** — —
+- **callees** — `scripts/hive-page.mjs`
 
 ### `packages/nana-pack/tests/identity-scan.test.mjs`
 

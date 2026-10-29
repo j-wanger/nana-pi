@@ -39,7 +39,7 @@ check("the READMEs make checkable claims at all", claims.length > 100, `${claims
 const readmes = loadConfig(REPO_ROOT).readmes;
 check(
 	"every package and app README is in the checked set",
-	readmes.length === 7 && readmes.includes("packages/nana-stage/README.md"),
+	readmes.length === 8 && readmes.includes("packages/nana-stage/README.md") && readmes.includes("apps/hive/README.md"),
 	readmes.join(", "),
 );
 

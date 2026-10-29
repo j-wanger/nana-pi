@@ -13,7 +13,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS } from "./first-look-config.mjs";
+import { PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS, HIVE_READY_TIMEOUT_MS, HIVE_PROBE_FRACTION, HIVE_BACKGROUND } from "./first-look-config.mjs";
 
 import { resolvePlaywright } from "./playwright-resolve.mjs";
 const INSTALL_LINE = "first-look: Playwright is unavailable; install it with `npm install --no-save playwright` and `npx playwright install chromium`.";
@@ -26,12 +26,14 @@ function parseArgs(argv) {
   const result = {};
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
+    if (flag === '--hive' && !result[flag]) { result[flag] = true; continue; }
     if (!["--page", "--out", "--before", "--after"].includes(flag) || !argv[i + 1] || result[flag]) return null;
     result[flag] = argv[++i];
   }
-  if (!result["--page"] || !["product", "desk"].includes(result["--page"])) return null;
-  if (result["--page"] === "product" && (!result["--out"] || result["--before"] || result["--after"])) return null;
-  if (result["--page"] === "desk" && (!result["--before"] || !result["--after"] || result["--out"])) return null;
+  if (!result["--page"] || !["product", "desk", "url"].includes(result["--page"])) return null;
+  if (result["--page"] === "product" && (!result["--out"] || result["--before"] || result["--after"] || result['--hive'])) return null;
+  if (result["--page"] !== "product" && (!result["--before"] || !result["--after"])) return null;
+  if (result["--page"] === "desk" && result["--out"]) return null;
   return result;
 }
 function changedPagePath(file) {
@@ -101,19 +103,43 @@ function accessibilityDiff(before, after, views) {
   const unchanged = views.length - changed.length;
   return `${changed.join("\n\n")}\n\n${changed.length} views changed; ${unchanged} views unchanged\n`;
 }
-async function snapshotViews(browser, url, pageName, side, readTree, product) {
+async function snapshotViews(browser, url, pageName, side, readTree, product, hive) {
   const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTHS[0], height: 1000 } });
+  if (hive) await page.emulateMedia({ reducedMotion: 'reduce' });
+  const waitReady = async () => {
+    if (!hive) return;
+    try { await page.waitForSelector('html[data-hive-ready]', { timeout: HIVE_READY_TIMEOUT_MS }); }
+    catch { throw new Error('first-look: the hive ready wait timed out'); }
+  };
+  const checkCanvas = async () => {
+    if (!hive) return;
+    const drawn = await page.evaluate(({ background, fraction }) => {
+      const canvas = document.querySelector('canvas');
+      if (!canvas || !canvas.width || !canvas.height) return false;
+      const probe = document.createElement('canvas'); probe.width = canvas.width; probe.height = canvas.height;
+      const ctx = probe.getContext('2d'); ctx.drawImage(canvas, 0, 0);
+      const w = Math.max(1, Math.floor(canvas.width * fraction)); const h = Math.max(1, Math.floor(canvas.height * fraction));
+      const pixels = ctx.getImageData(Math.floor((canvas.width - w) / 2), Math.floor((canvas.height - h) / 2), w, h).data;
+      const rgb = background.slice(1).match(/../g).map(c => parseInt(c, 16));
+      for (let i = 0; i < pixels.length; i += 4) if (pixels[i + 3] && rgb.some((v, j) => pixels[i + j] !== v)) return true;
+      return false;
+    }, { background: HIVE_BACKGROUND, fraction: HIVE_PROBE_FRACTION });
+    if (!drawn) throw new Error('first-look: the hive canvas is empty');
+  };
   const trees = {};
   const landing = product ? `${url}#overview` : url;
   await page.goto(landing, { waitUntil: "load" });
   const features = product ? await page.evaluate(() => JSON.parse(document.getElementById("report-data").textContent).features.map((feature) => feature.id)) : [];
   for (const view of product ? [...PRODUCT_VIEWS, ...features] : ["desk"]) {
     await page.goto(product ? `${url}#${view}` : url, { waitUntil: "load" });
+    await waitReady();
     trees[view] = withoutProvenance(await readTree(page, view));
   }
   for (const width of VIEWPORT_WIDTHS) {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto(landing, { waitUntil: "load" });
+    await waitReady();
+    await checkCanvas();
     await page.screenshot({ path: path.join(pageName, `${side}-${width}.png`), fullPage: true });
   }
   await page.close();
@@ -121,7 +147,7 @@ async function snapshotViews(browser, url, pageName, side, readTree, product) {
 }
 export async function runFirstLook(argv = [], injected = {}) {
   const args = parseArgs(argv);
-  if (!args) { (injected.stdout ?? console.log)("Usage: first-look --page product --out <dir> | --page desk --before <url> --after <url>"); return 2; }
+  if (!args) { (injected.stdout ?? console.log)("Usage: first-look --page product --out <dir> | --page desk --before <url> --after <url> | --page url [--hive] --before <url> --after <url> [--out <dir>]"); return 2; }
   const root = path.resolve(injected.root ?? process.cwd());
   const stdout = injected.stdout ?? console.log;
   let base = injected.mergeBase;
@@ -136,7 +162,7 @@ export async function runFirstLook(argv = [], injected = {}) {
       changed = changed.filter(changedPagePath);
       if (!changed.length) { stdout("first-look: no page-shaping changes; nothing to show"); return 0; }
       output = path.resolve(root, args["--out"]);
-    } else output = path.resolve(injected.outputDir ?? path.join(os.tmpdir(), `first-look-desk-${process.pid}`));
+    } else output = path.resolve(args['--out'] ?? injected.outputDir ?? path.join(os.tmpdir(), `first-look-desk-${process.pid}`));
     try {
       browser = injected.browser !== undefined ? await injected.browser?.() : await resolvePlaywright(injected.env ?? process.env, root)?.chromium?.launch();
     } catch { stdout(INSTALL_LINE); return 0; }
@@ -157,15 +183,15 @@ export async function runFirstLook(argv = [], injected = {}) {
       afterUrl = injected.runReport ? await injected.runReport(root, path.join(output, "after-report.html")) : await childReport(root, path.join(output, "after-report.html"));
     } else { beforeUrl = args["--before"]; afterUrl = args["--after"]; }
     const product = args["--page"] === "product";
-    const before = await snapshotViews(browser, beforeUrl, output, "before", readTree, product);
-    const after = await snapshotViews(browser, afterUrl, output, "after", readTree, product);
+    const before = await snapshotViews(browser, beforeUrl, output, "before", readTree, product, args['--hive']);
+    const after = await snapshotViews(browser, afterUrl, output, "after", readTree, product, args['--hive']);
     const views = product ? [...new Set([...PRODUCT_VIEWS, ...Object.keys(before).filter((key) => !PRODUCT_VIEWS.includes(key))])] : ["desk"];
     const diff = accessibilityDiff(before, after, views);
     await (injected.writeDiff ? injected.writeDiff(output, diff) : import("node:fs/promises").then(({ writeFile }) => writeFile(path.join(output, "accessibility-diff.txt"), diff, "utf8")));
     stdout(`first-look: saved screenshots and accessibility diff in ${output}`);
     return 0;
-  } catch {
-    stdout("first-look: report or page capture failed");
+  } catch (error) {
+    stdout(['first-look: the hive canvas is empty', 'first-look: the hive ready wait timed out'].includes(error.message) ? error.message : "first-look: report or page capture failed");
     return 1;
   } finally {
     if (browser) await browser.close().catch(() => {});
