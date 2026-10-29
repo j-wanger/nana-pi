@@ -55,7 +55,7 @@ export function renderText(document, container, model) {
       if (voice !== 'technical') p.textContent = text;
       else {
         // Keep each code-name segment intact; paths may wrap only after a slash.
-        const names = /(?:[\w.-]+\/)+[\w.-]+|\b(?:R|G|FEAT|CAP)-\d{2,4}\b/g;
+        const names = /(?:[\w.-]+\/)+[\w.-]*|\b(?:R|G|FEAT|CAP)-\d{2,4}\b/g;
         let end = 0;
         for (const match of text.matchAll(names)) {
           el('span', text.slice(end, match.index), p);

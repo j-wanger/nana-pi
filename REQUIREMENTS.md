@@ -2849,8 +2849,7 @@ Reads: A-030 · scripts/product-report.mjs
 Reads: A-032 · scripts/product-report.mjs
 Reads: A-033 · scripts/product-report.mjs, packages/nana-pack/lib/suite-records.mjs
 Artifact: A-086 · component audit · tracked: docs/components/nana-pi.json · manual: an agent writes it by hand; npm test fails on a missing path, ID or broken status rule
-Read by: A-086 · code: scripts/component-audit.mjs
-Read by: A-086 · code: scripts/hive-page.mjs
+Read by: A-086 · code: scripts/component-audit.mjs, scripts/hive-page.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
