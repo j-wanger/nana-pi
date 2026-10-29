@@ -6,8 +6,8 @@
  * @effects none
  * @errors Invalid report view configuration throws at import.
  */
-import { PRODUCT_VIEWS, VIEWPORT_WIDTHS } from "./first-look-config.mjs";
-export { VIEWPORT_WIDTHS };
+import { PRODUCT_VIEWS, VIEWPORT_WIDTHS, VIEWPORT_HEIGHT } from "./first-look-config.mjs";
+export { VIEWPORT_WIDTHS, VIEWPORT_HEIGHT };
 // chosen 2026-10-29 (R-3066): at most three avoids the one-off's fixed-four padding.
 export const MAX_FINDINGS = 3;
 // measured one-off render.mjs, 2026-10-29: landing plus these four views; widths follow first-look.
@@ -25,8 +25,6 @@ export const PROMPT_PATH = "packages/nana-pack/prompts/outside-reader.md";
 export const KNOWN_BUG_FEATURE = "FEAT-039";
 // chosen 2026-10-29 (plan Q3 default): first pi entry, skipping Claude Code entries.
 export const ROSTER_SLOT_ORDER = Object.freeze(["scout", "land", "builder"]);
-// chosen 2026-10-29: same height as first-look; widths imported, not copied.
-export const VIEWPORT_HEIGHT = 1_000;
 // measured one-off working rerun, 2026-10-29: ceiling 600s, one attempt; server thinking may be flat.
 // Infinity follows worker-config.mjs's CLAUDE_BUILDER_STALL_SECS precedent.
 export const STALL_SECS = Infinity;

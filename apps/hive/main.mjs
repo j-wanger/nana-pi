@@ -63,6 +63,7 @@ async function start(data, model) {
   const labelNodes = model.chambers.map(c => {
     const node = document.createElement('span'); node.className = 'label'; node.textContent = c.name; labels.append(node); return node;
   });
+  const labelHeights = new Map(hive?.children.filter(c => c.userData.component).map(c => [c.userData.component, c.userData.labelHeight]));
   // Pack measured labels around overlays and earlier labels, keeping leaders at their structures.
   const placeLabels = () => {
     const width = stage.clientWidth, height = stage.clientHeight;
@@ -131,12 +132,20 @@ async function start(data, model) {
         if (bee.kind === 'inFlight') {
           const mix = (Math.sin(phase) + 1) / 2;
           o.position.set(bee.x * (1 - mix), STYLE.beeHeight + Math.cos(phase) * STYLE.beeScale, bee.z * (1 - mix) + Math.sin(phase) * STYLE.cellStep);
-        } else o.position.set(bee.x + Math.cos(phase) * STYLE.cellStep, STYLE.beeHeight + Math.sin(phase) * STYLE.beeScale, bee.z + Math.sin(phase) * STYLE.cellStep);
-        o.rotation.y = phase;
+          o.rotation.y = phase;
+        } else {
+          // Recent work rests on the foundation apron. Only in-flight work flies;
+          // hundreds of tiny hovering bees otherwise read as rendering debris.
+          const side = bee.index % 4, along = (Math.floor(bee.index / 4) - 1) * bee.apron / 2;
+          const x = side === 0 ? -bee.apron : side === 2 ? bee.apron : along;
+          const z = side === 1 ? -bee.apron : side === 3 ? bee.apron : along;
+          o.position.set(bee.x + x, bee.restY, bee.z + z);
+          o.rotation.y = side * Math.PI / 2;
+        }
       });
       renderer.render(scene, camera);
       model.chambers.forEach((c, i) => {
-        const p = new THREE.Vector3(c.x, c.material.status === 'absent' ? 1 : STYLE.structureHeight, c.z).project(camera); const node = labelNodes[i];
+        const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera); const node = labelNodes[i];
         node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1;
         node.dataset.x = (p.x + 1) / 2 * stage.clientWidth; node.dataset.y = (1 - p.y) / 2 * stage.clientHeight;
       });

@@ -14,6 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolvePlaywright } from "./playwright-resolve.mjs";
+import { outsideRepo, splitNumbered } from "./reader-common.mjs";
 import { runWatchdog } from "../packages/nana-pack/bin/pi-watchdog.mjs";
 import { resolveRoster } from "../packages/nana-pack/bin/nana-roster.mjs";
 import { piAgentDir } from "../packages/nana-pack/lib/agent-dir.mjs";
@@ -55,9 +56,7 @@ const normalise = (text) => String(text).replace(/[“”]/g, '"').replace(/[‘
 /** Numbered findings only; any honest matching quote is enough, not every phrase must match. */
 export function checkQuotes(answer, pageText) {
   const page = normalise(pageText);
-  const starts = [...String(answer).matchAll(/^\s*\d+[.)]\s+/gm)];
-  return starts.map((start, i) => {
-    const text = answer.slice(start.index, starts[i + 1]?.index ?? answer.length).trim();
+  return splitNumbered(answer).map(({ text }) => {
     const quotes = [...normalise(text).matchAll(/"([^"]+)"/g)].map((match) => match[1].replace(/^[\p{P}\s]+|[\p{P}\s]+$/gu, ""));
     return { text, matched: quotes.some((quote) => quote.length > 0 && page.includes(quote)) };
   });
@@ -86,8 +85,7 @@ export async function runOutsideReader(argv = [], injected = {}) {
   if (!args) { stdout("Usage: outside-reader --from <first-look folder> | --url <url or path> --out <dir> [--provider <id>] [--model <id>] [--thinking <level>]"); return 2; }
   const root = path.resolve(injected.root ?? process.cwd());
   const output = path.resolve(root, args["--out"]);
-  const relative = path.relative(root, output);
-  if (!relative || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))) {
+  if (!outsideRepo(root, output)) {
     stdout("outside-reader: --out must be outside the repository"); return 2;
   }
   let browser; let cwd;

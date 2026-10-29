@@ -9,7 +9,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 490 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 494 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -818,21 +818,21 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Seals the product-page inputs used by first-look change detection.
 - **inputs** — None.
-- **outputs** — Frozen page-shaping paths and viewport widths.
+- **outputs** — Frozen page-shaping paths, viewport widths, screenshot dimensions and reference limits.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/outside-reader-config.mjs`
+- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/outside-reader-config.mjs`, `scripts/visual-reader-config.mjs`
 - **callees** — `apps/hive/config.mjs`
 
 ### `scripts/first-look.mjs`
 
-- **purpose** — Captures before and after product or desk pages for a lane's first visual review.
+- **purpose** — Captures product, desk or reference URL pages for a lane's first visual review.
 - **inputs** — CLI options, git checkout state, report children, Playwright and an optional injected test seam.
-- **outputs** — Four screenshots, an accessibility-tree diff, or one bounded no-change/browser note.
+- **outputs** — Screenshots and a report diff, reference manifest and side-by-side page, or one bounded note.
 - **effects** — disk (temporary reports/worktree and requested output), process (git, report children and browser).
 - **errors** — Usage errors exit 2; report/browser setup failures are bounded and never expose raw errors.
 - **callers** — `packages/nana-pack/tests/first-look.test.mjs`
-- **callees** — `scripts/first-look-config.mjs`, `scripts/playwright-resolve.mjs`, `scripts/product-report.mjs`
+- **callees** — `scripts/first-look-config.mjs`, `scripts/playwright-resolve.mjs`, `scripts/product-report.mjs`, `scripts/reader-common.mjs`
 
 ### `scripts/hive-page-config.mjs`
 
@@ -891,7 +891,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named reader limits, paths, views and roster order.
 - **effects** — none
 - **errors** — Invalid report view configuration throws at import.
-- **callers** — `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/outside-reader.mjs`
+- **callers** — `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader-config.mjs`
 - **callees** — `scripts/first-look-config.mjs`
 
 ### `scripts/outside-reader.mjs`
@@ -902,7 +902,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (external output and temporary empty cwd), process (objective child, browser and watchdog)
 - **errors** — Usage exits 2; missing capabilities exit 0 with a note; capture/model failures exit 1 bounded.
 - **callers** — `packages/nana-pack/tests/outside-reader.test.mjs`
-- **callees** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `scripts/outside-reader-config.mjs`, `scripts/playwright-resolve.mjs`
+- **callees** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `scripts/outside-reader-config.mjs`, `scripts/playwright-resolve.mjs`, `scripts/reader-common.mjs`
 
 ### `scripts/playwright-resolve.mjs`
 
@@ -923,6 +923,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
 - **callers** — `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/first-look.mjs`, `scripts/test-locked.mjs`
 - **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
+
+### `scripts/reader-common.mjs`
+
+- **purpose** — Share repository-boundary and numbered-item parsing between outside and visual readers.
+- **inputs** — A repository root and output path, or answer text.
+- **outputs** — Whether an output is outside the repository and numbered answer segments.
+- **effects** — none
+- **errors** — None.
+- **callers** — `scripts/first-look.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
+- **callees** — —
 
 ### `scripts/readme-check.mjs`
 
@@ -1063,6 +1073,26 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — Exits 1 for a missing argument, read failure, or syntax error.
 - **callers** — `packages/nana-pack/tests/mutation-runner.test.mjs`, `packages/nana-pack/tests/ts-syntax-check.test.mjs`
 - **callees** — —
+
+### `scripts/visual-reader-config.mjs`
+
+- **purpose** — Seal the visual reader's prompt, Claude Code launch and bounded attempt values.
+- **inputs** — First-look reference limits and outside-reader watchdog values.
+- **outputs** — Prompt, instruction, Claude flags and imported run limits.
+- **effects** — none
+- **errors** — None.
+- **callers** — `packages/nana-pack/tests/visual-reader.test.mjs`, `scripts/visual-reader.mjs`
+- **callees** — `scripts/first-look-config.mjs`, `scripts/outside-reader-config.mjs`
+
+### `scripts/visual-reader.mjs`
+
+- **purpose** — Ask the roster's cold Claude Code reviewer to judge first-look frames against a numbered visual spec.
+- **inputs** — First-look manifest, prompt template, roster reviewer, watchdog and optional test seams.
+- **outputs** — External prompt and answer files plus a bounded visual verdict and item lines.
+- **effects** — disk (external output and temporary folder), process (Claude Code through runWatchdog).
+- **errors** — Usage and invalid-input exits are bounded; run failures print one line and exit 1.
+- **callers** — `packages/nana-pack/tests/visual-reader.test.mjs`
+- **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `scripts/reader-common.mjs`, `scripts/visual-reader-config.mjs`
 
 ## Packages
 
@@ -1385,7 +1415,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — resolveRoster(agentDir) -> {ok:true, roster, source} | {ok:false, file, problem}; orderedRoster(roster) -> the roster with every slot in SLOT_PRINT_ORDER; the CLI prints one line per slot and a source line on stdout, or with --json one JSON object {roster: ...}, or the refusal on stderr
 - **effects** — disk (reads the user-scope nana-pack.json; the CLI's `set` subcommand, dynamically loaded, replaces it and may write nana-pack.json.bak)
 - **errors** — resolveRoster never throws; the CLI exits 1 on a refused roster or a refused `set`
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `scripts/outside-reader.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/roster-set.mjs`
 
 ### `packages/nana-pack/bin/nana-writing.mjs`
@@ -1415,7 +1445,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null, per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
 - **effects** — process (spawns pi detached, or an injected launch with its requested detached option, per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and stderr under the optional capture root; on win32 a PATH lookup, a `package.json` read and the entry's stat)
 - **errors** — never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
-- **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `scripts/outside-reader.mjs`
+- **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/win-command.mjs`
 
 ### `packages/nana-pack/bin/pi-worker.mjs`
@@ -1435,7 +1465,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a spawn command, arguments and optional options, or a named refusal.
 - **effects** — disk (default Windows command, path existence and pi lookup probes).
 - **errors** — lookup, absent Windows batch paths and unsafe Windows arguments return refusals; injected readers may throw.
-- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`
+- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `scripts/visual-reader.mjs`
 - **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/win-command-config.mjs`, `packages/nana-pack/lib/win-command.mjs`
 
 ### `packages/nana-pack/bin/review-ledger.mjs`
@@ -1485,7 +1515,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Lane/watchdog and lane-watcher limits and files, default builder and roster values, Claude Code builder flags, tools, carry allowlists and env, roster slot/runtime tokens, reviewer child env, Windows npm-layout values, and pi package identity.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `scripts/outside-reader.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/visual-reader.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/extensions/nana-frontier-summary.ts`
@@ -1615,7 +1645,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the resolved agent dir, pi's normalizePath result for any input (win32 shell path, `~`, file://), and whether the configured value resolves per-process
 - **effects** — none
 - **errors** — none — every function is total and returns a value even when process.cwd() no longer exists
-- **callers** — `apps/desk/server.mjs`, `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `packages/nana-setup/lib/paths.mjs`, `scripts/outside-reader.mjs`
+- **callers** — `apps/desk/server.mjs`, `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `packages/nana-setup/lib/paths.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/ask-shape.mjs`
@@ -1705,7 +1735,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Claude command flags, reviewer tool lists, REVIEW_SLOT, STANDARD_HEADING, REVIEWER_SENTENCE and renderReviewerSentence().
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/visual-reader.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `scripts/visual-reader.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/config.ts`
@@ -3688,6 +3718,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/ts-syntax-check.mjs`
 
+### `packages/nana-pack/tests/visual-reader.test.mjs`
+
+- **purpose** — Pins the cold visual judge prompt, launch, answer accounting and bounded failures.
+- **inputs** — Temporary first-look fixtures, injected roster and watchdog; recorded judge answers.
+- **outputs** — Awaited PASS/FAIL cases.
+- **effects** — disk (OS temporary fixtures only)
+- **errors** — Assertion failures exit 1.
+- **callers** — —
+- **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `scripts/visual-reader-config.mjs`, `scripts/visual-reader.mjs`
+
 ### `packages/nana-pack/tests/watchdog-cpu.test.mjs`
 
 - **purpose** — Pin culture-independent watchdog CPU reads, strict sample parsing, unreadable-sample stalls, and exit-during-read handling.
@@ -4680,7 +4720,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/seat-rule.test.mjs`
 
-- **purpose** — Pins that the seat guide opens with exactly one scope sentence and carries each of its fourteen rules exactly once, with no other bullet, numbered or not.
+- **purpose** — Pins that the seat guide opens with exactly one scope sentence and carries each of its fifteen rules exactly once, with no other bullet, numbered or not.
 - **inputs** — packages/nana-setup/claude/rules/nana-seat.md
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (reads the guide file)

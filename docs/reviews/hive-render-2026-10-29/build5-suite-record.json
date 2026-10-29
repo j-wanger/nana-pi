@@ -1,0 +1,1214 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": "packages/nana-knowledge/tests/discovery.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-knowledge/tests/extension.test.mjs",
+      "label": "PASS",
+      "seconds": 3.6
+    },
+    {
+      "path": "packages/nana-knowledge/tests/hook.test.mjs",
+      "label": "PASS",
+      "seconds": 4.8
+    },
+    {
+      "path": "packages/nana-knowledge/tests/incremental-build.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-knowledge/tests/ledger-parse.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-knowledge/tests/recover.test.mjs",
+      "label": "PASS",
+      "seconds": 1.7
+    },
+    {
+      "path": "packages/nana-knowledge/tests/render.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-knowledge/tests/sources-file.test.mjs",
+      "label": "PASS",
+      "seconds": 3.4
+    },
+    {
+      "path": "packages/nana-knowledge/tests/tokenize.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-knowledge/tests/unreadable-root.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/adoption-producer.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/adoption-reader.test.mjs",
+      "label": "PASS",
+      "seconds": 2.1
+    },
+    {
+      "path": "packages/nana-pack/tests/agent-dir-config.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/agent-dir-hostile.test.mjs",
+      "label": "PASS",
+      "seconds": 8.7
+    },
+    {
+      "path": "packages/nana-pack/tests/agent-dir-parity.test.mjs",
+      "label": "PASS",
+      "seconds": 3.4
+    },
+    {
+      "path": "packages/nana-pack/tests/agent-dir-var-spellings.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/ask-shape.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/blast-radius.test.mjs",
+      "label": "PASS",
+      "seconds": 0.9
+    },
+    {
+      "path": "packages/nana-pack/tests/bounded-read.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/brief-check.test.mjs",
+      "label": "PASS",
+      "seconds": 2.2
+    },
+    {
+      "path": "packages/nana-pack/tests/build-records.test.mjs",
+      "label": "PASS",
+      "seconds": 12.6
+    },
+    {
+      "path": "packages/nana-pack/tests/build-report.test.mjs",
+      "label": "PASS",
+      "seconds": 2.3
+    },
+    {
+      "path": "packages/nana-pack/tests/ci-records.test.mjs",
+      "label": "PASS",
+      "seconds": 3.8
+    },
+    {
+      "path": "packages/nana-pack/tests/ci-workflow.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/claude-review.test.mjs",
+      "label": "PASS",
+      "seconds": 10.8
+    },
+    {
+      "path": "packages/nana-pack/tests/code-map.test.mjs",
+      "label": "PASS",
+      "seconds": 1.1
+    },
+    {
+      "path": "packages/nana-pack/tests/code-search.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-pack/tests/component-audit.test.mjs",
+      "label": "PASS",
+      "seconds": 37.1
+    },
+    {
+      "path": "packages/nana-pack/tests/config-display-text.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/config-gate-fallback.test.mjs",
+      "label": "PASS",
+      "seconds": 1
+    },
+    {
+      "path": "packages/nana-pack/tests/config-handlers-malformed.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/config-normalize.test.mjs",
+      "label": "PASS",
+      "seconds": 0.7
+    },
+    {
+      "path": "packages/nana-pack/tests/config-project-gate-fallback.test.mjs",
+      "label": "PASS",
+      "seconds": 8.7
+    },
+    {
+      "path": "packages/nana-pack/tests/config-trust.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-pack/tests/display-surfaces.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/first-look.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/frontier-golden.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-pack/tests/frontier-summary.test.mjs",
+      "label": "PASS",
+      "seconds": 0.8
+    },
+    {
+      "path": "packages/nana-pack/tests/frontier.test.mjs",
+      "label": "PASS",
+      "seconds": 1.8
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-config-robustness.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-corpus.test.mjs",
+      "label": "PASS",
+      "seconds": 8.4
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-policy-paths.test.mjs",
+      "label": "PASS",
+      "seconds": 0.9
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-rm-inside.test.mjs",
+      "label": "PASS",
+      "seconds": 2.3
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-rm-outside.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-self-protection.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-status.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/gate-survives-mutation.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-artifact.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-asks.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-issues.test.mjs",
+      "label": "PASS",
+      "seconds": 3.2
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-staleness.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-store.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-symlink.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-trust.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/handoff-writer-role.test.mjs",
+      "label": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "path": "packages/nana-pack/tests/hive-assets.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/hive-page.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-pack/tests/identity-scan.test.mjs",
+      "label": "PASS",
+      "seconds": 15.3
+    },
+    {
+      "path": "packages/nana-pack/tests/immutable-review.test.mjs",
+      "label": "PASS",
+      "seconds": 18.3
+    },
+    {
+      "path": "packages/nana-pack/tests/issue-watch.test.mjs",
+      "label": "PASS",
+      "seconds": 3.7
+    },
+    {
+      "path": "packages/nana-pack/tests/keep-movement.test.mjs",
+      "label": "PASS",
+      "seconds": 6.6
+    },
+    {
+      "path": "packages/nana-pack/tests/known-bugs.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/land-ci-records.test.mjs",
+      "label": "PASS",
+      "seconds": 14.6
+    },
+    {
+      "path": "packages/nana-pack/tests/land-records.test.mjs",
+      "label": "PASS",
+      "seconds": 19.6
+    },
+    {
+      "path": "packages/nana-pack/tests/land.test.mjs",
+      "label": "PASS",
+      "seconds": 94.2
+    },
+    {
+      "path": "packages/nana-pack/tests/lane-class.test.mjs",
+      "label": "PASS",
+      "seconds": 2.3
+    },
+    {
+      "path": "packages/nana-pack/tests/lane-watcher.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/lane-write-guard.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/lifecycle-journal.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/lifecycle-reload.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/line-endings.test.mjs",
+      "label": "PASS",
+      "seconds": 2.9
+    },
+    {
+      "path": "packages/nana-pack/tests/linked-launch.test.mjs",
+      "label": "PASS",
+      "seconds": 1.1
+    },
+    {
+      "path": "packages/nana-pack/tests/mutation-runner-takeover.test.mjs",
+      "label": "PASS",
+      "seconds": 1
+    },
+    {
+      "path": "packages/nana-pack/tests/mutation-runner.test.mjs",
+      "label": "PASS",
+      "seconds": 58.3
+    },
+    {
+      "path": "packages/nana-pack/tests/nana-roster-set.test.mjs",
+      "label": "PASS",
+      "seconds": 1.5
+    },
+    {
+      "path": "packages/nana-pack/tests/nana-roster.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/notify-dispatch.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/notify-fallback.test.mjs",
+      "label": "PASS",
+      "seconds": 9.3
+    },
+    {
+      "path": "packages/nana-pack/tests/objective-golden.test.mjs",
+      "label": "PASS",
+      "seconds": 34
+    },
+    {
+      "path": "packages/nana-pack/tests/objective-injection.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/outside-reader.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/pack-config-utf16.test.mjs",
+      "label": "PASS",
+      "seconds": 1.2
+    },
+    {
+      "path": "packages/nana-pack/tests/pages-workflow.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/path-spelling.test.mjs",
+      "label": "PASS",
+      "seconds": 31.7
+    },
+    {
+      "path": "packages/nana-pack/tests/pi-install.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/pipe-guard.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/planner-prompt.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/post-edit-default-timeout.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/post-edit-file-queue.test.mjs",
+      "label": "PASS",
+      "seconds": 2.4
+    },
+    {
+      "path": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+      "label": "PASS",
+      "seconds": 12.1
+    },
+    {
+      "path": "packages/nana-pack/tests/post-edit-status.test.mjs",
+      "label": "PASS",
+      "seconds": 1.8
+    },
+    {
+      "path": "packages/nana-pack/tests/post-edit-utf8.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/post-edit-values-named.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/process-tree.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/product-detail.test.mjs",
+      "label": "PASS",
+      "seconds": 1.5
+    },
+    {
+      "path": "packages/nana-pack/tests/product-overview.test.mjs",
+      "label": "PASS",
+      "seconds": 4.8
+    },
+    {
+      "path": "packages/nana-pack/tests/product-report.test.mjs",
+      "label": "PASS",
+      "seconds": 63.4
+    },
+    {
+      "path": "packages/nana-pack/tests/readme-check.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/real-path.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/release-status.test.mjs",
+      "label": "PASS",
+      "seconds": 2.7
+    },
+    {
+      "path": "packages/nana-pack/tests/rename-retry.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/requirement-rows.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-cap-kinds.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-deliverables.test.mjs",
+      "label": "PASS",
+      "seconds": 0.7
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-lift.test.mjs",
+      "label": "PASS",
+      "seconds": 41.3
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-moved.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-regroup.test.mjs",
+      "label": "PASS",
+      "seconds": 28.8
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-trace.test.mjs",
+      "label": "PASS",
+      "seconds": 5
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-tree.test.mjs",
+      "label": "PASS",
+      "seconds": 2.7
+    },
+    {
+      "path": "packages/nana-pack/tests/requirements-unclaimed.test.mjs",
+      "label": "PASS",
+      "seconds": 2.6
+    },
+    {
+      "path": "packages/nana-pack/tests/review-launch.test.mjs",
+      "label": "PASS",
+      "seconds": 1.2
+    },
+    {
+      "path": "packages/nana-pack/tests/review-ledger.test.mjs",
+      "label": "PASS",
+      "seconds": 146
+    },
+    {
+      "path": "packages/nana-pack/tests/review-movement.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/review-round.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/review-standard.test.mjs",
+      "label": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "path": "packages/nana-pack/tests/review-test-waits.test.mjs",
+      "label": "PASS",
+      "seconds": 53.3
+    },
+    {
+      "path": "packages/nana-pack/tests/review-timeline.test.mjs",
+      "label": "PASS",
+      "seconds": 7.8
+    },
+    {
+      "path": "packages/nana-pack/tests/roster-notice.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-pack/tests/rulings.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/runtime-land.test.mjs",
+      "label": "PASS",
+      "seconds": 17.4
+    },
+    {
+      "path": "packages/nana-pack/tests/runtime-map.test.mjs",
+      "label": "PASS",
+      "seconds": 12.5
+    },
+    {
+      "path": "packages/nana-pack/tests/skill-claims.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/suite-records.test.mjs",
+      "label": "PASS",
+      "seconds": 13.8
+    },
+    {
+      "path": "packages/nana-pack/tests/template-acceptance.test.mjs",
+      "label": "PASS",
+      "seconds": 11.8
+    },
+    {
+      "path": "packages/nana-pack/tests/template-release.test.mjs",
+      "label": "PASS",
+      "seconds": 3.6
+    },
+    {
+      "path": "packages/nana-pack/tests/templates-render.test.mjs",
+      "label": "PASS",
+      "seconds": 75.9
+    },
+    {
+      "path": "packages/nana-pack/tests/templates-update.test.mjs",
+      "label": "PASS",
+      "seconds": 136
+    },
+    {
+      "path": "packages/nana-pack/tests/test-locked.test.mjs",
+      "label": "PASS",
+      "seconds": 5.1
+    },
+    {
+      "path": "packages/nana-pack/tests/test-runner-parallel.test.mjs",
+      "label": "PASS",
+      "seconds": 32.8
+    },
+    {
+      "path": "packages/nana-pack/tests/test-runner.test.mjs",
+      "label": "PASS",
+      "seconds": 30.3
+    },
+    {
+      "path": "packages/nana-pack/tests/ts-syntax-check.test.mjs",
+      "label": "PASS",
+      "seconds": 1.8
+    },
+    {
+      "path": "packages/nana-pack/tests/visual-reader.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-pack/tests/watchdog-cpu.test.mjs",
+      "label": "PASS",
+      "seconds": 15.9
+    },
+    {
+      "path": "packages/nana-pack/tests/watchdog-exit.test.mjs",
+      "label": "PASS",
+      "seconds": 16.5
+    },
+    {
+      "path": "packages/nana-pack/tests/win-command.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/win32-launch.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-pack/tests/windows-skip-lines.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-pack/tests/worker-claude.test.mjs",
+      "label": "PASS",
+      "seconds": 30.5
+    },
+    {
+      "path": "packages/nana-pack/tests/worker-lane.test.mjs",
+      "label": "PASS",
+      "seconds": 30.8
+    },
+    {
+      "path": "packages/nana-pack/tests/writing-check.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-pack/tests/writing-injection.test.mjs",
+      "label": "PASS",
+      "seconds": 1.4
+    },
+    {
+      "path": "packages/nana-pack/tests/writing-trial-extractor.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-setup/tests/agent-dir-consumers.test.mjs",
+      "label": "PASS",
+      "seconds": 0.8
+    },
+    {
+      "path": "packages/nana-setup/tests/checkout-converge.test.mjs",
+      "label": "PASS",
+      "seconds": 3.3
+    },
+    {
+      "path": "packages/nana-setup/tests/checkout-spelling.test.mjs",
+      "label": "PASS",
+      "seconds": 5.7
+    },
+    {
+      "path": "packages/nana-setup/tests/claude-config-dir.test.mjs",
+      "label": "PASS",
+      "seconds": 2.3
+    },
+    {
+      "path": "packages/nana-setup/tests/copy-record.test.mjs",
+      "label": "PASS",
+      "seconds": 2.3
+    },
+    {
+      "path": "packages/nana-setup/tests/desk-service.test.mjs",
+      "label": "PASS",
+      "seconds": 8.9
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-detail.test.mjs",
+      "label": "PASS",
+      "seconds": 13.8
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-fix-line.test.mjs",
+      "label": "PASS",
+      "seconds": 4.2
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-knowledge.test.mjs",
+      "label": "PASS",
+      "seconds": 0.8
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-memory-links.test.mjs",
+      "label": "PASS",
+      "seconds": 1.9
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-package-source.test.mjs",
+      "label": "PASS",
+      "seconds": 1.8
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-pi-dependencies.test.mjs",
+      "label": "PASS",
+      "seconds": 1.8
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-quiet.test.mjs",
+      "label": "PASS",
+      "seconds": 1.4
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-release.test.mjs",
+      "label": "PASS",
+      "seconds": 1
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-runtime.test.mjs",
+      "label": "PASS",
+      "seconds": 3.4
+    },
+    {
+      "path": "packages/nana-setup/tests/doctor-trust.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-setup/tests/entry-guidance.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-setup/tests/fresh-machine.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-setup/tests/frontier-hook.test.mjs",
+      "label": "PASS",
+      "seconds": 1.7
+    },
+    {
+      "path": "packages/nana-setup/tests/fsops.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-setup/tests/hook-deadlines.test.mjs",
+      "label": "PASS",
+      "seconds": 34.2
+    },
+    {
+      "path": "packages/nana-setup/tests/hook-producers.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-setup/tests/hooks-closed-output.test.mjs",
+      "label": "PASS",
+      "seconds": 1.1
+    },
+    {
+      "path": "packages/nana-setup/tests/hooks-win32-exec.test.mjs",
+      "label": "SKIP",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-setup/tests/install-check.test.mjs",
+      "label": "PASS",
+      "seconds": 2.1
+    },
+    {
+      "path": "packages/nana-setup/tests/install-overlap.test.mjs",
+      "label": "PASS",
+      "seconds": 0.2
+    },
+    {
+      "path": "packages/nana-setup/tests/install.test.mjs",
+      "label": "PASS",
+      "seconds": 9.7
+    },
+    {
+      "path": "packages/nana-setup/tests/linked-claude-folder.test.mjs",
+      "label": "PASS",
+      "seconds": 10.4
+    },
+    {
+      "path": "packages/nana-setup/tests/objective-path-shapes.test.mjs",
+      "label": "PASS",
+      "seconds": 5.5
+    },
+    {
+      "path": "packages/nana-setup/tests/paths.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-setup/tests/pi-install-pin.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-setup/tests/pi-launch-limits.test.mjs",
+      "label": "PASS",
+      "seconds": 66.5
+    },
+    {
+      "path": "packages/nana-setup/tests/pi-registration.test.mjs",
+      "label": "PASS",
+      "seconds": 4.7
+    },
+    {
+      "path": "packages/nana-setup/tests/project-dismiss.test.mjs",
+      "label": "PASS",
+      "seconds": 0.5
+    },
+    {
+      "path": "packages/nana-setup/tests/project-key.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-setup/tests/project-odd-seeds.test.mjs",
+      "label": "PASS",
+      "seconds": 3.7
+    },
+    {
+      "path": "packages/nana-setup/tests/project-stale.test.mjs",
+      "label": "PASS",
+      "seconds": 4.6
+    },
+    {
+      "path": "packages/nana-setup/tests/project-working-region.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "packages/nana-setup/tests/project.test.mjs",
+      "label": "PASS",
+      "seconds": 32
+    },
+    {
+      "path": "packages/nana-setup/tests/readme-rehearsal.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-setup/tests/realpath-fallback.test.mjs",
+      "label": "PASS",
+      "seconds": 3.8
+    },
+    {
+      "path": "packages/nana-setup/tests/relative-agent-dir.test.mjs",
+      "label": "PASS",
+      "seconds": 2.2
+    },
+    {
+      "path": "packages/nana-setup/tests/restore.test.mjs",
+      "label": "PASS",
+      "seconds": 1.7
+    },
+    {
+      "path": "packages/nana-setup/tests/retired-artifacts.test.mjs",
+      "label": "PASS",
+      "seconds": 3.9
+    },
+    {
+      "path": "packages/nana-setup/tests/roster-notice-hook.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "packages/nana-setup/tests/rulings-install.test.mjs",
+      "label": "PASS",
+      "seconds": 3.9
+    },
+    {
+      "path": "packages/nana-setup/tests/seat-rule.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-setup/tests/settings-lock.test.mjs",
+      "label": "PASS",
+      "seconds": 3.6
+    },
+    {
+      "path": "packages/nana-setup/tests/settings-merge.test.mjs",
+      "label": "PASS",
+      "seconds": 4.9
+    },
+    {
+      "path": "packages/nana-setup/tests/shared-link-state.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-setup/tests/shared-memory-budget.test.mjs",
+      "label": "PASS",
+      "seconds": 0.4
+    },
+    {
+      "path": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
+      "label": "PASS",
+      "seconds": 0.7
+    },
+    {
+      "path": "packages/nana-setup/tests/shared-memory-input.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+      "label": "PASS",
+      "seconds": 7.2
+    },
+    {
+      "path": "packages/nana-setup/tests/stale-copies-slow.test.mjs",
+      "label": "PASS",
+      "seconds": 38.3
+    },
+    {
+      "path": "packages/nana-setup/tests/stale-copies.test.mjs",
+      "label": "PASS",
+      "seconds": 7.2
+    },
+    {
+      "path": "packages/nana-setup/tests/state-manifest.test.mjs",
+      "label": "PASS",
+      "seconds": 1
+    },
+    {
+      "path": "packages/nana-setup/tests/trust.test.mjs",
+      "label": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "path": "packages/nana-setup/tests/uninstall.test.mjs",
+      "label": "PASS",
+      "seconds": 2.1
+    },
+    {
+      "path": "packages/nana-setup/tests/verifier-pipe.test.mjs",
+      "label": "PASS",
+      "seconds": 2.8
+    },
+    {
+      "path": "packages/nana-setup/tests/win-shims.test.mjs",
+      "label": "PASS",
+      "seconds": 0.4
+    },
+    {
+      "path": "packages/nana-setup/tests/win32-degrade.test.mjs",
+      "label": "PASS",
+      "seconds": 6.9
+    },
+    {
+      "path": "packages/nana-setup/tests/win32-hook-repair.test.mjs",
+      "label": "PASS",
+      "seconds": 2.9
+    },
+    {
+      "path": "packages/nana-setup/tests/writing-rule.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "packages/nana-stage/tests/blocks.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "apps/desk/test/app-listener.test.mjs",
+      "label": "PASS",
+      "seconds": 6.5
+    },
+    {
+      "path": "apps/desk/test/buffer-caps.test.mjs",
+      "label": "PASS",
+      "seconds": 8.5
+    },
+    {
+      "path": "apps/desk/test/changes-endpoint.test.mjs",
+      "label": "PASS",
+      "seconds": 2.9
+    },
+    {
+      "path": "apps/desk/test/crash-paths.test.mjs",
+      "label": "PASS",
+      "seconds": 3.7
+    },
+    {
+      "path": "apps/desk/test/host-rule.test.mjs",
+      "label": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "path": "apps/desk/test/knowledge-home-isolation.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "apps/desk/test/live-feel.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "apps/desk/test/origin-rule.test.mjs",
+      "label": "PASS",
+      "seconds": 0.6
+    },
+    {
+      "path": "apps/desk/test/pi-087-entries.test.mjs",
+      "label": "PASS",
+      "seconds": 1
+    },
+    {
+      "path": "apps/desk/test/pi-resolution.test.mjs",
+      "label": "PASS",
+      "seconds": 1.2
+    },
+    {
+      "path": "apps/desk/test/pi-rpc-contract.test.mjs",
+      "label": "PASS",
+      "seconds": 0.4
+    },
+    {
+      "path": "apps/desk/test/pi-session-parity.test.mjs",
+      "label": "PASS",
+      "seconds": 1
+    },
+    {
+      "path": "apps/desk/test/prompt-detach.test.mjs",
+      "label": "PASS",
+      "seconds": 19.9
+    },
+    {
+      "path": "apps/desk/test/spawn-and-persist.test.mjs",
+      "label": "PASS",
+      "seconds": 2.6
+    },
+    {
+      "path": "apps/desk/test/stage-key-persistence.test.mjs",
+      "label": "PASS",
+      "seconds": 14.4
+    },
+    {
+      "path": "apps/desk/test/teardown-invariants.test.mjs",
+      "label": "PASS",
+      "seconds": 6.3
+    },
+    {
+      "path": "apps/desk/test/usage-line.test.mjs",
+      "label": "PASS",
+      "seconds": 3.1
+    },
+    {
+      "path": "apps/bench/test/agentdir.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "apps/bench/test/aggregate.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "apps/bench/test/argv.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "apps/bench/test/catch-ledger.test.mjs",
+      "label": "PASS",
+      "seconds": 1.4
+    },
+    {
+      "path": "apps/bench/test/checkers.test.mjs",
+      "label": "PASS",
+      "seconds": 3.6
+    },
+    {
+      "path": "apps/bench/test/evaluator-hardening.test.mjs",
+      "label": "PASS",
+      "seconds": 2.4
+    },
+    {
+      "path": "apps/bench/test/integration.test.mjs",
+      "label": "PASS",
+      "seconds": 2.1
+    },
+    {
+      "path": "apps/bench/test/nested.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    },
+    {
+      "path": "apps/bench/test/ops.test.mjs",
+      "label": "PASS",
+      "seconds": 0.3
+    },
+    {
+      "path": "apps/bench/test/orchestration-paths.test.mjs",
+      "label": "PASS",
+      "seconds": 7.4
+    },
+    {
+      "path": "apps/bench/test/plan.test.mjs",
+      "label": "PASS",
+      "seconds": 0.1
+    },
+    {
+      "path": "apps/bench/test/study-tasks.test.mjs",
+      "label": "SKIP",
+      "seconds": 0
+    },
+    {
+      "path": "apps/bench/test/timeout.test.mjs",
+      "label": "PASS",
+      "seconds": 1.6
+    },
+    {
+      "path": "apps/bench/test/usage.test.mjs",
+      "label": "PASS",
+      "seconds": 0
+    }
+  ],
+  "unnamedFailures": [],
+  "exitCode": 0,
+  "wallSeconds": 573.9,
+  "fileTimeoutMs": 300000,
+  "jobs": 4,
+  "platform": "darwin",
+  "coverage": false,
+  "tip": "8d7037023ad0c8138c01acc02b192840b9a53f58",
+  "mergeBase": "d36b6af25c29df2a5af55758dc2588016b6d609d",
+  "dirty": 32,
+  "mainTip": "8da540e8984c20f707e8fba97c11e9ab2dfbe23b",
+  "trigger": "run",
+  "landTip": null,
+  "recordedAt": "2026-10-29T23:22:24.417Z"
+}

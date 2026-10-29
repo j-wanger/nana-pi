@@ -107,7 +107,6 @@
 - First look (first-look, build 1): both report builds read issues live, so an issue change between the two builds shows in the diff; the plan attack's fixed issue read was not built.
 - First look (first-look, seat check): the accessibility diff keeps the report's age lines (commits and days before HEAD), which shift on every lane; a one-heading change against main gave 19 changed views and 45 KB.
 - First look (first-look, seat check): in a plain clone with no Playwright, the main-checkout fallback finds the clone itself; `PW_ROOT` is needed there.
-- First look (first-look, final review): the seat guide's command has no `--out`, so as written it prints usage and exits 2; `--page desk` also needs `--before` and `--after`.
 - First look (first-look, final review): R-3040 is wider than its test; the test injects the report runner, so the worktree add, child build and cleanup are not run by any test.
 - First look (first-look, final review): the view list comes from the before build only, so a feature the lane adds gets no diff.
 - First look (first-look, final review): the page-shaping list covers only the report's direct imports; a lane that changes a deeper module gets "nothing to show".
@@ -133,3 +132,4 @@
 - Component audit (component-audit, final review): absent components have no parts, so the stale count counts every commit and names them stale after 20 commits anywhere.
 - Component audit (component-audit, final review): the library component cites only the dated measurement, not the FEAT-003 known-bug line the plan named.
 - Component audit (component-audit, CI): the R-3104 activity test exceeded its 20 s case limit once on the Windows runner; a rerun passed.
+- Visual check (visual-check, seat check): the `--control` run has no phone frame among the references, so the 380 px spec line is always unjudged there.
