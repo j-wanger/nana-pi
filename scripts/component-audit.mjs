@@ -124,9 +124,10 @@ function countActivities(root, components, { gitRunner = defaultGit, windowDays 
   const result = new Map(components.map((item) => [item.id, { recentCommits: 0, inFlight: 0 }]));
   const epochText = gitText(gitRunner, root, ["show", "-s", "--format=%ct", "HEAD"]);
   const main = gitText(gitRunner, root, ["rev-parse", "--verify", "refs/heads/main^{commit}"]);
-  if (!epochText || !main) return result;
+  if (!epochText) return result;
+  if (!main) result.reportLines = ["activity: unmerged feature comparison skipped (local main unavailable)"];
   const since = new Date((Number(epochText) - windowDays * 86400) * 1000).toISOString();
-  const history = gitText(gitRunner, root, ["log", "--first-parent", `--since=${since}`, "--format=NANA_COMMIT:%H", "--name-only", "refs/heads/main"]) ?? "";
+  const history = gitText(gitRunner, root, ["log", "--first-parent", `--since=${since}`, "--format=NANA_COMMIT:%H", "--name-only", "HEAD"]) ?? "";
   let currentCommit = null;
   for (const line of history.split(/\r?\n/)) {
     const marker = /^NANA_COMMIT:([0-9a-f]{40})$/.exec(line);
@@ -137,7 +138,7 @@ function countActivities(root, components, { gitRunner = defaultGit, windowDays 
       state.recentSet ??= new Set(); state.recentSet.add(currentCommit);
     }
   }
-  const refs = gitText(gitRunner, root, ["for-each-ref", "--format=%(refname)", "refs/remotes/origin/feat/"]);
+  const refs = main ? gitText(gitRunner, root, ["for-each-ref", "--format=%(refname)", "refs/remotes/origin/feat/"]) : null;
   for (const ref of (refs ?? "").split(/\r?\n/).filter(Boolean)) {
     const merged = invoke(gitRunner, root, ["merge-base", "--is-ancestor", ref, "refs/heads/main"]);
     if (merged?.status === 0) continue;
@@ -200,7 +201,7 @@ export async function buildAudit({ root = REPO_ROOT, source, sourcePath = AUDIT_
   if (contract && document.components.length) problems.push(...checkComponentData(document, contract));
   const stale = staleLines(root, source, { gitRunner, staleLimit });
   const coverage = coverageLines(root, source, mappedModules);
-  const lines = [...stale.lines, ...coverage];
+  const lines = [...stale.lines, ...coverage, ...(activityById.reportLines ?? [])];
   return { source, document, problems, lines, asks: askOutput(source), rows: known.features, activity: parts ? countActivities(root, [{ id: "test", parts }], { gitRunner, windowDays }).get("test") : null, exitCode: problems.length ? 1 : 0 };
 }
 

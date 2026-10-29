@@ -39,7 +39,7 @@ const statusGit = (root, args) => ({ status: 0, stdout: args[0] === "show" ? "17
 // req: R-3100
 await test("R-3100: check passes tracked source and names each missing component path", async () => {
   const real = await buildAudit({ root: ROOT, mappedModules: [] });
-  assert.equal(real.problems.filter((line) => !line.includes("planned or violated feature row")).length, 0, real.problems.join("\n"));
+  assert.deepEqual(real.problems, [], real.problems.join("\n"));
   const root = await temp();
   try {
     const data = structuredClone(real.source);
@@ -115,12 +115,16 @@ await test("R-3104: activity counts recent first-parent changes and unmerged fea
     run(root, ["update-ref", "refs/remotes/origin/feat/open", "HEAD"]);
     const source = (await buildAudit({ root: ROOT, mappedModules: [] })).source;
     const counts = await buildAudit({ root, source, parts: ["part.txt"], windowDays: ACTIVITY_WINDOW_DAYS, mappedModules: [], trackedPaths: ["part.txt"] });
-    assert.equal(counts.activity.recentCommits, 1);
+    assert.equal(counts.activity.recentCommits, 2);
     assert.equal(counts.activity.inFlight, 1);
     run(root, ["checkout", "main"]);
     run(root, ["merge", "--no-ff", "feat/open", "-m", "merge feature"]);
     const merged = await buildAudit({ root, source, parts: ["part.txt"], windowDays: ACTIVITY_WINDOW_DAYS, mappedModules: [], trackedPaths: ["part.txt"] });
     assert.equal(merged.activity.inFlight, 0);
+    run(root, ["branch", "-m", "main", "trunk"]);
+    const withoutMain = await buildAudit({ root, source, parts: ["part.txt"], windowDays: ACTIVITY_WINDOW_DAYS, mappedModules: [], trackedPaths: ["part.txt"] });
+    assert.ok(withoutMain.activity.recentCommits > 0, "HEAD history still contributes activity");
+    assert.ok(withoutMain.lines.includes("activity: unmerged feature comparison skipped (local main unavailable)"));
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
 
@@ -199,6 +203,8 @@ await test("R-3108: status and anchor rules name the component, rule and anchor"
   rowComponent.anchors = ["R-2933"];
   const rowResult = await buildAudit({ ...options, source: rowSource });
   assert.ok(rowResult.problems.some((line) => line.includes("library") && line.includes("row anchor") && line.includes("R-2933")), rowResult.problems.join("\n"));
+  const tracked = await buildAudit({ root: ROOT, mappedModules: [] });
+  assert.deepEqual(tracked.problems, [], tracked.problems.join("\n"));
   const root = await temp();
   try {
     const anchors = ["docs/known-bugs/FEAT-039.md:1", "docs/known-bugs/FEAT-038.md:1", "docs/known-bugs/FEAT-037.md:1"];
