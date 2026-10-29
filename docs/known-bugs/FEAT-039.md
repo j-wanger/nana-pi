@@ -102,3 +102,6 @@
 - Public product page (page-on-pages, seat check): an issue ask draws no Ask line, and the issue body never reaches the page.
 - Product report at land (page-on-pages, final review): each locked suite run now reads the real issue list through gh with the 30 s CI limit, so a slow gh can add up to 30 s to a land.
 - Public product page (page-on-pages, final review): R-2986 is a row about the test itself and cites R-2980's test, so it adds no separate check.
+- First look (first-look, build 1): both report builds read issues live, so an issue change between the two builds shows in the diff; the plan attack's fixed issue read was not built.
+- First look (first-look, seat check): the accessibility diff keeps the report's age lines (commits and days before HEAD), which shift on every lane; a one-heading change against main gave 19 changed views and 45 KB.
+- First look (first-look, seat check): in a plain clone with no Playwright, the main-checkout fallback finds the clone itself; `PW_ROOT` is needed there.

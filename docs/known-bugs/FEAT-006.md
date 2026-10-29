@@ -136,3 +136,6 @@
 - pi seat guide (pi-seat-guide, independent check): pi children that set no NANA_ROLE, such as pi-subagents agents, also get the guide, about 700 tokens; its first sentence tells them to skip it.
 - pi seat guide (pi-seat-guide, independent check): the extension still builds the guide's source path by hand; install and doctor call `ruleSource`.
 - pi seat guide (pi-seat-guide, seat pairs): the rulings heading has the same unlinked copy in the install check's config as the guide heading had; only the guide's pair is pinned.
+- pi seat guide (pi-seat-guide, final review): the header of `packages/nana-setup/lib/steps.mjs` says the seat guide lives in `packages/nana-pack/rules`; it lives in `packages/nana-setup/claude/rules`.
+- pi seat guide (pi-seat-guide, final review): the stale-guide fixture in `packages/nana-pack/tests/rulings.test.mjs` writes a literal backslash-n, not a newline; the test still works.
+- pi seat guide (pi-seat-guide, land review): no guide-specific Windows re-install test covers a recorded copy after its source changes.
