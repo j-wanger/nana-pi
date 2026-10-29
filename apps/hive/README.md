@@ -1,6 +1,6 @@
 # The hive
 
-A separate static preview of nana-pi's components: a low-poly hive, a pixel fallback and readable component stories. It does not replace the product report. The visual reference is https://3dmk.com/; no code or assets come from that site.
+A separate static preview of nana-pi's components: a full-viewport monochrome architectural model, a pixel fallback and readable component stories. It does not replace the product report. The visual reference is https://3dmk.com/; no code or assets come from that site.
 
 ## Install
 
@@ -14,7 +14,7 @@ From the repository root:
 node scripts/hive-page.mjs --serve
 ```
 
-Open the printed loopback URL, never a file URL. The server uses an available port; `--port` selects one. Add `?view=pixel` for the pixel renderer, or `?still` for a static frame. Reduced-motion preference also holds motion still. Drag horizontally to orbit, pinch to zoom, and swipe vertically to scroll. Tap a chamber or use the component rail to focus it. Component hashes are shareable. All cards remain readable below the scene on a phone.
+Open the printed loopback URL, never a file URL. The server uses an available port; `--port` selects one. Add `?view=pixel` for the pixel renderer, or `?still` for a static frame. Reduced-motion preference also holds motion still. Drag horizontally to orbit, pinch to zoom, and swipe vertically to scroll. Tap a chamber or use the component rail to focus it. Component hashes are shareable. The numbered rail becomes a chapter picker on a phone. One frosted card overlays the scene; the Plain, Technical and From the work buttons select its voice. Other chapter cards stay in the DOM but hidden until selected.
 
 ```sh
 node scripts/hive-page.mjs --out /tmp/nana-hive-preview
@@ -43,4 +43,4 @@ node packages/nana-pack/tests/pages-workflow.test.mjs
 npm run test:locked
 ```
 
-The suite tests geometry, contract fixtures, camera bounds, reading models, raster draws, serving, publication and capture order. Real WebGL appearance, phone scrolling and browser gestures need a served-page look. A component's status is an audit judgement; honey reflects implemented requirement counts, not recent passing test runs. Bees count activity, not success. Many components make small cells in the whole-hive view; focus a component to inspect it. Pixel mode shows the whole diagram and uses the same rail and cards, without an orbit camera. Outside-reader's product-specific view list is not used for this preview.
+The suite tests geometry, contract fixtures, camera bounds, reading models, raster draws, serving, publication and capture order. Real WebGL appearance, phone scrolling and browser gestures need a served-page look. A component's status is an audit judgement; feature foundation fill reflects implemented requirement counts, not recent passing test runs. Dark frames mark unfinished structures, and empty footings mark absent components. The perimeter houses governance structures; walkways depict adjacency, not a claimed data dependency. Bees count activity, not success. Many components make small cells in the whole-hive view; focus a component to inspect it. Pixel mode shows the whole diagram and uses the same rail and cards, without an orbit camera. Outside-reader's product-specific view list is not used for this preview.

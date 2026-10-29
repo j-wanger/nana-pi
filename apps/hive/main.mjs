@@ -38,8 +38,14 @@ async function start(data, model) {
       renderer.setPixelRatio(Math.min(devicePixelRatio, STYLE.pixelRatioCap));
       renderer.setClearColor(HIVE_BACKGROUND);
       scene = new THREE.Scene();
-      scene.add(new THREE.HemisphereLight('#fff1cf', '#354a3e', 2.5));
-      const sun = new THREE.DirectionalLight('#ffe2a0', 3); sun.position.set(-8, 14, 10); scene.add(sun);
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      scene.add(new THREE.HemisphereLight('#ffffff', '#6e776d', 2));
+      const sun = new THREE.DirectionalLight('#ffffff', 3); sun.position.set(-20, 35, 18); sun.castShadow = true;
+      const extent = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs)) * 1.3;
+      Object.assign(sun.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 8 });
+      sun.shadow.mapSize.set(STYLE.shadowMapSize, STYLE.shadowMapSize); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025;
+      scene.add(sun);
       camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000);
       hive = buildHive(THREE, model, buildMaterials(THREE)); scene.add(hive);
     } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }
@@ -49,17 +55,21 @@ async function start(data, model) {
     const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh; canvas.classList.add('pixel');
   }
   document.querySelector('#source').textContent = data.project;
-  const reading = () => renderText(document, stories, textLayer(data, location.hash, rendererName));
+  let voice = 'plain';
+  const reading = () => renderText(document, stories, textLayer(data, location.hash, rendererName, voice));
+  stories.addEventListener('click', event => { const button = event.target.closest('[data-voice]'); if (button) { voice = button.dataset.voice; reading(); } });
+  stories.addEventListener('change', event => { if (event.target.matches('select')) { location.hash = event.target.value; } });
   reading(); scrollTo(0, 0);
   const labelNodes = model.chambers.map(c => {
     const node = document.createElement('span'); node.className = 'label'; node.textContent = c.name; labels.append(node); return node;
   });
   const raster = pixel(model); const ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;
   if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }
-  let current = focus(model, location.hash.slice(1), stage.clientWidth / stage.clientHeight);
-  let desired = current; let yaw = 0; let zoom = 1;
+  const pose = () => focus(model, location.hash.slice(1), location.hash ? stage.clientWidth / stage.clientHeight : Math.max(0.9, stage.clientWidth / stage.clientHeight));
+  let current = pose();
+  let desired = current; let yaw = STYLE.cameraElevation / 2; let zoom = 1;
   const motion = () => ({ still, reduced: preference.matches });
-  const chooseStop = () => { desired = focus(model, location.hash.slice(1), stage.clientWidth / stage.clientHeight); yaw = 0; zoom = 1; if (still || preference.matches) current = desired; };
+  const chooseStop = () => { desired = pose(); yaw = STYLE.cameraElevation / 2; zoom = 1; if (still || preference.matches) current = desired; };
   const draw = () => {
     const state = animationStep(performance.now() / 1000, motion());
     if (rendererName === 'webgl') {
@@ -79,7 +89,7 @@ async function start(data, model) {
       });
       renderer.render(scene, camera);
       model.chambers.forEach((c, i) => {
-        const p = new THREE.Vector3(c.x, STYLE.beeHeight + 1, c.z).project(camera); const node = labelNodes[i];
+        const p = new THREE.Vector3(c.x, c.material.status === 'absent' ? 1 : STYLE.structureHeight, c.z).project(camera); const node = labelNodes[i];
         node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1;
         node.style.left = `${(p.x + 1) / 2 * 100}%`; node.style.top = `${(1 - p.y) / 2 * 100}%`;
       });
@@ -90,7 +100,13 @@ async function start(data, model) {
   };
   const frame = firstFrame(rendererName, draw, name => { document.documentElement.dataset.hiveReady = name; });
   const resize = () => {
-    if (renderer) { renderer.setSize(stage.clientWidth, stage.clientHeight, false); camera.aspect = stage.clientWidth / stage.clientHeight; camera.updateProjectionMatrix(); }
+    if (renderer) {
+      const width = stage.clientWidth, height = stage.clientHeight;
+      renderer.setSize(width, height, false); camera.aspect = width / height;
+      // Leave the model visible beside the reading overlay, not hidden underneath it.
+      camera.setViewOffset(width, height, width > 760 ? -width * 0.16 : 0, width > 760 ? 0 : height * 0.12, width, height);
+      camera.updateProjectionMatrix();
+    }
     chooseStop(); frame();
   };
   new ResizeObserver(resize).observe(stage); resize();

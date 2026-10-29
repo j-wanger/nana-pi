@@ -77,7 +77,7 @@ await test('R-3126: rail order and active cards retain the complete component st
   const container = node('main'); renderText({ createElement: node }, container, model);
   const flatten = n => [n, ...n.children.flatMap(flatten)]; const nodes = flatten(container);
   assert.equal(nodes.filter(n => n.tag === 'article').length, 6); assert.deepEqual(nodes.filter(n => n.tag === 'a').map(n => n.attrs.href), model.rail.map(r => r.href));
-  assert(nodes.some(n => n.textContent === card.text));
+  for (const text of Object.values(card.voices)) assert(nodes.some(n => n.textContent === text));
 });
 // req: R-3127
 await test('R-3127: renderer choice falls back and incompatible data gives one error without a scene', async () => {

@@ -626,7 +626,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/hive/assets/hive.mjs`
 
-- **purpose** — Assembles reusable cell and bee assets into pickable component chambers.
+- **purpose** — Assembles original architectural structures, feature decks and activity into a pickable city.
 - **inputs** — Explicit THREE namespace, world layout and shared materials.
 - **outputs** — A scene group with component and bee metadata.
 - **effects** — none
@@ -706,9 +706,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/hive/text-layer.mjs`
 
-- **purpose** — Presents every component's story as a DOM-independent model and text-only rail and cards.
-- **inputs** — Component data, hash, renderer name and explicit document/container when rendering.
-- **outputs** — A reading model or populated container.
+- **purpose** — Presents component chapters and three reading voices over the architectural scene.
+- **inputs** — Component data, hash, renderer, voice and explicit document/container when rendering.
+- **outputs** — A reading model or populated overlay with one visible frosted card.
 - **effects** — none
 - **errors** — None for contract-shaped data.
 - **callers** — `apps/hive/main.mjs`

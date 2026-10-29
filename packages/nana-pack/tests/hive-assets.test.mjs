@@ -33,9 +33,9 @@ await test('R-3124: three 0.186.1 module and core bytes retain their release has
 // req: R-3134
 await test('R-3134: visual and serving defaults retain their sealed values and provenance', async () => {
   const { STYLE, STATUS_COLORS, KIND_RIMS } = await import('../../../apps/hive/config.mjs');
-  assert.deepEqual(STATUS_COLORS, { sound: '#e6a83c', partial: '#e6d6a7', gap: '#594438', absent: '#78827d' });
-  assert.deepEqual(KIND_RIMS, { workflow: '#926c36', governance: '#86c4a3' });
-  assert.deepEqual(STYLE, { cellWidth: 2, cellStep: 2.4, chamberGap: 4, cellHeight: 1.4, fov: 40, framePadding: 1.25, cameraElevation: 0.9, pixelPadding: 20, beeScale: 0.26, beeHeight: 2.4, beeSpeed: 0.65, cameraDrift: 0.012, focusEase: 0.09, dragScale: 0.008, minZoom: 0.6, maxZoom: 2.5, pixelRatioCap: 2, port: 0 });
+  assert.deepEqual(STATUS_COLORS, { sound: '#eeefed', partial: '#b9bcb9', gap: '#454947', absent: '#888d89' });
+  assert.deepEqual(KIND_RIMS, { workflow: '#b7bcb8', governance: '#e2e5e1' });
+  assert.deepEqual(STYLE, { cellWidth: 2, cellStep: 2.4, chamberGap: 1.8, cellHeight: 1.4, structureHeight: 8, fov: 40, framePadding: 1.08, cameraElevation: 0.68, pixelPadding: 20, beeScale: 0.16, beeHeight: 8.8, beeSpeed: 0.65, cameraDrift: 0.012, focusEase: 0.025, dragScale: 0.008, minZoom: 0.6, maxZoom: 2.5, pixelRatioCap: 2, shadowMapSize: 2048, port: 0 });
   const source = await fs.readFile(new URL('../../../apps/hive/config.mjs', import.meta.url), 'utf8'); assert.match(source, /chosen \(2026-10-29, R-3134\)/);
 });
 if (!process.exitCode) console.log(`${passed} hive asset checks passed`);

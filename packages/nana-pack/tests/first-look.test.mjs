@@ -125,7 +125,7 @@ await test("R-3043: sealed page-shaping paths name renderer, template and report
 // req: R-3133
 await test('R-3133: hive URL capture waits for drawing, reduces motion and names empty or timed-out canvases', async () => {
   const { HIVE_READY_TIMEOUT_MS, HIVE_BACKGROUND, HIVE_PROBE_FRACTION } = await import('../../../scripts/first-look-config.mjs');
-  assert.equal(HIVE_READY_TIMEOUT_MS, 15000); assert.equal(HIVE_BACKGROUND, '#171b19'); assert.equal(HIVE_PROBE_FRACTION, 0.5);
+  assert.equal(HIVE_READY_TIMEOUT_MS, 15000); assert.equal(HIVE_BACKGROUND, '#d7d9d5'); assert.equal(HIVE_PROBE_FRACTION, 0.5);
   for (const mode of ['drawn', 'empty', 'timeout']) {
     const dir = await temp(); const events = []; const lines = [];
     try {
