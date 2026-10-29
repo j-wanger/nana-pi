@@ -1,6 +1,6 @@
 Feature: FEAT-039 · See the product and its decisions in one report
 
-Lane reader-at-land. Class: ordinary (`node scripts/lane-class.mjs` prints `ordinary` on the planned files). Builder: pi-worker (small lane). Build session 1.
+Lane reader-at-land. Class: ordinary (`node scripts/lane-class.mjs` prints `ordinary` on the planned files). Builder: pi-worker (larger lane). Build session 1, second launch: the first launch stopped BLOCKED after one minute without naming a blocker. If you stop BLOCKED, name the exact blocker and the file or command behind it.
 
 Work in the lane worktree on feat/reader-at-land, based on main. The plan of record is `docs/reviews/reader-at-land-2026-10-29/plan.md`. Read it whole, and read `plan-attack.md` beside it; the plan already takes every attack point. The plan has no list of allowed edits.
 
