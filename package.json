@@ -18,6 +18,7 @@
 		"readme:check": "node scripts/readme-check.mjs",
 		"report": "node scripts/product-report.mjs",
 		"first-look": "node scripts/first-look.mjs",
+		"outside-reader": "node scripts/outside-reader.mjs",
 		"template:accept": "node scripts/template-acceptance.mjs",
 		"release": "node scripts/template-release.mjs"
 	},

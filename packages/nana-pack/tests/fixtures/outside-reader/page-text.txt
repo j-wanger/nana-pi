@@ -1,0 +1,871 @@
+
+
+===== phone 390px · view (landing) =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Overview
+Needs you
+Asks: 27 · blocking (must decide): 0 · optional: 25 · parked: 2
+Open questions in the ledger: 21
+Broken
+Violated: 5
+R-433, R-435, R-436, R-445, R-446
+Did not pass in this clone's last measured run: no recorded run: no runtime data
+Gaps
+Deliverables code does not make and read: 0 · parked: 21 · deliverable notes: 0
+Artifacts with no declared reader: 0 · parked: 2
+Stale
+Feature assessments out of date: 34 · unassessed: 1
+FEAT-001, FEAT-002, FEAT-003, FEAT-004, FEAT-005, FEAT-006, FEAT-007, FEAT-008, FEAT-009, FEAT-010, FEAT-011, FEAT-013, FEAT-014, FEAT-015, FEAT-016, FEAT-017, FEAT-018, FEAT-019, FEAT-020, FEAT-021, FEAT-022, FEAT-023, FEAT-024, FEAT-026, FEAT-027, FEAT-028, FEAT-029, FEAT-030, FEAT-031, FEAT-032, FEAT-033, FEAT-039, FEAT-034, FEAT-036, FEAT-038
+Artifacts older than 30 days before HEAD's commit: 6 · age not measured: 49 · age unknown: 3
+A-039 · study schedule · 49 days · made in FEAT-034
+A-040 · study summary · 49 days · made in FEAT-035
+A-041 · probe ledger · 49 days · made in FEAT-036
+A-042 · study results · 49 days · made in FEAT-037
+A-074 · fixture manifest · 49 days · made in FEAT-034
+A-075 · oracle keys · 49 days · made in FEAT-037
+What it does
+deliverables: 21 of 21 made and read by code, 21 more parked
+CAP-01 · Maintain direction and useful context: 5 of 5 made and read by code, 1 more parked
+CAP-02 · Deliver controlled changes: 4 of 4 made and read by code, 2 more parked
+CAP-04 · Bring nana to each project and maintain it: 5 of 5 made and read by code, 1 more parked
+CAP-05 · Follow and steer development: 2 of 2 made and read by code, 3 more parked
+CAP-06 · Use attributable tool outputs and focused apps: 0 of 0 made and read by code, 5 more parked
+CAP-07 · Keep code and promises checkable: 5 of 5 made and read by code, 3 more parked
+CAP-08 · Evaluate agent choices with credible evidence: 0 of 0 made and read by code, 6 more parked
+
+===== phone 390px · view #overview =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Overview
+Needs you
+Asks: 27 · blocking (must decide): 0 · optional: 25 · parked: 2
+Open questions in the ledger: 21
+Broken
+Violated: 5
+R-433, R-435, R-436, R-445, R-446
+Did not pass in this clone's last measured run: no recorded run: no runtime data
+Gaps
+Deliverables code does not make and read: 0 · parked: 21 · deliverable notes: 0
+Artifacts with no declared reader: 0 · parked: 2
+Stale
+Feature assessments out of date: 34 · unassessed: 1
+FEAT-001, FEAT-002, FEAT-003, FEAT-004, FEAT-005, FEAT-006, FEAT-007, FEAT-008, FEAT-009, FEAT-010, FEAT-011, FEAT-013, FEAT-014, FEAT-015, FEAT-016, FEAT-017, FEAT-018, FEAT-019, FEAT-020, FEAT-021, FEAT-022, FEAT-023, FEAT-024, FEAT-026, FEAT-027, FEAT-028, FEAT-029, FEAT-030, FEAT-031, FEAT-032, FEAT-033, FEAT-039, FEAT-034, FEAT-036, FEAT-038
+Artifacts older than 30 days before HEAD's commit: 6 · age not measured: 49 · age unknown: 3
+A-039 · study schedule · 49 days · made in FEAT-034
+A-040 · study summary · 49 days · made in FEAT-035
+A-041 · probe ledger · 49 days · made in FEAT-036
+A-042 · study results · 49 days · made in FEAT-037
+A-074 · fixture manifest · 49 days · made in FEAT-034
+A-075 · oracle keys · 49 days · made in FEAT-037
+What it does
+deliverables: 21 of 21 made and read by code, 21 more parked
+CAP-01 · Maintain direction and useful context: 5 of 5 made and read by code, 1 more parked
+CAP-02 · Deliver controlled changes: 4 of 4 made and read by code, 2 more parked
+CAP-04 · Bring nana to each project and maintain it: 5 of 5 made and read by code, 1 more parked
+CAP-05 · Follow and steer development: 2 of 2 made and read by code, 3 more parked
+CAP-06 · Use attributable tool outputs and focused apps: 0 of 0 made and read by code, 5 more parked
+CAP-07 · Keep code and promises checkable: 5 of 5 made and read by code, 3 more parked
+CAP-08 · Evaluate agent choices with credible evidence: 0 of 0 made and read by code, 6 more parked
+
+===== phone 390px · view #product =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Product
+
+deliverables: 21 of 21 made and read by code, 21 more parked
+
+CAP-01 · Maintain direction and useful context
+
+Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
+
+Outcome: A developer can start or resume work with the relevant goal, decisions, history and knowledge available.
+
+Kind: product
+
+Deliverables:
+
+R-001 · implemented · Home: FEAT-001 · Keep goals and priorities in view · read by prompt · output only
+R-108 · implemented · Home: FEAT-002 · Resume decisions and next actions · read by prompt, code · age not measured
+R-873 · implemented · Home: FEAT-002 · Resume decisions and next actions · read by prompt · output only
+R-201 · implemented · Home: FEAT-003 · Index and connect existing knowledge sources · read by code · age not measured
+R-217 · implemented · Home: FEAT-004 · Retrieve relevant context with provenance · read by prompt · output only
+R-749 · implemented · Home: FEAT-005 · Communicate decisions clearly · not made by code · not read by code · read by rule · parked · artifact not written down
+
+Features with no deliverable: none
+
+Feature: FEAT-001 · Keep goals and priorities in view
+
+Counts: implemented 50 · untested 0 · planned 0 · violated 0 · retired 0
+
+Feature: FEAT-002 · Resume decisions and next actions
+
+Counts: implemented 107 · untested 0 · planned 0 · violated 0 · retired 0
+
+Feature: FEAT-003 · Index and connect existing knowledge sources
+
+Counts: implemented 64 · untested 6 · planned 0 · violated 0 · retired 0
+
+Feature: FEAT-004 · Retrieve relevant context with provenance
+
+Counts: implemented 28 · untested 8 · planned 0 · violated 0 · retired 2
+
+Feature: FEAT-005 · Communicate decisions clearly
+
+Counts: implemented 21 · untested 0 · planned 0 · violated 0 · retired 0
+
+CAP-02 · Deliver controlled changes
+
+Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
+
+Outcome: A developer can accept a bounded change with understandable review evidence and a controlled integration step.
+
+Kind: product
+
+Deliverables:
+
+R-1400 · implemented · Home: FEAT-006 · Launch builders with execution limits · not made by code · read by code, prompt, rule · parked · age not measured
+R-1008 · implemented · Home: FEAT-007 · Review a specific revision independently · read by code · age not measured
+R-1560 · implemented · Home: FEAT-007 · Review a specific revision independently · not made by code · not read by code · read by person · parked · output only
+R-977 · implemented · Home: FEAT-008 · Integrate and clean up reviewed changes · read by person, code · age not measured
+R-2597 · implemented · Home: FEAT-006 · Launch builders with execution limits · read by code · age unknown
+R-2811 · implemented · Home: FEAT-008 · Integrate and clean up reviewed changes · read by code · age not measured
+
+Features with no deliverable: none
+
+Feature: FEAT-006 · Launch builders with execution limits
+
+Counts: implemented 109 · untested 5 · planned 0 · violated 0 · retired 2
+
+Feature: FEAT-007 · Review a specific revision independently
+
+Counts: implemented 143 · untested 21 · planned 0 · violated 0 · retired 4
+
+Feature: FEAT-008 · Integrate and clean up reviewed changes
+
+Counts: implemented 43 · untested 0 · planned 0 · violated 0 · retired 1
+
+CAP-04 · Bring nana to each project and maintain it
+
+Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
+
+Outcome: A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.
+
+Kind: product
+
+Deliverables:
+
+R-301 · implemented · Home: FEAT-013 · Install and connect harness runtimes · read by code · age not measured
+R-327 · implemented · Home: FEAT-014 · Create or adopt a project workspace · not made b
+
+===== phone 390px · view #decisions =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Decisions
+Widen the lane class to everything that runs as you after a land?
+
+Kind: optional
+
+Since: 2026-10-28
+
+Raw-only wikis
+
+Kind: parked
+
+Since: 2026-10-28
+
+Changes-bar baseline
+
+Kind: parked
+
+Since: 2026-10-28
+
+Read protection
+
+Kind: optional
+
+Since: 2026-10-28
+
+Backups
+
+Kind: optional
+
+Since: 2026-10-28
+
+Codex re-imports legacy skills
+
+Kind: optional
+
+Since: 2026-10-28
+
+REQUIREMENTS decisions
+
+Kind: optional
+
+Since: 2026-10-28
+
+pi 1.0 screen-only parts
+
+Kind: optional
+
+Since: 2026-10-28
+
+One TUI check
+
+Kind: optional
+
+Since: 2026-10-28
+
+Background subagents
+
+Kind: optional
+
+Since: 2026-10-28
+
+Lift your flat projects
+
+Kind: optional
+
+Since: 2026-10-28
+
+pi 1.4.0 on both machines
+
+Kind: optional
+
+Since: 2026-10-28
+
+Four more Claude skills on Windows
+
+Kind: optional
+
+Since: 2026-10-28
+
+A dry run under a held lock
+
+Kind: optional
+
+Since: 2026-10-28
+
+Stale labels in the not-passed list
+
+Kind: optional
+
+Since: 2026-10-28
+
+Byte-order-mark rows
+
+Kind: optional
+
+Since: 2026-10-28
+
+The commit author
+
+Kind: optional
+
+Since: 2026-10-28
+
+Personal project names
+
+Kind: optional
+
+Since: 2026-10-28
+
+Known-bug files and the writing rule
+
+Kind: optional
+
+Since: 2026-10-28
+
+The install feature's known bugs
+
+Kind: optional
+
+Since: 2026-10-28
+
+The trust gap in the lane loop
+
+Kind: optional
+
+Since: 2026-10-28
+
+The blocking-ask cap
+
+Kind: optional
+
+Since: 2026-10-28
+
+Cloud provider settings for a Claude Code builder
+
+Kind: optional
+
+Since: 2026-10-28
+
+A real Claude Code builder behind a proxy
+
+Kind: optional
+
+Since: 2026-10-28
+
+A copier project's drift line
+
+Kind: optional
+
+Since: 2026-10-28
+
+What a land waits for
+
+Kind: optional
+
+Since: 2026-10-28
+
+A guard against short test limits
+
+Kind: optional
+
+Since: 2026-10-28
+
+Next
+#214 Capability kinds
+#213 Windows first-try failures
+#212 2026-10-23 readings, overdue
+Open questions in REQUIREMENTS.md
+(pi 1.0 lane, 2026-10-04) mcp.json's own shape failures (not JSON, not an object, mcpServers not an object) are exercised by three uncited checks in packages/nana-setup/tests/doctor-detail.test.mjs but have no row. Add an R-366-shaped row, or declare them R-365's error handling.
+(writing trial, astra r3, 2026-10-04) R-753/R-755's cap is a CHARACTER budget on the injected block, while the read ceiling (R-755) is a BYTE budget on the file. A valid multi-byte-heavy rule (e.g. a 2,000-character Chinese file) can be cut well short of 4,000 characters while the notice still reads "cut at 4000 chars" — the notice is imprecise in that direction. Document the distinction; the byte/character gap is accepted, not fixed, for the trial.
+1. The pack's README is 721 lines of declared behaviour and produced 258 rows; the extraction notes name a safe trim (merge same-status rows inside the gate, handoff and pi-review sections). Trim, or keep the grain?
+6b. Clause-level honesty. The form half closed 2026-10-04 (docs/reviews/ears-form-2026-10-04/lane-close-ruling.md); the coverage half is this question. Origin: sol r3 2026-10-02 showed the rail proves marker identity and citation existence, not clause coverage; a 25-row sample pinned fully in 16 (64%). The EARS-form lane then split every multi-shall row: 200 origins into 244 new rows, 0 off form, G-013 implemented. EARS_ALLOWANCE sits at 0, sealed and held equal to the measured count (R-757). The lane judged the rows it touched under a standard that tightened as it ran. A3 and B's implemented rows (10 and 10 split-born, 9 and 7 origins) carry one recorded red mutation per named condition. In those, astra read every record and replayed one in five (bc-method-ruling.md). A1 and A2's (32 and 30 split-born, 33 and 28 origins) carry one red mutation per row, sampled 20 per batch at 19 of 20. C's 44 origins and the 289 implemented rows never off form carry their pre-lane cites, unjudged. Under t
+
+===== phone 390px · view #issues =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Issues
+
+Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. copies run from a temporary folder and children stopped by a signal are not counted. No recorded run anywhere in this report: no runtime data.
+
+R-433
+violated
+
+The desk shall bound the per-child status, widget and unanswered-dialog maps a child fills through its own events.
+
+unbounded for the life of the session in handleChildEvent, apps/desk/server.mjs, and replayed whole in every hello; declared in README Known limits and STILL OPEN in docs/review-punchlist-2026-09-08.md
+
+Tests: none cited in this repository
+
+R-435
+violated
+
+A picker whose RPC is already in flight when the session is switched shall not act on the newly selected session.
+
+declared open in README Known limits and in the punchlist race section; closing the popover narrows but does not close the window
+
+Tests: none cited in this repository
+
+R-436
+violated
+
+A steer whose text is byte-identical to a still-pending prompt shall not consume that prompt's optimistic bubble.
+
+declared in README Known limits; the echo match is by content, so one bubble serves two messages until a resync repairs it
+
+Tests: none cited in this repository
+
+R-445
+violated
+
+Two desks writing one session's record shall each keep what the other added.
+
+no cross-process lock by design, so simultaneous writers keep only the last writer's additions and the store holds no copy of what was lost; declared in README Known limits and the punchlist open sub-items
+
+Tests: none cited in this repository
+
+R-446
+violated
+
+The stage-key store shall not block the desk's event loop while it reads or writes.
+
+its per-session reads and writes and the one-time enumeration are synchronous on the event loop, so a hung filesystem stalls the whole process; declared in README Known limits
+
+Tests: none cited in this repository
+
+Implemented rows that did not pass in this clone's last measured run: 0
+
+A row appears here when a cited file's last recorded run failed, or when every cited file's last recorded run skipped or failed. A file with no recorded run counts neither way.
+
+===== laptop 1280px · view (landing) =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Overview
+Needs you
+Asks: 27 · blocking (must decide): 0 · optional: 25 · parked: 2
+Open questions in the ledger: 21
+Broken
+Violated: 5
+R-433, R-435, R-436, R-445, R-446
+Did not pass in this clone's last measured run: no recorded run: no runtime data
+Gaps
+Deliverables code does not make and read: 0 · parked: 21 · deliverable notes: 0
+Artifacts with no declared reader: 0 · parked: 2
+Stale
+Feature assessments out of date: 34 · unassessed: 1
+FEAT-001, FEAT-002, FEAT-003, FEAT-004, FEAT-005, FEAT-006, FEAT-007, FEAT-008, FEAT-009, FEAT-010, FEAT-011, FEAT-013, FEAT-014, FEAT-015, FEAT-016, FEAT-017, FEAT-018, FEAT-019, FEAT-020, FEAT-021, FEAT-022, FEAT-023, FEAT-024, FEAT-026, FEAT-027, FEAT-028, FEAT-029, FEAT-030, FEAT-031, FEAT-032, FEAT-033, FEAT-039, FEAT-034, FEAT-036, FEAT-038
+Artifacts older than 30 days before HEAD's commit: 6 · age not measured: 49 · age unknown: 3
+A-039 · study schedule · 49 days · made in FEAT-034
+A-040 · study summary · 49 days · made in FEAT-035
+A-041 · probe ledger · 49 days · made in FEAT-036
+A-042 · study results · 49 days · made in FEAT-037
+A-074 · fixture manifest · 49 days · made in FEAT-034
+A-075 · oracle keys · 49 days · made in FEAT-037
+What it does
+deliverables: 21 of 21 made and read by code, 21 more parked
+CAP-01 · Maintain direction and useful context: 5 of 5 made and read by code, 1 more parked
+CAP-02 · Deliver controlled changes: 4 of 4 made and read by code, 2 more parked
+CAP-04 · Bring nana to each project and maintain it: 5 of 5 made and read by code, 1 more parked
+CAP-05 · Follow and steer development: 2 of 2 made and read by code, 3 more parked
+CAP-06 · Use attributable tool outputs and focused apps: 0 of 0 made and read by code, 5 more parked
+CAP-07 · Keep code and promises checkable: 5 of 5 made and read by code, 3 more parked
+CAP-08 · Evaluate agent choices with credible evidence: 0 of 0 made and read by code, 6 more parked
+
+===== laptop 1280px · view #overview =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Overview
+Needs you
+Asks: 27 · blocking (must decide): 0 · optional: 25 · parked: 2
+Open questions in the ledger: 21
+Broken
+Violated: 5
+R-433, R-435, R-436, R-445, R-446
+Did not pass in this clone's last measured run: no recorded run: no runtime data
+Gaps
+Deliverables code does not make and read: 0 · parked: 21 · deliverable notes: 0
+Artifacts with no declared reader: 0 · parked: 2
+Stale
+Feature assessments out of date: 34 · unassessed: 1
+FEAT-001, FEAT-002, FEAT-003, FEAT-004, FEAT-005, FEAT-006, FEAT-007, FEAT-008, FEAT-009, FEAT-010, FEAT-011, FEAT-013, FEAT-014, FEAT-015, FEAT-016, FEAT-017, FEAT-018, FEAT-019, FEAT-020, FEAT-021, FEAT-022, FEAT-023, FEAT-024, FEAT-026, FEAT-027, FEAT-028, FEAT-029, FEAT-030, FEAT-031, FEAT-032, FEAT-033, FEAT-039, FEAT-034, FEAT-036, FEAT-038
+Artifacts older than 30 days before HEAD's commit: 6 · age not measured: 49 · age unknown: 3
+A-039 · study schedule · 49 days · made in FEAT-034
+A-040 · study summary · 49 days · made in FEAT-035
+A-041 · probe ledger · 49 days · made in FEAT-036
+A-042 · study results · 49 days · made in FEAT-037
+A-074 · fixture manifest · 49 days · made in FEAT-034
+A-075 · oracle keys · 49 days · made in FEAT-037
+What it does
+deliverables: 21 of 21 made and read by code, 21 more parked
+CAP-01 · Maintain direction and useful context: 5 of 5 made and read by code, 1 more parked
+CAP-02 · Deliver controlled changes: 4 of 4 made and read by code, 2 more parked
+CAP-04 · Bring nana to each project and maintain it: 5 of 5 made and read by code, 1 more parked
+CAP-05 · Follow and steer development: 2 of 2 made and read by code, 3 more parked
+CAP-06 · Use attributable tool outputs and focused apps: 0 of 0 made and read by code, 5 more parked
+CAP-07 · Keep code and promises checkable: 5 of 5 made and read by code, 3 more parked
+CAP-08 · Evaluate agent choices with credible evidence: 0 of 0 made and read by code, 6 more parked
+
+===== laptop 1280px · view #product =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Product
+
+deliverables: 21 of 21 made and read by code, 21 more parked
+
+CAP-01 · Maintain direction and useful context
+
+Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
+
+Outcome: A developer can start or resume work with the relevant goal, decisions, history and knowledge available.
+
+Kind: product
+
+Deliverables:
+
+R-001 · implemented · Home: FEAT-001 · Keep goals and priorities in view · read by prompt · output only
+R-108 · implemented · Home: FEAT-002 · Resume decisions and next actions · read by prompt, code · age not measured
+R-873 · implemented · Home: FEAT-002 · Resume decisions and next actions · read by prompt · output only
+R-201 · implemented · Home: FEAT-003 · Index and connect existing knowledge sources · read by code · age not measured
+R-217 · implemented · Home: FEAT-004 · Retrieve relevant context with provenance · read by prompt · output only
+R-749 · implemented · Home: FEAT-005 · Communicate decisions clearly · not made by code · not read by code · read by rule · parked · artifact not written down
+
+Features with no deliverable: none
+
+Feature: FEAT-001 · Keep goals and priorities in view
+
+Counts: implemented 50 · untested 0 · planned 0 · violated 0 · retired 0
+
+Feature: FEAT-002 · Resume decisions and next actions
+
+Counts: implemented 107 · untested 0 · planned 0 · violated 0 · retired 0
+
+Feature: FEAT-003 · Index and connect existing knowledge sources
+
+Counts: implemented 64 · untested 6 · planned 0 · violated 0 · retired 0
+
+Feature: FEAT-004 · Retrieve relevant context with provenance
+
+Counts: implemented 28 · untested 8 · planned 0 · violated 0 · retired 2
+
+Feature: FEAT-005 · Communicate decisions clearly
+
+Counts: implemented 21 · untested 0 · planned 0 · violated 0 · retired 0
+
+CAP-02 · Deliver controlled changes
+
+Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
+
+Outcome: A developer can accept a bounded change with understandable review evidence and a controlled integration step.
+
+Kind: product
+
+Deliverables:
+
+R-1400 · implemented · Home: FEAT-006 · Launch builders with execution limits · not made by code · read by code, prompt, rule · parked · age not measured
+R-1008 · implemented · Home: FEAT-007 · Review a specific revision independently · read by code · age not measured
+R-1560 · implemented · Home: FEAT-007 · Review a specific revision independently · not made by code · not read by code · read by person · parked · output only
+R-977 · implemented · Home: FEAT-008 · Integrate and clean up reviewed changes · read by person, code · age not measured
+R-2597 · implemented · Home: FEAT-006 · Launch builders with execution limits · read by code · age unknown
+R-2811 · implemented · Home: FEAT-008 · Integrate and clean up reviewed changes · read by code · age not measured
+
+Features with no deliverable: none
+
+Feature: FEAT-006 · Launch builders with execution limits
+
+Counts: implemented 109 · untested 5 · planned 0 · violated 0 · retired 2
+
+Feature: FEAT-007 · Review a specific revision independently
+
+Counts: implemented 143 · untested 21 · planned 0 · violated 0 · retired 4
+
+Feature: FEAT-008 · Integrate and clean up reviewed changes
+
+Counts: implemented 43 · untested 0 · planned 0 · violated 0 · retired 1
+
+CAP-04 · Bring nana to each project and maintain it
+
+Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
+
+Outcome: A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.
+
+Kind: product
+
+Deliverables:
+
+R-301 · implemented · Home: FEAT-013 · Install and connect harness runtimes · read by code · age not measured
+R-327 · implemented · Home: FEAT-014 · Create or adopt a project workspace · not made b
+
+===== laptop 1280px · view #decisions =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Decisions
+Widen the lane class to everything that runs as you after a land?
+
+Kind: optional
+
+Since: 2026-10-28
+
+Raw-only wikis
+
+Kind: parked
+
+Since: 2026-10-28
+
+Changes-bar baseline
+
+Kind: parked
+
+Since: 2026-10-28
+
+Read protection
+
+Kind: optional
+
+Since: 2026-10-28
+
+Backups
+
+Kind: optional
+
+Since: 2026-10-28
+
+Codex re-imports legacy skills
+
+Kind: optional
+
+Since: 2026-10-28
+
+REQUIREMENTS decisions
+
+Kind: optional
+
+Since: 2026-10-28
+
+pi 1.0 screen-only parts
+
+Kind: optional
+
+Since: 2026-10-28
+
+One TUI check
+
+Kind: optional
+
+Since: 2026-10-28
+
+Background subagents
+
+Kind: optional
+
+Since: 2026-10-28
+
+Lift your flat projects
+
+Kind: optional
+
+Since: 2026-10-28
+
+pi 1.4.0 on both machines
+
+Kind: optional
+
+Since: 2026-10-28
+
+Four more Claude skills on Windows
+
+Kind: optional
+
+Since: 2026-10-28
+
+A dry run under a held lock
+
+Kind: optional
+
+Since: 2026-10-28
+
+Stale labels in the not-passed list
+
+Kind: optional
+
+Since: 2026-10-28
+
+Byte-order-mark rows
+
+Kind: optional
+
+Since: 2026-10-28
+
+The commit author
+
+Kind: optional
+
+Since: 2026-10-28
+
+Personal project names
+
+Kind: optional
+
+Since: 2026-10-28
+
+Known-bug files and the writing rule
+
+Kind: optional
+
+Since: 2026-10-28
+
+The install feature's known bugs
+
+Kind: optional
+
+Since: 2026-10-28
+
+The trust gap in the lane loop
+
+Kind: optional
+
+Since: 2026-10-28
+
+The blocking-ask cap
+
+Kind: optional
+
+Since: 2026-10-28
+
+Cloud provider settings for a Claude Code builder
+
+Kind: optional
+
+Since: 2026-10-28
+
+A real Claude Code builder behind a proxy
+
+Kind: optional
+
+Since: 2026-10-28
+
+A copier project's drift line
+
+Kind: optional
+
+Since: 2026-10-28
+
+What a land waits for
+
+Kind: optional
+
+Since: 2026-10-28
+
+A guard against short test limits
+
+Kind: optional
+
+Since: 2026-10-28
+
+Next
+#214 Capability kinds
+#213 Windows first-try failures
+#212 2026-10-23 readings, overdue
+Open questions in REQUIREMENTS.md
+(pi 1.0 lane, 2026-10-04) mcp.json's own shape failures (not JSON, not an object, mcpServers not an object) are exercised by three uncited checks in packages/nana-setup/tests/doctor-detail.test.mjs but have no row. Add an R-366-shaped row, or declare them R-365's error handling.
+(writing trial, astra r3, 2026-10-04) R-753/R-755's cap is a CHARACTER budget on the injected block, while the read ceiling (R-755) is a BYTE budget on the file. A valid multi-byte-heavy rule (e.g. a 2,000-character Chinese file) can be cut well short of 4,000 characters while the notice still reads "cut at 4000 chars" — the notice is imprecise in that direction. Document the distinction; the byte/character gap is accepted, not fixed, for the trial.
+1. The pack's README is 721 lines of declared behaviour and produced 258 rows; the extraction notes name a safe trim (merge same-status rows inside the gate, handoff and pi-review sections). Trim, or keep the grain?
+6b. Clause-level honesty. The form half closed 2026-10-04 (docs/reviews/ears-form-2026-10-04/lane-close-ruling.md); the coverage half is this question. Origin: sol r3 2026-10-02 showed the rail proves marker identity and citation existence, not clause coverage; a 25-row sample pinned fully in 16 (64%). The EARS-form lane then split every multi-shall row: 200 origins into 244 new rows, 0 off form, G-013 implemented. EARS_ALLOWANCE sits at 0, sealed and held equal to the measured count (R-757). The lane judged the rows it touched under a standard that tightened as it ran. A3 and B's implemented rows (10 and 10 split-born, 9 and 7 origins) carry one recorded red mutation per named condition. In those, astra read every record and replayed one in five (bc-method-ruling.md). A1 and A2's (32 and 30 split-born, 33 and 28 origins) carry one red mutation per row, sampled 20 per batch at 19 of 20. C's 44 origins and the 289 implemented rows never off form carry their pre-lane cites, unjudged. Under t
+
+===== laptop 1280px · view #issues =====
+Nana pi product ledger
+
+Commit: 9097580db7e78129fe0da86e41cd1a203b1f97ee · 2026-10-28T21:26:51-04:00 · Working tree: clean
+
+Overview
+Decisions
+Product
+Artifacts
+Features
+Issues
+Requirements
+Issues
+
+Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. copies run from a temporary folder and children stopped by a signal are not counted. No recorded run anywhere in this report: no runtime data.
+
+R-433
+violated
+
+The desk shall bound the per-child status, widget and unanswered-dialog maps a child fills through its own events.
+
+unbounded for the life of the session in handleChildEvent, apps/desk/server.mjs, and replayed whole in every hello; declared in README Known limits and STILL OPEN in docs/review-punchlist-2026-09-08.md
+
+Tests: none cited in this repository
+
+R-435
+violated
+
+A picker whose RPC is already in flight when the session is switched shall not act on the newly selected session.
+
+declared open in README Known limits and in the punchlist race section; closing the popover narrows but does not close the window
+
+Tests: none cited in this repository
+
+R-436
+violated
+
+A steer whose text is byte-identical to a still-pending prompt shall not consume that prompt's optimistic bubble.
+
+declared in README Known limits; the echo match is by content, so one bubble serves two messages until a resync repairs it
+
+Tests: none cited in this repository
+
+R-445
+violated
+
+Two desks writing one session's record shall each keep what the other added.
+
+no cross-process lock by design, so simultaneous writers keep only the last writer's additions and the store holds no copy of what was lost; declared in README Known limits and the punchlist open sub-items
+
+Tests: none cited in this repository
+
+R-446
+violated
+
+The stage-key store shall not block the desk's event loop while it reads or writes.
+
+its per-session reads and writes and the one-time enumeration are synchronous on the event loop, so a hung filesystem stalls the whole process; declared in README Known limits
+
+Tests: none cited in this repository
+
+Implemented rows that did not pass in this clone's last measured run: 0
+
+A row appears here when a cited file's last recorded run failed, or when every cited file's last recorded run skipped or failed. A file with no recorded run counts neither way.

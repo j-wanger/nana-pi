@@ -8,7 +8,7 @@ What the lane does, in one sentence: one command has a cold model read a lane's 
 
 Build every must-meet in the plan, rows R-3060 to R-3067. The owner's questions are posted as issue 256; build on the defaults.
 
-The one-off run's files in the seat's scratch folder are a record to follow, not a module: `/private/tmp/claude-501/-Users-jwang-nana-pi/1b67ec2c-e39b-46db-adb0-8837d5a67c84/scratchpad/outside-reader/` (`render.mjs`, `prompt.md`, `reader-out.md`, `page-text.txt`). Copy `reader-out.md` and `page-text.txt` into the test fixtures as the plan says; take starting values and wording from the others. Import nothing from that folder.
+The one-off run's files in the seat's scratch folder are a record to follow, not a module: the seat-provided temporary `scratchpad/outside-reader/` folder (`render.mjs`, `prompt.md`, `reader-out.md`, `page-text.txt`). Copy `reader-out.md` and `page-text.txt` into the test fixtures as the plan says; take starting values and wording from the others. Import nothing from that folder.
 
 Numbers that must not move: first-look's behaviour and its tests after its Playwright loader moves; the seat guide's existing pinned sentences.
 
