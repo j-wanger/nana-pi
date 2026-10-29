@@ -133,3 +133,9 @@
 - Component audit (component-audit, final review): the library component cites only the dated measurement, not the FEAT-003 known-bug line the plan named.
 - Component audit (component-audit, CI): the R-3104 activity test exceeded its 20 s case limit once on the Windows runner; a rerun passed.
 - Visual check (visual-check, seat check): the `--control` run has no phone frame among the references, so the 380 px spec line is always unjudged there.
+- Visual check (visual-check, final review): R-3143's test does not check the usage line, nor `--reference` given with `--before`; the code handles both.
+- Visual check (visual-check, final review): the R-3145 demo fixture is a made-up two-line answer, not the adversary's recorded hive answer the plan named.
+- Visual check (visual-check, final review): the watchdog writes the child's error stream into reader.md, so a Claude Code warning can add a stray line.
+- Visual check (hive-render, seat check): a `--hive` first-look capture fell back to the pixel view at 380 px in 1 of 3 runs on build 4; the ready check does not refuse a pixel-renderer capture, so the judge judged the fallback.
+- Component audit (hive-render build 4, CI): the R-3104 Windows timeout recurred on attempt 1; the unchanged retry passed, so it is now twice in one day.
+- Hive page (hive-render, seat check): at 1280 px the "CABINET" label is clipped by the rail, the card's lower edge meets the "RELEASE ROUTE" label, and rail items 14 to 16 sit over a busy blurred scene.
