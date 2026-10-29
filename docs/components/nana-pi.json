@@ -1,0 +1,519 @@
+{
+  "contract": "nana-components",
+  "version": 1,
+  "project": "nana-pi",
+  "components": [
+    {
+      "id": "compass",
+      "name": "Compass",
+      "metaphor": "Direction kept in view",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-pack/bin/nana-objective.mjs",
+        "packages/nana-pack/bin/nana-frontier-summary.mjs",
+        "HANDOFF.md"
+      ],
+      "features": [
+        "FEAT-001",
+        "FEAT-002"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/nana-objective.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "queue",
+      "name": "Queue",
+      "metaphor": "Open questions and next items as issues",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-pack/lib/handoff-issues.mjs",
+        "packages/nana-pack/lib/ask-shape.mjs"
+      ],
+      "features": [
+        "FEAT-002",
+        "FEAT-005"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/lib/handoff-issues.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "metaphor": "A library the agent reads before it guesses",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-setup/claude/hooks/nana-shared-memory.mjs",
+        "packages/nana-knowledge/"
+      ],
+      "features": [
+        "FEAT-003",
+        "FEAT-004"
+      ],
+      "status": "gap",
+      "gap": "The shared index descriptions are already cut to stubs at every session start; at about 125 entries, newest whole entries begin dropping. nana-pi stores and reviews durable records, but does not search them as memory.",
+      "ask": {
+        "question": "Should shared memory move from a printed index to a searched, reviewed store?",
+        "default": "keep the printed index",
+        "gains": "No new moving part; misses the descriptions already cut to stubs and the newest entries beyond the cap.",
+        "cost": "Easy to undo",
+        "otherwise": "Plan a searched-store lane that can evaluate the machine-local memory MCP tools as prior art."
+      },
+      "evidence": [
+        "packages/nana-setup/claude/hooks/nana-shared-memory.mjs",
+        "R-2343"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": [
+        "measured 2026-10-29: 80 entries; about 16,700 characters; 9,000-character budget"
+      ]
+    },
+    {
+      "id": "drafting-table",
+      "name": "Drafting table",
+      "metaphor": "Plans and briefs before building",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-pack/prompts/planner.md",
+        "scripts/lane-class.mjs",
+        "packages/nana-pack/lib/brief-precedent.mjs"
+      ],
+      "features": [
+        "FEAT-006"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/prompts/planner.md"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "workshop",
+      "name": "Workshop",
+      "metaphor": "Builders make one lane at a time",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-pack/bin/pi-worker.mjs",
+        "packages/nana-pack/bin/pi-watchdog.mjs"
+      ],
+      "features": [
+        "FEAT-006"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/pi-worker.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "tool-belt",
+      "name": "Tool belt",
+      "metaphor": "Skills and commands the agent carries",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-pack/skills/",
+        "packages/nana-pack/extensions/"
+      ],
+      "features": [
+        "FEAT-014",
+        "FEAT-025"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/skills/"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "eyes",
+      "name": "Eyes",
+      "metaphor": "A browser that looks at the page",
+      "kind": "workflow",
+      "parts": [
+        "scripts/first-look.mjs",
+        "scripts/outside-reader.mjs",
+        "scripts/playwright-resolve.mjs"
+      ],
+      "features": [
+        "FEAT-039"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "scripts/first-look.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "notice-board",
+      "name": "Notice board",
+      "metaphor": "The product report",
+      "kind": "workflow",
+      "parts": [
+        "scripts/product-report.mjs",
+        ".github/workflows/pages.yml"
+      ],
+      "features": [
+        "FEAT-039"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "scripts/product-report.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "setup",
+      "name": "Setup",
+      "metaphor": "One command brings nana to a machine",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-setup/"
+      ],
+      "features": [
+        "FEAT-013",
+        "FEAT-015",
+        "FEAT-018"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-setup/"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "release-route",
+      "name": "Release route",
+      "metaphor": "Templates ship only after acceptance",
+      "kind": "workflow",
+      "parts": [
+        "scripts/template-release.mjs",
+        "scripts/template-acceptance.mjs",
+        ".github/workflows/ci.yml"
+      ],
+      "features": [
+        "FEAT-019",
+        "FEAT-031"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "scripts/template-release.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "desk",
+      "name": "Desk",
+      "metaphor": "A control room over sessions",
+      "kind": "workflow",
+      "parts": [
+        "apps/desk/"
+      ],
+      "features": [
+        "FEAT-016",
+        "FEAT-020",
+        "FEAT-021",
+        "FEAT-022",
+        "FEAT-023",
+        "FEAT-024"
+      ],
+      "status": "partial",
+      "gap": "Frozen by the owner; its session-control rows still include violated behavior.",
+      "ask": null,
+      "evidence": [
+        "apps/desk/",
+        "R-433"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": [
+        "R-433"
+      ]
+    },
+    {
+      "id": "lab",
+      "name": "Lab",
+      "metaphor": "Experiments with costed evidence",
+      "kind": "workflow",
+      "parts": [
+        "apps/bench/"
+      ],
+      "features": [
+        "FEAT-034",
+        "FEAT-035",
+        "FEAT-036",
+        "FEAT-037",
+        "FEAT-038"
+      ],
+      "status": "partial",
+      "gap": "An experiment-interpretation row remains planned.",
+      "ask": null,
+      "evidence": [
+        "apps/bench/",
+        "R-539"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": [
+        "R-539"
+      ]
+    },
+    {
+      "id": "stage",
+      "name": "Stage",
+      "metaphor": "Signed blocks for focused apps",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-stage/"
+      ],
+      "features": [
+        "FEAT-025",
+        "FEAT-026",
+        "FEAT-027"
+      ],
+      "status": "partial",
+      "gap": "Output provenance still has violated rows.",
+      "ask": null,
+      "evidence": [
+        "packages/nana-stage/",
+        "R-445"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": [
+        "R-445"
+      ]
+    },
+    {
+      "id": "key-cabinet",
+      "name": "Key cabinet",
+      "metaphor": "A locked cabinet for secrets",
+      "kind": "workflow",
+      "parts": [],
+      "features": [],
+      "status": "absent",
+      "gap": "No nana-pi component provides a secrets cabinet.",
+      "ask": null,
+      "evidence": [
+        "AGENTS.md"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "night-shift",
+      "name": "Night shift",
+      "metaphor": "Unattended multi-lane orchestration",
+      "kind": "workflow",
+      "parts": [],
+      "features": [],
+      "status": "absent",
+      "gap": "No unattended multi-lane orchestrator exists; the two-lane limit and independent review are deliberate governance decisions.",
+      "ask": null,
+      "evidence": [
+        "AGENTS.md"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "rulings",
+      "name": "Rulings",
+      "metaphor": "Decisions that govern the toolkit",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/rules/nana-rulings.md",
+        "packages/nana-pack/extensions/nana-rulings.ts"
+      ],
+      "features": [
+        "FEAT-001"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/rules/nana-rulings.md"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "review-ladder",
+      "name": "Review ladder",
+      "metaphor": "A different reviewer reads each revision",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/bin/pi-review.mjs",
+        "packages/nana-pack/bin/claude-review.mjs",
+        "packages/nana-pack/bin/review-round.mjs",
+        "packages/nana-pack/prompts/review-standard.md"
+      ],
+      "features": [
+        "FEAT-007"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/pi-review.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "land-gate",
+      "name": "Land gate",
+      "metaphor": "A gate that opens only for a reviewed revision",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/bin/nana-land.mjs"
+      ],
+      "features": [
+        "FEAT-008"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/nana-land.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "requirement-contract",
+      "name": "Requirement contract",
+      "metaphor": "Rows connect intent to checked behavior",
+      "kind": "governance",
+      "parts": [
+        "REQUIREMENTS.md",
+        "scripts/requirements-trace.mjs",
+        "scripts/requirements-tree.mjs"
+      ],
+      "features": [
+        "FEAT-028"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "scripts/requirements-tree.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "code-map",
+      "name": "Code map",
+      "metaphor": "A map of modules and their connections",
+      "kind": "governance",
+      "parts": [
+        "scripts/code-map.mjs",
+        "code-map.config.json"
+      ],
+      "features": [
+        "FEAT-029"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "scripts/code-map.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "command-gate",
+      "name": "Command gate",
+      "metaphor": "A shared check before protected actions",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/extensions/nana-gate.ts",
+        "packages/nana-pack/lib/"
+      ],
+      "features": [
+        "FEAT-009",
+        "FEAT-010",
+        "FEAT-011"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/extensions/nana-gate.ts"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "identity-scan",
+      "name": "Identity scan",
+      "metaphor": "A check that keeps identity words out",
+      "kind": "governance",
+      "parts": [
+        "scripts/identity-scan.mjs"
+      ],
+      "features": [
+        "FEAT-002"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "scripts/identity-scan.mjs"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    },
+    {
+      "id": "writing-rule",
+      "name": "Writing rule",
+      "metaphor": "A shared rule for writing to the owner",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/rules/nana-writing.md",
+        "packages/nana-pack/bin/nana-writing.mjs"
+      ],
+      "features": [
+        "FEAT-005"
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/rules/nana-writing.md"
+      ],
+      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "anchors": []
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "contract": "nana-components",
+  "version": 1,
+  "kinds": [
+    "workflow",
+    "governance"
+  ],
+  "statuses": [
+    "sound",
+    "partial",
+    "gap",
+    "absent"
+  ],
+  "documentFields": [
+    "contract",
+    "version",
+    "project",
+    "components"
+  ],
+  "componentFields": [
+    "id",
+    "name",
+    "metaphor",
+    "kind",
+    "parts",
+    "features",
+    "status",
+    "gap",
+    "ask",
+    "evidence",
+    "activity"
+  ],
+  "featureFields": [
+    "id",
+    "label",
+    "rows",
+    "implemented"
+  ],
+  "askFields": [
+    "question",
+    "default",
+    "gains",
+    "cost",
+    "otherwise"
+  ],
+  "activityFields": [
+    "recentCommits",
+    "inFlight"
+  ]
+}

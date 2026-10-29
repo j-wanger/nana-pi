@@ -1,0 +1,152 @@
+{
+  "contract": "nana-components",
+  "version": 1,
+  "project": "fixture",
+  "components": [
+    {
+      "id": "workshop",
+      "name": "Workshop",
+      "metaphor": "A workshop where builders make one lane at a time",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-pack/bin/pi-worker.mjs",
+        "packages/nana-pack/bin/pi-watchdog.mjs"
+      ],
+      "features": [
+        {
+          "id": "FEAT-006",
+          "label": "Launch builders with execution limits",
+          "rows": 10,
+          "implemented": 9
+        }
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/pi-worker.mjs",
+        "FEAT-006"
+      ],
+      "activity": {
+        "recentCommits": 3,
+        "inFlight": 1
+      }
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "metaphor": "A library the agent reads before it guesses",
+      "kind": "workflow",
+      "parts": [
+        "packages/nana-setup/claude/hooks/nana-shared-memory.mjs",
+        "packages/nana-knowledge/lib/query.ts"
+      ],
+      "features": [
+        {
+          "id": "FEAT-003",
+          "label": "Index and connect existing knowledge sources",
+          "rows": 8,
+          "implemented": 6
+        },
+        {
+          "id": "FEAT-004",
+          "label": "Retrieve relevant context with provenance",
+          "rows": 4,
+          "implemented": 4
+        }
+      ],
+      "status": "gap",
+      "gap": "Fixture gap: the shared index is printed whole under a cap, so the newest entries drop first.",
+      "ask": {
+        "question": "Fixture question: should memory move from a printed index to a searched store?",
+        "default": "keep the printed index",
+        "gains": "Fixture: no new moving part; misses entries past the cap.",
+        "cost": "easy to undo",
+        "otherwise": "Fixture: plan a searched-store lane."
+      },
+      "evidence": [
+        "packages/nana-setup/lib/shared-memory-config.mjs",
+        "R-2343"
+      ],
+      "activity": {
+        "recentCommits": 0,
+        "inFlight": 0
+      }
+    },
+    {
+      "id": "key-cabinet",
+      "name": "Key cabinet",
+      "metaphor": "A locked cabinet for secrets",
+      "kind": "workflow",
+      "parts": [],
+      "features": [],
+      "status": "absent",
+      "gap": "Fixture gap: no component holds secrets.",
+      "ask": null,
+      "evidence": [
+        "AGENTS.md"
+      ],
+      "activity": {
+        "recentCommits": 0,
+        "inFlight": 0
+      }
+    },
+    {
+      "id": "review-hall",
+      "name": "Review hall",
+      "metaphor": "A hall where a different reviewer reads each revision",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/bin/pi-review.mjs",
+        "packages/nana-pack/bin/review-round.mjs"
+      ],
+      "features": [
+        {
+          "id": "FEAT-007",
+          "label": "Review a specific revision independently",
+          "rows": 12,
+          "implemented": 11
+        }
+      ],
+      "status": "partial",
+      "gap": "Fixture gap: the review round is pinned, the reviewer's reading is not.",
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/pi-review.mjs",
+        "FEAT-007"
+      ],
+      "activity": {
+        "recentCommits": 2,
+        "inFlight": 0
+      }
+    },
+    {
+      "id": "land-gate",
+      "name": "Land gate",
+      "metaphor": "A gate that opens only for a reviewed revision",
+      "kind": "governance",
+      "parts": [
+        "packages/nana-pack/bin/nana-land.mjs"
+      ],
+      "features": [
+        {
+          "id": "FEAT-008",
+          "label": "Integrate and clean up reviewed changes",
+          "rows": 0,
+          "implemented": 0
+        }
+      ],
+      "status": "sound",
+      "gap": null,
+      "ask": null,
+      "evidence": [
+        "packages/nana-pack/bin/nana-land.mjs",
+        "FEAT-008"
+      ],
+      "activity": {
+        "recentCommits": 5,
+        "inFlight": 0
+      }
+    }
+  ]
+}
