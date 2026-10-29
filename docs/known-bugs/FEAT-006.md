@@ -129,3 +129,10 @@
 - Planner questions (clarify-questions, final review): questions that come with readings have no posting step; the seat sends them in the same message as the readings.
 - Planner questions (clarify-questions, final review): R-3012 and R-3013 check the seat guide but live in the planner prompt's test file.
 - Outside precedent (outside-precedent, plan attack): only the prompt sentence is pinned; nothing checks that plans carry the section.
+- Outside precedent (outside-precedent, final review): the prompt does not say that a licence of "unknown" is an honest answer.
+- Outside precedent (outside-precedent, final review): the Outside precedent `none:` form names where the planner looked, while Precedent's `none:` names a reason; the two forms differ.
+- pi seat guide (pi-seat-guide, independent check): the injected text nests the guide's own top heading under `## Seat guide (nana)`, as the rulings injection does.
+- pi seat guide (pi-seat-guide, independent check): role matching is exact and case-sensitive, so `WORKER` or ` worker` gets the guide; the launchers always set lowercase.
+- pi seat guide (pi-seat-guide, independent check): pi children that set no NANA_ROLE, such as pi-subagents agents, also get the guide, about 700 tokens; its first sentence tells them to skip it.
+- pi seat guide (pi-seat-guide, independent check): the extension still builds the guide's source path by hand; install and doctor call `ruleSource`.
+- pi seat guide (pi-seat-guide, seat pairs): the rulings heading has the same unlinked copy in the install check's config as the guide heading had; only the guide's pair is pinned.
