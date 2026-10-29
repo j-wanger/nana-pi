@@ -26,6 +26,7 @@ import { OPEN_SECTION_NAME, OPEN_SECTION_PREFIX } from "../lib/frontier-config.m
 import { readHandoffIssues } from "../lib/handoff-issues.mjs";
 import { ISSUES_FETCH_CAP } from "../lib/frontier-summary-config.mjs";
 import { splitOpenSection } from "../lib/handoff-asks.mjs";
+import { ASK_LABELS } from "../lib/ask-shape.mjs";
 import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 import { storeSuiteRecord } from "../lib/suite-records.mjs";
 import { RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
@@ -283,8 +284,20 @@ try {
     check("rendered #issues view shows every violated row and evidence", model.violated.every((row) => issues.text.includes(row.id) && issues.text.includes(row.requirement) && issues.text.includes(row.evidence)));
     // req: R-1017
     check("each Issues card shows the violated pill without undefined", issues.nodes.filter((node) => node.tag === "article").length === model.violated.length && issues.nodes.filter((node) => node.tag === "article").every((card) => card.children.some((heading) => heading.attrs?.class === "row-heading" && heading.children.some((pill) => pill.textContent === "violated" && pill.attrs?.class === "status-pill status-violated")) && !card.textContent.includes("undefined")));
+    // req: R-3055
+    check("R-3055: issue Decisions cards render parsed choices with shared labels and body text stays inert", (() => {
+      const root = { children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...nodes) { this.children = nodes; } };
+      const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...nodes) { this.children = nodes; }, setAttribute(key, value) { this.attrs[key] = value; } }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); } }); return node; };
+      const document = { getElementById: () => root, createElement: make, createTextNode: (text) => ({ text: String(text), get textContent() { return this.text; } }) };
+      renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, askLabels: ASK_LABELS, capabilities: [], features: [], violated: [], notPassed: [], questions: [], asks: [{ number: 242, kind: "optional", since: "2026-10-01", title: "Choice", url: "https://github.com/example/project/issues/242", groups: [{ question: "Keep <b>x</b>?", cost: "hard to undo" }, { question: "Change it?", otherwise: "Ship now" }], recommendation: "keep it" }] }, { hash: "#decisions" });
+      const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
+      const text = flatten(root).map((node) => node.textContent).filter(Boolean);
+      const card = root.children.find((node) => node.tag === "article");
+      const link = flatten(card).find((node) => node.tag === "a");
+      return link?.attrs.href === "https://github.com/example/project/issues/242" && text.includes("Question: Keep <b>x</b>?") && text.includes("Seat recommends: keep it") && text.includes("Cost of a wrong guess: hard to undo") && text.includes("If answered otherwise: Ship now") && !text.some((line) => line.includes("undefined"));
+    })());
     // req: R-1018
-    check("rendered decisions view shows every ask kind, since-date, title and full body", model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
+    check("rendered decisions view shows every ask kind, since-date, title and full body",  model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
     // req: R-1018
     check("rendered decisions view preserves every full ask body", model.asks.length > 0 && decisions.nodes.filter((node) => node.tag === "article").length === model.asks.length && decisions.nodes.filter((card) => card.tag === "article").every((card) => { const ask = model.asks.find((item) => card.children.find((child) => child.tag === "h3")?.textContent === item.title); return ask && card.children.some((child) => child.tag === "p" && child.textContent === `Ask: ${plain(ask.body)}`); }));
     const routeSource = fs.readFileSync(path.join(ROOT, "scripts/product-report.mjs"), "utf8");
@@ -1795,12 +1808,12 @@ try {
     const seen = [];
     const out = path.join(temp, "pages-issues.html");
     const items = [
-      { number: 11, title: "Owner ask", labels: [{ name: "ask" }, { name: "blocking" }], author: { login: "example-org" }, createdAt: "2026-10-20T12:00:00Z" },
-      { number: 12, title: "Owner next", labels: [{ name: "next" }], author: { login: "example-org" }, createdAt: "2026-10-21T12:00:00Z" },
-      { number: 13, title: "Foreign ask", labels: [{ name: "ask" }, { name: "optional" }], author: { login: "other" }, createdAt: "2026-10-22T12:00:00Z" },
-      { number: 14, title: "Unlabelled", labels: [], author: { login: "example-org" }, createdAt: "2026-10-22T12:00:00Z" },
+      { number: 11, title: "Owner ask", labels: [{ name: "ask" }, { name: "blocking" }], author: { login: "example-org" }, createdAt: "2026-10-20T12:00:00Z", body: "Question: Decide?" },
+      { number: 12, title: "Owner next", labels: [{ name: "next" }], author: { login: "example-org" }, createdAt: "2026-10-21T12:00:00Z", body: "Next" },
+      { number: 13, title: "Foreign ask", labels: [{ name: "ask" }, { name: "optional" }], author: { login: "other" }, createdAt: "2026-10-22T12:00:00Z", body: "Foreign" },
+      { number: 14, title: "Unlabelled", labels: [], author: { login: "example-org" }, createdAt: "2026-10-22T12:00:00Z", body: "No ask" },
     ];
-    while (items.length < ISSUES_FETCH_CAP) items.push({ number: 100 + items.length, title: "Ignored", labels: [], author: { login: "other" }, createdAt: "2026-10-22T12:00:00Z" });
+    while (items.length < ISSUES_FETCH_CAP) items.push({ number: 100 + items.length, title: "Ignored", labels: [], author: { login: "other" }, createdAt: "2026-10-22T12:00:00Z", body: "Ignored" });
     await generateReport({ root: repo.root, out, readIssues: async (options) => { seen.push(options); return readHandoffIssues({ ...options, runGh: () => ({ status: 0, stdout: JSON.stringify(items) }) }); } });
     const model = JSON.parse(fs.readFileSync(out, "utf8").match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/)?.[1] ?? "{}");
     const decisions = renderHtmlAt(fs.readFileSync(out, "utf8"), "#decisions");
@@ -1809,7 +1822,7 @@ try {
     const askCard = decisions.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === "Owner ask"));
     const overviewAsks = overview.nodes.find((node) => node.tag === "li" && node.textContent.startsWith("Asks:"))?.textContent;
     const belowOut = path.join(temp, "pages-issues-below-cap.html");
-    await generateReport({ root: repo.root, out: belowOut, readIssues: async () => ({ url: "https://github.com/example-org/example-repo/issues", items: [{ number: 11, title: "Owner ask", kind: "blocking", createdAt: "2026-10-20" }], truncated: false }) });
+    await generateReport({ root: repo.root, out: belowOut, readIssues: async () => ({ url: "https://github.com/example-org/example-repo/issues", items: [{ number: 11, title: "Owner ask", kind: "blocking", createdAt: "2026-10-20", body: "Question: Decide?" }], truncated: false }) });
     const belowDecisions = renderHtmlAt(fs.readFileSync(belowOut, "utf8"), "#decisions");
     // req: R-2981
     check("R-2981: issue asks are filtered and drawn with kind, date, link, counts and cap warning", model.asks.length === 1 && model.asks[0].title === "Owner ask" && model.asks[0].since === "2026-10-20" && model.asks[0].url.endsWith("/11") && model.issueNotice.includes("may be longer") && seen[0]?.limitMs === undefined && seen[0]?.ceilingMs === CI_READ_TIMEOUT_MS && askCard?.children.some((node) => node.textContent === "Kind: blocking") && askCard?.children.some((node) => node.tag === "h3" && node.children.some((link) => link.tag === "a" && link.attrs.href.endsWith("/11"))) && !askCard?.children.some((node) => node.tag === "p" && node.textContent.startsWith("Ask:")) && overviewAsks === "Asks: 1 · blocking (must decide): 1 · optional: 0 · parked: 0" && decisions.nodes.some((node) => node.textContent === "Issues: Open issues may be longer than the fetched list.") && !issues.nodes.some((node) => node.textContent === "Issues: Open issues may be longer than the fetched list.") && !belowDecisions.nodes.some((node) => node.textContent === "Issues: Open issues may be longer than the fetched list."), JSON.stringify({ asks: model.asks, next: model.nextItems, notice: model.issueNotice, seen, overviewAsks, card: askCard?.textContent }));
@@ -1827,6 +1840,7 @@ try {
     const askCard = drawn.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === "Fixture question"));
     const drawnText = askCard?.children.map((node) => node.textContent).join("\n");
     const expectedText = "Fixture question\nKind: optional\nSince: 2026-10-10\nAsk: ";
+    // req: R-3055
     // req: R-2983
     check("R-2983: list-ask Decisions drawing matches main's captured text", calls === 0 && report.asks.some((ask) => ask.title === "Fixture question") && !Object.hasOwn(report, "nextItems") && !Object.hasOwn(report, "issueNotice") && fs.readFileSync(before, "utf8") === fs.readFileSync(after, "utf8") && askCard?.children[0]?.tag === "h3" && drawnText === expectedText, JSON.stringify({ drawnText, expectedText }));
   });

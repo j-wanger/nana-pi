@@ -17,6 +17,7 @@ import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactReads, artifactRegistr
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
+import { ASK_LABELS, parseAskBody } from "../packages/nana-pack/lib/ask-shape.mjs";
 import { issuesPointer, readHandoffIssues } from "../packages/nana-pack/lib/handoff-issues.mjs";
 import { CI_READ_TIMEOUT_MS } from "../packages/nana-pack/lib/land-config.mjs";
 import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../packages/nana-pack/lib/runtime-map.mjs";
@@ -69,12 +70,16 @@ export const SECONDS_PER_DAY = 24 * 60 * 60;
 export const STALE_AGE_DAYS = 30;
 // Contract (R-2920 to R-2925, R-2927): Overview headings, destinations and finished-line labels.
 export const OVERVIEW_BLOCKS = Object.freeze([
-  Object.freeze(["Needs you", "#decisions"]), Object.freeze(["Broken", "#issues"]),
-  Object.freeze(["Gaps", "#product"]), Object.freeze(["Stale", "#features"]), Object.freeze(["What it does", "#product"]),
+  Object.freeze(["What it does", "#product"]), Object.freeze(["Needs you", "#decisions"]),
+  Object.freeze(["Broken", "#issues"]), Object.freeze(["Gaps", "#product"]), Object.freeze(["Stale", "#features"]),
 ]);
+// chosen (R-3053): show three consequential asks on the Overview while linking the remainder.
+export const NEEDS_YOU_ASK_CAP = 3;
 export const OVERVIEW_LABELS = Object.freeze({
   asks: "Asks", blocking: "blocking (must decide)", optional: "optional", parked: "parked",
   mustDecide: "Must decide", since: "since", questions: "Open questions in the ledger",
+  recommendation: ASK_LABELS.recommends, question: ASK_LABELS.question, cost: ASK_LABELS.cost,
+  otherwise: ASK_LABELS.otherwise, noneRecorded: ASK_LABELS.none,
   violated: "Violated", notPassed: "Did not pass in this clone's last measured run",
   failed: "failed", skippedOnly: "skipped only", noRun: "implemented rows with no recorded run",
   runtimeMissing: "no recorded run: ", deliverableGaps: "Deliverables code does not make and read",
@@ -398,7 +403,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
   const paragraph = (parent, label, value, className) => { const p = el("p", undefined, parent); if (className) cls(p, className); if (label) text(p, `${label}: `); text(p, value); return p; };
   const textList = (parent, label, values) => { paragraph(parent, label, ""); const list = el("ul", undefined, parent); for (const value of values) { const item = el("li", undefined, list); text(item, value); } return list; };
   const featureLink = (parent, id, label = id) => { const a = el("a", label, parent); a.setAttribute("href", `#${id}`); return a; };
-  const renderSegments = (parent, segments) => { for (const segment of segments ?? []) { if (segment.feature) featureLink(parent, segment.feature.id, segment.feature.label); else text(parent, segment.text); } return parent; };
+  const renderSegments = (parent, segments) => { for (const segment of segments ?? []) { if (segment.feature) featureLink(parent, segment.feature.id, segment.feature.label); else if (segment.link) { const link = el("a", segment.link.text, parent); link.setAttribute("href", segment.link.href); } else text(parent, segment.text); } return parent; };
   const countBar = (parent, item) => {
     const wrap = el("div", undefined, parent); cls(wrap, "counts"); const bar = el("div", undefined, wrap); cls(bar, "status-bar"); bar.setAttribute("role", "img"); bar.setAttribute("aria-label", "Requirement status counts");
     for (const status of ["implemented", "untested", "planned", "violated", "retired"]) { const amount = item.counts?.[status] ?? 0; const segment = el("span", undefined, bar); cls(segment, `status-segment status-${status}`); segment.setAttribute("style", `flex-grow:${amount}`); segment.setAttribute("aria-hidden", "true"); }
@@ -434,15 +439,23 @@ export function renderInto(document, model, { hash = "" } = {}) {
   for (const [label, target, key] of [["Overview", "#overview", "overview"], ["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Artifacts", "#artifacts", "artifacts"], ["Features", "#features", "features"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
   const viewHeading = el("h2", title, root);
   if (view === "overview") {
-    for (const block of model.overview) {
-      const heading = el("h3", undefined, root);
+    const draw = (block, parent) => {
+      const heading = el("h3", undefined, parent);
       const link = el("a", block.heading, heading); link.setAttribute("href", block.href);
-      const list = el("ul", undefined, root);
+      const list = el("ul", undefined, parent);
       for (const line of block.lines) renderSegments(el("li", undefined, list), line);
+    };
+    if (model.overview[0]) draw(model.overview[0], root);
+    if (model.overview[1]) draw(model.overview[1], root);
+    if (model.overview.length > 2) {
+      const records = el("details", undefined, root);
+      el("summary", "Records: Broken, Gaps and Stale", records);
+      for (const block of model.overview.slice(2)) { const section = el("section", undefined, records); draw(block, section); }
     }
   }
   if (view === "decisions") {
-    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url || ask.body) paragraph(card, "Ask", ask.body ?? ""); }
+    const askLabels = model.askLabels;
+    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url) paragraph(card, "Ask", ask.body ?? ""); else for (const group of ask.groups ?? []) { paragraph(card, askLabels.question, group.question); paragraph(card, askLabels.recommends, ask.recommendation ?? askLabels.none); if (group.cost) paragraph(card, askLabels.cost, group.cost); if (group.otherwise) paragraph(card, askLabels.otherwise, group.otherwise); } }
     if (model.nextItems?.length) { el("h3", "Next", root); const list = el("ul", undefined, root); for (const item of model.nextItems) { const li = el("li", undefined, list); const link = el("a", `#${item.number} ${item.title}`, li); link.setAttribute("href", item.url); } }
     if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.
@@ -663,11 +676,11 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const pointer = issuesPointer(handoff);
   let issueData = null;
   if (pointer) {
-    try { issueData = await readIssues({ text: handoff, pointer, cwd: root, env, ceilingMs: CI_READ_TIMEOUT_MS }); }
+    try { issueData = await readIssues({ text: handoff, pointer, cwd: root, env, ceilingMs: CI_READ_TIMEOUT_MS, withBody: true }); }
     catch (error) { issueData = { ...pointer, failure: `Open issues: unavailable (${String(error?.message || "gh failed").replace(/[\r\n]/g, " ")}); see ${pointer.url}` }; }
   }
   const asks = pointer
-    ? (issueData?.items ?? []).filter((item) => item.kind !== "next").map((item) => ({ tag: { kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, title: { title: item.title, body: "", kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }))
+    ? (issueData?.items ?? []).filter((item) => item.kind !== "next").map((item) => ({ number: item.number, tag: { kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, title: { title: item.title, body: item.body, kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }))
     : splitOpenSection(handoff);
   for (const ask of asks) {
     if (!ask.tag || !ask.title || !validDate(ask.tag.since) || ask.tag.kind !== ask.title.kind || ask.tag.since !== ask.title.since) {
@@ -952,8 +965,9 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const labels = OVERVIEW_LABELS;
   const line = (text) => [{ text }];
   const idsLine = (items) => items.length ? [line(items.map((item) => item.id).join(", "))] : [];
-  const blocking = asks.filter((ask) => ask.tag.kind === "blocking");
-  const kindCount = (kind) => asks.filter((ask) => ask.tag.kind === kind).length;
+  const shapedAsks = asks.map((ask, index) => ({ ...ask, parsed: parseAskBody(ask.title.body, ask.tag.since), order: index }));
+  const blocking = shapedAsks.filter((ask) => ask.tag.kind === "blocking");
+  const kindCount = (kind) => shapedAsks.filter((ask) => ask.tag.kind === kind).length;
   const failed = notPassed.filter((row) => uniqueFilesOf(row.evidence).some((file) => runStateOf(file)?.label === FAIL_LABEL)).length;
   const noRun = rows.filter((row) => {
     if (row.status !== "implemented") return false;
@@ -977,9 +991,23 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const unmeasured = liveEntries.filter((entry) => !ageDays.has(`registry:${entry.id}`));
   const notMeasured = unmeasured.filter((entry) => ages.get(`registry:${entry.id}`)?.startsWith(AGE_NOT_MEASURED_PREFIX)).length;
   const hasDeliverables = check.deliverableFieldLineCount > 0;
+  const listedBlocking = blocking;
+  const optionalAsks = shapedAsks.filter((ask) => ask.tag.kind === "optional");
+  const tier = (ask) => ask.parsed.groups[0]?.cost?.toLowerCase().startsWith("hard to undo") ? 0 : 1;
+  const orderedOptional = optionalAsks.sort((left, right) => tier(left) - tier(right) || right.parsed.since.localeCompare(left.parsed.since) || (right.number ?? 0) - (left.number ?? 0) || left.order - right.order);
+  const listed = [...listedBlocking, ...orderedOptional.slice(0, Math.max(0, NEEDS_YOU_ASK_CAP - listedBlocking.length))];
+  const needsLines = [line(issueData?.failure ? `${labels.asks}: unknown · ${issueData.failure}` : `${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
+    ...listed.flatMap((ask) => {
+      const title = `${ask.title.title} · ${ask.tag.kind} · ${labels.since} ${ask.parsed.since}`;
+      const titleSegments = ask.url ? [{ link: { href: ask.url, text: title } }] : line(title);
+      const first = ask.parsed.groups[0];
+      return [titleSegments, line(`${labels.question}: ${first?.question ?? ""}`), line(`${labels.recommendation}: ${ask.parsed.recommendation ?? labels.noneRecorded}`), ...(first?.cost ? [line(`${labels.cost}: ${first.cost}`)] : []), ...(ask.parsed.groups.length > 1 ? [line(`${ask.parsed.groups.length - 1} more questions in the issue`)] : [])];
+    }),
+    ...(shapedAsks.length > listed.length ? [[{ link: { href: "#decisions", text: `${shapedAsks.length - listed.length} more in Decisions` } }]] : []),
+    line(`${labels.questions}: ${questions.length}`)];
   const overviewLines = [
-    [line(issueData?.failure ? `${labels.asks}: unknown · ${issueData.failure}` : `${labels.asks}: ${asks.length} · ${labels.blocking}: ${blocking.length} · ${labels.optional}: ${kindCount("optional")} · ${labels.parked}: ${kindCount("parked")}`),
-      ...blocking.map((ask) => line(`${labels.mustDecide}: ${ask.title.title} · ${labels.since} ${ask.tag.since}`)), line(`${labels.questions}: ${questions.length}`)],
+    hasDeliverables ? [line(deliverableLines[0]), ...check.byCapability.map((capability) => line(`${capability.id} · ${capabilityById.get(capability.id).label}: ${capability.countText}`))] : [line(labels.noDeliverables)],
+    needsLines,
     [line(`${labels.violated}: ${violated.length}`), ...idsLine(violated),
       line(`${labels.notPassed}: ${runtimeData ? `${notPassed.length} · ${labels.failed}: ${failed} · ${labels.skippedOnly}: ${notPassed.length - failed} · ${labels.noRun}: ${noRun} · ${ages.get("overview:runtime")}` : `${labels.runtimeMissing}${runtimeReason}`}`), ...idsLine(notPassed)],
     [line(`${labels.deliverableGaps}: ${hasDeliverables ? `${deliverableGaps.length} · ${labels.parked}: ${parked} · ${labels.notes}: ${check.notes.length}` : labels.noDeliverables}`),
@@ -988,14 +1016,13 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     [line(`${labels.assessments}: ${outdated.length} · ${labels.unassessed}: ${unassessed.length}`), ...(featureIds.length ? [featureIds] : []),
       line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
       ...staleEntries.map((entry) => [{ text: `${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days` }, ...makerSegments(entry)])],
-    hasDeliverables ? [line(deliverableLines[0]), ...check.byCapability.map((capability) => line(`${capability.id} · ${capabilityById.get(capability.id).label}: ${capability.countText}`))] : [line(labels.noDeliverables)],
   ];
   const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));
   const issueItems = issueData?.items ?? [];
-  const issueAsks = asks.map((ask) => ({ kind: ask.tag.kind, since: ask.tag.since, title: ask.title.title, body: ask.title.body, url: ask.url ?? null }));
+  const issueAsks = shapedAsks.map((ask) => ({ number: ask.number, kind: ask.tag.kind, since: ask.tag.since, title: ask.title.title, body: ask.title.body, url: ask.url ?? null, groups: ask.parsed.groups, recommendation: ask.parsed.recommendation }));
   const nextItems = issueItems.filter((item) => item.kind === "next").map((item) => ({ ...item, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }));
   const issueNotice = issueData?.failure ?? (issueData?.truncated ? "Open issues may be longer than the fetched list." : null);
-  const model = { commit, date, clean: !dirty, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, askLabels: ASK_LABELS, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 

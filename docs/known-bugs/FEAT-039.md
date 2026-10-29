@@ -64,11 +64,10 @@
 - Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git count. The ages share one log walk, so the cost stays below 30 process starts.
 - Artifacts view (artifact-flow, final review): a Reads line the checker flags still keeps the entry off the first list. This ledger has none.
 - Artifacts (artifact-flow, final review): an entry with an empty run renders its card line as "Made by: : …"; the checker already flags it.
-- Overview (page-overview, plan): the overview has no line cap. Many blocking asks, gap IDs or stale entries lengthen it; the assessments line names 35 features today.
+- Overview (page-overview, plan): the Records section has no line cap. Many blocking asks, gap IDs or stale entries lengthen it; the assessments line names 35 features today.
 - Overview (page-overview, plan): "Must decide" is the `blocking` tag. A decision that holds no work has no mark of its own.
 - Overview (page-overview, plan): a closed question leaves the page only when someone moves it under `## Closed questions`. One closed in place still lists.
 - Overview (page-overview, plan): stale counts registry entries only; a plain-path artifact on a `Made by:` line is not counted.
-- Overview (page-overview, plan): the six stale entries are one finished study's records (CAP-08, all parked). They stay on the first screen and grow older each day.
 - Overview (page-overview, plan): 7 of the 34 out-of-date assessments belong to frozen desk features.
 - Overview (page-overview, plan): ages count to HEAD's commit time, not today. A page built long after HEAD reads young; this keeps R-1012.
 - Overview (page-overview, plan): 47 of 80 entries carry no measured age, so the stale count speaks for 33 entries. The beside counts say so, not which.
@@ -93,15 +92,25 @@
 - Public product page (page-on-pages, plan attack N5): identity-scan reads escaped JSON, so a word fused to an escape is not counted; issue titles pass the name check before posting.
 - Public product page (page-on-pages, seat check): a transferred issue's title stays on the page until the next push or issue event, because `transferred` is not a trigger.
 - Public product page (page-on-pages, seat check): an issue with an unreadable creation date stops the whole page with a HANDOFF line error, so that Pages run fails.
-- Public product page (page-on-pages, seat check): every ask moved from HANDOFF shows the migration day, 2026-10-28, as its Since date; the issue body holds the real date.
+- Public product page (page-on-pages, seat check): every ask moved from HANDOFF shows the migration day, 2026-10-28, as its Decisions Since date; the issue body holds the real date.
 - Public product page (page-on-pages, seat check): a failed issue read prints nothing in the CI log; only the page shows it.
 - Public product page (page-on-pages, seat check): blocking asks are not listed first in Decisions.
 - Public product page (page-on-pages, seat check): the page loads Google Fonts, so each visitor's browser contacts a third party.
 - Public product page (page-on-pages, seat check): the report's catch path would put a raw error message on the page; today the issue reader never throws.
 - Public product page (page-on-pages, seat check): anyone who opens an issue on the public repo starts a build and a deploy; the queue keeps one pending run.
-- Public product page (page-on-pages, seat check): an issue ask draws no Ask line, and the issue body never reaches the page.
 - Product report at land (page-on-pages, final review): each locked suite run now reads the real issue list through gh with the 30 s CI limit, so a slow gh can add up to 30 s to a land.
 - Public product page (page-on-pages, final review): R-2986 is a row about the test itself and cites R-2980's test, so it adds no separate check.
 - First look (first-look, build 1): both report builds read issues live, so an issue change between the two builds shows in the diff; the plan attack's fixed issue read was not built.
 - First look (first-look, seat check): the accessibility diff keeps the report's age lines (commits and days before HEAD), which shift on every lane; a one-heading change against main gave 19 changed views and 45 KB.
 - First look (first-look, seat check): in a plain clone with no Playwright, the main-checkout fallback finds the clone itself; `PW_ROOT` is needed there.
+- First look (first-look, final review): the seat guide's command has no `--out`, so as written it prints usage and exits 2; `--page desk` also needs `--before` and `--after`.
+- First look (first-look, final review): R-3040 is wider than its test; the test injects the report runner, so the worktree add, child build and cleanup are not run by any test.
+- First look (first-look, final review): the view list comes from the before build only, so a feature the lane adds gets no diff.
+- First look (first-look, final review): the page-shaping list covers only the report's direct imports; a lane that changes a deeper module gets "nothing to show".
+- First look (first-look, final review): the date filter drops every line holding a date, not just the provenance lines.
+- First look (first-look, final review): an interrupted run skips cleanup and leaves a temporary worktree; `git worktree prune` clears it.
+- First look (first-look, final review): `ACCESSIBILITY_DIFF_MAX_LINES` limits nothing at run time; only the test reads it.
+- Public product page (page-on-pages, plan A4): identity-scan reads escaped JSON, so a name at the start of a later issue-body paragraph can evade the Pages scan; the issues are already public and seat posts pass the scan before posting.
+- Decisions (page-needs-you, plan A9): the body parser does not lift a "Your call, because" reason line; the rest of the issue remains available in Decisions.
+- Decisions (page-needs-you, plan A10): recommendation labels match case-sensitively, so #231's lowercase `default:` is not lifted.
+- Overview (page-needs-you, plan A11): migrated issue asks use the body's open-since date in Needs you but the issue creation date in Decisions.

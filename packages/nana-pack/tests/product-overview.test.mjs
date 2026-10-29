@@ -14,7 +14,8 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { CASE_LIMIT_MS, withinCaseLimit, treeFixture, table, makeAssessment, writeStore, writeRuntimeFile, commitAt, renderHtmlAt, feature, stage, code, manual, park, page as pageIn, commitCode as commitCodeIn } from "./report-fixtures.mjs";
-import { generateReport, OVERVIEW_BLOCKS, OVERVIEW_LABELS as L, STALE_AGE_DAYS, AGE_NOT_MEASURED_PREFIX, AGE_UNKNOWN_PREFIX, MEASURED_AT_TIP_PREFIX } from "../../../scripts/product-report.mjs";
+import { generateReport, OVERVIEW_BLOCKS, OVERVIEW_LABELS as L, STALE_AGE_DAYS, AGE_NOT_MEASURED_PREFIX, AGE_UNKNOWN_PREFIX, MEASURED_AT_TIP_PREFIX, NEEDS_YOU_ASK_CAP } from "../../../scripts/product-report.mjs";
+import { ASK_LABELS } from "../lib/ask-shape.mjs";
 import { TIP_DIGITS } from "../lib/land-config.mjs";
 import { ARTIFACT_AGE_TABLE } from "../../../scripts/deliverables.mjs";
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -29,11 +30,16 @@ const commitCode = (...args) => commitCodeIn(temp, ...args);
 const basic = (kind = "product", fields = []) => stage("CAP-01", "First", fields, kind) + "\n" + feature("FEAT-001", [["R-001", "implemented"]]);
 function blocks(view) {
   const result = [];
-  for (const node of view.root.children) {
-    if (node.tag === "h3") result.push({ heading: node, lines: [] });
-    if (node.tag === "ul" && result.length) result.at(-1).lines.push(...node.children);
-  }
-  return result;
+  const visit = (parent) => {
+    for (const node of parent.children ?? []) {
+      if (node.tag === "h3") result.push({ heading: node, lines: [] });
+      if (node.tag === "ul" && result.length) result.at(-1).lines.push(...node.children);
+      visit(node);
+    }
+  };
+  visit(view.root);
+  const oldAssertions = ["Needs you", "Broken", "Gaps", "Stale", "What it does"];
+  return result.sort((left, right) => oldAssertions.indexOf(left.heading.textContent) - oldAssertions.indexOf(right.heading.textContent));
 }
 const lines = (view, index) => blocks(view)[index]?.lines.map((node) => node.textContent) ?? [];
 function cli(repo) {
@@ -42,9 +48,9 @@ function cli(repo) {
   return run.stdout.trimEnd().split(/\r?\n/).slice(1);
 }
 
-// req: R-2920
-await check("R-2920: the overview is the landing view and first tab, unknown and #shared hashes render it, and its five blocks come in order with links to their views", async () => {
-  assert.deepEqual(OVERVIEW_BLOCKS, [["Needs you", "#decisions"], ["Broken", "#issues"], ["Gaps", "#product"], ["Stale", "#features"], ["What it does", "#product"]]);
+// req: R-3050
+await check("R-3050: Overview leads with What it does and Needs you, then closes Broken, Gaps and Stale in Records", async () => {
+  assert.deepEqual(OVERVIEW_BLOCKS, [["What it does", "#product"], ["Needs you", "#decisions"], ["Broken", "#issues"], ["Gaps", "#product"], ["Stale", "#features"]]);
   const repo = treeFixture(temp, "routing", basic());
   const html = await page(repo, "routing");
   for (const hash of ["", "#overview", "#shared", "#nope", "#constructor"]) {
@@ -53,19 +59,70 @@ await check("R-2920: the overview is the landing view and first tab, unknown and
     const nav = view.nodes.find((node) => node.tag === "nav");
     assert.deepEqual(nav.children.map((node) => node.textContent), ["Overview", "Decisions", "Product", "Artifacts", "Features", "Issues", "Requirements"]);
     assert.equal(nav.children[0].attrs["aria-current"], "page");
-    assert.deepEqual(blocks(view).map(({ heading }) => [heading.textContent, heading.children.filter((n) => n.tag === "a").length, heading.children[0]?.attrs.href]), OVERVIEW_BLOCKS.map(([heading, href]) => [heading, 1, href]));
+    const details = view.root.children.find((node) => node.tag === "details");
+    assert.equal(details.children[0].textContent, "Records: Broken, Gaps and Stale");
+    assert.equal("open" in details.attrs, false);
+    const visible = view.root.children.filter((node) => node.tag === "h3").map((node) => node.textContent);
+    const nested = details.children.filter((node) => node.tag === "section").flatMap((section) => section.children.filter((node) => node.tag === "h3").map((node) => node.textContent));
+    assert.deepEqual(visible, ["What it does", "Needs you"]);
+    assert.deepEqual(nested, ["Broken", "Gaps", "Stale"]);
+    const actualBlocks = [...view.root.children.filter((node) => node.tag === "h3"), ...details.children.filter((node) => node.tag === "section").flatMap((section) => section.children.filter((node) => node.tag === "h3"))];
+    assert.deepEqual(actualBlocks.map((heading) => [heading.textContent, heading.children.filter((n) => n.tag === "a").length, heading.children[0]?.attrs.href]), OVERVIEW_BLOCKS.map(([heading, href]) => [heading, 1, href]));
   }
 });
-// req: R-2921
-await check("R-2921: Needs you counts asks as blocking, optional and parked, lists each blocking ask's title in file order, and counts the open questions the Decisions view lists", async () => {
+// req: R-3053
+await check("R-3053: legacy asks retain kind counts and blocking entries while Needs you counts the open questions", async () => {
   const handoff = ["# Handoff", "## Open for the owner", "- **[optional, since 2026-01-05] Opt.** body", "- **[optional, since 2026-01-06] Opt two.** body", "- **[Blocking, since 2026-02-01] Zeta.** body", "## Open for the second owner", "- **[parked, since 2026-01-03] Held.** body", "- **[blocking, since 2026-01-01] Alpha.** body"].join("\r\n");
   const ledger = basic() + "\n## Open questions\n1. Open one.  \n- (lane) Open bullet.\t\n## Closed questions\n2. (closed 2026-01-01) Done.\n## Deliberate omissions\n- An omission.";
   const repo = treeFixture(temp, "asks", ledger.replaceAll("\n", "\r\n"), handoff);
   const html = await page(repo, "asks");
-  assert.deepEqual(lines(renderHtmlAt(html), 0), [`${L.asks}: 5 · ${L.blocking}: 2 · ${L.optional}: 2 · ${L.parked}: 1`, `${L.mustDecide}: Zeta · ${L.since} 2026-02-01`, `${L.mustDecide}: Alpha · ${L.since} 2026-01-01`, `${L.questions}: 2`]);
+  assert.deepEqual(lines(renderHtmlAt(html), 0), [`${L.asks}: 5 · ${L.blocking}: 2 · ${L.optional}: 2 · ${L.parked}: 1`, `Zeta · blocking · ${L.since} 2026-02-01`, `Question: body`, "Seat recommends: none recorded", `Alpha · blocking · ${L.since} 2026-01-01`, `Question: body`, "Seat recommends: none recorded", `Opt two · optional · ${L.since} 2026-01-06`, `Question: body`, "Seat recommends: none recorded", "2 more in Decisions", `${L.questions}: 2`]);
   const questions = renderHtmlAt(html, "#decisions").nodes.find((node) => node.attrs?.class === "open-questions");
   assert.equal(questions?.children.length, 2);
 });
+// req: R-3053
+await check("R-3053: Needs you lists blocking asks then cost-ranked optionals, caps and links the remainder", async () => {
+  const repo = treeFixture(temp, "selection", basic(), "## Open for the owner\nIssues: https://github.com/example/project/issues\n");
+  const items = [
+    [16, "Block", "blocking", "Question: Decide now?"],
+    [13, "Hard old", "optional", "Question: Hard old?\nCost of a wrong guess: hard to undo; loss."],
+    [14, "Hard new", "optional", "Question: Hard new?\nCost of a wrong guess: hard to undo; loss."],
+    [15, "Easy newest", "optional", "Question: Easy newest?\nCost of a wrong guess: easy to undo; loss."],
+    [17, "Parked", "parked", "Question: Do not list."],
+  ].map(([number, title, kind, body], index) => ({ number, title, kind, body, createdAt: `2026-10-${String(index === 1 || index === 2 ? 3 : index + 1).padStart(2, "0")}T00:00:00Z` }));
+  const out = path.join(temp, "selection.html");
+  await generateReport({ root: repo.root, out, readIssues: async ({ pointer }) => ({ ...pointer, url: "https://github.com/example/project/issues", items }) });
+  const view = renderHtmlAt(fs.readFileSync(out, "utf8"));
+  const needs = blocks(view).find(({ heading }) => heading.textContent === "Needs you");
+  assert.deepEqual(needs.lines.map((node) => node.textContent).filter((text) => /· (blocking|optional) · since/.test(text)), ["Block · blocking · since 2026-10-01", "Hard new · optional · since 2026-10-03", "Hard old · optional · since 2026-10-03"]);
+  const remainder = needs.lines.find((node) => node.textContent === "2 more in Decisions");
+  assert.equal(remainder.children.find((node) => node.tag === "a")?.attrs.href, "#decisions");
+  assert(!needs.lines.some((node) => node.textContent.includes("Parked")));
+  assert.equal(NEEDS_YOU_ASK_CAP, 3);
+  const failedOut = path.join(temp, "selection-failed.html");
+  await generateReport({ root: repo.root, out: failedOut, readIssues: async () => { throw new Error("unavailable"); } });
+  const failedNeeds = blocks(renderHtmlAt(fs.readFileSync(failedOut, "utf8"))).find(({ heading }) => heading.textContent === "Needs you");
+  assert.match(failedNeeds.lines[0].textContent, /^Asks: unknown/);
+  assert.deepEqual(failedNeeds.lines.slice(1).map((node) => node.textContent), ["Open questions in the ledger: 0"]);
+});
+// req: R-3054
+await check("R-3054: Needs you shows each listed ask's question, recommendation, cost and further-question count", async () => {
+  const repo = treeFixture(temp, "ask-lines", basic(), "## Open for the owner\nIssues: https://github.com/example/project/issues\n");
+  const items = [{ number: 242, title: "Policy", kind: "optional", createdAt: "2026-10-01T00:00:00Z", body: "Question: Keep it?\nRecommendation: keep the narrow rule.\nCost of a wrong guess: hard to undo; exposure.\nQuestion: Change it?" }];
+  const out = path.join(temp, "ask-lines.html");
+  await generateReport({ root: repo.root, out, readIssues: async ({ pointer }) => ({ ...pointer, url: "https://github.com/example/project/issues", items }) });
+  const view = renderHtmlAt(fs.readFileSync(out, "utf8"));
+  const needs = blocks(view).find(({ heading }) => heading.textContent === "Needs you");
+  assert.deepEqual(needs.lines.map((node) => node.textContent), ["Asks: 1 · blocking (must decide): 0 · optional: 1 · parked: 0", "Policy · optional · since 2026-10-01", "Question: Keep it?", "Seat recommends: keep the narrow rule", "Cost of a wrong guess: hard to undo; exposure.", "1 more questions in the issue", "Open questions in the ledger: 0"]);
+  assert.equal(needs.lines[1].children.find((node) => node.tag === "a")?.attrs.href, "https://github.com/example/project/issues/242");
+  assert.equal(ASK_LABELS.cost, "Cost of a wrong guess");
+  const noRecOut = path.join(temp, "ask-lines-no-rec.html");
+  await generateReport({ root: repo.root, out: noRecOut, readIssues: async ({ pointer }) => ({ ...pointer, url: "https://github.com/example/project/issues", items: [{ number: 243, title: "No recommendation", kind: "optional", createdAt: "2026-10-02", body: "Question: Choose?" }] }) });
+  const noRec = blocks(renderHtmlAt(fs.readFileSync(noRecOut, "utf8"))).find(({ heading }) => heading.textContent === "Needs you");
+  assert(noRec.lines.some((node) => node.textContent === "Seat recommends: none recorded"));
+});
+// req: R-3053
+await check("seal R-3053: Needs you ask cap is three", async () => assert.equal(NEEDS_YOU_ASK_CAP, 3));
 // req: R-2922
 await check("R-2922: Broken names the violated rows and the implemented rows that did not pass, split into failed and skipped only, beside the rows with no recorded run and the runtime data's tip", async () => {
   let ledger = stage("CAP-01", "First") + "\n" + feature("FEAT-001", [["R-001", "violated"], ["R-002", "implemented"], ["R-003", "untested"], ["R-004", "implemented"], ["R-005", "implemented"], ["R-006", "untested"]]);

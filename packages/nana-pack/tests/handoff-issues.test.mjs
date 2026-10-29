@@ -184,6 +184,19 @@ await check("R-2984: issue reader ceiling defaults to the session limit and acce
 	for (const options of [{}, { ceilingMs: 30_000 }]) readHandoffIssues({ text: pointer(), cwd: TD, clock: () => 0, runGh: (_cwd, _args, runOptions) => { budgets.push(runOptions.timeoutMs); return { status: 1, stdout: "" }; }, ...options });
 	assert.deepEqual(budgets, [config.ISSUES_READ_LIMIT_MS, 30_000]);
 });
+// req: R-3051
+await check("R-3051: issue bodies are opt-in and malformed bodies fail validation", () => {
+	const base = ["issue", "list", "-R", "github.com/example/project", "--state", "open", "--author", "example"];
+	const seen = [];
+	const read = (rows, withBody) => readHandoffIssues({ text: pointer(), cwd: TD, clock: () => 0, ...(withBody ? { withBody: true } : {}), runGh: (_cwd, args) => { seen.push(args); assert.deepEqual(args.slice(0, base.length), base); return { status: 0, stdout: JSON.stringify(rows) }; } });
+	const row = issue(9, "Body ask", ["ask", "optional"]);
+	const bodyResult = read([{ ...row, body: "Question: keep it?" }], true);
+	assert.equal(bodyResult.items[0].body, "Question: keep it?");
+	assert.deepEqual(read([row], false).items, [{ number: 9, title: "Body ask", kind: "optional", createdAt: row.createdAt }]);
+	assert.match(read([{ ...row, body: null }], true).failure, /unreadable output/);
+	assert.equal(seen[0].at(-3), "number,title,labels,author,createdAt,body");
+	assert.equal(seen[1].at(-3), "number,title,labels,author,createdAt");
+});
 // req: R-2979
 await check("R-2979: seal issue read limit at 1500 ms", () => assert.equal(config.ISSUES_READ_LIMIT_MS, 1500));
 // req: R-2979
