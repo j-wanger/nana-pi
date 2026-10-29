@@ -32,4 +32,3 @@ Report: each must-meet's test title; the sealed values with provenance; each dep
 - `scripts/first-look-config.mjs` and `scripts/outside-reader-config.mjs`: the sealed-config file with provenance beside each value.
 - `scripts/identity-scan.mjs`: the scan R-3106's test pipes `--asks` through, and the seat runs again before posting.
 - `packages/nana-pack/tests/first-look.test.mjs`: the test file layout for a `scripts/` tool tested from `packages/nana-pack/tests`.
-- `npm run map:search` results taken: `scripts/requirements-moved.mjs` and `scripts/deliverables.mjs` for row and claim checks, `packages/nana-pack/lib/real-path.mjs` (not needed: paths are repo-relative and checked against git, not the file system), `packages/nana-pack/lib/rulings-config.mjs` for the sealed-config style.
