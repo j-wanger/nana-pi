@@ -16,7 +16,7 @@ import { CLAUDE_BIN, CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, CLAUDE_ALLOW_FLAG, RE
 import { CLAUDE_CODE_RUNTIME, CLAUDE_TOOLS_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_CHILD_ENV, REVIEWER_CHILD_ENV } from "../bin/worker-config.mjs";
 let passed = 0;
 const CASE_LIMIT_MS = 20_000;
-const splitCount = (answer) => [...String(answer).matchAll(/^\\s*\\d+[.)]\\s+/gm)].length;
+const splitCount = (answer) => [...String(answer).matchAll(/^\s*\d+[.)]\s+/gm)].length;
 async function test(title, fn) {
   let timer;
   try { await Promise.race([fn(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`case exceeded ${CASE_LIMIT_MS} ms`)), CASE_LIMIT_MS); })]); passed++; console.log("PASS", title); }
@@ -45,7 +45,7 @@ await test("R-3144: launches once with cold Claude reviewer flags in an empty ex
     assert.equal(run.stallSecs, CLAUDE_BUILDER_STALL_SECS); assert.equal(run.retries, C.RETRIES); assert.equal(run.maxSecs, C.MAX_SECS); assert.equal(run.pollSecs, C.POLL_SECS);
     assert.deepEqual(run.childEnv, { ...REVIEWER_CHILD_ENV, ...CLAUDE_BUILDER_CHILD_ENV });
     assert.deepEqual(run.piArgs, [CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, "opus", C.CLAUDE_RESTRICTED_FLAG, CLAUDE_STRICT_MCP_FLAG, C.CLAUDE_DISABLE_SLASH_FLAG, C.CLAUDE_NO_SESSION_FLAG, `${CLAUDE_TOOLS_FLAG}=Read`, `${CLAUDE_ALLOW_FLAG}=Read`, C.INSTRUCTION]);
-    const launched = run.launch(run.piArgs, { cwd: run.cwd });
+    const launched = run.launch(run.piArgs, { cwd: run.cwd, platform: "darwin" });
     assert.equal(launched.command, CLAUDE_BIN); assert.deepEqual(launched.args, run.piArgs);
     const prompt = await fs.readFile(path.join(out, "prompt.md"), "utf8");
     assert.equal(run.promptText, prompt);
@@ -69,7 +69,7 @@ await test("R-3145: recorded answers enforce pass, fail, unjudged, skipped and d
     seams.watchdog = async () => ({ ok: true, text: `Preamble\r\n${answer}\r\n` });
     assert.equal(await runVisualReader(["--from", from, "--out", out], seams), expected[0].includes("pass") && !expected[0].includes("fail;") ? 0 : 1);
     assert.deepEqual(lines.slice(0, expected.length), expected);
-    assert.equal(lines.filter((line) => /^\\d+[.)] /.test(line)).length, splitCount(answer));
+    assert.equal(lines.filter((line) => /^\d+[.)] /.test(line)).length, splitCount(answer));
   });
 });
 
