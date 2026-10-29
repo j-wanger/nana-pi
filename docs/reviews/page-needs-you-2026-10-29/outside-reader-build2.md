@@ -1,0 +1,3 @@
+1. The Overview replaces the visible "Violated: 5" warning with "Records: Broken, Gaps and Stale", without any counts. The owner can no longer tell at a glance whether those records contain problems worth opening; keep a short warning count visible while leaving the details folded away.
+
+2. In Decisions, "Question: Which model reads?" receives the timing recommendation "After build 1, right after first-look", while "Which asks should the Overview list under Needs you?" receives "Seat recommends: yes". These mismatched answers prevent the owner from judging the actual choices; give each question its own relevant recommendation and alternatives.
