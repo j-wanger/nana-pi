@@ -105,3 +105,5 @@
 - First look (first-look, build 1): both report builds read issues live, so an issue change between the two builds shows in the diff; the plan attack's fixed issue read was not built.
 - First look (first-look, seat check): the accessibility diff keeps the report's age lines (commits and days before HEAD), which shift on every lane; a one-heading change against main gave 19 changed views and 45 KB.
 - First look (first-look, seat check): in a plain clone with no Playwright, the main-checkout fallback finds the clone itself; `PW_ROOT` is needed there.
+- Outside reader (reader-at-land, seat check): the reader's watchdog heartbeat prints `flat=0/NaN` because its stall limit is switched off.
+- Outside reader (reader-at-land, seat check): the reader returned two findings on its first real lane; whether its new-finding rate holds over later lanes is not yet measured.
