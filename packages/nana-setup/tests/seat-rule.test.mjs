@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/tests/seat-rule.test.mjs
- * @purpose Pins that the seat guide opens with exactly one scope sentence and carries each of its fourteen rules exactly once, with no other bullet, numbered or not.
+ * @purpose Pins that the seat guide opens with exactly one scope sentence and carries each of its fifteen rules exactly once, with no other bullet, numbered or not.
  * @inputs packages/nana-setup/claude/rules/nana-seat.md
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (reads the guide file)
@@ -24,7 +24,7 @@ const check = (n, ok, extra = "") => {
 // The canonical scope sentence (CHANGE §3, R-1141's draft).
 const SCOPE = "This rule is for the seat, the session that launches builders and reviewers; a session started as a builder or reviewer skips it.";
 
-// The fourteen bullets, each exactly once (R-1140; this lane adds the outside-reader rule).
+// The fifteen bullets, each exactly once (R-1140; this lane adds the visual review rule).
 // RULE_7's limit, two lanes building and one more in planning, is the owner's 2026-10-16 answer (seat-rule CHANGE §1).
 const RULE_1 = "- In Claude Code, launch each builder or reviewer as a background task and end your turn. In pi, run it as one foreground command with no timeout.";
 const RULE_2 = "- While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.";
@@ -38,9 +38,10 @@ const RULE_9 = "- Before you end your turn, name and start what waits on nothing
 const RULE_10 = "- Run the full suite whole, never in parts. Never split a long run while a full suite runs on the same machine. If a check fails on a time limit, re-run it alone before you call it a failure.";
 const RULE_11 = "- Post a plan's questions as one `ask` issue before the build. This is the one exception to one issue per question. Label it `blocking` when any question is `hard to undo`, else `optional`. A blocking issue's title ends with \"(default: go)\", meaning build on the listed defaults.";
 const RULE_12 = "- A blocking build waits for the owner's answer; meanwhile the seat reports YOUR CALL and starts other lanes. An optional build starts on the defaults, and a differing answer goes in the next brief. A plan whose questions read `None.` posts nothing.";
-const RULE_13 = "- On a lane that changes the product page or the desk, run `npm run first-look -- --page product` (or `--page desk`) after build 1, save the shots outside git, and point the owner to them with one question: is this the shape?";
+const RULE_13 = "- On a lane that produces or changes a page a person looks at, run first-look after build 1 and save the shots outside git: `npm run first-look -- --page product --out <folder>`, `--page desk --before <url> --after <url>`, or, for a new page or one with a reference, `--page url --after <url> --reference <folder> --spec <file> --out <folder>`. Point the owner to the shots with one question: is this the shape?";
 const RULE_14 = "- On a lane that changes the product page, after first-look run `npm run outside-reader -- --from <first-look folder> --out <folder>` outside git, show the owner its top new finding in your report, and write a known-bug line only for a finding that is a real defect.";
-const RULES = [RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8];
+const RULE_15 = "- On a lane whose page has a reference, run `npm run visual-reader -- --from <first-look folder> --out <folder>` outside git before you point the owner to the shots. Point the owner to them only after it prints a pass, or after you have judged them side by side with the reference yourself and say so in your report.";
+const RULES = [RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8];
 
 const raw = (() => { try { return fs.readFileSync(GUIDE, "utf8"); } catch { return ""; } })();
 const text = raw.replace(/\r/g, "");
@@ -55,7 +56,7 @@ check("seat guide scopes itself to the seat in one sentence before its first bul
 // A numbered item ("1." or "1)") counts as a bullet too.
 const bullets = lines.filter((l) => /^\s*(?:[-*+]|\d{1,9}[.)])\s/.test(l));
 // req: R-1140
-check("seat guide holds no bullet beyond its fourteen rules", bullets.length === RULES.length && bullets.every((b) => RULES.includes(b)), JSON.stringify(bullets));
+check("seat guide holds no bullet beyond its fifteen rules", bullets.length === RULES.length && bullets.every((b) => RULES.includes(b)), JSON.stringify(bullets));
 
 // req: R-1140
 check("seat guide carries: launch in the background and end the turn", lines.filter((l) => l === RULE_1).length === 1, JSON.stringify(lines.filter((l) => l === RULE_1)));
@@ -70,7 +71,10 @@ check("seat guide carries: re-run the mutation runner only in an install, hook o
 // req: R-1140
 check("R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane", lines.filter((l) => l === RULE_5).length === 1 && RULE_5.startsWith("- In an install, hook or gate lane, re-run"), JSON.stringify(lines.filter((l) => l === RULE_5)));
 // req: R-1140
-check("seat guide carries: first-look after build 1 with one owner question", lines.filter((l) => l === RULE_13).length === 1, JSON.stringify(lines.filter((l) => l === RULE_13)));
+// req: R-3140
+check("R-3140: first-look covers any page the owner sees with usable mode commands", lines.filter((l) => l === RULE_13).length === 1, JSON.stringify(lines.filter((l) => l === RULE_13)));
+// req: R-3141
+check("R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them", lines.filter((l) => l === RULE_15).length === 1 && lines.indexOf(RULE_15) === lines.indexOf(RULE_14) + 1, JSON.stringify(lines.filter((l) => l === RULE_15)));
 // req: R-3067
 check("R-3067: seat guide carries the outside-reader timing, output and defect rule", lines.filter((l) => l === RULE_14).length === 1, JSON.stringify(lines.filter((l) => l === RULE_14)));
 // req: R-1140
