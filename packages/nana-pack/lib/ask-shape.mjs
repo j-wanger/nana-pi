@@ -11,6 +11,7 @@
 export const ASK_LABELS = Object.freeze({
   question: "Question",
   recommends: "Seat recommends",
+  gains: "What the default gains and misses",
   cost: "Cost of a wrong guess",
   otherwise: "If answered otherwise",
   none: "none recorded",
@@ -32,7 +33,7 @@ function inlineValue(body, labels = ["Recommendation", "Default"]) {
     const escaped = label;
     const normalized = String(body ?? "").replace(/\*\*(Recommendation|Default):\*\*/g, "$1:").replace(/\*\*(Recommendation|Default)\*\*:/g, "$1:");
     const match = new RegExp(`(?:^|[.?!:;][ \\t]+)(?:[-*][ \\t]*)?${escaped}:[ \\t]*([^\\n]*?)(?:\\.\\s|$)`, "m").exec(normalized);
-    if (match) return match[1].trim() || null;
+    if (match) return match[1].trim().replace(/\.$/, "") || null;
   }
   return null;
 }
@@ -46,26 +47,28 @@ export function parseAskBody(body, createdAt) {
     const question = valueAfterLabel(line, ASK_LABELS.question);
     if (question !== null) {
       if (current) groups.push(current);
-      current = { question, default: null, cost: null, otherwise: null };
+      current = { question, default: null, gains: null, cost: null, otherwise: null };
       continue;
     }
     if (!current) continue;
     const defaultValue = valueAfterLabel(line, "Default");
+    const gains = valueAfterLabel(line, ASK_LABELS.gains);
     const cost = valueAfterLabel(line, ASK_LABELS.cost);
     const otherwise = valueAfterLabel(line, ASK_LABELS.otherwise);
     if (defaultValue !== null) current.default = defaultValue;
+    if (gains !== null) current.gains = gains || null;
     if (cost !== null) current.cost = cost;
     if (otherwise !== null) current.otherwise = otherwise;
   }
   if (current) groups.push(current);
   if (!groups.length) {
     const first = paragraphs(source)[0];
-    if (first) groups.push({ question: first, default: null, cost: null, otherwise: null });
+    if (first) groups.push({ question: first, default: null, gains: null, cost: null, otherwise: null });
   }
   const since = /open since (\d{4}-\d{2}-\d{2})/i.exec(source)?.[1] ?? String(createdAt ?? "").slice(0, 10);
   const recommendation = inlineValue(source, ["Recommendation"])
-    ?? inlineValue(source, ["Default"])
     ?? groups.find((group) => group.default)?.default
+    ?? inlineValue(source, ["Default"])
     ?? null;
   return { groups, recommendation, since };
 }

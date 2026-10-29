@@ -119,3 +119,6 @@
 - Outside reader (reader-at-land, final review): an answer of "1. None" counts as one finding with its quote not found.
 - Outside reader (reader-at-land, seat check): the reader's watchdog heartbeat prints `flat=0/NaN` because its stall limit is switched off.
 - Outside reader (reader-at-land, seat check): the reader returned two findings on its first real lane; whether its new-finding rate holds over later lanes is not yet measured.
+- Records summary (page-needs-you, final review): each count reads its block's first-line text, so a renamed label silently shows 0.
+- Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
+- Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.
