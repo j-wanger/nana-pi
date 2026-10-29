@@ -86,7 +86,7 @@ await test("R-3102: frozen contract accepts fixture and names schema-rule violat
 // req: R-3103
 await test("R-3103: derived feature values come from ledger and hand source cannot prefill them", async () => {
   const ledgerText = `## FEAT-003 · Fixture feature\nPurpose: Test derived counts.\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-9001 | One. | implemented | test |\n| R-9002 | Two. | untested | test |\n| R-9003 | Three. | implemented | test |\n`.replaceAll("\n", "\r\n").replace("| R-9003 | Three. | implemented | test |\r\n", "| R-9003 | Three. | implemented | test | \t\r\n").replace(/\r\n$/, "");
-  const source = { contract: "nana-components", version: 1, project: "nana-pi", components: [{ id: "fixture", name: "Fixture", metaphor: "A fixture", kind: "workflow", parts: ["packages/nana-pack/bin/pi-worker.mjs"], features: ["FEAT-003"], status: "sound", gap: null, ask: null, evidence: ["packages/nana-pack/bin/pi-worker.mjs"], auditedAt: run(ROOT, ["rev-parse", "main"]), anchors: [] }] };
+  const source = { contract: "nana-components", version: 1, project: "nana-pi", components: [{ id: "fixture", name: "Fixture", metaphor: "A fixture", kind: "workflow", parts: ["packages/nana-pack/bin/pi-worker.mjs"], features: ["FEAT-003"], status: "sound", gap: null, ask: null, evidence: ["packages/nana-pack/bin/pi-worker.mjs"], auditedAt: run(ROOT, ["rev-parse", "HEAD"]), anchors: [] }] };
   const result = await buildAudit({ root: ROOT, source, ledgerText, trackedPaths: ["packages/nana-pack/bin/pi-worker.mjs"], mappedModules: [] });
   assert.deepEqual(result.problems, []);
   const feature = result.document.components[0].features[0];
