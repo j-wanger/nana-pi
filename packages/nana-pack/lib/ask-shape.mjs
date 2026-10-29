@@ -51,7 +51,7 @@ export function parseAskBody(body, createdAt) {
       continue;
     }
     if (!current) continue;
-    const defaultValue = valueAfterLabel(line, "Default");
+    const defaultValue = valueAfterLabel(line, "Default") ?? valueAfterLabel(line, ASK_LABELS.recommends);
     const gains = valueAfterLabel(line, ASK_LABELS.gains);
     const cost = valueAfterLabel(line, ASK_LABELS.cost);
     const otherwise = valueAfterLabel(line, ASK_LABELS.otherwise);
