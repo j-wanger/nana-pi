@@ -52,3 +52,5 @@
 - Code search (code-search, seat check): the tokenizer splits "github" into "git" and "hub", so a need naming GitHub also ranks git-only modules.
 - Code search (code-search, build 2): the search finds 0.78 of the trial's reused code on its ten needs, under the trial's 0.80; the sealed floor is 0.75, chosen as a margin.
 - Code search (code-search, plan attack): a pinned prompt sentence proves planners are told to run the search, not that they do; the seat reads the next three plans' Precedent sections against its output.
+- Code search (code-search, final review): R-3000's row still says the map describes doctor work in planner vocabulary, but builds 3 and 4 restored the doctor header to main's bytes.
+- Code search (code-search, final review): the planner prompt is shared with every scaffolded project, but only nana-pi has `map:search`; a planner elsewhere gets a missing-script error and carries on.

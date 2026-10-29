@@ -69,3 +69,5 @@
 - Issue watch (issue-watch, independent check): the Windows command quoting breaks for a network-share or drive root, and for a `$` in the path under PowerShell; only bash was checked.
 - Issue watch (issue-watch, independent check): the pi message reuses the frontier block's name `nana-frontier`.
 - Issue watch (issue-watch, seat pairs): four of the seat's pairs aimed at cursor code that build 2 rewrote; the new GitHub-time cursor has its own drift tests but no seat pair.
+- Issue watch (issue-watch, confirmation round): with a tiny block cap, the over-cap notice plus the watch line can run about 60 characters past the cap.
+- Issue watch (issue-watch, confirmation round): in pi, a comment whose delivery keeps failing holds back every later comment until delivery works again.
