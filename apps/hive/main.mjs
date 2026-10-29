@@ -7,7 +7,7 @@
  * @errors Fetch or incompatible data displays one plain error; WebGL setup failure selects pixel.
  */
 import { prepare, chooseRenderer, firstFrame, animationStep } from './runtime.mjs';
-import { focus } from './camera.mjs';
+import { focus, overview } from './camera.mjs';
 import { textLayer, renderText } from './text-layer.mjs';
 import { pixel, drawPixel } from './pixel.mjs';
 import { buildHive } from './assets/hive.mjs';
@@ -97,11 +97,26 @@ async function start(data, model) {
   };
   const raster = pixel(model); const ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;
   if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }
-  const pose = () => focus(model, location.hash.slice(1), location.hash ? stage.clientWidth / stage.clientHeight : Math.max(0.9, stage.clientWidth / stage.clientHeight));
+  const pose = () => {
+    const id = location.hash.slice(1), aspect = stage.clientWidth / stage.clientHeight;
+    if (!model.chambers.some(c => c.id === id)) return overview(model, aspect);
+    const stop = focus(model, id, aspect);
+    // A portrait detail is a close view through the campus, not a miniature
+    // building fitted into a horizontal band. The pure fit-all stop remains
+    // available for bounds checks; gestures can still pull back from this crop.
+    const crop = Math.min(1, Math.sqrt(aspect));
+    return { ...stop, position: stop.position.map((v, i) => stop.target[i] + (v - stop.target[i]) * crop) };
+  };
+  // View perimeter chapters from outside the ring, looking into the campus;
+  // an outward-facing camera would leave only empty ground behind the hall.
+  const heading = () => {
+    const chamber = model.chambers.find(c => c.id === location.hash.slice(1));
+    return chamber?.kind === 'governance' ? Math.atan2(chamber.x, chamber.z) : STYLE.cameraElevation / 2;
+  };
   let current = pose();
-  let desired = current; let yaw = STYLE.cameraElevation / 2; let zoom = 1;
+  let desired = current; let yaw = heading(); let zoom = 1;
   const motion = () => ({ still, reduced: preference.matches });
-  const chooseStop = () => { desired = pose(); yaw = STYLE.cameraElevation / 2; zoom = 1; if (still || preference.matches) current = desired; };
+  const chooseStop = () => { desired = pose(); yaw = heading(); zoom = 1; if (still || preference.matches) current = desired; };
   const draw = () => {
     const state = animationStep(performance.now() / 1000, motion());
     if (rendererName === 'webgl') {
@@ -136,8 +151,8 @@ async function start(data, model) {
     if (renderer) {
       const width = stage.clientWidth, height = stage.clientHeight;
       renderer.setSize(width, height, false); camera.aspect = width / height;
-      // Leave the model visible beside the reading overlay, not hidden underneath it.
-      camera.setViewOffset(width, height, width > 760 ? -width * 0.16 : 0, width > 760 ? 0 : height * 0.12, width, height);
+      // The same scene runs beneath every overlay, including the phone's card.
+      camera.clearViewOffset();
       camera.updateProjectionMatrix();
     }
     chooseStop(); frame();

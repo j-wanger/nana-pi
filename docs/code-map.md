@@ -646,7 +646,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/hive/camera.mjs`
 
-- **purpose** — Computes pure sphere-framed perspective camera stops for chambers or the whole hive.
+- **purpose** — Computes chamber focus stops and a full-bleed campus overview.
 - **inputs** — Layout, optional component ID and viewport aspect ratio.
 - **outputs** — Camera position, target and vertical field of view.
 - **effects** — none
