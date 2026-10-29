@@ -39,12 +39,20 @@ check("R-2950: planner prompt names its sources in conflict order and resolves p
 })(), prompt);
 
 // req: R-2951
-check("R-2951: planner prompt requests the required plan sections in order", (() => {
-	const terms = ["First write **Purpose**", "Then write marked **Assumptions**", "**Open choices**", "Then write the **Feature** line", "**Threat model**", "**Precedent**", "**Outside precedent**", "**Must-meet**"];
+check("R-2951: planner prompt requests Questions for the owner in plan-section order", (() => {
+	const terms = ["First write **Purpose**", "Then write marked **Assumptions**", "**Open choices**", "**Questions for the owner**", "Then write the **Feature** line", "**Threat model**", "**Precedent**", "**Outside precedent**", "**Must-meet**"];
 	const offsets = terms.map((term) => prompt.indexOf(term));
 	return offsets.every((offset) => offset >= 0) && offsets.every((offset, i) => i === 0 || offsets[i - 1] < offset) &&
 		prompt.includes("For a fix, name the row, ruling or contract it restores.");
 })(), prompt);
+
+// req: R-3010
+check("R-3010: planner prompt specifies the owner-question form, ranking and overflow", [
+	"Then write **Questions for the owner**. Write each question as four labelled lines: `Question:`, `Default:`, `Cost of a wrong guess:` (starting `easy to undo` or `hard to undo`), and `If answered otherwise:`. Order them from the costliest wrong guess down. Keep the top one to three; make every other question a marked assumption. With no open question, write `None.`",
+].every((sentence) => prompt.includes(sentence)), prompt);
+
+// req: R-3011
+check("R-3011: readings put the top questions for each reading in the same message", prompt.includes("When you return readings instead of a plan, put the top questions for each reading in the same message."), prompt);
 
 // req: R-2952
 check("R-2952: without an agreed reading the planner returns readings and no plan", [
@@ -79,5 +87,14 @@ check("R-2954: a plan in the prompt form passes brief parsing and precedent chec
 		prompt.includes("Read the feature's known-bug file when one exists.") &&
 		prompt.includes("Feature: FEAT-nnn · <label>") && prompt.includes("none: <reason>");
 })(), prompt);
+
+const seatGuidePath = path.join(root, "packages/nana-setup/claude/rules/nana-seat.md");
+const seatGuide = fs.existsSync(seatGuidePath) ? fs.readFileSync(seatGuidePath, "utf8") : "";
+
+// req: R-3012
+check("R-3012: seat guide posts one plan-question issue with the build label and default title", seatGuide.includes('Post a plan\'s questions as one `ask` issue before the build. This is the one exception to one issue per question. Label it `blocking` when any question is `hard to undo`, else `optional`. A blocking issue\'s title ends with "(default: go)", meaning build on the listed defaults.'), seatGuide);
+
+// req: R-3013
+check("R-3013: seat guide distinguishes blocking waits, optional defaults and None", seatGuide.includes("A blocking build waits for the owner's answer; meanwhile the seat reports YOUR CALL and starts other lanes. An optional build starts on the defaults, and a differing answer goes in the next brief. A plan whose questions read `None.` posts nothing."), seatGuide);
 
 if (fails) process.exitCode = 1;
