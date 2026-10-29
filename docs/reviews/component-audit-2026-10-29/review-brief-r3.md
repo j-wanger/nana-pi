@@ -6,7 +6,7 @@ Class: ordinary. Threat model as in round 1 (`review-brief.md`).
 
 This round reviews only the change since round 2: `git diff b003b988..HEAD` on `feat/component-audit`.
 
-Round 2: SEND-BACK (`r2-reviewer-*.md` in this folder), one MUST: the R-3103 test set `auditedAt` with `rev-parse main`, so CI still failed without a local `main`.
+Round 2: SEND-BACK (`r2-reviewer-b1b5d708.md`), one MUST: the R-3103 test set `auditedAt` with `rev-parse main`, so CI still failed without a local `main`.
 
 What changed:
 - **Build 4 (4e9baae2):** the test uses HEAD; the builder ran the test file in a detached clone with no local branches (11 checks pass). CI on 4e9baae2 passed on all three systems.
