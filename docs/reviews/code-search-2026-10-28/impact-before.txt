@@ -1,0 +1,100 @@
+scripts/code-map.mjs
+  transitive callers (7): packages/nana-pack/tests/blast-radius.test.mjs packages/nana-pack/tests/code-map.test.mjs packages/nana-pack/tests/requirement-rows.test.mjs packages/nana-pack/tests/runtime-map.test.mjs scripts/blast-radius.mjs scripts/lane-class.mjs scripts/requirement-rows.mjs
+  transitive callees (16): apps/bench/lib/checkers.mjs apps/bench/lib/fixture.mjs packages/nana-pack/lib/brief-config.mjs packages/nana-pack/lib/brief-precedent.mjs packages/nana-pack/lib/build-records-config.mjs packages/nana-pack/lib/frontier-config.mjs packages/nana-pack/lib/known-bugs-config.mjs packages/nana-pack/lib/land-config.mjs packages/nana-pack/lib/markdown-list-sections.mjs packages/nana-pack/lib/runtime-map-config.mjs packages/nana-pack/lib/runtime-map.mjs packages/nana-pack/lib/suite-records-config.mjs scripts/deliverables.mjs scripts/requirements-moved.mjs scripts/requirements-trace.mjs scripts/requirements-tree.mjs
+packages/nana-setup/lib/doctor.mjs
+  transitive callers (30): packages/nana-setup/bin/install-check.mjs packages/nana-setup/bin/nana-setup.mjs packages/nana-setup/bin/stale-copies.mjs packages/nana-setup/lib/install-check.mjs packages/nana-setup/tests/desk-service.test.mjs packages/nana-setup/tests/doctor-detail.test.mjs packages/nana-setup/tests/doctor-fix-line.test.mjs packages/nana-setup/tests/doctor-knowledge.test.mjs packages/nana-setup/tests/doctor-memory-links.test.mjs packages/nana-setup/tests/doctor-package-source.test.mjs packages/nana-setup/tests/doctor-pi-dependencies.test.mjs packages/nana-setup/tests/doctor-release.test.mjs packages/nana-setup/tests/doctor-runtime.test.mjs packages/nana-setup/tests/doctor-trust.test.mjs packages/nana-setup/tests/fresh-machine.test.mjs packages/nana-setup/tests/install-check.test.mjs packages/nana-setup/tests/install.test.mjs packages/nana-setup/tests/linked-claude-folder.test.mjs packages/nana-setup/tests/objective-path-shapes.test.mjs packages/nana-setup/tests/pi-launch-limits.test.mjs packages/nana-setup/tests/readme-rehearsal.test.mjs packages/nana-setup/tests/relative-agent-dir.test.mjs packages/nana-setup/tests/rulings-install.test.mjs packages/nana-setup/tests/settings-lock.test.mjs packages/nana-setup/tests/skills-and-standards.test.mjs packages/nana-setup/tests/stale-copies.test.mjs packages/nana-setup/tests/verifier-pipe.test.mjs packages/nana-setup/tests/win-shims.test.mjs packages/nana-setup/tests/win32-degrade.test.mjs packages/nana-setup/tests/win32-hook-repair.test.mjs
+  transitive callees (34): packages/nana-knowledge/lib/sources-file.mjs packages/nana-pack/bin/pi-watchdog.mjs packages/nana-pack/bin/worker-config.mjs packages/nana-pack/lib/adoption.mjs packages/nana-pack/lib/agent-dir.mjs packages/nana-pack/lib/bounded-read.mjs packages/nana-pack/lib/display.mjs packages/nana-pack/lib/json-text.mjs packages/nana-pack/lib/objective-path.mjs packages/nana-pack/lib/process-tree.mjs packages/nana-pack/lib/real-path.mjs packages/nana-pack/lib/release-status.mjs packages/nana-pack/lib/rulings-config.mjs packages/nana-pack/lib/win-command-config.mjs packages/nana-pack/lib/win-command.mjs packages/nana-setup/lib/bounded-spawn.mjs packages/nana-setup/lib/claude-config-home.mjs packages/nana-setup/lib/copy-record.mjs packages/nana-setup/lib/fsops.mjs packages/nana-setup/lib/hook-health.mjs packages/nana-setup/lib/paths.mjs packages/nana-setup/lib/pi-dependencies.mjs packages/nana-setup/lib/pi-invocation.mjs packages/nana-setup/lib/pi-pin.mjs packages/nana-setup/lib/project-key.mjs packages/nana-setup/lib/project-rows.mjs packages/nana-setup/lib/retired.mjs packages/nana-setup/lib/settings-lock.mjs packages/nana-setup/lib/settings.mjs packages/nana-setup/lib/stale-copies-config.mjs packages/nana-setup/lib/stale-copies.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/lib/win-shims.mjs packages/nana-setup/lib/working-region.mjs
+packages/nana-pack/lib/frontier-summary.mjs
+  transitive callers (5): packages/nana-pack/bin/nana-frontier-summary.mjs packages/nana-pack/extensions/nana-frontier-summary.ts packages/nana-pack/tests/frontier-golden.test.mjs packages/nana-pack/tests/frontier-summary.test.mjs packages/nana-pack/tests/handoff-issues.test.mjs
+  transitive callees (14): packages/nana-pack/lib/adoption.mjs packages/nana-pack/lib/agent-dir.mjs packages/nana-pack/lib/bounded-read.mjs packages/nana-pack/lib/display.mjs packages/nana-pack/lib/frontier-check.mjs packages/nana-pack/lib/frontier-config.mjs packages/nana-pack/lib/frontier-summary-config.mjs packages/nana-pack/lib/gh-runner.mjs packages/nana-pack/lib/handoff-asks.mjs packages/nana-pack/lib/handoff-issues.mjs packages/nana-pack/lib/json-text.mjs packages/nana-pack/lib/land-config.mjs packages/nana-pack/lib/markdown-list-sections.mjs packages/nana-pack/lib/suite-records-config.mjs
+packages/nana-pack/bin/nana-frontier-summary.mjs
+  transitive callers (0): —
+  transitive callees (15): packages/nana-pack/lib/adoption.mjs packages/nana-pack/lib/agent-dir.mjs packages/nana-pack/lib/bounded-read.mjs packages/nana-pack/lib/display.mjs packages/nana-pack/lib/frontier-check.mjs packages/nana-pack/lib/frontier-config.mjs packages/nana-pack/lib/frontier-summary-config.mjs packages/nana-pack/lib/frontier-summary.mjs packages/nana-pack/lib/gh-runner.mjs packages/nana-pack/lib/handoff-asks.mjs packages/nana-pack/lib/handoff-issues.mjs packages/nana-pack/lib/json-text.mjs packages/nana-pack/lib/land-config.mjs packages/nana-pack/lib/markdown-list-sections.mjs packages/nana-pack/lib/suite-records-config.mjs
+
+blast radius: 41 upstream, 55 downstream
+
+untraced tests: 16 of 247 test modules import no mapped module (a test that only starts a process is not linked)
+
+artifacts for scripts/code-map.mjs (2):
+  reads (2): A-009*, A-030*
+artifacts for packages/nana-setup/lib/doctor.mjs (19):
+  reads (19): A-001*, A-004*, A-009*, A-010*, A-011*, A-012*, A-013*, A-016*, A-021*, A-052*, A-060*, A-061*, A-062*, A-063*, A-064*, A-065*, A-066*, A-069*, A-071*
+artifacts for packages/nana-pack/lib/frontier-summary.mjs (1):
+  reads (1): A-046*
+artifacts for packages/nana-pack/bin/nana-frontier-summary.mjs (0):
+  artifacts: no Artifact writer list or Reads line names packages/nana-pack/bin/nana-frontier-summary.mjs
+artifact block shows only Artifact: writer lists and other features' Reads: lines; it leaves out readers in the maker's own feature, deliverable Read by: lines, hand-run makers and a file that is itself an artifact's location
+
+runtime map: measured tip b547596f at 2026-10-28T22:07:17.237Z is 0 hours old; 7 tracked files differ from this checkout
+measured tests for scripts/code-map.mjs (6):
+  12.4s  packages/nana-pack/tests/runtime-map.test.mjs
+  2.4s  packages/nana-pack/tests/lane-class.test.mjs
+  1.2s  packages/nana-pack/tests/linked-launch.test.mjs
+  0.9s  packages/nana-pack/tests/blast-radius.test.mjs
+  0.9s  packages/nana-pack/tests/code-map.test.mjs
+  0.6s  packages/nana-pack/tests/requirement-rows.test.mjs
+measured tests for packages/nana-setup/lib/doctor.mjs (47):
+  67.1s  packages/nana-setup/tests/pi-launch-limits.test.mjs
+  39.7s  packages/nana-setup/tests/stale-copies-slow.test.mjs
+  32.4s  packages/nana-setup/tests/project.test.mjs
+  15.3s  packages/nana-setup/tests/doctor-detail.test.mjs
+  11.6s  packages/nana-setup/tests/linked-claude-folder.test.mjs
+  10.7s  packages/nana-setup/tests/install.test.mjs
+  9.0s  packages/nana-setup/tests/desk-service.test.mjs
+  8.0s  packages/nana-setup/tests/skills-and-standards.test.mjs
+  7.8s  packages/nana-setup/tests/stale-copies.test.mjs
+  7.5s  packages/nana-setup/tests/win32-degrade.test.mjs
+  6.1s  packages/nana-setup/tests/objective-path-shapes.test.mjs
+  5.4s  packages/nana-setup/tests/settings-merge.test.mjs
+  5.2s  packages/nana-setup/tests/project-stale.test.mjs
+  4.8s  packages/nana-setup/tests/doctor-fix-line.test.mjs
+  4.8s  packages/nana-setup/tests/pi-registration.test.mjs
+  4.2s  packages/nana-setup/tests/realpath-fallback.test.mjs
+  4.2s  packages/nana-setup/tests/retired-artifacts.test.mjs
+  4.2s  packages/nana-setup/tests/settings-lock.test.mjs
+  4.0s  packages/nana-setup/tests/project-odd-seeds.test.mjs
+  3.7s  packages/nana-setup/tests/doctor-runtime.test.mjs
+  3.6s  packages/nana-pack/tests/agent-dir-parity.test.mjs
+  3.1s  packages/nana-setup/tests/win32-hook-repair.test.mjs
+  3.0s  packages/nana-setup/tests/verifier-pipe.test.mjs
+  2.5s  packages/nana-setup/tests/claude-config-dir.test.mjs
+  2.5s  packages/nana-setup/tests/rulings-install.test.mjs
+  2.4s  packages/nana-setup/tests/uninstall.test.mjs
+  2.3s  packages/nana-pack/tests/adoption-reader.test.mjs
+  2.3s  packages/nana-setup/tests/relative-agent-dir.test.mjs
+  2.2s  packages/nana-setup/tests/doctor-memory-links.test.mjs
+  2.1s  packages/nana-setup/tests/doctor-package-source.test.mjs
+  1.9s  packages/nana-setup/tests/doctor-pi-dependencies.test.mjs
+  1.9s  packages/nana-setup/tests/restore.test.mjs
+  1.8s  packages/nana-setup/tests/install-check.test.mjs
+  1.5s  packages/nana-setup/tests/doctor-quiet.test.mjs
+  1.4s  packages/nana-setup/tests/trust.test.mjs
+  1.2s  packages/nana-setup/tests/hooks-closed-output.test.mjs
+  1.1s  packages/nana-setup/tests/doctor-release.test.mjs
+  1.1s  packages/nana-setup/tests/state-manifest.test.mjs
+  0.9s  packages/nana-setup/tests/agent-dir-consumers.test.mjs
+  0.8s  packages/nana-setup/tests/doctor-knowledge.test.mjs
+  0.6s  packages/nana-setup/tests/doctor-trust.test.mjs
+  0.6s  packages/nana-setup/tests/project-dismiss.test.mjs
+  0.4s  packages/nana-setup/tests/entry-guidance.test.mjs
+  0.4s  packages/nana-setup/tests/win-shims.test.mjs
+  0.2s  packages/nana-setup/tests/install-overlap.test.mjs
+  0.1s  packages/nana-setup/tests/fresh-machine.test.mjs
+  0.1s  packages/nana-setup/tests/readme-rehearsal.test.mjs
+measured tests for packages/nana-pack/lib/frontier-summary.mjs (7):
+  36.5s  packages/nana-pack/tests/objective-golden.test.mjs
+  10.7s  packages/nana-setup/tests/install.test.mjs
+  3.4s  packages/nana-pack/tests/handoff-issues.test.mjs
+  1.9s  packages/nana-setup/tests/frontier-hook.test.mjs
+  1.2s  packages/nana-setup/tests/hooks-closed-output.test.mjs
+  1.0s  packages/nana-pack/tests/frontier-summary.test.mjs
+  0.6s  packages/nana-pack/tests/frontier-golden.test.mjs
+measured tests for packages/nana-pack/bin/nana-frontier-summary.mjs (7):
+  36.5s  packages/nana-pack/tests/objective-golden.test.mjs
+  10.7s  packages/nana-setup/tests/install.test.mjs
+  3.4s  packages/nana-pack/tests/handoff-issues.test.mjs
+  1.9s  packages/nana-setup/tests/frontier-hook.test.mjs
+  1.2s  packages/nana-setup/tests/hooks-closed-output.test.mjs
+  1.0s  packages/nana-pack/tests/frontier-summary.test.mjs
+  0.6s  packages/nana-pack/tests/frontier-golden.test.mjs
+runtime map: copies run from a temporary folder and children stopped by a signal are not counted

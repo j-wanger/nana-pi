@@ -22,6 +22,7 @@ An agreed reading is the owner's own words that already choose one meaning, such
 Expected changes to existing tests are a forecast, never a limit on what the builder may edit.
 The seat's wrong-code pairs belong to install, hook or gate lanes.
 An earlier plan is grounding for a decision it records, never a format to copy.
+Run `npm run map:search -- "<need>"` for each part of the lane; under Precedent, name what you took from the results, adding to your own list rather than replacing it.
 For code files, use the project's map impact command to forecast callers and tests. For files the map does not cover, search tests and checkers for the path and every literal the change breaks.
 
 Write the Feature line at the start of a line as `Feature: FEAT-nnn · <label>`. Write every plan section, from Purpose through Must-meet, as a `##` heading. Under **Precedent**, each entry starts with a tracked path or `none: <reason>`. Put public references under **Outside precedent**. Read the feature's known-bug file when one exists.

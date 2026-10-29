@@ -1,0 +1,819 @@
+[
+ {
+  "lane": "adoption-window-2026-10-25",
+  "base": "61671be0",
+  "tip": "46bff552",
+  "reused_code": [],
+  "reused_tests": [],
+  "extended": [
+   "packages/nana-pack/bin/nana-adoption.mjs",
+   "packages/nana-pack/lib/adoption.mjs"
+  ],
+  "land_onto": "91444ace",
+  "fork_parent": "61671be0",
+  "tip_found_by": "land-records.jsonl start record (lane adoption-window, landed); later merge bde17b14 'Merge branch main ... (adoption-window landed)' has it as second parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "packages/nana-pack/bin/nana-adoption.mjs (+10/-6)",
+   "packages/nana-pack/lib/adoption.mjs (+26/-4)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/adoption-reader.test.mjs (+102/-0)"
+  ],
+  "extended_config": [],
+  "test_only_code": [],
+  "named_by_path": [],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-pack/lib/adoption-config.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {}
+ },
+ {
+  "lane": "artifact-readers-2026-10-25",
+  "base": "d3cf9a0d",
+  "tip": "91444ace",
+  "reused_code": [
+   "apps/bench/lib/checkers.mjs",
+   "packages/nana-pack/lib/brief-precedent.mjs",
+   "scripts/deliverables.mjs"
+  ],
+  "reused_tests": [],
+  "extended": [
+   "scripts/deliverables.mjs",
+   "scripts/requirements-moved.mjs"
+  ],
+  "land_onto": "4af28b0f",
+  "fork_parent": "61671be0",
+  "tip_found_by": "land-records.jsonl start record (lane artifact-readers, landed); on main first-parent, next commit 31704f18 (win-test-limits plan) is its child",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": false
+  },
+  "extended_detail": [
+   "scripts/deliverables.mjs (+226/-36)",
+   "scripts/requirements-moved.mjs (+34/-3)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/requirements-cap-kinds.test.mjs (+4/-1)",
+   "packages/nana-pack/tests/requirements-deliverables.test.mjs (+180/-4)",
+   "packages/nana-pack/tests/requirements-moved.test.mjs (+28/-0)"
+  ],
+  "extended_config": [],
+  "test_only_code": [
+   "scripts/requirements-tree.mjs"
+  ],
+  "named_by_path": [],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {
+   "apps/bench/lib/checkers.mjs": [
+    "more uses of globMatch <- scripts/deliverables.mjs"
+   ],
+   "packages/nana-pack/lib/brief-precedent.mjs": [
+    "more uses of trackedAtHead <- scripts/deliverables.mjs"
+   ],
+   "scripts/deliverables.mjs": [
+    "more uses of deliverablesModule <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "more uses of artifactRegistry <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "more uses of checkDeliverables <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "more uses of deliverableClaims <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "more uses of deliverableReportLines <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "new binding artifactConsumers <- scripts/requirements-moved.mjs"
+   ],
+   "scripts/requirements-moved.mjs": [
+    "more uses of treeMovement <- packages/nana-pack/tests/requirements-moved.test.mjs"
+   ],
+   "scripts/requirements-tree.mjs": [
+    "more uses of parseLedger <- packages/nana-pack/tests/requirements-deliverables.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "build-records-2026-10-22",
+  "base": "61ac64f3",
+  "tip": "16c902c2",
+  "reused_code": [
+   "packages/nana-pack/bin/review-round.mjs",
+   "packages/nana-pack/bin/worker-config.mjs",
+   "packages/nana-pack/lib/agent-dir.mjs",
+   "packages/nana-pack/lib/bounded-read.mjs"
+  ],
+  "reused_tests": [
+   "packages/nana-pack/tests/fake-pi.mjs",
+   "packages/nana-pack/tests/pi-install.mjs",
+   "packages/nana-pack/tests/tmp-dir.mjs"
+  ],
+  "extended": [
+   "apps/bench/lib/pi-exports.mjs",
+   "apps/bench/lib/usage.mjs",
+   "packages/nana-pack/bin/pi-worker.mjs",
+   "packages/nana-pack/lib/brief-precedent.mjs"
+  ],
+  "land_onto": "3bbb0662",
+  "fork_parent": "61ac64f3",
+  "tip_found_by": "no land record (records start 10-25); merges 7986571e and 68e90ab3 'Merge main (build-records landed)' have it as second parent; on main first-parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "apps/bench/lib/pi-exports.mjs (+2/-1)",
+   "apps/bench/lib/usage.mjs (+3/-28)",
+   "packages/nana-pack/bin/pi-worker.mjs (+118/-15)",
+   "packages/nana-pack/lib/brief-precedent.mjs (+2/-1)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/review-ledger.test.mjs (+3/-3)"
+  ],
+  "extended_config": [],
+  "test_only_code": [],
+  "named_by_path": [
+   "packages/nana-pack/bin/pi-worker.mjs"
+  ],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-pack/bin/build-report.mjs",
+   "packages/nana-pack/lib/build-records-config.mjs",
+   "packages/nana-pack/lib/build-records.mjs",
+   "packages/nana-pack/lib/pi-usage.mjs",
+   "packages/nana-pack/tests/build-records.test.mjs",
+   "packages/nana-pack/tests/build-report.test.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-pack/bin/pi-worker.mjs": [
+    "path literal <- packages/nana-pack/tests/build-records.test.mjs",
+    "path literal <- packages/nana-pack/tests/build-report.test.mjs"
+   ],
+   "packages/nana-pack/bin/review-round.mjs": [
+    "new import <- packages/nana-pack/bin/build-report.mjs"
+   ],
+   "packages/nana-pack/bin/worker-config.mjs": [
+    "more uses of LARGER_BUILDER_LABEL <- packages/nana-pack/bin/pi-worker.mjs"
+   ],
+   "packages/nana-pack/lib/agent-dir.mjs": [
+    "new import <- packages/nana-pack/lib/build-records.mjs"
+   ],
+   "packages/nana-pack/lib/bounded-read.mjs": [
+    "new import <- packages/nana-pack/lib/build-records.mjs"
+   ],
+   "packages/nana-pack/tests/fake-pi.mjs": [
+    "new import <- packages/nana-pack/tests/build-records.test.mjs",
+    "new import <- packages/nana-pack/tests/build-report.test.mjs"
+   ],
+   "packages/nana-pack/tests/pi-install.mjs": [
+    "new import <- packages/nana-pack/tests/build-records.test.mjs",
+    "new import <- packages/nana-pack/tests/build-report.test.mjs"
+   ],
+   "packages/nana-pack/tests/tmp-dir.mjs": [
+    "new import <- packages/nana-pack/tests/build-records.test.mjs",
+    "new import <- packages/nana-pack/tests/build-report.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "hard-kill-watcher-2026-10-23",
+  "base": "c273b4de",
+  "tip": "2026c012",
+  "reused_code": [
+   "packages/nana-pack/bin/worker-config.mjs",
+   "packages/nana-pack/lib/build-records-config.mjs",
+   "packages/nana-pack/lib/build-records.mjs",
+   "packages/nana-pack/lib/process-tree.mjs"
+  ],
+  "reused_tests": [
+   "packages/nana-pack/tests/fake-pi.mjs",
+   "packages/nana-pack/tests/tmp-dir.mjs"
+  ],
+  "extended": [
+   "packages/nana-pack/bin/pi-watchdog.mjs",
+   "packages/nana-pack/bin/pi-worker.mjs",
+   "packages/nana-pack/bin/worker-config.mjs",
+   "packages/nana-pack/lib/build-records.mjs",
+   "packages/nana-pack/lib/mutation-runner.mjs",
+   "packages/nana-pack/lib/process-tree.mjs"
+  ],
+  "land_onto": "fc06e29d",
+  "fork_parent": "c273b4de",
+  "tip_found_by": "no land record; merges d2ac56b1 and 3b857ad1 'Merge main (hard-kill-watcher) into ...' have it as second parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "packages/nana-pack/bin/pi-watchdog.mjs (+4/-3)",
+   "packages/nana-pack/bin/pi-worker.mjs (+30/-32)",
+   "packages/nana-pack/bin/worker-config.mjs (+16/-2)",
+   "packages/nana-pack/lib/build-records.mjs (+36/-3)",
+   "packages/nana-pack/lib/mutation-runner.mjs (+2/-7)",
+   "packages/nana-pack/lib/process-tree.mjs (+10/-3)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/build-report.test.mjs (+35/-14)",
+   "packages/nana-pack/tests/worker-claude.test.mjs (+216/-2)"
+  ],
+  "extended_config": [],
+  "test_only_code": [
+   "scripts/runtime-measure.mjs"
+  ],
+  "named_by_path": [],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-pack/lib/lane-lock.mjs",
+   "packages/nana-pack/lib/lane-watcher-child.mjs",
+   "packages/nana-pack/lib/lane-watcher.mjs",
+   "packages/nana-pack/tests/lane-watcher.test.mjs",
+   "packages/nana-pack/tests/process-tree-helper.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [
+   "docs/known-bugs/FEAT-014.md"
+  ],
+  "evidence": {
+   "packages/nana-pack/bin/worker-config.mjs": [
+    "new binding LANE_BUILDER_PID_FILE <- packages/nana-pack/bin/pi-worker.mjs",
+    "new import <- packages/nana-pack/lib/lane-watcher.mjs",
+    "new import <- packages/nana-pack/tests/build-report.test.mjs"
+   ],
+   "packages/nana-pack/lib/build-records-config.mjs": [
+    "more uses of BUILD_RECORD_SCHEMA <- packages/nana-pack/lib/build-records.mjs"
+   ],
+   "packages/nana-pack/lib/build-records.mjs": [
+    "new binding buildEndRecord <- packages/nana-pack/bin/pi-worker.mjs",
+    "new import <- packages/nana-pack/lib/lane-watcher.mjs"
+   ],
+   "packages/nana-pack/lib/process-tree.mjs": [
+    "new import <- packages/nana-pack/lib/lane-watcher.mjs",
+    "new binding pidAlive <- packages/nana-pack/lib/mutation-runner.mjs"
+   ],
+   "packages/nana-pack/tests/fake-pi.mjs": [
+    "new import <- packages/nana-pack/tests/worker-claude.test.mjs"
+   ],
+   "packages/nana-pack/tests/tmp-dir.mjs": [
+    "new import <- packages/nana-pack/tests/lane-watcher.test.mjs"
+   ],
+   "scripts/runtime-measure.mjs": [
+    "new import <- packages/nana-pack/tests/worker-claude.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "keep-movement-2026-10-25",
+  "base": "36af3dda",
+  "tip": "e4d29927",
+  "reused_code": [
+   "packages/nana-pack/bin/review-round.mjs",
+   "packages/nana-pack/lib/review-movement-config.mjs",
+   "packages/nana-pack/lib/review-movement.mjs"
+  ],
+  "reused_tests": [
+   "packages/nana-pack/tests/ledger-repo.mjs",
+   "packages/nana-pack/tests/tmp-dir.mjs"
+  ],
+  "extended": [
+   "packages/nana-pack/bin/review-ledger.mjs",
+   "packages/nana-pack/bin/review-round.mjs",
+   "packages/nana-pack/lib/review-movement.mjs"
+  ],
+  "land_onto": "36af3dda",
+  "fork_parent": "36af3dda",
+  "tip_found_by": "land-records.jsonl start record (lane keep-movement, landed); on main first-parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "packages/nana-pack/bin/review-ledger.mjs (+26/-7)",
+   "packages/nana-pack/bin/review-round.mjs (+2/-0)",
+   "packages/nana-pack/lib/review-movement.mjs (+6/-1)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/review-ledger.test.mjs (+1/-0)",
+   "packages/nana-pack/tests/review-movement.test.mjs (+1/-1)"
+  ],
+  "extended_config": [],
+  "test_only_code": [],
+  "named_by_path": [
+   "packages/nana-pack/bin/review-ledger.mjs"
+  ],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-pack/tests/keep-movement.test.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-pack/bin/review-ledger.mjs": [
+    "path literal <- packages/nana-pack/tests/keep-movement.test.mjs"
+   ],
+   "packages/nana-pack/bin/review-round.mjs": [
+    "new binding KEEP_MOVEMENT_FILE_NAME <- packages/nana-pack/bin/review-ledger.mjs",
+    "new import <- packages/nana-pack/tests/keep-movement.test.mjs"
+   ],
+   "packages/nana-pack/lib/review-movement-config.mjs": [
+    "more uses of MOVEMENT_HEADING <- packages/nana-pack/lib/review-movement.mjs",
+    "more uses of MOVEMENT_LEAD <- packages/nana-pack/lib/review-movement.mjs",
+    "more uses of MOVEMENT_NOT_COMPUTED <- packages/nana-pack/lib/review-movement.mjs",
+    "new import <- packages/nana-pack/tests/keep-movement.test.mjs"
+   ],
+   "packages/nana-pack/lib/review-movement.mjs": [
+    "new import <- packages/nana-pack/bin/review-ledger.mjs",
+    "new import <- packages/nana-pack/tests/keep-movement.test.mjs"
+   ],
+   "packages/nana-pack/tests/ledger-repo.mjs": [
+    "new import <- packages/nana-pack/tests/keep-movement.test.mjs"
+   ],
+   "packages/nana-pack/tests/tmp-dir.mjs": [
+    "new import <- packages/nana-pack/tests/keep-movement.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "knowledge-freeze-notice-2026-10-25",
+  "base": "d3cf9a0d",
+  "tip": "cd49d13a",
+  "reused_code": [
+   "packages/nana-knowledge/lib/paths.ts",
+   "packages/nana-pack/lib/json-text.mjs",
+   "packages/nana-setup/lib/steps.mjs"
+  ],
+  "reused_tests": [],
+  "extended": [
+   "packages/nana-knowledge/bin/nana-knowledge.ts",
+   "packages/nana-knowledge/lib/hook.ts",
+   "packages/nana-knowledge/lib/sources.ts",
+   "packages/nana-setup/lib/doctor.mjs"
+  ],
+  "land_onto": "10fab140",
+  "fork_parent": "61671be0",
+  "tip_found_by": "land-records.jsonl start record (lane knowledge-freeze-notice, landed); merge b01ac2b4 '(knowledge-freeze-notice landed)' has it as second parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": false
+  },
+  "extended_detail": [
+   "packages/nana-knowledge/bin/nana-knowledge.ts (+3/-2)",
+   "packages/nana-knowledge/lib/hook.ts (+12/-7)",
+   "packages/nana-knowledge/lib/sources.ts (+6/-34)",
+   "packages/nana-setup/lib/doctor.mjs (+23/-5)"
+  ],
+  "extended_tests": [
+   "packages/nana-knowledge/tests/sources-file.test.mjs (+130/-4)",
+   "packages/nana-setup/tests/doctor-knowledge.test.mjs (+68/-3)"
+  ],
+  "extended_config": [],
+  "test_only_code": [],
+  "named_by_path": [],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-knowledge/lib/sources-file.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [
+   "packages/nana-knowledge/lib/sources.ts (5 lines)"
+  ],
+  "copied_lines_from": {
+   "packages/nana-knowledge/lib/sources-file.mjs": [
+    "packages/nana-knowledge/lib/sources.ts (5 lines)"
+   ]
+  },
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-knowledge/lib/hook.ts": [
+    "new import <- packages/nana-knowledge/tests/sources-file.test.mjs"
+   ],
+   "packages/nana-knowledge/lib/paths.ts": [
+    "more uses of paths <- packages/nana-knowledge/lib/hook.ts",
+    "new import <- packages/nana-knowledge/tests/sources-file.test.mjs"
+   ],
+   "packages/nana-pack/lib/json-text.mjs": [
+    "new import <- packages/nana-knowledge/lib/sources-file.mjs",
+    "more uses of MANUAL_JSON_ADVICE <- packages/nana-knowledge/tests/sources-file.test.mjs",
+    "new url-ref <- packages/nana-setup/tests/doctor-knowledge.test.mjs"
+   ],
+   "packages/nana-setup/lib/steps.mjs": [
+    "new binding KNOWLEDGE_CLI <- packages/nana-setup/lib/doctor.mjs",
+    "new url-ref <- packages/nana-setup/tests/doctor-knowledge.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "land-reads-ci-2026-10-22",
+  "base": "61ac64f3",
+  "tip": "3bbb0662",
+  "reused_code": [
+   "packages/nana-pack/lib/land-config.mjs"
+  ],
+  "reused_tests": [
+   "packages/nana-pack/tests/tmp-dir.mjs"
+  ],
+  "extended": [
+   "packages/nana-pack/bin/nana-land.mjs",
+   "packages/nana-pack/lib/land-config.mjs",
+   "scripts/product-report.mjs"
+  ],
+  "land_onto": "ca4018ed",
+  "fork_parent": "61ac64f3",
+  "tip_found_by": "no land record; build-records merge 0cfee61d 'Merge branch main into feat/build-records' has it as second parent (main is ff-only, so that parent was main)",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "packages/nana-pack/bin/nana-land.mjs (+47/-11)",
+   "packages/nana-pack/lib/land-config.mjs (+28/-2)",
+   "scripts/product-report.mjs (+1/-3)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/land.test.mjs (+192/-3)"
+  ],
+  "extended_config": [],
+  "test_only_code": [],
+  "named_by_path": [],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-pack/lib/land-ci.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-pack/bin/nana-land.mjs": [
+    "new binding nanaLand <- packages/nana-pack/tests/land.test.mjs"
+   ],
+   "packages/nana-pack/lib/land-config.mjs": [
+    "new binding CHILD_OUTPUT_MAX_BYTES <- packages/nana-pack/bin/nana-land.mjs",
+    "new binding CI_HOST <- packages/nana-pack/bin/nana-land.mjs",
+    "new binding CI_READ_TIMEOUT_MS <- packages/nana-pack/bin/nana-land.mjs",
+    "new binding CI_REMOTE <- packages/nana-pack/bin/nana-land.mjs",
+    "new binding CI_RUNS_PAGE_SIZE <- packages/nana-pack/bin/nana-land.mjs",
+    "new binding CI_RUNS_PATH <- packages/nana-pack/bin/nana-land.mjs",
+    "new binding CI_WORKFLOW_DIR <- packages/nana-pack/bin/nana-land.mjs",
+    "more uses of LAND_NOTE_PREFIX <- packages/nana-pack/bin/nana-land.mjs",
+    "new import <- packages/nana-pack/lib/land-ci.mjs",
+    "new binding landConfig <- packages/nana-pack/tests/land.test.mjs"
+   ],
+   "packages/nana-pack/tests/tmp-dir.mjs": [
+    "more uses of tmpDir <- packages/nana-pack/tests/land.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "pi-version-support-2026-10-23",
+  "base": "f2b27357",
+  "tip": "c273b4de",
+  "reused_code": [
+   "packages/nana-pack/bin/worker-config.mjs",
+   "packages/nana-setup/lib/steps.mjs"
+  ],
+  "reused_tests": [
+   "packages/nana-setup/tests/tmp-dir.mjs"
+  ],
+  "extended": [
+   "packages/nana-setup/lib/doctor.mjs"
+  ],
+  "land_onto": "b2e594c3",
+  "fork_parent": "b2e594c3",
+  "tip_found_by": "no land record; on main first-parent; next lanes park-honestly (51d6af9b), report-at-land (f7226901) and hard-kill-watcher (f766d880) all fork from it",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": false
+  },
+  "extended_detail": [
+   "packages/nana-setup/lib/doctor.mjs (+13/-2)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/ci-workflow.test.mjs (+66/-5)",
+   "packages/nana-setup/tests/pi-install-pin.test.mjs (+30/-5)"
+  ],
+  "extended_config": [
+   ".github/workflows/ci.yml (+19/-8)"
+  ],
+  "test_only_code": [
+   "packages/nana-setup/lib/paths.mjs"
+  ],
+  "named_by_path": [
+   "packages/nana-setup/bin/install-check.mjs"
+  ],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-setup/lib/pi-dependencies.mjs",
+   "packages/nana-setup/tests/doctor-pi-dependencies.test.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-pack/bin/worker-config.mjs": [
+    "new import <- packages/nana-setup/lib/pi-dependencies.mjs"
+   ],
+   "packages/nana-setup/bin/install-check.mjs": [
+    "path literal <- packages/nana-pack/tests/ci-workflow.test.mjs"
+   ],
+   "packages/nana-setup/lib/doctor.mjs": [
+    "new import <- packages/nana-setup/tests/doctor-pi-dependencies.test.mjs"
+   ],
+   "packages/nana-setup/lib/paths.mjs": [
+    "new import <- packages/nana-setup/tests/doctor-pi-dependencies.test.mjs"
+   ],
+   "packages/nana-setup/lib/steps.mjs": [
+    "new import <- packages/nana-setup/lib/pi-dependencies.mjs",
+    "new import <- packages/nana-setup/tests/doctor-pi-dependencies.test.mjs"
+   ],
+   "packages/nana-setup/tests/tmp-dir.mjs": [
+    "new import <- packages/nana-setup/tests/doctor-pi-dependencies.test.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "report-at-land-2026-10-23",
+  "base": "c273b4de",
+  "tip": "bd7f0f75",
+  "reused_code": [
+   "packages/nana-pack/lib/build-records.mjs",
+   "packages/nana-pack/lib/land-config.mjs",
+   "packages/nana-pack/lib/suite-records.mjs",
+   "scripts/deliverables.mjs",
+   "scripts/product-report.mjs"
+  ],
+  "reused_tests": [],
+  "extended": [
+   "packages/nana-pack/lib/suite-records.mjs",
+   "scripts/deliverables.mjs",
+   "scripts/product-report.mjs",
+   "scripts/test-locked.mjs"
+  ],
+  "land_onto": "d547b329",
+  "fork_parent": "c273b4de",
+  "tip_found_by": "no land record; merges cc86c4c2 'Merge main (report-at-land) into land-ci-timings' and 36140442 '(park-honestly, report-at-land)' have it as second parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "packages/nana-pack/lib/suite-records.mjs (+9/-5)",
+   "scripts/deliverables.mjs (+14/-4)",
+   "scripts/product-report.mjs (+75/-9)",
+   "scripts/test-locked.mjs (+36/-8)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/product-report.test.mjs (+131/-1)",
+   "packages/nana-pack/tests/requirements-deliverables.test.mjs (+34/-3)",
+   "packages/nana-pack/tests/runtime-land.test.mjs (+164/-6)"
+  ],
+  "extended_config": [],
+  "test_only_code": [
+   "packages/nana-pack/lib/build-records-config.mjs",
+   "packages/nana-pack/lib/suite-records-config.mjs",
+   "scripts/requirements-tree.mjs"
+  ],
+  "named_by_path": [
+   "scripts/runtime-measure.mjs",
+   "scripts/test-locked.mjs"
+  ],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [],
+  "deleted_code": [],
+  "moved_from": [],
+  "copied_lines_from": {},
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-pack/lib/build-records-config.mjs": [
+    "new import <- packages/nana-pack/tests/product-report.test.mjs"
+   ],
+   "packages/nana-pack/lib/build-records.mjs": [
+    "new import <- packages/nana-pack/tests/product-report.test.mjs",
+    "path literal <- packages/nana-pack/tests/product-report.test.mjs",
+    "path literal <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "path literal <- scripts/deliverables.mjs",
+    "new import <- scripts/product-report.mjs",
+    "path literal <- scripts/product-report.mjs"
+   ],
+   "packages/nana-pack/lib/land-config.mjs": [
+    "more uses of LAND_NOTE_PREFIX <- packages/nana-pack/tests/runtime-land.test.mjs",
+    "more uses of LAND_TIP_ENV <- packages/nana-pack/tests/runtime-land.test.mjs",
+    "more uses of TIP_DIGITS <- packages/nana-pack/tests/runtime-land.test.mjs",
+    "more uses of TIP_DIGITS <- scripts/product-report.mjs",
+    "more uses of HAND_MEASURE_ENV <- scripts/test-locked.mjs",
+    "more uses of LAND_TIP_ENV <- scripts/test-locked.mjs"
+   ],
+   "packages/nana-pack/lib/suite-records-config.mjs": [
+    "new import <- packages/nana-pack/tests/product-report.test.mjs",
+    "path literal <- packages/nana-pack/tests/runtime-land.test.mjs"
+   ],
+   "packages/nana-pack/lib/suite-records.mjs": [
+    "new import <- packages/nana-pack/tests/product-report.test.mjs",
+    "new import <- scripts/product-report.mjs",
+    "new binding gitCommonDir <- scripts/test-locked.mjs"
+   ],
+   "scripts/deliverables.mjs": [
+    "new binding deliverablesModule <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "more uses of RUNTIME_MAP_ARTIFACT <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "more uses of checkDeliverables <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "new binding MACHINE_LOCAL_ARTIFACTS <- scripts/product-report.mjs"
+   ],
+   "scripts/product-report.mjs": [
+    "more uses of productReportModule <- packages/nana-pack/tests/product-report.test.mjs",
+    "new import <- packages/nana-pack/tests/runtime-land.test.mjs",
+    "new dynamic-import <- scripts/test-locked.mjs"
+   ],
+   "scripts/requirements-tree.mjs": [
+    "more uses of parseLedger <- packages/nana-pack/tests/requirements-deliverables.test.mjs"
+   ],
+   "scripts/runtime-measure.mjs": [
+    "path literal <- packages/nana-pack/tests/product-report.test.mjs",
+    "path literal <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "path literal <- packages/nana-pack/tests/runtime-land.test.mjs",
+    "path literal <- scripts/deliverables.mjs"
+   ],
+   "scripts/test-locked.mjs": [
+    "path literal <- packages/nana-pack/tests/product-report.test.mjs",
+    "path literal <- packages/nana-pack/tests/requirements-deliverables.test.mjs",
+    "path literal <- packages/nana-pack/tests/runtime-land.test.mjs",
+    "path literal <- scripts/deliverables.mjs",
+    "path literal <- scripts/product-report.mjs"
+   ]
+  }
+ },
+ {
+  "lane": "session-start-frontier-2026-10-22",
+  "base": "61ac64f3",
+  "tip": "df910cd3",
+  "reused_code": [
+   "packages/nana-pack/lib/adoption.mjs",
+   "packages/nana-pack/lib/bounded-read.mjs",
+   "packages/nana-pack/lib/display.mjs",
+   "packages/nana-pack/lib/frontier-config.mjs",
+   "packages/nana-pack/lib/handoff-asks.mjs",
+   "packages/nana-setup/lib/hook-producer.mjs",
+   "packages/nana-setup/lib/shared-memory-config.mjs"
+  ],
+  "reused_tests": [
+   "packages/nana-pack/tests/tmp-dir.mjs",
+   "packages/nana-setup/tests/tmp-dir.mjs"
+  ],
+  "extended": [
+   "packages/nana-pack/bin/nana-frontier.mjs",
+   "packages/nana-pack/extensions/nana-rulings.ts",
+   "packages/nana-pack/lib/bounded-read.mjs",
+   "packages/nana-pack/lib/frontier-config.mjs",
+   "packages/nana-pack/lib/handoff-asks.mjs",
+   "packages/nana-setup/claude/hooks/nana-objective.mjs",
+   "packages/nana-setup/lib/hook-producer.mjs"
+  ],
+  "land_onto": "16c902c2",
+  "fork_parent": "61ac64f3",
+  "tip_found_by": "no land record; merges bc562d58 and 9e0e1798 'Merge main (session-start-frontier landed)' have it as second parent",
+  "checks": {
+   "tipOnMain": true,
+   "ontoBeforeTip": true,
+   "baseBeforeTip": true,
+   "baseIsFork": true
+  },
+  "extended_detail": [
+   "packages/nana-pack/bin/nana-frontier.mjs (+5/-121)",
+   "packages/nana-pack/extensions/nana-rulings.ts (+3/-25)",
+   "packages/nana-pack/lib/bounded-read.mjs (+13/-1)",
+   "packages/nana-pack/lib/frontier-config.mjs (+4/-2)",
+   "packages/nana-pack/lib/handoff-asks.mjs (+1/-1)",
+   "packages/nana-setup/claude/hooks/nana-objective.mjs (+7/-6)",
+   "packages/nana-setup/lib/hook-producer.mjs (+24/-10)"
+  ],
+  "extended_tests": [
+   "packages/nana-pack/tests/templates-render.test.mjs (+4/-3)",
+   "packages/nana-setup/tests/hook-deadlines.test.mjs (+26/-1)"
+  ],
+  "extended_config": [
+   "package.json (+1/-1)",
+   "packages/nana-pack/package.json (+1/-1)"
+  ],
+  "test_only_code": [],
+  "named_by_path": [
+   "packages/nana-pack/bin/nana-frontier.mjs",
+   "packages/nana-pack/bin/nana-objective.mjs",
+   "packages/nana-setup/claude/hooks/nana-objective.mjs"
+  ],
+  "post_base_reuse": [],
+  "post_base_edited": [],
+  "new_files": [
+   "packages/nana-pack/bin/nana-frontier-summary.mjs",
+   "packages/nana-pack/extensions/nana-frontier-summary.ts",
+   "packages/nana-pack/lib/frontier-check.mjs",
+   "packages/nana-pack/lib/frontier-summary-config.mjs",
+   "packages/nana-pack/lib/frontier-summary.mjs",
+   "packages/nana-pack/tests/frontier-golden.test.mjs",
+   "packages/nana-pack/tests/frontier-summary.test.mjs",
+   "packages/nana-setup/tests/frontier-hook.test.mjs"
+  ],
+  "deleted_code": [],
+  "moved_from": [
+   "packages/nana-pack/bin/nana-frontier.mjs (35 lines)"
+  ],
+  "copied_lines_from": {
+   "packages/nana-pack/lib/frontier-check.mjs": [
+    "packages/nana-pack/bin/nana-frontier.mjs (35 lines)",
+    "packages/nana-pack/lib/markdown-list-sections.mjs (6 lines)"
+   ],
+   "packages/nana-pack/tests/frontier-summary.test.mjs": [
+    "packages/nana-pack/tests/frontier.test.mjs (5 lines)"
+   ]
+  },
+  "merge_only_paths": [],
+  "evidence": {
+   "packages/nana-pack/bin/nana-frontier.mjs": [
+    "path literal <- packages/nana-pack/tests/frontier-summary.test.mjs"
+   ],
+   "packages/nana-pack/bin/nana-objective.mjs": [
+    "path literal <- packages/nana-setup/tests/frontier-hook.test.mjs"
+   ],
+   "packages/nana-pack/lib/adoption.mjs": [
+    "new import <- packages/nana-pack/lib/frontier-summary.mjs"
+   ],
+   "packages/nana-pack/lib/bounded-read.mjs": [
+    "new binding readFailureCause <- packages/nana-pack/extensions/nana-rulings.ts",
+    "new import <- packages/nana-pack/lib/frontier-summary.mjs",
+    "new import <- packages/nana-pack/tests/frontier-summary.test.mjs"
+   ],
+   "packages/nana-pack/lib/display.mjs": [
+    "new import <- packages/nana-pack/lib/frontier-summary.mjs",
+    "new import <- packages/nana-pack/tests/frontier-summary.test.mjs"
+   ],
+   "packages/nana-pack/lib/frontier-config.mjs": [
+    "new import <- packages/nana-pack/lib/frontier-check.mjs"
+   ],
+   "packages/nana-pack/lib/handoff-asks.mjs": [
+    "new import <- packages/nana-pack/lib/frontier-check.mjs",
+    "new import <- packages/nana-pack/lib/frontier-summary.mjs"
+   ],
+   "packages/nana-pack/tests/tmp-dir.mjs": [
+    "new import <- packages/nana-pack/tests/frontier-golden.test.mjs",
+    "new import <- packages/nana-pack/tests/frontier-summary.test.mjs"
+   ],
+   "packages/nana-setup/claude/hooks/nana-objective.mjs": [
+    "path literal <- packages/nana-setup/tests/frontier-hook.test.mjs",
+    "path literal <- packages/nana-setup/tests/hook-deadlines.test.mjs"
+   ],
+   "packages/nana-setup/lib/hook-producer.mjs": [
+    "new binding FRONTIER_HOOK_BUDGET <- packages/nana-setup/claude/hooks/nana-objective.mjs",
+    "more uses of runHookProducer <- packages/nana-setup/claude/hooks/nana-objective.mjs",
+    "more uses of hookProducerConfig <- packages/nana-setup/tests/hook-deadlines.test.mjs"
+   ],
+   "packages/nana-setup/lib/shared-memory-config.mjs": [
+    "new import <- packages/nana-setup/lib/hook-producer.mjs",
+    "new import <- packages/nana-setup/tests/frontier-hook.test.mjs",
+    "new import <- packages/nana-setup/tests/hook-deadlines.test.mjs"
+   ],
+   "packages/nana-setup/tests/tmp-dir.mjs": [
+    "new import <- packages/nana-setup/tests/frontier-hook.test.mjs"
+   ]
+  }
+ }
+]
