@@ -120,3 +120,5 @@
 - Outside reader (reader-at-land, seat check): the reader's watchdog heartbeat prints `flat=0/NaN` because its stall limit is switched off.
 - Outside reader (reader-at-land, seat check): the reader returned two findings on its first real lane; whether its new-finding rate holds over later lanes is not yet measured.
 - Overview (records-counts, plan): with no deliverable lines, the Records summary still shows `Gaps 0`.
+- Ask parser (ask-stakes, final review): the inline Recommendation/Default reader strips a trailing period when the value ends the body, a change the plan did not list.
+- Needs you (ask-stakes, final review): the gains-line test checks only the present case; the absent case relies on the older exact-line test.

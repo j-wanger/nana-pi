@@ -1,0 +1,1 @@
+1. The new summary says "failed 0 · skipped 6 · unmeasured 0" without saying what is counted or where it was measured; only Issues explains "this clone's last measured run". The owner could mistake local results for product-wide evidence when deciding what needs attention. Label the counts as requirement rows from local recorded runs, and put the measurement limits beside them.
