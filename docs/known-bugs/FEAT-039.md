@@ -128,3 +128,4 @@
 - Needs you (ask-stakes, final review): the gains-line test checks only the present case; the absent case relies on the older exact-line test.
 - Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
 - Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.
+- Records summary (records-counts, final review): the summary writes `failed`, `skipped` and `unmeasured` inline while `OVERVIEW_LABELS` gains unused `skipped` and `unmeasured` labels, so renaming those labels changes nothing.
