@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { watchIssues, watchCommand } from "../lib/issue-watch.mjs";
 import { ghAsyncFromEnvironment } from "../lib/gh-runner-async.mjs";
 import { frontierSummary } from "../lib/frontier-summary.mjs";
@@ -159,7 +159,7 @@ await check("R-2992: real opted-in command keeps polling prints an owner answer 
 	const f = fixture(), fake = path.join(f.root, "gh.mjs"), preload = path.join(f.root, "clock.mjs"), count = path.join(f.root, "polls");
 	fs.writeFileSync(preload, `import { WATCH_INTERVAL_MS, WATCH_RUN_MS } from ${JSON.stringify(new URL("../lib/frontier-summary-config.mjs", import.meta.url).href)}; const later = globalThis.setTimeout; globalThis.setTimeout = (fn, delay, ...args) => later(fn, delay === WATCH_INTERVAL_MS ? 50 : delay === WATCH_RUN_MS ? 3000 : delay, ...args);`);
 	fs.writeFileSync(fake, `import fs from 'node:fs'; const file=${JSON.stringify(count)}; const n=fs.existsSync(file)?Number(fs.readFileSync(file,'utf8')):0; if(process.argv.includes('--jq')) process.stdout.write(${JSON.stringify(response("User"))}); else { fs.writeFileSync(file,String(n+1)); process.stdout.write(n ? ${JSON.stringify(response(JSON.stringify([row(1, 800, "command answer")])))} : ${JSON.stringify(response("[]"))}); }`);
-	const cli = await new Promise((resolve, reject) => { const child = spawn(process.execPath, ["--import", preload, path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root, "--since", iso(0)], { env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } }); let stdout = "", stderr = ""; const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("CLI limit")); }, 6000); child.stdout.on("data", (data) => { stdout += data; }); child.stderr.on("data", (data) => { stderr += data; }); child.on("error", reject); child.on("close", (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); }); });
+	const cli = await new Promise((resolve, reject) => { const child = spawn(process.execPath, ["--import", pathToFileURL(preload).href, path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root, "--since", iso(0)], { env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } }); let stdout = "", stderr = ""; const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("CLI limit")); }, 6000); child.stdout.on("data", (data) => { stdout += data; }); child.stderr.on("data", (data) => { stderr += data; }); child.on("error", reject); child.on("close", (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); }); });
 	assert.equal(cli.status, 0, cli.stderr); assert(Number(fs.readFileSync(count, "utf8")) >= 2); assert.match(cli.stdout, /comment by example: .*command answer/); assert.match(cli.stdout.trimEnd().split("\n").at(-1), /^Issue watch restart: .* --since /);
 });
 // req: R-2995
