@@ -71,3 +71,4 @@
 - Issue watch (issue-watch, seat pairs): four of the seat's pairs aimed at cursor code that build 2 rewrote; the new GitHub-time cursor has its own drift tests but no seat pair.
 - Issue watch (issue-watch, confirmation round): with a tiny block cap, the over-cap notice plus the watch line can run about 60 characters past the cap.
 - Issue watch (issue-watch, confirmation round): in pi, a comment whose delivery keeps failing holds back every later comment until delivery works again.
+- Issue watch (issue-watch, seat live run): with no new comments the cursor stays at the last comment's time for hours; seen ids prevent repeats, but each run refetches from that time.

@@ -125,3 +125,7 @@
 - Build records (land-records, independent check): a build ledger whose last line lacks a newline swallows the next start record, as the land ledger does.
 - Lane watchdog (planner-prompt, builds): pi-worker's flat-CPU watchdog samples only pi, so a builder whose locked suite runs as a detached command with output in a file looks stalled and is killed at 75 seconds, leaving the suite holding the machine lock. Launch with `--stall-secs 1200` and a foreground suite.
 - Planner questions (clarify-questions, plan attack): a sentence check proves the planner is told to rank its questions, not that it ranks them well.
+- Planner questions (clarify-questions, final review): the seat guide says to post a plan's questions as an issue even in a project whose HANDOFF does not point to issues; the carry rule would write HANDOFF lines there.
+- Planner questions (clarify-questions, final review): questions that come with readings have no posting step; the seat sends them in the same message as the readings.
+- Planner questions (clarify-questions, final review): R-3012 and R-3013 check the seat guide but live in the planner prompt's test file.
+- Outside precedent (outside-precedent, plan attack): only the prompt sentence is pinned; nothing checks that plans carry the section.
