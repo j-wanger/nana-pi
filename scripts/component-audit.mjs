@@ -165,7 +165,10 @@ function staleLines(root, source, { gitRunner = defaultGit, staleLimit = STALE_C
 }
 
 function coverageLines(root, source, mappedModules) {
-  const modules = mappedModules ?? repoGraph(root).order;
+  const modules = (mappedModules ?? repoGraph(root).order).filter((module) =>
+    !/(?:^|\/)(?:tests?|__tests__|test_helpers?)(?:\/|$)/i.test(module)
+    && !/(?:^|[.-])(?:test|spec)(?:[.-]|$)/i.test(path.posix.basename(module))
+  );
   const unclaimed = modules.filter((module) => !source.components.some((item) => item.parts.some((part) => contains(part, module))));
   return [...unclaimed.map((item) => `unclaimed: ${item}`), `unclaimed: ${unclaimed.length} of ${modules.length} mapped modules`];
 }

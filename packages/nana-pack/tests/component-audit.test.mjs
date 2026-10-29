@@ -149,6 +149,10 @@ await test("R-3106: asks round-trip through planner labels and identity scan", a
   const cliCode = await main(["--asks"], { root: ROOT, mappedModules: [], stdout: { write: (text) => { cliOutput += text; } } });
   assert.equal(cliCode, 0);
   assert.equal(cliOutput, `${asks.join("\n\n")}\n\n`);
+  assert.match(components[0].ask.default, /searched, reviewed store/i);
+  assert.match(components[0].ask.gains, /searched.*misses.*printed index/i);
+  assert.match(components[0].ask.cost, /^(easy|hard) to undo:/i);
+  assert.match(components[0].ask.default, /memory MCP tools as prior art/i);
   const scanned = spawnSync("node", [path.join(ROOT, "scripts/identity-scan.mjs"), "--stdin", "--root", ROOT], { input: cliOutput, encoding: "utf8" });
   assert.equal(scanned.status, 0, scanned.stdout + scanned.stderr);
   const emptySource = structuredClone(source);
@@ -241,6 +245,10 @@ await test("R-3110: mapped module coverage names unclaimed paths and never fails
   assert.ok(result.lines.includes("unclaimed: b.mjs"));
   assert.ok(result.lines.includes("unclaimed: c.mjs"));
   assert.ok(result.lines.includes("unclaimed: 2 of 3 mapped modules"));
+  const filtered = await buildAudit({ root: ROOT, trackedPaths: ["a.mjs"], mappedModules: ["a.mjs", "packages/nana-pack/tests/example.test.mjs", "packages/nana-pack/tests/fixture-helper.mjs", "scripts/product.mjs"], source: { contract: "nana-components", version: 1, project: "nana-pi", components: [{ id: "one", name: "One", metaphor: "One", kind: "workflow", parts: ["a.mjs"], features: [], status: "sound", gap: null, ask: null, evidence: ["a.mjs"], auditedAt, anchors: [] }] } });
+  assert.ok(!filtered.lines.some((line) => line.includes("packages/nana-pack/tests/")));
+  assert.ok(filtered.lines.includes("unclaimed: scripts/product.mjs"));
+  assert.ok(filtered.lines.includes("unclaimed: 1 of 2 mapped modules"));
   assert.equal(result.exitCode, 0, result.problems.join("\n"));
 });
 

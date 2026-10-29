@@ -11,7 +11,9 @@
       "parts": [
         "packages/nana-pack/bin/nana-objective.mjs",
         "packages/nana-pack/bin/nana-frontier-summary.mjs",
-        "HANDOFF.md"
+        "HANDOFF.md",
+        "packages/nana-pack/bin/nana-adoption.mjs",
+        "packages/nana-pack/bin/nana-frontier.mjs"
       ],
       "features": [
         "FEAT-001",
@@ -33,7 +35,9 @@
       "kind": "workflow",
       "parts": [
         "packages/nana-pack/lib/handoff-issues.mjs",
-        "packages/nana-pack/lib/ask-shape.mjs"
+        "packages/nana-pack/lib/ask-shape.mjs",
+        "packages/nana-pack/bin/nana-issue-watch.mjs",
+        "packages/nana-pack/bin/nana-roster.mjs"
       ],
       "features": [
         "FEAT-002",
@@ -65,10 +69,10 @@
       "gap": "The shared index descriptions are already cut to stubs at every session start; at about 125 entries, newest whole entries begin dropping. nana-pi stores and reviews durable records, but does not search them as memory.",
       "ask": {
         "question": "Should shared memory move from a printed index to a searched, reviewed store?",
-        "default": "keep the printed index",
-        "gains": "No new moving part; misses the descriptions already cut to stubs and the newest entries beyond the cap.",
-        "cost": "Easy to undo",
-        "otherwise": "Plan a searched-store lane that can evaluate the machine-local memory MCP tools as prior art."
+        "default": "plan a memory redesign lane that evaluates a searched, reviewed store, using the machine-local memory MCP tools as prior art",
+        "gains": "Gains searched retrieval, review and scale beyond the printed index; misses the printed index’s simplicity and may add maintenance.",
+        "cost": "easy to undo: keep the printed index while the lane evaluates alternatives",
+        "otherwise": "Keep the printed index and address its truncation limits."
       },
       "evidence": [
         "packages/nana-setup/claude/hooks/nana-shared-memory.mjs",
@@ -108,7 +112,10 @@
       "kind": "workflow",
       "parts": [
         "packages/nana-pack/bin/pi-worker.mjs",
-        "packages/nana-pack/bin/pi-watchdog.mjs"
+        "packages/nana-pack/bin/pi-watchdog.mjs",
+        "packages/nana-pack/bin/worker-config.mjs",
+        "packages/nana-pack/bin/build-report.mjs",
+        "packages/nana-pack/bin/brief-check.mjs"
       ],
       "features": [
         "FEAT-006"
@@ -152,7 +159,10 @@
       "parts": [
         "scripts/first-look.mjs",
         "scripts/outside-reader.mjs",
-        "scripts/playwright-resolve.mjs"
+        "scripts/playwright-resolve.mjs",
+        "scripts/blast-radius.mjs",
+        "scripts/first-look-config.mjs",
+        "scripts/outside-reader-config.mjs"
       ],
       "features": [
         "FEAT-039"
@@ -173,7 +183,12 @@
       "kind": "workflow",
       "parts": [
         "scripts/product-report.mjs",
-        ".github/workflows/pages.yml"
+        ".github/workflows/pages.yml",
+        "scripts/ci-records.mjs",
+        "scripts/readme-check.mjs",
+        "scripts/runtime-measure.mjs",
+        "scripts/test-locked.mjs",
+        "scripts/test.mjs"
       ],
       "features": [
         "FEAT-039"
@@ -374,7 +389,11 @@
         "packages/nana-pack/bin/pi-review.mjs",
         "packages/nana-pack/bin/claude-review.mjs",
         "packages/nana-pack/bin/review-round.mjs",
-        "packages/nana-pack/prompts/review-standard.md"
+        "packages/nana-pack/prompts/review-standard.md",
+        "packages/nana-pack/bin/review-launch.mjs",
+        "packages/nana-pack/bin/review-ledger.mjs",
+        "packages/nana-pack/bin/review-shape.mjs",
+        "packages/nana-pack/bin/review-timeline.mjs"
       ],
       "features": [
         "FEAT-007"
@@ -416,7 +435,19 @@
       "parts": [
         "REQUIREMENTS.md",
         "scripts/requirements-trace.mjs",
-        "scripts/requirements-tree.mjs"
+        "scripts/requirements-tree.mjs",
+        "scripts/component-audit.mjs",
+        "scripts/component-audit-config.mjs",
+        "scripts/component-contract.mjs",
+        "scripts/deliverables.mjs",
+        "scripts/known-bugs.mjs",
+        "scripts/requirements-moved.mjs",
+        "scripts/requirements-regroup.mjs",
+        "scripts/requirements-lift.mjs",
+        "scripts/requirements-lift-proof.mjs",
+        "scripts/requirement-rows.mjs",
+        "scripts/requirements-tree.mjs",
+        "scripts/requirements-trace.mjs"
       ],
       "features": [
         "FEAT-028"
@@ -437,7 +468,10 @@
       "kind": "governance",
       "parts": [
         "scripts/code-map.mjs",
-        "code-map.config.json"
+        "code-map.config.json",
+        "scripts/code-map-launch.mjs",
+        "scripts/code-search.mjs",
+        "scripts/code-search-config.mjs"
       ],
       "features": [
         "FEAT-029"
@@ -501,7 +535,8 @@
       "kind": "governance",
       "parts": [
         "packages/nana-pack/rules/nana-writing.md",
-        "packages/nana-pack/bin/nana-writing.mjs"
+        "packages/nana-pack/bin/nana-writing.mjs",
+        "scripts/ts-syntax-check.mjs"
       ],
       "features": [
         "FEAT-005"
