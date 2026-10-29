@@ -448,14 +448,20 @@ export function renderInto(document, model, { hash = "" } = {}) {
     if (model.overview[0]) draw(model.overview[0], root);
     if (model.overview[1]) draw(model.overview[1], root);
     if (model.overview.length > 2) {
-      const records = el("details", undefined, root);
-      el("summary", "Records: Broken, Gaps and Stale", records);
-      for (const block of model.overview.slice(2)) { const section = el("section", undefined, records); draw(block, section); }
+      const recordsElement = el("details", undefined, root);
+      const records = model.overview.slice(2);
+      const firstLineCount = (block, label) => {
+        const firstLine = (block?.lines?.[0] ?? []).map((segment) => segment.text ?? segment.link?.text ?? "").join("");
+        const prefix = `${label}:`;
+        return firstLine.startsWith(prefix) ? /:\s*(\d+)/.exec(firstLine)?.[1] ?? "0" : "0";
+      };
+      el("summary", `Records: Broken ${firstLineCount(records[0], "Violated")} · Gaps ${firstLineCount(records[1], "Deliverables code does not make and read")} · Stale ${firstLineCount(records[2], "Feature assessments out of date")}`, recordsElement);
+      for (const block of records) { const section = el("section", undefined, recordsElement); draw(block, section); }
     }
   }
   if (view === "decisions") {
     const askLabels = model.askLabels;
-    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url) paragraph(card, "Ask", ask.body ?? ""); else for (const group of ask.groups ?? []) { paragraph(card, askLabels.question, group.question); paragraph(card, askLabels.recommends, ask.recommendation ?? askLabels.none); if (group.cost) paragraph(card, askLabels.cost, group.cost); if (group.otherwise) paragraph(card, askLabels.otherwise, group.otherwise); } }
+    for (const ask of model.asks) { const card = el("article", undefined, root); const title = typeof ask.title === "object" ? ask.title.title : ask.title; if (ask.url) { const heading = el("h3", undefined, card); const link = el("a", title, heading); link.setAttribute("href", ask.url); } else el("h3", title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); if (!ask.url) paragraph(card, "Ask", ask.body ?? ""); else for (const group of ask.groups ?? []) { paragraph(card, askLabels.question, group.question); paragraph(card, askLabels.recommends, group.default ?? ask.recommendation ?? askLabels.none); if (group.cost) paragraph(card, askLabels.cost, group.cost); if (group.otherwise) paragraph(card, askLabels.otherwise, group.otherwise); } }
     if (model.nextItems?.length) { el("h3", "Next", root); const list = el("ul", undefined, root); for (const item of model.nextItems) { const li = el("li", undefined, list); const link = el("a", `#${item.number} ${item.title}`, li); link.setAttribute("href", item.url); } }
     if (model.issueNotice) paragraph(root, "Issues", model.issueNotice);
     // contract (R-1571): shown when REQUIREMENTS.md's open-questions section has no entry.

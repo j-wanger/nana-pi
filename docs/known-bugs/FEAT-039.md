@@ -114,3 +114,6 @@
 - Decisions (page-needs-you, plan A9): the body parser does not lift a "Your call, because" reason line; the rest of the issue remains available in Decisions.
 - Decisions (page-needs-you, plan A10): recommendation labels match case-sensitively, so #231's lowercase `default:` is not lifted.
 - Overview (page-needs-you, plan A11): migrated issue asks use the body's open-since date in Needs you but the issue creation date in Decisions.
+- Outside reader (reader-at-land, final review): the finding split sees only numbered items, so a bulleted or headed answer prints "0 findings" although `reader.md` holds findings.
+- Outside reader (reader-at-land, final review): a `--from` folder with no `accessibility-diff.txt` fails the run with "purpose or page capture failed", though the plan expected the diff to be left out quietly.
+- Outside reader (reader-at-land, final review): an answer of "1. None" counts as one finding with its quote not found.

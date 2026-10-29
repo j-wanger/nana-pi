@@ -51,7 +51,7 @@ function cli(repo) {
 // req: R-3050
 await check("R-3050: Overview leads with What it does and Needs you, then closes Broken, Gaps and Stale in Records", async () => {
   assert.deepEqual(OVERVIEW_BLOCKS, [["What it does", "#product"], ["Needs you", "#decisions"], ["Broken", "#issues"], ["Gaps", "#product"], ["Stale", "#features"]]);
-  const repo = treeFixture(temp, "routing", basic());
+  const repo = treeFixture(temp, "routing", basic("product", ["Deliverables: R-001", ...code("R-001")]));
   const html = await page(repo, "routing");
   for (const hash of ["", "#overview", "#shared", "#nope", "#constructor"]) {
     const view = renderHtmlAt(html, hash);
@@ -60,7 +60,7 @@ await check("R-3050: Overview leads with What it does and Needs you, then closes
     assert.deepEqual(nav.children.map((node) => node.textContent), ["Overview", "Decisions", "Product", "Artifacts", "Features", "Issues", "Requirements"]);
     assert.equal(nav.children[0].attrs["aria-current"], "page");
     const details = view.root.children.find((node) => node.tag === "details");
-    assert.equal(details.children[0].textContent, "Records: Broken, Gaps and Stale");
+    assert.equal(details.children[0].textContent, "Records: Broken 0 · Gaps 0 · Stale 0");
     assert.equal("open" in details.attrs, false);
     const visible = view.root.children.filter((node) => node.tag === "h3").map((node) => node.textContent);
     const nested = details.children.filter((node) => node.tag === "section").flatMap((section) => section.children.filter((node) => node.tag === "h3").map((node) => node.textContent));
