@@ -32,3 +32,6 @@ export const VIEWPORT_HEIGHT = 1_000;
 export const STALL_SECS = Infinity;
 export const RETRIES = 0;
 export const MAX_SECS = 600;
+// chosen 2026-10-29: pi-review's parseWatchdogArgv default is 15s; runWatchdog itself has no default.
+// Explicit polling avoids a NaN interval and a busy poll loop while retaining the same wall-clock ceiling.
+export const POLL_SECS = 15;

@@ -83,7 +83,7 @@ await test("R-3061: pi runs once cold through the sealed watchdog in an empty ex
     const launch = launches[0];
     assert.deepEqual(launch.piArgs, ["-p", "--no-tools", "--no-session", "-ne", "-ns", "-nc", "-np", "--provider", "fake-provider", "--model", "fake-model", "--thinking", "high", `@${path.join(out, "prompt.md")}`, "go"]);
     assert.deepEqual(launch.entries, []); assert.ok(path.relative(root, launch.cwd).startsWith(".."));
-    assert.equal(launch.stallSecs, C.STALL_SECS); assert.equal(launch.retries, C.RETRIES); assert.equal(launch.maxSecs, C.MAX_SECS);
+    assert.equal(launch.stallSecs, C.STALL_SECS); assert.equal(launch.retries, C.RETRIES); assert.equal(launch.maxSecs, C.MAX_SECS); assert.equal(launch.pollSecs, C.POLL_SECS);
     assert.deepEqual(launch.childEnv, REVIEWER_CHILD_ENV); assert.equal(launch.accept(""), false); assert.equal(launch.accept("none"), true);
     assert.equal(await fs.readFile(path.join(out, "reader.md"), "utf8"), '1. "landing text" helps.');
     launches.length = 0;
@@ -155,7 +155,7 @@ await test("R-3066: outside-reader values retain their sealed provenance", async
   assert.equal(C.DIFF_CAP, 4000); assert.equal(C.KNOWN_BUG_CAP, 6000);
   assert.equal(C.PROMPT_PATH, "packages/nana-pack/prompts/outside-reader.md"); assert.equal(C.KNOWN_BUG_FEATURE, "FEAT-039");
   assert.deepEqual(C.ROSTER_SLOT_ORDER, ["scout", "land", "builder"]);
-  assert.equal(C.STALL_SECS, Infinity); assert.equal(C.RETRIES, 0); assert.equal(C.MAX_SECS, 600); assert.equal(C.VIEWPORT_HEIGHT, 1000);
+  assert.equal(C.STALL_SECS, Infinity); assert.equal(C.RETRIES, 0); assert.equal(C.MAX_SECS, 600); assert.equal(C.VIEWPORT_HEIGHT, 1000); assert.equal(C.POLL_SECS, 15);
   assert.equal(C.VIEWPORT_WIDTHS, VIEWPORT_WIDTHS);
 });
 if (!process.exitCode) console.log(`${passed} outside-reader checks passed`);

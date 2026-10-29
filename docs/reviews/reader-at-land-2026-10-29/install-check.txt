@@ -1,0 +1,24 @@
+Command exit: 1. Home and temporary paths redacted.
+pi: <home>/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: <home>/.hermes/node/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+FAIL pi post-edit — write-error: write tool result is marked as an error
+PASS pi-review
+PASS hook set
+PASS hook roster notice
+PASS hook shared memory
+PASS hook verifier pipe (Bash)
+PASS hook knowledge pull
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+settings hooks: {"SessionStart":[{"hooks":[{"type":"command","command":"node '<temporary-folder>/nana-install-check-SmfUck/.claude/hooks/nana-objective.mjs'","timeout":5,"statusMessage":"nana: objective + current priority"},{"type":"command","command":"node '<temporary-folder>/nana-install-check-SmfUck/.claude/hooks/nana-adoption.mjs'","timeout":5,"statusMessage":"nana: unadopted repositories"},{"type":"command","command":"node '<temporary-folder>/nana-install-check-SmfUck/.claude/hooks/nana-shared-memory.mjs'","timeout":5,"statusMessage":"nana: shared memory index"},{"type":"command","command":"node '<temporary-folder>/nana-install-check-SmfUck/.claude/hooks/nana-roster-notice.mjs'","timeout":5,"statusMessage":"nana: roster notice"}]}],"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"node '<temporary-folder>/nana-install-check-SmfUck/.claude/hooks/verifier-pipe.mjs'","timeout":5,"statusMessage":"nana: verifier pipe"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"NODE_NO_WARNINGS=1 node '<home>/nana-pi-wt/reader-at-land/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull"}]}]}
+last pull.log record: {"ts":"2026-10-29T12:01:03.133Z","cwd":"<temporary-folder>/nana-install-check-SmfUck/project","session_id":null,"source":null,"reason":"ok","tokens":["nana","install","check","validate","fixture","installcheck_mvthsbb2"],"hits":["~/notes/docs/install-check.md"],"ms":4}
+install-check home retained: <temporary-folder>/nana-install-check-SmfUck

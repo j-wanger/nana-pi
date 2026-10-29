@@ -47,6 +47,7 @@ All definitions live in `scripts/outside-reader-config.mjs` and are pinned by R-
 - ROSTER_SLOT_ORDER scout, land, builder: plan Q3 default, skipping non-pi entries.
 - STALL_SECS Infinity: flat thinking can be healthy; worker-config's Claude builder precedent.
 - RETRIES 0, MAX_SECS 600: plan A8, working one-off rerun's ceiling; one attempt only.
+- POLL_SECS 15: chosen to match pi-review's parseWatchdogArgv default. The watchdog requires callers to supply it; its direct API has no default.
 
 ## Precedent and departures
 
@@ -54,7 +55,7 @@ All named precedent files were read. The resolver moved verbatim into the same s
 
 New answer format: numbered findings (`1.` or `1)`), straight or curly quotes, preamble discarded. A match on any quote passes the finding. Raw model output remains in reader.md; stdout adds the unmatched mark. Empty views or missing diffs fail with a bounded capture note rather than starting the reader.
 
-No precedent departure was needed. The new viewport height follows first-look rather than the one-off's two different heights; the plan requires first-look's widths, and no height-specific behavior. Watchdog progress stays on stderr as in its existing callers; the command's failure line contains no raw child text.
+One addition to the plan's listed watchdog options was needed: explicit pollSecs, sealed at 15 seconds. The first real run exposed a busy poll loop because runWatchdog has no polling default; pi-review supplies it through its parsed options. The reader now follows that effective precedent. No shared launcher was edited. The new viewport height follows first-look rather than the one-off's two different heights; the plan requires first-look's widths, and no height-specific behavior. Watchdog progress stays on stderr as in its existing callers; the command's failure line contains no raw child text.
 
 The tracked build brief's machine-specific scratch path failed identity-scan before the feature. It was replaced with a generic location description, not allowlisted. Fixture contents remain unchanged.
 
@@ -79,4 +80,22 @@ Only `packages/nana-setup/tests/seat-rule.test.mjs`: header/comment and bullet-c
 
 Suite summary: `234 files: 232 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8678 pass, 0 fail, 44 skip · 560.6s`.
 
-Real-run and final-tip check results will follow in this record before the final commit. No issue was created, edited or commented on. HANDOFF, known-bug files and session archives were not edited.
+## Real run
+
+After the first green locked suite, cloned implementation commit `09a373cd` into OS temporary storage, added a local main ref, and changed only the report heading `Needs you` to `Your urgent decisions`. The disposable clone committed this trial change so first-look's HEAD comparison could see it. PW_ROOT pointed at the existing main checkout, following the documented plain-clone fallback limitation. Both commands ran without injected seams and exited 0.
+
+- `npm run first-look -- --page product --out <temporary-folder>/reader-at-land-real-look`: `first-look: saved screenshots and accessibility diff in <temporary-folder>/reader-at-land-real-look`.
+- `npm run outside-reader -- --from <temporary-folder>/reader-at-land-real-look --out <temporary-folder>/reader-at-land-real-read`: `outside-reader: 1 findings, 0 quotes not found; saved in <temporary-folder>/reader-at-land-real-read`.
+- The roster selected its land pi entry, openai-codex gpt-6-astra. The finding said the new urgent heading contradicted zero blocking asks. Classification: 1 new, 0 already-known, 0 noise. This is the intentionally introduced trial defect, not a defect in the lane tree.
+- Full stdout/stderr, with temporary paths redacted, is in `real-run.txt`. No screenshots, generated report, prompt or raw page text from this trial entered git.
+- Real-run observation: the watchdog printed `flat=…/NaN` rapidly because pollSecs was absent. It still returned the finding. The caller fix and sealed-value pin then went through red/green: R-3066 failed on undefined versus 15; after the config definition, R-3061 failed on the missing caller option; after wiring, all seven reader checks passed. No second real model run was made.
+
+## Additional checks and limits
+
+`node packages/nana-setup/bin/install-check.mjs` ran locally on macOS because this lane touches the seat guide. Exit 1: `FAIL pi post-edit — write-error: write tool result is marked as an error`. All other measured items passed. The sanitized output is in `install-check.txt`; the command retained its temporary home. This is outside the reader and its changes, so no install, hook or gate code was edited. The failure remains for the seat to assess before land.
+
+The first-look resolver change touches the module associated with its existing live-issue diff, age-line noise and plain-clone fallback limits. None was fixed or widened; the real run used PW_ROOT as already documented. No known-bug file was edited.
+
+No CI run was requested or started. Windows execution was not available locally; no new test uses a real browser or model. No issue was created, edited or commented on. HANDOFF and session archives were not edited.
+
+The final follow-up commit adds the poll interval and its pins, plus this real-run record. It follows a second plain-foreground locked suite: exit 0, `234 files: 232 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8678 pass, 0 fail, 44 skip · 557.5s`. Required checks are repeated on that last commit, and their exit codes belong in the builder's final report.

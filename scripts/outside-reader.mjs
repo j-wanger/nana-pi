@@ -19,7 +19,7 @@ import { resolveRoster } from "../packages/nana-pack/bin/nana-roster.mjs";
 import { piAgentDir } from "../packages/nana-pack/lib/agent-dir.mjs";
 import { REVIEWER_CHILD_ENV } from "../packages/nana-pack/bin/worker-config.mjs";
 import { KNOWN_BUGS_DIR } from "../packages/nana-pack/lib/known-bugs-config.mjs";
-import { MAX_FINDINGS, READER_VIEWS, VIEW_TEXT_CAP, PHONE_LANDING_TEXT_CAP, DIFF_CAP, KNOWN_BUG_CAP, PROMPT_PATH, KNOWN_BUG_FEATURE, ROSTER_SLOT_ORDER, STALL_SECS, RETRIES, MAX_SECS, VIEWPORT_WIDTHS, VIEWPORT_HEIGHT } from "./outside-reader-config.mjs";
+import { MAX_FINDINGS, READER_VIEWS, VIEW_TEXT_CAP, PHONE_LANDING_TEXT_CAP, DIFF_CAP, KNOWN_BUG_CAP, PROMPT_PATH, KNOWN_BUG_FEATURE, ROSTER_SLOT_ORDER, STALL_SECS, RETRIES, MAX_SECS, POLL_SECS, VIEWPORT_WIDTHS, VIEWPORT_HEIGHT } from "./outside-reader-config.mjs";
 
 const SOURCE_ROOT = fileURLToPath(new URL("../", import.meta.url));
 const INSTALL_LINE = "outside-reader: Playwright is unavailable; install it with `npm install --no-save playwright` and `npx playwright install chromium`.";
@@ -121,7 +121,7 @@ export async function runOutsideReader(argv = [], injected = {}) {
     const piArgs = ["-p", "--no-tools", "--no-session", "-ne", "-ns", "-nc", "-np", ...(provider ? ["--provider", provider] : []), "--model", model, ...(thinking ? ["--thinking", thinking] : []), `@${promptFile}`, "go"];
     let result;
     try {
-      result = await (injected.watchdog ?? runWatchdog)("outside-reader", { piArgs, cwd, childEnv: REVIEWER_CHILD_ENV, stallSecs: STALL_SECS, retries: RETRIES, maxSecs: MAX_SECS, accept: (text) => Boolean(text.trim()) });
+      result = await (injected.watchdog ?? runWatchdog)("outside-reader", { piArgs, cwd, childEnv: REVIEWER_CHILD_ENV, stallSecs: STALL_SECS, retries: RETRIES, maxSecs: MAX_SECS, pollSecs: POLL_SECS, accept: (text) => Boolean(text.trim()) });
     } catch { /* bounded below, never expose model or spawn error text */ }
     if (!result?.ok || result.ceiling || !result.text?.trim()) { stdout("outside-reader: the reader run failed"); return 1; }
     await writeFile(answerFile, result.text, "utf8");
