@@ -107,7 +107,6 @@
 - First look (first-look, build 1): both report builds read issues live, so an issue change between the two builds shows in the diff; the plan attack's fixed issue read was not built.
 - First look (first-look, seat check): the accessibility diff keeps the report's age lines (commits and days before HEAD), which shift on every lane; a one-heading change against main gave 19 changed views and 45 KB.
 - First look (first-look, seat check): in a plain clone with no Playwright, the main-checkout fallback finds the clone itself; `PW_ROOT` is needed there.
-- First look (first-look, final review): the seat guide's command has no `--out`, so as written it prints usage and exits 2; `--page desk` also needs `--before` and `--after`.
 - First look (first-look, final review): R-3040 is wider than its test; the test injects the report runner, so the worktree add, child build and cleanup are not run by any test.
 - First look (first-look, final review): the view list comes from the before build only, so a feature the lane adds gets no diff.
 - First look (first-look, final review): the page-shaping list covers only the report's direct imports; a lane that changes a deeper module gets "nothing to show".
@@ -129,3 +128,5 @@
 - Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
 - Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.
 - Records summary (records-counts, final review): the summary writes `failed`, `skipped` and `unmeasured` inline while `OVERVIEW_LABELS` gains unused `skipped` and `unmeasured` labels, so renaming those labels changes nothing.
+- Visual check (visual-check, seat check): the `--control` run has no phone frame among the references, so the 380 px spec line is always unjudged there.
+- Visual check (visual-check, build 1): `scripts/first-look-config.mjs` copies the hive background `#d7d9d5` as a literal because the hive config is not on main yet; it should import it once hive-render lands.
