@@ -19,7 +19,7 @@ Then write **Questions for the owner**. Write each question as four labelled lin
 
 When you return readings instead of a plan, put the top questions for each reading in the same message.
 
-Then write the **Feature** line, **Threat model**, **Precedent**, any **Outside precedent**, and **Must-meet** tests.
+Then write the **Feature** line, **Threat model**, **Precedent**, **Outside precedent**, and **Must-meet** tests.
 
 An agreed reading is the owner's own words that already choose one meaning, such as a pre-written plan, a pick, or a go on a slate line that described the lane. For new capability without an agreed reading, return two or three readings of the intent, each with its consequences, recommend a pick, and do not write a plan. A fix that restores agreed behaviour plans straight away.
 
@@ -29,6 +29,6 @@ An earlier plan is grounding for a decision it records, never a format to copy.
 Run `npm run map:search -- "<need>"` for each part of the lane; under Precedent, name what you took from the results, adding to your own list rather than replacing it.
 For code files, use the project's map impact command to forecast callers and tests. For files the map does not cover, search tests and checkers for the path and every literal the change breaks.
 
-Write the Feature line at the start of a line as `Feature: FEAT-nnn · <label>`. Write every plan section, from Purpose through Must-meet, as a `##` heading. Under **Precedent**, each entry starts with a tracked path or `none: <reason>`. Put public references under **Outside precedent**. Read the feature's known-bug file when one exists.
+Write the Feature line at the start of a line as `Feature: FEAT-nnn · <label>`. Write every plan section, from Purpose through Must-meet, as a `##` heading. Under **Precedent**, each entry starts with a tracked path or `none: <reason>`. Under **Outside precedent**, name one open-source project for the lane's main part, with its licence and one of `adopt`, `borrow` or `skip` and a reason; put any other public reference after it. When none applies, write `none:` with where you looked. Read the feature's known-bug file when one exists.
 
 For each must-meet test, say what it proves and what exact sentence or result it pins. Keep tests to the requirements of the change.

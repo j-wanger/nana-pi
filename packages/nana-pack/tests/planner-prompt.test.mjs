@@ -46,6 +46,12 @@ check("R-2951: planner prompt requests Questions for the owner in plan-section o
 		prompt.includes("For a fix, name the row, ruling or contract it restores.");
 })(), prompt);
 
+// req: R-3030
+check("R-3030: planner prompt makes Outside precedent part of the required section order", prompt.includes("Then write the **Feature** line, **Threat model**, **Precedent**, **Outside precedent**, and **Must-meet** tests."), prompt);
+
+// req: R-3031
+check("R-3031: planner prompt requires a licensed outside project or a located none", prompt.includes("Under **Outside precedent**, name one open-source project for the lane's main part, with its licence and one of `adopt`, `borrow` or `skip` and a reason; put any other public reference after it. When none applies, write `none:` with where you looked."), prompt);
+
 // req: R-3010
 check("R-3010: planner prompt specifies the owner-question form, ranking and overflow", [
 	"Then write **Questions for the owner**. Write each question as four labelled lines: `Question:`, `Default:`, `Cost of a wrong guess:` (starting `easy to undo` or `hard to undo`), and `If answered otherwise:`. Order them from the costliest wrong guess down. Keep the top one to three; make every other question a marked assumption. With no open question, write `None.`",
@@ -76,7 +82,7 @@ check("R-2953: planner prompt pins its planning and forecast rules without scrat
 
 // req: R-2954
 check("R-2954: a plan in the prompt form passes brief parsing and precedent checking", (() => {
-	const sample = `Feature: FEAT-006 · Launch builders with execution limits\n\n## Precedent\n- AGENTS.md\n- none: no code precedent for the manual prompt text\n\n## Outside precedent\n- Public reference: a planning approach\n`;
+	const sample = `Feature: FEAT-006 · Launch builders with execution limits\n\n## Precedent\n- AGENTS.md\n- none: no code precedent for the manual prompt text\n\n## Outside precedent\n- Rust RFC template, MIT/Apache-2.0, \`borrow\`: its Prior art section asks the same question; we take the idea, not the text.\n`;
 	const mergedBoldOutside = `Feature: FEAT-006 · Launch builders with execution limits\n\n## Precedent\n- AGENTS.md\n**Outside precedent**\n- Public reference: a planning approach\n`;
 	const parsed = readBrief(sample);
 	const refused = readBrief(mergedBoldOutside);
