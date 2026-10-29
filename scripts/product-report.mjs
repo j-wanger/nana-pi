@@ -81,7 +81,7 @@ export const OVERVIEW_LABELS = Object.freeze({
   recommendation: ASK_LABELS.recommends, question: ASK_LABELS.question, cost: ASK_LABELS.cost,
   otherwise: ASK_LABELS.otherwise, noneRecorded: ASK_LABELS.none,
   violated: "Violated", notPassed: "Did not pass in this clone's last measured run",
-  failed: "failed", skippedOnly: "skipped only", noRun: "implemented rows with no recorded run",
+  failed: "failed", skippedOnly: "skipped only", skipped: "skipped", unmeasured: "unmeasured", noRecordedRun: "no recorded run", noRun: "implemented rows with no recorded run (unmeasured)",
   runtimeMissing: "no recorded run: ", deliverableGaps: "Deliverables code does not make and read",
   notes: "deliverable notes", artifactGaps: "Artifacts with no declared reader",
   assessments: "Feature assessments out of date", unassessed: "unassessed",
@@ -450,12 +450,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
     if (model.overview.length > 2) {
       const recordsElement = el("details", undefined, root);
       const records = model.overview.slice(2);
-      const firstLineCount = (block, label) => {
-        const firstLine = (block?.lines?.[0] ?? []).map((segment) => segment.text ?? segment.link?.text ?? "").join("");
-        const prefix = `${label}:`;
-        return firstLine.startsWith(prefix) ? /:\s*(\d+)/.exec(firstLine)?.[1] ?? "0" : "0";
-      };
-      el("summary", `Records: Broken ${firstLineCount(records[0], "Violated")} · Gaps ${firstLineCount(records[1], "Deliverables code does not make and read")} · Stale ${firstLineCount(records[2], "Feature assessments out of date")}`, recordsElement);
+      el("summary", model.recordsSummary, recordsElement);
       for (const block of records) { const section = el("section", undefined, recordsElement); draw(block, section); }
     }
   }
@@ -1023,12 +1018,13 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
       ...staleEntries.map((entry) => [{ text: `${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days` }, ...makerSegments(entry)])],
   ];
+  const recordsSummary = `Records: violated ${violated.length} · ${runtimeData ? `failed ${failed} · skipped ${notPassed.length - failed} · unmeasured ${noRun}` : labels.noRecordedRun} · Gaps ${deliverableGaps.length} · Stale ${outdated.length}`;
   const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));
   const issueItems = issueData?.items ?? [];
   const issueAsks = shapedAsks.map((ask) => ({ number: ask.number, kind: ask.tag.kind, since: ask.tag.since, title: ask.title.title, body: ask.title.body, url: ask.url ?? null, groups: ask.parsed.groups, recommendation: ask.parsed.recommendation }));
   const nextItems = issueItems.filter((item) => item.kind === "next").map((item) => ({ ...item, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }));
   const issueNotice = issueData?.failure ?? (issueData?.truncated ? "Open issues may be longer than the fetched list." : null);
-  const model = { commit, date, clean: !dirty, askLabels: ASK_LABELS, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, askLabels: ASK_LABELS, recordsSummary, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 

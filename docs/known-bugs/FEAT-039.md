@@ -12,7 +12,7 @@
 - Test details in the report (report-test-details): a project with no runtime data, Python projects included, shows every test as having no recorded run.
 - Test details in the report (report-test-details): nobody has opened a test link inside the hosted page. The links open a new tab because of a guess that a plain link fails there.
 - Not-passed list (report-not-passed): a failing test file fixed after the run keeps its row listed, marked changed since, until someone measures again.
-- Not-passed list (report-not-passed): a row citing a skipped file beside a file with no recorded run is left out. No such row exists today.
+- Not-passed list (report-not-passed): a row citing a skipped file beside a file with no recorded run is left out. The Records summary's failed, skipped and unmeasured counts also leave that row out. No such row exists today.
 - Not-passed list (report-not-passed): with no runtime data, the list's heading reads 0. The legend just above it says the report found no run.
 - Not-passed list (report-not-passed): a label marked changed since still decides the list, so a stale skip keeps its row listed. The plan's adversary called this the claim most likely wrong and left it to the owner. Reversing it changes one rule and flips one requirement.
 - Not-passed list (report-not-passed): no check pins that a row citing no test file is never listed. Every check stays green with the empty-run guard removed.
@@ -119,3 +119,4 @@
 - Outside reader (reader-at-land, final review): an answer of "1. None" counts as one finding with its quote not found.
 - Outside reader (reader-at-land, seat check): the reader's watchdog heartbeat prints `flat=0/NaN` because its stall limit is switched off.
 - Outside reader (reader-at-land, seat check): the reader returned two findings on its first real lane; whether its new-finding rate holds over later lanes is not yet measured.
+- Overview (records-counts, plan): with no deliverable lines, the Records summary still shows `Gaps 0`.

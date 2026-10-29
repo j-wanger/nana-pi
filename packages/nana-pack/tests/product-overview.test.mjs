@@ -49,6 +49,7 @@ function cli(repo) {
 }
 
 // req: R-3050
+// req: R-3081
 await check("R-3050: Overview leads with What it does and Needs you, then closes Broken, Gaps and Stale in Records", async () => {
   assert.deepEqual(OVERVIEW_BLOCKS, [["What it does", "#product"], ["Needs you", "#decisions"], ["Broken", "#issues"], ["Gaps", "#product"], ["Stale", "#features"]]);
   const repo = treeFixture(temp, "routing", basic("product", ["Deliverables: R-001", ...code("R-001")]));
@@ -60,7 +61,7 @@ await check("R-3050: Overview leads with What it does and Needs you, then closes
     assert.deepEqual(nav.children.map((node) => node.textContent), ["Overview", "Decisions", "Product", "Artifacts", "Features", "Issues", "Requirements"]);
     assert.equal(nav.children[0].attrs["aria-current"], "page");
     const details = view.root.children.find((node) => node.tag === "details");
-    assert.equal(details.children[0].textContent, "Records: Broken 0 · Gaps 0 · Stale 0");
+    assert.equal(details.children[0].textContent, "Records: violated 0 · no recorded run · Gaps 0 · Stale 0");
     assert.equal("open" in details.attrs, false);
     const visible = view.root.children.filter((node) => node.tag === "h3").map((node) => node.textContent);
     const nested = details.children.filter((node) => node.tag === "section").flatMap((section) => section.children.filter((node) => node.tag === "h3").map((node) => node.textContent));
@@ -140,6 +141,37 @@ await check("R-2922: Broken names the violated rows and the implemented rows tha
   assert.equal(actual[3], "R-002, R-004");
   const ids = renderHtmlAt(html, "#issues").nodes.filter((node) => node.attrs?.class === "row-heading").map((node) => node.textContent.split(" ")[0]);
   assert.deepEqual(ids, ["R-001", "R-002", "R-004"]);
+});
+// req: R-3080
+await check("R-3080: Records summary separates violated, failed, skipped and unmeasured runtime counts", async () => {
+  let ledger = stage("CAP-01", "First", ["Deliverables: R-001", ...code("R-001")]) + "\n" + feature("FEAT-001", [["R-001", "implemented"], ["R-002", "violated"], ["R-003", "implemented"], ["R-004", "implemented"], ["R-005", "implemented"]]);
+  const evidence = { "R-001": "f", "R-003": "s", "R-004": "n" };
+  ledger = ledger.split("\n").map((line) => { const id = line.split(" ")[1]; return evidence[id] ? line.replace("—", "`tests/" + evidence[id] + ".test.mjs::case`") : line; }).join("\n");
+  const repo = treeFixture(temp, "records-runtime", ledger);
+  const tip = repo.git(["rev-parse", "HEAD"]).stdout.trim();
+  writeRuntimeFile(repo.root, { schema: 1, hashes: {}, tests: { "tests/f.test.mjs": { label: "FAIL", seconds: 1, ran: [] }, "tests/s.test.mjs": { label: "SKIP", seconds: 0, ran: [] } }, tip, measuredAt: "2026-01-01T00:00:00Z" });
+  const view = renderHtmlAt(await page(repo, "records-runtime"));
+  const details = view.root.children.find((node) => node.tag === "details");
+  assert.equal(details.children[0].textContent, "Records: violated 1 · failed 1 · skipped 1 · unmeasured 1 · Gaps 0 · Stale 0");
+  assert.equal("open" in details.attrs, false);
+  assert.match(lines(view, 2)[0], /^Deliverables code does not make and read: 0 ·/);
+  assert.ok(lines(view, 1)[2].includes(MEASURED_AT_TIP_PREFIX));
+});
+// req: R-3082
+await check("R-3082: Records summary comes from the model when the Broken label is renamed", async () => {
+  const repo = treeFixture(temp, "records-model", basic("product", ["Deliverables: R-001", ...code("R-001")]));
+  const html = await page(repo, "records-model");
+  const openTag = '<script id="report-data" type="application/json">';
+  const dataStart = html.indexOf(openTag);
+  const dataEnd = html.indexOf("</script>", dataStart);
+  assert.ok(dataStart >= 0 && dataEnd > dataStart);
+  const data = html.slice(dataStart + openTag.length, dataEnd);
+  const model = JSON.parse(data);
+  model.overview[2].lines[0][0].text = "Renamed: 9";
+  model.recordsSummary = "Records: model summary";
+  const changed = html.slice(0, dataStart + openTag.length) + JSON.stringify(model) + html.slice(dataEnd);
+  const view = renderHtmlAt(changed);
+  assert.equal(view.root.children.find((node) => node.tag === "details").children[0].textContent, "Records: model summary");
 });
 // req: R-2923
 await check("R-2923: Gaps names the unparked deliverables code does not make and read and the artifacts with no declared reader, each beside its parked count, and counts the checker's notes", async () => {
