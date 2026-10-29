@@ -8,7 +8,6 @@
  * @errors Usage errors exit 2; report/browser setup failures are bounded and never expose raw errors.
  */
 import { spawnSync } from "node:child_process";
-import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
@@ -16,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS } from "./first-look-config.mjs";
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+import { resolvePlaywright } from "./playwright-resolve.mjs";
 const INSTALL_LINE = "first-look: Playwright is unavailable; install it with `npm install --no-save playwright` and `npx playwright install chromium`.";
 const runGit = (cwd, args) => {
   const result = spawnSync("git", args, { cwd, encoding: "utf8", windowsHide: true });
@@ -34,18 +33,6 @@ function parseArgs(argv) {
   if (result["--page"] === "product" && (!result["--out"] || result["--before"] || result["--after"])) return null;
   if (result["--page"] === "desk" && (!result["--before"] || !result["--after"] || result["--out"])) return null;
   return result;
-}
-function resolvePlaywright(env, root) {
-  const common = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
-  const commonDir = common.status === 0 ? path.resolve(root, common.stdout.trim()) : null;
-  const mainRoot = commonDir ? path.dirname(commonDir) : null;
-  for (const base of [env.PW_ROOT, SCRIPT_DIR, mainRoot].filter(Boolean)) {
-    const require = createRequire(path.join(path.resolve(base), "first-look-resolve.cjs"));
-    for (const name of ["playwright", "playwright-core"]) {
-      try { return require(name); } catch { /* try the next declared location */ }
-    }
-  }
-  return null;
 }
 function changedPagePath(file) {
   return PAGE_SHAPING_PATHS.some((entry) => entry.endsWith("/") ? file.startsWith(entry) : file === entry);

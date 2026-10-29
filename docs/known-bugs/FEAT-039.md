@@ -117,3 +117,5 @@
 - Outside reader (reader-at-land, final review): the finding split sees only numbered items, so a bulleted or headed answer prints "0 findings" although `reader.md` holds findings.
 - Outside reader (reader-at-land, final review): a `--from` folder with no `accessibility-diff.txt` fails the run with "purpose or page capture failed", though the plan expected the diff to be left out quietly.
 - Outside reader (reader-at-land, final review): an answer of "1. None" counts as one finding with its quote not found.
+- Outside reader (reader-at-land, seat check): the reader's watchdog heartbeat prints `flat=0/NaN` because its stall limit is switched off.
+- Outside reader (reader-at-land, seat check): the reader returned two findings on its first real lane; whether its new-finding rate holds over later lanes is not yet measured.
