@@ -279,6 +279,8 @@ The product report is a generated HTML ledger of capabilities, features, require
 
 The Issues view also lists every implemented row that did not pass in this clone's last measured run, headed by the count of rows listed: a row lands there when any file it cites last recorded FAIL, or when every file it cites has a recorded run and none recorded PASS. A file with no recorded run counts neither way. A label marked "changed since" still decides that listing, and the report still shows the "changed since" mark beside it.
 
+For a first-look comparison after build 1, run `npm run first-look -- --page product --out <dir>`. `scripts/first-look.mjs` builds the report at main and at the current checkout, then saves four screenshots and the report-view accessibility diff. Its sealed inputs live in `scripts/first-look-config.mjs`. The command uses Playwright when available through `PW_ROOT`, the script's module search path or the main checkout; otherwise it prints the Playwright install instruction and exits successfully. The desk mode compares two running URLs with `npm run first-look -- --page desk --before <url> --after <url>` and saves to temporary storage. No real browser is launched by the suite; `packages/nana-pack/tests/first-look.test.mjs` uses a fake browser and report runner.
+
 ## Tests
 
 On a shared machine, run the full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.

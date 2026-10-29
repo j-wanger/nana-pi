@@ -9,7 +9,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 462 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 465 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -674,6 +674,26 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 - **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `scripts/requirements-moved.mjs`
 
+### `scripts/first-look-config.mjs`
+
+- **purpose** — Seals the product-page inputs used by first-look change detection.
+- **inputs** — None.
+- **outputs** — Frozen page-shaping paths and viewport widths.
+- **effects** — none
+- **errors** — None.
+- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `scripts/first-look.mjs`
+- **callees** — —
+
+### `scripts/first-look.mjs`
+
+- **purpose** — Captures before and after product or desk pages for a lane's first visual review.
+- **inputs** — CLI options, git checkout state, report children, Playwright and an optional injected test seam.
+- **outputs** — Four screenshots, an accessibility-tree diff, or one bounded no-change/browser note.
+- **effects** — disk (temporary reports/worktree and requested output), process (git, report children and browser).
+- **errors** — Usage errors exit 2; report/browser setup failures are bounded and never expose raw errors.
+- **callers** — `packages/nana-pack/tests/first-look.test.mjs`
+- **callees** — `scripts/first-look-config.mjs`, `scripts/product-report.mjs`
+
 ### `scripts/identity-scan.mjs`
 
 - **purpose** — Find tracked paths and content whose identity-word counts violate the repository allowlist.
@@ -711,7 +731,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
-- **callers** — `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/test-locked.mjs`
+- **callers** — `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/first-look.mjs`, `scripts/test-locked.mjs`
 - **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/readme-check.mjs`
@@ -2367,6 +2387,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — none; a write failure throws through node:fs
 - **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`
+
+### `packages/nana-pack/tests/first-look.test.mjs`
+
+- **purpose** — Pins first-look report building, page-change detection, browser fallback and its sealed page inputs.
+- **inputs** — First-look implementation and temporary test directories.
+- **outputs** — PASS/FAIL lines and a nonzero exit when a contract fails.
+- **effects** — disk (OS temporary fixtures only)
+- **errors** — A failed assertion exits 1.
+- **callers** — —
+- **callees** — `scripts/first-look-config.mjs`, `scripts/first-look.mjs`
 
 ### `packages/nana-pack/tests/frontier-golden.test.mjs`
 
@@ -4400,7 +4430,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/seat-rule.test.mjs`
 
-- **purpose** — Pins that the seat guide opens with exactly one scope sentence and carries each of its twelve rules exactly once, with no other bullet, numbered or not.
+- **purpose** — Pins that the seat guide opens with exactly one scope sentence and carries each of its thirteen rules exactly once, with no other bullet, numbered or not.
 - **inputs** — packages/nana-setup/claude/rules/nana-seat.md
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (reads the guide file)
