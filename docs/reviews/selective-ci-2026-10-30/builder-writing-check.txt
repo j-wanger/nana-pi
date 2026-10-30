@@ -1,0 +1,43 @@
+docs/reviews/selective-ci-2026-10-30/builder-report.md:1: verdict: first sentence "VERDICT: BLOCKED" carries no verdict word
+docs/reviews/selective-ci-2026-10-30/builder-report.md:5: identifier: `feat/selective-ci`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:7: identifier: `docs/code-map.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:13: identifier: `packages/nana-pack/bin/nana-main-ci.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:13: identifier: `packages/nana-pack/lib/main-ci.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:13: identifier: `packages/nana-pack/lib/ci-records.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:13: identifier: `packages/nana-pack/tests/main-ci.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:14: identifier: `ci`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:18: identifier: `runId`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:19: identifier: `packages/nana-pack/lib/frontier-summary.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:19: identifier: `packages/nana-pack/lib/frontier-summary-config.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:19: identifier: `packages/nana-pack/tests/frontier-summary.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:19: identifier: `packages/nana-setup/claude/rules/nana-seat.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:23: identifier: `packages/nana-pack/lib/lane-class-config.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:23: identifier: `packages/nana-pack/tests/lane-class.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:25: identifier: `REQUIREMENTS.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:26: identifier: `packages/nana-pack/tests/ci-workflow.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:27: identifier: `.github/workflows/ci.yml`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:28: identifier: `packages/nana-pack/README.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:29: identifier: `docs/requirements-tree.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:30: identifier: `docs/components/nana-pi.json`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:33: identifier: `file::title`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:33: identifier: `REQUIREMENTS.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:34: identifier: `linkRepo`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:41: identifier: `main-ci.test.mjs::R-3183: main push reds include advisory legs missing records jobs and older finished runs with scanned deduplicated seat-only posting`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:44: identifier: `frontier-summary.test.mjs::R-3184: the bounded and omitted seat blocks name main CI beside issue watch only with its workflow and the rule requires both runs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:46: identifier: `frontier-summary.test.mjs::seal R-3184: the runnable main CI command prefix`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:47: identifier: `lane-class.test.mjs::R-3185: the CI workflow runner and runner config are explicit gate files`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:48: identifier: `ci-workflow.test.mjs::main pushes run the full suite on all systems without path filters or issue-writing permissions`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:52: identifier: `lane-class.test.mjs::seal: R-2961 class paths and launched CLIs match the reviewed path list`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:62: identifier: `builder-mutation-output.txt`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:77: identifier: `node packages/nana-pack/tests/<file>.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:102: identifier: `--check`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:122: identifier: `ghDefault`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:123: identifier: `readCiRecords`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:123: identifier: `finalFiles`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:125: identifier: `mainCiCommand`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:125: identifier: `watchCommand`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:129: identifier: `existsSync`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:129: identifier: `renderBlock`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:149: identifier: `docs/code-map.md`
+docs/reviews/selective-ci-2026-10-30/builder-report.md:154: identifier: `0 missing`
+summary sentences=85 words=1083 over=0 passive=0 banned=0 verdict=0/1 identifiers=41

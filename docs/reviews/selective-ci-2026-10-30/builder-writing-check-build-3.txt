@@ -1,0 +1,31 @@
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:1: verdict: first sentence "VERDICT: DONE" carries no verdict word
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:5: identifier: `implemented`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:12: identifier: `REQUIREMENTS.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:13: length: 32 words (cap 25)
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:13: passive: passive candidate: "cancelled" in "`packages/nana-pack/lib/main-ci.mjs`: extend the existing filtered, descending main push list; select the newest finished non-cancelled run, count newer cancelled runs and return before reading records or posting when all finished runs are cancelled."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:13: identifier: `packages/nana-pack/lib/main-ci.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:14: identifier: `packages/nana-pack/tests/main-ci.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:15: identifier: `packages/nana-pack/README.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:16: identifier: `docs/code-map.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:17: identifier: `builder-cancelled-pair.txt`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:17: identifier: `builder-checks-build-3.txt`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:17: identifier: `builder-suite-build-3.txt`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:24: passive: passive candidate: "cancelled" in "Every finished main push in the page is cancelled, with a newer successful PR run present."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:27: passive: passive candidate: "edited" in "No other test declaration was edited, added or deleted."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:29: passive: passive candidate: "added" in "No text line reader, asynchronous harness, sealed tunable or seat-script test was added."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:33: identifier: `node packages/nana-pack/tests/main-ci.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:45: identifier: `builder-cancelled-pair.txt`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:62: passive: passive candidate: "retained" in "Full output is retained in the named evidence files, with local paths replaced and trailing whitespace removed."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:63: identifier: `nana-writing --report`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:70: identifier: `ordinary`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:70: identifier: `also reaches`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:75: identifier: `packages/nana-pack/lib/main-ci.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:75: identifier: `packages/nana-pack/tests/main-ci.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:78: identifier: `readCiRecords`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:78: identifier: `finalFiles`
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:79: passive: passive candidate: "copied" in "No helper was copied, moved or exposed."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:85: passive: passive candidate: "fixed" in "No other listed known bug is fixed or touched."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:87: passive: passive candidate: "edited" in "No HANDOFF, known-bug file or session archive was edited."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:88: passive: passive candidate: "created" in "No GitHub issue was created, edited, commented on or closed."
+docs/reviews/selective-ci-2026-10-30/builder-report-3.md:89: passive: passive candidate: "started" in "No model session or subagent was started."
+summary sentences=44 words=558 over=1 passive=10 banned=0 verdict=0/1 identifiers=18

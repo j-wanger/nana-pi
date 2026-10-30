@@ -1,0 +1,56 @@
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:5: identifier: `docs/code-map.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:7: identifier: `linkRepo`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:9: identifier: `pi post-edit`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:12: identifier: `builder-report.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:16: identifier: `packages/nana-pack/bin/nana-main-ci.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:16: identifier: `packages/nana-pack/lib/main-ci.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:16: identifier: `packages/nana-pack/lib/ci-records.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:16: identifier: `packages/nana-pack/tests/main-ci.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:17: identifier: `ci`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:21: identifier: `runId`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:23: identifier: `packages/nana-pack/lib/frontier-summary.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:23: identifier: `packages/nana-pack/lib/frontier-summary-config.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:23: identifier: `packages/nana-pack/tests/frontier-summary.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:23: identifier: `packages/nana-setup/claude/rules/nana-seat.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:27: identifier: `packages/nana-pack/lib/lane-class-config.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:27: identifier: `packages/nana-pack/tests/lane-class.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:28: identifier: `.github/workflows/ci.yml`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:28: identifier: `scripts/test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:28: identifier: `packages/nana-pack/lib/test-runner-config.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:29: identifier: `REQUIREMENTS.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:29: identifier: `measure.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:30: identifier: `packages/nana-pack/tests/ci-workflow.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:32: identifier: `packages/nana-pack/README.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:33: identifier: `docs/requirements-tree.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:33: identifier: `docs/code-map.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:34: identifier: `docs/components/nana-pi.json`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:35: length: 26 words (cap 25)
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:36: identifier: `<home>`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:36: identifier: `<lane>`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:36: identifier: `<tmp>`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:38: identifier: `file::title`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:46: identifier: `packages/nana-pack/tests/main-ci.test.mjs::R-3183: main push reds include advisory legs missing records jobs and older finished runs with scanned deduplicated seat-only posting`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:47: identifier: `packages/nana-pack/tests/frontier-summary.test.mjs::R-3184: the bounded and omitted seat blocks name main CI beside issue watch only with its workflow and the rule requires both runs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:48: identifier: `packages/nana-pack/tests/frontier-summary.test.mjs::seal R-3184: the runnable main CI command prefix`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:49: identifier: `packages/nana-pack/tests/lane-class.test.mjs::R-3185: the CI workflow runner and runner config are explicit gate files`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:50: identifier: `packages/nana-pack/tests/ci-workflow.test.mjs::main pushes run the full suite on all systems without path filters or issue-writing permissions`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:54: identifier: `packages/nana-pack/tests/lane-class.test.mjs::seal: R-2961 class paths and launched CLIs match the reviewed path list`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:57: passive: passive candidate: "edited" in "No other existing declaration was edited or deleted."
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:66: identifier: `builder-mutation-output.txt`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:66: identifier: `builder-report.md`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:83: identifier: `node packages/nana-pack/tests/<file>.test.mjs`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:116: identifier: `ghDefault`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:117: identifier: `readCiRecords`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:117: identifier: `finalFiles`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:119: identifier: `watchCommand`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:121: identifier: `existsSync`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:126: identifier: `linkRepo`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:128: passive: passive candidate: "copied" in "No private helper was copied, moved or exported."
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:129: passive: passive candidate: "introduced" in "No other departure from the brief's Precedent was introduced."
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:134: passive: passive candidate: "fixed" in "No listed known bug was fixed."
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:142: identifier: `nana-main-ci`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:143: passive: passive candidate: "named" in "No title-check script was named; no `0 missing` claim is made."
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:143: identifier: `0 missing`
+docs/reviews/selective-ci-2026-10-30/builder-report-2.md:145: passive: passive candidate: "created" in "No GitHub issue was created, edited, commented on or closed."
+summary sentences=84 words=1112 over=1 passive=6 banned=0 verdict=0/1 identifiers=47

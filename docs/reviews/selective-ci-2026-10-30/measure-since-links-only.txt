@@ -1,0 +1,12 @@
+pull_request ci runs since 2026-10-24: 127; base and head known: 125
+docs         13 pushes; mean share of test files 53.5%; mean est. Windows suite-step minutes 17.3
+selective     0 pushes; mean share of test files —%; mean est. Windows suite-step minutes —
+full        112 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 22.2
+all known pushes: mean share 95.2%; est. Windows suite-step minutes 2708 of 2852 under the full suite (95%)
+full-run reasons: outside map: docs… 80; selector or runner changed 25; outside map: .github… 6; outside map: packages… 1
+failing (run, leg, file) pairs in these runs: 40; caught by the selection: 39; missed: 1
+  docs: 3 failing pairs, 2 caught
+  selective: 0 failing pairs, 0 caught
+  full: 37 failing pairs, 37 caught
+documents-only scope: est. Windows suite-step minutes 2781 of 2852 (98%)
+  missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)

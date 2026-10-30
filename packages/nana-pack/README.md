@@ -503,6 +503,34 @@ only `issue #<n>: a seat comment`; pi never delivers them to the model or starts
 Tests: `packages/nana-pack/tests/issue-watch.test.mjs` use injected clocks and fake gh, plus real
 CLI children with a shortened test clock and a default-runner heartbeat. No test uses the network.
 
+### Main push CI (`bin/nana-main-ci.mjs`)
+
+Runtime dependencies: Node, git and authenticated local `gh`. Run the command at session start
+and after each land once main's run finishes. Builders and reviewers never run it.
+
+```bash
+node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>"
+node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>" --post
+```
+
+The command reads only main's push runs of `ci`, choosing the newest finished non-cancelled run
+and naming newer unfinished runs. It prints the count of newer cancelled runs skipped.
+If every finished run in the page is cancelled, it names that result, exits 0 and posts nothing.
+It never posts for a cancelled run. It reads the selected run's records even when green, reports failed
+files per leg, missing records and failed jobs, including install checks and release.
+The frontier block names it beside issue watch only when the project has an issues pointer
+and `.github/workflows/ci.yml`. Adding that line makes no network call or process.
+
+`--post` uses the repository owner's local gh account, after scanning the title and body with
+`../../scripts/identity-scan.mjs`. It creates one `next` issue whose body starts `Seat:` and
+contains only the run id, short SHA, legs, jobs and paths. An exact open title skips creation.
+The title names the first failed file or job, not the run id, so repeated failures deduplicate.
+Launcher roles cannot post. An unavailable input or refused scan returns a named error.
+Without `--post`, the command never writes an issue. A known red returns 0 after reporting it;
+unavailable data or refused posting returns 1. Red main CI does not block the next land.
+Both pull requests and main pushes still run the full suite on all three systems; no selector ships.
+Tests: `tests/main-ci.test.mjs` injects gh and fixture records without network calls.
+
 ## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
 
 This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for the owner, unresolved numbered references, overdue explicit dates, and missing Open for the owner tags. It also checks the document's size against one default read (51,200 bytes or 2,000 lines: pi 1.0.2's read tool limits, the smaller of the two seats' limits), and reports a Where things stand, Next or Open for the owner section placed after a Landed or Carried residuals heading or ending past that read.

@@ -1,0 +1,12 @@
+PASS R-3100: check passes tracked source and names each missing component path
+PASS R-3101: unknown feature and evidence IDs are named
+PASS R-3102: frozen contract accepts fixture and names schema-rule violations
+PASS R-3103: derived feature values come from ledger and hand source cannot prefill them
+PASS R-3104: activity counts recent first-parent changes and unmerged feature refs
+PASS R-3105: tracked audit has workflow and governance homes
+PASS R-3106: asks round-trip through planner labels and identity scan
+PASS R-3107: sealed audit values retain provenance
+PASS R-3108: status and anchor rules name the component, rule and anchor
+PASS R-3109: stale age is report-only, limit is inclusive, non-ancestor fails
+PASS R-3110: mapped module coverage names unclaimed paths and never fails
+11 component-audit checks passed

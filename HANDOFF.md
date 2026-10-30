@@ -8,7 +8,7 @@
 
 - **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **Current priority: discovery (the owner, 2026-10-27).** The owner and the seat find and improve what to build, and carry what they learn into the work. Review on 2026-11-10.
-- **Lanes in flight (two building).** map-spawn-edges is in its final review: the code map follows tests that launch repo scripts. world-graph gives the 3D map the lane loop's shape.
+- **Lanes in flight (two building).** selective-ci is in review: a seat command reports a red main CI run and posts one issue. the seat replans world-graph as a city after the owner's answers.
 
 ## Next
 

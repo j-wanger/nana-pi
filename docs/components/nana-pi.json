@@ -238,14 +238,14 @@
         "FEAT-019",
         "FEAT-031"
       ],
-      "status": "sound",
-      "gap": null,
+      "status": "partial",
+      "gap": "Document-only CI selection is parked; main and pull requests still run the full suite.",
       "ask": null,
       "evidence": [
         "scripts/template-release.mjs"
       ],
       "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
-      "anchors": []
+      "anchors": ["R-3178"]
     },
     {
       "id": "desk",

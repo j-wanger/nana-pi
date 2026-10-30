@@ -1,0 +1,42 @@
+pull_request ci runs since 2026-10-08: 156; base and head known: 156
+docs          7 pushes; mean share of test files 7.5%; mean est. Windows suite-step minutes 6.8
+selective    50 pushes; mean share of test files 75.1%; mean est. Windows suite-step minutes 17.8
+full         99 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 16.3
+all known pushes: mean share 87.9%; est. Windows suite-step minutes 2553 of 3559 under the full suite (72%)
+full-run reasons: outside map: packages… 40; selector or runner changed 25; outside map: .github… 23; outside map: package.json… 7; outside map: templates… 3; outside map: scripts… 1
+failing (run, leg, file) pairs in these runs: 4365; caught by the selection: 4334; missed: 31
+  docs: 9 failing pairs, 4 caught
+  selective: 228 failing pairs, 202 caught
+  full: 4128 failing pairs, 4128 caught
+documents-only scope: est. Windows suite-step minutes 3448 of 3559 (97%)
+  missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)
+  missed: 40992301983 041bbf54 feat/world-graph windows packages/nana-pack/tests/component-audit.test.mjs (mode docs)
+  missed: 40107395869 502767ca feat/artifact-registry windows packages/nana-pack/tests/worker-claude.test.mjs (mode docs)
+  missed: 39772777454 b7d909a9 feat/ci-jobs macos packages/nana-pack/tests/template-acceptance.test.mjs (mode docs)
+  missed: 39712602777 ae4d9359 feat/runtime-map-live windows packages/nana-pack/tests/writing-injection.test.mjs (mode docs)
+  missed: 39192415577 3ade09f7 feat/win-impact-paths windows apps/bench/test/agentdir.test.mjs (mode selective)
+  missed: 39192415577 3ade09f7 feat/win-impact-paths windows apps/bench/test/argv.test.mjs (mode selective)
+  missed: 39192415577 3ade09f7 feat/win-impact-paths windows apps/bench/test/usage.test.mjs (mode selective)
+  missed: 39192415577 3ade09f7 feat/win-impact-paths linux packages/nana-pack/tests/lane-write-guard.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows packages/nana-pack/tests/adoption-producer.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows packages/nana-pack/tests/display-surfaces.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows packages/nana-pack/tests/frontier.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows packages/nana-pack/tests/handoff-artifact.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows packages/nana-pack/tests/handoff-store.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows packages/nana-pack/tests/handoff-trust.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows apps/bench/test/agentdir.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows apps/bench/test/argv.test.mjs (mode selective)
+  missed: 39085116653 ac560696 feat/win-pi-gate windows apps/bench/test/usage.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks linux packages/nana-pack/tests/lane-write-guard.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/adoption-producer.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/display-surfaces.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/frontier.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/gate-corpus.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/gate-policy-paths.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/handoff-artifact.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/handoff-store.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/handoff-trust.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows packages/nana-pack/tests/lane-write-guard.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows apps/bench/test/agentdir.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows apps/bench/test/argv.test.mjs (mode selective)
+  missed: 39073656911 5f7050df feat/win-claude-hooks windows apps/bench/test/usage.test.mjs (mode selective)

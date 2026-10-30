@@ -1,0 +1,44 @@
+FAIL R-3183: main push reds include advisory legs missing records jobs and older finished runs with scanned deduplicated seat-only posting AssertionError [ERR_ASSERTION]: skip newer cancelled runs; an all-cancelled page exits cleanly without posting
++ actual - expected
+
+  {
+    allCancelledCode: 0,
++   allCancelledPosts: 1,
++   selectedRun: '50'
+-   allCancelledPosts: 0,
+-   selectedRun: '20'
+  }
+
+    at file://<lane>/packages/nana-pack/tests/main-ci.test.mjs:75:9
+    at check (file://<lane>/packages/nana-pack/tests/main-ci.test.mjs:59:38)
+    at file://<lane>/packages/nana-pack/tests/main-ci.test.mjs:61:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+wrong (original run filter): exit 1
+PASS R-3183: main push reds include advisory legs missing records jobs and older finished runs with scanned deduplicated seat-only posting
+
+correct: exit 0
+FAIL R-3183: main push reds include advisory legs missing records jobs and older finished runs with scanned deduplicated seat-only posting AssertionError [ERR_ASSERTION]: skip newer cancelled runs; an all-cancelled page exits cleanly without posting
++ actual - expected
+
+  {
+    allCancelledCode: 0,
++   allCancelledPosts: 1,
++   selectedRun: '50'
+-   allCancelledPosts: 0,
+-   selectedRun: '20'
+  }
+
+    at file://<lane>/packages/nana-pack/tests/main-ci.test.mjs:75:9
+    at check (file://<lane>/packages/nana-pack/tests/main-ci.test.mjs:59:38)
+    at file://<lane>/packages/nana-pack/tests/main-ci.test.mjs:61:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+wrong (drop cancelled skip): exit 1
+PASS R-3183: main push reds include advisory legs missing records jobs and older finished runs with scanned deduplicated seat-only posting
+
+restored: exit 0

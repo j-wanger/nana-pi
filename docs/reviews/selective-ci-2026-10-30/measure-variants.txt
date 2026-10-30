@@ -1,0 +1,20 @@
+== RESOLVE=all DOCRULE=edges (every non-test hub resolved by hand)
+pull_request ci runs since 2026-10-24: 124; base and head known: 122
+docs         13 pushes; mean share of test files 9.5%; mean est. Windows suite-step minutes 7.4
+selective    39 pushes; mean share of test files 62.9%; mean est. Windows suite-step minutes 20.0
+full         70 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 22.3
+all known pushes: mean share 78.5%; est. Windows suite-step minutes 2435 of 2784 under the full suite (87%)
+full-run reasons: outside map: packages… 36; selector or runner changed 25; outside map: package.json… 6; outside map: .github… 3
+failing (run, leg, file) pairs in these runs: 40; caught by the selection: 37; missed: 3
+  missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)
+  missed: 40992301983 041bbf54 feat/world-graph windows packages/nana-pack/tests/component-audit.test.mjs (mode docs)
+== RESOLVE=0 DOCRULE=wide (file or folder name anywhere in a test)
+pull_request ci runs since 2026-10-24: 124; base and head known: 122
+docs         13 pushes; mean share of test files 27.0%; mean est. Windows suite-step minutes 14.0
+selective    39 pushes; mean share of test files 91.5%; mean est. Windows suite-step minutes 21.8
+full         70 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 22.3
+all known pushes: mean share 89.5%; est. Windows suite-step minutes 2591 of 2784 under the full suite (93%)
+full-run reasons: outside map: packages… 36; selector or runner changed 25; outside map: package.json… 6; outside map: .github… 3
+failing (run, leg, file) pairs in these runs: 40; caught by the selection: 39; missed: 1
+  missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)
+41001794181	09607546	feat/world-graph	full	240/240	22.8	outside map: .github/workflows/pages.yml (+2)
