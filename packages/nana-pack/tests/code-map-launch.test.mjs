@@ -140,6 +140,7 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		["apps/hive/assets/hive.mjs -> apps/hive/assets/bee.mjs", "City residents replace flying bees; hive imports the shared residents builder instead."],
 		["packages/nana-pack/tests/objective-golden.test.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Wrong basename guess: the hook runs instead."],
 		["packages/nana-setup/tests/stale-copies.test.mjs -> packages/nana-pack/bin/nana-adoption.mjs", "Wrong basename guess: the hook runs instead."],
 		["packages/nana-setup/tests/hooks-win32-exec.test.mjs -> packages/nana-knowledge/bin/nana-knowledge.ts", "Command text for a deleted checkout."],

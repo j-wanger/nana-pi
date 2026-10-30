@@ -14,8 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const fixture = JSON.parse(await fs.readFile(path.join(root, 'docs/components/fixture.json')));
-const graphFile = path.join(root, 'docs/components/graph-fixture.json');
-const graph = JSON.parse(await fs.readFile(graphFile));
+const plan = JSON.parse(await fs.readFile(path.join(root, 'apps/hive/city.json')));
 const app = (name) => import(new URL(`../../../apps/hive/${name}.mjs`, import.meta.url));
 let passed = 0;
 async function test(title, fn) { let timer; try { await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('case timeout')), 20000); })]); console.log('PASS', title); passed++; } catch (e) { console.log('FAIL', title, e.message); process.exitCode = 1; } finally { clearTimeout(timer); } }
@@ -33,12 +32,27 @@ await test('R-3121: honey ratios and material keys follow every contract status 
   chambers.forEach((c, i) => assert.deepEqual(c.material, { status: fixture.components[i].status, kind: fixture.components[i].kind }));
 });
 // req: R-3122
-await test('R-3122: activity gives capped recent and in-flight bees', async () => {
+await test('R-3122: residents inhabit their places and activity gives capped worker figures', async () => {
   const { bees } = await app('layout'); const { BEE_CAP } = await app('config'); assert.equal(BEE_CAP, 12);
   assert.deepEqual(bees(fixture.components[0]).map(b => b.kind), ['inFlight', 'recent', 'recent', 'recent']);
   assert.deepEqual(bees(fixture.components[1]), []);
   assert.equal(bees({ activity: { recentCommits: 100, inFlight: 100 } }).length, BEE_CAP);
   assert.equal(bees({ activity: { recentCommits: 100, inFlight: 2 } }).filter(b => b.kind === 'inFlight').length, 2);
+  const { buildAudit } = await import('../../../scripts/component-audit.mjs'); const data = (await buildAudit({ root })).document;
+  const { layout } = await app('layout'), { buildHive } = await app('assets/hive'), { buildMaterials } = await app('assets/materials'); const THREE = await import('../../../apps/hive/vendor/three.module.js');
+  const { RESIDENT_TRIANGLE_BUDGET, CITY } = await app('config'); assert.equal(RESIDENT_TRIANGLE_BUDGET, 100);
+  const m = layout(data, plan), scene = buildHive(THREE, m, buildMaterials(THREE)); scene.updateMatrixWorld(true);
+  const figures = []; scene.traverse(o => { if (o.userData.resident) figures.push(o); });
+  assert.deepEqual([...new Set(figures.map(o => o.userData.resident.kind))].sort(), ['owner', 'seat', 'planner', 'adversary', 'builder', 'visual judge', 'reviewer', 'projectionist', 'customer'].sort());
+  for (const o of figures) {
+    const n = m.chambers.find(n => n.id === o.userData.resident.place), pos = o.getWorldPosition(new THREE.Vector3()); assert(Math.hypot(pos.x - n.x, pos.z - n.z) < n.radius); if (o.userData.resident.kind === 'owner') assert.equal(pos.y, CITY.skyHeight);
+    let triangles = 0; o.traverse(part => { if (part.isMesh) triangles += (part.geometry.index?.count ?? part.geometry.attributes.position.count) / 3; }); assert(triangles > 0 && triangles <= RESIDENT_TRIANGLE_BUDGET);
+  }
+  for (const n of m.chambers.filter(n => n.form === 'bay')) assert.equal(figures.filter(o => o.userData.resident.kind === 'builder' && o.userData.resident.place === n.id).length, n.material.status === 'sound' ? 1 : 0);
+  for (const n of m.chambers.filter(n => n.component)) {
+    const workers = []; scene.children.find(o => o.userData.place === n.id).traverse(o => { if (o.userData.worker) workers.push(o); });
+    assert.deepEqual(workers.map(o => o.userData.worker.kind), n.bees.map(b => b.kind));
+  }
 });
 // req: R-3125
 await test('R-3125: camera stops frame every chamber corner at phone and desktop aspects', async () => {
@@ -54,26 +68,27 @@ await test('R-3125: camera stops frame every chamber corner at phone and desktop
     assert.deepEqual(focus(model, 'unknown', aspect), focus(model, null, aspect));
   }
 });
-// req: R-3126
+// req: R-3126 R-3174
 await test('R-3126: rail order and active cards retain the complete component story', async () => {
   const { textLayer, renderText } = await app('text-layer'); const { tour } = await app('tour'); const { layout } = await app('layout');
-  const model = textLayer(fixture, '#library', 'pixel', 'plain', tour(layout(fixture, graph), graph));
-  assert.deepEqual(model.rail.map(r => r.href), ['#workshop', '#library', '#review-hall', '#land-gate', '#key-cabinet']);
+  const model = textLayer(fixture, '#library', 'pixel', 'plain', tour(layout(fixture, plan), plan));
+  assert.deepEqual(model.rail.map(r => r.href), tour(layout(fixture, plan), plan).map(c => `#${c.id}`));
   assert.equal(model.active, 'library'); const card = model.cards.find(c => c.active);
-  assert.equal(card.name, 'Library');
+  assert.equal(card.name, 'Library theater');
   for (const value of [fixture.components[1].metaphor, 'workflow', 'gap', fixture.components[1].gap, fixture.components[1].ask.question, '6 of 8', '4 of 4']) assert(card.text.includes(value));
-  assert.equal(textLayer(fixture, '#unknown', 'webgl').active, null); assert.equal(model.cards.length, 5); assert.equal(model.renderer, 'Renderer: pixel');
+  assert.equal(textLayer(fixture, '#unknown', 'webgl').active, null); assert.equal(model.cards.length, model.rail.length); assert.equal(model.renderer, 'Renderer: pixel · streets in 3D only');
   const node = (tag) => ({ tag, children: [], attrs: {}, textContent: '', append(...xs) { this.children.push(...xs); }, setAttribute(k, v) { this.attrs[k] = v; }, replaceChildren(...xs) { this.children = xs; } });
   const container = node('main'); renderText({ createElement: node }, container, model);
   const flatten = n => [n, ...n.children.flatMap(flatten)]; const nodes = flatten(container);
-  assert.equal(nodes.filter(n => n.tag === 'article').length, 6); assert.deepEqual(nodes.filter(n => n.tag === 'a').map(n => n.attrs.href), model.rail.map(r => r.href));
+  assert.equal(nodes.filter(n => n.tag === 'article').length, model.cards.length + 1); assert.deepEqual(nodes.filter(n => n.tag === 'a').map(n => n.attrs.href), model.rail.map(r => r.href));
+  assert.deepEqual(nodes.filter(n => n.tag === 'option').map(n => [n.attrs.value, n.textContent]), model.rail.map(r => [r.href, r.chapter]));
   const content = n => n.textContent + n.children.map(content).join('');
   for (const text of Object.values(card.voices)) assert(nodes.some(n => n.tag === 'p' && content(n) === text));
 });
 // req: R-3127
 await test('R-3127: renderer choice falls back and incompatible data gives one error without a scene', async () => {
   const { chooseRenderer, prepare } = await app('runtime');
-  for (const bad of [{ ...graph, contract: 'other' }, { ...graph, version: 2 }]) assert.deepEqual(prepare(fixture, bad), { scene: null, error: 'hive: incompatible graph contract' });
+  for (const bad of [{ ...plan, contract: 'other' }, { ...plan, version: 2 }]) { const got = prepare(fixture, bad); assert.equal(got.scene, null); assert.match(got.error, /^hive: city:/); }
   assert.equal(chooseRenderer(() => null, ''), 'pixel'); assert.equal(chooseRenderer(() => ({}), ''), 'webgl'); assert.equal(chooseRenderer(() => ({}), '?view=pixel'), 'pixel');
   for (const bad of [{ ...fixture, contract: 'other' }, { ...fixture, version: 2 }]) { const got = prepare(bad); assert.equal(got.scene, null); assert.match(got.error, /^hive: incompatible component contract$/); assert.equal(got.error.split('\n').length, 1); }
 });
@@ -103,12 +118,12 @@ await test('R-3130: builder copies exact app bytes and supplied data and refuses
     const expected = (await files(path.join(root, 'apps/hive'))).filter(f => f !== 'README.md');
     for (const custom of [false, true]) {
       const out = path.join(dir, `out-${custom}`); const data = { ...fixture, project: custom ? 'custom' : 'fixture' }; const input = path.join(dir, 'input.json'); await fs.writeFile(input, JSON.stringify(data));
-      const result = build(['--out', out, ...(custom ? ['--data', input, '--graph', graphFile] : [])]); assert.equal(result.status, 0, result.stderr);
-      assert.deepEqual(await files(out), [...expected, 'components.json', 'graph.json'].sort());
+      const result = build(['--out', out, ...(custom ? ['--data', input] : [])]); assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(await files(out), [...expected, 'components.json'].sort());
       for (const file of expected) assert.deepEqual(await fs.readFile(path.join(out, file)), await fs.readFile(path.join(root, 'apps/hive', file)));
       assert.deepEqual(JSON.parse(await fs.readFile(path.join(out, 'components.json'))), data);
     }
-    for (const [field, value] of [['contract', 'other'], ['version', 2]]) { const input = path.join(dir, 'bad.json'); const out = path.join(dir, 'bad-out'); await fs.writeFile(input, JSON.stringify({ ...fixture, [field]: value })); const result = build(['--out', out, '--data', input, '--graph', graphFile]); assert.equal(result.status, 1); assert.equal(result.stderr.trim(), `hive-page: document: ${field} must equal ${fixture[field]}`); await assert.rejects(fs.access(out)); }
+    for (const [field, value] of [['contract', 'other'], ['version', 2]]) { const input = path.join(dir, 'bad.json'); const out = path.join(dir, 'bad-out'); await fs.writeFile(input, JSON.stringify({ ...fixture, [field]: value })); const result = build(['--out', out, '--data', input]); assert.equal(result.status, 1); assert.equal(result.stderr.trim(), `hive-page: document: ${field} must equal ${fixture[field]}`); await assert.rejects(fs.access(out)); }
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 // req: R-3139
@@ -127,7 +142,7 @@ await test('R-3139: builder refuses contract problems by their first name before
     for (const [i, bad] of badCases.entries()) {
       const input = path.join(dir, `bad-${i}.json`), out = path.join(dir, `out-${i}`);
       await fs.writeFile(input, JSON.stringify(bad));
-      const result = build(['--out', out, '--data', input, '--graph', graphFile]);
+      const result = build(['--out', out, '--data', input]);
       assert.equal(result.status, 1);
       assert.equal(result.stderr.trim(), `hive-page: ${checkComponentData(bad, contract)[0]}`);
       assert.equal(result.stderr.trim().split('\n').length, 1);

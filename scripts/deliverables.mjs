@@ -332,7 +332,7 @@ export function deliverableClaims(parsed, capability, registry = artifactRegistr
     const kind = (colon < 0 ? claim : claim.slice(0, colon)).trim();
     const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
     if (field.label === PARKED_LABEL) {
-      claims.get(row).push({ row, label: field.label, text: claimText, artifact: null, thirdPart: null, paths: [], registryIds: [], madeByCode: false, readerKind: null, readByCode: false });
+      claims.get(row).push({ row, label: field.label, text: claimText, artifact: null, thirdPart: null, registryIds: [], madeByCode: false, readerKind: null, readByCode: false });
       continue;
     }
     const madeByCode = field.label === "Made by" && parts.length <= 3 && MAKER_SET.has(kind) && !REASON_SET.has(kind) && detail.length > 0;
@@ -340,7 +340,7 @@ export function deliverableClaims(parsed, capability, registry = artifactRegistr
     const readByCode = readerKind !== null && !REASON_SET.has(readerKind);
     const thirdPart = field.label === "Made by" && parts.length === 3 && parts[2].trim() ? parts[2].trim() : null;
     const reference = thirdPart ? registryReference(thirdPart) : null;
-    claims.get(row).push({ row, label: field.label, text: claimText, artifact: thirdPart && !reference ? thirdPart : null, thirdPart, registryIds: reference?.ids ?? [], registryKind: reference?.kind ?? null, paths: PATH_REQUIRED.includes(kind) ? detail.split(',').map(value => value.trim()).filter(Boolean) : [], madeByCode, readerKind, readByCode });
+    claims.get(row).push({ row, label: field.label, text: claimText, artifact: thirdPart && !reference ? thirdPart : null, thirdPart, registryIds: reference?.ids ?? [], registryKind: reference?.kind ?? null, madeByCode, readerKind, readByCode });
   }
   return claims;
 }

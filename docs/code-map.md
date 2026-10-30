@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 509 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 507 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -621,7 +621,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — A small THREE group requiring no WebGL context.
 - **effects** — none
 - **errors** — None.
-- **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
+- **callers** — `packages/nana-pack/tests/hive-assets.test.mjs`
 - **callees** — —
 
 ### `apps/hive/assets/cell.mjs`
@@ -634,15 +634,25 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
 - **callees** — `apps/hive/config.mjs`
 
+### `apps/hive/assets/district.mjs`
+
+- **purpose** — Builds complete city forms on a repeated plinth and gatehouse kit with audited window lights.
+- **inputs** — Explicit THREE, one placed lot and shared materials.
+- **outputs** — A local-space architectural group.
+- **effects** — none
+- **errors** — None for a valid lot.
+- **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
+- **callees** — `apps/hive/assets/parts.mjs`, `apps/hive/config.mjs`
+
 ### `apps/hive/assets/hive.mjs`
 
-- **purpose** — Assembles original architectural structures, feature decks and activity into a pickable city.
+- **purpose** — Assembles pickable city lots, complete forms, residents, streets and the two-opening park fence.
 - **inputs** — Explicit THREE namespace, world layout and shared materials.
-- **outputs** — A scene group with component and bee metadata.
+- **outputs** — A scene group with place, component, street and resident metadata.
 - **effects** — none
 - **errors** — None for valid layout.
-- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
-- **callees** — `apps/hive/assets/bee.mjs`, `apps/hive/assets/cell.mjs`, `apps/hive/assets/parts.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/config.mjs`, `apps/hive/roads.mjs`
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
+- **callees** — `apps/hive/assets/cell.mjs`, `apps/hive/assets/district.mjs`, `apps/hive/assets/parts.mjs`, `apps/hive/assets/residents.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`
 
 ### `apps/hive/assets/materials.mjs`
 
@@ -651,7 +661,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Material palette and pure status/kind colour tables.
 - **effects** — none
 - **errors** — None.
-- **callers** — `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
+- **callers** — `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
 - **callees** — `apps/hive/config.mjs`
 
 ### `apps/hive/assets/parts.mjs`
@@ -661,17 +671,27 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Meshes added to the supplied parent.
 - **effects** — none
 - **errors** — None for valid geometry.
-- **callers** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/road.mjs`
+- **callers** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/road.mjs`
+- **callees** — —
+
+### `apps/hive/assets/residents.mjs`
+
+- **purpose** — Builds a small faceted resident using the bee builder's explicit dependency pattern.
+- **inputs** — Explicit THREE namespace and shared materials.
+- **outputs** — A local-space standing figure with no renderer dependency.
+- **effects** — none
+- **errors** — None.
+- **callers** — `apps/hive/assets/hive.mjs`
 - **callees** — —
 
 ### `apps/hive/assets/road.mjs`
 
-- **purpose** — Draws ground-level street ribbons with kerb lines and broken lane marks.
-- **inputs** — Explicit THREE, a road path and shared materials.
-- **outputs** — A pickable road mesh group bearing its unordered pair.
+- **purpose** — Draws pale continuous streets, dashed back paths, white kerbs and chapter air arcs.
+- **inputs** — Explicit THREE, a city street path and shared materials.
+- **outputs** — A street group with measured segment endpoints.
 - **effects** — none
 - **errors** — None for a valid road.
-- **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
+- **callers** — `apps/hive/assets/hive.mjs`
 - **callees** — `apps/hive/assets/parts.mjs`, `apps/hive/config.mjs`
 
 ### `apps/hive/camera.mjs`
@@ -684,6 +704,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `apps/hive/main.mjs`, `apps/hive/tour.mjs`
 - **callees** — `apps/hive/config.mjs`
 
+### `apps/hive/city.mjs`
+
+- **purpose** — Checks the hand city and computes radial lots, clear street paths and shape diagnostics.
+- **inputs** — Component data, city plan and optional serve-only positions.
+- **outputs** — Named problems and deterministic places, streets, handoffs and district radii.
+- **effects** — none
+- **errors** — Throws when a street cannot be routed around a footprint.
+- **callers** — `apps/hive/assets/hive.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `apps/hive/tour.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `scripts/hive-page.mjs`
+- **callees** — `apps/hive/config.mjs`, `apps/hive/layout.mjs`
+
 ### `apps/hive/config.mjs`
 
 - **purpose** — Seals the hive's rendering vocabulary and visual scale.
@@ -691,7 +721,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named immutable rendering values.
 - **effects** — none
 - **errors** — None.
-- **callers** — `apps/hive/assets/cell.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/camera.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `apps/hive/roads.mjs`, `apps/hive/runtime.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`
+- **callers** — `apps/hive/assets/cell.mjs`, `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/tour.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/hive-page.mjs`
 - **callees** — —
 
 ### `apps/hive/explore.mjs`
@@ -701,18 +731,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — New state and effects, or a removable EventTarget binding.
 - **effects** — process (installs and removes listeners on the supplied target)
 - **errors** — None for pointer-shaped events.
-- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
 - **callees** — `apps/hive/config.mjs`
-
-### `apps/hive/graph.mjs`
-
-- **purpose** — Validates the sibling graph document at publisher and browser boundaries.
-- **inputs** — Component and graph documents.
-- **outputs** — One plain problem or null.
-- **effects** — none
-- **errors** — Invalid input returns a named problem.
-- **callers** — `apps/hive/runtime.mjs`, `scripts/hive-page.mjs`
-- **callees** — —
 
 ### `apps/hive/labels.mjs`
 
@@ -731,8 +751,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — A renderer-independent layout with world-space bounds.
 - **effects** — none
 - **errors** — Invalid document shapes may throw; the boundary checks the contract first.
-- **callers** — `apps/hive/runtime.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`, `scripts/component-graph.mjs`
-- **callees** — `apps/hive/config.mjs`
+- **callers** — `apps/hive/city.mjs`, `apps/hive/runtime.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
+- **callees** — `apps/hive/city.mjs`, `apps/hive/config.mjs`
 
 ### `apps/hive/main.mjs`
 
@@ -741,8 +761,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — WebGL or pixel scene, numbered stories and chapter/pose/ready marks.
 - **effects** — network (same-origin modules and data), process (browser frames and listeners)
 - **errors** — Incompatible data displays one plain error; WebGL failure selects pixel.
-- **callers** — `packages/nana-pack/tests/hive-graph.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
-- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/labels.mjs`, `apps/hive/pixel.mjs`, `apps/hive/roads.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`
+- **callers** — `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
+- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/labels.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`
 
 ### `apps/hive/pixel.mjs`
 
@@ -754,16 +774,6 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `apps/hive/main.mjs`
 - **callees** — `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`
 
-### `apps/hive/roads.mjs`
-
-- **purpose** — Selects visible roads and describes their recorded units.
-- **inputs** — Published roads and an optional selected structure ID.
-- **outputs** — Overview plus incident roads and source captions.
-- **effects** — none
-- **errors** — None.
-- **callers** — `apps/hive/assets/hive.mjs`, `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
-- **callees** — `apps/hive/config.mjs`
-
 ### `apps/hive/runtime.mjs`
 
 - **purpose** — Keeps renderer selection, data refusal and frame state independent of the browser.
@@ -771,8 +781,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Layout or plain error, renderer choice and deterministic animation state.
 - **effects** — none
 - **errors** — Context creation exceptions fall back to pixel; malformed layout data returns a plain error.
-- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
-- **callees** — `apps/hive/config.mjs`, `apps/hive/graph.mjs`, `apps/hive/layout.mjs`
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
+- **callees** — `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/layout.mjs`
 
 ### `apps/hive/text-layer.mjs`
 
@@ -781,18 +791,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — A reading model or populated overlay with one visible frosted card.
 - **effects** — none
 - **errors** — None for contract-shaped data.
-- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
 - **callees** — —
 
 ### `apps/hive/tour.mjs`
 
-- **purpose** — Computes numbered loop chapters and road-following camera poses for scroll progress.
-- **inputs** — Published layout and graph, chapter progress, aspect and reduced-motion flag.
-- **outputs** — Ordered chapter anchors, walks, hash progress and camera poses.
+- **purpose** — Computes the request journey, anchored visits and street-following scroll poses.
+- **inputs** — City layout, hand plan, chapter progress, aspect and reduced-motion flag.
+- **outputs** — Ordered chapters, walks, hash progress and camera poses.
 - **effects** — none
-- **errors** — Throws for missing chapter roads.
-- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
-- **callees** — `apps/hive/camera.mjs`
+- **errors** — Throws for missing chapter streets.
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
+- **callees** — `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`
 
 ### `scripts/blast-radius.mjs`
 
@@ -841,7 +851,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or marked impact callers, blind-reach tests, callees, artifact writers and readers, freshness and measured test files
 - **effects** — disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, the map is stale, or a repo-code/untraced program lacks a reasoned launchAlwaysRun entry; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
-- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/component-graph.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`, `scripts/template-acceptance.mjs`
+- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`, `scripts/template-acceptance.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/code-map-launch-config.mjs`, `scripts/code-map-launch.mjs`, `scripts/code-search.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/code-search-config.mjs`
@@ -871,7 +881,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named audit limits and repo-relative source paths.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `scripts/component-audit.mjs`, `scripts/component-graph.mjs`
+- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `scripts/component-audit.mjs`
 - **callees** — —
 
 ### `scripts/component-audit.mjs`
@@ -881,7 +891,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Check diagnostics, report-only staleness and coverage lines, contract-shaped JSON, or planner-shaped ask blocks.
 - **effects** — disk (reads repository data and optionally writes --out), process (read-only bounded git queries and CLI output).
 - **errors** — Invalid source, paths, IDs, anchors or contract data exit 1; malformed CLI options exit 2.
-- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `scripts/component-graph.mjs`
+- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
 - **callees** — `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `scripts/code-map.mjs`, `scripts/component-audit-config.mjs`, `scripts/component-contract.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/component-contract.mjs`
@@ -894,36 +904,6 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`, `scripts/component-audit.mjs`, `scripts/hive-page.mjs`
 - **callees** — —
 
-### `scripts/component-graph-config.mjs`
-
-- **purpose** — Seals publish-time spring geometry, routing and source paths.
-- **inputs** — None.
-- **outputs** — Immutable geometry parameters with provenance.
-- **effects** — none
-- **errors** — None.
-- **callers** — `packages/nana-pack/tests/hive-graph.test.mjs`, `scripts/component-graph-layout.mjs`, `scripts/component-graph.mjs`
-- **callees** — —
-
-### `scripts/component-graph-layout.mjs`
-
-- **purpose** — Settles publish-time loop geometry and routes source roads around structure footprints.
-- **inputs** — Ordered nodes, counted edges and spine IDs.
-- **outputs** — Grid-rounded positions, typed road paths and crossing measurements.
-- **effects** — none
-- **errors** — Throws when no obstacle-free road can be routed.
-- **callers** — `packages/nana-pack/tests/hive-graph.test.mjs`, `scripts/component-graph.mjs`
-- **callees** — `scripts/component-graph-config.mjs`
-
-### `scripts/component-graph.mjs`
-
-- **purpose** — Derives counted component relationships and published road geometry from shared parsers.
-- **inputs** — Repo root, loop source, component parts, ledger, import graph and injected git runner.
-- **outputs** — Graph document, named problems and counts in each source's units.
-- **effects** — disk (reads repository inputs and writes --out), process (read-only git and CLI output)
-- **errors** — Invalid sources exit 1 with named lines; malformed CLI exits 2.
-- **callers** — `packages/nana-pack/tests/hive-graph.test.mjs`
-- **callees** — `apps/hive/layout.mjs`, `scripts/code-map.mjs`, `scripts/component-audit-config.mjs`, `scripts/component-audit.mjs`, `scripts/component-graph-config.mjs`, `scripts/component-graph-layout.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
-
 ### `scripts/deliverables.mjs`
 
 - **purpose** — Parse and check product-capability deliverable claims, the feature artifact registry, cross-feature artifact reads, and artifact reader and park lines, then produce their shared checker lines.
@@ -931,7 +911,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Registry entries by A-ID, reads by feature, per-row claims with each claim's reader kind, code predicates, clone-store age bindings, deliverable notes, per-capability counts and gap rows, and the exact tree-checker lines with their check result from deliverableReport.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
-- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/component-graph.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 - **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/requirements-moved.mjs`, `scripts/runtime-measure.mjs`
 
 ### `scripts/first-look-config.mjs`
@@ -941,7 +921,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Frozen page-shaping paths, viewport widths, screenshot dimensions and reference limits.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/outside-reader-config.mjs`, `scripts/visual-reader-config.mjs`
+- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/outside-reader-config.mjs`, `scripts/visual-reader-config.mjs`
 - **callees** — `apps/hive/config.mjs`
 
 ### `scripts/first-look.mjs`
@@ -959,11 +939,11 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Measures phone selection and scroll safety through a served hive's real browser wiring.
 - **inputs** — CLI --url and --out, optional Playwright resolved through the shared resolver.
-- **outputs** — Four PASS/FAIL checks and a phone screenshot outside the repository.
+- **outputs** — Six PASS/FAIL checks, measured chapter overlap and street pixels, and an external phone screenshot.
 - **effects** — network (served page), disk (external screenshot), process (browser)
 - **errors** — Missing browser or failed checks exit 1; malformed options exit 2.
 - **callers** — —
-- **callees** — `scripts/first-look-config.mjs`, `scripts/first-look.mjs`, `scripts/playwright-resolve.mjs`, `scripts/reader-common.mjs`
+- **callees** — `apps/hive/config.mjs`, `scripts/first-look-config.mjs`, `scripts/first-look.mjs`, `scripts/playwright-resolve.mjs`, `scripts/reader-common.mjs`
 
 ### `scripts/hive-page-config.mjs`
 
@@ -982,8 +962,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Static app plus components.json or a loopback URL.
 - **effects** — disk (reads app and data, stages and renames output), network (loopback server)
 - **errors** — Usage exits 2; incompatible data and IO failures exit 1 with one named line.
-- **callers** — `packages/nana-pack/tests/hive-graph.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
-- **callees** — `apps/hive/config.mjs`, `apps/hive/graph.mjs`, `scripts/component-contract.mjs`
+- **callers** — `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
+- **callees** — `apps/hive/city.mjs`, `apps/hive/config.mjs`, `scripts/component-contract.mjs`
 
 ### `scripts/identity-scan.mjs`
 
@@ -1112,7 +1092,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — One summary line, affected feature blocks including parked-line changes, capability changes, and an artifacts section with one line per registry or feature-read change, on stdout; a named refusal on stderr.
 - **effects** — process (runs read-only git commands: merge-base, rev-parse, cat-file -e, show)
 - **errors** — exit 2 for a usage error, naming --root and --base; exit 1 for a read failure (an unresolvable revision, no merge base, or REQUIREMENTS.md absent at HEAD), naming the cause.
-- **callers** — `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/component-graph.mjs`, `scripts/deliverables.mjs`, `scripts/lane-class.mjs`, `scripts/product-report.mjs`
+- **callers** — `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`, `scripts/lane-class.mjs`, `scripts/product-report.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/requirements-regroup.mjs`
@@ -1142,7 +1122,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
-- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/component-graph.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
+- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-trace.mjs`
 
 ### `scripts/runtime-measure.mjs`
@@ -3042,16 +3022,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `apps/hive/assets/bee.mjs`, `apps/hive/assets/cell.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`, `apps/hive/layout.mjs`, `scripts/hive-page-config.mjs`
 
-### `packages/nana-pack/tests/hive-graph.test.mjs`
+### `packages/nana-pack/tests/hive-city.test.mjs`
 
-- **purpose** — Pins the recorded graph, loop source, published geometry, tour and safe gesture boundary.
-- **inputs** — Shared graph modules and OS temporary git fixtures.
+- **purpose** — Pins the hand city, radial shape, drawn streets, request journey, lights and safe gestures.
+- **inputs** — Shared city modules, tracked plan, audit, controls and temporary publication folders.
 - **outputs** — Tagged PASS and FAIL lines.
-- **effects** — disk (temporary fixtures), process (bounded CLI children)
+- **effects** — disk (OS temporary fixtures), process (bounded CLI children)
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/roads.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`, `scripts/component-graph-config.mjs`, `scripts/component-graph-layout.mjs`, `scripts/component-graph.mjs`, `scripts/deliverables.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`, `scripts/requirements-tree.mjs`
-- **unresolved launches** — line 21: spawnSync
+- **callees** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`, `scripts/component-audit.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`
+- **unresolved launches** — line 20: spawnSync
 
 ### `packages/nana-pack/tests/hive-page.test.mjs`
 
@@ -3061,7 +3041,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), network (loopback test server), process (CLI children)
 - **errors** — Failed cases set exit 1.
 - **callers** — —
-- **callees** — `apps/hive/main.mjs`, `scripts/component-contract.mjs`, `scripts/hive-page.mjs`
+- **callees** — `apps/hive/main.mjs`, `scripts/component-audit.mjs`, `scripts/component-contract.mjs`, `scripts/hive-page.mjs`
 
 ### `packages/nana-pack/tests/identity-scan.test.mjs`
 

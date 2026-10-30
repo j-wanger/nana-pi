@@ -1,0 +1,18 @@
+capture overview start 15:59:35
+first-look: saved screenshots and reference in /tmp/world-graph-build8/round2/overview
+capture overview EXIT:0 15:59:40
+capture signal start 15:59:40
+first-look: saved screenshots and reference in /tmp/world-graph-build8/round2/signal
+capture signal EXIT:0 15:59:45
+capture workshop start 15:59:45
+first-look: saved screenshots and reference in /tmp/world-graph-build8/round2/workshop
+capture workshop EXIT:0 15:59:49
+capture identity-scan start 15:59:49
+first-look: saved screenshots and reference in /tmp/world-graph-build8/round2/identity-scan
+capture identity-scan EXIT:0 15:59:53
+capture explore start 15:59:53
+first-look: saved screenshots and reference in /tmp/world-graph-build8/round2/explore
+capture explore EXIT:0 15:59:57
+capture explore-workshop start 15:59:57
+first-look: saved screenshots and reference in /tmp/world-graph-build8/round2/explore-workshop
+capture explore-workshop EXIT:0 16:00:01

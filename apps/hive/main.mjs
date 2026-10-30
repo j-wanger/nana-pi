@@ -10,24 +10,26 @@ import { prepare, chooseRenderer, firstFrame, animationStep } from './runtime.mj
 import { focus, overview } from './camera.mjs';
 import { tour, tourPose, chapterProgress } from './tour.mjs';
 import { explore, bindGestures } from './explore.mjs';
-import { visibleRoads } from './roads.mjs';
+import { visibleRoads } from './city.mjs';
 import { placeLabels, safeBands } from './labels.mjs';
 import { textLayer, renderText } from './text-layer.mjs';
 import { pixel, drawPixel } from './pixel.mjs';
 import { buildHive } from './assets/hive.mjs';
 import { buildMaterials } from './assets/materials.mjs';
-import { STYLE, HIVE_BACKGROUND, NAVIGATION } from './config.mjs';
+import { STYLE, HIVE_BACKGROUND, NAVIGATION, STREETS, CITY } from './config.mjs';
 const stories = document.querySelector('#stories'), stage = document.querySelector('.stage'), labels = document.querySelector('.labels');
 let canvas = document.querySelector('canvas');
 const preference = matchMedia('(prefers-reduced-motion: reduce)'), still = new URLSearchParams(location.search).has('still');
 try {
-  const [data, graph] = await Promise.all(['components.json', 'graph.json'].map(async url => { const r = await fetch(url); if (!r.ok) throw new Error('hive: data could not be loaded'); return r.json(); }));
-  const prepared = prepare(data, graph);
+  const [data, plan] = await Promise.all(['components.json', 'city.json'].map(async url => { const r = await fetch(url); if (!r.ok) throw new Error('hive: data could not be loaded'); return r.json(); }));
+  const overrideResponse = await fetch('layout-override.json');
+  const overrides = overrideResponse.ok ? await overrideResponse.json() : undefined;
+  const prepared = prepare(data, plan, overrides);
   if (prepared.error) throw new Error(prepared.error);
-  await start(data, graph, prepared.scene);
+  await start(data, plan, prepared.scene);
 } catch (error) { document.querySelector('#error').textContent = error.message.startsWith('hive:') ? error.message : 'hive: data could not be loaded'; stories.replaceChildren(); }
-async function start(data, graph, model) {
-  const chapters = tour(model, graph), sections = document.querySelector('#chapters');
+async function start(data, plan, model) {
+  const chapters = tour(model, plan), sections = document.querySelector('#chapters');
   for (const chapter of chapters) { const section = document.createElement('section'); section.id = chapter.id; section.dataset.chapter = chapter.id; section.style.height = `${NAVIGATION.sectionHeight}svh`; section.setAttribute('aria-label', `${chapter.number} ${chapter.id}`); sections.append(section); }
   let rendererName = chooseRenderer(() => canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true }), location.search);
   let THREE, renderer, scene, camera, hive, outline;
@@ -46,13 +48,14 @@ async function start(data, graph, model) {
   const raster = pixel(model), ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;
   if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }
   const root = document.documentElement; document.querySelector('#source').textContent = data.project;
-  const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.component === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.id; node.textContent = `${ch.number === 'Depot' ? 'Depot:' : ch.number} ${c.name}`.replace('Requirement contract', 'Contract').replace('Identity scan', 'Identity').replace('Key cabinet', 'Keys').replace('Night shift', 'Night'); labels.append(node); return node; });
-  const labelHeights = new Map(hive?.children.filter(c => c.userData.component).map(c => [c.userData.component, c.userData.labelHeight]));
+  root.dataset.hiveChapters = JSON.stringify(chapters.map(c => c.id));
+  const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.place === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.component ?? c.id; node.textContent = `${ch?.number ?? '—'} ${c.name}${c.note ? ` · ${c.note}` : ''}`; labels.append(node); return node; });
+  const labelHeights = new Map(hive?.children.filter(c => c.userData.place).map(c => [c.userData.place, c.userData.labelHeight]));
   let mode = 'tour', voice = 'plain', selected = null, entered = null, progress = 0, chapterIndex = 0, yaw = 0, zoom = 1;
   let gestureState = { mode, selected, zoom }, desired = overview(model), current = desired, readingKey = '';
   const aspect = () => stage.clientWidth / stage.clientHeight;
   const reading = () => {
-    const id = mode === 'tour' ? chapters[chapterIndex].component : selected;
+    const id = mode === 'tour' ? chapters[chapterIndex].id : selected;
     const key = `${id}/${mode}/${voice}`;
     if (key === readingKey) return; readingKey = key;
     renderText(document, stories, textLayer(data, `#${id}`, rendererName, voice, chapters, mode));
@@ -80,7 +83,7 @@ async function start(data, graph, model) {
   };
   const readHash = () => {
     const hash = decodeURIComponent(location.hash.slice(1)), [kind, id] = hash.split('/');
-    const valid = model.chambers.some(c => c.id === id);
+    const valid = model.chambers.some(c => c.id === id || c.component === id);
     mode = kind === 'explore' || kind === 'enter' && valid ? 'explore' : 'tour';
     root.dataset.hiveMode = mode; document.body.classList.toggle('exploring', mode === 'explore');
     entered = kind === 'enter' && valid ? id : null; selected = valid && mode === 'explore' ? id : null;
@@ -98,14 +101,15 @@ async function start(data, graph, model) {
       current = { ...desired, target: current.target.map((v, i) => v + (desired.target[i] - v) * ease), position: current.position.map((v, i) => v + (desired.position[i] - v) * ease) };
       const vector = current.position.map((v, i) => (v - current.target[i]) * zoom), angle = yaw;
       camera.position.set(current.target[0] + vector[0] * Math.cos(angle) + vector[2] * Math.sin(angle), current.target[1] + vector[1], current.target[2] + vector[2] * Math.cos(angle) - vector[0] * Math.sin(angle)); camera.lookAt(...current.target); camera.updateMatrixWorld();
-      const active = mode === 'tour' ? chapters[chapterIndex].component : selected, visible = visibleRoads(model.roads, active);
+      const active = mode === 'tour' ? chapters[chapterIndex].component : selected, visible = visibleRoads(model.roads, mode === 'tour' ? chapters[chapterIndex].id : null);
+      const activePlace = model.chambers.find(c => c.component === active || c.id === active)?.id;
       hive.children.forEach(o => {
-        if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = active && o.userData.road.split('/').includes(active); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }
+        if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = mode === 'explore' && activePlace && model.roads.find(r => r.id === o.userData.road && [r.from, r.to].includes(activePlace)); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }
         if (o.userData.component) o.traverse(m => { if (m.isMesh) { m.userData.highlight ??= m.material.clone(); m.material = m.userData.highlight; m.material.emissive?.set(o.userData.component === active ? '#303831' : '#000000'); m.material.emissiveIntensity = 0.12; } });
       });
-      hive.traverse(o => { const bee = o.userData.bee; if (!bee) return; const phase = state.beePhase + bee.index * Math.PI * 2 / STYLE.beeScale; if (bee.kind === 'inFlight') { const mix = (Math.sin(phase) + 1) / 2; o.position.set(bee.x * (1 - mix), STYLE.beeHeight + Math.cos(phase) * STYLE.beeScale, bee.z * (1 - mix) + Math.sin(phase) * STYLE.cellStep); o.rotation.y = phase; } else { const side = bee.index % 4, along = (Math.floor(bee.index / 4) - 1) * bee.apron / 2; o.position.set(bee.x + (side === 0 ? -bee.apron : side === 2 ? bee.apron : along), bee.restY, bee.z + (side === 1 ? -bee.apron : side === 3 ? bee.apron : along)); o.rotation.y = side * Math.PI / 2; } });
-      outline.visible = mode === 'explore' && Boolean(selected);
-      if (outline.visible) { const c = model.chambers.find(c => c.id === selected); outline.box.set(new THREE.Vector3(...c.bounds.min), new THREE.Vector3(...c.bounds.max)); }
+      hive.traverse(o => { if (o.userData.worker) o.rotation.y = state.beePhase; });
+      outline.visible = Boolean(activePlace) && (mode === 'explore' || chapters[chapterIndex].visit);
+      if (outline.visible) { const c = model.chambers.find(c => c.id === activePlace); outline.box.set(new THREE.Vector3(...c.bounds.min), new THREE.Vector3(...c.bounds.max)); }
       const bands = safeBands(document, stage);
       stage.style.setProperty('--safe-top', `${bands.top}px`); stage.style.setProperty('--safe-bottom', `${bands.bottom}px`);
       if (bands.top || bands.bottom) {
@@ -121,8 +125,16 @@ async function start(data, graph, model) {
         renderer.render(scene, camera);
         renderer.setScissorTest(false); renderer.autoClear = true;
       } else renderer.render(scene, camera);
-      model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1; node.dataset.x = (p.x + 1) / 2 * stage.clientWidth; node.dataset.y = (1 - p.y) / 2 * stage.clientHeight; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * stage.clientWidth; node.dataset.pickY = (1 - pick.y) / 2 * stage.clientHeight; });
+      model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1 || !(mode === 'tour' && chapters[chapterIndex].place ? c.id === chapters[chapterIndex].place || c.id === chapters.find(ch => ch.id === chapters[chapterIndex].step)?.place : c.id === activePlace || chapters.some(ch => !ch.visit && ch.place === c.id)); node.dataset.x = (p.x + 1) / 2 * stage.clientWidth; node.dataset.y = (1 - p.y) / 2 * stage.clientHeight; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * stage.clientWidth; node.dataset.pickY = (1 - pick.y) / 2 * stage.clientHeight; });
       placeLabels(document, stage, labelNodes);
+      const project = (x, y, z) => { const p = new THREE.Vector3(x, y, z).project(camera); return [(p.x + 1) / 2 * stage.clientWidth, (1 - p.y) / 2 * stage.clientHeight]; };
+      const place = model.chambers.find(n => n.id === chapters[chapterIndex].place);
+      const corners = place ? [place.bounds.min[0], place.bounds.max[0]].flatMap(x => [place.bounds.min[1], place.bounds.max[1]].flatMap(y => [place.bounds.min[2], place.bounds.max[2]].map(z => project(x, y, z)))) : [];
+      root.dataset.hivePlaceBox = JSON.stringify(corners.length ? { left: Math.min(...corners.map(p => p[0])), right: Math.max(...corners.map(p => p[0])), top: Math.min(...corners.map(p => p[1])), bottom: Math.max(...corners.map(p => p[1])) } : null);
+      root.dataset.hiveStreetSamples = JSON.stringify(model.roads.filter(r => r.id.startsWith('ring-')).filter((_, i) => i % 7 === 0).slice(0, 5).map(r => {
+        const a = r.path[0], b = r.path[1], x = (a[0] + b[0]) / 2, z = (a[1] + b[1]) / 2, length = Math.hypot(x, z), offset = CITY.probeOffset;
+        return { street: project(x, STREETS.elevation + STREETS.thickness, z), ground: project(x + x / length * offset, STREETS.elevation - STREETS.thickness, z + z / length * offset) };
+      }));
       root.dataset.hivePose = JSON.stringify({ target: current.target.map(v => +v.toFixed(3)), position: camera.position.toArray().map(v => +v.toFixed(3)) });
     } else { drawPixel(ctx, raster, mode === 'tour' ? chapters[chapterIndex].component : selected); labelNodes.forEach(n => { n.hidden = true; }); root.dataset.hivePose = 'pixel'; }
     root.dataset.hiveChapter = mode === 'tour' ? chapters[chapterIndex].id : entered ? `enter/${entered}` : 'explore';

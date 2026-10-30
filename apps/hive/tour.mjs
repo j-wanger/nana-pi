@@ -1,57 +1,49 @@
 /**
  * @module apps/hive/tour.mjs
- * @purpose Computes numbered loop chapters and road-following camera poses for scroll progress.
- * @inputs Published layout and graph, chapter progress, aspect and reduced-motion flag.
- * @outputs Ordered chapter anchors, walks, hash progress and camera poses.
+ * @purpose Computes the request journey, anchored visits and street-following scroll poses.
+ * @inputs City layout, hand plan, chapter progress, aspect and reduced-motion flag.
+ * @outputs Ordered chapters, walks, hash progress and camera poses.
  * @effects none
- * @errors Throws for missing chapter roads.
+ * @errors Throws for missing chapter streets.
  */
 import { focus, overview } from './camera.mjs';
-export function tour(model, graph) {
-  const chapters = [{ id: 'overview', number: '00', component: null, model, walk: [] }];
-  for (const [i, id] of graph.spine.entries()) {
-    const number = String(i + 1).padStart(2, '0'); chapters.push({ id, number, component: id, model });
-    graph.nodes.filter(n => ['support', 'gate'].includes(n.role) && n.stage === id).forEach((n, j) => chapters.push({ id: n.id, number: `${number}.${j + 1}`, component: n.id, model }));
+import { STYLE } from './config.mjs';
+import { pathBetween } from './city.mjs';
+export function tour(model, plan) {
+  const chapters = [];
+  const place = id => model.chambers.find(n => n.id === id);
+  for (const [i, step] of plan.journey.entries()) {
+    const number = String(i).padStart(2, '0'), n = place(step.place);
+    chapters.push({ ...step, number, name: n?.name ?? (step.id === 'closing' ? 'Explore the city' : 'The whole city'), model, walk: [] });
+    for (const [j, id] of step.visits.entries()) { const n = place(id); chapters.push({ id: n.component ?? n.id, place: id, component: n.component, step: step.id, visit: true, number: `${number}.${j + 1}`, name: n.name, model, walk: [] }); }
   }
-  const outside = graph.nodes.filter(n => n.role === 'outside');
-  chapters.push({ id: 'outside', number: 'Depot', component: null, model: { ...model, chambers: model.chambers.filter(c => c.role === 'outside') } });
-  outside.forEach((n, i) => chapters.push({ id: n.id, number: 'Depot', component: n.id, model }));
-  chapters.push({ id: 'closing', number: '11', component: null, model });
-  const byId = new Map(graph.nodes.map(n => [n.id, n]));
-  const center = id => { const n = byId.get(id); return [n.x, n.z]; };
-  const pathBetween = (from, to) => {
-    if (from === to) return [center(from)];
-    const queue = [[from]], seen = new Set([from]); let ids;
-    while (queue.length) {
-      const path = queue.shift(), last = path.at(-1); if (last === to) { ids = path; break; }
-      // Loop and chapter ties define the tour; recorded artifact shortcuts do not skip stages.
-      for (const road of graph.roads.filter(r => r.class === 'loop' || r.sources.some(s => s.source === 'spur') || [r.from, r.to].includes(last) && (byId.get(r.from)?.stage === r.to || byId.get(r.to)?.stage === r.from))) {
-        const next = road.from === last ? road.to : road.to === last ? road.from : null;
-        if (next && !seen.has(next)) { seen.add(next); queue.push([...path, next]); }
-      }
-    }
-    if (!ids) throw new Error(`missing tour road ${from}/${to}`);
-    const points = [center(from)];
-    for (let i = 1; i < ids.length; i++) { const road = graph.roads.find(r => [r.from, r.to].includes(ids[i - 1]) && [r.from, r.to].includes(ids[i])); const p = road.from === ids[i - 1] ? road.path : [...road.path].reverse(); points.push(...p, center(ids[i])); }
-    return points;
-  };
-  for (let i = 1; i < chapters.length; i++) {
-    const a = chapters[i - 1], b = chapters[i];
-    const from = a.component ?? (a.id === 'outside' ? outside[0]?.id : graph.spine[0]);
-    const to = b.component ?? (b.id === 'outside' ? outside[0]?.id : graph.spine[0]);
-    b.walk = from && to ? pathBetween(from, to) : [];
+  for (const n of model.chambers.filter(n => n.note === 'No place yet')) chapters.splice(-1, 0, { id: n.component, component: n.component, place: n.id, number: '12.1', name: n.name, model, walk: [] });
+  let previous = null;
+  for (const chapter of chapters.filter(c => !c.visit)) {
+    const n = place(chapter.place); if (n && previous) chapter.walk = pathBetween(model, previous, n); if (n) previous = n;
   }
   return chapters;
 }
 export function chapterProgress(chapters, hash) { return Math.max(0, chapters.findIndex(c => c.id === hash.replace(/^#/, ''))); }
-const anchor = (chapter, aspect) => chapter.component ? focus(chapter.model, chapter.component, aspect) : chapter.id === 'outside' ? focus(chapter.model, null, aspect) : overview(chapter.model, aspect);
+const anchor = (chapter, chapters, aspect) => {
+  if (!chapter.place) return overview(chapter.model, aspect);
+  const step = chapter.visit ? chapters.find(c => c.id === chapter.step) : chapter;
+  const pose = focus(chapter.model, step.place, aspect);
+  if (!chapter.visit) return pose;
+  const lot = chapter.model.chambers.find(n => n.id === chapter.place), base = chapter.model.chambers.find(n => n.id === step.place);
+  let radius = 0;
+  for (const bounds of [lot.bounds, base.bounds]) for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) radius = Math.max(radius, Math.hypot(x - pose.target[0], y - pose.target[1], z - pose.target[2]));
+  const vertical = STYLE.fov * Math.PI / 360, distance = radius * STYLE.framePadding / Math.sin(Math.min(vertical, Math.atan(Math.tan(vertical) * aspect)));
+  const delta = pose.position.map((v, i) => v - pose.target[i]), length = Math.hypot(...delta);
+  return { ...pose, position: pose.target.map((v, i) => v + delta[i] / length * distance) };
+};
 export function tourPose(chapters, progress, aspect = 1, reduced = false) {
   const p = Math.max(0, Math.min(chapters.length - 1, progress));
-  if (reduced || Number.isInteger(p)) return anchor(chapters[Math.round(p)], aspect);
-  const i = Math.floor(p), t = p - i, a = anchor(chapters[i], aspect), b = anchor(chapters[i + 1], aspect), walk = chapters[i + 1].walk;
-  const lengths = walk.slice(1).map((v, j) => Math.hypot(v[0] - walk[j][0], v[1] - walk[j][1]));
-  let distance = lengths.reduce((s, v) => s + v, 0) * t, target = a.target.map((v, j) => v + (b.target[j] - v) * t);
-  for (let j = 0; j < lengths.length; j++) { if (distance <= lengths[j] || j === lengths.length - 1) { const ratio = lengths[j] ? distance / lengths[j] : 0; target = [walk[j][0] + (walk[j + 1][0] - walk[j][0]) * ratio, target[1], walk[j][1] + (walk[j + 1][1] - walk[j][1]) * ratio]; break; } distance -= lengths[j]; }
+  if (reduced || Number.isInteger(p)) return anchor(chapters[Math.round(p)], chapters, aspect);
+  const i = Math.floor(p), t = p - i, a = anchor(chapters[i], chapters, aspect), b = anchor(chapters[i + 1], chapters, aspect), next = chapters[i + 1];
+  const walk = next.walk, lengths = walk.slice(1).map((v, j) => Math.hypot(...v.map((x, k) => x - walk[j][k])));
+  let distance = lengths.reduce((s, v) => s + v, 0) * t, target = next.visit ? b.target : a.target.map((v, j) => v + (b.target[j] - v) * t);
+  for (let j = 0; j < lengths.length; j++) { if (distance <= lengths[j] || j === lengths.length - 1) { const ratio = lengths[j] ? distance / lengths[j] : 0; target = walk[j].map((v, k) => v + (walk[j + 1][k] - v) * ratio); break; } distance -= lengths[j]; }
   const offset = a.position.map((v, j) => (v - a.target[j]) * (1 - t) + (b.position[j] - b.target[j]) * t);
   return { target, position: target.map((v, j) => v + offset[j]), fov: a.fov };
 }

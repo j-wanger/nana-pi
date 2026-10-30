@@ -7,18 +7,22 @@
  * @errors None for contract-shaped data.
  */
 export function textLayer(data, hash, renderer, voice = 'plain', chapters = null, mode = 'tour') {
-  const order = chapters?.filter(c => c.component) ?? data.components.map((c, i) => ({ component: c.id, number: String(i + 1).padStart(2, '0') }));
-  const components = order.map(ch => ({ ...data.components.find(c => c.id === ch.component), number: ch.number }));
-  const active = components.find(c => `#${c.id}` === hash)?.id ?? null;
+  const order = [...(chapters ?? data.components.map((c, i) => ({ id: c.id, component: c.id, number: String(i + 1).padStart(2, '0'), name: c.name })))];
+  if (mode === 'explore' && chapters) for (const n of chapters[0].model.chambers) if (!order.some(ch => ch.place === n.id)) order.push({ id: n.component ?? n.id, component: n.component, place: n.id, name: n.name, number: '—', model: chapters[0].model });
+  const components = order.map(ch => {
+    const c = data.components.find(c => c.id === ch.component), lot = ch.model?.chambers.find(n => n.id === ch.place);
+    return { id: ch.id, name: ch.name, componentName: c?.name ?? '', metaphor: c?.metaphor ?? (ch.id === 'signal' ? 'One wish becomes a signal. The reception tower catches it.' : ch.id === 'customers' ? 'Other projects receive the work. Their feedback becomes the next signal.' : 'Follow one wish through the city, then explore.'), kind: c?.kind ?? 'workflow', status: c?.status ?? 'absent', features: c?.features ?? [], parts: c?.parts ?? [], evidence: c?.evidence ?? [], gap: c?.gap, ask: c?.ask, note: lot?.note, number: ch.number };
+  });
+  const active = components.find(c => `#${c.id}` === hash && !['overview', 'closing'].includes(c.id))?.id ?? null;
   return {
-    active, voice, mode, renderer: `Renderer: ${renderer}`,
+    active, voice, mode, renderer: `Renderer: ${renderer}${renderer === 'pixel' ? ' · streets in 3D only' : ''}`,
     landing: mode === 'tour'
-      ? { title: 'From idea to next idea.', text: 'Plan. Build. Check. Review. Land. Release. Scroll to follow the work.', actions: ['explore'] }
-      : { title: 'Explore the loop.', text: 'Tap a building to select it. Drag to orbit. Pinch to zoom. Only Enter takes you inside.', actions: ['tour'] },
-    rail: components.map(c => ({ href: `#${c.id}`, name: c.name, chapter: `${c.number.toUpperCase()}:${c.name.toUpperCase()}`, active: c.id === active })),
+      ? { title: 'One wish. A working city.', text: 'A signal reaches the tower. The park plans, builds and checks it. One gate ships it to customers. Feedback starts again.', legend: 'Lit windows mean sound, half-lit windows mean partial or gap, and dark windows mean absent or future work.', actions: ['explore'] }
+      : { title: 'Explore the city.', text: 'Tap a building to select it. Drag to orbit. Pinch to zoom. Only Enter takes you inside.', legend: 'Lit windows mean sound, half-lit windows mean partial or gap, and dark windows mean absent or future work.', actions: ['tour'] },
+    rail: components.map(c => ({ href: `#${c.id}`, name: c.name, chapter: `${c.number.toUpperCase()} ${c.name.toUpperCase()}`, active: c.id === active })),
     cards: components.map(c => {
       const voices = {
-        plain: c.metaphor,
+        plain: [c.componentName, c.metaphor, c.note].filter(Boolean).join(' · '),
         technical: [`${c.kind} · ${c.status}`, ...c.features.map(f => `${f.label} — ${f.implemented} of ${f.rows}`), !c.features.length ? 'No features recorded · empty foundation' : null, `Parts: ${c.parts.join('\n') || 'none'}`, `Evidence: ${c.evidence.join(', ')}`].filter(Boolean).join('\n\n'),
         work: [c.gap || 'No gap recorded in this assessment.', ...(c.ask ? [`Question: ${c.ask.question}`, `Default: ${c.ask.default}`, `Gains and misses: ${c.ask.gains}`, `Cost: ${c.ask.cost}`, `Otherwise: ${c.ask.otherwise}`] : ['No decision requested.'])].join('\n\n'),
       };
@@ -41,16 +45,15 @@ export function renderText(document, container, model) {
   }
   const pickerLabel = el('label', 'Chapter', container); pickerLabel.setAttribute('class', 'chapter-picker');
   const picker = el('select', '', pickerLabel); picker.setAttribute('aria-label', 'Choose a chapter');
-  const overview = el('option', '00:THE WHOLE SYSTEM', picker); overview.setAttribute('value', '');
-  if (!model.active) overview.setAttribute('selected', '');
-  for (const item of model.rail) { const option = el('option', item.chapter, picker); option.setAttribute('value', item.href); if (item.active) option.setAttribute('selected', ''); }
+  if (!model.rail.some(item => item.href === '#overview')) { const overview = el('option', '00 THE WHOLE CITY', picker); overview.setAttribute('value', '#overview'); if (!model.active) overview.setAttribute('selected', ''); }
+  for (const item of model.rail) { const option = el('option', item.chapter, picker); option.setAttribute('value', item.href); if (item.active || !model.active && item.href === '#overview') option.setAttribute('selected', ''); }
   const landing = el('article', '', container); landing.setAttribute('class', model.active ? 'landing card' : 'landing card active');
   if (model.active) landing.setAttribute('hidden', '');
   el('span', '00 / NANA PI', landing).setAttribute('class', 'chapter-number');
   el('h2', model.landing.title, landing);
   el('p', model.landing.text, landing);
   for (const action of model.landing.actions) { const button = el('button', action === 'explore' ? 'Explore' : 'Back to tour', landing); button.setAttribute('data-action', action); }
-  el('p', 'White forms are built. Open frames are unfinished. Empty foundations mark what is absent.', landing).setAttribute('class', 'legend');
+  el('p', model.landing.legend, landing).setAttribute('class', 'legend');
   for (const item of model.cards) {
     const article = el('article', '', container); article.setAttribute('id', `card-${item.id}`); article.setAttribute('class', item.active ? 'card active' : 'card');
     if (item.active) article.setAttribute('aria-current', 'true'); else article.setAttribute('hidden', '');

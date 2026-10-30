@@ -7,17 +7,19 @@
  * @errors Context creation exceptions fall back to pixel; malformed layout data returns a plain error.
  */
 import { layout } from './layout.mjs';
-import { graphProblem } from './graph.mjs';
+import { checkCityPlan, structuralProblems } from './city.mjs';
 import { STYLE } from './config.mjs';
 export function chooseRenderer(makeContext, query) {
   if (new URLSearchParams(query).get('view') === 'pixel') return 'pixel';
   try { return makeContext() ? 'webgl' : 'pixel'; } catch { return 'pixel'; }
 }
-export function prepare(data, graph) {
+export function prepare(data, plan, overrides) {
   if (data?.contract !== 'nana-components' || data?.version !== 1) return { scene: null, error: 'hive: incompatible component contract' };
-  const problem = graphProblem(data, graph);
-  if (problem) return { scene: null, error: `hive: ${problem}` };
-  try { return { scene: layout(data, graph), error: null }; } catch { return { scene: null, error: 'hive: unreadable component data' }; }
+  try {
+    const problems = structuralProblems(checkCityPlan(plan, data.components));
+    if (problems.length) return { scene: null, error: `hive: city: ${problems[0]}` };
+    return { scene: layout(data, plan, overrides), error: null };
+  } catch { return { scene: null, error: 'hive: unreadable component data' }; }
 }
 export function firstFrame(renderer, draw, setReady, chapterApplied = () => true) {
   let ready = false;

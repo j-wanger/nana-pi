@@ -1,0 +1,2 @@
+first-look: saved screenshots and reference in /tmp/world-graph-build8/near-grid
+first-look: saved screenshots and reference in /tmp/world-graph-build8/near-ring

@@ -3,7 +3,7 @@
  * @module scripts/hive-gesture-check.mjs
  * @purpose Measures phone selection and scroll safety through a served hive's real browser wiring.
  * @inputs CLI --url and --out, optional Playwright resolved through the shared resolver.
- * @outputs Four PASS/FAIL checks and a phone screenshot outside the repository.
+ * @outputs Six PASS/FAIL checks, measured chapter overlap and street pixels, and an external phone screenshot.
  * @effects network (served page), disk (external screenshot), process (browser)
  * @errors Missing browser or failed checks exit 1; malformed options exit 2.
  */
@@ -14,6 +14,7 @@ import { resolvePlaywright } from './playwright-resolve.mjs';
 import { waitForHive } from './first-look.mjs';
 import { VIEWPORT_WIDTHS, VIEWPORT_HEIGHT } from './first-look-config.mjs';
 import { outsideRepo } from './reader-common.mjs';
+import { CITY } from '../apps/hive/config.mjs';
 export async function main(argv = process.argv.slice(2), { env = process.env, print = console.log } = {}) {
   const opts = {};
   for (let i = 0; i < argv.length; i++) { if (['--url', '--out'].includes(argv[i]) && argv[i + 1] && !opts[argv[i]]) opts[argv[i]] = argv[++i]; else { print('Usage: hive-gesture-check.mjs --url <url> --out <folder outside git>'); return 2; } }
@@ -43,8 +44,36 @@ export async function main(argv = process.argv.slice(2), { env = process.env, pr
       await page.goto(`${base}#${id}`); await waitForHive(page, true); const linked = await state(); anchors &&= scrolled.chapter === id && scrolled.pose === linked.pose;
     }
     check(anchors, 'scroll reaches the same three poses as chapter hashes');
+    await page.goto(`${base}#overview`); await waitForHive(page, true);
+    const order = await page.evaluate(() => JSON.parse(document.documentElement.dataset.hiveChapters));
+    const sequence = []; let overlap = true;
+    for (const id of order) {
+      await page.evaluate(id => document.getElementById(id).scrollIntoView(), id);
+      await page.waitForFunction(id => document.documentElement.dataset.hiveChapter === id, id, { timeout: 3000 });
+      const sample = await page.evaluate(() => {
+        const root = document.documentElement, box = JSON.parse(root.dataset.hivePlaceBox), card = document.querySelector('.card.active')?.getBoundingClientRect();
+        const intersection = box && card ? Math.max(0, Math.min(box.right, card.right) - Math.max(box.left, card.left)) * Math.max(0, Math.min(box.bottom, card.bottom) - Math.max(box.top, card.top)) : 0;
+        return { chapter: root.dataset.hiveChapter, overlap: box ? intersection / ((box.right - box.left) * (box.bottom - box.top)) : 0 };
+      });
+      sequence.push(sample.chapter); overlap &&= sample.overlap <= CITY.cardOverlap;
+      print(`scroll ${sample.chapter}: card overlap ${sample.overlap.toFixed(4)}`);
+    }
+    check(JSON.stringify(sequence) === JSON.stringify(order) && overlap, 'full phone scroll visits every chapter in order with bounded card overlap');
+    await page.goto(`${base}#overview`); await waitForHive(page, true);
+    const pixels = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas'), rect = canvas.getBoundingClientRect(), copy = document.createElement('canvas'); copy.width = canvas.width; copy.height = canvas.height;
+      const ctx = copy.getContext('2d'); ctx.drawImage(canvas, 0, 0);
+      const luminance = p => {
+        const rgba = ctx.getImageData(Math.floor(p[0] / rect.width * canvas.width), Math.floor(p[1] / rect.height * canvas.height), 1, 1).data;
+        const rgb = [...rgba].slice(0, 3).map(v => { const s = v / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
+        return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+      };
+      return JSON.parse(document.documentElement.dataset.hiveStreetSamples).map(s => ({ street: luminance(s.street), ground: luminance(s.ground) }));
+    });
+    pixels.forEach((p, i) => print(`street pixel ${i + 1}: ${p.street.toFixed(4)} / ground ${p.ground.toFixed(4)}`));
+    check(pixels.length === 5 && pixels.every(p => p.street - p.ground >= CITY.pixelMargin), 'five street pixels are lighter than their neighbouring ground');
     await mkdir(opts['--out'], { recursive: true }); await page.screenshot({ path: path.join(opts['--out'], 'gesture-380.png') });
-    print(`gesture checks: ${4 - failed} passed, ${failed} failed`); return failed ? 1 : 0;
+    print(`gesture checks: ${6 - failed} passed, ${failed} failed`); return failed ? 1 : 0;
   } catch (error) { print(`hive-gesture-check: ${error.message}`); return 1; }
   finally { await browser?.close(); }
 }

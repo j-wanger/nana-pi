@@ -1,0 +1,42 @@
+(node:18660) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<home>/nana-pi-wt/world-graph/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <home>/nana-pi-wt/world-graph/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+FAIL R-3134: visual and serving defaults retain their sealed values and provenance Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   arcSamples: 72,
+-   bandGap: 8,
+-   bayCount: 4,
+-   cardOverlap: 0.15,
+-   clearance: 3,
+-   doorAngle: 0.35,
+-   edgeGap: 20,
+-   fenceGap: 10,
+-   frontage: 1,
+-   latticeFamilies: 1,
+-   latticeSpacing: 0.08,
+-   latticeTolerance: 0.08,
+-   litBays: 2,
+-   minimumRadiusBands: 3,
+-   northTolerance: 5,
+-   outsideGap: 24,
+-   parkBands: 3,
+-   parkBase: 16,
+-   pixelMargin: 0.025,
+-   positionGrid: 0.001,
+-   radialStep: 17,
+-   radiusBandSize: 8,
+-   ringGap: 3,
+-   routingMargin: 1,
+-   routingSides: 12,
+-   skyHeight: 28,
+-   townGap: 12,
+-   vacantBearing: 147,
+-   walkTolerance: 0.002,
+-   worldHalfExtent: 300
+- }

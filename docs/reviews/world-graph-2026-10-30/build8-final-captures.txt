@@ -1,0 +1,4 @@
+first-look: saved screenshots and reference in /tmp/world-graph-build8/final/near-grid
+capture near-grid EXIT:0
+first-look: saved screenshots and reference in /tmp/world-graph-build8/final/near-ring
+capture near-ring EXIT:0

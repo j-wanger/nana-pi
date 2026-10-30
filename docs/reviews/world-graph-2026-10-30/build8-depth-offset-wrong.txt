@@ -1,0 +1,18 @@
+(node:88038) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<home>/nana-pi-wt/world-graph/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <home>/nana-pi-wt/world-graph/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+FAIL R-3134: visual and serving defaults retain their sealed values and provenance Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    dashGap: 0.8,
+    dashLength: 0.8,
+-   depthOffset: -4,
+    edgeWidth: 0.04,
+    elevation: -0.43,
+    kerbHeight: 0.05,
+    laneWidth: 0.06,
+    thickness: 0.04,

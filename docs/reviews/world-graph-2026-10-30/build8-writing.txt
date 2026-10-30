@@ -1,0 +1,106 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+-:5: passive: passive candidate: "started" in "No model session or subagent was started."
+-:7: passive: passive candidate: "intended" in "One build commit is intended after the green locked run."
+-:11: identifier: `apps/hive/city.json`
+-:11: identifier: `city.mjs`
+-:11: identifier: `layout.mjs`
+-:11: identifier: `runtime.mjs`
+-:11: identifier: `config.mjs`
+-:12: identifier: `assets/parts.mjs`
+-:12: identifier: `district.mjs`
+-:12: identifier: `residents.mjs`
+-:12: identifier: `hive.mjs`
+-:12: identifier: `materials.mjs`
+-:12: identifier: `road.mjs`
+-:13: identifier: `tour.mjs`
+-:13: identifier: `camera.mjs`
+-:13: identifier: `main.mjs`
+-:13: identifier: `text-layer.mjs`
+-:13: identifier: `pixel.mjs`
+-:14: passive: passive candidate: "restored" in "Audit and deliverable graph-only exports/fields are restored to their main baseline."
+-:14: identifier: `scripts/hive-page.mjs`
+-:14: identifier: `.github/workflows/pages.yml`
+-:14: identifier: `scripts/component-audit.mjs`
+-:14: identifier: `scripts/deliverables.mjs`
+-:15: passive: passive candidate: "retired" in "Retirement: R-3170 and R-3176 are retired."
+-:15: passive: passive candidate: "rewritten" in "R-3171–R-3174 are rewritten; R-3175 changes evidence path only; R-3177 is the only new row."
+-:17: identifier: `apps/hive/README.md`
+-:17: identifier: `docs/code-map.md`
+-:17: identifier: `docs/requirements-tree.md`
+-:19: identifier: `scripts/component-graph.mjs`
+-:19: identifier: `component-graph-config.mjs`
+-:19: identifier: `component-graph-layout.mjs`
+-:19: identifier: `apps/hive/graph.mjs`
+-:19: identifier: `roads.mjs`
+-:19: identifier: `docs/components/graph-contract.json`
+-:19: identifier: `graph-fixture.json`
+-:19: identifier: `loop.json`
+-:19: identifier: `packages/nana-pack/tests/fixtures/hive-graph-base.json`
+-:19: identifier: `packages/nana-pack/tests/hive-graph.test.mjs`
+-:21: passive: passive candidate: "edited" in "No HANDOFF, known-bug file or session archive was edited."
+-:21: identifier: `d797a9f1`
+-:25: identifier: `hive-city.test.mjs`
+-:25: identifier: `fixtures/hive-city-controls.json`
+-:40: length: 90 words (cap 25)
+-:40: passive: passive candidate: "relocated" in "R-3175 is relocated, not removed."
+-:40: passive: passive candidate: "deleted" in "No other test case is deleted."
+-:40: identifier: `graph counts recorded sources in their own units through shared parsers`
+-:40: identifier: `loop drift and incompatible graph pairs refuse before output without changing v1`
+-:40: identifier: `published loop geometry matches goldens and sealed bounds clearance and attachments`
+-:40: identifier: `every stage fronts its continuous loop within the sealed one unit`
+-:40: identifier: `typed roads avoid third footprints and meet the base crossing caps`
+-:40: identifier: `numbered tour anchors frame structures and walk roads at every viewport`
+-:40: identifier: `publisher ships paired graphs and Pages derives and scans them in order`
+-:44: identifier: `build8-wrong-city.txt`
+-:44: identifier: `build8-wrong-page.txt`
+-:44: identifier: `build8-wrong-assets.txt`
+-:55: passive: passive candidate: "awaited" in "All async suite cases are awaited under per-case limits; no suite test imports or runs the gesture seat check."
+-:55: identifier: `build8-<suffix>.txt`
+-:59: identifier: `/tmp/world-graph-build8/`
+-:61: identifier: `overview/`
+-:61: identifier: `workshop/`
+-:62: identifier: `round2/{overview,signal,workshop,identity-scan,explore,explore-workshop}/`
+-:63: identifier: `final/{overview,signal,workshop,identity-scan,explore,explore-workshop}/`
+-:64: identifier: `final/near-grid/`
+-:64: identifier: `final/near-ring/`
+-:65: identifier: `page-380.png`
+-:65: identifier: `page-1280.png`
+-:65: identifier: `build8-browser.txt`
+-:66: identifier: `scripts/first-look.mjs --page url --after <served hash> --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out <outside-git folder>`
+-:84: identifier: `0.0000`
+-:84: identifier: `0.6990/0.5828`
+-:84: identifier: `0.6182/0.5828`
+-:84: identifier: `0.6609/0.5828`
+-:84: identifier: `0.6990/0.5828`
+-:84: identifier: `0.6609/0.5828`
+-:88: identifier: `box`
+-:88: identifier: `drum`
+-:88: identifier: `hoop`
+-:88: identifier: `assets/parts.mjs`
+-:89: identifier: `pathBetween`
+-:89: identifier: `city.mjs`
+-:90: identifier: `roundPosition`
+-:90: identifier: `round`
+-:90: identifier: `segmentDistance`
+-:90: identifier: `crossings`
+-:90: identifier: `route`
+-:91: passive: passive candidate: "deleted" in "The old engine is deleted; tests import the moved distance helper instead of copying it."
+-:92: passive: passive candidate: "sealed" in "`camera.mjs` keeps framing and Enter-only behavior; overview elevation is sealed."
+-:92: identifier: `camera.mjs`
+-:92: identifier: `layout.mjs`
+-:93: identifier: `assets/road.mjs`
+-:93: identifier: `materials.mjs`
+-:94: passive: passive candidate: "unchanged" in "`assets/bee.mjs` is unchanged."
+-:94: passive: passive candidate: "copied" in "No private helper is copied."
+-:94: identifier: `assets/bee.mjs`
+-:95: identifier: `scripts/hive-page.mjs`
+-:95: identifier: `hive-gesture-check.mjs`
+-:101: passive: passive candidate: "committed" in "All long outputs are committed as `build8-*.txt`; home prefixes are redacted without changing assertions, counts or exits."
+-:101: identifier: `build8-*.txt`
+-:125: length: 26 words (cap 25)
+-:125: identifier: `npm run req:trace`
+-:129: passive: passive candidate: "replaced" in "The old CABINET/rail clipping area is replaced by the new city labels and active-only label policy; no general clipping fix is claimed."
+-:129: passive: passive candidate: "fixed" in "No other supplied known bug is fixed."
+-:131: passive: passive candidate: "reported" in "CI and exact-tip seat-check results are reported in the final worker response after push."
+-:131: passive: passive candidate: "created" in "No GitHub issue was created, edited, commented on or closed."
+summary sentences=100 words=1291 over=2 passive=18 banned=0 verdict=0/1 identifiers=84

@@ -1,0 +1,39 @@
+PASS explore tap selects without pose or hash change
+PASS tour tap changes nothing
+PASS tour swipe scrolls to a chapter without selection or hash change
+PASS scroll reaches the same three poses as chapter hashes
+scroll overview: card overlap 0.0000
+scroll signal: card overlap 0.0000
+scroll compass: card overlap 0.0000
+scroll rulings: card overlap 0.0000
+scroll writing-rule: card overlap 0.0000
+scroll drafting-table: card overlap 0.0000
+scroll requirement-contract: card overlap 0.0000
+scroll queue: card overlap 0.0000
+scroll night-shift: card overlap 0.0000
+scroll workshop: card overlap 0.0000
+scroll tool-belt: card overlap 0.0000
+scroll command-gate: card overlap 0.0000
+scroll code-map: card overlap 0.0000
+scroll eyes: card overlap 0.0000
+scroll lab: card overlap 0.0000
+scroll desk: card overlap 0.0000
+scroll review-ladder: card overlap 0.0000
+scroll land-gate: card overlap 0.0000
+scroll key-cabinet: card overlap 0.0000
+scroll identity-scan: card overlap 0.0000
+scroll release-route: card overlap 0.0000
+scroll setup: card overlap 0.0000
+scroll notice-board: card overlap 0.0000
+scroll stage: card overlap 0.0000
+scroll customers: card overlap 0.0000
+scroll library: card overlap 0.0000
+scroll closing: card overlap 0.0000
+PASS full phone scroll visits every chapter in order with bounded card overlap
+street pixel 1: 0.6990 / ground 0.5828
+street pixel 2: 0.6182 / ground 0.5828
+street pixel 3: 0.6609 / ground 0.5828
+street pixel 4: 0.6990 / ground 0.5828
+street pixel 5: 0.6609 / ground 0.5828
+PASS five street pixels are lighter than their neighbouring ground
+gesture checks: 6 passed, 0 failed

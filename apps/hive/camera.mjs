@@ -25,7 +25,7 @@ export function overview(model, aspect = 1) {
   return { target, position: [target[0], target[1] + distance * OVERVIEW_ELEVATION / length, target[2] + distance / length], fov: STYLE.fov };
 }
 export function focus(model, id, aspect = 1) {
-  const bounds = model.chambers.find(c => c.id === id)?.bounds ?? model.bounds;
+  const bounds = model.chambers.find(c => c.id === id || c.component === id)?.bounds ?? model.bounds;
   const target = bounds.min.map((v, i) => (v + bounds.max[i]) / 2);
   const radius = Math.hypot(...bounds.max.map((v, i) => (v - bounds.min[i]) / 2));
   const vertical = STYLE.fov * Math.PI / 360;

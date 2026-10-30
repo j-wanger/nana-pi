@@ -6,6 +6,20 @@
  * @effects none
  * @errors None for valid geometry.
  */
+// Moved from buildHive's closure; geometry and materials are explicit like beam and fence.
+export function box(THREE, materials, cube, parent, x, y, z, w, h, d, mat = materials.status.sound) {
+  const mesh = new THREE.Mesh(cube, mat); mesh.position.set(x, y, z); mesh.scale.set(w, h, d); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
+}
+export function drum(THREE, materials, parent, x, y, z, radius, h, mat = materials.status.sound, top = radius, openEnded = false) {
+  const surface = openEnded ? mat.clone() : mat;
+  if (openEnded) surface.side = THREE.DoubleSide;
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(top, radius, h, 24, 1, openEnded), surface);
+  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
+}
+export function hoop(THREE, materials, parent, x, y, z, radius, mat = materials.ink) {
+  const mesh = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.055, 6, 48), mat);
+  mesh.position.set(x, y, z); mesh.castShadow = true; parent.add(mesh); return mesh;
+}
 export function beam(THREE, materials, rod, parent, a, b, thickness, mat = materials.rim.workflow) {
   const start = new THREE.Vector3(...a), end = new THREE.Vector3(...b), delta = end.clone().sub(start);
   const mesh = new THREE.Mesh(rod, mat); mesh.position.copy(start.add(end).multiplyScalar(0.5)); mesh.scale.set(thickness, delta.length(), thickness); mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize()); mesh.castShadow = true; parent.add(mesh); return mesh;

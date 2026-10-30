@@ -1,0 +1,4 @@
+PASS R-2980: Pages builds for main and issue changes, deploys only main with least privilege and serialization
+PASS R-2985: identity scan checks the uploaded page before upload without escapes
+PASS R-3131: Pages builds the hive beside the product page and scans its data before upload
+PASS R-3139: Pages derives the real audit before passing it to the hive
