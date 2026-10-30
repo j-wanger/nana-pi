@@ -82,17 +82,43 @@ function graphAt(head) {
 
 // Plan rules, prototyped.
 // Plan A3: a document is a path under docs/, a root-level Markdown file, or a README.md anywhere; other Markdown ships (rules, skills, prompts).
-const isDoc = (f) => f.startsWith("docs/") || /^[^/]+\.md$/i.test(f) || /(?:^|\/)README\.md$/.test(f);
+const isDocA3 = (f) => f.startsWith("docs/") || /^[^/]+\.md$/i.test(f) || /(?:^|\/)README\.md$/.test(f);
+// Revision 3 (R-3186): exclusions first, then the patterns.
+const EXCLUDED = (f) => /^templates\//.test(f) || /^apps\/bench\/studies\//.test(f) || /(?:^|\/)fixtures?\//.test(f) || ["docs/code-map.md", "docs/requirements-tree.md"].includes(f) || (f.startsWith("docs/") && !f.startsWith("docs/reviews/") && !f.endsWith(".md"));
+const isDoc = (f) => process.env.DOCRULE === "r3" ? !EXCLUDED(f) && (f.startsWith("docs/reviews/") || /^docs\/.*\.md$/.test(f) || /^[^/]+\.md$/i.test(f) || /(?:^|\/)README\.md$/.test(f)) : isDocA3(f);
 const FULL_RUN_PATHS = [/^scripts\/test(?:-locked)?\.mjs$/, /^packages\/nana-pack\/lib\/test-runner-config\.mjs$/, /^packages\/nana-pack\/lib\/windows-skips-config\.mjs$/, /^scripts\/code-map/, /^code-map\.config\.json$/, /^templates\/typescript\/template\/scripts\/code-map\.mjs$/, /^scripts\/ci-select/];
 const REPO_WALKERS = ["apps/desk/test/knowledge-home-isolation.test.mjs", "packages/nana-pack/tests/identity-scan.test.mjs", "packages/nana-pack/tests/known-bugs.test.mjs", "packages/nana-pack/tests/land.test.mjs", "packages/nana-pack/tests/readme-check.test.mjs", "packages/nana-pack/tests/requirements-deliverables.test.mjs", "packages/nana-pack/tests/requirements-lift.test.mjs", "packages/nana-pack/tests/requirements-trace.test.mjs", "packages/nana-pack/tests/review-ledger.test.mjs", "packages/nana-pack/tests/runtime-map.test.mjs", "packages/nana-pack/tests/templates-render.test.mjs", "packages/nana-pack/tests/test-runner.test.mjs", "packages/nana-setup/tests/install.test.mjs", "packages/nana-setup/tests/project.test.mjs"];
+// Revision 3 rule (DOCRULE=r3, R-3178 and R-3179), text-level like the builder's must be at least:
+// a quoted literal equal to a changed document's path or any folder above it ("." excluded), a run of quoted
+// segments spelling such a path, or the document's file name while the module holds a root anchor word;
+// plus the tests reaching every non-test module that calls a listing primitive (R-3179's forced scan).
+const LISTING = /\b(?:readdirSync|readdir|opendirSync|opendir|globSync|glob)\s*\(|["'](?:ls-files|ls-tree|grep|archive|--name-only)["']/;
+const ANCHOR = /\b(?:REPO|ROOT|repoRoot|REPO_ROOT|rootDir|repo|root|pkgRoot|packageRoot|here)\b|import\.meta\.(?:url|dirname)/;
+function r3Readers(G, docs) {
+	const out = new Set();
+	const add = (m) => { if (G.tests.includes(m)) out.add(m); for (const c of cm.impact(G.graph, [m]).callers) if (G.tests.includes(c)) out.add(c); };
+	for (const [m, src] of G.modText) {
+		if (process.env.R3PART !== "links" && !G.tests.includes(m) && LISTING.test(src)) { add(m); continue; }
+		if (process.env.R3PART === "listers") continue;
+		const hit = docs.some((d) => {
+			const parts = d.split("/");
+			for (let i = parts.length; i >= (process.env.R3TOP === "off" ? 2 : 1); i--) { const prefix = parts.slice(0, i).join("/"); for (const q of ['"', "'", "`"]) if (src.includes(`${q}${prefix}${q}`) || src.includes(`${q}${prefix}/`)) return true; }
+			for (let i = 2; i <= parts.length; i++) if (src.includes(parts.slice(0, i).map((x) => `"${x}"`).join(", "))) return true;
+			return process.env.R3NAME !== "off" && src.includes(`"${parts.at(-1)}"`) && ANCHOR.test(src);
+		});
+		if (hit) add(m);
+	}
+	return out;
+}
 function docChecks(G, docs) {
+	if (process.env.DOCRULE === "r3") return r3Readers(G, docs);
 	if (process.env.DOCRULE === "edges") {
 		const out = new Set(REPO_WALKERS.filter((t) => G.text.has(t)));
 		const anchor = /\b(?:REPO|ROOT|repoRoot|REPO_ROOT|rootDir|repo)\b|"\.\.", "\.\."/;
 		for (const [m, src] of G.modText) {
 			const hit = docs.some((d) => {
 				const parts = d.split("/");
-				for (let i = parts.length; i >= 1; i--) { const prefix = parts.slice(0, i).join("/"); if (prefix.includes("/") && (src.includes(`"${prefix}"`) || src.includes(`"${prefix}/`) || src.includes(`'${prefix}'`))) return true; }
+				for (let i = parts.length; i >= (process.env.R3TOP === "off" ? 2 : 1); i--) { const prefix = parts.slice(0, i).join("/"); if (prefix.includes("/") && (src.includes(`"${prefix}"`) || src.includes(`"${prefix}/`) || src.includes(`'${prefix}'`))) return true; }
 				const joined = parts.map((x) => `"${x}"`).join(", ");
 				if (parts.length > 1 && src.includes(joined.split(", ").slice(0, 2).join(", "))) return true;
 				return parts.length === 1 ? src.includes(`"${d}"`) && anchor.test(src) : false;
