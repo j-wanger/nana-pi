@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement 57167e9..1f6e279: 13 rows in 1 features
+tree movement 57167e9..6eb8e78: 13 rows in 1 features
 FEAT-029 · Navigate code and investigate impact
   R-1272 text changed
   R-2822 text changed
