@@ -60,12 +60,12 @@ function graphAt(head) {
 	const tests = graph.order.filter((p) => cm.isLayerExempt(config, p) && /\.test\.(?:mjs|ts|js)$/.test(p));
 	const text = new Map(tests.map((t) => [t, readFileSync(join(dir, t), "utf8")]));
 	// Plan rule: computed dynamic imports make a test blind (always run).
-	// The three tests FEAT-029 names; the selector's rule (R-3180) catches every unresolved computed import.
+	// The three tests FEAT-029 names; a hidden-load rule was dropped with impact selection (issue 274).
 	const dynamic = ["packages/nana-pack/tests/config-display-text.test.mjs", "packages/nana-pack/tests/config-handlers-malformed.test.mjs", "packages/nana-pack/tests/hive-page.test.mjs"].filter((t) => tests.includes(t));
 	// DOCRULE=edges: document leaf edges, approximated — a mapped module naming a tracked document's repo path
 	// (folder included), or a root-level document's name while it also holds a repo-root anchor.
 	const modText = new Map(graph.order.map((m) => [m, readFileSync(join(dir, m), "utf8")]));
-	// RESOLVE=<n>|all simulates hand resolutions (plan R-3179) for the n non-test hubs with the widest reach.
+	// RESOLVE=<n>|all simulates hand resolutions (not planned) for the n non-test hubs with the widest reach.
 	const isTest = (p) => tests.includes(p);
 	const kinds = ["unresolved", "other-program", "program-unknown"];
 	const holders = [...new Set([...graph.launchAlwaysRun, ...[...graph.sitesByModule].filter(([, s]) => s.some((x) => kinds.includes(x.kind))).map(([p]) => p)])];
@@ -120,7 +120,7 @@ function select(G, changed) {
 	if (process.env.NODOCS) files.clear();
 	const nDocs = files.size;
 	for (const t of G.blind) files.add(t);
-	// Plan R-3182: repository readers list tracked files, so their tests run on every change.
+	// Plan R-3179: repository readers list tracked files, so their tests run on every change.
 	for (const t of REPO_WALKERS) if (G.text.has(t)) files.add(t);
 	const imp = new Set();
 	for (const m of mods) { if (G.tests.includes(m)) imp.add(m); for (const c of cm.impact(G.graph, [m]).callers) if (G.tests.includes(c)) imp.add(c); }
@@ -163,5 +163,9 @@ for (const x of by("full")) { const k = x.why.replace(/^outside map: (\S+?)(?:\/
 console.log(`full-run reasons: ${[...fullWhy].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join("; ")}`);
 const pairs = known.flatMap((x) => x.catches);
 console.log(`failing (run, leg, file) pairs in these runs: ${pairs.length}; caught by the selection: ${pairs.filter((p) => p.caught).length}; missed: ${pairs.filter((p) => !p.caught).length}`);
+for (const m of ["docs", "selective", "full"]) { const ps = by(m).flatMap((x) => x.catches); console.log(`  ${m}: ${ps.length} failing pairs, ${ps.filter((p) => p.caught).length} caught`); }
+// Documents-only scope (owner, issue 274): only documents-only pushes select; every other push runs the full suite.
+{ const docsMin = by("docs").reduce((a, x) => a + wallMin(x), 0), fullMin = known.length * WIN_WALL / 60, scoped = fullMin - by("docs").length * WIN_WALL / 60 + docsMin;
+  console.log(`documents-only scope: est. Windows suite-step minutes ${scoped.toFixed(0)} of ${fullMin.toFixed(0)} (${(scoped / fullMin * 100).toFixed(0)}%)`); }
 for (const x of known) for (const p of x.catches) if (!p.caught) console.log(`  missed: ${x.r.databaseId} ${x.r.headSha.slice(0, 8)} ${x.r.headBranch} ${p.leg} ${p.file} (mode ${x.mode})`);
 if (process.argv.includes("--rows")) for (const x of known) console.log([x.r.databaseId, x.r.headSha.slice(0, 8), x.r.headBranch, x.mode, `${x.n}/${x.of}`, wallMin(x).toFixed(1), x.why].join("\t"));

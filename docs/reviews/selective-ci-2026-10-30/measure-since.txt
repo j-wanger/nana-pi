@@ -1,13 +1,20 @@
-pull_request ci runs since 2026-10-24: 124; base and head known: 122
+pull_request ci runs since 2026-10-24: 127; base and head known: 125
 docs         13 pushes; mean share of test files 9.5%; mean est. Windows suite-step minutes 7.4
 selective    39 pushes; mean share of test files 78.6%; mean est. Windows suite-step minutes 21.1
-full         70 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 22.3
-all known pushes: mean share 83.5%; est. Windows suite-step minutes 2479 of 2784 under the full suite (89%)
-full-run reasons: outside map: packages… 36; selector or runner changed 25; outside map: package.json… 6; outside map: .github… 3
+full         73 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 22.3
+all known pushes: mean share 83.9%; est. Windows suite-step minutes 2548 of 2852 under the full suite (89%)
+full-run reasons: outside map: packages… 36; selector or runner changed 25; outside map: .github… 6; outside map: package.json… 6
 failing (run, leg, file) pairs in these runs: 40; caught by the selection: 37; missed: 3
+  docs: 3 failing pairs, 0 caught
+  selective: 23 failing pairs, 23 caught
+  full: 14 failing pairs, 14 caught
+documents-only scope: est. Windows suite-step minutes 2652 of 2852 (93%)
   missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)
   missed: 40992301983 041bbf54 feat/world-graph windows packages/nana-pack/tests/component-audit.test.mjs (mode docs)
   missed: 40107395869 502767ca feat/artifact-registry windows packages/nana-pack/tests/worker-claude.test.mjs (mode docs)
+41023354337	b452f8be	feat/world-graph	full	241/241	22.8	outside map: .github/workflows/pages.yml (+2)
+41017085515	0d97dc50	feat/world-graph	full	241/241	22.8	outside map: .github/workflows/pages.yml (+2)
+41014105643	c85d8e05	feat/world-graph	full	241/241	22.8	outside map: .github/workflows/pages.yml (+2)
 41001794181	09607546	feat/world-graph	full	240/240	22.8	outside map: .github/workflows/pages.yml (+2)
 40999266815	d797a9f1	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed
 40996692403	0b4fae9c	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed

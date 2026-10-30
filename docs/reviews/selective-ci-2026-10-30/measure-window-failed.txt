@@ -5,6 +5,10 @@ full         99 pushes; mean share of test files 100.0%; mean est. Windows suite
 all known pushes: mean share 87.9%; est. Windows suite-step minutes 2553 of 3559 under the full suite (72%)
 full-run reasons: outside map: packages… 40; selector or runner changed 25; outside map: .github… 23; outside map: package.json… 7; outside map: templates… 3; outside map: scripts… 1
 failing (run, leg, file) pairs in these runs: 4365; caught by the selection: 4334; missed: 31
+  docs: 9 failing pairs, 4 caught
+  selective: 228 failing pairs, 202 caught
+  full: 4128 failing pairs, 4128 caught
+documents-only scope: est. Windows suite-step minutes 3448 of 3559 (97%)
   missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)
   missed: 40992301983 041bbf54 feat/world-graph windows packages/nana-pack/tests/component-audit.test.mjs (mode docs)
   missed: 40107395869 502767ca feat/artifact-registry windows packages/nana-pack/tests/worker-claude.test.mjs (mode docs)
