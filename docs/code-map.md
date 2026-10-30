@@ -671,7 +671,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Meshes added to the supplied parent.
 - **effects** — none
 - **errors** — None for valid geometry.
-- **callers** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/residents.mjs`, `apps/hive/assets/road.mjs`
+- **callers** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/residents.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`
 - **callees** — `apps/hive/config.mjs`
 
 ### `apps/hive/assets/residents.mjs`
@@ -762,7 +762,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — network (same-origin modules and data), process (browser frames and listeners)
 - **errors** — Incompatible data displays one plain error; WebGL failure selects pixel.
 - **callers** — `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
-- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/labels.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`
+- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/parts.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/labels.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`
 
 ### `apps/hive/pixel.mjs`
 
@@ -3040,7 +3040,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads vendored bytes)
 - **errors** — Assertion failures set exit 1.
 - **callers** — —
-- **callees** — `apps/hive/assets/bee.mjs`, `apps/hive/assets/cell.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`, `apps/hive/layout.mjs`, `scripts/hive-page-config.mjs`
+- **callees** — `apps/hive/assets/bee.mjs`, `apps/hive/assets/cell.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/parts.mjs`, `apps/hive/config.mjs`, `apps/hive/layout.mjs`, `scripts/hive-page-config.mjs`
 
 ### `packages/nana-pack/tests/hive-city.test.mjs`
 

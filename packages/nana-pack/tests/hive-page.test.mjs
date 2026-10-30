@@ -41,10 +41,10 @@ await test('R-3122: residents inhabit their places and activity gives capped wor
   const { buildAudit } = await import('../../../scripts/component-audit.mjs'); const data = (await buildAudit({ root })).document;
   const { layout } = await app('layout'), { buildHive } = await app('assets/hive'), { buildMaterials } = await app('assets/materials'); const THREE = await import('../../../apps/hive/vendor/three.module.js');
   const { RESIDENT_TRIANGLE_BUDGET, CITY, WORKERS } = await app('config'); assert.equal(RESIDENT_TRIANGLE_BUDGET, 600);
-  assert.deepEqual(WORKERS, { height: 1.8, loopSeconds: 8, crewSize: 3 });
+  assert.deepEqual(WORKERS, { height: 1.8, loopSeconds: 8, crewSize: 3, townStride: 6 });
   const m = layout(data, plan), scene = buildHive(THREE, m, buildMaterials(THREE)); scene.updateMatrixWorld(true);
   const figures = []; scene.traverse(o => { if (o.userData.resident) figures.push(o); });
-  assert.deepEqual([...new Set(figures.map(o => o.userData.resident.kind))].sort(), ['owner', 'seat', 'planner', 'adversary', 'builder', 'visual judge', 'reviewer', 'projectionist', 'customer', 'customs'].sort());
+  assert.deepEqual([...new Set(figures.map(o => o.userData.resident.kind))].sort(), ['owner', 'seat', 'planner', 'adversary', 'builder', 'visual judge', 'reviewer', 'projectionist', 'customer', 'customs', 'runner', 'dispatcher', 'gatekeeper', 'driver', 'mechanic', 'clerk'].sort());
   for (const o of figures) {
     const n = m.chambers.find(n => n.id === o.userData.resident.place), pos = o.getWorldPosition(new THREE.Vector3()); assert(Math.hypot(pos.x - n.x, pos.z - n.z) < n.radius); if (o.userData.resident.kind === 'owner') assert.equal(pos.y, CITY.skyHeight);
     let triangles = 0; o.traverse(part => { if (part.isMesh) triangles += (part.geometry.index?.count ?? part.geometry.attributes.position.count) / 3; }); assert(triangles > 0 && triangles <= RESIDENT_TRIANGLE_BUDGET);
@@ -54,6 +54,21 @@ await test('R-3122: residents inhabit their places and activity gives capped wor
   const snapshot = () => { const result = []; scene.traverse(o => { if (o.isMesh || o.userData.role) result.push([o.position.toArray(), o.rotation.toArray(), o.scale.toArray(), o.visible]); }); return JSON.stringify(result); };
   animateHive(scene, 0, true); const frozen = snapshot(); animateHive(scene, 4, true); assert.equal(snapshot(), frozen);
   animateHive(scene, 0, false); const start = snapshot(); animateHive(scene, 2, false); assert.notEqual(snapshot(), start);
+  const rigs = []; scene.traverse(o => { if (o.userData.mechanism) rigs.push(o); });
+  assert.deepEqual([...new Set(rigs.map(o => o.userData.mechanism.job))].sort(), ['tower', 'drafting', 'yard', 'bay', 'inspection', 'ladder', 'land-gate', 'customs', 'freight', 'theater', 'court', 'utilities'].sort());
+  const pose = o => { const result = []; o.traverse(p => result.push([p.position.toArray(), p.rotation.toArray(), p.visible])); return JSON.stringify(result); };
+  for (const rig of rigs) {
+    animateHive(scene, 0, false); const before = pose(rig); animateHive(scene, 2, false);
+    if (rig.userData.mechanism.active) assert.notEqual(pose(rig), before, rig.userData.mechanism.job);
+    else assert.equal(pose(rig), before, 'future mechanism remains stopped');
+  }
+  const gate = rigs.find(o => o.userData.mechanism.job === 'land-gate').userData.mechanism.parts;
+  gate.load.userData.stamped = false; animateHive(scene, 4, false); assert(gate.leaves.every(g => g.rotation.y === 0));
+  gate.load.userData.stamped = true; animateHive(scene, 4, false); assert(gate.leaves.every(g => Math.abs(g.rotation.y) > 1));
+  animateHive(scene, 0, false); assert(gate.leaves.every(g => g.rotation.y === 0), 'stamped crate still has to arrive');
+  const walkers = []; scene.traverse(o => { if (o.userData.townResident) walkers.push(o); });
+  assert(walkers.length > 0 && walkers.length < figures.length);
+  assert(figures.some(o => o.userData.role === 'runner' && o.userData.carryPath?.length > 1));
   for (const o of figures.filter(o => !['owner', 'customer'].includes(o.userData.resident.kind))) {
     assert(o.userData.role); assert(o.userData.joints.length >= 8);
     assert(o.children.some(p => p.userData.equipment));

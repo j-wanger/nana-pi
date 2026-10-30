@@ -16,7 +16,8 @@ import { textLayer, renderText } from './text-layer.mjs';
 import { pixel, drawPixel, drawPlan } from './pixel.mjs';
 import { buildHive, animateHive } from './assets/hive.mjs';
 import { buildMaterials } from './assets/materials.mjs';
-import { STYLE, HIVE_BACKGROUND, STREETS, CITY, TOUR_SCROLL } from './config.mjs';
+import { batchStatic } from './assets/parts.mjs';
+import { STYLE, HIVE_BACKGROUND, STREETS, CITY, TOUR_SCROLL, WORKERS, OUTLINES, CARGO } from './config.mjs';
 const stories = document.querySelector('#stories'), stage = document.querySelector('.stage'), labels = document.querySelector('.labels');
 let canvas = document.querySelector('canvas');
 const preference = matchMedia('(prefers-reduced-motion: reduce)'), still = new URLSearchParams(location.search).has('still');
@@ -38,12 +39,14 @@ async function start(data, plan, model) {
   if (rendererName === 'webgl') try {
     THREE = await import('three');
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, STYLE.pixelRatioCap)); renderer.setClearColor(HIVE_BACKGROUND);
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+    // Architecture is immutable; moving figures already carry their own soft contact shadows.
+    renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true; renderer.toneMapping = THREE.ACESFilmicToneMapping;
     scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight('#ffffff', '#6e776d', STYLE.lighting.ambient));
     const sun = new THREE.DirectionalLight('#ffffff', STYLE.lighting.sun); sun.position.set(...STYLE.lighting.position); sun.castShadow = true;
     const extent = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs)) * 1.3;
     Object.assign(sun.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 8 }); sun.shadow.mapSize.set(STYLE.shadowMapSize, STYLE.shadowMapSize); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025; scene.add(sun);
-    camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000); hive = buildHive(THREE, model, buildMaterials(THREE)); scene.add(hive);
+    camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000); hive = batchStatic(THREE, buildHive(THREE, model, buildMaterials(THREE)), model); scene.add(hive);
     outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);
   } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }
   if (rendererName === 'pixel') { const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh; canvas.classList.add('pixel'); }
@@ -121,11 +124,14 @@ async function start(data, plan, model) {
     hashRead = true;
     reading(); frame();
   };
+  let shadowScale;
   const draw = () => {
+    const frameStart = performance.now();
     root.dataset.hiveStage = String(progress);
     if (renderer) {
       const intro = openingState(chapters, progress, aspect(), mode !== 'tour' || still || preference.matches);
       hive.scale.y = Math.max(0.001, intro.cityScale);
+      if (shadowScale !== hive.scale.y) { renderer.shadowMap.needsUpdate = true; shadowScale = hive.scale.y; }
       opening.hidden = intro.planOpacity === 0; opening.style.opacity = String(intro.planOpacity);
       current = desired;
       camera.fov = current.fov; camera.updateProjectionMatrix();
@@ -140,9 +146,19 @@ async function start(data, plan, model) {
       camera.updateMatrixWorld();
       const active = mode === 'tour' ? chapters[chapterIndex].component : selected, visible = visibleRoads(model.roads, mode === 'tour' ? chapters[chapterIndex].id : null);
       const activePlace = model.chambers.find(c => c.component === active || c.id === active)?.id;
+      hive.userData.batchSelection.value = mode === 'explore' ? hive.userData.batchOwners.indexOf(active) : -1;
       hive.children.forEach(o => {
         if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = mode === 'explore' && activePlace && model.roads.find(r => r.id === o.userData.road && [r.from, r.to].includes(activePlace)); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }
         if (o.userData.component) o.traverse(m => { if (m.isMesh) { m.userData.highlight ??= m.material.clone(); m.material = m.userData.highlight; m.material.emissive?.set(o.userData.component === active ? '#303831' : '#000000'); m.material.emissiveIntensity = 0.12; } });
+      });
+      const worldPosition = new THREE.Vector3();
+      hive.traverse(o => {
+        if (o.userData.role || o.userData.workplace || o.userData.mechanism || o.userData.traffic) {
+          o.getWorldPosition(worldPosition);
+          const size = o.userData.traffic ? CARGO.size : WORKERS.height;
+          const pixels = size * stage.clientHeight / (2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.distanceTo(worldPosition));
+          o.visible = pixels >= (o.userData.traffic ? OUTLINES.fadePixels : OUTLINES.fullPixels);
+        }
       });
       animateHive(hive, performance.now() / 1000, still || preference.matches);
       outline.visible = Boolean(activePlace) && (mode === 'explore' || chapters[chapterIndex].visit);
@@ -175,6 +191,7 @@ async function start(data, plan, model) {
       }));
       root.dataset.hivePose = JSON.stringify({ target: current.target.map(v => +v.toFixed(3)), position: camera.position.toArray().map(v => +v.toFixed(3)) });
     } else { drawPixel(ctx, raster, mode === 'tour' ? chapters[chapterIndex].component : selected); labelNodes.forEach(n => { n.hidden = true; }); root.dataset.hivePose = 'pixel'; }
+    if (renderer) root.dataset.hiveFrameStats = JSON.stringify({ cpuMs: performance.now() - frameStart, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles });
     root.dataset.hiveChapter = mode === 'tour' ? chapters[chapterIndex].id : entered ? `enter/${entered}` : 'explore';
   };
   // Readiness is armed only after readHash has scrolled and applied the requested chapter pose.
@@ -197,7 +214,7 @@ async function start(data, plan, model) {
   new ResizeObserver(resize).observe(stage); addEventListener('resize', resize); addEventListener('hashchange', readHash); addEventListener('popstate', readHash); addEventListener('scroll', scrollProgress, { passive: true }); preference.addEventListener('change', () => { scrollProgress(); frame(); });
   const pick = event => {
     const rect = canvas.getBoundingClientRect();
-    if (renderer) { const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2), camera); for (const hit of ray.intersectObject(hive, true)) { let o = hit.object; while (o && !o.userData.component) o = o.parent; if (o) return o.userData.component; } }
+    if (renderer) { const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2), camera); for (const hit of ray.intersectObject(hive, true)) { const ranges = hit.object.userData.pickRanges; if (ranges) { const component = ranges.find(r => hit.faceIndex < r.end)?.component; if (component) return component; } let o = hit.object; while (o && !o.userData.component) o = o.parent; if (o) return o.userData.component; } }
     else { const scale = Math.min(rect.width / raster.width, rect.height / raster.height), x = (event.clientX - rect.left - (rect.width - raster.width * scale) / 2) / scale, y = (event.clientY - rect.top - (rect.height - raster.height * scale) / 2) / scale; const nearest = [...raster.hexes].sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0]; if (Math.hypot(nearest.x - x, nearest.y - y) < STYLE.pixelPadding) return nearest.id; }
     return null;
   };

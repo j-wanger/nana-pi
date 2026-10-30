@@ -7,10 +7,10 @@
  * @errors None for valid layout.
  */
 import { buildCell } from './cell.mjs';
-import { buildDistrict } from './district.mjs';
+import { buildDistrict, animateDistrict } from './district.mjs';
 import { buildResident, buildWorkplace, animateResident, animateWorkplace } from './residents.mjs';
-import { STYLE, STREETS, CITY, DENSITY, WORKERS } from '../config.mjs';
-import { box, drum, hoop, fence, outline, trayName, house } from './parts.mjs';
+import { STYLE, STREETS, CITY, DENSITY, WORKERS, CARGO } from '../config.mjs';
+import { box, drum, hoop, fence, outline, trayName, house, cargo } from './parts.mjs';
 import { buildRoad } from './road.mjs';
 import { visibleRoads } from '../city.mjs';
 export function buildHive(THREE, model, materials) {
@@ -20,25 +20,31 @@ export function buildHive(THREE, model, materials) {
     const form = buildDistrict(THREE, n, materials); lot.add(form);
     for (const cell of n.cells) { const mesh = buildCell(THREE, cell, materials, n.material.status, n.kind); mesh.position.set(cell.x - n.x, 0, cell.z - n.z); mesh.scale.setScalar(0.6); lot.add(mesh); }
     const residents = (model.residents ?? []).filter(r => r.place === n.id).flatMap(r => Array.from({ length: r.kind === 'builder' ? WORKERS.crewSize : r.kind === 'reviewer' ? 3 : 1 }, () => r));
-    if (n.id === 'customs') residents.push({ kind: 'customs', place: n.id });
+    const jobs = { drafting: 'runner', yard: 'dispatcher', 'land-gate': 'gatekeeper', customs: 'customs', freight: 'driver', utilities: 'mechanic', court: 'clerk' };
+    if (jobs[n.id]) residents.push({ kind: jobs[n.id], place: n.id });
     for (const [i, resident] of residents.entries()) {
       if (n.material.status === 'absent' || resident.kind === 'builder' && n.material.status !== 'sound') continue;
       const role = resident.kind, figure = buildResident(THREE, materials, role); figure.userData.resident = resident; figure.userData.index = i;
-      let x = (i - (residents.length - 1) / 2) * 1.8, y = 0, z = n.radius * 0.55;
+      let x = (i - (residents.length - 1) / 2) * 1.2, y = 0, z = n.radius * 0.72 + 0.9;
+      if (role === 'gatekeeper') { x = -1.5; z = n.radius * 0.78; }
+      if (role === 'customs') { x = -1.7; y = 0.66; z = n.radius * DENSITY.footprint * 0.6 + 0.9; }
+      if (role === 'planner') x = -0.9;
+      if (role === 'adversary') x = 0.9;
       if (role === 'owner') { x = 0; y = CITY.skyHeight; z = 0; }
       if (role === 'seat') { x = 0; y = 7.1; z = n.radius * 0.72; }
-      if (role === 'builder') { y = 0.2; z = n.radius * 0.45; figure.userData.stride = n.radius * 0.25;
-        if (i === 0) { const route = model.handoffs?.find(r => r.from === 'yard' && r.to === n.id)?.path; if (route) figure.userData.carryPath = [...route.map(p => [p[0] - n.x, 0.2, p[2] - n.z]), [x, y, z]]; }
+      if (role === 'builder' || role === 'runner') {
+        y = role === 'builder' ? 0.2 : 0; z = n.radius * 0.65; figure.userData.stride = n.radius * 0.06;
+        if (i === 0 || role === 'runner') {
+          const route = model.handoffs?.find(r => r.from === (role === 'runner' ? 'drafting' : 'yard') && r.to === (role === 'runner' ? 'yard' : n.id))?.path;
+          // Remain on the drawn frontage route; never cut from a door through a wall to a home pose.
+          if (route) figure.userData.carryPath = route.map((p, j) => { const next = route[Math.min(j + 1, route.length - 1)], prev = route[Math.max(0, j - 1)], dx = next[0] - prev[0], dz = next[2] - prev[2], length = Math.hypot(dx, dz) || 1; return [p[0] - n.x - dz / length * STREETS.laneWidth / 2, STREETS.elevation + STREETS.thickness / 2, p[2] - n.z + dx / length * STREETS.laneWidth / 2]; });
+        }
       }
       if (role === 'reviewer') { x = (i - 1) * n.radius * DENSITY.footprint * 0.4; y = 1.72 + i * 1.15; z = n.radius * DENSITY.footprint * 0.5; figure.userData.startRung = i + 1; figure.userData.rungWidth = n.radius * DENSITY.footprint * 0.4; }
       figure.position.set(x, y, z); figure.userData.home = figure.position.toArray(); lot.add(figure);
       const workplace = buildWorkplace(THREE, materials, role); workplace.position.copy(figure.position);
       if (role === 'reviewer') { workplace.position.x = n.radius * DENSITY.footprint * 0.8; workplace.position.y = 5.17; }
       lot.add(workplace);
-    }
-    if (n.id === 'drafting' && n.material.status !== 'absent') {
-      const sheet = box(THREE, materials, cube, lot, -0.9, 1.23, n.radius * 0.55 + 0.7, 0.8, 0.035, 0.6); sheet.userData.returningSheet = true; outline(THREE, sheet);
-      for (const side of [-1, 1]) { const mark = box(THREE, materials, cube, sheet, 0, 0.55, 0, 0.6, 0.3, 0.05, materials.ink); mark.rotation.y = side * Math.PI / 4; mark.userData.sheetCross = true; }
     }
     if (n.district !== 'sky' && n.front) {
       const mouth = new THREE.Group(); mouth.position.set(n.front[0] - n.x, STREETS.elevation + STREETS.thickness / 2, n.front[1] - n.z); mouth.rotation.y = Math.atan2(n.face[0], n.face[1]); lot.add(mouth);
@@ -52,6 +58,12 @@ export function buildHive(THREE, model, materials) {
   if (model.townOuterRadius) {
     const housing = new THREE.Group(); housing.userData.housing = true; group.add(housing);
     for (const lot of model.houses ?? []) house(THREE, materials, cube, housing, lot);
+    const locals = model.roads.filter(r => r.id.startsWith('local/') && r.path.length > 1);
+    for (const road of locals.filter((_, i) => i % WORKERS.townStride === 0)) {
+      const walker = buildResident(THREE, materials, 'walker'); walker.userData.townResident = true;
+      walker.userData.carryPath = road.path.map(p => [p[0], (Math.abs(Math.hypot(...p) - model.ringRadius) < 0.1 ? STREETS.ringElevation : STREETS.elevation) + STREETS.thickness / 2, p[1]]);
+      walker.userData.home = walker.userData.carryPath[0]; housing.add(walker);
+    }
   }
   const civic = model.chambers.filter(n => ['court', 'records', 'style'].includes(n.id));
   if (civic.length) {
@@ -88,14 +100,14 @@ export function buildHive(THREE, model, materials) {
     const sequence = ['tower', 'drafting', 'yard', 'bay-1', 'inspection', 'ladder', 'land-gate', 'customs', 'freight', 'customers'];
     const journey = sequence.slice(1).flatMap((id, i) => model.handoffs.find(r => r.from === sequence[i] && r.to === id)?.path ?? []);
     for (const [index, points] of [falling, journey].entries()) {
-      const elevated = points.map((p, i) => { const next = points[Math.min(i + 1, points.length - 1)], dx = next[0] - p[0], dz = next[2] - p[2], length = Math.hypot(dx, dz) || 1; return index ? [p[0] + dz / length * STREETS.laneWidth, STREETS.elevation + STREETS.thickness / 2 + 0.15, p[2] - dx / length * STREETS.laneWidth] : p; });
+      const elevated = points.map((p, i) => { const next = points[Math.min(i + 1, points.length - 1)], dx = next[0] - p[0], dz = next[2] - p[2], length = Math.hypot(dx, dz) || 1; const elevation = Math.abs(Math.hypot(p[0], p[2]) - model.ringRadius) < 0.1 ? STREETS.ringElevation : STREETS.elevation; return index ? [p[0] + dz / length * STREETS.laneWidth / 2, elevation + STREETS.thickness / 2, p[2] - dx / length * STREETS.laneWidth / 2] : p; });
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(elevated.map(p => new THREE.Vector3(...p))), new THREE.LineDashedMaterial({ color: '#ffffff', dashSize: 1, gapSize: 0.6 })); line.computeLineDistances(); line.userData.signalTrace = true; group.add(line);
-      const packet = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.5), materials.ink);
+      const packet = cargo(THREE, materials, group, { lit: true, pallet: index !== 0 });
       const lengths = elevated.slice(1).map((p, i) => Math.hypot(...p.map((v, j) => v - elevated[i][j])));
       packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: 1 / WORKERS.loopSeconds, signal: index === 0 }; group.add(packet);
     }
     const theater = model.chambers.find(n => n.id === 'theater');
-    if (theater) for (let i = 0; i < 3; i++) {
+    if (theater && theater.material.status !== 'absent') for (let i = 0; i < 3; i++) {
       const ring = hoop(THREE, materials, group, theater.x, 5, theater.z, theater.radius, materials.windows.half); ring.rotation.x = Math.PI / 2;
       ring.userData.broadcast = { index: i }; group.add(ring);
     }
@@ -110,10 +122,22 @@ export function animateHive(group, phase, frozen) {
   group.traverse(o => {
     if (o.userData.role) animateResident(o, phase, frozen);
     if (o.userData.workplace) animateWorkplace(o, phase, frozen);
-    if (o.userData.returningSheet) { const t = frozen ? 0.25 : phase / WORKERS.loopSeconds % 1; o.position.x = -0.9 + (1 - Math.abs(t * 2 - 1)) * 1.8; o.children.forEach(c => { if (c.userData.sheetCross) c.visible = t > 0.45; }); }
-    if (o.userData.dish) o.rotation.y = Math.sin(phase / WORKERS.loopSeconds * Math.PI * 2) * 0.4;
+    if (o.userData.mechanism) animateDistrict(o, phase, frozen);
     const traffic = o.userData.traffic;
-    if (traffic) { const t = ((phase / WORKERS.loopSeconds + traffic.index * 0.37) * traffic.side % 1 + 1) % 1, { a, b, ya, yb, normal, lane } = traffic; o.position.set(a[0] + (b[0] - a[0]) * t + normal[0] * lane, ya + (yb - ya) * t + STREETS.thickness / 2 + 0.1, a[1] + (b[1] - a[1]) * t + normal[1] * lane); }
+    if (traffic) {
+      const { points, lengths, elevations, lane, side, truck } = traffic;
+      const t = (phase / WORKERS.loopSeconds % 1 + 1) % 1;
+      let distance = (side > 0 ? t : 1 - t) * lengths.reduce((a, b) => a + b, 0);
+      for (let i = 0; i < lengths.length; i++) {
+        if (distance <= lengths[i] || i === lengths.length - 1) {
+          const a = points[i], b = points[i + 1], f = distance / (lengths[i] || 1), dx = b[0] - a[0], dz = b[1] - a[1], length = lengths[i] || 1;
+          o.position.set(a[0] + dx * f + dz / length * lane, elevations[i] + (elevations[i + 1] - elevations[i]) * f + STREETS.thickness / 2 + (truck ? CARGO.palletHeight : 0), a[1] + dz * f - dx / length * lane);
+          o.rotation.y = Math.atan2(dx * side, dz * side); break;
+        }
+        distance -= lengths[i];
+      }
+      if (truck) o.children.find(c => c.userData.crate).visible = side > 0;
+    }
     if (o.userData.signalTrace) o.visible = frozen;
     const p = o.userData.packet;
     if (p) {

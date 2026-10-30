@@ -1,0 +1,51 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL." carries no verdict word
+-:3: passive: passive candidate: "reported" in "Finished-tip CI is reported in the final response."
+-:9: passive: passive candidate: "amended" in "R-3122 and R-3173 were amended and remain `implemented` with backticked `file::title` evidence."
+-:9: identifier: `implemented`
+-:9: identifier: `file::title`
+-:21: length: 26 words (cap 25)
+-:21: length: 26 words (cap 25)
+-:25: identifier: `packages/nana-pack/tests/`
+-:34: passive: passive candidate: "deleted" in "No other test changed or was deleted."
+-:38: identifier: `build12-wrong-first.log`
+-:49: passive: passive candidate: "restored" in "All mutations were restored before the final captures, targeted runs and locked suite."
+-:49: passive: passive candidate: "pinned" in "The new sparsity values were pinned after their initial implementation; their wrong-code runs are later code mutations, not a claimed tests-first implementation sequence."
+-:53: passive: passive candidate: "written" in "No reference or notes folder was written."
+-:55: identifier: `/tmp/world-graph-build12-round1`
+-:56: identifier: `/tmp/world-graph-build12-round2`
+-:57: identifier: `/tmp/world-graph-build12-round3`
+-:58: identifier: `/tmp/world-graph-build12-round3/strips/chapter-02.png`
+-:58: identifier: `chapter-10.png`
+-:59: identifier: `contact.png`
+-:60: identifier: `/tmp/world-graph-build12-round3/gestures/gesture-390.png`
+-:62: length: 31 words (cap 25)
+-:62: identifier: `1280/`
+-:62: identifier: `390/`
+-:62: identifier: `1280/`
+-:64: length: 29 words (cap 25)
+-:64: identifier: `poses.json`
+-:107: identifier: `node scripts/hive-gesture-check.mjs --url <served audit> --out <external folder>`
+-:113: identifier: `--use-angle=metal`
+-:115: length: 29 words (cap 25)
+-:123: identifier: `config.mjs`
+-:124: identifier: `road.mjs`
+-:125: passive: passive candidate: "copied" in "No path-routing helper was copied."
+-:125: identifier: `assets/hive.mjs`
+-:126: passive: passive candidate: "moved" in "No `block` or `limb` helper was moved or copied."
+-:126: identifier: `residents.mjs`
+-:126: identifier: `block`
+-:126: identifier: `limb`
+-:127: identifier: `district.mjs`
+-:128: identifier: `parts.mjs`
+-:128: identifier: `add`
+-:129: identifier: `main.mjs`
+-:130: identifier: `hive-gesture-check.mjs`
+-:131: identifier: `camera.mjs`
+-:133: passive: passive candidate: "needed" in "No authorized private-helper move was needed."
+-:137: passive: passive candidate: "fixed" in "No other supplied known bug was fixed or altered."
+-:141: passive: passive candidate: "normalized" in "Recorded machine paths are normalized to `$WORKTREE` and `$HOME`."
+-:141: identifier: `build12-*.log`
+-:141: identifier: `$WORKTREE`
+-:141: identifier: `$HOME`
+-:161: passive: passive candidate: "attempted" in "No independent model review or land was attempted, as forbidden by the brief."
+summary sentences=107 words=1195 over=5 passive=12 banned=0 verdict=0/1 identifiers=32

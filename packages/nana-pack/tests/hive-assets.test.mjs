@@ -36,12 +36,12 @@ await test('R-3134: visual and serving defaults retain their sealed values and p
   assert.deepEqual(STATUS_COLORS, { sound: '#eeefed', partial: '#b9bcb9', gap: '#454947', absent: '#888d89' });
   assert.deepEqual(KIND_RIMS, { workflow: '#b7bcb8', governance: '#e2e5e1' });
   assert.deepEqual(STYLE, { cellWidth: 2, cellStep: 2.4, chamberGap: 1.8, cellHeight: 1.4, structureHeight: 8, foundationColumns: 3, fov: 40, framePadding: 1.08, cameraElevation: 0.68, pixelPadding: 20, beeScale: 0.16, beeHeight: 8.8, beeSpeed: 0.65, cameraDrift: 0.012, focusEase: 0.025, dragScale: 0.008, minZoom: 0.6, maxZoom: 2.5, pixelRatioCap: 2, shadowMapSize: 4096, port: 0, lighting: { ambient: 0.65, sun: 4.5, position: [-45, 65, 35] } });
-  const { CITY, STREETS, LIGHTS, CITY_DISTRICTS, CITY_FORMS, FOOTPRINT_SCALE, OVERVIEW_ELEVATION } = await import('../../../apps/hive/config.mjs');
+  const { CITY, STREETS, CARGO, LIGHTS, CITY_DISTRICTS, CITY_FORMS, FOOTPRINT_SCALE, OVERVIEW_ELEVATION } = await import('../../../apps/hive/config.mjs');
   assert.equal(FOOTPRINT_SCALE, 1.3); assert.equal(OVERVIEW_ELEVATION, 0.8);
   assert.deepEqual(CITY_DISTRICTS, ['sky', 'park', 'town', 'edge', 'outside']);
   assert.deepEqual(CITY_FORMS, ['tower', 'drafting', 'yard', 'bay', 'eyes', 'stair', 'gate', 'tools', 'lab', 'hall', 'vault', 'theater', 'court', 'records', 'style', 'survey', 'utilities', 'control', 'stage', 'billboard', 'customs', 'freight', 'craft', 'customers', 'neighbour', 'feedback']);
   assert.deepEqual(CITY, { positionGrid: 0.001, clearance: 3, bandGap: 8, parkBands: 3, radialStep: 17, parkBase: 16, fenceGap: 10, ringGap: 10, townGap: 12, edgeGap: 20, outsideGap: 24, skyHeight: 28, bayCount: 4, litBays: 2, vacantBearing: 147, worldHalfExtent: 300, latticeTolerance: 0.08, latticeSpacing: 0.08, latticeFamilies: 1, radiusBandSize: 8, minimumRadiusBands: 3, northTolerance: 5, frontage: 1, doorAngle: 0.35, walkTolerance: 0.002, arcSamples: 72, routingSides: 12, routingMargin: 1, pixelMargin: 0.025, cardOverlap: 0.15, probeOffset: 3 });
-  assert.deepEqual(STREETS, { thickness: 0.24, elevation: -0.3, edgeWidth: 0.1, laneWidth: 0.45, dashLength: 0.8, dashGap: 0.8, widths: { avenue: 1.8, local: 0.9, back: 0.9, air: 0.07 }, widthCaps: { avenue: 0.14, local: 0.08 }, kerbHeight: 0.24, depthOffset: -4, ringElevation: 1.6, ringWidth: 1.8 });
+  assert.deepEqual(STREETS, { thickness: 0.24, elevation: -0.3, edgeWidth: 0.1, laneWidth: CARGO.size / CARGO.laneFraction, dashLength: 0.8, dashGap: 0.8, widths: { avenue: STREETS.laneWidth * 2, local: STREETS.laneWidth, back: STREETS.laneWidth, air: 0.07 }, widthCaps: { avenue: 0.2, local: 0.1 }, kerbHeight: 0.24, depthOffset: -4, ringElevation: 1.6, ringWidth: STREETS.laneWidth * 2 });
   assert.deepEqual(LIGHTS, { roofWidth: 0.9, roofDepth: 0.25, roofHeight: 0.35, minimumGap: 0.5, halfFraction: 0.5, windows: 8, colors: { lit: '#ffffff', half: '#bfc8bf', dark: '#252c28' } });
   const source = await fs.readFile(new URL('../../../apps/hive/config.mjs', import.meta.url), 'utf8'); assert.match(source, /chosen \(2026-10-29, R-3134\)/);
 });
@@ -49,5 +49,26 @@ await test('R-3134: visual and serving defaults retain their sealed values and p
 await test('R-3134: outline density fade retains chosen pixel thresholds', async () => {
   const { OUTLINES } = await import('../../../apps/hive/config.mjs');
   assert.deepEqual(OUTLINES, { opacity: 0.35, fadePixels: 1.5, fullPixels: 5 });
+});
+// req: R-3173
+await test('R-3173: cargo shares worker scale and forty percent lane clearance', async () => {
+  const { CARGO, WORKERS, STREETS } = await import('../../../apps/hive/config.mjs');
+  assert.equal(WORKERS.height, 1.8);
+  assert.deepEqual(CARGO, { size: WORKERS.height * 0.28, laneFraction: 0.4, palletHeight: WORKERS.height * 0.06, ringStride: 6 });
+  assert(Math.abs(CARGO.size / WORKERS.height - 0.28) < 1e-12);
+  assert(Math.abs(CARGO.size / STREETS.laneWidth - 0.4) < 1e-12);
+  assert.equal(STREETS.widths.avenue, STREETS.laneWidth * 2);
+  assert.equal(STREETS.ringWidth, STREETS.widths.avenue);
+  const THREE = await import('../../../apps/hive/vendor/three.module.js');
+  const { cargo } = await import('../../../apps/hive/assets/parts.mjs');
+  const { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs');
+  const materials = buildMaterials(THREE), group = new THREE.Group();
+  const packet = cargo(THREE, materials, group, { lit: true, pallet: true });
+  const crate = packet.children.find(o => o.userData.crate);
+  assert.deepEqual(crate.scale.toArray(), [CARGO.size, CARGO.size, CARGO.size]);
+  assert.equal(crate.material, materials.bee);
+  assert(packet.children.some(o => o.userData.outlineOf === crate));
+  assert(packet.children.some(o => o.userData.pallet));
+  assert(packet.children.some(o => o.userData.beacon && o.material === materials.windows.lit));
 });
 if (!process.exitCode) console.log(`${passed} hive asset checks passed`);

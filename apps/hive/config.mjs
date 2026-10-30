@@ -14,16 +14,22 @@ export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 11, houseWidt
 // chosen travelScale: 100 world units per travel screen; slidePx: a quiet upward lift.
 // chosen readingDolly: 3 percent scroll-only push-in holds the subject during reading.
 export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, readingDolly: 0.03, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05 });
-// chosen (2026-10-30, R-3122): readable human scale, one shared eight-second work loop, three builders per lit bay.
-export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 8, crewSize: 3 });
+// chosen (2026-10-30, R-3122): human scale, eight-second loops, three builders and one walker per six local trays.
+export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 8, crewSize: 3, townStride: 6 });
+// contract (build 12 brief, R-3173): carryable half-metre crate; 40 percent of one lane.
+// chosen palletHeight: a low flat carrier, derived from the same human unit.
+// chosen ringStride: one opposing cart pair per six ring spans keeps traffic sparse.
+export const CARGO = Object.freeze({ size: WORKERS.height * 0.28, laneFraction: 0.4, palletHeight: WORKERS.height * 0.06, ringStride: 6 });
+const laneWidth = CARGO.size / CARGO.laneFraction;
 // chosen (2026-10-30, R-3134): fade subpixel edges before dense detail turns into solid ink.
 export const OUTLINES = Object.freeze({ opacity: 0.35, fadePixels: 1.5, fullPixels: 5 });
 // chosen (2026-10-30, R-3172): encloses the square foundation corners and the instruments drawn on them.
 export const FOOTPRINT_SCALE = 1.3;
 // chosen (2026-10-30, R-3175): phone drift tolerance and deliberate double taps; roads keep the lane loop dominant.
 export const NAVIGATION = Object.freeze({ tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: Object.freeze({ loop: 3.6, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 }), overviewClasses: Object.freeze(['loop', 'spur']) });
-// chosen (2026-10-30, R-3173): thin model-white trays, two lanes on the journey, and a pier-supported ring.
-export const STREETS = Object.freeze({ thickness: 0.24, elevation: -0.3, edgeWidth: 0.1, laneWidth: 0.45, dashLength: 0.8, dashGap: 0.8, widths: Object.freeze({ avenue: 1.8, local: 0.9, back: 0.9, air: 0.07 }), widthCaps: Object.freeze({ avenue: 0.14, local: 0.08 }), kerbHeight: 0.24, depthOffset: -4, ringElevation: 1.6, ringWidth: 1.8 });
+// chosen (2026-10-30, R-3173): model-white trays, two human-scale lanes and a pier-supported ring.
+// chosen widthCaps: at most a fifth of a small lot for a two-lane tray; one tenth for a local.
+export const STREETS = Object.freeze({ thickness: 0.24, elevation: -0.3, edgeWidth: 0.1, laneWidth, dashLength: 0.8, dashGap: 0.8, widths: Object.freeze({ avenue: laneWidth * 2, local: laneWidth, back: laneWidth, air: 0.07 }), widthCaps: Object.freeze({ avenue: 0.2, local: 0.1 }), kerbHeight: 0.24, depthOffset: -4, ringElevation: 1.6, ringWidth: laneWidth * 2 });
 // chosen (2026-10-30, R-3134): footprint-sized radial bands, narrow frontage and visible phone contrast.
 // probeOffset samples ground three world units away, beyond the street's antialiasing fringe.
 // bayCount is chosen for parallel capacity; litBays is contract (2026-10-16 ruling: two builders).

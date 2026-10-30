@@ -249,7 +249,7 @@ await test('R-3177: window lights follow audit status and dark target forms stay
       const strips = meshes(object).filter(o => o.userData.roofLight); assert.equal(strips.length, 1);
       assert.equal(strips[0].material, expected ? n.material.status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
       assert(strips[0].scale.x >= n.radius * 0.9 && strips[0].scale.z >= n.radius * 0.25);
-      const a = meshes(lit), b = meshes(dark); assert.equal(a.length, b.length); a.forEach((o, i) => { assert.equal(o.geometry.type, b[i].geometry.type); assert.deepEqual(o.geometry.parameters, b[i].geometry.parameters); if (!o.userData.window && !o.userData.roofLight) { assert.equal(o.material.color.getHex(), b[i].material.color.getHex()); assert.equal(o.material.side, b[i].material.side); } });
+      const a = meshes(lit), b = meshes(dark); assert.equal(a.length, b.length); a.forEach((o, i) => { assert.equal(o.geometry.type, b[i].geometry.type); assert.deepEqual(o.geometry.parameters, b[i].geometry.parameters); if (!o.userData.window && !o.userData.roofLight && !o.userData.beacon) { assert.equal(o.material.color.getHex(), b[i].material.color.getHex()); assert.equal(o.material.side, b[i].material.side); } });
     }
     for (const id of ['bay-3', 'bay-4', 'neighbour', 'feedback']) assert.equal(m.chambers.find(n => n.id === id).material.status, 'absent');
     if (data !== fixture) { for (const id of ['night-depot', 'vault']) assert.equal(m.chambers.find(n => n.id === id).material.status, 'absent'); for (const id of ['theater', 'control', 'test-lab', 'stage']) assert(['partial', 'gap'].includes(m.chambers.find(n => n.id === id).material.status)); }

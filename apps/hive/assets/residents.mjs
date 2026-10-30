@@ -6,7 +6,7 @@
  * @effects none
  * @errors None.
  */
-import { box, drum, hoop, outline } from './parts.mjs';
+import { box, drum, hoop, outline, cargo } from './parts.mjs';
 import { WORKERS } from '../config.mjs';
 export function buildResident(THREE, materials, role = 'builder') {
   const group = new THREE.Group(), cube = new THREE.BoxGeometry(1, 1, 1), joints = [];
@@ -17,17 +17,19 @@ export function buildResident(THREE, materials, role = 'builder') {
   const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), materials.status.sound); head.position.y = WORKERS.height - 0.22; head.castShadow = true; group.add(head); outline(THREE, head);
   block(group, 0, 1.14, 0.14, 0.28, 0.12, 0.035, materials.bee);
   const limb = (x, y, upper, lower, width) => {
-    const pivot = new THREE.Group(), bend = new THREE.Group(); pivot.position.set(x, y, 0); group.add(pivot);
+    const pivot = new THREE.Group(), bend = new THREE.Group(); pivot.userData.articulated = true; bend.userData.articulated = true; pivot.position.set(x, y, 0); group.add(pivot);
     block(pivot, 0, -upper / 2, 0, width, upper, width); bend.position.y = -upper; pivot.add(bend);
     block(bend, 0, -lower / 2, 0, width * 0.85, lower, width * 0.85); joints.push(pivot, bend); return pivot;
   };
-  for (const side of [-1, 1]) { limb(side * 0.12, 0.76, 0.34, 0.34, 0.13); block(group, side * 0.12, 0.04, 0.06, 0.16, 0.08, 0.28, materials.bee); }
+  for (const side of [-1, 1]) { const leg = limb(side * 0.12, 0.76, 0.34, 0.34, 0.13); block(leg.children.find(o => o.isGroup), 0, -0.38, 0.06, 0.16, 0.08, 0.28, materials.bee); }
   for (const side of [-1, 1]) limb(side * 0.29, 1.25, 0.3, 0.28, 0.11);
   const gear = new THREE.Group(); gear.userData.equipment = role; group.add(gear);
   if (role === 'builder') {
     const hat = drum(THREE, materials, gear, 0, 1.76, 0, 0.28, 0.08, materials.bee); outline(THREE, hat);
     const crown = drum(THREE, materials, gear, 0, 1.82, 0, 0.2, 0.12); outline(THREE, crown);
-    const load = block(gear, 0, 1, 0.46, 0.55, 0.4, 0.4, materials.bee); load.userData.load = true;
+    const load = cargo(THREE, materials, gear); load.position.set(0, 0.8, 0.46); load.userData.load = true;
+  } else if (role === 'runner') {
+    const sheet = block(gear, 0, 1, 0.4, 0.7, 0.03, 0.5); sheet.userData.load = true;
   } else if (role === 'seat') {
     block(gear, 0, 1.79, 0, 0.5, 0.05, 0.08, materials.ink);
     for (const side of [-1, 1]) block(gear, side * 0.24, 1.59, 0, 0.08, 0.3, 0.13, materials.bee);
@@ -95,32 +97,38 @@ export function animateWorkplace(group, phase, frozen) {
   });
 }
 export function animateResident(figure, phase, frozen) {
-  const t = frozen ? 0.25 : (phase / WORKERS.loopSeconds + (figure.userData.index ?? 0) / WORKERS.crewSize) % 1, wave = Math.sin(t * Math.PI * 2), role = figure.userData.role, joints = figure.userData.joints;
+  const t = frozen ? 0.25 : (phase / WORKERS.loopSeconds + (figure.userData.index ?? 0) / WORKERS.crewSize) % 1;
+  // Four readable poses, interpolated rather than a rigid translated mannequin.
+  const poses = [0, 1, 0, -1, 0], pose = t * 4, at = Math.floor(pose), wave = poses[at] + (poses[at + 1] - poses[at]) * (pose - at), role = figure.userData.role, joints = figure.userData.joints;
   for (const j of joints) j.rotation.set(0, 0, 0);
-  const working = ['planner', 'adversary', 'visual judge', 'projectionist', 'seat', 'customs'].includes(role);
+  const working = ['planner', 'adversary', 'visual judge', 'projectionist', 'seat', 'customs', 'dispatcher', 'gatekeeper', 'mechanic', 'clerk', 'driver'].includes(role);
   joints[4].rotation.x = working ? -0.8 : role === 'builder' ? -0.9 : wave * 0.4;
   joints[5].rotation.x = -0.65 + (working ? wave * 0.35 : 0);
   joints[6].rotation.x = role === 'adversary' ? -1.3 + wave * 0.6 : -0.7;
   joints[7].rotation.x = -0.6;
-  if (role === 'builder' || role === 'reviewer') { joints[0].rotation.x = wave * 0.4; joints[2].rotation.x = -wave * 0.4; joints[1].rotation.x = Math.max(0, -wave) * 0.5; joints[3].rotation.x = Math.max(0, wave) * 0.5; }
+  if (['builder', 'reviewer', 'runner', 'walker'].includes(role)) { joints[0].rotation.x = wave * 0.4; joints[2].rotation.x = -wave * 0.4; joints[1].rotation.x = Math.max(0, -wave) * 0.5; joints[3].rotation.x = Math.max(0, wave) * 0.5; }
   const home = figure.userData.home;
   if (home) {
     figure.position.set(...home);
-    if (role === 'builder') {
+    if (['builder', 'runner', 'walker'].includes(role)) {
       const path = figure.userData.carryPath;
-      if (path && !frozen) {
+      if (path) {
         const lengths = path.slice(1).map((p, i) => Math.hypot(...p.map((v, j) => v - path[i][j]))); let distance = (1 - Math.abs(t * 2 - 1)) * lengths.reduce((a, b) => a + b, 0);
         for (let i = 0; i < lengths.length; i++) { if (distance <= lengths[i] || i === lengths.length - 1) { const a = path[i], b = path[i + 1], f = distance / (lengths[i] || 1); figure.position.set(...a.map((v, j) => v + (b[j] - v) * f)); figure.rotation.y = Math.atan2(b[0] - a[0], b[2] - a[2]) + (t < 0.5 ? 0 : Math.PI); break; } distance -= lengths[i]; }
       } else { figure.position.z += (1 - Math.cos(t * Math.PI * 2)) * (figure.userData.stride ?? 1); figure.rotation.y = t < 0.5 ? 0 : Math.PI; }
       figure.traverse(o => { if (o.userData.load) o.visible = frozen || t < 0.5; });
     }
-    if (role === 'reviewer' && !frozen) {
-      const start = figure.userData.startRung ?? 1, rung = Math.min(4, start + Math.floor(phase / WORKERS.loopSeconds) % 4), step = rung === 4 ? 0 : Math.min(1, t * 2), width = figure.userData.rungWidth ?? 1;
-      figure.position.x += (rung - start + step) * width;
-      const stair = step <= 0.5 ? 0 : step === 1 ? 1.15 : 0.25 + Math.floor((step - 0.5) * 8) * 0.28;
-      figure.position.y += (rung - start) * 1.15 + stair;
-      if (rung === 4) joints[6].rotation.x = -1 + Math.abs(wave) * 0.5;
+    if (role === 'reviewer') {
+      const travel = 1 - Math.abs(t * 2 - 1), width = figure.userData.rungWidth ?? 1;
+      // Feet land on the four actual stair treads between adjacent terraces.
+      const step = Math.min(3, Math.floor(travel * 4));
+      figure.position.x += (-0.5 + (step + 0.5) / 4) * width;
+      figure.position.y += -0.9 + step * 0.28;
+      figure.rotation.y = t < 0.5 ? Math.PI / 2 : -Math.PI / 2;
+      joints[4].rotation.x = -1.2 + wave * 0.4; joints[6].rotation.x = -1.2 - wave * 0.4;
     }
+    if (role === 'mechanic') { joints[4].rotation.z = wave * 0.5; joints[6].rotation.z = -wave * 0.5; }
+    if (['customs', 'gatekeeper'].includes(role)) joints[6].rotation.x = -0.6 - Math.max(0, wave) * 1.3;
   }
   return t;
 }

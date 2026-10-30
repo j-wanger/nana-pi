@@ -10,20 +10,20 @@ import { STYLE, OVERVIEW_ELEVATION } from './config.mjs';
 // Shift the projection, not the look-at target: positive offset lifts the subject above a bottom card.
 export function viewCentreOffset(height, top, bottom) { return (bottom - top) / 2; }
 // Frame the loop and its depot, using actual projected corners rather than a loose sphere.
-export function overview(model, aspect = 1) {
+export function overview(model, aspect = 1, elevation = OVERVIEW_ELEVATION) {
   const campus = model.chambers;
   if (!campus.length) return focus(model, null, aspect);
   const min = model.bounds.min, max = model.bounds.max;
-  const target = min.map((v, i) => (v + max[i]) / 2), length = Math.hypot(OVERVIEW_ELEVATION, 1);
+  const target = min.map((v, i) => (v + max[i]) / 2), length = Math.hypot(elevation, 1);
   const vertical = Math.tan(STYLE.fov * Math.PI / 360), horizontal = vertical * aspect;
   let distance = 0;
   for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
     const dx = x - target[0], dy = y - target[1], dz = z - target[2];
-    const depth = (dy * OVERVIEW_ELEVATION + dz) / length, up = (dy - dz * OVERVIEW_ELEVATION) / length;
+    const depth = (dy * elevation + dz) / length, up = (dy - dz * elevation) / length;
     distance = Math.max(distance, depth + Math.max(Math.abs(dx) / horizontal, Math.abs(up) / vertical) * STYLE.framePadding);
   }
   // Fit the complete viewport. Overlays do not move the optical centre.
-  return { target, position: [target[0], target[1] + distance * OVERVIEW_ELEVATION / length, target[2] + distance / length], fov: STYLE.fov };
+  return { target, position: [target[0], target[1] + distance * elevation / length, target[2] + distance / length], fov: STYLE.fov };
 }
 // A pose is an orbit keyframe; interpolate its scale, never Cartesian eye positions.
 export function blendPose(a, b, t) {
@@ -37,11 +37,6 @@ export function blendPose(a, b, t) {
 }
 export function focus(model, id, aspect = 1) {
   const bounds = model.chambers.find(c => c.id === id || c.component === id)?.bounds ?? model.bounds;
-  const target = bounds.min.map((v, i) => (v + bounds.max[i]) / 2);
-  const radius = Math.hypot(...bounds.max.map((v, i) => (v - bounds.min[i]) / 2));
-  const vertical = STYLE.fov * Math.PI / 360;
-  const limitingAngle = Math.min(vertical, Math.atan(Math.tan(vertical) * aspect));
-  const distance = radius * STYLE.framePadding / Math.sin(limitingAngle);
-  const direction = [0, STYLE.cameraElevation, 1]; const length = Math.hypot(...direction);
-  return { target, position: target.map((v, i) => v + direction[i] / length * distance), fov: STYLE.fov };
+  // Reuse the overview's projected-corner fit, rather than enclosing an oversized sphere.
+  return overview({ ...model, bounds, chambers: [{}] }, aspect, STYLE.cameraElevation);
 }

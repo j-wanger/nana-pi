@@ -6,14 +6,14 @@
  * @effects none
  * @errors None for a valid lot.
  */
-import { box as sharedBox, drum as sharedDrum, hoop as sharedHoop, beam as sharedBeam, fence as sharedFence, outline } from './parts.mjs';
-import { STYLE, LIGHTS, DENSITY } from '../config.mjs';
+import { box as sharedBox, drum as sharedDrum, hoop as sharedHoop, beam as sharedBeam, fence as sharedFence, outline, cargo, wheel } from './parts.mjs';
+import { STYLE, LIGHTS, DENSITY, WORKERS, CARGO } from '../config.mjs';
 export function buildDistrict(THREE, n, materials) {
   const building = new THREE.Group(), cube = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 8);
   const box = sharedBox.bind(null, THREE, materials, cube), drum = sharedDrum.bind(null, THREE, materials), hoop = sharedHoop.bind(null, THREE, materials);
   const beam = sharedBeam.bind(null, THREE, materials, rod), fence = sharedFence.bind(null, THREE, materials, rod);
   const c = { id: n.component ?? n.id, kind: n.kind, material: { status: 'sound' } }, r = n.radius * DENSITY.footprint, height = STYLE.structureHeight, skin = materials.status.sound, open = false;
-  drum(building, 0, -0.25, 0, n.radius, 0.3, materials.rim[n.kind]);
+  drum(building, 0, -0.15, 0, n.radius, 0.3, materials.rim[n.kind]);
   const kerb = hoop(building, 0, -0.07, 0, n.radius, skin); kerb.rotation.x = Math.PI / 2;
   const face = n.face ?? [0, 1];
   const door = box(building, face[0] * n.radius * 0.86, 0.6, face[1] * n.radius * 0.86, 1, 1.3, 0.65, skin); door.rotation.y = Math.atan2(face[0], face[1]); door.userData.door = true;
@@ -78,7 +78,7 @@ export function buildDistrict(THREE, n, materials) {
       }
       for (let i = -7; i <= 7; i++) {
         const roller = drum(building, i * r / 8, 1.1, 0, 0.12, r, skin); roller.rotation.x = Math.PI / 2;
-        if (i % 3 === 0) box(building, i * r / 8, 1.5, 0, r * 0.28, 0.55, r * 0.8);
+        if (i % 3 === 0) { const load = cargo(THREE, materials, building); load.position.set(i * r / 8, 1.22, 0); }
       }
       for (const z of [-r * 0.65, r * 0.65]) box(building, -r * 0.8, 2, z, 0.14, 4, 0.14);
       box(building, -r * 0.8, 4, 0, 0.25, 0.25, r * 1.5);
@@ -203,7 +203,7 @@ export function buildDistrict(THREE, n, materials) {
       const ramp = new THREE.Group(); ramp.rotation.z = Math.PI / 10; ramp.position.y = 2; building.add(ramp);
       box(ramp, 0, 0, 0, r * 2, 0.2, r, materials.ink);
       for (let i = -3; i <= 3; i++) {
-        box(ramp, i * r / 4, 0.45, 0, r * 0.3, 0.8, r * 0.7);
+        const load = cargo(THREE, materials, ramp, { pallet: true }); load.position.set(i * r / 4, 0.1, 0);
         for (const z of [-r * 0.55, r * 0.55]) {
           const x = i * r / 4, top = 2 + Math.sin(ramp.rotation.z) * x;
           box(building, Math.cos(ramp.rotation.z) * x, top / 2, z, 0.12, top, 0.12);
@@ -369,8 +369,9 @@ export function buildDistrict(THREE, n, materials) {
         box(building, i * r / 3, height * 0.2, r * 0.95, 0.12, height * 0.4, 0.12);
         box(building, i * r / 3, height * 0.41, r * 0.95, 0.24, 0.12, 0.24);
       }
-      box(building, 0, height * 0.44, r * 0.9, r * 2.2, 0.18, r * 0.6);
-      for (let i = 0; i < 8; i++) box(building, 0, 0.08 + i * 0.07, r * (1.15 - i * 0.045), r * 1.8, 0.14, r * 0.12);
+      // Leave the checkpoint's centre open to the sky so its leaves and operator can be read.
+      for (const side of [-1, 1]) box(building, side * r * 0.75, height * 0.44, r * 0.9, r * 0.7, 0.18, r * 0.6);
+      for (let i = 0; i < 8; i++) for (const side of [-1, 1]) box(building, side * r * 0.62, 0.08 + i * 0.07, r * (1.15 - i * 0.045), r * 0.55, 0.14, r * 0.12);
       if (c.id === 'command-gate') {
         // Protected commands pass a portcullis; landing has an open checkpoint instead.
         for (let bar = -3; bar <= 3; bar++) box(building, bar * r / 6, height * 0.28, 0, 0.065, height * 0.52, 0.065, materials.ink);
@@ -420,6 +421,74 @@ export function buildDistrict(THREE, n, materials) {
       for (const y of [height * 0.85, height]) drum(building, -r * 0.75, y, -r * 0.7, 0.38, 0.22, materials.ink);
     }
   }
+  // Job rigs use the same solid kit and keep their full silhouette when inactive.
+  const job = n.form === 'bay' ? 'bay' : n.id;
+  if (['tower', 'drafting', 'yard', 'bay', 'inspection', 'ladder', 'land-gate', 'customs', 'freight', 'theater', 'court', 'utilities'].includes(job)) {
+    const rig = new THREE.Group(); building.add(rig); rig.userData.mechanism = { job, active: n.material.status !== 'absent', parts: {} };
+    const p = rig.userData.mechanism.parts;
+    rig.position.z = n.radius * 0.72;
+    const pivot = (x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); rig.add(g); return g; };
+    const load = (parent, x, y, z) => { const c = cargo(THREE, materials, parent, { lit: true }); c.position.set(x, y, z); if (n.material.status === 'absent') c.traverse(o => { if (o.userData.beacon) o.material = materials.windows.dark; }); return c; };
+    if (job === 'tower') {
+      rig.position.z = r * 0.6;
+      for (const x of [-0.55, 0.55]) box(rig, x, 3.5, 0, 0.1, 7, 0.1);
+      p.lift = pivot(0, 3, 0); box(p.lift, 0, 0, 0, 1.1, 0.12, 0.9); load(p.lift, 0, 0.06, 0);
+      p.dish = dishOf(building);
+    } else if (job === 'drafting') {
+      rig.position.z += 1.6;
+      for (const x of [-0.9, 0.9]) box(rig, x, 0.65, 0, 0.1, 1.3, 0.1);
+      box(rig, 0, 1.25, 0, 2.8, 0.1, 0.7);
+      p.sheet = box(rig, 0, 1.33, 0, 0.8, 0.035, 0.6);
+      box(p.sheet, 0, 0.7, 0, 0.6, 0.3, 0.05, materials.ink);
+    } else if (job === 'yard' || job === 'bay') {
+      // Gantry dispatches sideways; a bay's jib swings in over its open front.
+      const top = job === 'yard' ? 3.4 : 4.5;
+      if (job === 'bay') rig.position.z = n.radius * 0.9;
+      for (const x of job === 'yard' ? [-1.6, 1.6] : [-1.6]) box(rig, x, top / 2, 0, 0.16, top, 0.16);
+      p.boom = pivot(job === 'yard' ? 0 : -1.6, top, 0);
+      box(p.boom, job === 'yard' ? 0 : 1.6, 0, 0, 3.6, 0.22, 0.2, materials.bee);
+      p.hoist = new THREE.Group(); p.boom.add(p.hoist); p.hoist.position.x = job === 'yard' ? 0 : 2.8;
+      p.cable = box(p.hoist, 0, -0.7, 0, 0.035, 1.4, 0.035, materials.ink);
+      p.load = load(p.hoist, 0, -1.8, 0);
+      if (job === 'bay') { p.frame = pivot(0, 0.2, -0.8); for (const x of [-0.65, 0.65]) box(p.frame, x, 0.6, 0, 0.12, 1.2, 0.12); box(p.frame, 0, 1.2, 0, 1.4, 0.12, 0.12); }
+    } else if (job === 'inspection') {
+      drum(rig, 0, 0.15, 0, 0.8, 0.3); p.table = pivot(0, 0.35, 0);
+      load(p.table, 0.2, 0, 0); box(p.table, -0.5, 0.02, 0, 0.25, 0.04, 0.1, materials.ink);
+      for (const x of [-0.9, 0.9]) box(rig, x, 1.2, 0, 0.08, 2.4, 0.08); box(rig, 0, 2.4, 0, 1.9, 0.08, 0.08);
+    } else if (job === 'ladder') {
+      rig.position.z = r * 0.85;
+      p.lift = pivot(0, 0, 0); box(p.lift, 0, 0, 0, 1, 0.12, 0.8); load(p.lift, 0, 0.06, 0);
+      p.arm = pivot(r * 0.8, 6.5, 0); box(p.arm, 0, -0.5, 0, 0.15, 1, 0.15, materials.ink); box(p.arm, 0, -1.1, 0, 0.65, 0.2, 0.6);
+      p.stamp = box(p.lift, 0, 0.63, 0, 0.3, 0.04, 0.3, materials.windows.lit);
+    } else if (job === 'land-gate') {
+      rig.position.z = r * 1.05;
+      p.leaves = [-1, 1].map(side => { const g = pivot(side * 1.2, 0, 0); g.userData.side = side; box(g, -side * 0.6, 1, 0, 1.2, 2, 0.12); return g; });
+      p.load = load(rig, 0, 0, 2.5); p.load.userData.stamped = true;
+      p.stamp = box(p.load, 0, CARGO.size + 0.04, 0, 0.3, 0.06, 0.3, materials.ink);
+    } else if (job === 'customs') {
+      rig.position.set(0, 0.66, r * 0.6);
+      for (const x of [-0.9, 0.9]) box(rig, x, 1.2, 0, 0.12, 2.4, 0.12);
+      box(rig, 0, 2.4, 0, 1.9, 0.15, 0.2);
+      p.scanner = box(rig, 0, 2.4, 0.11, 1.7, 0.1, 0.025, n.material.status === 'absent' ? materials.windows.dark : materials.windows.lit); p.scanner.userData.beacon = true;
+      p.arm = pivot(-1, 1.3, 0.5); box(p.arm, 1, 0, 0, 2, 0.12, 0.12);
+      p.load = load(rig, 0, 0, 2.5);
+    } else if (job === 'freight') {
+      p.truck = cargo(THREE, materials, rig, { truck: true });
+    } else if (job === 'theater') {
+      p.reel = wheel(THREE, materials, rig, 0, 3, 0, 0.6); box(rig, 0, 2.2, 0, 1.2, 0.6, 0.7, materials.bee);
+    } else if (job === 'court') {
+      rig.position.set(0, 4.6, r * 0.9); drum(rig, 0, 0, 0, 0.05, 0.1);
+      p.clock = wheel(THREE, materials, rig, 0, 0, 0, 0.85);
+    } else if (job === 'utilities') {
+      for (const x of [-1, 1]) for (const z of [-0.7, 0.7]) box(rig, x, 1.8, z, 0.12, 3.6, 0.12);
+      drum(rig, 0, 4, 0, 1.2, 1.6); drum(rig, 0, 4.9, 0, 1.3, 0.2, skin, 0.2);
+      beam(rig, [1, 3.5, 0], [1, 0.3, 0], 0.1); beam(rig, [1, 0.3, 0], [0, 0.3, 1.4], 0.1);
+      p.wheel = wheel(THREE, materials, rig, 0, 1.2, 1.4, 0.55);
+    }
+    for (const part of Object.values(p).flat()) if (part?.isObject3D) part.userData.articulated = true;
+    // Cache the rig's rest position, so a frozen frame never inherits a previous moving pose.
+    rig.userData.mechanism.radius = r;
+  }
   // Only these window materials vary with status: dark forms never lose structure.
   const status = n.material.status;
   const lit = status === 'sound' ? LIGHTS.windows : ['partial', 'gap'].includes(status) ? Math.round(LIGHTS.windows * LIGHTS.halfFraction) : 0;
@@ -434,6 +503,37 @@ export function buildDistrict(THREE, n, materials) {
   const roofY = new THREE.Box3().setFromObject(building).max.y;
   const roofLight = box(building, 0, roofY + LIGHTS.roofHeight / 2, 0, n.radius * LIGHTS.roofWidth, LIGHTS.roofHeight, n.radius * LIGHTS.roofDepth, lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
   roofLight.userData.roofLight = true;
-  const solids = []; building.traverse(o => { if (o.isMesh) solids.push(o); }); solids.forEach(o => outline(THREE, o));
+  const outlined = new Set(); building.traverse(o => { if (o.userData.outlineOf) outlined.add(o.userData.outlineOf); });
+  const solids = []; building.traverse(o => { if (o.isMesh && !outlined.has(o)) solids.push(o); }); solids.forEach(o => outline(THREE, o));
   return building;
+}
+function dishOf(building) { let dish; building.traverse(o => { if (o.userData.dish) dish = o; }); return dish; }
+export function animateDistrict(rig, phase, frozen) {
+  const { job, active, parts: p, radius: r } = rig.userData.mechanism;
+  const t = frozen || !active ? 0.25 : (phase / WORKERS.loopSeconds % 1 + 1) % 1;
+  const travel = 1 - Math.abs(t * 2 - 1), wave = Math.sin(t * Math.PI * 2);
+  if (job === 'tower') { p.lift.position.y = 0.3 + (1 - travel) * 6.3; if (p.dish) p.dish.rotation.y = wave * 0.6; }
+  if (job === 'drafting') p.sheet.position.x = (travel - 0.5) * 1.8;
+  if (job === 'yard' || job === 'bay') {
+    if (job === 'yard') p.hoist.position.x = -1.3 + travel * 2.6;
+    else p.boom.rotation.y = -0.7 + travel * 1.4;
+    const drop = 0.5 + Math.abs(wave) * 1.7;
+    p.cable.position.y = -drop / 2; p.cable.scale.y = drop; p.load.position.y = -drop - CARGO.size;
+    if (p.frame) p.frame.position.y = 0.2 + Math.floor(t * 4) * 0.25;
+  }
+  if (job === 'inspection') p.table.rotation.y = t * Math.PI * 2;
+  if (job === 'ladder') { p.lift.position.set((travel * 4 - 2) * r * 0.4, 0.65 + travel * 4.6, 0); p.arm.position.y = 6.5 - (travel > 0.85 ? (travel - 0.85) / 0.15 * 0.6 : 0); p.stamp.visible = travel > 0.9; }
+  if (job === 'land-gate' || job === 'customs') {
+    p.load.position.z = 2.5 - t * 5;
+    const arrived = Math.abs(p.load.position.z) < 1.6;
+    const opened = arrived && (job !== 'land-gate' || p.load.userData.stamped);
+    if (p.leaves) p.leaves.forEach(g => { g.rotation.y = opened ? g.userData.side * Math.PI / 2 : 0; });
+    if (p.arm) p.arm.rotation.z = opened ? Math.PI / 2 : 0;
+    if (p.scanner) p.scanner.visible = arrived;
+  }
+  if (p.truck) { p.truck.position.x = (travel - 0.5) * r * 1.5; p.truck.rotation.y = t < 0.5 ? Math.PI / 2 : -Math.PI / 2; p.truck.children.find(o => o.userData.crate).visible = t < 0.5; }
+  if (p.reel) p.reel.rotation.z = t * Math.PI * 2;
+  if (p.clock) p.clock.rotation.z = -phase / (WORKERS.loopSeconds * 20) * Math.PI * 2;
+  if (p.wheel) p.wheel.rotation.z = phase / (WORKERS.loopSeconds * 3) * Math.PI * 2;
+  if (frozen || !active) { if (p.clock) p.clock.rotation.z = -Math.PI / 4; if (p.wheel) p.wheel.rotation.z = Math.PI / 4; }
 }

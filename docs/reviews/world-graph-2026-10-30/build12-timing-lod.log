@@ -1,0 +1,6 @@
+(node:70981) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+hive-page: http://127.0.0.1:62350
+FRAME TIME {"median":133.29999999999927,"count":78,"duration":10132.399999713898} RENDER {"cpuMs":5.300000190734863,"calls":990,"triangles":139214}
