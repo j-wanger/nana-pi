@@ -149,7 +149,7 @@ async function prepareUrlInputs(args, root, stdout) {
   }
   return { text: "", lines: [], entries: [] };
 }
-async function waitForHive(page, hive) {
+export async function waitForHive(page, hive) {
   if (!hive) return;
   try { await page.waitForSelector("html[data-hive-ready]", { timeout: HIVE_READY_TIMEOUT_MS }); }
   catch { throw new Error("first-look: the hive ready wait timed out"); }
@@ -174,8 +174,10 @@ async function captureUrlPage(browser, url, output, side, hive) {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(url, { waitUntil: "load" }); await waitForHive(page, hive);
       const viewport = `${side}-${width}.png`; const full = `${side}-${width}-full.png`;
+      // A full-page capture temporarily resizes a scroll tour; preserve the linked pose first.
+      if (hive) await page.screenshot({ path: path.join(output, viewport), fullPage: false });
       await page.screenshot({ path: path.join(output, full), fullPage: true });
-      await page.screenshot({ path: path.join(output, viewport), fullPage: false });
+      if (!hive) await page.screenshot({ path: path.join(output, viewport), fullPage: false });
       frames.push({ width, file: viewport });
     } finally { await page.close(); }
   }

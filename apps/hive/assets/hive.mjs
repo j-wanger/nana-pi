@@ -9,6 +9,9 @@
 import { buildCell } from './cell.mjs';
 import { buildBee } from './bee.mjs';
 import { STYLE } from '../config.mjs';
+import { beam as sharedBeam, fence as sharedFence } from './parts.mjs';
+import { buildRoad } from './road.mjs';
+import { visibleRoads } from '../roads.mjs';
 export function buildHive(THREE, model, materials) {
   const group = new THREE.Group();
   const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -16,10 +19,7 @@ export function buildHive(THREE, model, materials) {
   const box = (parent, x, y, z, w, h, d, mat = materials.status.sound) => {
     const mesh = new THREE.Mesh(cube, mat); mesh.position.set(x, y, z); mesh.scale.set(w, h, d); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
   };
-  const beam = (parent, a, b, thickness, mat = materials.rim.workflow) => {
-    const start = new THREE.Vector3(...a), end = new THREE.Vector3(...b), delta = end.clone().sub(start);
-    const mesh = new THREE.Mesh(rod, mat); mesh.position.copy(start.add(end).multiplyScalar(0.5)); mesh.scale.set(thickness, delta.length(), thickness); mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize()); mesh.castShadow = true; parent.add(mesh); return mesh;
-  };
+  const beam = sharedBeam.bind(null, THREE, materials, rod);
   const drum = (parent, x, y, z, radius, h, mat = materials.status.sound, top = radius, openEnded = false) => {
     const surface = openEnded ? mat.clone() : mat;
     if (openEnded) surface.side = THREE.DoubleSide;
@@ -30,13 +30,7 @@ export function buildHive(THREE, model, materials) {
     const mesh = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.055, 6, 48), mat);
     mesh.position.set(x, y, z); mesh.castShadow = true; parent.add(mesh); return mesh;
   };
-  const fence = (parent, a, b, drop = 0.45) => {
-    beam(parent, a, b, 0.018);
-    const length = Math.hypot(...a.map((v, i) => v - b[i]));
-    for (let t = 0; t <= 1; t += 1 / Math.ceil(length * 2)) {
-      const p = a.map((v, i) => v + (b[i] - v) * t); beam(parent, [p[0], p[1] - drop, p[2]], p, 0.016);
-    }
-  };
+  const fence = sharedFence.bind(null, THREE, materials, rod);
   // Buildings use normalized architectural dimensions: a deck, a bay, a column and a floor.
   for (const [index, c] of model.chambers.entries()) {
     const chamber = new THREE.Group(); chamber.userData.component = c.id; group.add(chamber);
@@ -390,42 +384,7 @@ export function buildHive(THREE, model, materials) {
       : (index % 2 ? Math.PI / 2 : 0);
     chamber.userData.labelHeight = new THREE.Box3().setFromObject(building).max.y;
   }
-  const works = model.chambers.filter(c => c.kind === 'workflow');
-  // Elevated walkways connect structures; paths depict adjacency, not a claimed data dependency.
-  for (let i = 0; i < works.length; i++) for (let j = i + 1; j < works.length; j++) {
-    const a = works[i], b = works[j], y = 1.1;
-    if (a.x !== b.x && a.z !== b.z) continue;
-    if (Math.hypot(b.x - a.x, b.z - a.z) > a.radius + b.radius + STYLE.chamberGap) continue;
-    const length = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / length, dz = (b.z - a.z) / length;
-    // Stop at foundation edges: a centre-to-centre route cuts through the instruments.
-    const edge = c => c.radius * 0.78 * 2.25 / 2 / Math.max(Math.abs(dx), Math.abs(dz));
-    const start = [a.x + dx * edge(a), y, a.z + dz * edge(a)];
-    const end = [b.x - dx * edge(b), y, b.z - dz * edge(b)];
-    beam(group, start, end, 0.22);
-    for (const side of [-0.26, 0.26]) fence(group,
-      [start[0] - dz * side, y + 0.45, start[2] + dx * side],
-      [end[0] - dz * side, y + 0.45, end[2] + dx * side]);
-    const spans = Math.max(1, Math.ceil(Math.hypot(end[0] - start[0], end[2] - start[2]) / STYLE.cellStep));
-    for (let pier = 0; pier <= spans; pier++) {
-      const t = pier / spans;
-      box(group, start[0] + (end[0] - start[0]) * t, y / 2, start[2] + (end[2] - start[2]) * t, 0.16, y, 0.16);
-    }
-  }
-  const homes = model.chambers.filter(c => c.kind === 'governance');
-  if (homes.length) {
-    const radius = Math.hypot(homes[0].x, homes[0].z);
-    const ring = new THREE.Group(); group.add(ring);
-    // A continuous perimeter houses the governance structures around the workflow campus.
-    for (let i = 0; i < 96; i++) {
-      const angle = i / 96 * Math.PI * 2;
-      const bay = new THREE.Group(); bay.position.set(Math.sin(angle) * radius, 0, Math.cos(angle) * radius); bay.rotation.y = angle; ring.add(bay);
-      box(bay, 0, 0.85, 0, radius * Math.PI / 47, 0.18, 1.1);
-      box(bay, 0, 0.35, 0, 0.12, 0.8, 0.75);
-      box(bay, 0, 1.2, 0.5, 0.045, 0.65, 0.045);
-      box(bay, 0, 1.52, 0.5, radius * Math.PI / 47, 0.045, 0.045);
-      if (i % 4 === 0) box(bay, 0, 0.2, -0.5, 0.45, 0.4, 0.4, materials.ink);
-    }
-  }
+  for (const road of model.roads ?? []) { const mesh = buildRoad(THREE, road, materials); mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh); }
   const size = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs));
   // A continuous ground, not a finite display plinth with a visible empty border.
   box(group, 0, -0.55, 0, size * size, 0.12, size * size, materials.ground);

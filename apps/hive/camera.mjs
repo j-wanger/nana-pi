@@ -6,21 +6,22 @@
  * @effects none
  * @errors None for a nonempty layout and positive aspect.
  */
-import { STYLE } from './config.mjs';
-// The overview is a close architectural view, not a fit-all inventory shot.
-// Use the workflow campus's projected depth to fill the screen vertically;
-// the outer governance ring continues beyond the viewport on either side.
+import { STYLE, OVERVIEW_ELEVATION } from './config.mjs';
+// Frame the loop, excluding the outside plot, using actual projected corners rather than a loose sphere.
 export function overview(model, aspect = 1) {
-  const campus = model.chambers.filter(c => c.kind === 'workflow');
+  const campus = model.chambers.filter(c => c.role !== 'outside');
   if (!campus.length) return focus(model, null, aspect);
   const min = [0, 1, 2].map(i => Math.min(...campus.map(c => c.bounds.min[i])));
   const max = [0, 1, 2].map(i => Math.max(...campus.map(c => c.bounds.max[i])));
-  const target = min.map((v, i) => (v + max[i]) / 2);
-  const direction = [0, STYLE.cameraElevation, 1];
-  const length = Math.hypot(...direction);
-  const projectedDepth = (max[2] - min[2]) * STYLE.cameraElevation / length + (max[1] - min[1]) / length;
-  const distance = projectedDepth / (2 * Math.tan(STYLE.fov * Math.PI / 360));
-  return { target, position: target.map((v, i) => v + direction[i] / length * distance), fov: STYLE.fov };
+  const target = min.map((v, i) => (v + max[i]) / 2), length = Math.hypot(OVERVIEW_ELEVATION, 1);
+  const vertical = Math.tan(STYLE.fov * Math.PI / 360), horizontal = vertical * aspect;
+  let distance = 0;
+  for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
+    const dx = x - target[0], dy = y - target[1], dz = z - target[2];
+    const depth = (dy * OVERVIEW_ELEVATION + dz) / length, up = (dy - dz * OVERVIEW_ELEVATION) / length;
+    distance = Math.max(distance, depth + Math.max(Math.abs(dx) / horizontal, Math.abs(up) / vertical) * STYLE.framePadding);
+  }
+  return { target, position: [target[0], target[1] + distance * OVERVIEW_ELEVATION / length, target[2] + distance / length], fov: STYLE.fov };
 }
 export function focus(model, id, aspect = 1) {
   const bounds = model.chambers.find(c => c.id === id)?.bounds ?? model.bounds;

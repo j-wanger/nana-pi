@@ -1,0 +1,78 @@
+(node:47013) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL R-3170: graph counts recorded sources in their own units through shared parsers Error: ENOENT: no such file or directory, open '<tmp>/nana-graph-dMHH1u/graph.json'
+    at async open (node:internal/fs/promises:639:25)
+    at async Object.readFile (node:internal/fs/promises:1249:14)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:48:30
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:39:1
+FAIL R-3171: loop drift and incompatible graph pairs refuse before output without changing v1 AssertionError [ERR_ASSERTION]: key-cabinet
+    at file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:82:65
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:74:1
+FAIL R-3172: published loop geometry matches goldens and sealed bounds clearance and attachments AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ {}
+- {
+-   anchor: 0.9,
+-   attachment: 0.8,
+-   centring: 0.001,
+-   cooling: 0.96,
+-   idealLength: 40,
+-   iterations: 240,
+-   repulsion: 90,
+-   temperature: 1,
+-   weightScale: 9
+- }
+
+    at file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:97:10
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:94:1
+FAIL R-3173: typed roads avoid third footprints and meet the base crossing caps Error: ENOENT: no such file or directory, open '<worktree>/packages/nana-pack/tests/fixtures/hive-graph-base.json'
+    at async open (node:internal/fs/promises:639:25)
+    at async Object.readFile (node:internal/fs/promises:1249:14)
+    at async read (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:16:36)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:126:16
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:121:1
+FAIL R-3174: numbered tour anchors frame structures and walk roads at every viewport Error: ENOENT: no such file or directory, open '<worktree>/docs/components/graph-fixture.json'
+    at async open (node:internal/fs/promises:639:25)
+    at async Object.readFile (node:internal/fs/promises:1249:14)
+    at async read (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:16:36)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:142:17
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:138:1
+FAIL R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   doubleTapMs: 350,
+-   overviewClasses: [
+-     'loop',
+-     'artifact',
+-     'spur'
+-   ],
+-   roadWidths: {
+-     artifact: 0.32,
+-     feature: 0.08,
+-     import: 0.12,
+-     loop: 0.7,
+-     spur: 0.2
+-   },
+-   sectionHeight: 100,
+-   tapTolerance: 10
+- }
+
+    at file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:158:10
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:156:1
+FAIL R-3176: publisher ships paired graphs and Pages derives and scans them in order Error: ENOENT: no such file or directory, open '<tmp>/nana-graph-pfpm6T/site/graph.json'
+    at async open (node:internal/fs/promises:639:25)
+    at async Object.readFile (node:internal/fs/promises:1249:14)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:176:95
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:173:1

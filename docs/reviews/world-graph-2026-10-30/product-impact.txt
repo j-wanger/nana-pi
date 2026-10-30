@@ -1,0 +1,19 @@
+
+> nana-pi@0.5.0 map:impact
+> node scripts/code-map.mjs --impact packages/nana-pack/tests/product-report.test.mjs
+
+packages/nana-pack/tests/product-report.test.mjs
+  transitive callers (0): —
+  transitive callees (31): apps/bench/lib/checkers.mjs apps/bench/lib/fixture.mjs packages/nana-pack/lib/agent-dir.mjs packages/nana-pack/lib/ask-shape.mjs packages/nana-pack/lib/bounded-read.mjs packages/nana-pack/lib/brief-config.mjs packages/nana-pack/lib/brief-precedent.mjs packages/nana-pack/lib/build-records-config.mjs packages/nana-pack/lib/build-records.mjs packages/nana-pack/lib/frontier-config.mjs packages/nana-pack/lib/frontier-summary-config.mjs packages/nana-pack/lib/gh-runner.mjs packages/nana-pack/lib/handoff-asks.mjs packages/nana-pack/lib/handoff-issues.mjs packages/nana-pack/lib/known-bugs-config.mjs packages/nana-pack/lib/land-ci.mjs packages/nana-pack/lib/land-config.mjs packages/nana-pack/lib/markdown-list-sections.mjs packages/nana-pack/lib/pi-usage.mjs packages/nana-pack/lib/record-ledger.mjs packages/nana-pack/lib/runtime-map-config.mjs packages/nana-pack/lib/runtime-map.mjs packages/nana-pack/lib/suite-records-config.mjs packages/nana-pack/lib/suite-records.mjs packages/nana-pack/tests/report-fixtures.mjs packages/nana-pack/tests/tmp-dir.mjs scripts/deliverables.mjs scripts/product-report.mjs scripts/requirements-moved.mjs scripts/requirements-trace.mjs scripts/requirements-tree.mjs
+
+untraced tests: 16 of 257 test modules import no mapped module (a test that only starts a process is not linked)
+
+artifacts for packages/nana-pack/tests/product-report.test.mjs (0):
+  artifacts: no Artifact writer list or Reads line names packages/nana-pack/tests/product-report.test.mjs
+artifact block shows only Artifact: writer lists and other features' Reads: lines; it leaves out readers in the maker's own feature, deliverable Read by: lines, hand-run makers and a file that is itself an artifact's location
+
+runtime map: measured tip 85e51381 at 2026-10-30T02:04:16.526Z is 1 hour old; 45 tracked files differ from this checkout
+runtime map: the measured tip is not on main; the next land measures it
+measured tests for packages/nana-pack/tests/product-report.test.mjs (1):
+  67.2s  packages/nana-pack/tests/product-report.test.mjs [stale]
+runtime map: copies run from a temporary folder and children stopped by a signal are not counted

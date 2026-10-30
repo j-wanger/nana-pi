@@ -1,0 +1,3757 @@
+{
+  "contract": "nana-component-graph",
+  "version": 1,
+  "spine": [
+    "compass",
+    "drafting-table",
+    "queue",
+    "workshop",
+    "eyes",
+    "review-ladder",
+    "land-gate",
+    "release-route",
+    "notice-board"
+  ],
+  "nodes": [
+    {
+      "id": "compass",
+      "role": "spine",
+      "stage": "compass",
+      "radius": 4.412346314604057,
+      "x": 0.764,
+      "z": -68.72
+    },
+    {
+      "id": "drafting-table",
+      "role": "spine",
+      "stage": "drafting-table",
+      "radius": 2.2061731573020285,
+      "x": 29.148,
+      "z": -56.535000000000004
+    },
+    {
+      "id": "queue",
+      "role": "spine",
+      "stage": "queue",
+      "radius": 4.412346314604057,
+      "x": 43.848,
+      "z": -12.789
+    },
+    {
+      "id": "workshop",
+      "role": "spine",
+      "stage": "workshop",
+      "radius": 2.2061731573020285,
+      "x": 34.924,
+      "z": 35.071
+    },
+    {
+      "id": "eyes",
+      "role": "spine",
+      "stage": "eyes",
+      "radius": 2.2061731573020285,
+      "x": 15.6,
+      "z": 70.289
+    },
+    {
+      "id": "review-ladder",
+      "role": "spine",
+      "stage": "review-ladder",
+      "radius": 2.2061731573020285,
+      "x": -14.649000000000001,
+      "z": 64.791
+    },
+    {
+      "id": "land-gate",
+      "role": "spine",
+      "stage": "land-gate",
+      "radius": 2.2061731573020285,
+      "x": -34.612,
+      "z": 32.676
+    },
+    {
+      "id": "release-route",
+      "role": "spine",
+      "stage": "release-route",
+      "radius": 4.412346314604057,
+      "x": -40.641,
+      "z": -11.172
+    },
+    {
+      "id": "notice-board",
+      "role": "spine",
+      "stage": "notice-board",
+      "radius": 2.2061731573020285,
+      "x": -25.249,
+      "z": -51.325
+    },
+    {
+      "id": "rulings",
+      "role": "gate",
+      "stage": "compass",
+      "radius": 2.2061731573020285,
+      "x": -9.979000000000001,
+      "z": -91.768
+    },
+    {
+      "id": "library",
+      "role": "support",
+      "stage": "compass",
+      "radius": 4.412346314604057,
+      "x": 7.823,
+      "z": -89.604
+    },
+    {
+      "id": "requirement-contract",
+      "role": "gate",
+      "stage": "drafting-table",
+      "radius": 2.2061731573020285,
+      "x": 26.599,
+      "z": -72.893
+    },
+    {
+      "id": "code-map",
+      "role": "gate",
+      "stage": "drafting-table",
+      "radius": 2.2061731573020285,
+      "x": 42.361000000000004,
+      "z": -65.096
+    },
+    {
+      "id": "identity-scan",
+      "role": "gate",
+      "stage": "queue",
+      "radius": 2.2061731573020285,
+      "x": 57.684000000000005,
+      "z": -27.149
+    },
+    {
+      "id": "writing-rule",
+      "role": "gate",
+      "stage": "queue",
+      "radius": 2.2061731573020285,
+      "x": 63.247,
+      "z": -8.241
+    },
+    {
+      "id": "command-gate",
+      "role": "gate",
+      "stage": "workshop",
+      "radius": 4.412346314604057,
+      "x": 48.192,
+      "z": 33.583
+    },
+    {
+      "id": "tool-belt",
+      "role": "support",
+      "stage": "workshop",
+      "radius": 4.412346314604057,
+      "x": 39.71,
+      "z": 51.328
+    },
+    {
+      "id": "desk",
+      "role": "support",
+      "stage": "eyes",
+      "radius": 6.618519471906085,
+      "x": 28.643,
+      "z": 84.855
+    },
+    {
+      "id": "lab",
+      "role": "support",
+      "stage": "eyes",
+      "radius": 6.618519471906085,
+      "x": 9.263,
+      "z": 89.048
+    },
+    {
+      "id": "setup",
+      "role": "support",
+      "stage": "release-route",
+      "radius": 4.412346314604057,
+      "x": -53.973,
+      "z": -16.301000000000002
+    },
+    {
+      "id": "stage",
+      "role": "outside",
+      "stage": "outside",
+      "radius": 4.412346314604057,
+      "x": -95,
+      "z": -90
+    },
+    {
+      "id": "key-cabinet",
+      "role": "outside",
+      "stage": "outside",
+      "radius": 2.2061731573020285,
+      "x": -95,
+      "z": -72
+    },
+    {
+      "id": "night-shift",
+      "role": "outside",
+      "stage": "outside",
+      "radius": 2.2061731573020285,
+      "x": -95,
+      "z": -54
+    }
+  ],
+  "edges": [
+    {
+      "from": "code-map",
+      "to": "command-gate",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "code-map",
+      "to": "requirement-contract",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "command-gate",
+      "to": "compass",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "command-gate",
+      "to": "land-gate",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "command-gate",
+      "to": "notice-board",
+      "source": "artifact",
+      "count": 2
+    },
+    {
+      "from": "command-gate",
+      "to": "notice-board",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "command-gate",
+      "to": "queue",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "command-gate",
+      "to": "review-ladder",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "command-gate",
+      "to": "setup",
+      "source": "artifact",
+      "count": 2
+    },
+    {
+      "from": "command-gate",
+      "to": "setup",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "command-gate",
+      "to": "setup",
+      "source": "join",
+      "count": 4
+    },
+    {
+      "from": "command-gate",
+      "to": "tool-belt",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "command-gate",
+      "to": "tool-belt",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "command-gate",
+      "to": "workshop",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "command-gate",
+      "to": "workshop",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "compass",
+      "to": "command-gate",
+      "source": "import",
+      "count": 8
+    },
+    {
+      "from": "compass",
+      "to": "drafting-table",
+      "source": "loop",
+      "count": 1,
+      "declared": true
+    },
+    {
+      "from": "compass",
+      "to": "identity-scan",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "compass",
+      "to": "queue",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "compass",
+      "to": "rulings",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "compass",
+      "to": "setup",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "compass",
+      "to": "tool-belt",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "desk",
+      "to": "command-gate",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "desk",
+      "to": "stage",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "drafting-table",
+      "to": "code-map",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "drafting-table",
+      "to": "command-gate",
+      "source": "import",
+      "count": 5
+    },
+    {
+      "from": "drafting-table",
+      "to": "eyes",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "drafting-table",
+      "to": "queue",
+      "source": "loop",
+      "count": 1,
+      "declared": true
+    },
+    {
+      "from": "drafting-table",
+      "to": "requirement-contract",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "drafting-table",
+      "to": "workshop",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "eyes",
+      "to": "code-map",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "eyes",
+      "to": "command-gate",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "eyes",
+      "to": "notice-board",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "eyes",
+      "to": "queue",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "eyes",
+      "to": "requirement-contract",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "eyes",
+      "to": "review-ladder",
+      "source": "loop",
+      "count": 1,
+      "declared": true
+    },
+    {
+      "from": "eyes",
+      "to": "workshop",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "lab",
+      "to": "command-gate",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "lab",
+      "to": "setup",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "code-map",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "code-map",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "command-gate",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "command-gate",
+      "source": "import",
+      "count": 10
+    },
+    {
+      "from": "land-gate",
+      "to": "notice-board",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "release-route",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "release-route",
+      "source": "loop",
+      "count": 1,
+      "declared": false
+    },
+    {
+      "from": "land-gate",
+      "to": "review-ladder",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "setup",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "land-gate",
+      "to": "workshop",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "library",
+      "to": "command-gate",
+      "source": "import",
+      "count": 4
+    },
+    {
+      "from": "library",
+      "to": "setup",
+      "source": "artifact",
+      "count": 4
+    },
+    {
+      "from": "library",
+      "to": "setup",
+      "source": "import",
+      "count": 4
+    },
+    {
+      "from": "notice-board",
+      "to": "code-map",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "notice-board",
+      "to": "command-gate",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "notice-board",
+      "to": "command-gate",
+      "source": "import",
+      "count": 26
+    },
+    {
+      "from": "notice-board",
+      "to": "command-gate",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "notice-board",
+      "to": "compass",
+      "source": "loop",
+      "count": 1,
+      "declared": true
+    },
+    {
+      "from": "notice-board",
+      "to": "lab",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "notice-board",
+      "to": "land-gate",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "notice-board",
+      "to": "queue",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "notice-board",
+      "to": "release-route",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "notice-board",
+      "to": "requirement-contract",
+      "source": "import",
+      "count": 4
+    },
+    {
+      "from": "queue",
+      "to": "command-gate",
+      "source": "import",
+      "count": 10
+    },
+    {
+      "from": "queue",
+      "to": "identity-scan",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "queue",
+      "to": "workshop",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "queue",
+      "to": "workshop",
+      "source": "loop",
+      "count": 1,
+      "declared": false
+    },
+    {
+      "from": "queue",
+      "to": "writing-rule",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "release-route",
+      "to": "command-gate",
+      "source": "artifact",
+      "count": 3
+    },
+    {
+      "from": "release-route",
+      "to": "command-gate",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "release-route",
+      "to": "command-gate",
+      "source": "join",
+      "count": 3
+    },
+    {
+      "from": "release-route",
+      "to": "land-gate",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "release-route",
+      "to": "land-gate",
+      "source": "join",
+      "count": 4
+    },
+    {
+      "from": "release-route",
+      "to": "notice-board",
+      "source": "loop",
+      "count": 1,
+      "declared": false
+    },
+    {
+      "from": "release-route",
+      "to": "setup",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "release-route",
+      "to": "setup",
+      "source": "join",
+      "count": 3
+    },
+    {
+      "from": "requirement-contract",
+      "to": "code-map",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "requirement-contract",
+      "to": "command-gate",
+      "source": "import",
+      "count": 8
+    },
+    {
+      "from": "requirement-contract",
+      "to": "drafting-table",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "requirement-contract",
+      "to": "lab",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "requirement-contract",
+      "to": "queue",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "requirement-contract",
+      "to": "review-ladder",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "review-ladder",
+      "to": "command-gate",
+      "source": "import",
+      "count": 17
+    },
+    {
+      "from": "review-ladder",
+      "to": "land-gate",
+      "source": "artifact",
+      "count": 2
+    },
+    {
+      "from": "review-ladder",
+      "to": "land-gate",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "review-ladder",
+      "to": "land-gate",
+      "source": "loop",
+      "count": 1,
+      "declared": false
+    },
+    {
+      "from": "review-ladder",
+      "to": "queue",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "review-ladder",
+      "to": "setup",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "review-ladder",
+      "to": "workshop",
+      "source": "import",
+      "count": 6
+    },
+    {
+      "from": "rulings",
+      "to": "command-gate",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "rulings",
+      "to": "setup",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "setup",
+      "to": "command-gate",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "setup",
+      "to": "command-gate",
+      "source": "import",
+      "count": 60
+    },
+    {
+      "from": "setup",
+      "to": "command-gate",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "setup",
+      "to": "land-gate",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "setup",
+      "to": "land-gate",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "setup",
+      "to": "library",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "setup",
+      "to": "queue",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "setup",
+      "to": "release-route",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "setup",
+      "to": "release-route",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "setup",
+      "to": "review-ladder",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "setup",
+      "to": "rulings",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "setup",
+      "to": "tool-belt",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "setup",
+      "to": "tool-belt",
+      "source": "join",
+      "count": 2
+    },
+    {
+      "from": "setup",
+      "to": "workshop",
+      "source": "import",
+      "count": 6
+    },
+    {
+      "from": "tool-belt",
+      "to": "command-gate",
+      "source": "artifact",
+      "count": 2
+    },
+    {
+      "from": "tool-belt",
+      "to": "command-gate",
+      "source": "import",
+      "count": 37
+    },
+    {
+      "from": "tool-belt",
+      "to": "command-gate",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "tool-belt",
+      "to": "compass",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "tool-belt",
+      "to": "queue",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "tool-belt",
+      "to": "setup",
+      "source": "artifact",
+      "count": 1
+    },
+    {
+      "from": "tool-belt",
+      "to": "setup",
+      "source": "import",
+      "count": 3
+    },
+    {
+      "from": "tool-belt",
+      "to": "setup",
+      "source": "join",
+      "count": 4
+    },
+    {
+      "from": "tool-belt",
+      "to": "stage",
+      "source": "feature",
+      "count": 1
+    },
+    {
+      "from": "workshop",
+      "to": "command-gate",
+      "source": "import",
+      "count": 17
+    },
+    {
+      "from": "workshop",
+      "to": "drafting-table",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "workshop",
+      "to": "eyes",
+      "source": "loop",
+      "count": 1,
+      "declared": false
+    },
+    {
+      "from": "workshop",
+      "to": "notice-board",
+      "source": "join",
+      "count": 1
+    },
+    {
+      "from": "workshop",
+      "to": "queue",
+      "source": "import",
+      "count": 1
+    },
+    {
+      "from": "workshop",
+      "to": "review-ladder",
+      "source": "import",
+      "count": 2
+    },
+    {
+      "from": "writing-rule",
+      "to": "command-gate",
+      "source": "import",
+      "count": 1
+    }
+  ],
+  "roads": [
+    {
+      "id": "compass/drafting-table",
+      "from": "compass",
+      "to": "drafting-table",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "drafting-table",
+          "source": "loop",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          4.819,
+          -66.979
+        ],
+        [
+          27.121000000000002,
+          -57.405
+        ]
+      ]
+    },
+    {
+      "id": "compass/notice-board",
+      "from": "compass",
+      "to": "notice-board",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "compass",
+          "source": "loop",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          -2.904,
+          -66.267
+        ],
+        [
+          -23.415,
+          -52.551
+        ]
+      ]
+    },
+    {
+      "id": "drafting-table/queue",
+      "from": "drafting-table",
+      "to": "queue",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "drafting-table",
+          "to": "queue",
+          "source": "loop",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          29.851,
+          -54.444
+        ],
+        [
+          42.443,
+          -16.972
+        ]
+      ]
+    },
+    {
+      "id": "eyes/review-ladder",
+      "from": "eyes",
+      "to": "review-ladder",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "review-ladder",
+          "source": "loop",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          13.429,
+          69.894
+        ],
+        [
+          -12.478,
+          65.185
+        ]
+      ]
+    },
+    {
+      "id": "eyes/workshop",
+      "from": "eyes",
+      "to": "workshop",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "workshop",
+          "source": "import",
+          "count": 2
+        },
+        {
+          "from": "workshop",
+          "to": "eyes",
+          "source": "loop",
+          "count": 1,
+          "declared": false
+        }
+      ],
+      "path": [
+        [
+          16.661,
+          68.355
+        ],
+        [
+          33.863,
+          37.005
+        ]
+      ]
+    },
+    {
+      "id": "land-gate/release-route",
+      "from": "land-gate",
+      "to": "release-route",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "land-gate",
+          "to": "release-route",
+          "source": "join",
+          "count": 1
+        },
+        {
+          "from": "land-gate",
+          "to": "release-route",
+          "source": "loop",
+          "count": 1,
+          "declared": false
+        },
+        {
+          "from": "release-route",
+          "to": "land-gate",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "release-route",
+          "to": "land-gate",
+          "source": "join",
+          "count": 4
+        }
+      ],
+      "path": [
+        [
+          -34.913000000000004,
+          30.490000000000002
+        ],
+        [
+          -40.04,
+          -6.801
+        ]
+      ]
+    },
+    {
+      "id": "land-gate/review-ladder",
+      "from": "land-gate",
+      "to": "review-ladder",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "land-gate",
+          "to": "review-ladder",
+          "source": "import",
+          "count": 1
+        },
+        {
+          "from": "review-ladder",
+          "to": "land-gate",
+          "source": "artifact",
+          "count": 2
+        },
+        {
+          "from": "review-ladder",
+          "to": "land-gate",
+          "source": "join",
+          "count": 1
+        },
+        {
+          "from": "review-ladder",
+          "to": "land-gate",
+          "source": "loop",
+          "count": 1,
+          "declared": false
+        }
+      ],
+      "path": [
+        [
+          -33.447,
+          34.550000000000004
+        ],
+        [
+          -15.814,
+          62.917
+        ]
+      ]
+    },
+    {
+      "id": "notice-board/release-route",
+      "from": "notice-board",
+      "to": "release-route",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "release-route",
+          "source": "join",
+          "count": 1
+        },
+        {
+          "from": "release-route",
+          "to": "notice-board",
+          "source": "loop",
+          "count": 1,
+          "declared": false
+        }
+      ],
+      "path": [
+        [
+          -26.039,
+          -49.265
+        ],
+        [
+          -39.062,
+          -15.292
+        ]
+      ]
+    },
+    {
+      "id": "queue/workshop",
+      "from": "queue",
+      "to": "workshop",
+      "class": "loop",
+      "sources": [
+        {
+          "from": "queue",
+          "to": "workshop",
+          "source": "import",
+          "count": 1
+        },
+        {
+          "from": "queue",
+          "to": "workshop",
+          "source": "loop",
+          "count": 1,
+          "declared": false
+        },
+        {
+          "from": "workshop",
+          "to": "queue",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          43.039,
+          -8.451
+        ],
+        [
+          35.328,
+          32.902
+        ]
+      ]
+    },
+    {
+      "id": "code-map/land-gate",
+      "from": "code-map",
+      "to": "land-gate",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "land-gate",
+          "to": "code-map",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "land-gate",
+          "to": "code-map",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          40.21,
+          -65.586
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          -25.249,
+          -54.795
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -35.189,
+          30.547
+        ]
+      ]
+    },
+    {
+      "id": "code-map/notice-board",
+      "from": "code-map",
+      "to": "notice-board",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "code-map",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          40.21,
+          -65.586
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          -25.249,
+          -54.795
+        ],
+        [
+          -25.249,
+          -53.531
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/compass",
+      "from": "command-gate",
+      "to": "compass",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "compass",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "compass",
+          "to": "command-gate",
+          "source": "import",
+          "count": 8
+        }
+      ],
+      "path": [
+        [
+          48.336,
+          29.173000000000002
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          29.148,
+          -60.005
+        ],
+        [
+          4.982,
+          -67.425
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/land-gate",
+      "from": "command-gate",
+      "to": "land-gate",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "land-gate",
+          "source": "join",
+          "count": 1
+        },
+        {
+          "from": "land-gate",
+          "to": "command-gate",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "land-gate",
+          "to": "command-gate",
+          "source": "import",
+          "count": 10
+        }
+      ],
+      "path": [
+        [
+          45.419000000000004,
+          37.015
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -33.604,
+          34.639
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/notice-board",
+      "from": "command-gate",
+      "to": "notice-board",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "notice-board",
+          "source": "artifact",
+          "count": 2
+        },
+        {
+          "from": "command-gate",
+          "to": "notice-board",
+          "source": "join",
+          "count": 2
+        },
+        {
+          "from": "notice-board",
+          "to": "command-gate",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "notice-board",
+          "to": "command-gate",
+          "source": "import",
+          "count": 26
+        },
+        {
+          "from": "notice-board",
+          "to": "command-gate",
+          "source": "join",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          48.336,
+          29.173000000000002
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          29.148,
+          -60.005
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          -25.249,
+          -53.531
+        ],
+        [
+          -25.249,
+          -53.531
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/release-route",
+      "from": "command-gate",
+      "to": "release-route",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "release-route",
+          "to": "command-gate",
+          "source": "artifact",
+          "count": 3
+        },
+        {
+          "from": "release-route",
+          "to": "command-gate",
+          "source": "import",
+          "count": 1
+        },
+        {
+          "from": "release-route",
+          "to": "command-gate",
+          "source": "join",
+          "count": 3
+        }
+      ],
+      "path": [
+        [
+          45.419000000000004,
+          37.015
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -45.053000000000004,
+          -11.172
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/review-ladder",
+      "from": "command-gate",
+      "to": "review-ladder",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "review-ladder",
+          "source": "join",
+          "count": 1
+        },
+        {
+          "from": "review-ladder",
+          "to": "command-gate",
+          "source": "import",
+          "count": 17
+        }
+      ],
+      "path": [
+        [
+          45.419000000000004,
+          37.015
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -12.528,
+          65.398
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/setup",
+      "from": "command-gate",
+      "to": "setup",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "setup",
+          "source": "artifact",
+          "count": 2
+        },
+        {
+          "from": "command-gate",
+          "to": "setup",
+          "source": "import",
+          "count": 1
+        },
+        {
+          "from": "command-gate",
+          "to": "setup",
+          "source": "join",
+          "count": 4
+        },
+        {
+          "from": "setup",
+          "to": "command-gate",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "setup",
+          "to": "command-gate",
+          "source": "import",
+          "count": 60
+        },
+        {
+          "from": "setup",
+          "to": "command-gate",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          45.419000000000004,
+          37.015
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -52.595,
+          -12.109
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/tool-belt",
+      "from": "command-gate",
+      "to": "tool-belt",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "tool-belt",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "command-gate",
+          "to": "tool-belt",
+          "source": "join",
+          "count": 2
+        },
+        {
+          "from": "tool-belt",
+          "to": "command-gate",
+          "source": "artifact",
+          "count": 2
+        },
+        {
+          "from": "tool-belt",
+          "to": "command-gate",
+          "source": "import",
+          "count": 37
+        },
+        {
+          "from": "tool-belt",
+          "to": "command-gate",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          46.289,
+          37.564
+        ],
+        [
+          41.613,
+          47.347
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/workshop",
+      "from": "command-gate",
+      "to": "workshop",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "workshop",
+          "source": "import",
+          "count": 3
+        },
+        {
+          "from": "command-gate",
+          "to": "workshop",
+          "source": "join",
+          "count": 2
+        },
+        {
+          "from": "workshop",
+          "to": "command-gate",
+          "source": "import",
+          "count": 17
+        }
+      ],
+      "path": [
+        [
+          43.807,
+          34.075
+        ],
+        [
+          37.116,
+          34.825
+        ]
+      ]
+    },
+    {
+      "id": "compass/setup",
+      "from": "compass",
+      "to": "setup",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "setup",
+          "source": "join",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          0.764,
+          -73.132
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          -25.249,
+          -54.795
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -51.392,
+          -19.88
+        ]
+      ]
+    },
+    {
+      "id": "compass/tool-belt",
+      "from": "compass",
+      "to": "tool-belt",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "tool-belt",
+          "source": "join",
+          "count": 2
+        },
+        {
+          "from": "tool-belt",
+          "to": "compass",
+          "source": "artifact",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          4.982,
+          -67.425
+        ],
+        [
+          29.148,
+          -60.005
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          42.483000000000004,
+          47.896
+        ]
+      ]
+    },
+    {
+      "id": "land-gate/notice-board",
+      "from": "land-gate",
+      "to": "notice-board",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "land-gate",
+          "to": "notice-board",
+          "source": "join",
+          "count": 1
+        },
+        {
+          "from": "notice-board",
+          "to": "land-gate",
+          "source": "join",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          -34.368,
+          30.483
+        ],
+        [
+          -25.493000000000002,
+          -49.132
+        ]
+      ]
+    },
+    {
+      "id": "land-gate/setup",
+      "from": "land-gate",
+      "to": "setup",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "land-gate",
+          "to": "setup",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "setup",
+          "to": "land-gate",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "setup",
+          "to": "land-gate",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          -35.189,
+          30.547
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -50.335,
+          -13.804
+        ]
+      ]
+    },
+    {
+      "id": "land-gate/workshop",
+      "from": "land-gate",
+      "to": "workshop",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "land-gate",
+          "to": "workshop",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          -32.407000000000004,
+          32.752
+        ],
+        [
+          32.719,
+          34.995
+        ]
+      ]
+    },
+    {
+      "id": "library/setup",
+      "from": "library",
+      "to": "setup",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "library",
+          "to": "setup",
+          "source": "artifact",
+          "count": 4
+        },
+        {
+          "from": "library",
+          "to": "setup",
+          "source": "import",
+          "count": 4
+        },
+        {
+          "from": "setup",
+          "to": "library",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          4.776,
+          -86.412
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -51.392,
+          -19.88
+        ]
+      ]
+    },
+    {
+      "id": "notice-board/workshop",
+      "from": "notice-board",
+      "to": "workshop",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "workshop",
+          "to": "notice-board",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          -23.988,
+          -49.515
+        ],
+        [
+          33.663000000000004,
+          33.261
+        ]
+      ]
+    },
+    {
+      "id": "release-route/setup",
+      "from": "release-route",
+      "to": "setup",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "release-route",
+          "to": "setup",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "release-route",
+          "to": "setup",
+          "source": "join",
+          "count": 3
+        },
+        {
+          "from": "setup",
+          "to": "release-route",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "setup",
+          "to": "release-route",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          -45.053000000000004,
+          -11.172
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -50.335,
+          -13.804
+        ]
+      ]
+    },
+    {
+      "id": "requirement-contract/review-ladder",
+      "from": "requirement-contract",
+      "to": "review-ladder",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "requirement-contract",
+          "to": "review-ladder",
+          "source": "join",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          24.398,
+          -73.037
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          -25.249,
+          -54.795
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -16.855,
+          64.791
+        ]
+      ]
+    },
+    {
+      "id": "review-ladder/setup",
+      "from": "review-ladder",
+      "to": "setup",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "review-ladder",
+          "to": "setup",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "setup",
+          "to": "review-ladder",
+          "source": "import",
+          "count": 3
+        }
+      ],
+      "path": [
+        [
+          -16.855,
+          64.791
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -52.595,
+          -12.109
+        ]
+      ]
+    },
+    {
+      "id": "setup/tool-belt",
+      "from": "setup",
+      "to": "tool-belt",
+      "class": "artifact",
+      "sources": [
+        {
+          "from": "setup",
+          "to": "tool-belt",
+          "source": "import",
+          "count": 2
+        },
+        {
+          "from": "setup",
+          "to": "tool-belt",
+          "source": "join",
+          "count": 2
+        },
+        {
+          "from": "tool-belt",
+          "to": "setup",
+          "source": "artifact",
+          "count": 1
+        },
+        {
+          "from": "tool-belt",
+          "to": "setup",
+          "source": "import",
+          "count": 3
+        },
+        {
+          "from": "tool-belt",
+          "to": "setup",
+          "source": "join",
+          "count": 4
+        }
+      ],
+      "path": [
+        [
+          -52.595,
+          -12.109
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          36.573,
+          54.43
+        ]
+      ]
+    },
+    {
+      "id": "code-map/drafting-table",
+      "from": "code-map",
+      "to": "drafting-table",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "drafting-table",
+          "to": "code-map",
+          "source": "import",
+          "count": 1
+        },
+        {
+          "from": "drafting-table",
+          "to": "code-map",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          40.704,
+          -63.64
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          31.354,
+          -56.535000000000004
+        ]
+      ]
+    },
+    {
+      "id": "compass/library",
+      "from": "compass",
+      "to": "library",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "library",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          0.764,
+          -73.132
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          5.947,
+          -85.61
+        ]
+      ]
+    },
+    {
+      "id": "compass/rulings",
+      "from": "compass",
+      "to": "rulings",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "rulings",
+          "source": "feature",
+          "count": 1
+        },
+        {
+          "from": "compass",
+          "to": "rulings",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          0.764,
+          -73.132
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          13.681000000000001,
+          -89.604
+        ],
+        [
+          11.965,
+          -93.746
+        ],
+        [
+          7.823,
+          -95.462
+        ],
+        [
+          -7.819,
+          -92.21600000000001
+        ]
+      ]
+    },
+    {
+      "id": "desk/eyes",
+      "from": "desk",
+      "to": "eyes",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "desk",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          24.287,
+          79.872
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          17.16,
+          71.849
+        ]
+      ]
+    },
+    {
+      "id": "drafting-table/requirement-contract",
+      "from": "drafting-table",
+      "to": "requirement-contract",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "drafting-table",
+          "to": "requirement-contract",
+          "source": "import",
+          "count": 1
+        },
+        {
+          "from": "requirement-contract",
+          "to": "drafting-table",
+          "source": "import",
+          "count": 2
+        },
+        {
+          "from": "drafting-table",
+          "to": "requirement-contract",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          31.354,
+          -56.535000000000004
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          42.361000000000004,
+          -61.626000000000005
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          28.726,
+          -72.309
+        ]
+      ]
+    },
+    {
+      "id": "eyes/lab",
+      "from": "eyes",
+      "to": "lab",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "lab",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          14.040000000000001,
+          71.849
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          10.796,
+          82.61
+        ]
+      ]
+    },
+    {
+      "id": "identity-scan/queue",
+      "from": "identity-scan",
+      "to": "queue",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "queue",
+          "to": "identity-scan",
+          "source": "feature",
+          "count": 1
+        },
+        {
+          "from": "queue",
+          "to": "identity-scan",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          56.613,
+          -25.22
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          48.26,
+          -12.789
+        ]
+      ]
+    },
+    {
+      "id": "key-cabinet/night-shift",
+      "from": "key-cabinet",
+      "to": "night-shift",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "key-cabinet",
+          "to": "night-shift",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          -95,
+          -69.794
+        ],
+        [
+          -95,
+          -56.206
+        ]
+      ]
+    },
+    {
+      "id": "key-cabinet/stage",
+      "from": "key-cabinet",
+      "to": "stage",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "stage",
+          "to": "key-cabinet",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          -95,
+          -74.206
+        ],
+        [
+          -95,
+          -85.58800000000001
+        ]
+      ]
+    },
+    {
+      "id": "notice-board/stage",
+      "from": "notice-board",
+      "to": "stage",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "stage",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          -27.455000000000002,
+          -51.325
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -91.18900000000001,
+          -87.776
+        ]
+      ]
+    },
+    {
+      "id": "queue/writing-rule",
+      "from": "queue",
+      "to": "writing-rule",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "queue",
+          "to": "writing-rule",
+          "source": "feature",
+          "count": 1
+        },
+        {
+          "from": "queue",
+          "to": "writing-rule",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          48.26,
+          -12.789
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          61.156,
+          -8.943
+        ]
+      ]
+    },
+    {
+      "id": "tool-belt/workshop",
+      "from": "tool-belt",
+      "to": "workshop",
+      "class": "spur",
+      "sources": [
+        {
+          "from": "workshop",
+          "to": "tool-belt",
+          "source": "spur",
+          "count": 1,
+          "declared": true
+        }
+      ],
+      "path": [
+        [
+          35.298,
+          51.328
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          34.779,
+          37.272
+        ]
+      ]
+    },
+    {
+      "id": "code-map/command-gate",
+      "from": "code-map",
+      "to": "command-gate",
+      "class": "import",
+      "sources": [
+        {
+          "from": "code-map",
+          "to": "command-gate",
+          "source": "import",
+          "count": 3
+        }
+      ],
+      "path": [
+        [
+          42.361000000000004,
+          -62.89
+        ],
+        [
+          42.361000000000004,
+          -61.626000000000005
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          48.336,
+          29.173000000000002
+        ]
+      ]
+    },
+    {
+      "id": "code-map/eyes",
+      "from": "code-map",
+      "to": "eyes",
+      "class": "import",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "code-map",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          42.361000000000004,
+          -62.89
+        ],
+        [
+          42.361000000000004,
+          -61.626000000000005
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          43.852000000000004,
+          55.47
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          17.16,
+          71.849
+        ]
+      ]
+    },
+    {
+      "id": "code-map/requirement-contract",
+      "from": "code-map",
+      "to": "requirement-contract",
+      "class": "import",
+      "sources": [
+        {
+          "from": "code-map",
+          "to": "requirement-contract",
+          "source": "import",
+          "count": 2
+        },
+        {
+          "from": "requirement-contract",
+          "to": "code-map",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          40.384,
+          -66.074
+        ],
+        [
+          28.576,
+          -71.915
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/desk",
+      "from": "command-gate",
+      "to": "desk",
+      "class": "import",
+      "sources": [
+        {
+          "from": "desk",
+          "to": "command-gate",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          52.604,
+          33.583
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          31.582,
+          78.925
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/drafting-table",
+      "from": "command-gate",
+      "to": "drafting-table",
+      "class": "import",
+      "sources": [
+        {
+          "from": "drafting-table",
+          "to": "command-gate",
+          "source": "import",
+          "count": 5
+        }
+      ],
+      "path": [
+        [
+          48.336,
+          29.173000000000002
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          30.086000000000002,
+          -54.538000000000004
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/eyes",
+      "from": "command-gate",
+      "to": "eyes",
+      "class": "import",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "command-gate",
+          "source": "import",
+          "count": 3
+        }
+      ],
+      "path": [
+        [
+          45.419000000000004,
+          37.015
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          17.13,
+          68.7
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/lab",
+      "from": "command-gate",
+      "to": "lab",
+      "class": "import",
+      "sources": [
+        {
+          "from": "lab",
+          "to": "command-gate",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          45.419000000000004,
+          37.015
+        ],
+        [
+          33.852000000000004,
+          51.328
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          12.404,
+          83.22200000000001
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/library",
+      "from": "command-gate",
+      "to": "library",
+      "class": "import",
+      "sources": [
+        {
+          "from": "library",
+          "to": "command-gate",
+          "source": "import",
+          "count": 4
+        }
+      ],
+      "path": [
+        [
+          48.336,
+          29.173000000000002
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          13.681000000000001,
+          -89.604
+        ],
+        [
+          12.235,
+          -89.604
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/queue",
+      "from": "command-gate",
+      "to": "queue",
+      "class": "import",
+      "sources": [
+        {
+          "from": "command-gate",
+          "to": "queue",
+          "source": "import",
+          "count": 3
+        },
+        {
+          "from": "queue",
+          "to": "command-gate",
+          "source": "import",
+          "count": 10
+        }
+      ],
+      "path": [
+        [
+          47.78,
+          29.19
+        ],
+        [
+          44.259,
+          -8.396
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/requirement-contract",
+      "from": "command-gate",
+      "to": "requirement-contract",
+      "class": "import",
+      "sources": [
+        {
+          "from": "requirement-contract",
+          "to": "command-gate",
+          "source": "import",
+          "count": 8
+        }
+      ],
+      "path": [
+        [
+          48.336,
+          29.173000000000002
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          28.726,
+          -72.309
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/rulings",
+      "from": "command-gate",
+      "to": "rulings",
+      "class": "import",
+      "sources": [
+        {
+          "from": "rulings",
+          "to": "command-gate",
+          "source": "import",
+          "count": 3
+        }
+      ],
+      "path": [
+        [
+          48.336,
+          29.173000000000002
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          11.965,
+          -93.746
+        ],
+        [
+          7.823,
+          -95.462
+        ],
+        [
+          -7.819,
+          -92.21600000000001
+        ]
+      ]
+    },
+    {
+      "id": "command-gate/writing-rule",
+      "from": "command-gate",
+      "to": "writing-rule",
+      "class": "import",
+      "sources": [
+        {
+          "from": "writing-rule",
+          "to": "command-gate",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          52.604,
+          33.583
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          62.773,
+          -6.086
+        ]
+      ]
+    },
+    {
+      "id": "desk/stage",
+      "from": "desk",
+      "to": "stage",
+      "class": "import",
+      "sources": [
+        {
+          "from": "desk",
+          "to": "stage",
+          "source": "import",
+          "count": 3
+        }
+      ],
+      "path": [
+        [
+          23.428,
+          80.779
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -93.146,
+          -85.996
+        ]
+      ]
+    },
+    {
+      "id": "drafting-table/eyes",
+      "from": "drafting-table",
+      "to": "eyes",
+      "class": "import",
+      "sources": [
+        {
+          "from": "drafting-table",
+          "to": "eyes",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          30.086000000000002,
+          -54.538000000000004
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          43.852000000000004,
+          55.47
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          17.16,
+          71.849
+        ]
+      ]
+    },
+    {
+      "id": "drafting-table/workshop",
+      "from": "drafting-table",
+      "to": "workshop",
+      "class": "import",
+      "sources": [
+        {
+          "from": "drafting-table",
+          "to": "workshop",
+          "source": "feature",
+          "count": 1
+        },
+        {
+          "from": "workshop",
+          "to": "drafting-table",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          29.287,
+          -54.333
+        ],
+        [
+          34.785000000000004,
+          32.869
+        ]
+      ]
+    },
+    {
+      "id": "eyes/queue",
+      "from": "eyes",
+      "to": "queue",
+      "class": "import",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "queue",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          17.16,
+          71.849
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          43.852000000000004,
+          55.47
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          48.26,
+          -12.789
+        ]
+      ]
+    },
+    {
+      "id": "eyes/requirement-contract",
+      "from": "eyes",
+      "to": "requirement-contract",
+      "class": "import",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "requirement-contract",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          17.16,
+          71.849
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          43.852000000000004,
+          55.47
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          28.726,
+          -72.309
+        ]
+      ]
+    },
+    {
+      "id": "lab/notice-board",
+      "from": "lab",
+      "to": "notice-board",
+      "class": "import",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "lab",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          4.268,
+          84.706
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -26.281,
+          -49.375
+        ]
+      ]
+    },
+    {
+      "id": "lab/requirement-contract",
+      "from": "lab",
+      "to": "requirement-contract",
+      "class": "import",
+      "sources": [
+        {
+          "from": "requirement-contract",
+          "to": "lab",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          12.404,
+          83.22200000000001
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          43.852000000000004,
+          55.47
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          28.726,
+          -72.309
+        ]
+      ]
+    },
+    {
+      "id": "lab/setup",
+      "from": "lab",
+      "to": "setup",
+      "class": "import",
+      "sources": [
+        {
+          "from": "lab",
+          "to": "setup",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          4.268,
+          84.706
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -52.595,
+          -12.109
+        ]
+      ]
+    },
+    {
+      "id": "notice-board/queue",
+      "from": "notice-board",
+      "to": "queue",
+      "class": "import",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "queue",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          -23.322,
+          -50.25
+        ],
+        [
+          39.994,
+          -14.938
+        ]
+      ]
+    },
+    {
+      "id": "notice-board/requirement-contract",
+      "from": "notice-board",
+      "to": "requirement-contract",
+      "class": "import",
+      "sources": [
+        {
+          "from": "notice-board",
+          "to": "requirement-contract",
+          "source": "import",
+          "count": 4
+        }
+      ],
+      "path": [
+        [
+          -25.249,
+          -53.531
+        ],
+        [
+          -25.249,
+          -53.531
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          24.398,
+          -73.037
+        ]
+      ]
+    },
+    {
+      "id": "queue/requirement-contract",
+      "from": "queue",
+      "to": "requirement-contract",
+      "class": "import",
+      "sources": [
+        {
+          "from": "requirement-contract",
+          "to": "queue",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          48.26,
+          -12.789
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          45.831,
+          -65.096
+        ],
+        [
+          42.361000000000004,
+          -68.566
+        ],
+        [
+          28.726,
+          -72.309
+        ]
+      ]
+    },
+    {
+      "id": "queue/review-ladder",
+      "from": "queue",
+      "to": "review-ladder",
+      "class": "import",
+      "sources": [
+        {
+          "from": "review-ladder",
+          "to": "queue",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          48.26,
+          -12.789
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          43.852000000000004,
+          55.47
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -12.528,
+          65.398
+        ]
+      ]
+    },
+    {
+      "id": "queue/setup",
+      "from": "queue",
+      "to": "setup",
+      "class": "import",
+      "sources": [
+        {
+          "from": "setup",
+          "to": "queue",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          42.751,
+          -17.063
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          29.148,
+          -60.005
+        ],
+        [
+          0.764,
+          -74.578
+        ],
+        [
+          -25.249,
+          -54.795
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -51.392,
+          -19.88
+        ]
+      ]
+    },
+    {
+      "id": "queue/tool-belt",
+      "from": "queue",
+      "to": "tool-belt",
+      "class": "import",
+      "sources": [
+        {
+          "from": "tool-belt",
+          "to": "queue",
+          "source": "import",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          48.26,
+          -12.789
+        ],
+        [
+          49.706,
+          -12.789
+        ],
+        [
+          54.050000000000004,
+          33.583
+        ],
+        [
+          42.483000000000004,
+          47.896
+        ]
+      ]
+    },
+    {
+      "id": "review-ladder/workshop",
+      "from": "review-ladder",
+      "to": "workshop",
+      "class": "import",
+      "sources": [
+        {
+          "from": "review-ladder",
+          "to": "workshop",
+          "source": "import",
+          "count": 6
+        },
+        {
+          "from": "workshop",
+          "to": "review-ladder",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          -12.757,
+          63.657000000000004
+        ],
+        [
+          33.032000000000004,
+          36.205
+        ]
+      ]
+    },
+    {
+      "id": "rulings/setup",
+      "from": "rulings",
+      "to": "setup",
+      "class": "import",
+      "sources": [
+        {
+          "from": "rulings",
+          "to": "setup",
+          "source": "import",
+          "count": 3
+        },
+        {
+          "from": "setup",
+          "to": "rulings",
+          "source": "import",
+          "count": 2
+        }
+      ],
+      "path": [
+        [
+          -10.907,
+          -89.766
+        ],
+        [
+          -28.719,
+          -51.325
+        ],
+        [
+          -51.392,
+          -19.88
+        ]
+      ]
+    },
+    {
+      "id": "setup/workshop",
+      "from": "setup",
+      "to": "workshop",
+      "class": "import",
+      "sources": [
+        {
+          "from": "setup",
+          "to": "workshop",
+          "source": "import",
+          "count": 6
+        }
+      ],
+      "path": [
+        [
+          -52.595,
+          -12.109
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          34.022,
+          37.085
+        ]
+      ]
+    },
+    {
+      "id": "compass/identity-scan",
+      "from": "compass",
+      "to": "identity-scan",
+      "class": "feature",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "identity-scan",
+          "source": "feature",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          4.982,
+          -67.425
+        ],
+        [
+          29.148,
+          -60.005
+        ],
+        [
+          32.618,
+          -56.535000000000004
+        ],
+        [
+          56.252,
+          -28.827
+        ]
+      ]
+    },
+    {
+      "id": "compass/queue",
+      "from": "compass",
+      "to": "queue",
+      "class": "feature",
+      "sources": [
+        {
+          "from": "compass",
+          "to": "queue",
+          "source": "feature",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          3.457,
+          -65.224
+        ],
+        [
+          41.155,
+          -16.285
+        ]
+      ]
+    },
+    {
+      "id": "eyes/notice-board",
+      "from": "eyes",
+      "to": "notice-board",
+      "class": "feature",
+      "sources": [
+        {
+          "from": "eyes",
+          "to": "notice-board",
+          "source": "feature",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          14.040000000000001,
+          71.849
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -46.499,
+          -11.172
+        ],
+        [
+          -26.281,
+          -49.375
+        ]
+      ]
+    },
+    {
+      "id": "stage/tool-belt",
+      "from": "stage",
+      "to": "tool-belt",
+      "class": "feature",
+      "sources": [
+        {
+          "from": "tool-belt",
+          "to": "stage",
+          "source": "feature",
+          "count": 1
+        }
+      ],
+      "path": [
+        [
+          -93.146,
+          -85.996
+        ],
+        [
+          -37.066,
+          35.13
+        ],
+        [
+          -18.119,
+          64.791
+        ],
+        [
+          -14.649000000000001,
+          68.261
+        ],
+        [
+          13.146,
+          72.743
+        ],
+        [
+          18.054000000000002,
+          72.743
+        ],
+        [
+          36.573,
+          54.43
+        ]
+      ]
+    }
+  ]
+}

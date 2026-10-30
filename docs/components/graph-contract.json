@@ -1,0 +1,11 @@
+{
+  "contract": "nana-component-graph",
+  "version": 1,
+  "documentFields": ["contract", "version", "spine", "nodes", "edges", "roads"],
+  "nodeFields": ["id", "role", "stage", "radius", "x", "z"],
+  "edgeFields": ["from", "to", "source", "count"],
+  "roadFields": ["id", "from", "to", "class", "sources", "path"],
+  "roles": ["spine", "support", "gate", "outside"],
+  "sources": ["import", "artifact", "join", "feature", "loop"],
+  "classes": ["loop", "artifact", "spur", "import", "feature"]
+}

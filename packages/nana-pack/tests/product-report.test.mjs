@@ -616,7 +616,7 @@ try {
     const oldLedger = fs.readFileSync(path.join(moved.root, "REQUIREMENTS.md"), "utf8");
     const oldParsed = parseLedger(oldLedger);
     const targetFeature = oldParsed.headings.find((heading) => heading.id === "FEAT-039");
-    const ownRow = readRequirementRows(oldParsed).find((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === targetFeature) return true; return false; });
+    const ownRow = readRequirementRows(oldParsed).find((row) => { if (row.status === 'retired') return false; for (let heading = row.heading; heading; heading = heading.parent) if (heading === targetFeature) return true; return false; });
     const movedLine = `| ${ownRow.id} | ${ownRow.requirement} | ${ownRow.status} | ${ownRow.evidence} |`;
     const homeLine = oldParsed.lines.findIndex((line) => line === movedLine);
     const newHomeTable = oldParsed.tables.find((table) => { for (let heading = table.heading; heading; heading = heading.parent) if (heading.id === "FEAT-002") return true; return false; });

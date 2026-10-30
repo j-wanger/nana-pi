@@ -15,13 +15,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STYLE } from '../apps/hive/config.mjs';
 import { checkComponentData } from './component-contract.mjs';
+import { graphProblem } from '../apps/hive/graph.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function buildHivePage(out, dataFile = path.join(root, 'docs/components/fixture.json')) {
+export async function buildHivePage(out, dataFile = path.join(root, 'docs/components/fixture.json'), graphFile = path.join(root, 'docs/components/graph-fixture.json')) {
   let data;
   try { data = JSON.parse(await readFile(dataFile, 'utf8')); } catch { throw new Error('unreadable component data'); }
   const contract = JSON.parse(await readFile(path.join(root, 'docs/components/contract.json'), 'utf8'));
   const problems = checkComponentData(data, contract);
   if (problems.length) throw new Error(problems[0]);
+  let graph;
+  try { graph = JSON.parse(await readFile(graphFile, 'utf8')); } catch { throw new Error('unreadable graph data'); }
+  const problem = graphProblem(data, graph);
+  if (problem) throw new Error(problem);
   const target = path.resolve(out);
   if (existsSync(target)) throw new Error('output folder already exists');
   await mkdir(path.dirname(target), { recursive: true });
@@ -29,6 +34,7 @@ export async function buildHivePage(out, dataFile = path.join(root, 'docs/compon
   try {
     for (const name of await readdir(path.join(root, 'apps/hive'))) if (name !== 'README.md') await cp(path.join(root, 'apps/hive', name), path.join(temporary, name), { recursive: true });
     await writeFile(path.join(temporary, 'components.json'), JSON.stringify(data, null, 2) + '\n');
+    await writeFile(path.join(temporary, 'graph.json'), JSON.stringify(graph, null, 2) + '\n');
     await rename(temporary, target);
   } finally { await rm(temporary, { recursive: true, force: true }); }
   return target;
@@ -59,17 +65,20 @@ export async function main(argv = process.argv.slice(2)) {
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     if (flag === '--serve' && !opts.serve) opts.serve = true;
-    else if (['--out', '--data', '--port'].includes(flag) && argv[i + 1] && opts[flag] === undefined) opts[flag] = argv[++i];
-    else { console.error('Usage: hive-page --out <dir> [--data <file>] | --serve [--port <n>] [--data <file>]'); return 2; }
+    else if (['--out', '--data', '--graph', '--port'].includes(flag) && argv[i + 1] && opts[flag] === undefined) opts[flag] = argv[++i];
+    else { console.error('Usage: hive-page (--out <dir> | --serve [--port <n>]) [--data <components file> --graph <graph file>]'); return 2; }
+  }
+  if (Boolean(opts['--data']) !== Boolean(opts['--graph'])) {
+    console.error('hive-page: --data and --graph go together; make the graph with node scripts/component-graph.mjs --out <file>'); return 2;
   }
   const port = opts['--port'] === undefined ? STYLE.port : Number(opts['--port']);
   if (!!opts['--out'] === !!opts.serve || (!opts.serve && opts['--port'] !== undefined) || !Number.isInteger(port) || port < 0 || port > 65535) {
-    console.error('Usage: hive-page --out <dir> [--data <file>] | --serve [--port <n>] [--data <file>]'); return 2;
+    console.error('Usage: hive-page (--out <dir> | --serve [--port <n>]) [--data <components file> --graph <graph file>]'); return 2;
   }
   let temp;
   try {
     if (opts.serve) { temp = await mkdtemp(path.join(os.tmpdir(), 'nana-hive-serve-')); }
-    const out = await buildHivePage(opts['--out'] ?? path.join(temp, 'site'), opts['--data']);
+    const out = await buildHivePage(opts['--out'] ?? path.join(temp, 'site'), opts['--data'], opts['--graph']);
     if (!opts.serve) { console.log(`hive-page: wrote ${out}`); return 0; }
     const server = await serveHive(out, port);
     for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { server.close(async () => { await rm(temp, { recursive: true, force: true }); }); server.closeAllConnections(); });

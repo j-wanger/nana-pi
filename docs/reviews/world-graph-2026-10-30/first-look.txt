@@ -1,0 +1,90 @@
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/ --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r1/start
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r1/start
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#drafting-table --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r1/drafting
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r1/drafting
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#review-ladder --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r1/review
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r1/review
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#notice-board --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r1/notice
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r1/notice
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#explore --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r1/explore
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r1/explore
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#explore/workshop --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r1/selected
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r1/selected
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/ --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r2/start
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r2/start
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#drafting-table --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r2/drafting
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r2/drafting
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#review-ladder --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r2/review
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r2/review
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#notice-board --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r2/notice
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r2/notice
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#explore --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r2/explore
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r2/explore
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#explore/workshop --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r2/selected
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r2/selected
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/ --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r3/start
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r3/start
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#drafting-table --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r3/drafting
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r3/drafting
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#review-ladder --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r3/review
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r3/review
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#notice-board --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r3/notice
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r3/notice
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#explore --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r3/explore
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r3/explore
+
+> nana-pi@0.5.0 first-look
+> node scripts/first-look.mjs --page url --after http://127.0.0.1:7343/#explore/workshop --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out /private/tmp/nana-world-graph-look2/r3/selected
+
+first-look: saved screenshots and reference in /private/tmp/nana-world-graph-look2/r3/selected

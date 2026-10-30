@@ -1,0 +1,49 @@
+
+> nana-pi@0.5.0 map:impact
+> node scripts/code-map.mjs --impact scripts/first-look.mjs apps/hive/camera.mjs apps/hive/runtime.mjs apps/hive/text-layer.mjs apps/hive/pixel.mjs
+
+scripts/first-look.mjs
+  transitive callers (1): packages/nana-pack/tests/first-look.test.mjs
+  transitive callees (4): apps/hive/config.mjs scripts/first-look-config.mjs scripts/playwright-resolve.mjs scripts/reader-common.mjs
+apps/hive/camera.mjs
+  transitive callers (3): apps/hive/main.mjs apps/hive/tour.mjs packages/nana-pack/tests/hive-graph.test.mjs
+  transitive callees (1): apps/hive/config.mjs
+apps/hive/runtime.mjs
+  transitive callers (2): apps/hive/main.mjs packages/nana-pack/tests/hive-graph.test.mjs
+  transitive callees (3): apps/hive/config.mjs apps/hive/graph.mjs apps/hive/layout.mjs
+apps/hive/text-layer.mjs
+  transitive callers (1): apps/hive/main.mjs
+  transitive callees (0): —
+apps/hive/pixel.mjs
+  transitive callers (1): apps/hive/main.mjs
+  transitive callees (2): apps/hive/assets/materials.mjs apps/hive/config.mjs
+
+blast radius: 4 upstream, 7 downstream
+
+untraced tests: 16 of 257 test modules import no mapped module (a test that only starts a process is not linked)
+
+artifacts for scripts/first-look.mjs (0):
+  artifacts: no Artifact writer list or Reads line names scripts/first-look.mjs
+artifacts for apps/hive/camera.mjs (0):
+  artifacts: no Artifact writer list or Reads line names apps/hive/camera.mjs
+artifacts for apps/hive/runtime.mjs (0):
+  artifacts: no Artifact writer list or Reads line names apps/hive/runtime.mjs
+artifacts for apps/hive/text-layer.mjs (0):
+  artifacts: no Artifact writer list or Reads line names apps/hive/text-layer.mjs
+artifacts for apps/hive/pixel.mjs (0):
+  artifacts: no Artifact writer list or Reads line names apps/hive/pixel.mjs
+artifact block shows only Artifact: writer lists and other features' Reads: lines; it leaves out readers in the maker's own feature, deliverable Read by: lines, hand-run makers and a file that is itself an artifact's location
+
+runtime map: measured tip 85e51381 at 2026-10-30T02:04:16.526Z is 0 hours old; 41 tracked files differ from this checkout
+runtime map: the measured tip is not on main; the next land measures it
+measured tests for scripts/first-look.mjs (1):
+  0.1s  packages/nana-pack/tests/first-look.test.mjs [stale]
+measured tests for apps/hive/camera.mjs (1):
+  0.7s  packages/nana-pack/tests/hive-page.test.mjs [stale]
+measured tests for apps/hive/runtime.mjs (1):
+  0.7s  packages/nana-pack/tests/hive-page.test.mjs [stale]
+measured tests for apps/hive/text-layer.mjs (1):
+  0.7s  packages/nana-pack/tests/hive-page.test.mjs [stale]
+measured tests for apps/hive/pixel.mjs (1):
+  0.7s  packages/nana-pack/tests/hive-page.test.mjs [stale]
+runtime map: copies run from a temporary folder and children stopped by a signal are not counted

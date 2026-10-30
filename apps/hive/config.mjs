@@ -6,6 +6,12 @@
  * @effects none
  * @errors None.
  */
+// chosen (2026-10-30, R-3172): a steeper overview preserves the loop's depth on a phone.
+export const OVERVIEW_ELEVATION = 1.35;
+// chosen (2026-10-30, R-3172): encloses the square foundation corners and the instruments drawn on them.
+export const FOOTPRINT_SCALE = 1.3;
+// chosen (2026-10-30, R-3175): phone drift tolerance and deliberate double taps; roads keep the lane loop dominant.
+export const NAVIGATION = Object.freeze({ tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: Object.freeze({ loop: 0.7, artifact: 0.32, spur: 0.2, import: 0.12, feature: 0.08 }), overviewClasses: Object.freeze(['loop', 'artifact', 'spur']) });
 // chosen (2026-10-29, R-3122): enough visible activity without a swarm hiding a chamber.
 export const BEE_CAP = 12;
 // chosen (2026-10-29, R-3123): six-sided extrusions and a small faceted bee, without subdivision.

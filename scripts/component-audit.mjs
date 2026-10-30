@@ -38,7 +38,7 @@ const validMeasuredAnchor = (value) => {
   if (!match || !validDate(match[1])) return false;
   return /^(?:\d[\d,]*(?: entries| characters| character|[- ]character budget)?)(?:; (?:about )?\d[\d,]*(?: entries| characters| character|[- ]character budget)?)*$/.test(match[2]);
 };
-const contains = (part, file) => part.endsWith("/") ? file.startsWith(part) : file === part || file.startsWith(`${part}/`);
+export const contains = (part, file) => part.endsWith("/") ? file.startsWith(part) : file === part || file.startsWith(`${part}/`);
 
 function featuresAndRows(ledger) {
   const parsed = parseLedger(ledger);

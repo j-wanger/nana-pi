@@ -32,11 +32,15 @@ jobs:
         run: node scripts/product-report.mjs --out site/index.html
       - name: Build component audit
         run: node scripts/component-audit.mjs --out "$RUNNER_TEMP/components.json"
+      - name: Build component graph
+        run: node scripts/component-graph.mjs --out "$RUNNER_TEMP/graph.json"
       - name: Build hive page
         id: hive-page
-        run: node scripts/hive-page.mjs --out site/hive --data "$RUNNER_TEMP/components.json"
+        run: node scripts/hive-page.mjs --out site/hive --data "$RUNNER_TEMP/components.json" --graph "$RUNNER_TEMP/graph.json"
       - name: Check hive identity
         run: node scripts/identity-scan.mjs --stdin --root . < site/hive/components.json
+      - name: Check graph identity
+        run: node scripts/identity-scan.mjs --stdin --root . < site/hive/graph.json
       - name: Check page identity
         run: node scripts/identity-scan.mjs --stdin --root . < site/index.html
       - uses: actions/upload-pages-artifact@v3

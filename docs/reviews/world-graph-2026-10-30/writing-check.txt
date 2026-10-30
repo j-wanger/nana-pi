@@ -1,0 +1,77 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+-:3: passive: passive candidate: "started" in "No model session, subagent or issue write was started."
+-:7: identifier: `feat/world-graph`
+-:7: identifier: `$TMPDIR`
+-:21: identifier: `docs/components/contract.json`
+-:21: identifier: `docs/components/fixture.json`
+-:21: identifier: `57167e92`
+-:25: identifier: `packages/nana-pack/tests/hive-graph.test.mjs`
+-:35: passive: passive candidate: "awaited" in "Each case is awaited under a 60-second limit."
+-:35: passive: passive candidate: "pinned" in "The new tunables are pinned inside these cases."
+-:39: identifier: `hive-page.test.mjs`
+-:40: identifier: `pages-workflow.test.mjs`
+-:41: identifier: `product-report.test.mjs`
+-:42: identifier: `hive-assets.test.mjs`
+-:43: passive: passive candidate: "deleted" in "No other test was deleted or edited."
+-:43: passive: passive candidate: "corrected" in "The fixture oracle's loop segment Land gate → Workshop was corrected to `declared: false`: its reverse pair already has an artifact relationship."
+-:43: identifier: `declared: false`
+-:47: passive: passive candidate: "removed" in "All mutants were removed before green runs."
+-:59: length: 33 words (cap 25)
+-:59: identifier: `mutation-extra-road-drag.txt`
+-:61: identifier: `framing-wrong-first.txt`
+-:65: identifier: `57167e92`
+-:77: passive: passive candidate: "regenerated" in "The node/road goldens were regenerated only for the declared portrait-framing retune."
+-:77: passive: passive candidate: "compared" in "The deliverable-checker output is compared against the historical parser on the same current ledger, not against a live count constant."
+-:77: identifier: `57167e92`
+-:77: identifier: `derive.txt`
+-:81: passive: passive candidate: "committed" in "No frame was committed."
+-:81: identifier: `/private/tmp/nana-world-graph-look2/`
+-:81: identifier: `r3-tip/`
+-:81: identifier: `r3/start`
+-:81: identifier: `r3/drafting`
+-:81: identifier: `r3/review`
+-:81: identifier: `r3/notice`
+-:81: identifier: `r3/explore`
+-:81: identifier: `r3/selected`
+-:81: identifier: `/private/tmp/nana-3dmk-ref/`
+-:99: length: 27 words (cap 25)
+-:99: identifier: `gesture-check.txt`
+-:103: identifier: `beam`
+-:103: identifier: `fence`
+-:103: identifier: `buildHive`
+-:103: identifier: `assets/parts.mjs`
+-:104: identifier: `placeLabels`
+-:104: identifier: `main.mjs`
+-:104: identifier: `apps/hive/labels.mjs`
+-:105: identifier: `waitForHive`
+-:105: identifier: `scripts/first-look.mjs`
+-:105: identifier: `resolvePlaywright`
+-:106: passive: passive candidate: "unchanged" in "Non-hive capture order is unchanged; all existing capture tests remain green."
+-:107: identifier: `apps/hive/graph.mjs`
+-:110: passive: passive candidate: "introduced" in "No random source was introduced."
+-:111: identifier: `layout(data)`
+-:112: identifier: `focus`
+-:113: passive: passive candidate: "deferred" in "Road cards are deferred under the plan's allowed fallback."
+-:113: identifier: `roadCaption`
+-:120: identifier: `node packages/nana-pack/tests/hive-page.test.mjs`
+-:121: identifier: `node packages/nana-pack/tests/hive-assets.test.mjs`
+-:122: identifier: `node packages/nana-pack/tests/pages-workflow.test.mjs`
+-:123: identifier: `node packages/nana-pack/tests/requirements-deliverables.test.mjs`
+-:124: identifier: `node packages/nana-pack/tests/first-look.test.mjs`
+-:125: identifier: `node packages/nana-pack/tests/product-report.test.mjs`
+-:126: identifier: `npm run test:locked`
+-:126: identifier: `suite-summary.txt`
+-:127: identifier: `npm run map`
+-:127: identifier: `npm run req:tree`
+-:127: identifier: `npm run readme:check`
+-:127: identifier: `known-bugs.mjs`
+-:127: identifier: `node scripts/known-bugs.mjs --root .`
+-:133: passive: passive candidate: "touched" in "The old rail/card/label collision area is touched by numbered labels and restored packing, without claiming the old specific clipping bug closed."
+-:133: passive: passive candidate: "unchanged" in "The component-audit Windows activity-timeout context is unchanged apart from exporting `contains`; no timeout was retuned."
+-:133: passive: passive candidate: "fixed" in "No other listed known bug was fixed."
+-:133: identifier: `contains`
+-:135: length: 30 words (cap 25)
+-:135: identifier: `writing-check.txt`
+-:139: passive: passive candidate: "deferred" in "Road cards are deferred as allowed."
+-:139: passive: passive candidate: "opened" in "No issue was opened or changed."
+summary sentences=132 words=1597 over=3 passive=17 banned=0 verdict=0/1 identifiers=55

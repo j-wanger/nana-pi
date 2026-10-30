@@ -1,0 +1,21 @@
+{
+  "contract": "nana-component-loop",
+  "version": 1,
+  "spine": ["compass", "drafting-table", "queue", "workshop", "eyes", "review-ladder", "land-gate", "release-route", "notice-board"],
+  "attachments": [
+    {"id":"rulings","role":"gate","stage":"compass"},
+    {"id":"library","role":"support","stage":"compass"},
+    {"id":"requirement-contract","role":"gate","stage":"drafting-table"},
+    {"id":"code-map","role":"gate","stage":"drafting-table"},
+    {"id":"identity-scan","role":"gate","stage":"queue"},
+    {"id":"writing-rule","role":"gate","stage":"queue"},
+    {"id":"command-gate","role":"gate","stage":"workshop"},
+    {"id":"tool-belt","role":"support","stage":"workshop"},
+    {"id":"desk","role":"support","stage":"eyes"},
+    {"id":"lab","role":"support","stage":"eyes"},
+    {"id":"setup","role":"support","stage":"release-route"},
+    {"id":"stage","role":"outside","stage":"outside"},
+    {"id":"key-cabinet","role":"outside","stage":"outside"},
+    {"id":"night-shift","role":"outside","stage":"outside"}
+  ]
+}

@@ -1,0 +1,101 @@
+PASS an Open for heading with any name is read as the asks section
+(node:91792) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS same commit and tree produce byte-identical reports
+PASS git metadata reflects actual commit date and clean state for clean, tracked, and untracked trees
+PASS git runner failures refuse report generation
+PASS rendered provenance section states exact commit, date, and clean state
+PASS rendered #product cards show exact capability purpose, outcome, links and counts
+PASS product feature bars carry their model's exact segment values
+PASS rendered #features and feature detail views show the feature facts and shared rows
+PASS feature summary cards render exact counts, status, incoming and outgoing shares
+PASS feature detail shows its title once
+PASS assessment lists render separate text-only list items
+PASS assessment lists do not join entries into punctuation
+PASS feature detail places human-labelled assessment before counts, shares and rows
+PASS feature IDs link to their detail views in product, features, overview and detail views
+PASS feature detail shows exact status counts and stacked bar segments
+PASS rendered views never expose raw assessment store keys
+PASS rendered #requirements view shows each row's exact text, pill and evidence in its own card
+PASS requirement cards keep evidence in the smaller monospace presentation
+PASS rendered #issues view shows every violated row and evidence
+PASS each Issues card shows the violated pill without undefined
+PASS R-3055: issue Decisions cards render parsed choices with shared labels and body text stays inert
+PASS R-3072: Decisions cards place present gains between recommendation and cost and omit absent gains
+PASS rendered decisions view shows every ask kind, since-date, title and full body
+PASS rendered decisions view preserves every full ask body
+PASS unknown prototype hashes render the Overview
+PASS renderer turns markdown spans into b and code nodes
+PASS renderer includes tab links and requirements controls
+PASS hashchange bootstrap renders before scrolling to top
+PASS feature requirement filter retains a row for earlier receiver, owner, and later receiver
+PASS hostile ledger markup remains inert data
+PASS renderer inserts all dynamic strings only through text nodes
+PASS CRLF ledger is normalized before parsing
+PASS tree-checker problems are named and refuse output
+PASS malformed ask is named and refuses output
+PASS malformed ask date is named and refuses output
+PASS unknown ask kind is named and refuses output
+PASS validates assessment store schema and uniqueness
+PASS missing assessment store is valid and empty
+PASS rejects every closed-schema and uniqueness violation
+PASS validates assessment stamps against their historical ledger
+PASS rejects forged historical row status, fingerprint, mark, purpose and feature status
+PASS unknown stamped commit asks for full history
+PASS rejects digits in every assessment prose field
+PASS rejects solid ratings with unready own rows
+PASS rejects solid ratings with planned own rows
+PASS fingerprints ignore CRLF and trailing whitespace
+PASS writes deterministic stale and unassessed packets with HEAD stamps and a validating round trip
+PASS refresh guide recipe copies packet IDs, replaces stale entries, appends unassessed entries, and validates
+PASS refuses non-empty packet directories without writing
+PASS accepts an empty packet directory
+PASS packets refuse while REQUIREMENTS.md differs from HEAD without writing
+PASS stamped assessment is current while its ledger matches
+PASS unassessed feature state is explicit
+PASS outdated feature names purpose and status changes and carries full difference shape
+PASS stale feature preserves the assessment
+PASS row moved home and shared back is named as changed
+PASS rendered difference sections name added, removed, text-changed, and status-changed rows
+PASS R-1510: each cited test is its own item with title and file as separate text, for TypeScript and Python citations, and external or prose citations are not listed
+PASS R-1511: cited test files link in a new tab to their GitHub page at the report's commit for each GitHub origin spelling, and nothing links otherwise
+PASS R-1512: a cited test shows its file's recorded PASS, FAIL or SKIP worded as the file's result, read from the clone's runtime data in a checkout and a linked worktree
+PASS R-1513: a recorded label is marked changed when the test file or a file it ran changed or is gone since the run, and unmarked otherwise
+PASS R-1514: missing, unreadable, other-schema or silent runtime data shows no recorded run and never a label
+PASS R-1515: a row citing no test in this repository says so, and a row citing one does not
+PASS R-1650: an implemented row whose cited files all last ran SKIP, one file or two, is listed as not passed, and an untested row citing such a file is not
+PASS R-1651: an implemented row citing a failing file is listed as not passed, alone, beside a passing file and beside a file with no recorded run
+PASS R-1652: an implemented row citing a passing file and no failing one, alone or beside a skipped file or a file with no recorded run, is left out of the not-passed list
+PASS R-1653: a row citing a file with no recorded run, alone or beside a skipped file, is left out, and with no runtime data the not-passed list is empty
+PASS R-1654: a label marked changed since still decides, so a row whose only file last ran SKIP and changed since is listed and one whose only file last ran PASS and changed since is not
+PASS R-1655: the not-passed heading states the number of rows listed under it
+PASS validateStore accepts the real repository without a store
+PASS a ledger with rows and no tree is refused with one problem line, not one per row
+PASS a UTF-16 ledger and a ledger with no rows are refused by the report, naming the reason, and build no page
+PASS R-1570: the Decisions view lists every open question with its number and full text in file order
+PASS R-1571: a ledger with no open questions heading, or none under it, still writes the page and says none are recorded
+PASS R-2450: the Product view orders product, then kindless, then constraint capabilities, in document order within each, and a product card names its needs
+PASS R-2451: a constraint card lists each bound capability with its implemented shared constraint rows, or a gap
+PASS R-2452: a product card lists its deliverables in line order with status and home, and marks every one not implemented as a gap
+PASS R-2542: a deliverable lists its own capability's maker and reader claims in ledger order with the checker's code marks, and no consumers
+PASS R-2642: a deliverable's block on its home feature's detail view lists its Parked line among its claims in ledger order
+PASS R-2543: the Product view shows the tree checker's deliverable count line and notes for the same ledger and HEAD
+PASS R-2790: each deliverable shows its named artifacts with their ages, what its output is built from, or that no artifact is written down
+PASS R-2791: an unageable entry shows age not measured with its class, and the page is the same whatever the stores and refs hold
+PASS R-2792: a tracked entry shows the age of the last commit that changed a file it matches
+PASS R-2794: each capability card lists its features with no deliverable and their artifacts, never as a deliverable note
+PASS R-2799: each maker feature's detail view shows a card per live entry it registers with its class, location, age, run, reading features and deliverables, and the Artifacts view shows none
+PASS R-2801: the artifacts view lists the artifacts no other feature reads and the ones code reads but no nana run makes
+PASS R-2802: each feature's detail shows the artifacts it registers and the ones it reads with their makers
+PASS R-2544: an artifact shows the commits, days, short hash and subject of its last change as git counts them, or why its age is unknown
+PASS R-2545: the runtime map shows its own tip, time and uncommitted files with commits and days to HEAD, or says why it cannot
+PASS R-2744: suite-runs shows the newest suite record in HEAD's history with its tip, time, commits and days to HEAD, or says why it cannot
+PASS R-2745: build-records shows the newest ended build in HEAD's history with its tip, end time, commits and days to HEAD, or says why it cannot
+PASS R-2453: a feature's detail view names its capability, and the kind only when the capability has one
+PASS R-2454: a retired capability's card comes after every other card and names its successors
+PASS R-2981: issue asks are filtered and drawn with kind, date, link, counts and cap warning
+PASS R-2982: Decisions lists each open next issue as a linked item
+PASS R-2983: list-ask Decisions drawing matches main's captured text
+PASS R-2984: failed issue read renders an unknown Overview count and drawn Issues notice

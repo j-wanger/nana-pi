@@ -1,0 +1,79 @@
+(node:11553) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL R-3170: graph counts recorded sources in their own units through shared parsers AssertionError [ERR_ASSERTION]: graph: no route for land-gate/review-hall
+
+
+1 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:47:12
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:39:1
+FAIL R-3171: loop drift and incompatible graph pairs refuse before output without changing v1 TypeError: Cannot read properties of null (reading 'nodes')
+    at file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:88:42
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:76:1
+FAIL R-3172: published loop geometry matches goldens and sealed bounds clearance and attachments AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
+      id: 'workshop',
+      radius: 2.2061731573020285,
+      role: 'spine',
+      stage: 'workshop',
++     x: 0,
++     z: 0
+-     x: 0.01,
+-     z: -69.906
+    },
+    {
+      id: 'review-hall',
+      radius: 2.2061731573020285,
+      role: 'spine',
+      stage: 'review-hall',
++     x: 0,
++     z: 0
+-     x: 36.881,
+-     z: 35.047000000000004
+    },
+    {
+      id: 'land-gate',
+      radius: 2.2061731573020285,
+      role: 'spine',
+      stage: 'land-gate',
++     x: 0,
++     z: 0
+-     x: -36.877,
+-     z: 35.050000000000004
+    },
+    {
+      id: 'library',
+      radius: 4.412346314604057,
+      role: 'support',
+      stage: 'workshop',
++     x: 0,
++     z: 0
+-     x: 0.012,
+-     z: -94.087
+    },
+    {
+      id: 'key-cabinet',
+      radius: 2.2061731573020285,
+      role: 'outside',
+      stage: 'outside',
++     x: 0,
++     z: 0
+-     x: -95,
+-     z: -90
+    }
+  ]
+
+    at file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:109:12
+    at async test (file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<worktree>/packages/nana-pack/tests/hive-graph.test.mjs:96:1
+PASS R-3173: typed roads avoid third footprints and meet the base crossing caps
+PASS R-3174: numbered tour anchors frame structures and walk roads at every viewport
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+PASS R-3176: publisher ships paired graphs and Pages derives and scans them in order
