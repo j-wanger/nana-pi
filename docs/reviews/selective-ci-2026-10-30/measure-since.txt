@@ -1,0 +1,132 @@
+pull_request ci runs since 2026-10-24: 124; base and head known: 122
+docs         13 pushes; mean share of test files 9.5%; mean est. Windows suite-step minutes 7.4
+selective    39 pushes; mean share of test files 78.6%; mean est. Windows suite-step minutes 21.1
+full         70 pushes; mean share of test files 100.0%; mean est. Windows suite-step minutes 22.3
+all known pushes: mean share 83.5%; est. Windows suite-step minutes 2479 of 2784 under the full suite (89%)
+full-run reasons: outside map: packages… 36; selector or runner changed 25; outside map: package.json… 6; outside map: .github… 3
+failing (run, leg, file) pairs in these runs: 40; caught by the selection: 37; missed: 3
+  missed: 40992490609 008b9ec0 feat/world-graph windows packages/nana-pack/tests/mutation-runner.test.mjs (mode docs)
+  missed: 40992301983 041bbf54 feat/world-graph windows packages/nana-pack/tests/component-audit.test.mjs (mode docs)
+  missed: 40107395869 502767ca feat/artifact-registry windows packages/nana-pack/tests/worker-claude.test.mjs (mode docs)
+41001794181	09607546	feat/world-graph	full	240/240	22.8	outside map: .github/workflows/pages.yml (+2)
+40999266815	d797a9f1	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed
+40996692403	0b4fae9c	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed
+40994226515	f998bd52	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed
+40993605706	97a93ebd	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed
+40992490609	008b9ec0	feat/world-graph	docs	18/239	7.8	documents only
+40992301983	041bbf54	feat/world-graph	docs	18/239	7.8	documents only
+40991062662	342762cc	feat/map-spawn-edges	full	240/240	22.8	selector or runner changed
+40987055477	613ed19a	feat/shops-flows	docs	18/239	7.8	documents only
+40987010166	4bde7616	feat/shops-flows	docs	18/239	7.8	documents only
+40985233749	e9b25a46	feat/map-spawn-edges	docs	18/239	7.8	documents only
+40984917583	1137c7d1	feat/map-spawn-edges	docs	18/239	7.8	documents only
+40976433222	57167e92	feat/hive-render	full	239/239	22.8	selector or runner changed
+40973478550	f0901858	feat/hive-render	full	239/239	22.8	selector or runner changed
+40963604014	3dd6844b	feat/hive-render	full	238/238	22.8	selector or runner changed
+40963303703	8da540e8	feat/visual-check	full	237/237	22.8	outside map: package.json (+2)
+40961066968	713138e6	feat/hive-render	full	238/238	22.8	selector or runner changed
+40959740380	e1b0a4f4	feat/visual-check	full	237/237	22.8	outside map: package.json (+2)
+40958062368	ad249c9a	feat/visual-check	full	237/237	22.8	outside map: package.json (+2)
+40956925485	c6fc662f	feat/hive-render	full	238/238	22.8	selector or runner changed
+40954089790	ae270a8a	feat/visual-check	full	237/237	22.8	outside map: package.json (+2)
+40947770577	356a95f5	feat/hive-render	full	237/237	22.4	selector or runner changed
+40939110326	d36b6af2	feat/component-audit	selective	187/236	22.0	
+40939089472	48368b4a	feat/component-audit	selective	187/236	22.0	
+40935137512	4e9baae2	feat/component-audit	selective	187/236	22.0	
+40931257125	b003b988	feat/component-audit	selective	187/236	22.0	
+40931015272	273e4169	feat/component-audit	selective	187/236	22.0	
+40923386619	af4c897d	feat/component-audit	selective	187/236	22.0	
+40919331029	82850472	feat/hive-render	full	237/237	22.4	selector or runner changed
+40902577935	a2ad3f21	feat/records-counts	selective	184/235	21.6	
+40893032466	b8457adf	feat/ask-stakes	full	235/235	22.4	outside map: packages/nana-pack/prompts/planner.md
+40884299229	72eb52f9	feat/page-needs-you	selective	185/235	21.6	
+40875232220	46147d50	feat/reader-at-land	full	234/234	22.4	outside map: package.json (+4)
+40841475481	947e18e8	feat/first-look	full	233/233	22.4	outside map: package.json (+1)
+40831645328	52a13192	feat/pi-seat-guide	full	232/232	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md (+1)
+40823931066	6858c0fd	feat/outside-precedent	full	232/232	22.4	outside map: packages/nana-pack/prompts/planner.md
+40821308651	da190156	feat/pi-seat-guide	full	232/232	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md (+1)
+40800487103	9097580d	feat/clarify-questions	full	232/232	22.4	outside map: packages/nana-pack/prompts/planner.md (+1)
+40795981389	9f5f0a81	feat/issue-watch	full	232/232	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md (+2)
+40794849582	14df0550	feat/issue-watch	full	231/231	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md (+2)
+40790983922	9f6b2f9d	feat/code-search	full	231/231	22.4	selector or runner changed
+40789387311	9c9980f4	feat/issue-watch	full	231/231	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md (+2)
+40788775103	3ebcf093	feat/issue-watch	full	231/231	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md (+2)
+40779190421	fefea3b9	feat/issue-watch	full	231/231	22.4	outside map: packages/nana-setup/claude/rules/nana-seat.md
+40771993763	b547596f	feat/page-on-pages	full	230/230	22.4	outside map: .github/workflows/pages.yml
+40760436814	0867e56e	feat/page-on-pages	full	230/230	22.4	outside map: .github/workflows/pages.yml
+40758144700	1afd75ea	feat/posting-rule	full	229/229	22.4	outside map: packages/nana-setup/claude/rules/nana-soul.md (+1)
+40746212723	cb7832da	feat/issues-home	full	229/229	22.4	outside map: packages/nana-pack/prompts/builder-preamble.md (+2)
+40746056527	3944fcc3	feat/issues-home	full	229/229	22.4	outside map: packages/nana-pack/prompts/builder-preamble.md (+2)
+40732188817	28aebd48	feat/issues-home	full	229/229	22.4	outside map: packages/nana-setup/claude/rules/nana-soul.md (+1)
+40719318245	08b04ae5	feat/lane-class	full	228/228	22.3	outside map: packages/nana-pack/prompts/planner.md
+40714894340	03a4475f	feat/issues-home	full	228/228	22.3	outside map: packages/nana-setup/claude/rules/nana-soul.md (+1)
+40709093600	fc963583	feat/lane-class	full	228/228	22.3	outside map: packages/nana-pack/prompts/planner.md
+40701173500	6387aac0	feat/issues-home	full	228/228	22.3	outside map: packages/nana-setup/claude/rules/nana-soul.md (+1)
+40689169161	f6604431	feat/planner-prompt	full	227/227	22.3	outside map: packages/nana-pack/prompts/planner.md (+2)
+40271405749	877b123d	feat/page-detail	full	226/226	22.3	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40267411277	00c171ae	feat/page-detail	full	226/226	22.3	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40259992803	3010a7ef	feat/page-overview	full	225/225	22.3	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40256894949	ccf3ad60	feat/page-overview	full	225/225	22.3	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40246288356	e4d29927	feat/keep-movement	full	224/224	22.1	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40241247793	b7fe4740	feat/keep-movement	full	224/224	22.1	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40232315762	36af3dda	feat/review-movement	full	223/223	22.0	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40230343782	53081c82	feat/review-movement	full	223/223	22.0	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40220160065	d3f7f7f3	feat/win-test-limits	full	222/222	22.0	selector or runner changed
+40220133103	b01ac2b4	feat/win-test-limits	full	222/222	22.0	selector or runner changed
+40217483378	cd49d13a	feat/knowledge-freeze-notice	selective	181/222	21.3	
+40214707503	10fab140	feat/launch-limits-identity	selective	174/222	21.2	
+40213949598	a6f7921c	feat/win-test-limits	full	222/222	22.0	selector or runner changed
+40213075618	d39fe282	feat/launch-limits-identity	selective	174/222	21.2	
+40212765757	8580786e	feat/launch-limits-identity	selective	174/222	21.2	
+40211751434	5bb5b71e	feat/knowledge-freeze-notice	selective	181/222	21.3	
+40211748103	46bff552	feat/adoption-window	selective	176/222	21.2	
+40209050885	793b0494	feat/knowledge-freeze-notice	selective	171/222	21.2	
+40209005545	3ff880fc	feat/launch-limits-identity	selective	164/222	21.1	
+40207520560	91444ace	feat/artifact-readers	full	222/222	22.0	outside map: packages/nana-pack/skills/requirements/SKILL.md (+1)
+40205850738	4f25258e	feat/artifact-readers	full	222/222	22.0	outside map: packages/nana-pack/skills/requirements/SKILL.md (+1)
+40205240100	6ac0931a	feat/launch-limits-identity	selective	164/222	21.1	
+40200450405	9ceaad8a	feat/knowledge-freeze-notice	selective	171/222	21.2	
+40167455199	9dae642b	feat/artifact-readers	full	222/222	22.0	outside map: packages/nana-pack/skills/requirements/SKILL.md (+1)
+40166885685	4af28b0f	feat/review-texts-durable	selective	176/222	21.2	
+40165726495	4ccc6979	feat/review-texts-durable	selective	166/222	21.1	
+40160292637	61671be0	feat/impact-artifacts	full	222/222	22.0	selector or runner changed
+40160078458	56ad9dd1	feat/impact-artifacts	full	222/222	22.0	selector or runner changed
+40159774667	833bedee	feat/impact-artifacts	full	222/222	22.0	selector or runner changed
+40158377773	f5a2927d	feat/impact-artifacts	full	222/222	22.0	selector or runner changed
+40152052417	d3cf9a0d	feat/land-records	selective	176/222	21.2	
+40152034684	15970d57	feat/land-records	selective	176/222	21.2	
+40150847184	1661558e	feat/land-records	selective	176/222	21.2	
+40148405918	1e77de81	feat/land-records	selective	176/222	21.2	
+40144671459	86c628b9	feat/win-temp-check	selective	173/221	20.8	
+40143517981	b4dd8320	feat/win-temp-check	selective	163/221	20.7	
+40135021954	122d795e	feat/artifact-flow	full	221/221	21.7	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40129150317	26235c79	feat/feature-artifact-lines	full	221/221	21.7	outside map: packages/nana-pack/skills/requirements/SKILL.md (+1)
+40119908963	6ea795eb	feat/report-names-artifacts	full	221/221	21.7	outside map: packages/nana-pack/skills/requirements/SKILL.md
+40112191973	0943299b	feat/artifact-registry	full	221/221	21.7	outside map: packages/nana-pack/skills/requirements/SKILL.md (+1)
+40110352725	af5dc49f	feat/artifact-registry	full	221/221	21.7	outside map: packages/nana-pack/skills/requirements/SKILL.md (+1)
+40107492636	822286b5	feat/bench-study-scratch	selective	173/221	20.8	
+40107395869	502767ca	feat/artifact-registry	docs	16/221	6.5	documents only
+40105506993	3b857ad1	feat/bench-study-scratch	selective	172/220	20.6	
+40104834960	d9428493	feat/land-ci-timings	full	221/221	21.7	selector or runner changed
+40102435543	71393fac	feat/land-ci-timings	full	220/220	21.7	selector or runner changed
+40102296935	2026c012	feat/hard-kill-watcher	selective	176/220	20.7	
+40102229483	aecc5ca5	feat/bench-study-scratch	selective	171/219	20.6	
+40101140934	d1e37823	feat/bench-study-scratch	docs	16/219	6.5	documents only
+40100616561	73aa7538	feat/land-ci-timings	full	220/220	21.7	selector or runner changed
+40100551899	ee94a415	feat/hard-kill-watcher	selective	176/220	20.7	
+40062423521	7d03134b	feat/hard-kill-watcher	selective	176/220	20.7	
+40059923100	46a55957	feat/hard-kill-watcher	selective	176/220	20.7	
+40057478684	fc06e29d	feat/project-check-line	selective	174/219	20.6	
+40057408224	e3e2c078	feat/hard-kill-watcher	selective	176/220	20.7	
+40056956030	a51dd9de	feat/project-check-line	selective	174/219	20.6	
+40056844401	7e311052	feat/hard-kill-watcher	selective	176/220	20.7	
+40054941851	12f1b60c	feat/land-ci-timings	full	220/220	21.7	selector or runner changed
+40053216188	bd7f0f75	feat/report-at-land	full	219/219	21.4	selector or runner changed
+40052982470	09fe2b0b	feat/hard-kill-watcher	full	220/220	21.4	outside map: packages/nana-pack/tests/seat-mutate-hard-kill-watcher-output.txt
+40052561913	4481d00c	feat/project-check-line	docs	16/219	6.5	documents only
+40051480167	bf134466	feat/land-ci-timings	docs	16/219	6.5	documents only
+40049030027	d547b329	feat/park-honestly	selective	171/219	20.6	
+40048856133	60058552	feat/park-honestly	selective	171/219	20.6	
+40048744284	f7226901	feat/report-at-land	docs	16/219	6.5	documents only
+40046259332	2bc3a90f	feat/park-honestly	docs	77/219	11.1	documents only
+40044780228	f766d880	feat/hard-kill-watcher	docs	16/219	6.5	documents only
