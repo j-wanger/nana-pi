@@ -52,7 +52,7 @@ This lane delivers one feature: **a stranger scrolling the hive page follows one
 
   It holds no coordinate, radius or count. Positions come from one pure module, `apps/hive/city.mjs`, which the page and the tests both import. What may be wrong: a plan inside the app is nana-pi-specific; a second project's city is a later lane.
 
-  There is one plan and no fixture plan (attack MUST 3). A place whose component is missing from the audit data still stands, dark, labelled "Not in audit", and `checkCityPlan` returns one named line for it. The tracked-tree test fails on any such line. The five-component fixture yields 18 of them and still renders: the fixture city is the real city with most lots dark.
+  There is one plan and no fixture plan (attack MUST 3). A place whose component is missing from the audit data still stands, dark, labelled "Not in audit", and `checkCityPlan` returns one named line for it. The tracked-tree test fails on any such line. The five-component fixture yields 19 of them and still renders: the fixture city is the real city with most lots dark.
 - A2a. Near-miss renders (attack MUST 1): `hive-page --serve --layout <file>` copies a file of `{id: [x, z]}` positions into the served site as `layout-override.json`. The page fetches that file only when it exists and passes the positions to `city.mjs`, which uses them in place of its own. A missing override file is the normal case and is not an error. `--layout` with `--out` exits 2, so Pages can never ship an override. The seat uses it only for the near-miss controls after build 6.
 - A3. Subtraction (the precedent each removal falls back to is main `d797a9f1`):
   - deleted: `scripts/component-graph.mjs`, `scripts/component-graph-layout.mjs`, `scripts/component-graph-config.mjs`, `docs/components/loop.json`, `docs/components/graph-contract.json`, `docs/components/graph-fixture.json`, `packages/nana-pack/tests/fixtures/hive-graph-base.json`, `apps/hive/graph.mjs` and `apps/hive/roads.mjs`;
@@ -108,7 +108,7 @@ This lane delivers one feature: **a stranger scrolling the hive page follows one
   - An audited component with no place in the plan stands on a **vacant lot** on the town ring at a sealed bearing. It is labelled "No place yet", and its card says so.
   - A planned place whose component is not in the audit stands dark, labelled "Not in audit" (A2).
 
-  The suite fails on the tracked tree when either case occurs, so drift is caught before a land. The fixture exercises both: `review-hall` takes the vacant lot, and 18 places read "Not in audit".
+  The suite fails on the tracked tree when either case occurs, so drift is caught before a land. The fixture exercises both: `review-hall` takes the vacant lot, and 19 places read "Not in audit".
 - A13. Each lot keeps its current per-id form from `apps/hive/assets/hive.mjs` where it fits: review stair, notice board, archive pavilion, desk, lab, instruments. It is re-dressed onto the shared lot kit of plinth, gatehouse and painted name (3dmk's repeated lot kit). New forms: reception tower with dish and mast, park fence with two gates, bays, courthouse wings, theater (static; its animation is a later lane), customs post, freight terminal, customer towns and the owner's craft.
 - A14. The hashes, the gesture reducer and its binding are unchanged (R-3175). `#explore/<id>` selects without entering, and only Enter moves the camera to a building.
 - A15. The pixel renderer draws one mark per lot at its city position and the fence circle. Its renderer line says "streets in 3D only". R-3128's cells stay.
@@ -183,7 +183,7 @@ Expected test edits (a forecast, not a limit):
 
 In scope: honest variation in our tools' output. Examples:
 - the audit adds a component the plan does not place, or the plan names an ID the audit dropped;
-- the fixture's five components against the one tracked plan: one component the plan never places and 18 places the fixture lacks;
+- the fixture's five components against the one tracked plan: one component the plan never places and 19 places the fixture lacks;
 - a builder's layout that is a near miss of the owner's shape: a grid park, or halls on one even ring;
 - a component with no features, `absent` or `partial` status, or zero activity;
 - a plan with a duplicate placement, an unknown district or form, or a road to an unknown place;
@@ -256,9 +256,9 @@ Other public references:
        - a coordinate, radius or count written by hand.
      - On the tracked tree, `checkCityPlan` returns no line, and every audited component appears exactly once in the journey.
      - On the fixture, against the same tracked plan:
-       - it returns exactly 18 "not in audit" lines and one "no place yet" line, for `review-hall`;
+       - it returns exactly 19 "not in audit" lines and one "no place yet" line, for `review-hall`;
        - `prepare` still returns a scene with no error;
-       - the 18 places stand dark, labelled "Not in audit";
+       - the 19 places stand dark, labelled "Not in audit";
        - `review-hall` stands on the vacant lot at the sealed bearing, labelled "No place yet".
      - `prepare(data, plan)` with a plan that has a structural problem (anything above except the two drift lines) returns one plain error and no scene (R-3127).
      - `buildHivePage` copies `city.json` with the app files and writes no `graph.json`. `hive-page --graph x` exits 2 with the usage line. `hive-page --out <dir> --layout <file>` exits 2 before creating output.
