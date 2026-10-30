@@ -13,7 +13,9 @@ export function pixel(model) {
   const size = model.bounds.max.map((v, i) => v - model.bounds.min[i]);
   const scale = Math.min((width - 2 * STYLE.pixelPadding) / size[0], (height - 2 * STYLE.pixelPadding) / size[2]);
   const offsetX = (width - size[0] * scale) / 2; const offsetY = (height - size[2] * scale) / 2;
-  return { width, height, fence: model.fenceRadius ? { x: -model.bounds.min[0] * scale + offsetX, y: -model.bounds.min[2] * scale + offsetY, radius: model.fenceRadius * scale } : null, lines: [], hexes: model.chambers.flatMap(c => c.cells.map(cell => {
+  const point = (x, z) => [(x - model.bounds.min[0]) * scale + offsetX, (z - model.bounds.min[2]) * scale + offsetY];
+  const plan = { lots: model.chambers.map(c => [point(c.bounds.min[0], c.bounds.min[2]), point(c.bounds.max[0], c.bounds.max[2])]), streets: (model.roads ?? []).filter(r => r.class !== 'air').map(r => r.path.map(p => point(...p))) };
+  return { width, height, plan, fence: model.fenceRadius ? { x: -model.bounds.min[0] * scale + offsetX, y: -model.bounds.min[2] * scale + offsetY, radius: model.fenceRadius * scale } : null, lines: [], hexes: model.chambers.flatMap(c => c.cells.map(cell => {
     const x = (cell.x - model.bounds.min[0]) * scale + offsetX;
     const y = (cell.z - model.bounds.min[2]) * scale + offsetY;
     const radius = model.cellWidth / 2 * scale;
@@ -21,6 +23,12 @@ export function pixel(model) {
       points: Array.from({ length: 6 }, (_, i) => [x + Math.cos(i * Math.PI / 3) * radius, y + Math.sin(i * Math.PI / 3) * radius]),
     };
   })) };
+}
+export function drawPlan(ctx, list) {
+  ctx.clearRect(0, 0, list.width, list.height); ctx.strokeStyle = '#737a72'; ctx.lineWidth = 0.35;
+  for (const [a, b] of list.plan.lots) ctx.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+  for (const points of list.plan.streets) { ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.stroke(); }
+  if (list.fence) { ctx.beginPath(); ctx.arc(list.fence.x, list.fence.y, list.fence.radius, 0, Math.PI * 2); ctx.stroke(); }
 }
 export function drawPixel(ctx, list, selected = null) {
   ctx.fillStyle = HIVE_BACKGROUND; ctx.fillRect(0, 0, list.width, list.height);

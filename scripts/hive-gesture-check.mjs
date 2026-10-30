@@ -3,7 +3,7 @@
  * @module scripts/hive-gesture-check.mjs
  * @purpose Measures phone selection and scroll safety through a served hive's real browser wiring.
  * @inputs CLI --url and --out, optional Playwright resolved through the shared resolver.
- * @outputs Six PASS/FAIL checks, measured chapter overlap and street pixels, and an external phone screenshot.
+ * @outputs Nine PASS/FAIL checks, measured wheel stages, chapter overlap and street pixels, and an external phone screenshot.
  * @effects network (served page), disk (external screenshot), process (browser)
  * @errors Missing browser or failed checks exit 1; malformed options exit 2.
  */
@@ -24,7 +24,7 @@ export async function main(argv = process.argv.slice(2), { env = process.env, pr
   try {
     const playwright = resolvePlaywright(env, process.cwd()); if (!playwright) throw new Error('Playwright unavailable');
     browser = await playwright.chromium.launch(); const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTHS[0], height: VIEWPORT_HEIGHT }, hasTouch: true, reducedMotion: 'reduce' });
-    const base = opts['--url'].replace(/#.*$/, ''), state = () => page.evaluate(() => ({ pose: document.documentElement.dataset.hivePose, chapter: document.documentElement.dataset.hiveChapter, selection: document.documentElement.dataset.hiveSelection, hash: location.hash, scroll: scrollY }));
+    const base = opts['--url'].replace(/#.*$/, ''), state = () => page.evaluate(() => ({ pose: document.documentElement.dataset.hivePose, chapter: document.documentElement.dataset.hiveChapter, stage: Number(document.documentElement.dataset.hiveStage), selection: document.documentElement.dataset.hiveSelection, hash: location.hash, scroll: scrollY }));
     await page.goto(`${base}#explore`); await waitForHive(page, true); const before = await state();
     // Search the canvas, not the picker or an overlay. Each successful tap uses actual hit testing.
     let selected = false;
@@ -38,8 +38,32 @@ export async function main(argv = process.argv.slice(2), { env = process.env, pr
     for (let y = 600; y >= 100; y -= 50) { await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 190, y }] }); await page.waitForTimeout(20); }
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await page.waitForTimeout(300);
     const swiped = await state(); check(swiped.scroll > tourAfter.scroll && swiped.chapter !== tourAfter.chapter && swiped.selection === tourAfter.selection && swiped.hash === tourAfter.hash, 'tour swipe scrolls to a chapter without selection or hash change');
+    await page.goto(base); await waitForHive(page, true);
+    const ticks = [];
+    await page.mouse.move(190, 450);
+    for (let i = 0; i < 40; i++) { await page.mouse.wheel(0, 100); await page.waitForTimeout(60); ticks.push((await state()).stage); }
+    check(ticks.every((s, i) => s > (ticks[i - 1] ?? 0)) && ticks.at(-1) >= 3, '40 single 100px wheel ticks advance monotonically to chapter 3');
+    print(`wheel stages: ${ticks.map(s => s.toFixed(3)).join(' ')}`);
+    await page.goto(base); await waitForHive(page, true);
+    let swipes = true;
+    for (let i = 0; i < 5; i++) {
+      const a = await state();
+      await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 190, y: 450 }] });
+      for (let y = 440; y >= 390; y -= 10) { await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 190, y }] }); await page.waitForTimeout(40); }
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await page.waitForTimeout(100);
+      swipes &&= (await state()).pose !== a.pose;
+    }
+    check(swipes, 'five short 60px touch swipes each change camera');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.mouse.wheel(0, 100); await page.waitForTimeout(100);
+    // The phone picker invokes the same flight as a rail click.
+    await page.selectOption('select', '#workshop'); await page.waitForTimeout(100);
+    const flying = (await state()).stage < 4.9;
+    await page.waitForTimeout(4400);
+    check(flying && (await state()).chapter === 'workshop' && Math.abs((await state()).stage - 5) < 0.01, 'rail or picker click mid-scroll lands on requested chapter');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     let anchors = true;
-    for (const id of ['drafting-table', 'review-ladder', 'notice-board']) {
+    for (const id of ['drafting-table', 'review-ladder', 'release-route']) {
       await page.evaluate(id => document.getElementById(id).scrollIntoView(), id); await page.waitForTimeout(100); const scrolled = await state();
       await page.goto(`${base}#${id}`); await waitForHive(page, true); const linked = await state(); anchors &&= scrolled.chapter === id && scrolled.pose === linked.pose;
     }
@@ -73,7 +97,7 @@ export async function main(argv = process.argv.slice(2), { env = process.env, pr
     pixels.forEach((p, i) => print(`street pixel ${i + 1}: ${p.street.toFixed(4)} / ground ${p.ground.toFixed(4)}`));
     check(pixels.length === 5 && pixels.every(p => p.street - p.ground >= CITY.pixelMargin), 'five street pixels are lighter than their neighbouring ground');
     await mkdir(opts['--out'], { recursive: true }); await page.screenshot({ path: path.join(opts['--out'], 'gesture-380.png') });
-    print(`gesture checks: ${6 - failed} passed, ${failed} failed`); return failed ? 1 : 0;
+    print(`gesture checks: ${9 - failed} passed, ${failed} failed`); return failed ? 1 : 0;
   } catch (error) { print(`hive-gesture-check: ${error.message}`); return 1; }
   finally { await browser?.close(); }
 }

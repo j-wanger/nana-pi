@@ -36,5 +36,6 @@ export function layout(data, plan, overrides) {
   });
   const min = [0, 1, 2].map(axis => Math.min(...chambers.map(c => c.bounds.min[axis])));
   const max = [0, 1, 2].map(axis => Math.max(...chambers.map(c => c.bounds.max[axis])));
+  if (city) for (const axis of [0, 2]) { min[axis] = Math.min(min[axis], -city.townOuterRadius); max[axis] = Math.max(max[axis], city.townOuterRadius); }
   return { ...city, cellWidth: STYLE.cellWidth, chambers, bounds: { min, max }, roads: city?.roads ?? [] };
 }

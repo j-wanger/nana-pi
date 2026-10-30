@@ -1,0 +1,140 @@
+(node:41784) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<repo>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+PASS R-3173: scene streets match pale narrow connected frontage and the single outbound gate
+FAIL R-3174: request journey frames fourteen narrated chapters AssertionError [ERR_ASSERTION]: The input did not match the regular expression /stageAtScroll/. Input:
+
+'/**\n' +
+  ' * @module apps/hive/main.mjs\n' +
+  ' * @purpose Wires the scroll tour and deliberate exploration to the shared hive models and scene.\n' +
+  ' * @inputs Browser document, paired JSON, hash, scroll, viewport and gesture effects.\n' +
+  ' * @outputs WebGL or pixel scene, numbered stories and chapter/pose/ready marks.\n' +
+  ' * @effects network (same-origin modules and data), process (browser frames and listeners)\n' +
+  ' * @errors Incompatible data displays one plain error; WebGL failure selects pixel.\n' +
+  ' */\n' +
+  "import { prepare, chooseRenderer, firstFrame, animationStep } from './runtime.mjs';\n" +
+  "import { focus, overview } from './camera.mjs';\n" +
+  "import { tour, tourPose, chapterProgress } from './tour.mjs';\n" +
+  "import { explore, bindGestures } from './explore.mjs';\n" +
+  "import { visibleRoads } from './city.mjs';\n" +
+  "import { placeLabels, safeBands } from './labels.mjs';\n" +
+  "import { textLayer, renderText } from './text-layer.mjs';\n" +
+  "import { pixel, drawPixel } from './pixel.mjs';\n" +
+  "import { buildHive } from './assets/hive.mjs';\n" +
+  "import { buildMaterials } from './assets/materials.mjs';\n" +
+  "import { STYLE, HIVE_BACKGROUND, NAVIGATION, STREETS, CITY } from './config.mjs';\n" +
+  "const stories = document.querySelector('#stories'), stage = document.querySelector('.stage'), labels = document.querySelector('.labels');\n" +
+  "let canvas = document.querySelector('canvas');\n" +
+  "const preference = matchMedia('(prefers-reduced-motion: reduce)'), still = new URLSearchParams(location.search).has('still');\n" +
+  'try {\n' +
+  "  const [data, plan] = await Promise.all(['components.json', 'city.json'].map(async url => { const r = await fetch(url); if (!r.ok) throw new Error('hive: data could not be loaded'); return r.json(); }));\n" +
+  "  const overrideResponse = await fetch('layout-override.json');\n" +
+  '  const overrides = overrideResponse.ok ? await overrideResponse.json() : undefined;\n' +
+  '  const prepared = prepare(data, plan, overrides);\n' +
+  '  if (prepared.error) throw new Error(prepared.error);\n' +
+  '  await start(data, plan, prepared.scene);\n' +
+  "} catch (error) { document.querySelector('#error').textContent = error.message.startsWith('hive:') ? error.message : 'hive: data could not be loaded'; stories.replaceChildren(); }\n" +
+  'async function start(data, plan, model) {\n' +
+  "  const chapters = tour(model, plan), sections = document.querySelector('#chapters');\n" +
+  "  for (const chapter of chapters) { const section = document.createElement('section'); section.id = chapter.id; section.dataset.chapter = chapter.id; section.style.height = `${NAVIGATION.sectionHeight}svh`; section.setAttribute('aria-label', `${chapter.number} ${chapter.id}`); sections.append(section); }\n" +
+  "  let rendererName = chooseRenderer(() => canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true }), location.search);\n" +
+  '  let THREE, renderer, scene, camera, hive, outline;\n' +
+  "  if (rendererName === 'webgl') try {\n" +
+  "    THREE = await import('three');\n" +
+  '    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, STYLE.pixelRatioCap)); renderer.setClearColor(HIVE_BACKGROUND);\n' +
+  '    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping;\n' +
+  "    scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight('#ffffff', '#6e776d', STYLE.lighting.ambient));\n" +
+  "    const sun = new THREE.DirectionalLight('#ffffff', STYLE.lighting.sun); sun.position.set(...STYLE.lighting.position); sun.castShadow = true;\n" +
+  '    const extent = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs)) * 1.3;\n' +
+  '    Object.assign(sun.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 8 }); sun.shadow.mapSize.set(STYLE.shadowMapSize, STYLE.shadowMapSize); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025; scene.add(sun);\n' +
+  '    camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000); hive = buildHive(THREE, model, buildMaterials(THREE)); scene.add(hive);\n' +
+  "    outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);\n" +
+  "  } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }\n" +
+  "  if (rendererName === 'pixel') { const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh; canvas.classList.add('pixel'); }\n" +
+  "  const raster = pixel(model), ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;\n" +
+  '  if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }\n' +
+  "  const root = document.documentElement; document.querySelector('#source').textContent = data.project;\n" +
+  '  root.dataset.hiveChapters = JSON.stringify(chapters.map(c => c.id));\n' +
+  "  const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.place === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.component ?? c.id; node.textContent = `${ch?.number ?? '—'} ${c.name}${c.note ? ` · ${c.note}` : ''}`; labels.append(node); return node; });\n" +
+  '  const labelHeights = new Map(hive?.children.filter(c => c.userData.place).map(c => [c.userData.place, c.userData.labelHeight]));\n' +
+  "  let mode = 'tour', voice = 'plain', selected = null, entered = null, progress = 0, chapterIndex = 0, yaw = 0, zoom = 1;\n" +
+  "  let gestureState = { mode, selected, zoom }, desired = overview(model), current = desired, readingKey = '';\n" +
+  '  const aspect = () => stage.clientWidth / stage.clientHeight;\n' +
+  '  const reading = () => {\n' +
+  "    const id = mode === 'tour' ? chapters[chapterIndex].id : selected;\n" +
+  '    const key = `${id}/${mode}/${voice}`;\n' +
+  '    if (key === readingKey) return; readingKey = key;\n' +
+  '    renderText(document, stories, textLayer(data, `#${id}`, rendererName, voice, chapters, mode));\n' +
+  "    root.dataset.hiveSelection = selected ?? '';\n" +
+  '  };\n' +
+  '  const setPose = pose => { desired = pose; if (still || preference.matches) current = pose; };\n' +
+  '  const apply = effect => {\n' +
+  "    if (effect.type === 'hash') location.hash = effect.value;\n" +
+  "    else if (effect.type === 'select') { selected = effect.id; reading(); frame(); }\n" +
+  "    else if (effect.type === 'orbit') { yaw += effect.delta; frame(); }\n" +
+  "    else if (effect.type === 'zoom') { zoom = effect.value; frame(); }\n" +
+  '  };\n' +
+  "  stories.addEventListener('click', event => {\n" +
+  "    const button = event.target.closest('button'); if (!button) return;\n" +
+  '    if (button.dataset.voice) { voice = button.dataset.voice; reading(); return; }\n' +
+  '    const action = button.dataset.action;\n' +
+  "    if (action === 'explore') apply({ type: 'hash', value: '#explore' });\n" +
+  '    else if (action) { const result = explore({ ...gestureState, selected }, { type: action, id: button.dataset.component }); gestureState = result.state; result.effects.forEach(apply); }\n' +
+  '  });\n' +
+  "  stories.addEventListener('change', event => { if (event.target.matches('select')) apply({ type: 'hash', value: event.target.value || '#overview' }); });\n" +
+  '  const scrollProgress = () => {\n' +
+  "    if (mode !== 'tour') return;\n" +
+  '    progress = Math.max(0, Math.min(chapters.length - 1, scrollY / sections.firstElementChild.offsetHeight));\n' +
+  '    chapterIndex = Math.round(progress); setPose(tourPose(chapters, progress, aspect(), still || preference.matches)); reading(); frame();\n' +
+  '  };\n' +
+  '  const readHash = () => {\n' +
+  "    const hash = decodeURIComponent(location.hash.slice(1)), [kind, id] = hash.split('/');\n" +
+  '    const valid = model.chambers.some(c => c.id === id || c.component === id);\n' +
+  "    mode = kind === 'explore' || kind === 'enter' && valid ? 'explore' : 'tour';\n" +
+  "    root.dataset.hiveMode = mode; document.body.classList.toggle('exploring', mode === 'explore');\n" +
+  "    entered = kind === 'enter' && valid ? id : null; selected = valid && mode === 'explore' ? id : null;\n" +
+  '    gestureState = { mode, selected, zoom: 1 }; yaw = 0; zoom = 1;\n' +
+  "    sections.hidden = mode === 'explore';\n" +
+  "    if (mode === 'tour') { progress = chapterProgress(chapters, `#${hash}`); chapterIndex = progress; scrollTo(0, sections.children[chapterIndex].offsetTop); setPose(tourPose(chapters, progress, aspect(), still || preference.matches)); }\n" +
+  '    else if (entered) setPose(focus(model, entered, aspect()));\n' +
+  '    else setPose(overview(model, aspect()));\n' +
+  '    reading(); frame();\n' +
+  '  };\n' +
+  '  const draw = () => {\n' +
+  '    const state = animationStep(performance.now() / 1000, { still, reduced: preference.matches });\n' +
+  '    if (renderer) {\n' +
+  '      const ease = still || preference.matches ? 1 : STYLE.focusEase;\n' +
+  '      current = { ...desired, target: current.target.map((v, i) => v + (desired.target[i] - v) * ease), position: current.position.map((v, i) => v + (desired.position[i] - v) * ease) };\n' +
+  '      const vector = current.position.map((v, i) => (v - current.target[i]) * zoom), angle = yaw;\n' +
+  '      camera.position.set(current.target[0] + vector[0] * Math.cos(angle) + vector[2] * Math.sin(angle), current.target[1] + vector[1], current.target[2] + vector[2] * Math.cos(angle) - vector[0] * Math.sin(angle)); camera.lookAt(...current.target); camera.updateMatrixWorld();\n' +
+  "      const active = mode === 'tour' ? chapters[chapterIndex].component : selected, visible = visibleRoads(model.roads, mode === 'tour' ? chapters[chapterIndex].id : null);\n" +
+  '      const activePlace = model.chambers.find(c => c.component === active || c.id === active)?.id;\n' +
+  '      hive.children.forEach(o => {\n' +
+  "        if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = mode === 'explore' && activePlace && model.roads.find(r => r.id === o.userData.road && [r.from, r.to].includes(activePlace)); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }\n" +
+  "        if (o.userData.component) o.traverse(m => { if (m.isMesh) { m.userData.highlight ??= m.material.clone(); m.material = m.userData.highlight; m.material.emissive?.set(o.userData.component === active ? '#303831' : '#000000'); m.material.emissiveIntensity = 0.12; } });\n" +
+  '      });\n' +
+  '      hive.traverse(o => { if (o.userData.worker) o.rotation.y = state.beePha'... 6180 more characters
+
+    at file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:154:91
+    at async test (file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:143:1
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+FAIL R-3174: motion clocks pin idle and distance-scaled flight limits AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   flightMaxMs: 4200,
+-   flightMinMs: 1600,
+-   idleMs: 400,
+-   openingMs: 4000
+- }
+
+    at file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:187:10
+    at async test (file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:185:1
+PASS R-3177: window lights follow audit status and dark target forms stay complete
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches

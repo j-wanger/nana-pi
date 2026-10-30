@@ -1,0 +1,49 @@
+PAIR rounded stage
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+exit 0
+FAIL R-3174: scroll position maps to continuous stage without short-input dead zones Expected values to be strictly equal:
+
+0 !== 0.001
+exit 1
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+exit 0
+PAIR linear camera distance
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+exit 0
+FAIL R-3174: scroll position maps to continuous stage without short-input dead zones distance blends logarithmically
+exit 1
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+exit 0
+PAIR idle clock disabled
+PASS R-3174: motion clocks pin idle and distance-scaled flight limits
+exit 0
+FAIL R-3174: motion clocks pin idle and distance-scaled flight limits Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    flightMaxMs: 4200,
+    flightMinMs: 1600,
++   idleMs: 4000,
+-   idleMs: 400,
+    openingMs: 4000
+  }
+exit 1
+PASS R-3174: motion clocks pin idle and distance-scaled flight limits
+exit 0
+PAIR token footprints
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+exit 0
+FAIL R-3172: dense town scale retains chosen lot and housing dimensions Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
++   footprint: 0.58,
+-   footprint: 0.82,
+    heightVariation: 4,
+    houseDepth: 7,
+    houseHeight: 5,
+    houseStep: 12,
+    houseWidth: 8
+exit 1
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+exit 0

@@ -1,0 +1,14 @@
+(node:83432) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<repo>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+PASS R-3173: scene streets match pale narrow connected frontage and the single outbound gate
+PASS R-3174: request journey frames fourteen narrated chapters
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+PASS R-3174: motion clocks pin idle and distance-scaled flight limits
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+PASS R-3177: window lights follow audit status and dark target forms stay complete
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+9 hive city checks passed

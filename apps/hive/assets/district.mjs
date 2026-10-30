@@ -7,12 +7,12 @@
  * @errors None for a valid lot.
  */
 import { box as sharedBox, drum as sharedDrum, hoop as sharedHoop, beam as sharedBeam, fence as sharedFence } from './parts.mjs';
-import { STYLE, LIGHTS } from '../config.mjs';
+import { STYLE, LIGHTS, DENSITY } from '../config.mjs';
 export function buildDistrict(THREE, n, materials) {
   const building = new THREE.Group(), cube = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 8);
   const box = sharedBox.bind(null, THREE, materials, cube), drum = sharedDrum.bind(null, THREE, materials), hoop = sharedHoop.bind(null, THREE, materials);
   const beam = sharedBeam.bind(null, THREE, materials, rod), fence = sharedFence.bind(null, THREE, materials, rod);
-  const c = { id: n.component ?? n.id, kind: n.kind, material: { status: 'sound' } }, r = n.radius * 0.58, height = STYLE.structureHeight, skin = materials.status.sound, open = false;
+  const c = { id: n.component ?? n.id, kind: n.kind, material: { status: 'sound' } }, r = n.radius * DENSITY.footprint, height = STYLE.structureHeight, skin = materials.status.sound, open = false;
   drum(building, 0, -0.25, 0, n.radius, 0.3, materials.rim[n.kind]);
   const kerb = hoop(building, 0, -0.07, 0, n.radius, skin); kerb.rotation.x = Math.PI / 2;
   const face = n.face ?? [0, 1];
@@ -35,9 +35,14 @@ export function buildDistrict(THREE, n, materials) {
         box(building, x, h / 2, z, r * 0.7, h, r * 0.6); const roof = box(building, x, h + 0.2, z, r * 0.8, 0.2, r * 0.75, materials.ink); roof.rotation.z = 0.15;
       }
     } else {
-      box(building, 0, 1.8, 0, r * 1.8, 3.6, r * 1.6);
+      if (n.form === 'bay') {
+        // The open front lets the crew be seen working inside, not orbiting the lot.
+        box(building, 0, 0.1, 0, r * 1.8, 0.2, r * 1.6);
+        box(building, 0, 1.8, -r * 0.78, r * 1.8, 3.6, 0.18);
+        for (const side of [-1, 1]) box(building, side * r * 0.88, 1.8, 0, 0.18, 3.6, r * 1.6);
+      } else box(building, 0, 1.8, 0, r * 1.8, 3.6, r * 1.6);
       for (let i = -1; i <= 1; i++) { const roof = box(building, i * r * 0.6, 3.9, 0, r * 0.72, 0.18, r * 1.7); roof.rotation.z = Math.PI / 8; }
-      box(building, 0, 0.9, r * 0.81, r * 0.7, 1.8, 0.06, materials.ink);
+      if (n.form !== 'bay') box(building, 0, 0.9, r * 0.81, r * 0.7, 1.8, 0.06, materials.ink);
       for (const x of [-r * 0.7, r * 0.7]) box(building, x, 2, r * 0.84, 0.12, 4, 0.12, materials.rim.workflow);
       if (n.form === 'vault') for (let i = -2; i <= 2; i++) box(building, i * 0.35, 1, r * 0.84, 0.08, 2, 0.1);
     }

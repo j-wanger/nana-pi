@@ -25,7 +25,7 @@ export function checkCityPlan(plan, components) {
   const visit = (id, context) => { if (!placed.has(id)) problems.push(`${context}: unknown component ${id}`); if (visited.has(id)) problems.push(`${id}: visited twice`); visited.add(id); };
   const chapters = new Set();
   for (const step of plan.journey) {
-    if (!fields(step, ['id', 'place', 'component', 'visits']) || !Array.isArray(step.visits)) { problems.push('journey: invalid hand source'); continue; }
+    if (!fields(step, ['id', 'place', 'component', 'visits', 'title', 'text']) || !Array.isArray(step.visits)) { problems.push('journey: invalid hand source'); continue; }
     if (chapters.has(step.id)) problems.push(`${step.id}: duplicate chapter`); chapters.add(step.id);
     if (step.place !== null) place(step.place, step.id);
     if (step.component) visit(step.component, step.id);
@@ -77,7 +77,7 @@ export function cityLayout(data, plan, overrides = {}) {
     const status = c?.status ?? (bay >= 0 && bay < CITY.litBays && byComponent.has('workshop') ? 'sound' : ['tower', 'craft', 'customers'].includes(n.form) && !n.component ? 'sound' : 'absent');
     return { ...n, radius, y: 0, material: { status, kind: c?.kind ?? 'workflow' }, note: n.note ?? (n.component && !c ? 'Not in audit' : null) };
   });
-  const park = places.filter(n => n.district === 'park' && !['yard', 'land-gate'].includes(n.id));
+  const park = places.filter(n => n.district === 'park' && !['tower', 'land-gate'].includes(n.id));
   const parkMass = park.reduce((s, n) => s + n.radius * 2 + CITY.clearance, 0);
   for (const [i, n] of park.entries()) {
     let r = CITY.parkBase + i % CITY.parkBands * CITY.radialStep + parkMass / (Math.PI * 2 * CITY.parkBands);
@@ -85,7 +85,7 @@ export function cityLayout(data, plan, overrides = {}) {
     while (park.slice(0, i).some(b => Math.hypot(b.x - p[0], b.z - p[1]) < b.radius + n.radius + CITY.clearance)) { r += CITY.bandGap; p = polar(n.bearing, r); }
     [n.x, n.z] = p;
   }
-  const yard = places.find(n => n.id === 'yard'); Object.assign(yard, { x: 0, z: 0 });
+  const tower = places.find(n => n.id === 'tower'); Object.assign(tower, { x: 0, z: 0 });
   const fenceRadius = roundPosition(Math.max(...park.map(n => Math.hypot(n.x, n.z) + n.radius)) + CITY.fenceGap + park.length * CITY.positionGrid);
   const ringRadius = roundPosition(fenceRadius + CITY.ringGap);
   const town = places.filter(n => n.district === 'town');
@@ -100,7 +100,6 @@ export function cityLayout(data, plan, overrides = {}) {
   let edge = townOuterRadius;
   for (const n of places.filter(n => n.district === 'edge')) { edge += n.radius * 2 + CITY.edgeGap; [n.x, n.z] = polar(n.bearing, edge); }
   for (const [i, n] of places.filter(n => n.district === 'outside').entries()) [n.x, n.z] = polar(n.bearing, edge + CITY.outsideGap + n.radius * 2 + i * CITY.bandGap);
-  const tower = places.find(n => n.id === 'tower');
   for (const n of places.filter(n => n.district === 'sky')) Object.assign(n, { x: tower.x, z: tower.z, y: CITY.skyHeight });
   const controlledPark = park.filter(n => n.component && overrides[n.component]).map(n => Math.hypot(...overrides[n.component]));
   const controlRing = controlledPark.length && Math.max(...controlledPark) - Math.min(...controlledPark) < CITY.positionGrid ? controlledPark[0] : null;
@@ -120,7 +119,7 @@ export function cityLayout(data, plan, overrides = {}) {
   const add = (id, from, to, path, kind = 'local', district = 'park', extra = {}) => { const r = { id, from, to, path, kind, class: kind === 'forward' ? 'avenue' : kind === 'air' ? 'air' : kind === 'back' ? 'back' : 'local', district, ...extra }; roads.push(r); return r; };
   const obstacles = places.filter(n => n.district !== 'sky');
   const parkObstacles = obstacles.filter(n => n.district === 'park');
-  const hub = [roundPosition(-yard.radius - CITY.frontage / 2), 0];
+  const hub = tower.front;
   const inside = p => Math.hypot(...p) < fenceRadius;
   const entryIn = [0, roundPosition(fenceRadius - CITY.ringGap)], entryOut = [0, roundPosition(fenceRadius + CITY.ringGap)];
   const northIn = gate.front, northOut = [0, roundPosition(-fenceRadius - gate.radius - CITY.frontage)];
@@ -128,12 +127,14 @@ export function cityLayout(data, plan, overrides = {}) {
   const ringIndex = n => (Math.round(n.bearing / 360 * CITY.arcSamples) % CITY.arcSamples + CITY.arcSamples) % CITY.arcSamples;
   const outside = p => Math.hypot(...p) >= fenceRadius + CITY.positionGrid;
   for (let i = 0; i < ring.length; i++) add(`ring-${i}`, 'ring', 'ring', [ring[i], ring[(i + 1) % ring.length]], 'local', 'town');
-  for (const n of places.filter(n => n.district === 'park')) {
-    const end = n.id === 'yard' ? n.front : n.front;
-    const path = streetRoute(hub, end, parkObstacles, inside);
-    if (path.length === 2 && path[0].join() === path[1].join()) continue;
-    add(`local/${n.id}`, 'yard', n.id, path, 'local', 'park');
+  // The journey street joins neighbouring halls, rather than drawing a spoke to every lot.
+  const halls = places.filter(n => n.district === 'park' && n.id !== 'tower').sort((a, b) => a.bearing - b.bearing);
+  for (const [i, n] of halls.entries()) {
+    const next = halls[(i + 1) % halls.length];
+    add(`local/${n.id}`, n.id, next.id, streetRoute(n.front, next.front, parkObstacles, inside), 'local', 'park');
   }
+  const drafting = places.find(n => n.id === 'drafting');
+  add('plaza-avenue', 'tower', 'drafting', streetRoute(hub, drafting.front, parkObstacles, inside), 'forward', 'park');
   add('entry-approach', 'yard', 'entry', streetRoute(hub, entryIn, parkObstacles, inside), 'forward');
   add('entry-crossing', 'entry', 'tower', [entryIn, entryOut], 'forward', 'town');
   // Entry and north gate are shared physical segments, not duplicate back-road crossings.

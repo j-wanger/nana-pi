@@ -1,0 +1,15 @@
+380 overview {"renderer":"webgl","chapter":"overview","opening":"1","card":"One wish, shipped"}
+380 signal {"renderer":"webgl","chapter":"signal","opening":"1","card":"A signal arrives"}
+380 compass {"renderer":"webgl","chapter":"compass","opening":"1","card":"The reception tower"}
+380 workshop {"renderer":"webgl","chapter":"workshop","opening":"1","card":"The workshop bays"}
+380 land-gate {"renderer":"webgl","chapter":"land-gate","opening":"1","card":"The land gate"}
+380 closing {"renderer":"webgl","chapter":"closing","opening":"1","card":"The whole city"}
+380 explore/workshop {"renderer":"webgl","chapter":"explore","opening":"1","card":"The workshop bays"}
+1280 overview {"renderer":"webgl","chapter":"overview","opening":"1","card":"One wish, shipped"}
+1280 signal {"renderer":"webgl","chapter":"signal","opening":"1","card":"A signal arrives"}
+1280 compass {"renderer":"webgl","chapter":"compass","opening":"1","card":"The reception tower"}
+1280 workshop {"renderer":"webgl","chapter":"workshop","opening":"1","card":"The workshop bays"}
+1280 land-gate {"renderer":"webgl","chapter":"land-gate","opening":"1","card":"The land gate"}
+1280 closing {"renderer":"webgl","chapter":"closing","opening":"1","card":"The whole city"}
+1280 explore/workshop {"renderer":"webgl","chapter":"explore","opening":"1","card":"The workshop bays"}
+PASS any scroll key skips opening

@@ -6,14 +6,18 @@
  * @effects none
  * @errors None.
  */
-// chosen (2026-10-30, R-3172): a steeper overview preserves the loop's depth on a phone.
-export const OVERVIEW_ELEVATION = 1.35;
+// chosen (2026-10-30, R-3172): a lower three-quarter overview gives the blocks visible facades.
+export const OVERVIEW_ELEVATION = 0.8;
+// chosen (2026-10-30, R-3172): fill lots and town gaps with unlabelled neutral housing blocks.
+export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 12, houseWidth: 8, houseDepth: 7, houseHeight: 5, heightVariation: 4 });
+// contract (build 9 brief, R-3174): settle the camera only; flight and page share one clock.
+export const MOTION = Object.freeze({ idleMs: 400, flightMinMs: 1600, flightMaxMs: 4200, openingMs: 4000 });
 // chosen (2026-10-30, R-3172): encloses the square foundation corners and the instruments drawn on them.
 export const FOOTPRINT_SCALE = 1.3;
 // chosen (2026-10-30, R-3175): phone drift tolerance and deliberate double taps; roads keep the lane loop dominant.
 export const NAVIGATION = Object.freeze({ tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: Object.freeze({ loop: 3.6, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 }), overviewClasses: Object.freeze(['loop', 'spur']) });
 // chosen (2026-10-30, R-3173): streets lie below foundations; depthOffset prevents far-overview z-fighting with ground.
-export const STREETS = Object.freeze({ thickness: 0.04, elevation: -0.43, edgeWidth: 0.04, laneWidth: 0.06, dashLength: 0.8, dashGap: 0.8, widths: Object.freeze({ avenue: 1.2, local: 0.7, back: 0.3, air: 0.07 }), widthCaps: Object.freeze({ avenue: 0.12, local: 0.08 }), kerbHeight: 0.05, depthOffset: -4 });
+export const STREETS = Object.freeze({ thickness: 0.04, elevation: -0.43, edgeWidth: 0.04, laneWidth: 0.06, dashLength: 0.8, dashGap: 0.8, widths: Object.freeze({ avenue: 1.2, local: 1, back: 0.3, air: 0.07 }), widthCaps: Object.freeze({ avenue: 0.12, local: 0.08 }), kerbHeight: 0.05, depthOffset: -4 });
 // chosen (2026-10-30, R-3134): footprint-sized radial bands, narrow frontage and visible phone contrast.
 // probeOffset samples ground three world units away, beyond the street's antialiasing fringe.
 // bayCount is chosen for parallel capacity; litBays is contract (2026-10-16 ruling: two builders).

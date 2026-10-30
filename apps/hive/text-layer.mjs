@@ -11,9 +11,9 @@ export function textLayer(data, hash, renderer, voice = 'plain', chapters = null
   if (mode === 'explore' && chapters) for (const n of chapters[0].model.chambers) if (!order.some(ch => ch.place === n.id)) order.push({ id: n.component ?? n.id, component: n.component, place: n.id, name: n.name, number: '—', model: chapters[0].model });
   const components = order.map(ch => {
     const c = data.components.find(c => c.id === ch.component), lot = ch.model?.chambers.find(n => n.id === ch.place);
-    return { id: ch.id, name: ch.name, componentName: c?.name ?? '', metaphor: c?.metaphor ?? (ch.id === 'signal' ? 'One wish becomes a signal. The reception tower catches it.' : ch.id === 'customers' ? 'Other projects receive the work. Their feedback becomes the next signal.' : 'Follow one wish through the city, then explore.'), kind: c?.kind ?? 'workflow', status: c?.status ?? 'absent', features: c?.features ?? [], parts: c?.parts ?? [], evidence: c?.evidence ?? [], gap: c?.gap, ask: c?.ask, note: lot?.note, number: ch.number };
+    return { id: ch.id, name: voice === 'plain' ? ch.name : c?.name ?? ch.name, narration: ch.text, componentName: c?.name ?? '', metaphor: c?.metaphor ?? (ch.id === 'signal' ? 'One wish becomes a signal. The reception tower catches it.' : ch.id === 'customers' ? 'Other projects receive the work. Their feedback becomes the next signal.' : 'Follow one wish through the city, then explore.'), kind: c?.kind ?? 'workflow', status: c?.status ?? 'absent', features: c?.features ?? [], parts: c?.parts ?? [], evidence: c?.evidence ?? [], gap: c?.gap, ask: c?.ask, note: lot?.note, number: ch.number };
   });
-  const active = components.find(c => `#${c.id}` === hash && !['overview', 'closing'].includes(c.id))?.id ?? null;
+  const active = components.find(c => `#${c.id}` === hash && (chapters || !['overview', 'closing'].includes(c.id)))?.id ?? null;
   return {
     active, voice, mode, renderer: `Renderer: ${renderer}${renderer === 'pixel' ? ' · streets in 3D only' : ''}`,
     landing: mode === 'tour'
@@ -22,8 +22,8 @@ export function textLayer(data, hash, renderer, voice = 'plain', chapters = null
     rail: components.map(c => ({ href: `#${c.id}`, name: c.name, chapter: `${c.number.toUpperCase()} ${c.name.toUpperCase()}`, active: c.id === active })),
     cards: components.map(c => {
       const voices = {
-        plain: [c.componentName, c.metaphor, c.note].filter(Boolean).join(' · '),
-        technical: [`${c.kind} · ${c.status}`, ...c.features.map(f => `${f.label} — ${f.implemented} of ${f.rows}`), !c.features.length ? 'No features recorded · empty foundation' : null, `Parts: ${c.parts.join('\n') || 'none'}`, `Evidence: ${c.evidence.join(', ')}`].filter(Boolean).join('\n\n'),
+        plain: c.narration ?? [c.componentName, c.metaphor, c.note].filter(Boolean).join(' · '),
+        technical: [c.componentName, c.metaphor, `${c.kind} · ${c.status}`, ...c.features.map(f => `${f.label} — ${f.implemented} of ${f.rows}`), !c.features.length ? 'No features recorded · empty foundation' : null, `Parts: ${c.parts.join('\n') || 'none'}`, `Evidence: ${c.evidence.join(', ')}`].filter(Boolean).join('\n\n'),
         work: [c.gap || 'No gap recorded in this assessment.', ...(c.ask ? [`Question: ${c.ask.question}`, `Default: ${c.ask.default}`, `Gains and misses: ${c.ask.gains}`, `Cost: ${c.ask.cost}`, `Otherwise: ${c.ask.otherwise}`] : ['No decision requested.'])].join('\n\n'),
       };
       return { id: c.id, name: c.name, active: c.id === active, chapter: c.number, voices, text: Object.values(voices).join('\n') };
@@ -79,6 +79,7 @@ export function renderText(document, container, model) {
         el('span', text.slice(end), p);
       }
     }
+    if (model.mode === 'tour' && ['overview', 'closing'].includes(item.id)) { const button = el('button', 'Explore', article); button.setAttribute('data-action', 'explore'); }
     if (model.mode === 'explore') for (const [action, label] of [['enter', 'Enter'], ['back', 'Back'], ['tour', 'Back to tour']]) { const button = el('button', label, article); button.setAttribute('data-action', action); button.setAttribute('data-component', item.id); }
   }
   return container;

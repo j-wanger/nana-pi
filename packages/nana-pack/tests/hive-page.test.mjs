@@ -74,7 +74,8 @@ await test('R-3126: rail order and active cards retain the complete component st
   const model = textLayer(fixture, '#library', 'pixel', 'plain', tour(layout(fixture, plan), plan));
   assert.deepEqual(model.rail.map(r => r.href), tour(layout(fixture, plan), plan).map(c => `#${c.id}`));
   assert.equal(model.active, 'library'); const card = model.cards.find(c => c.active);
-  assert.equal(card.name, 'Library theater');
+  assert.equal(card.name, 'The way back');
+  assert.equal(card.voices.plain, plan.journey.find(s => s.id === 'library').text);
   for (const value of [fixture.components[1].metaphor, 'workflow', 'gap', fixture.components[1].gap, fixture.components[1].ask.question, '6 of 8', '4 of 4']) assert(card.text.includes(value));
   assert.equal(textLayer(fixture, '#unknown', 'webgl').active, null); assert.equal(model.cards.length, model.rail.length); assert.equal(model.renderer, 'Renderer: pixel · streets in 3D only');
   const node = (tag) => ({ tag, children: [], attrs: {}, textContent: '', append(...xs) { this.children.push(...xs); }, setAttribute(k, v) { this.attrs[k] = v; }, replaceChildren(...xs) { this.children = xs; } });

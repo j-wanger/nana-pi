@@ -67,7 +67,8 @@ await test('R-3172: radial city separates districts and rejects grid and ring co
   const { cityLayout, cityShapeProblems, roundPosition } = await city(); const { CITY } = await import('../../../apps/hive/config.mjs'); const p = await plan(), data = await audit();
   const m = cityLayout(data, p); assert.deepEqual(m, cityLayout(data, p)); assert.deepEqual(cityShapeProblems(m), []);
   const at = id => m.places.find(n => n.id === id), radius = n => Math.hypot(n.x, n.z);
-  assert.deepEqual([at('yard').x, at('yard').z], [0, 0]);
+  assert.deepEqual([at('tower').x, at('tower').z], [0, 0]);
+  assert(Math.hypot(at('yard').x, at('yard').z) > at('tower').radius + at('yard').radius);
   for (const n of m.places) {
     assert(Math.max(Math.abs(n.x), Math.abs(n.z)) + n.radius <= CITY.worldHalfExtent, n.id);
     assert.equal(n.x, roundPosition(n.x)); assert.equal(n.z, roundPosition(n.z));
@@ -75,10 +76,13 @@ await test('R-3172: radial city separates districts and rejects grid and ring co
     if (['town', 'edge'].includes(n.district)) assert(radius(n) - n.radius > m.ringRadius, n.id);
     for (const b of m.places.filter(b => b.id > n.id && b.district !== 'sky' && n.district !== 'sky')) assert(Math.hypot(n.x - b.x, n.z - b.z) >= n.radius + b.radius + CITY.clearance - CITY.positionGrid * 2, `${n.id}/${b.id}`);
   }
-  assert.equal(at('tower').district, 'town'); assert(at('tower').z > 0); assert.equal(at('land-gate').z, -m.fenceRadius);
+  assert.equal(at('tower').district, 'park'); assert.equal(at('tower').z, 0); assert.equal(at('land-gate').z, -m.fenceRadius);
   assert(at('customs').z < -m.townOuterRadius); assert(at('freight').z < at('customs').z); assert(at('customers').z < at('freight').z);
   assert(Math.abs(at('billboard').bearing) <= CITY.northTolerance); assert.deepEqual(at('billboard').face, [0, -1]);
-  assert.deepEqual([at('signal').x, at('signal').z], [at('tower').x, at('tower').z]); assert.equal(at('signal').y, CITY.skyHeight);
+  assert(!at('signal'), 'signals are not buildings');
+  const core = ['drafting', 'yard', 'bay-1', 'inspection', 'ladder'].map(at);
+  assert(core.every(n => Math.hypot(n.x, n.z) > at('tower').radius + n.radius));
+  assert(core.every((n, i) => !i || n.bearing < core[i - 1].bearing), 'halls ring the plaza in journey order');
   const q = structuredClone(p); q.places.push({ id: 'new-hall', name: 'New hall', district: 'park', bearing: 68, form: 'hall', component: null });
   assert(cityLayout(data, q).fenceRadius > m.fenceRadius);
   const t = structuredClone(p); t.places.push({ id: 'new-town', name: 'New town lot', district: 'town', bearing: 90, form: 'hall', component: null });
@@ -140,33 +144,61 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
   }
 });
 // req: R-3174
-await test('R-3174: request journey frames steps and anchored visits while walking drawn streets', async () => {
+await test('R-3174: request journey frames fourteen narrated chapters', async () => {
   const { tour, tourPose, chapterProgress } = await import('../../../apps/hive/tour.mjs'); const { layout } = await import('../../../apps/hive/layout.mjs');
   const { CITY } = await import('../../../apps/hive/config.mjs'); const { VIEWPORT_WIDTHS, VIEWPORT_HEIGHT } = await import('../../../scripts/first-look-config.mjs'); const THREE = await import('../../../apps/hive/vendor/three.module.js');
   const p = await plan(), data = await audit(), m = layout(data, p), chapters = tour(m, p);
   assert.deepEqual(chapters.filter(c => !c.visit).map(c => c.id), ['overview', 'signal', 'compass', 'drafting-table', 'queue', 'workshop', 'eyes', 'review-ladder', 'land-gate', 'identity-scan', 'release-route', 'customers', 'library', 'closing']);
-  assert.deepEqual(chapters.filter(c => c.component).map(c => c.component).sort(), data.components.map(c => c.id).sort());
+  assert.equal(chapters.length, 14);
+  for (const [i, ch] of chapters.entries()) { assert.equal(ch.name, p.journey[i].title); assert.equal(ch.text, p.journey[i].text); assert(ch.text.length > 20); }
+  const { textLayer: narration } = await import('../../../apps/hive/text-layer.mjs');
+  for (const ch of chapters) { const card = narration(data, `#${ch.id}`, 'webgl', 'plain', chapters).cards.find(c => c.id === ch.id); assert.equal(card.voices.plain, ch.text); }
   const { textLayer } = await import('../../../apps/hive/text-layer.mjs'); const text = textLayer(data, '#workshop', 'webgl', 'plain', chapters);
   assert.deepEqual(text.rail.map(r => r.href), chapters.map(c => `#${c.id}`)); for (const [i, r] of text.rail.entries()) assert(r.chapter.startsWith(`${chapters[i].number} ${chapters[i].name.toUpperCase()}`));
-  const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert.match(source, /progress = chapterIndex; scrollTo/);
+  const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert.match(source, /stageAtScroll/);
   for (const width of VIEWPORT_WIDTHS) for (const [i, c] of chapters.entries()) {
     const aspect = width / VIEWPORT_HEIGHT, pose = tourPose(chapters, i, aspect); assert.equal(chapterProgress(chapters, `#${c.id}`), i);
-    if (c.visit) { const step = chapters.findIndex(s => s.id === c.step); assert.deepEqual(pose.target, tourPose(chapters, step, aspect).target); }
     const cam = new THREE.PerspectiveCamera(pose.fov, aspect, 0.1, 10000); cam.position.set(...pose.position); cam.lookAt(...pose.target); cam.updateMatrixWorld();
     for (const id of [c.place, ...(c.visit ? [chapters.find(s => s.id === c.step).place] : [])].filter(Boolean)) {
       const bounds = m.chambers.find(n => n.id === id).bounds;
       for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) { const v = new THREE.Vector3(x, y, z).project(cam); assert(Math.abs(v.x) < 1 && Math.abs(v.y) < 1, `${c.id}/${width}`); }
     }
     if (i) for (const t of [0.25, 0.5, 0.75]) {
-      const mid = tourPose(chapters, i - 1 + t, aspect); assert.deepEqual(tourPose(chapters, i - 1 + t, aspect, true), tourPose(chapters, Math.round(i - 1 + t), aspect));
-      if (c.visit) assert.deepEqual(mid.target, pose.target);
-      else if (c.walk.length > 1) assert(c.walk.slice(1).some((b, j) => {
-        const a = c.walk[j], d = b.map((v, k) => v - a[k]), length = d.reduce((sum, v) => sum + v * v, 0);
-        const t = length ? Math.max(0, Math.min(1, d.reduce((sum, v, k) => sum + v * (mid.target[k] - a[k]), 0) / length)) : 0;
-        return Math.hypot(...a.map((v, k) => mid.target[k] - v - d[k] * t)) <= CITY.walkTolerance;
-      }));
+      const mid = tourPose(chapters, i - 1 + t, aspect);
+      assert.deepEqual(tourPose(chapters, i - 1 + t, aspect, true), mid);
+      assert(mid.position.every(Number.isFinite));
+      const before = tourPose(chapters, i - 1 + t - CITY.positionGrid, aspect);
+      assert(Math.hypot(...mid.target.map((v, j) => v - before.target[j])) < 1);
     }
   }
+});
+// req: R-3174
+await test('R-3174: scroll position maps to continuous stage without short-input dead zones', async () => {
+  const { stageAtScroll } = await import('../../../apps/hive/tour.mjs');
+  assert.equal(typeof stageAtScroll, 'function');
+  assert.equal(stageAtScroll(-100, 1000, 14), 0);
+  assert.equal(stageAtScroll(15000, 1000, 14), 13);
+  assert.equal(stageAtScroll(1, 1000, 14), 0.001);
+  const stages = Array.from({ length: 40 }, (_, i) => stageAtScroll((i + 1) * 100, 1000, 14));
+  stages.forEach((s, i) => { assert.equal(s, (i + 1) / 10); assert(s > (stages[i - 1] ?? 0)); });
+  assert(stages.at(-1) >= 3);
+  for (let i = 0; i < 5; i++) assert(stageAtScroll((i + 1) * 60, 1000, 14) > stageAtScroll(i * 60, 1000, 14));
+  const { blendPose } = await import('../../../apps/hive/camera.mjs');
+  const a = { target: [0, 0, 0], position: [0, 0, 10], fov: 40 }, b = { ...a, position: [0, 0, 40] };
+  assert(Math.abs(blendPose(a, b, 0.5).position[2] - 20) < 1e-8, 'distance blends logarithmically');
+  const distant = { ...a, target: [100, 0, 0], position: [100, 0, 10] }, mid = blendPose(a, distant, 0.5);
+  assert.deepEqual(mid.target, [50, 0, 0]);
+  assert(Math.hypot(...mid.position.map((v, i) => v - mid.target[i])) > 90, 'distant target move pulls back at midpoint');
+});
+// req: R-3174
+await test('R-3174: motion clocks pin idle and distance-scaled flight limits', async () => {
+  const { MOTION } = await import('../../../apps/hive/config.mjs');
+  assert.deepEqual(MOTION, { idleMs: 400, flightMinMs: 1600, flightMaxMs: 4200, openingMs: 4000 });
+});
+// req: R-3172
+await test('R-3172: dense town scale retains chosen lot and housing dimensions', async () => {
+  const { DENSITY } = await import('../../../apps/hive/config.mjs');
+  assert.deepEqual(DENSITY, { footprint: 0.82, houseStep: 12, houseWidth: 8, houseDepth: 7, houseHeight: 5, heightVariation: 4 });
 });
 // req: R-3177
 await test('R-3177: window lights follow audit status and dark target forms stay complete', async () => {
@@ -206,6 +238,6 @@ await test('R-3175: real gesture binding never enters or changes hash on phone t
   now += 500; send('pointerdown', 1, 100, 100); send('pointerdown', 2, 200, 100); send('pointermove', 2, 5000, 100); send('pointerup', 2, 5000, 100); send('pointerup', 1, 100, 100); assert(effects.every(e => e.type === 'zoom')); assert(state.zoom >= 0.6 && state.zoom <= 2.5);
   effects.length = 0; now += 500; tap(0); tap(0); assert.equal(effects.filter(e => e.type === 'select').length, 1); assert(effects.every(e => e.type === 'select'));
   const entered = reduce({ type: 'enter', id: 'workshop' }); assert.deepEqual(entered, [{ type: 'hash', value: '#enter/workshop' }]); assert.deepEqual(reduce({ type: 'back' }), [{ type: 'hash', value: '#explore' }]); assert.deepEqual(reduce({ type: 'tour' }), [{ type: 'hash', value: '#workshop' }]);
-  unbind(); const main = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert(!/canvas\.addEventListener\(['"]pointer/.test(main)); assert.equal((main.match(/location\.hash\s*=/g) ?? []).length, 1);
+  unbind(); const main = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert(!/canvas\.addEventListener\(['"]pointer/.test(main)); assert.equal((main.match(/location\.hash\s*=/g) ?? []).length, 0); assert.match(main, /history\.pushState/);
 });
 if (!process.exitCode) console.log(`${passed} hive city checks passed`);

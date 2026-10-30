@@ -1,0 +1,63 @@
+docs/reviews/world-graph-2026-10-30/build-9-report.md:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+docs/reviews/world-graph-2026-10-30/build-9-report.md:5: passive: passive candidate: "regenerated" in "Both conflicting indexes were regenerated, not hand-merged."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:5: identifier: `3930ae0e`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:5: identifier: `origin/main`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:7: passive: passive candidate: "started" in "No model session, subagent or GitHub issue operation was started."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:21: passive: passive candidate: "allocated" in "No new row ID was allocated."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:21: passive: passive candidate: "regenerated" in "The requirements outline was regenerated during the merge and again after the changes; its latter output was unchanged."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:21: passive: passive candidate: "edited" in "No HANDOFF, known-bug file or session archive was edited by this build; incoming versions were accepted through the requested merge."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:21: identifier: `file::title`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:27: identifier: `location.hash`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:27: identifier: `history.pushState`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:31: passive: passive candidate: "deleted" in "No test was deleted."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:48: identifier: `build-9-wrong-scroll.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:48: identifier: `build-9-wrong-clocks.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:48: identifier: `build-9-wrong-density.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:48: identifier: `build-9-wrong-plaza.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:48: identifier: `build-9-wrong-gestures.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:50: passive: passive candidate: "added" in "Additional log-distance assertions were added after the blend existed."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:50: passive: passive candidate: "mutated" in "Assertions were never inverted and no repository file was mutated for this proof."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:59: identifier: `build-9-mutations.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:63: identifier: `/tmp/nana-world-9-audit.json`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:63: identifier: `node scripts/component-audit.mjs --out /tmp/nana-world-9-audit.json`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:65: passive: passive candidate: "accepted" in "`build-9-browser.txt` separately confirms WebGL for all fourteen served views; no pixel fallback is accepted."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:65: identifier: `/tmp/nana-world-9-round3/{00,01,02,05,08,13,explore}/`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:65: identifier: `page-380.png`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:65: identifier: `page-1280.png`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:65: identifier: `build-9-browser.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:66: identifier: `/tmp/nana-world-9-frames/`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:66: identifier: `manifest.json`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:67: identifier: `/tmp/nana-world-9-gestures-final/gesture-380.png`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:68: identifier: `/tmp/nana-world-9-round1/13/`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:70: identifier: `node scripts/first-look.mjs --page url --hive --after <served still/hash URL> --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out <outside-git chapter folder>`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:70: identifier: `build-9-first-look.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:88: passive: passive candidate: "copied" in "No private helper was copied or moved."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:88: identifier: `focus`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:88: identifier: `overview`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:88: identifier: `blendPose`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:88: identifier: `segmentDistance`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:88: identifier: `pathBetween`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:91: identifier: `animateHive`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:91: identifier: `assets/hive.mjs`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:91: identifier: `buildResident`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:92: length: 29 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build-9-report.md:92: identifier: `buildDistrict`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:94: passive: passive candidate: "weakened" in "Its entry-facing pixel probe selection is narrower because a named front building physically occludes one old sample; no luminance assertion was weakened."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:98: passive: passive candidate: "committed" in "Long outputs are committed in this folder as `build-9-*.txt`; home/repository prefixes are redacted without changing assertions, counts or exits."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:98: identifier: `build-9-*.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: length: 39 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: length: 27 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `npm run map:check`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `npm run readme:check`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `node scripts/requirements-trace.mjs`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `node scripts/requirements-tree.mjs --root .`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `node scripts/known-bugs.mjs --root .`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `node scripts/identity-scan.mjs`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:100: identifier: `build-9-class.txt`
+docs/reviews/world-graph-2026-10-30/build-9-report.md:102: length: 26 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build-9-report.md:102: passive: passive candidate: "claimed" in "Known-bug contact: the supplied CABINET/rail/label area changes because side visits leave the Plain tour and labels follow the current chapter; no general clipping closure is claimed."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:102: passive: passive candidate: "fixed" in "No other supplied known bug is fixed, and no known-bug file is edited."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:104: passive: passive candidate: "forbidden" in "Not done: reference-art acceptance (spec 2 and 10); substantive wrong-code-first chronology for the three new unit cases; independent review (model sessions were forbidden)."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:104: passive: passive candidate: "reported" in "CI is reported after the new tip finishes."
+docs/reviews/world-graph-2026-10-30/build-9-report.md:104: passive: passive candidate: "invented" in "No open product decision was invented or posted."
+summary sentences=87 words=1136 over=4 passive=17 banned=0 verdict=0/1 identifiers=40

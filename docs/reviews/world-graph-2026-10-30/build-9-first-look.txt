@@ -1,0 +1,14 @@
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/00
+00 exit 0
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/01
+01 exit 0
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/02
+02 exit 0
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/05
+05 exit 0
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/08
+08 exit 0
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/13
+13 exit 0
+first-look: saved screenshots and reference in /tmp/nana-world-9-round3/explore
+explore exit 0
